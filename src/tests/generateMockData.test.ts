@@ -35,18 +35,20 @@ describe('generateMockData', () => {
       // Check that all necessary fields are present
       Object.keys(sampleRecord).forEach((key) => {
         mockData[tableName].forEach((record) => {
-          expect(record).toHaveProperty(key);
+          expect(record as Record<string, unknown>).toHaveProperty(key);
         });
       });
 
       // Check that some values are null where applicable
       const nullableFields = Object.keys(sampleRecord).filter((key) =>
-        records.some((record) => record[key as keyof typeof record] === null),
+        records.some(
+          (record) => (record as Record<string, unknown>)[key] === null,
+        ),
       );
 
       nullableFields.forEach((key) => {
         const fieldValues = mockData[tableName].map(
-          (record) => record[key as keyof typeof record],
+          (record) => (record as Record<string, unknown>)[key],
         );
         expect(fieldValues).toContain(null);
       });
@@ -55,11 +57,11 @@ describe('generateMockData', () => {
       mockData[tableName].forEach((record) => {
         Object.entries(sampleRecord).forEach(([key, value]) => {
           if (value === null) {
-            expect(typeof record[key as keyof typeof record]).toMatch(
+            expect(typeof (record as Record<string, unknown>)[key]).toMatch(
               /string|number|boolean|object|null/,
             );
           } else {
-            expect(typeof record[key as keyof typeof record]).toBe(
+            expect(typeof (record as Record<string, unknown>)[key]).toBe(
               typeof value,
             );
           }
