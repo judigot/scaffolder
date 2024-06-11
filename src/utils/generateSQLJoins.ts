@@ -1,4 +1,4 @@
-function generateJoinQueries(tableInfo: Record<string, unknown[]>) {
+function generateSQLJoins(tableInfo: Record<string, unknown[]>) {
   const joins: {
     sourceTable: string;
     targetTable: string;
@@ -36,4 +36,4 @@ function generateJoinQueries(tableInfo: Record<string, unknown[]>) {
   return joinQueries;
 }
 
-export default generateJoinQueries;
+export default generateSQLJoins;

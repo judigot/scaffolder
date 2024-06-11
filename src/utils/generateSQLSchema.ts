@@ -1,4 +1,5 @@
 import mapTypeToSQL from './mapTypeToSQL';
+import { format as formatSQL } from 'sql-formatter';
 
 interface IFieldInfo {
   types: Set<string>;
@@ -100,7 +101,7 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
     },
   );
 
-  return schemaParts.join('\n');
+  return formatSQL(schemaParts.join('\n'));
 };
 
 export default generateSQLSchema;
