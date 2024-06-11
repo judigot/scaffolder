@@ -39,7 +39,7 @@ const generateTypescriptInterfaces = (
       const properties = Object.entries(fieldTypeInfo)
         .map(
           ([key, type]) =>
-            `  ${key}${nullableFields.has(key) ? '?' : ''}: ${type};`,
+            `  ${key}: ${type}${nullableFields.has(key) ? ' | null' : ''};`,
         )
         .join('\n');
 
