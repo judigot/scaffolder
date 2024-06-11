@@ -52,6 +52,24 @@ const schema = {
       updated_at: new Date(),
     },
   ],
+  post: [
+    {
+      post_id: 1,
+      user_id: 1,
+      title: `John's Post`,
+      content: 'Lorem ipsum',
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+    {
+      post_id: 2,
+      user_id: 2,
+      title: `Jane's Post`,
+      content: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  ],
 };
 
 const defaultValues: IFormInputValues = {
@@ -59,7 +77,7 @@ const defaultValues: IFormInputValues = {
   backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/databasename',
-  framework: '',
+  framework: frameworks[frameworkKeys.NEXTJS],
 };
 
 function App() {
