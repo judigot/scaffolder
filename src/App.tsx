@@ -6,12 +6,15 @@ import generateMockData from './utils/generateMockData';
 import generateInsertQueries from './utils/generateInsertQueries';
 
 import '@/styles/style.css';
+import generateJoinQueries from '@/utils/generateJoinQueries';
 
 function App(): JSX.Element {
   const [rawSchema, setRawSchema] = useState<string>('');
   const [interfaces, setInterfaces] = useState<string>('');
   const [SQLSchema, setSQLSchema] = useState<string>('');
   const [mockData, setMockData] = useState<Record<string, unknown[]>>({});
+  const [foreignKeys, setForeignKeys] = useState<string[]>([]);
+
   const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
 
   useEffect(() => {
@@ -27,6 +30,7 @@ function App(): JSX.Element {
         setInterfaces('');
         setSQLSchema('');
         setMockData({});
+        setForeignKeys([]);
         return;
       }
 
@@ -42,11 +46,12 @@ function App(): JSX.Element {
               : ''),
         );
         setMockData(generateMockData(parsedSchema));
+        setForeignKeys(generateJoinQueries(parsedSchema));
       } catch (e) {
-        // Invalid JSON, do not process
         setInterfaces('Invalid JSON input');
         setSQLSchema('Invalid JSON input');
         setMockData({});
+        setForeignKeys(['Invalid JSON input']);
       }
     },
     [includeInsertData],
@@ -77,7 +82,7 @@ function App(): JSX.Element {
   return (
     <div className="container">
       <div className="header">
-        <h1>Database Management Tool</h1>
+        <h1>App Scaffolder</h1>
       </div>
       <textarea
         name="rawSchema"
@@ -90,6 +95,21 @@ function App(): JSX.Element {
       />
       <div className="columns">
         <div className="column">
+          <h2>Foreign Keys</h2>
+          <div className="join-queries">
+            {foreignKeys.map((value, i) => (
+              <p key={i}>{value}</p>
+            ))}
+          </div>
+          <br />
+          <button
+            onClick={() => {
+              handleCopy(foreignKeys.join('\n'));
+            }}
+            className="button"
+          >
+            Copy Join Queries
+          </button>
           <h2>Database Schema</h2>
           <div className="checkbox-container">
             <label>

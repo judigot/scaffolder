@@ -7,7 +7,16 @@ body {
   box-sizing: border-box;
 }
 
+.join-queries {
+  height: 200px;
+  overflow-y: scroll;
+  border-radius: 5px;
+  padding: 10px;
+  border: 1px solid #333;
+}
+
 .container {
+  font-family: monospace;
   padding: 20px;
   min-height: 100vh;
   display: flex;
@@ -65,7 +74,6 @@ textarea {
   max-width: 800px;
   margin-bottom: 10px;
   padding: 10px;
-  font-family: monospace;
   font-size: 1rem;
   background-color: #1e1e1e;
   color: #e0e0e0;
