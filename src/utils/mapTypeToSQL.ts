@@ -1,10 +1,16 @@
-const mapTypeToSQL = (type: string): string => {
+const mapTypeToSQL = (type: string, value?: unknown): string => {
   switch (type) {
     case 'number':
       return 'BIGINT';
     case 'float':
       return 'FLOAT';
     case 'string':
+      if (typeof value === 'string') {
+        const parsedDate = Date.parse(value);
+        if (!isNaN(parsedDate)) {
+          return 'TIMESTAMP';
+        }
+      }
       return 'TEXT';
     case 'boolean':
       return 'BOOLEAN';

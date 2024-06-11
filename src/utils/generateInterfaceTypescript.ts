@@ -1,20 +1,5 @@
 import inferType from './inferType';
-
-const determineFieldType = (types: Set<string>): string => {
-  if (types.has('string')) {
-    return 'string';
-  }
-  if (types.has('float')) {
-    return 'float';
-  }
-  if (types.has('number')) {
-    return 'number';
-  }
-  if (types.has('boolean')) {
-    return 'boolean';
-  }
-  return 'unknown';
-};
+import mapTypeToTypescriptType from './mapTypeToTypescriptType';
 
 const generateTypescriptInterfaces = (
   data: Record<string, unknown[]>,
@@ -42,7 +27,10 @@ const generateTypescriptInterfaces = (
       const fieldTypeInfo = Object.entries(fields).reduce<
         Record<string, string>
       >((acc, [key, types]) => {
-        acc[key] = determineFieldType(types);
+        const sampleValue = records.find((record) => record[key] !== null)?.[
+          key
+        ];
+        acc[key] = mapTypeToTypescriptType([...types][0], sampleValue);
         return acc;
       }, {});
 

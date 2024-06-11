@@ -65,9 +65,7 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
               ? 'BIGSERIAL'
               : key.endsWith('_id')
                 ? 'BIGINT'
-                : types.has('string')
-                  ? 'TEXT'
-                  : mapTypeToSQL([...types][0]);
+                : mapTypeToSQL([...types][0], records[0][key]);
           const nullableString = nullable ? 'NULL' : 'NOT NULL';
           const uniqueString =
             uniqueColumnNames.includes(key) && !nullable ? ' UNIQUE' : '';

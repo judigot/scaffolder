@@ -24,20 +24,51 @@ interface IFormInputValues {
   backendDir: string;
   frontendDir: string;
   dbConnection: string;
-  framework: (typeof frameworks)[keyof typeof frameworks];
+  framework: (typeof frameworks)[keyof typeof frameworks] | '';
 }
 
+const schema = {
+  user: [
+    {
+      user_id: 1,
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'john.doe@example.com',
+      username: 'johndoe',
+      password: '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', // Hashed '123'
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+    {
+      user_id: 2,
+      first_name: 'Jane',
+      last_name: 'Smith',
+      email: 'jane.smith@example.com',
+      username: 'janesmith',
+      password: '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', // Hashed '123'
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  ],
+};
+
 const defaultValues: IFormInputValues = {
-  schemaInput: '',
-  backendDir: '',
-  frontendDir: '',
-  dbConnection: '',
-  framework: 'Next.js',
+  schemaInput: JSON.stringify(schema, null, 2),
+  backendDir: 'C:/Users/Username/Desktop/app/backend',
+  frontendDir: 'C:/Users/Username/Desktop/app/frontend',
+  dbConnection: 'postgresql://root:123@localhost:5432/databasename',
+  framework: '',
 };
 
 function App() {
-  const [formData, setFormData] = useState<IFormInputValues>(defaultValues);
+  const [formData, setFormData] = useState<IFormInputValues>(() => {
+    const savedData = localStorage.getItem('formData');
+    return savedData != null
+      ? (JSON.parse(savedData) as IFormInputValues)
+      : defaultValues;
+  });
   const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [interfaces, setInterfaces] = useState<string>('');
   const [SQLSchema, setSQLSchema] = useState<string>('');
@@ -48,8 +79,11 @@ function App() {
     const savedData = localStorage.getItem('formData');
     if (savedData != null) {
       const parsedData = JSON.parse(savedData) as IFormInputValues;
-      setFormData(parsedData);
+      if (Object.values(parsedData).every((value) => value === '')) {
+        setFormData(defaultValues);
+      }
     }
+    setLoading(false); // Set loading to false after data is fetched
   }, []);
 
   useEffect(() => {
@@ -120,6 +154,10 @@ function App() {
     });
   };
 
+  if (loading) {
+    return <div>Loading...</div>; // Render loading indicator while loading
+  }
+
   return (
     <div className="container">
       <div className="header">
@@ -180,6 +218,8 @@ function App() {
             onChange={handleChange}
             className="form-select"
           >
+            <option value={''}>Select a framework</option>
+
             {Object.entries(frameworks).map(
               ([key, value]: [string, string]) => (
                 <option key={key}>{value}</option>
