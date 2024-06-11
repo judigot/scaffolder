@@ -9,6 +9,15 @@ import '@/styles/style.css';
 import generateJoinQueries from '@/utils/generateJoinQueries';
 
 function App(): JSX.Element {
+  const FRAMEWORKS = {
+    NEXTJS: 'Next.js',
+    LARAVEL: 'Laravel',
+  } as const;
+
+  const [framework, setFramework] = useState<
+    (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS]
+  >(FRAMEWORKS.LARAVEL);
+
   const [rawSchema, setRawSchema] = useState<string>('');
   const [interfaces, setInterfaces] = useState<string>('');
   const [SQLSchema, setSQLSchema] = useState<string>('');
@@ -84,6 +93,7 @@ function App(): JSX.Element {
       <div className="header">
         <h1>App Scaffolder</h1>
       </div>
+
       <textarea
         name="rawSchema"
         id="rawSchema"
@@ -93,6 +103,24 @@ function App(): JSX.Element {
         rows={10}
         className="textarea"
       />
+      <select
+        onChange={(e) => {
+          setFramework(
+            e.currentTarget
+              .value as (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS],
+          );
+        }}
+        value={framework}
+        name="framework"
+        id="framework"
+      >
+        {Object.entries(FRAMEWORKS).map(([key, value]: [string, string]) => (
+          <option key={key} value={key}>
+            {value}
+          </option>
+        ))}
+      </select>
+      <br />
       <div className="columns">
         <div className="column">
           <h2>Foreign Keys</h2>
