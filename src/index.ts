@@ -15,9 +15,25 @@ if (platform === 'win32') {
 
 const publicDirectory = path.join(__dirname, 'public');
 
+app.use(express.json());
+
 // Enable CORS and serve static files
 app.use(cors());
 app.use(express.static(publicDirectory));
+
+import fs from 'fs';
+app.post('/api/createFile', (req: Request, _res) => {
+  const data = req.body as Record<string, string>;
+
+  const fileName = `${data.targetDirectory}/filename.txt`;
+  fs.writeFile(fileName, data.framework, (error) => {
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.log(error);
+      return;
+    }
+  });
+});
 
 // Define routes
 app.get('/', (_req, res) => {
