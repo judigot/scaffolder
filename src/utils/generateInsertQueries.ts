@@ -25,8 +25,7 @@ const generateInsertQueries = (data: Record<string, unknown[]>): string => {
       })
       .join(',\n');
 
-    insertions += `INSERT INTO "${tableName}" (${columnsNames}) VALUES
-  ${values};\n\n`;
+    insertions += `INSERT INTO "${tableName}" (${columnsNames}) VALUES ${values};`;
   });
 
   return insertions;

@@ -68,18 +68,18 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
                 : mapTypeToSQL([...types][0], records[0][key]);
           const nullableString = nullable ? 'NULL' : 'NOT NULL';
           const uniqueString =
-            uniqueColumnNames.includes(key) && !nullable ? ' UNIQUE' : '';
-          return `  ${key} ${type}${uniqueString} ${nullableString}`.trim();
+            uniqueColumnNames.includes(key) && !nullable ? 'UNIQUE' : '';
+          return `  ${key} ${type} ${uniqueString} ${nullableString}`.trim();
         })
         .join(',\n');
 
-      const primaryKey = `  PRIMARY KEY (${primaryKeyField})`;
+      const primaryKey = ` PRIMARY KEY (${primaryKeyField})`;
 
       const foreignKeys = Object.entries(fields)
         .filter(([key]) => key.endsWith('_id') && key !== primaryKeyField)
         .map(([key]) => {
           const referencedTable = key.slice(0, -3);
-          return `  CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (${key}) REFERENCES ${quoteTableName(
+          return ` CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (${key}) REFERENCES ${quoteTableName(
             referencedTable,
           )}(${key})`;
         })
@@ -96,11 +96,11 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
 
       const createTableQuery = `CREATE TABLE ${quotedTableName} (\n${columns},\n${primaryKey}${foreignKeys ? ',\n' + foreignKeys : ''}${uniqueConstraints ? ',\n' + uniqueConstraints : ''}\n);`;
 
-      schemaParts.push(`${dropTableQuery}\n\n${createTableQuery}`);
+      schemaParts.push(`${dropTableQuery}\n${createTableQuery}`);
     },
   );
 
-  return schemaParts.join('\n\n');
+  return schemaParts.join('\n');
 };
 
 export default generateSQLSchema;

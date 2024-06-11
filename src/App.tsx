@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import JSON5 from 'json5';
+import { format as formatSQL } from 'sql-formatter';
+
 import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
 import generateSQLCreateTables from './utils/generateSQLSchema';
 import generateMockData from './utils/generateMockData';
@@ -127,10 +129,12 @@ function App() {
 
         setInterfaces(generateTypescriptInterfaces(parsedSchema));
         setSQLSchema(
-          generateSQLCreateTables(parsedSchema) +
-            (includeInsertData
-              ? '\n\n' + generateInsertQueries(parsedSchema)
-              : ''),
+          formatSQL(
+            generateSQLCreateTables(parsedSchema) +
+              (includeInsertData
+                ? '\n\n' + generateInsertQueries(parsedSchema)
+                : ''),
+          ),
         );
         setMockData(generateMockData(parsedSchema));
         setForeignKeys(generateJoinQueries(parsedSchema));
@@ -284,7 +288,7 @@ function App() {
           >
             Copy Database Schema
           </button>
-          <h2>Foreign Keys</h2>
+          <h2>Join Queries</h2>
           <div className="join-queries">
             {foreignKeys.map((value, i) => (
               <p key={i}>{value}</p>
