@@ -116,7 +116,7 @@ button:hover {
 .form-input,
 .form-select,
 .form-textarea {
-  width: 100%;
+  width: inherit;
   padding: 10px;
   font-size: 1rem;
   background-color: #1e1e1e;
