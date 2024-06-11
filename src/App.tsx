@@ -12,25 +12,42 @@ function App(): JSX.Element {
   const FRAMEWORKS = {
     NEXTJS: 'Next.js',
     LARAVEL: 'Laravel',
+    SPRING_BOOT: 'Spring Boot',
   } as const;
 
   const [framework, setFramework] = useState<
     (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS]
   >(FRAMEWORKS.LARAVEL);
 
-  const [rawSchema, setRawSchema] = useState<string>('');
+  const [schemaInput, setRawSchema] = useState<string>('');
+  const [backendDir, setBackendDir] = useState<string>('');
+  const [frontendDir, setFrontendDir] = useState<string>('');
+  const [dbConnection, setDatabaseConnection] = useState<string>('');
   const [interfaces, setInterfaces] = useState<string>('');
   const [SQLSchema, setSQLSchema] = useState<string>('');
   const [mockData, setMockData] = useState<Record<string, unknown[]>>({});
   const [foreignKeys, setForeignKeys] = useState<string[]>([]);
-
   const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
 
+  /* Load saved form data from localStorage */
   useEffect(() => {
     const savedSchema = localStorage.getItem('rawSchema');
-    if (savedSchema != null) {
-      setRawSchema(savedSchema);
-    }
+    const savedBackendDir = localStorage.getItem('backendDir');
+    const savedFrontendDir = localStorage.getItem('frontendDir');
+    const savedDbConnection = localStorage.getItem('dbConnection');
+    const savedFramework = localStorage.getItem('framework');
+    const savedIncludeInsertData = localStorage.getItem('includeInsertData');
+
+    if (savedSchema != null) setRawSchema(savedSchema);
+    if (savedBackendDir != null) setBackendDir(savedBackendDir);
+    if (savedFrontendDir != null) setFrontendDir(savedFrontendDir);
+    if (savedDbConnection != null) setDatabaseConnection(savedDbConnection);
+    if (savedFramework != null)
+      setFramework(
+        savedFramework as (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS],
+      );
+    if (savedIncludeInsertData != null)
+      setIncludeInsertData(savedIncludeInsertData === 'true');
   }, []);
 
   const processSchema = useCallback(
@@ -67,25 +84,55 @@ function App(): JSX.Element {
   );
 
   useEffect(() => {
-    processSchema(rawSchema);
-  }, [rawSchema, includeInsertData, processSchema]);
+    processSchema(schemaInput);
+  }, [schemaInput, includeInsertData, processSchema]);
 
+  /* Save form data to localStorage */
   const handleRawSchemaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newRawSchema = e.target.value;
     setRawSchema(newRawSchema);
     localStorage.setItem('rawSchema', newRawSchema);
   };
 
+  const handleBackendDirChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newBackendDir = e.target.value;
+    setBackendDir(newBackendDir);
+    localStorage.setItem('backendDir', newBackendDir);
+  };
+
+  const handleFrontendDirChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFrontendDir = e.target.value;
+    setFrontendDir(newFrontendDir);
+    localStorage.setItem('frontendDir', newFrontendDir);
+  };
+
+  const handleDatabaseConnectionChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const newDbConnection = e.target.value;
+    setDatabaseConnection(newDbConnection);
+    localStorage.setItem('dbConnection', newDbConnection);
+  };
+
+  const handleFrameworkChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newFramework = e.target
+      .value as (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS];
+    setFramework(newFramework);
+    localStorage.setItem('framework', newFramework);
+  };
+
+  const handleIncludeInsertDataChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const newIncludeInsertData = e.target.checked;
+    setIncludeInsertData(newIncludeInsertData);
+    localStorage.setItem('includeInsertData', String(newIncludeInsertData));
+  };
+
   const handleCopy = (text: string) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        // eslint-disable-next-line no-alert
-        // alert('Copied to clipboard');
-      })
-      .catch((err: unknown) => {
-        console.error('Failed to copy text: ', err);
-      });
+    navigator.clipboard.writeText(text).catch((err: unknown) => {
+      console.error('Failed to copy text: ', err);
+    });
   };
 
   return (
@@ -94,33 +141,88 @@ function App(): JSX.Element {
         <h1>App Scaffolder</h1>
       </div>
 
-      <textarea
-        name="rawSchema"
-        id="rawSchema"
-        value={rawSchema}
-        onChange={handleRawSchemaChange}
-        placeholder="Enter JSON schema here..."
-        rows={10}
-        className="textarea"
-      />
-      <select
-        onChange={(e) => {
-          setFramework(
-            e.currentTarget
-              .value as (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS],
-          );
-        }}
-        value={framework}
-        name="framework"
-        id="framework"
-      >
-        {Object.entries(FRAMEWORKS).map(([key, value]: [string, string]) => (
-          <option key={key} value={key}>
-            {value}
-          </option>
-        ))}
-      </select>
+      <form>
+        <textarea
+          name="rawSchema"
+          id="rawSchema"
+          value={schemaInput}
+          onChange={handleRawSchemaChange}
+          placeholder="Enter JSON schema here..."
+          rows={10}
+          className="textarea"
+        />
+        <input
+          type="text"
+          name="backendDir"
+          id="backendDir"
+          placeholder="Backend root directory"
+          value={backendDir}
+          onChange={handleBackendDirChange}
+        />
+        <br />
+        <input
+          type="text"
+          name="frontendDir"
+          id="frontendDir"
+          placeholder="Frontend root directory"
+          value={frontendDir}
+          onChange={handleFrontendDirChange}
+        />
+        <br />
+        <input
+          type="text"
+          name="databaseConnection"
+          id="databaseConnection"
+          placeholder="Database connection"
+          value={dbConnection}
+          onChange={handleDatabaseConnectionChange}
+        />
+        <br />
+        <select
+          onChange={handleFrameworkChange}
+          value={framework}
+          name="framework"
+          id="framework"
+        >
+          {Object.entries(FRAMEWORKS).map(([key, value]: [string, string]) => (
+            <option key={key} value={key}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </form>
       <br />
+      {schemaInput !== '' && backendDir !== '' && (
+        <button
+          onClick={() => {
+            fetch(
+              `${String(import.meta.env.VITE_BACKEND_URL)}/${String(import.meta.env.VITE_API_URL)}/createFile`,
+              {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  targetDirectory: backendDir,
+                  framework,
+                  content: 'Test Content',
+                }),
+              },
+            )
+              .then((response) => response.json())
+              .then((result) => {
+                // eslint-disable-next-line no-console
+                console.log(JSON.stringify(result, null, 4));
+              })
+              .catch((error: unknown) => {
+                throw new Error(String(error));
+              });
+          }}
+        >
+          Generate Project Files
+        </button>
+      )}
       <div className="columns">
         <div className="column">
           <h2>Foreign Keys</h2>
@@ -144,9 +246,7 @@ function App(): JSX.Element {
               <input
                 type="checkbox"
                 checked={includeInsertData}
-                onChange={(e) => {
-                  setIncludeInsertData(e.target.checked);
-                }}
+                onChange={handleIncludeInsertDataChange}
               />
               Include Insert Data
             </label>
@@ -160,6 +260,17 @@ function App(): JSX.Element {
           >
             Copy Database Schema
           </button>
+          &nbsp;
+          {schemaInput !== '' && dbConnection !== '' && (
+            <button
+              onClick={() => {
+                handleCopy(SQLSchema);
+              }}
+              className="button"
+            >
+              Execute Query
+            </button>
+          )}
         </div>
 
         <div className="column">
