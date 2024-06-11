@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import JSON5 from 'json5';
-import { format as formatSQL } from 'sql-formatter';
 
 import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
 import generateSQLCreateTables from './utils/generateSQLSchema';
 import generateMockData from './utils/generateMockData';
 import generateInsertQueries from './utils/generateInsertQueries';
-import generateJoinQueries from '@/utils/generateJoinQueries';
+import generateSQLJoins from '@/utils/generateSQLJoins';
 import '@/styles/style.css';
 
 const frameworkKeys = {
@@ -147,15 +146,13 @@ function App() {
 
         setInterfaces(generateTypescriptInterfaces(parsedSchema));
         setSQLSchema(
-          formatSQL(
-            generateSQLCreateTables(parsedSchema) +
-              (includeInsertData
-                ? '\n\n' + generateInsertQueries(parsedSchema)
-                : ''),
-          ),
+          generateSQLCreateTables(parsedSchema) +
+            (includeInsertData
+              ? '\n\n' + generateInsertQueries(parsedSchema)
+              : ''),
         );
         setMockData(generateMockData(parsedSchema));
-        setForeignKeys(generateJoinQueries(parsedSchema));
+        setForeignKeys(generateSQLJoins(parsedSchema));
       } catch (e) {
         setInterfaces('Invalid JSON input');
         setSQLSchema('Invalid JSON input');
