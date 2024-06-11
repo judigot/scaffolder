@@ -30,7 +30,7 @@ const generateTypescriptInterfaces = (
         const sampleValue = records.find((record) => record[key] !== null)?.[
           key
         ];
-        acc[key] = mapTypeToTypescriptType([...types][0], sampleValue);
+        acc[key] = mapTypeToTypescriptType([...types], sampleValue);
         return acc;
       }, {});
 
@@ -39,6 +39,7 @@ const generateTypescriptInterfaces = (
       const properties = Object.entries(fieldTypeInfo)
         .map(
           ([key, type]) =>
+            // `  ${key}${nullableFields.has(key) ? '?' : ''}: ${type}${nullableFields.has(key) ? ' | null' : ''};`,
             `  ${key}: ${type}${nullableFields.has(key) ? ' | null' : ''};`,
         )
         .join('\n');
