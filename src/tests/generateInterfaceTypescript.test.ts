@@ -1,4 +1,4 @@
-import generateTypescriptInterfaces from '@/utils/generateTypeScriptInterfaces';
+import generateTypescriptInterfaces from '@/utils/generateInterfaceTypescript';
 import { describe, it, expect } from 'vitest';
 
 describe('generateTypescriptInterfaces', () => {

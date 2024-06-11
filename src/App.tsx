@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import JSON5 from 'json5';
-import generateTypescriptInterfaces from './utils/generateTypeScriptInterfaces';
+import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
 import generateSQLCreateTables from './utils/generateSQLSchema';
 import generateMockData from './utils/generateMockData';
 import generateInsertQueries from './utils/generateInsertQueries';
