@@ -35,7 +35,7 @@ const defaultValues: IFormInputValues = {
   framework: 'Next.js',
 };
 
-function App(): JSX.Element {
+function App() {
   const [formData, setFormData] = useState<IFormInputValues>(defaultValues);
   const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
 
