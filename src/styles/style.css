@@ -95,3 +95,43 @@ button {
 button:hover {
   background-color: #0056b3;
 }
+
+/* Form styling */
+.form {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #e0e0e0;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+.form-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e0e0e0;
+}
+
+.form-checkbox {
+  margin-right: 10px;
+}
