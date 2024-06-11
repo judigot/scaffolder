@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import JSON5 from 'json5';
+import { format as formatSQL } from 'sql-formatter';
 
 import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
 import generateSQLCreateTables from './utils/generateSQLSchema';
@@ -146,10 +147,12 @@ function App() {
 
         setInterfaces(generateTypescriptInterfaces(parsedSchema));
         setSQLSchema(
-          generateSQLCreateTables(parsedSchema) +
-            (includeInsertData
-              ? '\n\n' + generateInsertQueries(parsedSchema)
-              : ''),
+          formatSQL(
+            generateSQLCreateTables(parsedSchema) +
+              (includeInsertData
+                ? '\n\n' + generateInsertQueries(parsedSchema)
+                : ''),
+          ),
         );
         setMockData(generateMockData(parsedSchema));
         setForeignKeys(generateSQLJoins(parsedSchema));
