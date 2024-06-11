@@ -1,5 +1,4 @@
 import mapTypeToSQL from './mapTypeToSQL';
-import { format as formatSQL } from 'sql-formatter';
 
 interface IFieldInfo {
   types: Set<string>;
@@ -79,7 +78,13 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
       const foreignKeys = Object.entries(fields)
         .filter(([key]) => key.endsWith('_id') && key !== primaryKeyField)
         .map(([key]) => {
-          const referencedTable = key.slice(0, -3);
+          // Determine referenced table dynamically
+          const referencedTable =
+            Object.keys(data).find((table) =>
+              data[table].some((record) =>
+                Object.prototype.hasOwnProperty.call(record, key),
+              ),
+            ) ?? key.slice(0, -3);
           return ` CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (${key}) REFERENCES ${quoteTableName(
             referencedTable,
           )}(${key})`;
@@ -101,7 +106,7 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
     },
   );
 
-  return formatSQL(schemaParts.join('\n'));
+  return schemaParts.join('\n');
 };
 
 export default generateSQLSchema;
