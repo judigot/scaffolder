@@ -250,6 +250,7 @@ function App(): JSX.Element {
               <p key={i}>{value}</p>
             ))}
           </div>
+          <br />
           <button
             onClick={() => {
               handleCopy(foreignKeys.join('\n'));
