@@ -7,14 +7,24 @@ import generateInsertQueries from './utils/generateInsertQueries';
 import generateJoinQueries from '@/utils/generateJoinQueries';
 import '@/styles/style.css';
 
-const FRAMEWORKS = ['Next.js', 'Laravel', 'Spring Boot'];
+const frameworkKeys = {
+  NEXTJS: 'NEXTJS',
+  LARAVEL: 'LARAVEL',
+  SPRING_BOOT: 'SPRING_BOOT',
+} as const;
+
+const frameworks = {
+  [frameworkKeys.NEXTJS]: 'Next.js',
+  [frameworkKeys.LARAVEL]: 'Laravel',
+  [frameworkKeys.SPRING_BOOT]: 'Spring Boot',
+} as const;
 
 interface IFormInputValues {
   schemaInput: string;
   backendDir: string;
   frontendDir: string;
   dbConnection: string;
-  framework: string;
+  framework: (typeof frameworks)[keyof typeof frameworks];
 }
 
 const defaultValues: IFormInputValues = {
@@ -22,7 +32,7 @@ const defaultValues: IFormInputValues = {
   backendDir: '',
   frontendDir: '',
   dbConnection: '',
-  framework: 'Laravel',
+  framework: 'Next.js',
 };
 
 function App(): JSX.Element {
@@ -170,11 +180,11 @@ function App(): JSX.Element {
             onChange={handleChange}
             className="form-select"
           >
-            {FRAMEWORKS.map((framework) => (
-              <option key={framework} value={framework}>
-                {framework}
-              </option>
-            ))}
+            {Object.entries(frameworks).map(
+              ([key, value]: [string, string]) => (
+                <option key={key}>{value}</option>
+              ),
+            )}
           </select>
         </label>
       </form>
