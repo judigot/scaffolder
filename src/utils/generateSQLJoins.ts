@@ -1,28 +1,29 @@
 function generateSQLJoins(tableInfo: Record<string, unknown[]>) {
   const joins: {
-    sourceTable: string;
-    targetTable: string;
+    table: string;
+    foreignTable: string;
     foreignKey: string;
   }[] = [];
 
   const tableNames = Object.keys(tableInfo);
 
-  tableNames.forEach((sourceTable) => {
+  tableNames.forEach((foreignTable) => {
     const sourceColumns = Object.keys(
-      tableInfo[sourceTable][0] as Record<string, unknown>,
+      tableInfo[foreignTable][0] as Record<string, unknown>,
     );
 
     sourceColumns.forEach((column) => {
       if (column.endsWith('_id')) {
-        tableNames.forEach((targetTable) => {
+        const foreignKey: string = column;
+        tableNames.forEach((table) => {
           if (
-            targetTable !== sourceTable &&
+            table !== foreignTable &&
             Object.prototype.hasOwnProperty.call(
-              tableInfo[targetTable][0] as Record<string, unknown>,
-              column,
+              tableInfo[table][0] as Record<string, unknown>,
+              foreignKey,
             )
           ) {
-            joins.push({ targetTable, sourceTable, foreignKey: column });
+            joins.push({ table, foreignTable, foreignKey });
           }
         });
       }
@@ -30,7 +31,7 @@ function generateSQLJoins(tableInfo: Record<string, unknown[]>) {
   });
 
   const joinQueries = joins.map((join) => {
-    return `SELECT * FROM "${join.sourceTable}" JOIN "${join.targetTable}" ON "${join.sourceTable}".${join.foreignKey} = "${join.targetTable}".${join.foreignKey};`;
+    return `SELECT * FROM "${join.foreignTable}" JOIN "${join.table}" ON "${join.foreignTable}".${join.foreignKey} = "${join.table}".${join.foreignKey};`;
   });
 
   return joinQueries;
