@@ -1,5 +1,5 @@
-const generateSQLInsertQueries = (data: Record<string, unknown[]>): string => {
-  let insertions = '';
+const generateSQLInsertQueries = (data: Record<string, unknown[]>) => {
+  let inserts = '';
 
   Object.entries(data).forEach(([tableName, records]) => {
     if (records.length === 0) {
@@ -25,10 +25,10 @@ const generateSQLInsertQueries = (data: Record<string, unknown[]>): string => {
       })
       .join(',\n');
 
-    insertions += `INSERT INTO "${tableName}" (${columnsNames}) VALUES ${values};`;
+    inserts += `INSERT INTO "${tableName}" (${columnsNames}) VALUES ${values};`;
   });
 
-  return insertions;
+  return inserts;
 };
 
 export default generateSQLInsertQueries;
