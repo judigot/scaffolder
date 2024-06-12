@@ -11,39 +11,40 @@ function identifyRelationships(tableInfo: Record<string, string | string[]>): {
   const relationships: IRelationshipInfo[] = [];
   const tableNames = Object.keys(tableInfo);
 
-  tableNames.forEach((foreignTables) => {
-    const sourceColumns = Object.keys(tableInfo[foreignTables][0]);
+  tableNames.forEach((foreignTable) => {
+    const foreignKeyColumns = Object.keys(tableInfo[foreignTable][0]).filter(
+      (column) => column.endsWith('_id'),
+    );
 
-    sourceColumns.forEach((column) => {
-      if (column.endsWith('_id')) {
-        const foreignKeys = column;
-        tableNames.forEach((table) => {
-          const tableRecord = tableInfo[table][0];
-          const isDifferentTable = table !== foreignTables;
-          const hasForeignKey = Object.prototype.hasOwnProperty.call(
-            tableRecord,
-            foreignKeys,
-          );
+    const otherTables = tableNames.filter((table) => table !== foreignTable);
 
-          if (isDifferentTable && hasForeignKey) {
-            relationships.push({
-              table,
-              foreignTables: [foreignTables],
-              foreignKeys: [foreignKeys],
-            });
-          }
-        });
-      }
+    otherTables.forEach((table) => {
+      const tableColumns = tableInfo[table][0];
+
+      foreignKeyColumns.forEach((foreignKey) => {
+        const hasForeignKey = Object.prototype.hasOwnProperty.call(
+          tableColumns,
+          foreignKey,
+        );
+
+        if (hasForeignKey) {
+          relationships.push({
+            table,
+            foreignTables: [foreignTable],
+            foreignKeys: [foreignKey],
+          });
+        }
+      });
     });
   });
 
-  return combineDuplicates(relationships);
+  return mergeMultipleForeignKeys(relationships);
 
-  function combineDuplicates(array: IRelationshipInfo[]) {
+  function mergeMultipleForeignKeys(relationships: IRelationshipInfo[]) {
     const tableMap: Record<string, IRelationshipInfo> = {};
     const result: IRelationshipInfo[] = [];
 
-    array.forEach((entry: IRelationshipInfo) => {
+    relationships.forEach((entry: IRelationshipInfo) => {
       const { table, foreignTables, foreignKeys } = entry;
       if (!(table in tableMap)) {
         tableMap[table] = { table, foreignTables: [], foreignKeys: [] };
