@@ -5,7 +5,7 @@ import { format as formatSQL } from 'sql-formatter';
 import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
 import generateSQLCreateTables from './utils/generateSQLSchema';
 import generateMockData from './utils/generateMockData';
-import generateInsertQueries from './utils/generateInsertQueries';
+import generateSQLInsertQueries from './utils/generateInsertQueries';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import '@/styles/style.css';
 
@@ -142,7 +142,7 @@ function App() {
       }
 
       try {
-        const parsedSchema: Record<string, unknown[]> =
+        const parsedSchema: Record<string, string[]> =
           JSON5.parse(schemaString);
 
         setInterfaces(generateTypescriptInterfaces(parsedSchema));
@@ -150,7 +150,7 @@ function App() {
           formatSQL(
             generateSQLCreateTables(parsedSchema) +
               (includeInsertData
-                ? '\n\n' + generateInsertQueries(parsedSchema)
+                ? '\n\n' + generateSQLInsertQueries(parsedSchema)
                 : ''),
           ),
         );

@@ -1,4 +1,4 @@
-const generateInsertQueries = (data: Record<string, unknown[]>): string => {
+const generateSQLInsertQueries = (data: Record<string, unknown[]>): string => {
   let insertions = '';
 
   Object.entries(data).forEach(([tableName, records]) => {
@@ -31,4 +31,4 @@ const generateInsertQueries = (data: Record<string, unknown[]>): string => {
   return insertions;
 };
 
-export default generateInsertQueries;
+export default generateSQLInsertQueries;
