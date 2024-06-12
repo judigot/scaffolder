@@ -8,6 +8,7 @@ import generateMockData from './utils/generateMockData';
 import generateSQLInsertQueries from './utils/generateInsertQueries';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import '@/styles/style.css';
+import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 
 const frameworkKeys = {
   NEXTJS: 'NEXTJS',
@@ -311,6 +312,9 @@ function App() {
             {foreignKeys.map((value, i) => (
               <p key={i}>{value}</p>
             ))}
+            {generateSQLAggregateJoins(JSON5.parse(formData.schemaInput)).join(
+              '\n',
+            )}
           </div>
           <br />
           <button
