@@ -1,11 +1,16 @@
 import identifyRelationships from '@/utils/identifyRelationships';
 
-function generateSQLJoins(tableInfo: Record<string, unknown[]>) {
+function generateSQLJoins(tableInfo: Record<string, string | string[]>) {
   const relationships = identifyRelationships(tableInfo);
 
   const joinQueries = relationships.map(
     ({ table, foreignKey, foreignTable }) => {
-      return `SELECT * FROM "${table}" JOIN "${foreignTable}" ON "${table}".${foreignKey} = "${foreignTable}".${foreignKey};`;
+      const joinClauses = foreignTable
+        .map((ft, index) => {
+          return `JOIN "${ft}" ON "${table}".${foreignKey[index]} = "${ft}".${foreignKey[index]}`;
+        })
+        .join(' ');
+      return `SELECT * FROM "${table}" ${joinClauses};`;
     },
   );
 
