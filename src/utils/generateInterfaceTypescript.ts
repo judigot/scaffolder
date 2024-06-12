@@ -1,4 +1,4 @@
-import inferType from './inferType';
+import identifyType from './identifyType';
 import mapTypeToTypescriptType from './mapTypeToTypescriptType';
 
 const generateTypescriptInterfaces = (
@@ -13,9 +13,9 @@ const generateTypescriptInterfaces = (
       records.forEach((record) => {
         Object.entries(record).forEach(([key, value]) => {
           if (!(key in fields)) {
-            fields[key] = new Set([inferType(value)]);
+            fields[key] = new Set([identifyType(value)]);
           } else {
-            fields[key].add(inferType(value));
+            fields[key].add(identifyType(value));
           }
           if (value === null) {
             nullableFields.add(key);

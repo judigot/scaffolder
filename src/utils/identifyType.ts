@@ -1,4 +1,4 @@
-const inferType = (value: unknown): string => {
+const identifyType = (value: unknown): string => {
   if (typeof value === 'number') {
     return Number.isInteger(value) ? 'number' : 'float';
   }
@@ -14,4 +14,4 @@ const inferType = (value: unknown): string => {
   return 'unknown';
 };
 
-export default inferType;
+export default identifyType;
