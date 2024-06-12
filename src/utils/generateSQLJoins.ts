@@ -4,10 +4,10 @@ function generateSQLJoins(tableInfo: Record<string, string | string[]>) {
   const relationships = identifyRelationships(tableInfo);
 
   const joinQueries = relationships.map(
-    ({ table, foreignKey, foreignTable }) => {
-      const joinClauses = foreignTable
-        .map((ft, index) => {
-          return `JOIN "${ft}" ON "${table}".${foreignKey[index]} = "${ft}".${foreignKey[index]}`;
+    ({ table, foreignKeys, foreignTables }) => {
+      const joinClauses = foreignTables
+        .map((foreignTable, index) => {
+          return `JOIN "${foreignTable}" ON "${table}".${foreignKeys[index]} = "${foreignTable}".${foreignKeys[index]}`;
         })
         .join(' ');
       return `SELECT * FROM "${table}" ${joinClauses};`;

@@ -1,35 +1,35 @@
 interface IRelationshipInfo {
   table: string;
-  foreignTable: string[];
-  foreignKey: string[];
+  foreignTables: string[];
+  foreignKeys: string[];
 }
 function identifyRelationships(tableInfo: Record<string, string | string[]>): {
   table: string;
-  foreignTable: string[];
-  foreignKey: string[];
+  foreignTables: string[];
+  foreignKeys: string[];
 }[] {
   const relationships: IRelationshipInfo[] = [];
   const tableNames = Object.keys(tableInfo);
 
-  tableNames.forEach((foreignTable) => {
-    const sourceColumns = Object.keys(tableInfo[foreignTable][0]);
+  tableNames.forEach((foreignTables) => {
+    const sourceColumns = Object.keys(tableInfo[foreignTables][0]);
 
     sourceColumns.forEach((column) => {
       if (column.endsWith('_id')) {
-        const foreignKey = column;
+        const foreignKeys = column;
         tableNames.forEach((table) => {
           const tableRecord = tableInfo[table][0];
-          const isDifferentTable = table !== foreignTable;
+          const isDifferentTable = table !== foreignTables;
           const hasForeignKey = Object.prototype.hasOwnProperty.call(
             tableRecord,
-            foreignKey,
+            foreignKeys,
           );
 
           if (isDifferentTable && hasForeignKey) {
             relationships.push({
               table,
-              foreignTable: [foreignTable],
-              foreignKey: [foreignKey],
+              foreignTables: [foreignTables],
+              foreignKeys: [foreignKeys],
             });
           }
         });
@@ -44,17 +44,17 @@ function identifyRelationships(tableInfo: Record<string, string | string[]>): {
     const result: IRelationshipInfo[] = [];
 
     array.forEach((entry: IRelationshipInfo) => {
-      const { table, foreignTable, foreignKey } = entry;
+      const { table, foreignTables, foreignKeys } = entry;
       if (!(table in tableMap)) {
-        tableMap[table] = { table, foreignTable: [], foreignKey: [] };
+        tableMap[table] = { table, foreignTables: [], foreignKeys: [] };
       }
-      tableMap[table].foreignTable.push(...foreignTable);
-      tableMap[table].foreignKey.push(...foreignKey);
+      tableMap[table].foreignTables.push(...foreignTables);
+      tableMap[table].foreignKeys.push(...foreignKeys);
       result.push(entry);
     });
 
     Object.values(tableMap).forEach((combinedEntry: IRelationshipInfo) => {
-      if (combinedEntry.foreignTable.length > 1) {
+      if (combinedEntry.foreignTables.length > 1) {
         result.push(combinedEntry);
       }
     });
