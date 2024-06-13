@@ -1,5 +1,6 @@
 import identifyType from './identifyType';
 import mapTypeToTypescriptType from './mapTypeToTypescriptType';
+import { toPascalCase } from './toPascalCase';
 
 const generateTypescriptInterfaces = (
   data: Record<string, unknown[]>,
@@ -34,14 +35,11 @@ const generateTypescriptInterfaces = (
         return acc;
       }, {});
 
-      const interfaceName =
-        tableName.charAt(0).toUpperCase() + tableName.slice(1);
+      const interfaceName = toPascalCase(tableName);
       const properties = Object.entries(fieldTypeInfo)
-        .map(
-          ([key, type]) =>
-            // `  ${key}${nullableFields.has(key) ? '?' : ''}: ${type}${nullableFields.has(key) ? ' | null' : ''};`,
-            `  ${key}: ${type}${nullableFields.has(key) ? ' | null' : ''};`,
-        )
+        .map(([key, type]) => {
+          return `  ${key}: ${type}${nullableFields.has(key) ? ' | null' : ''};`;
+        })
         .join('\n');
 
       return `export interface I${interfaceName} {\n${properties}\n}`;
