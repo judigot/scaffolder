@@ -44,7 +44,7 @@ const generateTypescriptInterfaces = (
         )
         .join('\n');
 
-      return `export interface ${interfaceName} {\n${properties}\n}`;
+      return `export interface I${interfaceName} {\n${properties}\n}`;
     })
     .join('\n\n');
 };
