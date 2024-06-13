@@ -62,18 +62,19 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
         .map(([key, { types, nullable }]) => {
           const type =
             key === primaryKeyField
-              ? 'BIGSERIAL'
+              ? 'BIGSERIAL PRIMARY KEY'
               : key.endsWith('_id')
                 ? 'BIGINT'
                 : mapTypeToSQL([...types][0], records[0][key]);
-          const nullableString = nullable ? 'NULL' : 'NOT NULL';
+          const nullableString =
+            key === primaryKeyField ? '' : nullable ? '' : 'NOT NULL'; // Avoid adding NULL for default
           const uniqueString =
-            uniqueColumnNames.includes(key) && !nullable ? 'UNIQUE' : '';
+            uniqueColumnNames.includes(key) && key !== primaryKeyField
+              ? 'UNIQUE'
+              : '';
           return `  ${key} ${type} ${uniqueString} ${nullableString}`.trim();
         })
         .join(',\n');
-
-      const primaryKey = ` PRIMARY KEY (${primaryKeyField})`;
 
       const foreignKeys = Object.entries(fields)
         .filter(([key]) => key.endsWith('_id') && key !== primaryKeyField)
@@ -91,16 +92,9 @@ const generateSQLSchema = (data: Record<string, unknown[]>): string => {
         })
         .join(',\n');
 
-      const uniqueConstraints = Object.entries(fields)
-        .filter(
-          ([key, { nullable }]) => uniqueColumnNames.includes(key) && !nullable,
-        )
-        .map(([key]) => `  UNIQUE (${key})`)
-        .join(',\n');
-
       const dropTableQuery = `DROP TABLE IF EXISTS ${quotedTableName} CASCADE;`;
 
-      const createTableQuery = `CREATE TABLE ${quotedTableName} (\n${columns},\n${primaryKey}${foreignKeys ? ',\n' + foreignKeys : ''}${uniqueConstraints ? ',\n' + uniqueConstraints : ''}\n);`;
+      const createTableQuery = `CREATE TABLE ${quotedTableName} (\n${columns}${foreignKeys ? ',\n' + foreignKeys : ''}\n);`;
 
       schemaParts.push(`${dropTableQuery}\n${createTableQuery}`);
     },
