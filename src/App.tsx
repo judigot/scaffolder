@@ -5,7 +5,7 @@ import { format as formatSQL } from 'sql-formatter';
 import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
 import generateSQLCreateTables from './utils/generateSQLSchema';
 import generateMockData from './utils/generateMockData';
-import generateSQLInsertQueries from './utils/generateInsertQueries';
+import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import '@/styles/style.css';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
@@ -151,7 +151,7 @@ function App() {
           formatSQL(
             generateSQLCreateTables(parsedSchema) +
               (includeInsertData
-                ? '\n\n' + generateSQLInsertQueries(parsedSchema)
+                ? '\n\n' + generateSQLInserts(parsedSchema)
                 : ''),
           ),
         );
