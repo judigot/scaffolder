@@ -8,7 +8,7 @@ import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
-import { useFormStore } from './useFormStore'; // Import useFormStore
+import { useFormStore } from './useFormStore';
 
 interface IStore {
   interfaces: string;
