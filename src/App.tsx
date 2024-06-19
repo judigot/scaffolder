@@ -53,12 +53,12 @@ function App() {
   return (
     <div className="text-white bg-black">
       <div className="bg-gray-900 text-white p-4">
-        <h1 className="text-2xl font-bold">App Scaffolder</h1>
+        <h1 className="text-2xl font-bold text-center">App Scaffolder</h1>
       </div>
       <div className="grid gap-4 p-4">
         {/* First row with form, create tables, and delete tables */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-800 p-4 shadow-md rounded-md">
+          <div className="bg-gray-700 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">JSON Schema</h2>
             <form className="space-y-4">
               <textarea
@@ -71,7 +71,7 @@ function App() {
               />
               <label
                 htmlFor="backendDir"
-                className="block text-sm font-medium text-gray-400"
+                className="block text-sm font-medium"
               >
                 Backend Directory:
                 <input
@@ -85,7 +85,7 @@ function App() {
               </label>
               <label
                 htmlFor="frontendDir"
-                className="block text-sm font-medium text-gray-400"
+                className="block text-sm font-medium"
               >
                 Frontend Directory:
                 <input
@@ -99,7 +99,7 @@ function App() {
               </label>
               <label
                 htmlFor="dbConnection"
-                className="block text-sm font-medium text-gray-400"
+                className="block text-sm font-medium"
               >
                 Database Connection:
                 <input
@@ -113,7 +113,7 @@ function App() {
               </label>
               <label
                 htmlFor="framework"
-                className="block text-sm font-medium text-gray-400"
+                className="block text-sm font-medium"
               >
                 Framework:
                 <select
@@ -145,7 +145,7 @@ function App() {
             />
             <label
               htmlFor="includeInsertData"
-              className="block text-sm font-medium text-gray-400 mt-4"
+              className="block text-sm font-medium mt-4"
             >
               <input
                 type="checkbox"
