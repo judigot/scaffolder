@@ -5,7 +5,7 @@ interface IFieldInfo {
 }
 
 const generateMockData = (
-  data: Record<string, unknown[]>,
+  data: Record<string, Record<string, unknown>[]>,
 ): Record<string, unknown[]> => {
   const generatedData: Record<string, unknown[]> = {};
 
@@ -13,14 +13,12 @@ const generateMockData = (
     const fieldInfo: Record<string, IFieldInfo> = {};
 
     records.forEach((record) => {
-      Object.entries(record as Record<string, unknown>).forEach(
-        ([key, value]) => {
-          if (!(key in fieldInfo)) {
-            fieldInfo[key] = { types: new Set<string>() };
-          }
-          fieldInfo[key].types.add(value === null ? 'null' : typeof value);
-        },
-      );
+      Object.entries(record).forEach(([key, value]) => {
+        if (!(key in fieldInfo)) {
+          fieldInfo[key] = { types: new Set<string>() };
+        }
+        fieldInfo[key].types.add(value === null ? 'null' : typeof value);
+      });
     });
 
     const mockRecords = [];
@@ -44,11 +42,7 @@ const generateMockData = (
         } else if (types.includes('boolean')) {
           mockRecord[key] = faker.datatype.boolean();
         } else if (types.includes('object')) {
-          if (
-            (records as Record<string, unknown>[]).some(
-              (r) => r[key] instanceof Date,
-            )
-          ) {
+          if (records.some((r) => r[key] instanceof Date)) {
             mockRecord[key] = faker.date.past();
           } else {
             mockRecord[key] = null;

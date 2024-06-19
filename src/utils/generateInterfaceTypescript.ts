@@ -3,9 +3,9 @@ import mapTypeToTypescriptType from './mapTypeToTypescriptType';
 import { toPascalCase } from './toPascalCase';
 
 const generateTypescriptInterfaces = (
-  data: Record<string, unknown[]>,
+  data: Record<string, Record<string, unknown>[]>,
 ): string => {
-  return Object.entries(data as Record<string, Record<string, unknown>[]>)
+  return Object.entries(data)
     .map(([tableName, records]) => {
       const fields: Record<string, Set<string>> = {};
       const nullableFields = new Set<string>();

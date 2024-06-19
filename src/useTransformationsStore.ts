@@ -6,12 +6,14 @@ import generateSQLCreateTables from './utils/generateSQLSchema';
 import generateMockData from './utils/generateMockData';
 import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
+import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 
 interface IStore {
   interfaces: string;
   SQLSchema: string;
   mockData: Record<string, unknown[]>;
-  foreignKeys: string[];
+  joins: string[];
+  aggregateJoins: string[];
   includeInsertData: boolean;
   setIncludeInsertData: (includeInsertData: boolean) => void;
   setTransformations: (schemaString: string) => void;
@@ -21,7 +23,8 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
   interfaces: '',
   SQLSchema: '',
   mockData: {},
-  foreignKeys: [],
+  joins: [],
+  aggregateJoins: [],
   includeInsertData: false,
   setIncludeInsertData: (includeInsertData) => {
     set({ includeInsertData });
@@ -32,13 +35,15 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
         interfaces: '',
         SQLSchema: '',
         mockData: {},
-        foreignKeys: [],
+        joins: [],
+        aggregateJoins: [],
       });
       return;
     }
 
     try {
-      const parsedSchema: Record<string, string[]> = JSON5.parse(schemaString);
+      const parsedSchema: Record<string, Record<string, unknown>[]> =
+        JSON5.parse(schemaString);
       set({
         interfaces: generateTypescriptInterfaces(parsedSchema),
         SQLSchema: formatSQL(
@@ -48,14 +53,15 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
               : ''),
         ),
         mockData: generateMockData(parsedSchema),
-        foreignKeys: generateSQLJoins(parsedSchema),
+        joins: generateSQLJoins(parsedSchema),
+        aggregateJoins: generateSQLAggregateJoins(parsedSchema),
       });
     } catch (e) {
       set({
         interfaces: 'Invalid JSON input',
         SQLSchema: 'Invalid JSON input',
         mockData: {},
-        foreignKeys: ['Invalid JSON input'],
+        joins: ['Invalid JSON input'],
       });
     }
   },

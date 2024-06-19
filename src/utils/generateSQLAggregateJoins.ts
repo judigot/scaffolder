@@ -10,28 +10,31 @@ function identifyRelationships(
   const relationships: ITableRelationship[] = [];
 
   for (const table in data) {
-    const foreignTables: string[] = [];
-    const foreignKeys: string[] = [];
+    if (Object.prototype.hasOwnProperty.call(data, table)) {
+      const foreignTables: string[] = [];
+      const foreignKeys: string[] = [];
 
-    data[table].forEach((row) => {
-      for (const key in row) {
-        if (
-          typeof key === 'string' &&
-          key.endsWith('_id') &&
-          key !== `${table}_id`
-        ) {
-          const foreignTable = key.replace('_id', '');
-          foreignTables.push(foreignTable);
-          foreignKeys.push(key);
+      const rows = data[table];
+      rows.forEach((row) => {
+        for (const key in row) {
+          if (
+            typeof key === 'string' &&
+            key.endsWith('_id') &&
+            key !== `${table}_id`
+          ) {
+            const foreignTable = key.replace('_id', '');
+            foreignTables.push(foreignTable);
+            foreignKeys.push(key);
+          }
         }
-      }
-    });
+      });
 
-    relationships.push({
-      table,
-      foreignTables: Array.from(new Set(foreignTables)),
-      foreignKeys: Array.from(new Set(foreignKeys)),
-    });
+      relationships.push({
+        table,
+        foreignTables: Array.from(new Set(foreignTables)),
+        foreignKeys: Array.from(new Set(foreignKeys)),
+      });
+    }
   }
 
   return relationships;

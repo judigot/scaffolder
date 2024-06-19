@@ -3,7 +3,9 @@ interface IRelationshipInfo {
   foreignTables: string[];
   foreignKeys: string[];
 }
-function identifyRelationships(tableInfo: Record<string, string | string[]>): {
+function identifyRelationships(
+  tableInfo: Record<string, Record<string, unknown>[]>,
+): {
   table: string;
   foreignTables: string[];
   foreignKeys: string[];
@@ -12,9 +14,9 @@ function identifyRelationships(tableInfo: Record<string, string | string[]>): {
   const tableNames = Object.keys(tableInfo);
 
   tableNames.forEach((foreignTable) => {
-    const foreignKeyColumns = Object.keys(tableInfo[foreignTable][0]).filter(
-      (column) => column.endsWith('_id'),
-    );
+    const foreignKeyColumns = Object.keys(
+      String(tableInfo[foreignTable][0]),
+    ).filter((column) => column.endsWith('_id'));
 
     const otherTables = tableNames.filter((table) => table !== foreignTable);
 

@@ -1,6 +1,6 @@
 import identifyRelationships from '@/utils/identifyRelationships';
 
-function generateSQLJoins(tableInfo: Record<string, string | string[]>) {
+function generateSQLJoins(tableInfo: Record<string, Record<string, unknown>[]>) {
   const relationships = identifyRelationships(tableInfo);
 
   const joinQueries = relationships.map(

@@ -12,7 +12,7 @@ function App() {
     interfaces,
     SQLSchema,
     mockData,
-    foreignKeys,
+    joins,
     includeInsertData,
     setIncludeInsertData,
     setTransformations,
@@ -174,7 +174,7 @@ function App() {
           </button>
           <h2>Join Queries</h2>
           <div className="join-queries">
-            {foreignKeys.map((value, i) => (
+            {joins.map((value, i) => (
               <p key={i}>{value}</p>
             ))}
             {generateSQLAggregateJoins(JSON5.parse(formData.schemaInput)).join(
@@ -184,7 +184,7 @@ function App() {
           <br />
           <button
             onClick={() => {
-              handleCopy(foreignKeys.join('\n'));
+              handleCopy(joins.join('\n'));
             }}
             className="button"
           >

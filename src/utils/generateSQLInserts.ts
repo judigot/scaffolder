@@ -1,4 +1,6 @@
-const generateSQLInserts = (data: Record<string, unknown[]>) => {
+const generateSQLInserts = (
+  data: Record<string, Record<string, unknown>[]>,
+) => {
   let inserts = '';
 
   Object.entries(data).forEach(([tableName, records]) => {
@@ -6,12 +8,12 @@ const generateSQLInserts = (data: Record<string, unknown[]>) => {
       return;
     }
 
-    const firstRecord = records[0] as Record<string, unknown>;
+    const firstRecord = records[0];
     const columnsNames = Object.keys(firstRecord).join(', ');
 
     const values = records
       .map((record) => {
-        const typedRecord = record as Record<string, unknown>;
+        const typedRecord = record;
         const valueString = Object.values(typedRecord)
           .map((value) =>
             typeof value === 'string'
