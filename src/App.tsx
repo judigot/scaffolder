@@ -1,117 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import JSON5 from 'json5';
-import { format as formatSQL } from 'sql-formatter';
-
-import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
-import generateSQLCreateTables from './utils/generateSQLSchema';
-import generateMockData from './utils/generateMockData';
-import generateSQLInserts from './utils/generateSQLInserts';
-import generateSQLJoins from '@/utils/generateSQLJoins';
+import React, { useEffect } from 'react';
 import '@/styles/style.css';
+import { useTransformationsStore } from '@/useTransformationsStore';
+import { frameworks, useFormStore } from '@/useFormStore';
+import JSON5 from 'json5';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 
-const frameworkKeys = {
-  NEXTJS: 'NEXTJS',
-  LARAVEL: 'LARAVEL',
-  SPRING_BOOT: 'SPRING_BOOT',
-} as const;
-
-const frameworks = {
-  [frameworkKeys.NEXTJS]: 'Next.js',
-  [frameworkKeys.LARAVEL]: 'Laravel',
-  [frameworkKeys.SPRING_BOOT]: 'Spring Boot',
-} as const;
-
-interface IFormInputValues {
-  schemaInput: string;
-  backendDir: string;
-  frontendDir: string;
-  dbConnection: string;
-  framework: (typeof frameworks)[keyof typeof frameworks] | '';
-}
-
-const schema = {
-  user: [
-    {
-      user_id: 1,
-      first_name: 'John',
-      last_name: 'Doe',
-      email: 'john.doe@example.com',
-      username: 'johndoe',
-      password: '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', // Hashed '123'
-      created_at: new Date(),
-      updated_at: new Date(),
-    },
-    {
-      user_id: 2,
-      first_name: 'Jane',
-      last_name: 'Smith',
-      email: 'jane.smith@example.com',
-      username: 'janesmith',
-      password: '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', // Hashed '123'
-      created_at: new Date(),
-      updated_at: new Date(),
-    },
-  ],
-  post: [
-    {
-      post_id: 1,
-      user_id: 1,
-      title: `John's Post`,
-      content: 'Lorem ipsum',
-      created_at: new Date(),
-      updated_at: new Date(),
-    },
-    {
-      post_id: 2,
-      user_id: 2,
-      title: `Jane's Post`,
-      content: null,
-      created_at: new Date(),
-      updated_at: new Date(),
-    },
-  ],
-};
-
-const defaultValues: IFormInputValues = {
-  schemaInput: JSON.stringify(schema, null, 2),
-  backendDir: 'C:/Users/Username/Desktop/app/backend',
-  frontendDir: 'C:/Users/Username/Desktop/app/frontend',
-  dbConnection: 'postgresql://root:123@localhost:5432/databasename',
-  framework: frameworks[frameworkKeys.NEXTJS],
-};
-
 function App() {
-  const [formData, setFormData] = useState<IFormInputValues>(() => {
-    const savedData = localStorage.getItem('formData');
-    return savedData != null
-      ? (JSON.parse(savedData) as IFormInputValues)
-      : defaultValues;
-  });
-  const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  const [interfaces, setInterfaces] = useState<string>('');
-  const [SQLSchema, setSQLSchema] = useState<string>('');
-  const [mockData, setMockData] = useState<Record<string, unknown[]>>({});
-  const [foreignKeys, setForeignKeys] = useState<string[]>([]);
+  const { formData, setFormData } = useFormStore();
+  const {
+    includeInsertData,
+    setIncludeInsertData,
+    setTransformations,
+    interfaces,
+    SQLSchema,
+    mockData,
+    foreignKeys,
+  } = useTransformationsStore();
 
   useEffect(() => {
-    const savedData = localStorage.getItem('formData');
-    if (savedData != null) {
-      const parsedData = JSON.parse(savedData) as IFormInputValues;
-      if (Object.values(parsedData).every((value) => value === '')) {
-        setFormData(defaultValues);
-      }
-    }
-    setLoading(false); // Set loading to false after data is fetched
-  }, []);
-
-  useEffect(() => {
-    if (formData !== defaultValues) {
-      localStorage.setItem('formData', JSON.stringify(formData));
-    }
-  }, [formData]);
+    setTransformations(formData.schemaInput);
+  }, [formData.schemaInput, includeInsertData, setTransformations]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -125,61 +33,17 @@ function App() {
     if (name === 'includeInsertData') {
       setIncludeInsertData(checked ?? false);
     } else {
-      setFormData((prevData) => ({
-        ...prevData,
+      setFormData({
         [name]: type === 'checkbox' ? !!(checked ?? false) : value,
-      }));
+      });
     }
   };
-
-  const processSchema = useCallback(
-    (schemaString: string) => {
-      if (schemaString === '') {
-        setInterfaces('');
-        setSQLSchema('');
-        setMockData({});
-        setForeignKeys([]);
-        return;
-      }
-
-      try {
-        const parsedSchema: Record<string, string[]> =
-          JSON5.parse(schemaString);
-
-        setInterfaces(generateTypescriptInterfaces(parsedSchema));
-        setSQLSchema(
-          formatSQL(
-            generateSQLCreateTables(parsedSchema) +
-              (includeInsertData
-                ? '\n\n' + generateSQLInserts(parsedSchema)
-                : ''),
-          ),
-        );
-        setMockData(generateMockData(parsedSchema));
-        setForeignKeys(generateSQLJoins(parsedSchema));
-      } catch (e) {
-        setInterfaces('Invalid JSON input');
-        setSQLSchema('Invalid JSON input');
-        setMockData({});
-        setForeignKeys(['Invalid JSON input']);
-      }
-    },
-    [includeInsertData],
-  );
-
-  useEffect(() => {
-    processSchema(formData.schemaInput);
-  }, [formData.schemaInput, includeInsertData, processSchema]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text).catch((err: unknown) => {
       console.error('Failed to copy text: ', err);
     });
   };
-
-  if (loading) {
-    return <div>Loading...</div>; // Render loading indicator while loading
-  }
 
   return (
     <div className="container">
