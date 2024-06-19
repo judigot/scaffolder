@@ -16,23 +16,19 @@ interface IStore {
   mockData: Record<string, unknown[]>;
   deleteTablesQueries: string[];
   joins: string[];
+  SQLInsertQueries: string;
   aggregateJoins: string[];
-  includeInsertData: boolean;
-  setIncludeInsertData: (includeInsertData: boolean) => void;
   setTransformations: () => void;
 }
 
-export const useTransformationsStore = create<IStore>()((set, get) => ({
+export const useTransformationsStore = create<IStore>()((set) => ({
   interfaces: '',
   SQLSchema: '',
   mockData: {},
   deleteTablesQueries: [],
   joins: [],
+  SQLInsertQueries: '',
   aggregateJoins: [],
-  includeInsertData: false,
-  setIncludeInsertData: (includeInsertData) => {
-    set({ includeInsertData });
-  },
   setTransformations: () => {
     const schemaInput = useFormStore.getState().formData.schemaInput;
     if (schemaInput === '') {
@@ -52,12 +48,8 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
         JSON5.parse(schemaInput);
       set({
         interfaces: generateTypescriptInterfaces(formData),
-        SQLSchema: formatSQL(
-          generateSQLCreateTables(formData) +
-            (get().includeInsertData
-              ? '\n\n' + generateSQLInserts(formData)
-              : ''),
-        ),
+        SQLSchema: formatSQL(generateSQLCreateTables(formData)),
+        SQLInsertQueries: formatSQL(generateSQLInserts(formData)),
         mockData: generateMockData(formData),
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(formData),
@@ -67,6 +59,7 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
       set({
         interfaces: 'Invalid schema',
         SQLSchema: 'Invalid schema',
+        SQLInsertQueries: 'Invalid schema',
         deleteTablesQueries: ['Invalid schema'],
         mockData: {},
         joins: ['Invalid schema'],

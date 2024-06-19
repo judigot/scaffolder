@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
@@ -13,18 +13,19 @@ function App() {
   const {
     interfaces,
     SQLSchema,
+    SQLInsertQueries,
     mockData,
     deleteTablesQueries,
     joins,
     aggregateJoins,
-    includeInsertData,
-    setIncludeInsertData,
     setTransformations,
   } = useTransformationsStore();
 
+  const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
+
   useEffect(() => {
     setTransformations();
-  }, [schemaInput, includeInsertData, setTransformations]);
+  }, [schemaInput, setTransformations]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -67,12 +68,9 @@ function App() {
                 value={schemaInput}
                 onChange={handleChange}
                 rows={10}
-                className="mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               />
-              <label
-                htmlFor="backendDir"
-                className="block text-sm font-medium"
-              >
+              <label htmlFor="backendDir" className="block text-sm font-medium">
                 Backend Directory:
                 <input
                   type="text"
@@ -111,10 +109,7 @@ function App() {
                   className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                 />
               </label>
-              <label
-                htmlFor="framework"
-                className="block text-sm font-medium"
-              >
+              <label htmlFor="framework" className="block text-sm font-medium">
                 Framework:
                 <select
                   id="framework"
@@ -138,7 +133,7 @@ function App() {
             <h2 className="text-xl font-bold mb-2">Create Tables</h2>
             <textarea
               id="SQLSchema"
-              value={SQLSchema}
+              value={`${SQLSchema}${includeInsertData ? `\n\n${SQLInsertQueries}` : ''}`}
               readOnly
               rows={15}
               className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
@@ -159,7 +154,9 @@ function App() {
             </label>
             <button
               onClick={() => {
-                handleCopy(SQLSchema);
+                handleCopy(
+                  `${SQLSchema}${includeInsertData ? `\n\n${SQLInsertQueries}` : ''}`,
+                );
               }}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             >
