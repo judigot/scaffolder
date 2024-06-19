@@ -1,9 +1,7 @@
-import React, { useEffect } from 'react';
-import '@/styles/style.css';
+import { useEffect } from 'react';
 import { useTransformationsStore } from '@/useTransformationsStore';
 import { frameworks, useFormStore } from '@/useFormStore';
-import JSON5 from 'json5';
-import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
+import '@/styles/style.css';
 
 function App() {
   const { formData, setFormData } = useFormStore();
@@ -13,6 +11,7 @@ function App() {
     SQLSchema,
     mockData,
     joins,
+    aggregateJoins,
     includeInsertData,
     setIncludeInsertData,
     setTransformations,
@@ -177,9 +176,7 @@ function App() {
             {joins.map((value, i) => (
               <p key={i}>{value}</p>
             ))}
-            {generateSQLAggregateJoins(JSON5.parse(formData.schemaInput)).join(
-              '\n',
-            )}
+            {aggregateJoins.join('\n')}
           </div>
           <br />
           <button
