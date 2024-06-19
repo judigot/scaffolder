@@ -9,6 +9,8 @@ interface IFieldInfo {
   };
 }
 
+const MAX_ROWS = 100;
+
 const generateMockData = (
   data: Record<string, Record<string, unknown>[]>,
 ): Record<string, unknown[]> => {
@@ -43,7 +45,7 @@ const generateMockData = (
 
     const mockRecords = [];
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < MAX_ROWS; i++) {
       const mockRecord: Record<string, unknown> = {};
 
       Object.entries(fieldInfo).forEach(([key, info]) => {
