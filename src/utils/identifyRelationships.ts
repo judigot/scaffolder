@@ -14,9 +14,9 @@ function identifyRelationships(
   const tableNames = Object.keys(tableInfo);
 
   tableNames.forEach((foreignTable) => {
-    const foreignKeyColumns = Object.keys(
-      String(tableInfo[foreignTable][0]),
-    ).filter((column) => column.endsWith('_id'));
+    const foreignKeyColumns = Object.keys(tableInfo[foreignTable][0]).filter(
+      (column) => column.endsWith('_id'),
+    );
 
     const otherTables = tableNames.filter((table) => table !== foreignTable);
 
