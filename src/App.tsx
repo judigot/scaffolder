@@ -4,7 +4,10 @@ import { frameworks, useFormStore } from '@/useFormStore';
 import '@/styles/scss/main.scss';
 
 function App() {
-  const { formData, setFormData } = useFormStore();
+  const {
+    formData: { schemaInput, backendDir, frontendDir, dbConnection, framework },
+    setFormData,
+  } = useFormStore();
 
   const {
     interfaces,
@@ -19,8 +22,8 @@ function App() {
   } = useTransformationsStore();
 
   useEffect(() => {
-    setTransformations(formData.schemaInput);
-  }, [formData.schemaInput, includeInsertData, setTransformations]);
+    setTransformations(schemaInput);
+  }, [schemaInput, includeInsertData, setTransformations]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -60,7 +63,7 @@ function App() {
               <textarea
                 id="schemaInput"
                 name="schemaInput"
-                value={formData.schemaInput}
+                value={schemaInput}
                 onChange={handleChange}
                 rows={10}
                 className="mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
@@ -74,7 +77,7 @@ function App() {
                   type="text"
                   id="backendDir"
                   name="backendDir"
-                  value={formData.backendDir}
+                  value={backendDir}
                   onChange={handleChange}
                   className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                 />
@@ -88,7 +91,7 @@ function App() {
                   type="text"
                   id="frontendDir"
                   name="frontendDir"
-                  value={formData.frontendDir}
+                  value={frontendDir}
                   onChange={handleChange}
                   className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                 />
@@ -102,7 +105,7 @@ function App() {
                   type="text"
                   id="dbConnection"
                   name="dbConnection"
-                  value={formData.dbConnection}
+                  value={dbConnection}
                   onChange={handleChange}
                   className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                 />
@@ -115,7 +118,7 @@ function App() {
                 <select
                   id="framework"
                   name="framework"
-                  value={formData.framework}
+                  value={framework}
                   onChange={handleChange}
                   className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                 >
@@ -162,7 +165,7 @@ function App() {
               Copy Database Schema
             </button>
             <br />
-            {formData.schemaInput !== '' && formData.dbConnection !== '' && (
+            {schemaInput !== '' && dbConnection !== '' && (
               <button
                 onClick={() => {
                   handleCopy(SQLSchema);
@@ -192,7 +195,7 @@ function App() {
               Copy Delete Queries
             </button>
             <br />
-            {formData.schemaInput !== '' && formData.dbConnection !== '' && (
+            {schemaInput !== '' && dbConnection !== '' && (
               <button
                 onClick={() => {
                   handleCopy(SQLSchema);
@@ -229,7 +232,7 @@ function App() {
             </button>
             <br />
 
-            {formData.schemaInput !== '' && formData.dbConnection !== '' && (
+            {schemaInput !== '' && dbConnection !== '' && (
               <button
                 onClick={() => {
                   handleCopy(SQLSchema);
@@ -262,7 +265,7 @@ function App() {
               Copy Join Queries
             </button>
             <br />
-            {formData.schemaInput !== '' && formData.dbConnection !== '' && (
+            {schemaInput !== '' && dbConnection !== '' && (
               <button
                 onClick={() => {
                   handleCopy(SQLSchema);
