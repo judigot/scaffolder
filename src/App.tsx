@@ -22,7 +22,7 @@ function App() {
   } = useTransformationsStore();
 
   useEffect(() => {
-    setTransformations(schemaInput);
+    setTransformations();
   }, [schemaInput, includeInsertData, setTransformations]);
 
   const handleChange = (
@@ -214,12 +214,10 @@ function App() {
             <h2 className="text-xl font-bold mb-2">Join Queries</h2>
             <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
               {joins.map((value, i) => (
-                <>
-                  <p key={i} className="whitespace-pre-wrap">
-                    {value}
-                  </p>
+                <div key={i}>
+                  <p className="whitespace-pre-wrap">{value}</p>
                   <br />
-                </>
+                </div>
               ))}
             </div>
             <button
@@ -248,12 +246,10 @@ function App() {
             <h2 className="text-xl font-bold mb-2">Aggregate Join Queries</h2>
             <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
               {aggregateJoins.map((value, i) => (
-                <>
-                  <p key={i} className="whitespace-pre-wrap">
-                    {value}
-                  </p>
+                <div key={i}>
+                  <p className="whitespace-pre-wrap">{value}</p>
                   <br />
-                </>
+                </div>
               ))}
             </div>
             <button

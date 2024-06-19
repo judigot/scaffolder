@@ -8,6 +8,7 @@ import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
+import { useFormStore } from './useFormStore'; // Import useFormStore
 
 interface IStore {
   interfaces: string;
@@ -18,7 +19,7 @@ interface IStore {
   aggregateJoins: string[];
   includeInsertData: boolean;
   setIncludeInsertData: (includeInsertData: boolean) => void;
-  setTransformations: (schemaString: string) => void;
+  setTransformations: () => void;
 }
 
 export const useTransformationsStore = create<IStore>()((set, get) => ({
@@ -32,8 +33,9 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
   setIncludeInsertData: (includeInsertData) => {
     set({ includeInsertData });
   },
-  setTransformations: (schemaString: string) => {
-    if (schemaString === '') {
+  setTransformations: () => {
+    const schemaInput = useFormStore.getState().formData.schemaInput;
+    if (schemaInput === '') {
       set({
         interfaces: '',
         SQLSchema: '',
@@ -46,27 +48,29 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
     }
 
     try {
-      const parsedSchema: Record<string, Record<string, unknown>[]> =
-        JSON5.parse(schemaString);
+      const formData: Record<string, Record<string, unknown>[]> =
+        JSON5.parse(schemaInput);
       set({
-        interfaces: generateTypescriptInterfaces(parsedSchema),
+        interfaces: generateTypescriptInterfaces(formData),
         SQLSchema: formatSQL(
-          generateSQLCreateTables(parsedSchema) +
+          generateSQLCreateTables(formData) +
             (get().includeInsertData
-              ? '\n\n' + generateSQLInserts(parsedSchema)
+              ? '\n\n' + generateSQLInserts(formData)
               : ''),
         ),
-        mockData: generateMockData(parsedSchema),
-        deleteTablesQueries: generateSQLDeleteTables(parsedSchema),
-        joins: generateSQLJoins(parsedSchema),
-        aggregateJoins: generateSQLAggregateJoins(parsedSchema),
+        mockData: generateMockData(formData),
+        deleteTablesQueries: generateSQLDeleteTables(formData),
+        joins: generateSQLJoins(formData),
+        aggregateJoins: generateSQLAggregateJoins(formData),
       });
     } catch (e) {
       set({
-        interfaces: 'Invalid JSON input',
-        SQLSchema: 'Invalid JSON input',
+        interfaces: 'Invalid schema',
+        SQLSchema: 'Invalid schema',
+        deleteTablesQueries: ['Invalid schema'],
         mockData: {},
-        joins: ['Invalid JSON input'],
+        joins: ['Invalid schema'],
+        aggregateJoins: ['Invalid schema'],
       });
     }
   },
