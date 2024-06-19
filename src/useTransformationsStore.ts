@@ -7,11 +7,13 @@ import generateMockData from './utils/generateMockData';
 import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
+import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 
 interface IStore {
   interfaces: string;
   SQLSchema: string;
   mockData: Record<string, unknown[]>;
+  deleteTablesQueries: string[];
   joins: string[];
   aggregateJoins: string[];
   includeInsertData: boolean;
@@ -23,6 +25,7 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
   interfaces: '',
   SQLSchema: '',
   mockData: {},
+  deleteTablesQueries: [],
   joins: [],
   aggregateJoins: [],
   includeInsertData: false,
@@ -35,6 +38,7 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
         interfaces: '',
         SQLSchema: '',
         mockData: {},
+        deleteTablesQueries: [],
         joins: [],
         aggregateJoins: [],
       });
@@ -53,6 +57,7 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
               : ''),
         ),
         mockData: generateMockData(parsedSchema),
+        deleteTablesQueries: generateSQLDeleteTables(parsedSchema),
         joins: generateSQLJoins(parsedSchema),
         aggregateJoins: generateSQLAggregateJoins(parsedSchema),
       });

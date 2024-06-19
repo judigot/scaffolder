@@ -10,6 +10,7 @@ function App() {
     interfaces,
     SQLSchema,
     mockData,
+    deleteTablesQueries,
     joins,
     aggregateJoins,
     includeInsertData,
@@ -171,6 +172,32 @@ function App() {
           >
             Copy Database Schema
           </button>
+          <h2>Delete Tables</h2>
+          <div className="join-queries">
+            {deleteTablesQueries.map((value, i) => (
+              <p key={i}>{value}</p>
+            ))}
+          </div>
+          <br />
+          <button
+            onClick={() => {
+              handleCopy(deleteTablesQueries.join('\n'));
+            }}
+            className="button"
+          >
+            Copy Delete Queries
+          </button>
+          &nbsp;
+          {formData.schemaInput !== '' && formData.dbConnection !== '' && (
+            <button
+              onClick={() => {
+                handleCopy(SQLSchema);
+              }}
+              className="button"
+            >
+              Execute Query
+            </button>
+          )}
           <h2>Join Queries</h2>
           <div className="join-queries">
             {joins.map((value, i) => (
