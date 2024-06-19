@@ -7,14 +7,15 @@ import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 
 function App() {
   const { formData, setFormData } = useFormStore();
+
   const {
-    includeInsertData,
-    setIncludeInsertData,
-    setTransformations,
     interfaces,
     SQLSchema,
     mockData,
     foreignKeys,
+    includeInsertData,
+    setIncludeInsertData,
+    setTransformations,
   } = useTransformationsStore();
 
   useEffect(() => {
