@@ -155,7 +155,7 @@ function generateMultipleJoinQuery(
   )} GROUP BY "${baseTable}"."${table}_id";`;
 }
 
-function getGeneratedSQLJoins(
+function generateSQLAggregateJoins(
   tableInfo: Record<string, Record<string, unknown>[]>,
 ): string[] {
   const relationships = identifyRelationships(tableInfo);
@@ -163,4 +163,4 @@ function getGeneratedSQLJoins(
   return joinQueries;
 }
 
-export default getGeneratedSQLJoins;
+export default generateSQLAggregateJoins;
