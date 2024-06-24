@@ -1,6 +1,6 @@
 import identifyType from './identifyType';
 import mapTypeToTypescriptType from './mapTypeToTypescriptType';
-import { toPascalCase } from './toPascalCase';
+import { toPascalCase } from '../helpers/toPascalCase';
 
 const generateTypescriptInterfaces = (
   data: Record<string, Record<string, unknown>[]>,
