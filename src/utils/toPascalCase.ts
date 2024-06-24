@@ -1,4 +1,3 @@
-// utils.ts
 export const toPascalCase = (str: string): string => {
   return str
     .split('_')
