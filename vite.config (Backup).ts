@@ -6,7 +6,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 // https://vitejs.dev/config/
 import path from 'path';
 export default defineConfig({
-  /* <newBuildOutput> */ build: { outDir: 'dist' },
+  /* <newBuildOutput> */ build: { outDir: 'dist/public' },
   /* </newBuildOutput> */ /* <testConfig> */ test: {
     globals: true,
     environment: 'jsdom',
