@@ -60,7 +60,7 @@ function App() {
         {/* First row with form, create tables, and delete tables */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">JSON Schema</h2>
+            <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
             <form className="space-y-4">
               <textarea
                 id="schemaInput"
