@@ -1,4 +1,10 @@
-const mapTypeToSQL = (type: string, value?: unknown): string => {
+const mapTypeToSQL = ({
+  type,
+  value,
+}: {
+  type: string;
+  value: unknown;
+}): string => {
   switch (type) {
     case 'number':
       return 'BIGINT';
