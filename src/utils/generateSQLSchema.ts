@@ -61,12 +61,21 @@ const generateSQLSchema = (
     const quotedTableName = quoteTableName(tableName);
     const columns = Object.entries(fields)
       .map(([key, { types, nullable }]) => {
-        const type =
-          key === primaryKeyField
-            ? 'BIGSERIAL PRIMARY KEY'
-            : key.endsWith('_id')
-              ? 'BIGINT'
-              : mapTypeToSQL([...types][0], records[0][key]);
+        const type = (() => {
+          if (key === primaryKeyField) {
+            return 'BIGSERIAL PRIMARY KEY';
+          }
+
+          if (key.endsWith('_id')) {
+            return 'BIGINT';
+          }
+
+          if (key.toLowerCase().includes('password')) {
+            return 'VARCHAR(32)';
+          }
+
+          return mapTypeToSQL([...types][0], records[0][key]);
+        })();
         const nullableString =
           key === primaryKeyField ? '' : nullable ? '' : 'NOT NULL'; // Avoid adding NULL for default
         const uniqueString =
