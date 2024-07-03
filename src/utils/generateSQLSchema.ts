@@ -71,7 +71,7 @@ const generateSQLSchema = (
           }
 
           if (columnName.toLowerCase().includes('password')) {
-            return 'VARCHAR(32)';
+            return 'CHAR(60)';
           }
 
           return mapTypeToSQL({
