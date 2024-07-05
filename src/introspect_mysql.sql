@@ -1,4 +1,4 @@
-SET @database_name = '$DB_NAME';
+-- SET @database_name = ;
 SELECT c.table_name,
     JSON_OBJECT(
         'columns',
@@ -36,5 +36,5 @@ FROM INFORMATION_SCHEMA.COLUMNS c
     AND c.TABLE_NAME = k.TABLE_NAME
     AND c.COLUMN_NAME = k.COLUMN_NAME
     AND k.REFERENCED_TABLE_NAME IS NOT NULL
-WHERE c.TABLE_SCHEMA = @database_name
+WHERE c.TABLE_SCHEMA = '$DB_NAME'
 GROUP BY c.table_name;
