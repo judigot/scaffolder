@@ -14,8 +14,8 @@ const MAX_ROWS = 100;
 
 const generateMockData = (
   data: Record<string, Record<string, unknown>[]>,
-): Record<string, unknown[]> => {
-  const generatedData: Record<string, unknown[]> = {};
+): Record<string, Record<string, unknown>[]> => {
+  const generatedData: Record<string, Record<string, unknown>[]> = {};
 
   Object.entries(data).forEach(([tableName, records]) => {
     const fieldInfo: Record<string, IFieldInfo> = {};
@@ -71,10 +71,7 @@ const generateMockData = (
 
         if (info.foreignKey) {
           const { table, field } = info.foreignKey;
-          const foreignRecords = generatedData[table] as Record<
-            string,
-            unknown
-          >[];
+          const foreignRecords = generatedData[table];
           mockRecord[rawColumnName] = faker.helpers.arrayElement(
             foreignRecords.map((r) => r[field]),
           );
