@@ -1,4 +1,4 @@
-import mapTypeToSQL from './mapTypeToSQL';
+import convertType from './convertType';
 
 interface IFieldInfo {
   types: Set<string>;
@@ -74,9 +74,10 @@ const generateSQLSchema = (
             return 'CHAR(60)';
           }
 
-          return mapTypeToSQL({
-            type: [...types][0],
+          return convertType({
+            primitiveType: [...types][0],
             value: records[0][columnName],
+            targetType: 'postgresql',
           });
         })();
         const nullableString =
