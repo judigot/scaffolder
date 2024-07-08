@@ -1,5 +1,5 @@
 import identifyType from './identifyType';
-import mapTypeToTypescriptType from './mapTypeToTypescriptType';
+import convertType from './convertType';
 import { toPascalCase } from '../helpers/toPascalCase';
 
 const generateTypescriptInterfaces = (
@@ -31,7 +31,11 @@ const generateTypescriptInterfaces = (
         const sampleValue = records.find((record) => record[key] !== null)?.[
           key
         ];
-        acc[key] = mapTypeToTypescriptType([...types], sampleValue);
+        acc[key] = convertType({
+          primitiveType: [...types][0],
+          value: sampleValue,
+          targetType: 'typescript',
+        });
         return acc;
       }, {});
 
