@@ -1,6 +1,6 @@
 const generateSQLInserts = (
   data: Record<string, Record<string, unknown>[]>,
-) => {
+): string => {
   let inserts = '';
 
   Object.entries(data).forEach(([tableName, records]) => {
@@ -9,25 +9,25 @@ const generateSQLInserts = (
     }
 
     const firstRecord = records[0];
-    const columnsNames = Object.keys(firstRecord).join(', ');
+    const columnNames = Object.keys(firstRecord).join(', ');
 
     const values = records
       .map((record) => {
-        const typedRecord = record;
-        const valueString = Object.values(typedRecord)
-          .map((value) =>
-            typeof value === 'string'
-              ? `'${value.replace(/'/g, "''")}'`
-              : value === null
-                ? 'NULL'
-                : String(value),
-          )
-          .join(', ');
-        return `(${valueString})`;
+        const valueStrings = Object.values(record).map((value) => {
+          if (typeof value === 'string') {
+            return `'${value.replace(/'/g, "''")}'`;
+          }
+          if (value === null) {
+            return 'NULL';
+          }
+          return value;
+        });
+
+        return `(${valueStrings.join(', ')})`;
       })
       .join(',\n');
 
-    inserts += `INSERT INTO "${tableName}" (${columnsNames}) VALUES ${values};`;
+    inserts += `INSERT INTO "${tableName}" (${columnNames}) VALUES ${values};\n`;
   });
 
   return inserts;
