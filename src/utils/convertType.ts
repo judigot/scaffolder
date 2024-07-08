@@ -9,8 +9,7 @@ const typeMappings: Record<
   Record<IConversionParams['targetType'], string>
 > = {
   number: { mysql: 'BIGINT', postgresql: 'BIGINT', typescript: 'number' },
-  float: { mysql: 'FLOAT', postgresql: 'REAL', typescript: 'number' },
-  decimal: {
+  float: {
     mysql: 'DECIMAL(10, 2)',
     postgresql: 'NUMERIC(10, 2)',
     typescript: 'number',
