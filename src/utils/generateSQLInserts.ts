@@ -20,6 +20,9 @@ const generateSQLInserts = (
           if (value === null) {
             return 'NULL';
           }
+          if (value instanceof Date) {
+            return `'${value.toISOString()}'`;
+          }
           return value;
         });
 

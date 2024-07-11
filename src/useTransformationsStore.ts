@@ -13,21 +13,23 @@ import { useFormStore } from './useFormStore';
 interface IStore {
   interfaces: string;
   SQLSchema: string;
-  mockData: Record<string, unknown[]>;
   deleteTablesQueries: string[];
   joins: string[];
+  mockData: Record<string, unknown[]>;
   SQLInsertQueries: string;
+  SQLInsertQueriesFromMockData: string;
   aggregateJoins: string[];
   setTransformations: () => void;
 }
 
-export const useTransformationsStore = create<IStore>()((set) => ({
+export const useTransformationsStore = create<IStore>((set) => ({
   interfaces: '',
   SQLSchema: '',
-  mockData: {},
   deleteTablesQueries: [],
   joins: [],
+  mockData: {},
   SQLInsertQueries: '',
+  SQLInsertQueriesFromMockData: '',
   aggregateJoins: [],
   setTransformations: () => {
     const schemaInput = useFormStore.getState().formData.schemaInput;
@@ -35,9 +37,11 @@ export const useTransformationsStore = create<IStore>()((set) => ({
       set({
         interfaces: '',
         SQLSchema: '',
-        mockData: {},
         deleteTablesQueries: [],
         joins: [],
+        mockData: {},
+        SQLInsertQueries: '',
+        SQLInsertQueriesFromMockData: '',
         aggregateJoins: [],
       });
       return;
@@ -46,23 +50,27 @@ export const useTransformationsStore = create<IStore>()((set) => ({
     try {
       const formData: Record<string, Record<string, unknown>[]> =
         JSON5.parse(schemaInput);
+      const mockData = generateMockData(formData); // Generate mock data once
+
       set({
         interfaces: generateTypescriptInterfaces(formData),
         SQLSchema: formatSQL(generateSQLCreateTables(formData)),
-        SQLInsertQueries: formatSQL(generateSQLInserts(formData)),
-        mockData: generateMockData(formData),
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(formData),
+        mockData: mockData, // Set the generated mock data
+        SQLInsertQueries: formatSQL(generateSQLInserts(formData)),
+        SQLInsertQueriesFromMockData: formatSQL(generateSQLInserts(mockData)), // Use the generated mock data
         aggregateJoins: generateSQLAggregateJoins(formData),
       });
     } catch (e) {
       set({
         interfaces: 'Invalid schema',
         SQLSchema: 'Invalid schema',
-        SQLInsertQueries: 'Invalid schema',
         deleteTablesQueries: ['Invalid schema'],
-        mockData: {},
         joins: ['Invalid schema'],
+        mockData: {},
+        SQLInsertQueries: 'Invalid schema',
+        SQLInsertQueriesFromMockData: 'Invalid schema',
         aggregateJoins: ['Invalid schema'],
       });
     }

@@ -14,6 +14,7 @@ function App() {
     interfaces,
     SQLSchema,
     SQLInsertQueries,
+    SQLInsertQueriesFromMockData,
     mockData,
     deleteTablesQueries,
     joins,
@@ -22,6 +23,7 @@ function App() {
   } = useTransformationsStore();
 
   const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
+  const [insertOption, setInsertOption] = useState('SQLInsertQueries');
 
   useEffect(() => {
     setTransformations();
@@ -160,7 +162,13 @@ function App() {
             <h2 className="text-xl font-bold mb-2">Create Tables</h2>
             <textarea
               id="SQLSchema"
-              value={`${SQLSchema}${includeInsertData ? `\n\n${SQLInsertQueries}` : ''}`}
+              value={`${SQLSchema}${
+                includeInsertData
+                  ? insertOption === 'SQLInsertQueries'
+                    ? `\n\n${SQLInsertQueries}`
+                    : `\n\n${SQLInsertQueriesFromMockData}`
+                  : ''
+              }`}
               readOnly
               rows={15}
               className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
@@ -174,15 +182,53 @@ function App() {
                 id="includeInsertData"
                 name="includeInsertData"
                 checked={includeInsertData}
-                onChange={handleChange}
+                onChange={(e) => {
+                  setIncludeInsertData(e.target.checked);
+                }}
                 className="mr-2"
               />
               Include Insert Data
             </label>
+            {includeInsertData && (
+              <div className="mt-2">
+                <label className="block text-sm font-medium">
+                  <input
+                    type="radio"
+                    name="insertOption"
+                    value="SQLInsertQueries"
+                    checked={insertOption === 'SQLInsertQueries'}
+                    onChange={(e) => {
+                      setInsertOption(e.target.value);
+                    }}
+                    className="mr-2"
+                  />
+                  SQL Insert Queries
+                </label>
+                <label className="block text-sm font-medium">
+                  <input
+                    type="radio"
+                    name="insertOption"
+                    value="SQLInsertQueriesFromMockData"
+                    checked={insertOption === 'SQLInsertQueriesFromMockData'}
+                    onChange={(e) => {
+                      setInsertOption(e.target.value);
+                    }}
+                    className="mr-2"
+                  />
+                  SQL Insert Queries from Mock Data
+                </label>
+              </div>
+            )}
             <button
               onClick={() => {
                 handleCopy(
-                  `${SQLSchema}${includeInsertData ? `\n\n${SQLInsertQueries}` : ''}`,
+                  `${SQLSchema}${
+                    includeInsertData
+                      ? insertOption === 'SQLInsertQueries'
+                        ? `\n\n${SQLInsertQueries}`
+                        : `\n\n${SQLInsertQueriesFromMockData}`
+                      : ''
+                  }`,
                 );
               }}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
