@@ -13,7 +13,6 @@ const uniqueColumnNames = [
   'email',
   'username',
   'user_name',
-  'name',
   'slug',
   'isbn',
   'uuid',
