@@ -1,46 +1,8 @@
-interface ITableRelationship {
-  table: string;
-  foreignTables: string[];
-  foreignKeys: string[];
-}
+import identifyRelationships, {
+  IRelationshipInfo,
+} from '@/utils/identifyRelationships';
 
-function identifyRelationships(
-  data: Record<string, Record<string, unknown>[]>,
-): ITableRelationship[] {
-  const relationships: ITableRelationship[] = [];
-
-  for (const table in data) {
-    if (Object.prototype.hasOwnProperty.call(data, table)) {
-      const foreignTables: string[] = [];
-      const foreignKeys: string[] = [];
-
-      const rows = data[table];
-      rows.forEach((row) => {
-        for (const key in row) {
-          if (
-            typeof key === 'string' &&
-            key.endsWith('_id') &&
-            key !== `${table}_id`
-          ) {
-            const foreignTable = key.replace('_id', '');
-            foreignTables.push(foreignTable);
-            foreignKeys.push(key);
-          }
-        }
-      });
-
-      relationships.push({
-        table,
-        foreignTables: Array.from(new Set(foreignTables)),
-        foreignKeys: Array.from(new Set(foreignKeys)),
-      });
-    }
-  }
-
-  return relationships;
-}
-
-function sortTablesByHierarchy(relationships: ITableRelationship[]): string[] {
+function sortTablesByHierarchy(relationships: IRelationshipInfo[]): string[] {
   const tableReferenceCount: Record<string, number> = {};
   const junctionTables: string[] = [];
 
@@ -67,7 +29,7 @@ function sortTablesByHierarchy(relationships: ITableRelationship[]): string[] {
   return [...nonJunctionTables, ...junctionTables];
 }
 
-function generateSQLJoins(relationships: ITableRelationship[]): string[] {
+function generateSQLJoins(relationships: IRelationshipInfo[]): string[] {
   const sortedTables = sortTablesByHierarchy(relationships);
   const joinQueries: string[] = [];
   const addedJoins = new Set<string>();
