@@ -27,12 +27,12 @@ const generateTypescriptInterfaces = (
       // Determine the type for each field based on collected values
       const fieldTypeInfo = Object.entries(fields).reduce<
         Record<string, string>
-      >((acc, [key, types]) => {
+      >((acc, [key]) => {
         const sampleValue = records.find((record) => record[key] !== null)?.[
           key
         ];
         acc[key] = convertType({
-          primitiveType: [...types][0],
+          // primitiveType: [...types][0],
           value: sampleValue,
           targetType: 'typescript',
         });

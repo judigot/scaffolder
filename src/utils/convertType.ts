@@ -1,5 +1,6 @@
+import identifyType from './identifyType';
+
 interface IConversionParams {
-  primitiveType: string;
   value: unknown;
   targetType: 'mysql' | 'postgresql' | 'typescript';
 }
@@ -16,50 +17,20 @@ const typeMappings: Record<
   },
   string: { mysql: 'TEXT', postgresql: 'TEXT', typescript: 'string' },
   boolean: { mysql: 'BOOLEAN', postgresql: 'BOOLEAN', typescript: 'boolean' },
-  date: {
+  Date: {
     mysql: 'TIMESTAMP(6)',
     postgresql: 'TIMESTAMPTZ(6)',
     typescript: 'Date',
   },
-  default: { mysql: 'TEXT', postgresql: 'TEXT', typescript: 'string' },
+  // default: { mysql: 'TEXT', postgresql: 'TEXT', typescript: 'string' },
 };
 
-const isDateString = (val: unknown): boolean => {
-  return typeof val === 'string' && !isNaN(Date.parse(val));
-};
+const convertType = ({ value, targetType }: IConversionParams): string => {
+  // const type = identifyType(value);
 
-const isFloat = (n: unknown): boolean => {
-  return typeof n === 'number' && !Number.isInteger(n);
-};
-
-const isInteger = (n: unknown): boolean => {
-  return typeof n === 'number' && Number.isInteger(n);
-};
-
-const convertType = ({
-  primitiveType,
-  value,
-  targetType,
-}: IConversionParams): string => {
-  if (primitiveType === 'string' && isDateString(value)) {
-    return typeMappings.date[targetType];
-  }
-
-  if (isFloat(value)) {
-    return typeMappings.float[targetType];
-  }
-
-  if (isInteger(value)) {
-    return typeMappings.number[targetType];
-  }
-
-  if (primitiveType === 'string') {
-    return typeMappings.string[targetType];
-  }
-
-  if (primitiveType === 'boolean') {
-    return typeMappings.boolean[targetType];
-  }
+  // if (type in typeMappings) {
+    return typeMappings[identifyType(value)][targetType];
+  // }
 
   return typeMappings.default[targetType];
 };

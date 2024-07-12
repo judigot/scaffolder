@@ -7,6 +7,10 @@ const identifyType = (value: unknown): string => {
     return 'Date';
   }
 
+  if (typeof value === 'string' && !isNaN(Date.parse(value))) {
+    return 'Date';
+  }
+
   return typeof value;
 };
 
