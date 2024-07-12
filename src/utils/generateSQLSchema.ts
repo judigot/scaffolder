@@ -59,7 +59,7 @@ const generateSQLSchema = (
 
     const quotedTableName = quoteTableName(tableName);
     const columns = Object.entries(fields)
-      .map(([columnName, { types, nullable }]) => {
+      .map(([columnName, { nullable }]) => {
         const type = (() => {
           if (columnName === primaryKeyField) {
             return 'BIGSERIAL PRIMARY KEY';
@@ -74,7 +74,6 @@ const generateSQLSchema = (
           }
 
           return convertType({
-            primitiveType: [...types][0],
             value: records[0][columnName],
             targetType: 'postgresql',
           });

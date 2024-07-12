@@ -59,7 +59,6 @@ const generateMockData = (
         )?.[rawColumnName];
 
         const fieldType = convertType({
-          primitiveType: [...info.types][0],
           value: sampleValue,
           targetType: 'typescript',
         });
