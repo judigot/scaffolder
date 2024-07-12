@@ -50,65 +50,29 @@ check_constraints AS (
     WHERE tc.constraint_type = 'CHECK'
 )
 SELECT c.table_name,
-    json_build_object(
-        'columns',
-        json_agg(
-            CASE
+    json_agg(
+        json_build_object(
+            'column_name', c.column_name,
+            'data_type', c.data_type,
+            'is_nullable', c.is_nullable,
+            'column_default', c.column_default,
+            'primary_key', (pk.column_name IS NOT NULL),
+            'unique', (uc.column_name IS NOT NULL),
+            'foreign_key', CASE
                 WHEN fk.foreign_table_name IS NOT NULL THEN json_build_object(
-                    'column_name',
-                    c.column_name,
-                    'data_type',
-                    c.data_type,
-                    'is_nullable',
-                    c.is_nullable,
-                    'column_default',
-                    c.column_default,
-                    'primary_key',
-                    (pk.column_name IS NOT NULL),
-                    'unique',
-                    (uc.column_name IS NOT NULL),
-                    'check_constraints',
-                    (
-                        SELECT json_agg(check_clause)
-                        FROM check_constraints cc
-                        WHERE cc.table_schema = c.table_schema
-                            AND cc.table_name = c.table_name
-                    ),
-                    'foreign_key',
-                    json_build_object(
-                        'foreign_table_name',
-                        fk.foreign_table_name,
-                        'foreign_column_name',
-                        fk.foreign_column_name
-                    )
+                    'foreign_table_name', fk.foreign_table_name,
+                    'foreign_column_name', fk.foreign_column_name
                 )
-                ELSE json_build_object(
-                    'column_name',
-                    c.column_name,
-                    'data_type',
-                    c.data_type,
-                    'is_nullable',
-                    c.is_nullable,
-                    'column_default',
-                    c.column_default,
-                    'primary_key',
-                    (pk.column_name IS NOT NULL),
-                    'unique',
-                    (uc.column_name IS NOT NULL),
-                    'check_constraints',
-                    (
-                        SELECT json_agg(check_clause)
-                        FROM check_constraints cc
-                        WHERE cc.table_schema = c.table_schema
-                            AND cc.table_name = c.table_name
-                    ),
-                    'foreign_key',
-                    NULL
-                )
+                ELSE NULL
             END
-            ORDER BY c.ordinal_position
         )
-    ) AS table_definition
+        ORDER BY c.ordinal_position
+    ) AS columns,
+    (SELECT json_agg(check_clause)
+     FROM check_constraints cc
+     WHERE cc.table_schema = c.table_schema
+       AND cc.table_name = c.table_name
+    ) AS check_constraints
 FROM columns_info c
     LEFT JOIN foreign_keys fk ON c.table_schema = fk.table_schema
     AND c.table_name = fk.table_name
@@ -119,5 +83,5 @@ FROM columns_info c
     LEFT JOIN unique_constraints uc ON c.table_schema = uc.table_schema
     AND c.table_name = uc.table_name
     AND c.column_name = uc.column_name
-GROUP BY c.table_name
+GROUP BY c.table_schema, c.table_name
 ORDER BY c.table_name;
