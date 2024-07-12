@@ -26,13 +26,7 @@ const typeMappings: Record<
 };
 
 const convertType = ({ value, targetType }: IConversionParams): string => {
-  // const type = identifyType(value);
-
-  // if (type in typeMappings) {
-    return typeMappings[identifyType(value)][targetType];
-  // }
-
-  return typeMappings.default[targetType];
+  return typeMappings[identifyType(value)][targetType];
 };
 
 export default convertType;
