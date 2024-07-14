@@ -37,11 +37,11 @@ const generateSQLSchema = (
 ): string => {
   const schemaParts: string[] = [];
 
-  Object.entries(data).forEach(([tableName, records]) => {
+  Object.entries(data).forEach(([tableName, rows]) => {
     const fields: Record<string, IFieldInfo> = {};
 
     // Populate field info
-    records.forEach((record) => {
+    rows.forEach((record) => {
       Object.entries(record).forEach(([key, value]) => {
         if (!(key in fields)) {
           fields[key] = { types: new Set<string>(), nullable: false };
@@ -54,7 +54,7 @@ const generateSQLSchema = (
     });
 
     // Determine primary key
-    const firstKey = Object.keys(records[0])[0];
+    const firstKey = Object.keys(rows[0])[0];
     const primaryKeyField = firstKey.includes('id')
       ? firstKey
       : `${tableName}_id`;
@@ -75,7 +75,7 @@ const generateSQLSchema = (
         }
 
         return convertType({
-          value: records[0][columnName],
+          value: rows[0][columnName],
           targetType: 'postgresql',
         });
       })();
@@ -85,7 +85,7 @@ const generateSQLSchema = (
         uniqueColumnNames.includes(columnName) && columnName !== primaryKeyField
           ? 'UNIQUE'
           : '';
-      return `  ${columnName} ${type} ${uniqueString} ${nullableString}`.trim();
+      return `${columnName} ${type} ${uniqueString} ${nullableString}`.trim();
     });
 
     const tableRelationships = relationships.find(
