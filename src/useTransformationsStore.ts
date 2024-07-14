@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import JSON5 from 'json5';
 import { format as formatSQL } from 'sql-formatter';
-import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
-import generateSQLCreateTables from './utils/generateSQLCreateTables';
 import generateMockData from './utils/generateMockData';
 import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
@@ -12,6 +10,7 @@ import identifyRelationships, {
   IRelationshipInfo,
 } from '@/utils/identifyRelationships';
 import { useFormStore } from './useFormStore';
+import generateFile from '@/utils/generateFile';
 
 interface IStore {
   interfaces: string;
@@ -60,8 +59,8 @@ export const useTransformationsStore = create<IStore>((set) => ({
       const relationships = identifyRelationships(formData); // Identify relationships once
 
       set({
-        interfaces: generateTypescriptInterfaces(relationships),
-        SQLSchema: formatSQL(generateSQLCreateTables(relationships)),
+        interfaces: generateFile(relationships, 'ts-interfaces'),
+        SQLSchema: formatSQL(generateFile(relationships, 'sql-tables')),
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(relationships),
         mockData,

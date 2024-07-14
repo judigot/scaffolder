@@ -3,11 +3,10 @@ const identifyType = (value: unknown): string => {
     return Number.isInteger(value) ? 'number' : 'float';
   }
 
-  if (value instanceof Date) {
-    return 'Date';
-  }
-
-  if (typeof value === 'string' && !isNaN(Date.parse(value))) {
+  if (
+    value instanceof Date ||
+    (typeof value === 'string' && !isNaN(Date.parse(value)))
+  ) {
     return 'Date';
   }
 

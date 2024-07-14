@@ -98,7 +98,7 @@ function identifyRelationships(
             ];
             const fieldType = convertType({
               value: sampleValue,
-              targetType: 'postgresql',
+              targetType: 'typescript',
             });
             const isPrimaryKey = key === primaryKeyField;
             const isUnique = uniqueColumnNames.includes(key) && !isPrimaryKey;
