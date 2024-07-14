@@ -57,7 +57,7 @@ app.get('/api', (_req: Request, res: Response) =>
 );
 
 app.post(
-  '/createModels',
+  '/scaffoldProject',
   (
     req: Request<unknown, unknown, { relationships: IRelationshipInfo[] }>,
     res: Response,
