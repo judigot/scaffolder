@@ -58,6 +58,8 @@ export const useTransformationsStore = create<IStore>((set) => ({
       const mockData = generateMockData(formData); // Generate mock data once
       const relationships = identifyRelationships(formData); // Identify relationships once
 
+      const interfaces = generateFile(relationships, 'ts-interfaces');
+
       fetch(`http://localhost:5000/scaffoldProject`, {
         // *GET, POST, PATCH, PUT, DELETE
         method: 'POST',
@@ -66,13 +68,13 @@ export const useTransformationsStore = create<IStore>((set) => ({
           'Content-Type': 'application/json',
         },
         // For POST, PATCH, and PUT requests
-        body: JSON.stringify({ relationships }),
+        body: JSON.stringify({ relationships, interfaces }),
       }).catch(() => {
         // Failure
       });
 
       set({
-        interfaces: generateFile(relationships, 'ts-interfaces'),
+        interfaces,
         SQLSchema: formatSQL(generateFile(relationships, 'sql-tables')),
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(relationships),

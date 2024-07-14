@@ -44,7 +44,7 @@ const clearDirectory = (directory: string): void => {
   }
 };
 
-const generateModel = (
+const createModels = (
   tables: IRelationshipInfo[],
   framework: keyof typeof frameworkDirectories,
 ): void => {
@@ -57,7 +57,7 @@ const generateModel = (
   const template = fs.readFileSync(templatePath, 'utf-8');
   const outputDir = path.resolve(
     __dirname,
-    `../out/backend/laravel/${frameworkDir.model}`,
+    `../output/backend/laravel/${frameworkDir.model}`,
   );
 
   if (!fs.existsSync(outputDir)) {
@@ -92,4 +92,4 @@ const generateModel = (
   });
 };
 
-export default generateModel;
+export default createModels;

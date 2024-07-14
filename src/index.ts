@@ -7,6 +7,7 @@ import Pool from 'pg-pool';
 import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
 import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import createModels from '@/utils/createModels';
+import createAPICalls from '@/utils/createAPICalls';
 
 dotenv.config();
 
@@ -71,6 +72,9 @@ app.post(
       }
 
       createModels(relationships, "laravel");
+
+      createAPICalls(relationships);
+
 
       res.send('Models generated successfully');
     } catch (error) {

@@ -1,4 +1,16 @@
-export const frameworkDirectories = {
+export const frameworkDirectories: Record<
+  string,
+  {
+    service: string;
+    controller: string;
+    repository: string;
+    interface: string;
+    model: string;
+    dto: string;
+    validation: string;
+    exception: string;
+  }
+> = {
   spring_boot: {
     service: 'src/main/java/com/example/demo/service/user_service.java',
     controller:
@@ -52,4 +64,9 @@ export const frameworkDirectories = {
     validation: 'app/validators/user_validator.rb',
     exception: 'app/exceptions/global_exception_handler.rb',
   },
+};
+
+export const frontendDirectories = {
+  component: 'src/components',
+  interface: 'src/interface',
 };
