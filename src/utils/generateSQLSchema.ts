@@ -1,86 +1,31 @@
-import convertType from './convertType';
-import { IRelationshipInfo } from './identifyRelationships';
-
-interface IFieldInfo {
-  types: Set<string>;
-  nullable: boolean;
-}
+import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
+import { typeMappings } from './convertType';
 
 const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
-// Common column names that should be unique
-const uniqueColumnNames = [
-  'id',
-  'email',
-  'username',
-  'user_name',
-  'slug',
-  'isbn',
-  'uuid',
-  'sku',
-  'phone_number',
-  'account_number',
-  'employee_id',
-  'serial_number',
-  'transaction_id',
-  'order_number',
-  'passport_number',
-  'driver_license_number',
-  'vin', // Vehicle Identification Number
-  'registration_number',
-  'tracking_number',
-];
+const getColumnDefinition = ({
+  column_name,
+  data_type,
+  is_nullable,
+  primary_key,
+  unique,
+}: IColumnInfo): string => {
+  const type = (() => {
+    if (primary_key) return typeMappings.primaryKey.postgresql;
+    if (column_name.endsWith('_id')) return typeMappings.number.postgresql;
+    if (column_name.toLowerCase().includes('password'))
+      return typeMappings.password.postgresql;
+    return data_type;
+  })();
 
-const populateFieldInfo = (
-  records: Record<string, unknown>[],
-): Record<string, IFieldInfo> => {
-  const fields: Record<string, IFieldInfo> = {};
+  let nullableString = '';
+  if (!primary_key) {
+    nullableString = is_nullable === 'YES' ? '' : 'NOT NULL';
+  }
 
-  records.forEach((record) => {
-    Object.entries(record).forEach(([key, value]) => {
-      if (!(key in fields)) {
-        fields[key] = { types: new Set<string>(), nullable: false };
-      }
-      fields[key].types.add(value === null ? 'null' : typeof value);
-      if (value === null) {
-        fields[key].nullable = true;
-      }
-    });
-  });
+  const uniqueString = unique ? 'UNIQUE' : '';
 
-  return fields;
-};
-
-const determinePrimaryKeyField = (
-  tableName: string,
-  firstKey: string,
-): string => {
-  return firstKey.includes('id') ? firstKey : `${tableName}_id`;
-};
-
-const getColumnDefinition = (
-  columnName: string,
-  primaryKeyField: string,
-  fieldType: string,
-  nullable: boolean,
-): string => {
-  const type =
-    columnName === primaryKeyField
-      ? 'BIGSERIAL PRIMARY KEY'
-      : columnName.endsWith('_id')
-        ? 'BIGINT'
-        : columnName.toLowerCase().includes('password')
-          ? 'CHAR(60)'
-          : fieldType;
-
-  const nullableString =
-    columnName === primaryKeyField ? '' : nullable ? '' : 'NOT NULL';
-  const uniqueString =
-    uniqueColumnNames.includes(columnName) && columnName !== primaryKeyField
-      ? 'UNIQUE'
-      : '';
-
-  return `${columnName} ${type} ${uniqueString} ${nullableString}`.trim();
+  return `${column_name} ${type} ${uniqueString} ${nullableString}`.trim();
 };
 
 const getForeignKeyConstraints = (
@@ -100,50 +45,19 @@ const getForeignKeyConstraints = (
   });
 };
 
-const generateSQLSchema = (
-  data: Record<string, Record<string, unknown>[]>,
-  relationships: IRelationshipInfo[],
-): string => {
-  const schemaParts: string[] = [];
-
-  Object.entries(data).forEach(([tableName, records]) => {
-    const fields = populateFieldInfo(records);
-    const primaryKeyField = determinePrimaryKeyField(
-      tableName,
-      Object.keys(records[0])[0],
-    );
-    const quotedTableName = quoteTableName(tableName);
-
-    const columns = Object.entries(fields).map(
-      ([columnName, { types, nullable }]) => {
-        let fieldType = convertType({
-          value: Array.from(types)[0],
-          targetType: 'postgresql',
-        });
-        if (columnName === 'created_at' || columnName === 'updated_at') {
-          fieldType = 'TIMESTAMPTZ (6)';
-        }
-        return getColumnDefinition(
-          columnName,
-          primaryKeyField,
-          fieldType,
-          nullable,
-        );
-      },
-    );
-
+const generateSQLSchema = (relationships: IRelationshipInfo[]): string => {
+  const schemaParts: string[] = relationships.map(({ table, columnsInfo }) => {
+    const quotedTableName = quoteTableName(table);
+    const columns = columnsInfo.map(getColumnDefinition).join(',\n  ');
     const foreignKeyConstraints = getForeignKeyConstraints(
-      tableName,
+      table,
       relationships,
-    );
-    const allColumnsAndKeys = [...columns, ...foreignKeyConstraints].join(
-      ',\n  ',
-    );
+    ).join(',\n  ');
+    const allColumnsAndKeys = [columns, foreignKeyConstraints]
+      .filter(Boolean)
+      .join(',\n  ');
 
-    const dropTableQuery = `DROP TABLE IF EXISTS ${quotedTableName} CASCADE;`;
-    const createTableQuery = `CREATE TABLE ${quotedTableName} (\n  ${allColumnsAndKeys}\n);`;
-
-    schemaParts.push(`${dropTableQuery}\n${createTableQuery}`);
+    return `DROP TABLE IF EXISTS ${quotedTableName} CASCADE;\nCREATE TABLE ${quotedTableName} (\n  ${allColumnsAndKeys}\n);`;
   });
 
   return schemaParts.join('\n');

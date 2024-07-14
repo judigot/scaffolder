@@ -1,38 +1,136 @@
+import convertType from './convertType';
+import identifyType from './identifyType';
+
+export interface IColumnInfo {
+  column_name: string;
+  data_type: string;
+  is_nullable: string;
+  column_default: string | null;
+  primary_key: boolean;
+  unique: boolean;
+}
+
 export interface IRelationshipInfo {
   table: string;
+  columnsInfo: IColumnInfo[];
   foreignTables: string[];
   foreignKeys: string[];
   childTables: string[];
 }
+
+interface IFieldInfo {
+  types: Set<string>;
+  nullable: boolean;
+}
+
+const uniqueColumnNames = [
+  'id',
+  'email',
+  'username',
+  'user_name',
+  'slug',
+  'isbn',
+  'uuid',
+  'sku',
+  'phone_number',
+  'account_number',
+  'employee_id',
+  'serial_number',
+  'transaction_id',
+  'order_number',
+  'passport_number',
+  'driver_license_number',
+  'vin', // Vehicle Identification Number
+  'registration_number',
+  'tracking_number',
+];
+
+const populateFieldInfo = (
+  records: Record<string, unknown>[],
+): Record<string, IFieldInfo> => {
+  const fields: Record<string, IFieldInfo> = {};
+
+  records.forEach((record) => {
+    Object.entries(record).forEach(([key, value]) => {
+      if (!(key in fields)) {
+        fields[key] = { types: new Set<string>(), nullable: false };
+      }
+      fields[key].types.add(value === null ? 'null' : identifyType(value));
+      if (value === null) {
+        fields[key].nullable = true;
+      }
+    });
+  });
+
+  return fields;
+};
+
+const determinePrimaryKeyField = (
+  tableName: string,
+  firstKey: string,
+): string => {
+  return firstKey.includes('id') ? firstKey : `${tableName}_id`;
+};
 
 function identifyRelationships(
   data: Record<string, Record<string, unknown>[]>,
 ): IRelationshipInfo[] {
   const relationships: IRelationshipInfo[] = [];
 
-  // First pass to identify foreign tables and foreign keys
   for (const table in data) {
     if (Object.prototype.hasOwnProperty.call(data, table)) {
       const foreignTables: string[] = [];
       const foreignKeys: string[] = [];
-
+      const columnsInfo = [];
       const rows = data[table];
-      rows.forEach((row) => {
-        for (const key in row) {
-          if (
-            typeof key === 'string' &&
-            key.endsWith('_id') &&
-            key !== `${table}_id`
-          ) {
-            const foreignTable = key.replace('_id', '');
-            foreignTables.push(foreignTable);
-            foreignKeys.push(key);
+
+      if (rows.length > 0) {
+        const fields = populateFieldInfo(rows);
+        const primaryKeyField = determinePrimaryKeyField(
+          table,
+          Object.keys(rows[0])[0],
+        );
+
+        for (const key in fields) {
+          if (Object.prototype.hasOwnProperty.call(fields, key)) {
+            const sampleValue = rows.find((record) => record[key] !== null)?.[
+              key
+            ];
+            const fieldType = convertType({
+              value: sampleValue,
+              targetType: 'postgresql',
+            });
+            const isPrimaryKey = key === primaryKeyField;
+            const isUnique = uniqueColumnNames.includes(key) && !isPrimaryKey;
+            const columnInfo = {
+              column_name: key,
+              data_type: fieldType,
+              is_nullable: fields[key].nullable ? 'YES' : 'NO',
+              column_default: isPrimaryKey
+                ? "nextval('sequence_name'::regclass)"
+                : null,
+              primary_key: isPrimaryKey,
+              unique: isUnique,
+            };
+
+            if (
+              typeof key === 'string' &&
+              key.endsWith('_id') &&
+              key !== `${table}_id`
+            ) {
+              const foreignTable = key.replace('_id', '');
+              foreignTables.push(foreignTable);
+              foreignKeys.push(key);
+            }
+
+            columnsInfo.push(columnInfo);
           }
         }
-      });
+      }
 
       relationships.push({
         table,
+        columnsInfo,
         foreignTables: Array.from(new Set(foreignTables)),
         foreignKeys: Array.from(new Set(foreignKeys)),
         childTables: [], // Initialize childTables as an empty array
@@ -40,7 +138,6 @@ function identifyRelationships(
     }
   }
 
-  // Second pass to identify child tables
   relationships.forEach((relationship) => {
     relationship.foreignTables.forEach((foreignTable) => {
       const foreignRelationship = relationships.find(
@@ -52,11 +149,11 @@ function identifyRelationships(
     });
   });
 
-  // Remove duplicates from childTables
   relationships.forEach((relationship) => {
     relationship.childTables = Array.from(new Set(relationship.childTables));
   });
 
   return relationships;
 }
+
 export default identifyRelationships;
