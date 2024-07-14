@@ -1,4 +1,4 @@
-import generateSQLSchema from '@/utils/generateSQLSchema';
+import generateSQLSchema from '@/utils/generateSQLCreateTables';
 import { describe, it, expect } from 'vitest';
 
 describe('generateSQLSchema', () => {

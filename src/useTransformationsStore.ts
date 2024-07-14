@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import JSON5 from 'json5';
 import { format as formatSQL } from 'sql-formatter';
 import generateTypescriptInterfaces from './utils/generateInterfaceTypescript';
-import generateSQLCreateTables from './utils/generateSQLSchema';
+import generateSQLCreateTables from './utils/generateSQLCreateTables';
 import generateMockData from './utils/generateMockData';
 import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
