@@ -60,7 +60,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
       const relationships = identifyRelationships(formData); // Identify relationships once
 
       set({
-        interfaces: generateTypescriptInterfaces(formData),
+        interfaces: generateTypescriptInterfaces(relationships),
         SQLSchema: formatSQL(generateSQLCreateTables(relationships)),
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(relationships),
