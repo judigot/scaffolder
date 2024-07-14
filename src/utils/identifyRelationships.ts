@@ -107,7 +107,7 @@ function identifyRelationships(
               data_type: fieldType,
               is_nullable: fields[key].nullable ? 'YES' : 'NO',
               column_default: isPrimaryKey
-                ? "nextval('sequence_name'::regclass)"
+                ? `nextval('${table}_${key}_seq'::regclass)`
                 : null,
               primary_key: isPrimaryKey,
               unique: isUnique,
