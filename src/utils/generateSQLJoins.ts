@@ -1,11 +1,7 @@
-import identifyRelationships from '@/utils/identifyRelationships';
+import { IRelationshipInfo } from '@/utils/identifyRelationships';
 
-function generateSQLJoins(
-  tableInfo: Record<string, Record<string, unknown>[]>,
-) {
+function generateSQLJoins(relationships: IRelationshipInfo[]): string[] {
   const allowSymmetricalJoins = true;
-
-  const relationships = identifyRelationships(tableInfo);
 
   const joinQueries = relationships
     .filter(({ foreignTables }) => foreignTables.length > 0)

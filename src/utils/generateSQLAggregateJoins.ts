@@ -1,6 +1,4 @@
-import identifyRelationships, {
-  IRelationshipInfo,
-} from '@/utils/identifyRelationships';
+import { IRelationshipInfo } from '@/utils/identifyRelationships';
 
 function sortTablesByHierarchy(relationships: IRelationshipInfo[]): string[] {
   const tableReferenceCount: Record<string, number> = {};
@@ -121,9 +119,8 @@ function generateMultipleJoinQuery(
 }
 
 function generateSQLAggregateJoins(
-  tableInfo: Record<string, Record<string, unknown>[]>,
+  relationships: IRelationshipInfo[],
 ): string[] {
-  const relationships = identifyRelationships(tableInfo);
   const joinQueries = generateSQLJoins(relationships);
   return joinQueries;
 }

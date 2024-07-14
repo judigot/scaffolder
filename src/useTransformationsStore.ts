@@ -8,6 +8,9 @@ import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
+import identifyRelationships, {
+  IRelationshipInfo,
+} from '@/utils/identifyRelationships';
 import { useFormStore } from './useFormStore';
 
 interface IStore {
@@ -19,6 +22,7 @@ interface IStore {
   SQLInsertQueries: string;
   SQLInsertQueriesFromMockData: string;
   aggregateJoins: string[];
+  relationships: IRelationshipInfo[];
   setTransformations: () => void;
 }
 
@@ -31,6 +35,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
   SQLInsertQueries: '',
   SQLInsertQueriesFromMockData: '',
   aggregateJoins: [],
+  relationships: [],
   setTransformations: () => {
     const schemaInput = useFormStore.getState().formData.schemaInput;
     if (schemaInput === '') {
@@ -43,6 +48,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
         SQLInsertQueries: '',
         SQLInsertQueriesFromMockData: '',
         aggregateJoins: [],
+        relationships: [],
       });
       return;
     }
@@ -51,16 +57,18 @@ export const useTransformationsStore = create<IStore>((set) => ({
       const formData: Record<string, Record<string, unknown>[]> =
         JSON5.parse(schemaInput);
       const mockData = generateMockData(formData); // Generate mock data once
+      const relationships = identifyRelationships(formData); // Identify relationships once
 
       set({
         interfaces: generateTypescriptInterfaces(formData),
         SQLSchema: formatSQL(generateSQLCreateTables(formData)),
         deleteTablesQueries: generateSQLDeleteTables(formData),
-        joins: generateSQLJoins(formData),
-        mockData: mockData, // Set the generated mock data
+        joins: generateSQLJoins(relationships),
+        mockData,
         SQLInsertQueries: formatSQL(generateSQLInserts(formData)),
         SQLInsertQueriesFromMockData: formatSQL(generateSQLInserts(mockData)), // Use the generated mock data
-        aggregateJoins: generateSQLAggregateJoins(formData),
+        aggregateJoins: generateSQLAggregateJoins(relationships),
+        relationships,
       });
     } catch (e) {
       set({
@@ -72,7 +80,10 @@ export const useTransformationsStore = create<IStore>((set) => ({
         SQLInsertQueries: 'Invalid schema',
         SQLInsertQueriesFromMockData: 'Invalid schema',
         aggregateJoins: ['Invalid schema'],
+        relationships: [],
       });
     }
   },
 }));
+
+export default useTransformationsStore;
