@@ -5,6 +5,8 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import Pool from 'pg-pool';
 import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
+import { IRelationshipInfo } from '@/utils/identifyRelationships';
+import generateModels from '@/utils/generateModels';
 
 dotenv.config();
 
@@ -52,6 +54,30 @@ app.get('/', (_req, res) => {
 
 app.get('/api', (_req: Request, res: Response) =>
   res.json({ message: path.join(publicDirectory, 'index.html') }),
+);
+
+app.post(
+  '/generateModels',
+  (
+    req: Request<unknown, unknown, { relationships: IRelationshipInfo[] }>,
+    res: Response,
+  ) => {
+    const { relationships } = req.body;
+
+    try {
+      const outputDir = path.resolve(__dirname, './out');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      generateModels(relationships, "laravel");
+
+      res.send('Models generated successfully');
+    } catch (error) {
+      console.error('Error generating models:', error);
+      res.status(500).send('Error generating models');
+    }
+  },
 );
 
 app.post(
@@ -125,7 +151,8 @@ app.post(
             database,
           });
           try {
-            const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(mysqlIntrospectionQuery);
+            const [rows]: [RowDataPacket[], FieldPacket[]] =
+              await connection.execute(mysqlIntrospectionQuery);
             res.json(rows);
           } finally {
             await connection.end();
