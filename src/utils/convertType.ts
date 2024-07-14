@@ -5,7 +5,7 @@ interface IConversionParams {
   targetType: 'mysql' | 'postgresql' | 'typescript';
 }
 
-const typeMappings: Record<
+export const typeMappings: Record<
   string,
   Record<IConversionParams['targetType'], string>
 > = {
