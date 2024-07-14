@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import Pool from 'pg-pool';
 import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
 import { IRelationshipInfo } from '@/utils/identifyRelationships';
-import generateModels from '@/utils/generateModels';
+import createModels from '@/utils/createModels';
 
 dotenv.config();
 
@@ -57,7 +57,7 @@ app.get('/api', (_req: Request, res: Response) =>
 );
 
 app.post(
-  '/generateModels',
+  '/createModels',
   (
     req: Request<unknown, unknown, { relationships: IRelationshipInfo[] }>,
     res: Response,
@@ -70,7 +70,7 @@ app.post(
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      generateModels(relationships, "laravel");
+      createModels(relationships, "laravel");
 
       res.send('Models generated successfully');
     } catch (error) {

@@ -58,7 +58,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
       const mockData = generateMockData(formData); // Generate mock data once
       const relationships = identifyRelationships(formData); // Identify relationships once
 
-      fetch(`http://localhost:5000/generateModels`, {
+      fetch(`http://localhost:5000/createModels`, {
         // *GET, POST, PATCH, PUT, DELETE
         method: 'POST',
         headers: {

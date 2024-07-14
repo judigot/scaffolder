@@ -55,7 +55,10 @@ const generateModel = (
     `../templates/${framework}/model.txt`,
   );
   const template = fs.readFileSync(templatePath, 'utf-8');
-  const outputDir = path.resolve(__dirname, `../out/${frameworkDir.model}`);
+  const outputDir = path.resolve(
+    __dirname,
+    `../out/backend/laravel/${frameworkDir.model}`,
+  );
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
