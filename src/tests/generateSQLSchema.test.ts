@@ -1,84 +1,102 @@
-import generateSQLSchema from '@/utils/generateSQLCreateTables';
+import generateFile from '@/utils/generateFile';
+import identifyRelationships, {
+  IRelationshipInfo,
+} from '@/utils/identifyRelationships';
 import { describe, it, expect } from 'vitest';
+import JSON5 from 'json5';
 
-describe('generateSQLSchema', () => {
-  it('should handle nullable fields correctly and still apply unique constraints', () => {
-    const data = {
-      product: [
-        { product_id: 1, product_name: 'Water', sku: null },
-        { product_id: 2, product_name: 'Yogurt', sku: '12345' },
-      ],
-    };
-
-    const result = generateSQLSchema(data);
-    expect(result).toContain('CREATE TABLE "product"');
-    expect(result).toContain('product_id BIGSERIAL NOT NULL');
-    expect(result).toContain('product_name TEXT NOT NULL');
-    expect(result).toContain('sku TEXT NULL');
-    expect(result).toContain('PRIMARY KEY (product_id)');
-    expect(result).toContain('UNIQUE (sku)');
+describe('generateFile', () => {
+  const schemaInput = JSON5.stringify({
+    user: [
+      {
+        user_id: 1,
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john.doe@example.com',
+        username: 'johndoe',
+        password:
+          '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
+        created_at: '2024-06-18T10:17:19.846Z',
+        updated_at: '2024-06-18T10:17:19.846Z',
+      },
+      {
+        user_id: 2,
+        first_name: 'Jane',
+        last_name: 'Smith',
+        email: 'jane.smith@example.com',
+        username: 'janesmith',
+        password:
+          '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
+        created_at: '2024-06-18T10:17:19.846Z',
+        updated_at: '2024-06-18T10:17:19.846Z',
+      },
+    ],
+    post: [
+      {
+        post_id: 1,
+        user_id: 1,
+        title: "John's Post",
+        content: 'Lorem ipsum',
+        created_at: '2024-06-18T10:17:19.846Z',
+        updated_at: '2024-06-18T10:17:19.846Z',
+      },
+      {
+        post_id: 2,
+        user_id: 2,
+        title: "Jane's Post",
+        content: null,
+        created_at: '2024-06-18T10:17:19.846Z',
+        updated_at: '2024-06-18T10:17:19.846Z',
+      },
+    ],
   });
 
-  it('should generate foreign key constraints', () => {
-    const data = {
-      order: [{ order_id: 1, customer_id: 1 }],
-      customer: [
-        { customer_id: 1, email: 'john@example.com', name: 'John Doe' },
-      ],
-    };
+  const formData: Record<string, Record<string, unknown>[]> =
+    JSON5.parse(schemaInput);
+  const relationships: IRelationshipInfo[] = identifyRelationships(formData);
 
-    const result = generateSQLSchema(data);
-    expect(result).toContain('CREATE TABLE "customer"');
-    expect(result).toContain('CREATE TABLE "order"');
-    expect(result).toContain('order_id BIGSERIAL NOT NULL');
-    expect(result).toContain('customer_id BIGINT NOT NULL');
-    expect(result).toContain('PRIMARY KEY (order_id)');
-    expect(result).toContain(
-      'CONSTRAINT FK_order_customer_id FOREIGN KEY (customer_id) REFERENCES "customer"(customer_id)',
+  it('should generate correct SQL schema', () => {
+    const sqlSchema = generateFile(relationships, 'sql-tables');
+    expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user" CASCADE;');
+    expect(sqlSchema).toContain('CREATE TABLE "user" (');
+    expect(sqlSchema).toContain('user_id BIGSERIAL PRIMARY KEY');
+    expect(sqlSchema).toContain('first_name TEXT NOT NULL');
+    expect(sqlSchema).toContain('last_name TEXT NOT NULL');
+    expect(sqlSchema).toContain('email TEXT UNIQUE NOT NULL');
+    expect(sqlSchema).toContain('username TEXT UNIQUE NOT NULL');
+    expect(sqlSchema).toContain('password CHAR(60) NOT NULL');
+    expect(sqlSchema).toContain('created_at TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain('updated_at TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain('DROP TABLE IF EXISTS "post" CASCADE;');
+    expect(sqlSchema).toContain('CREATE TABLE "post" (');
+    expect(sqlSchema).toContain('post_id BIGSERIAL PRIMARY KEY');
+    expect(sqlSchema).toContain('user_id BIGINT NOT NULL');
+    expect(sqlSchema).toContain('title TEXT NOT NULL');
+    expect(sqlSchema).toContain('content TEXT');
+    expect(sqlSchema).toContain('created_at TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain('updated_at TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain(
+      'CONSTRAINT FK_post_user_id FOREIGN KEY (user_id) REFERENCES "user" (user_id)',
     );
   });
 
-  it('should generate SQL for multiple tables', () => {
-    const data = {
-      customer: [
-        { customer_id: 1, email: 'john@example.com', name: 'John Doe' },
-      ],
-      order: [{ order_id: 1, customer_id: 1 }],
-    };
-
-    const result = generateSQLSchema(data);
-    expect(result).toContain('CREATE TABLE "customer"');
-    expect(result).toContain('CREATE TABLE "order"');
-  });
-
-  it('should handle cases where the first key does not contain "id"', () => {
-    const data = {
-      user: [
-        { user_id: 1, username: 'john_doe', email: 'john@example.com' },
-        { user_id: 2, username: 'jane_doe', email: 'jane@example.com' },
-      ],
-    };
-
-    const result = generateSQLSchema(data);
-    expect(result).toContain('CREATE TABLE "user"');
-    expect(result).toContain('user_id BIGSERIAL NOT NULL');
-    expect(result).toContain('username TEXT UNIQUE NOT NULL');
-    expect(result).toContain('email TEXT UNIQUE NOT NULL');
-    expect(result).toContain('PRIMARY KEY (user_id)');
-    expect(result).toContain('UNIQUE (username)');
-    expect(result).toContain('UNIQUE (email)');
-  });
-
-  it('should correctly drop tables before creating them', () => {
-    const data = {
-      product: [
-        { product_id: 1, product_name: 'Water', sku: null },
-        { product_id: 2, product_name: 'Yogurt', sku: '12345' },
-      ],
-    };
-
-    const result = generateSQLSchema(data);
-    expect(result).toContain('DROP TABLE IF EXISTS "product" CASCADE;');
-    expect(result).toContain('CREATE TABLE "product"');
+  it('should generate correct TypeScript interfaces', () => {
+    const tsInterfaces = generateFile(relationships, 'ts-interfaces');
+    expect(tsInterfaces).toContain('export interface IUser {');
+    expect(tsInterfaces).toContain('user_id: number;');
+    expect(tsInterfaces).toContain('first_name: string;');
+    expect(tsInterfaces).toContain('last_name: string;');
+    expect(tsInterfaces).toContain('email: string;');
+    expect(tsInterfaces).toContain('username: string;');
+    expect(tsInterfaces).toContain('password: string;');
+    expect(tsInterfaces).toContain('created_at: Date;');
+    expect(tsInterfaces).toContain('updated_at: Date;');
+    expect(tsInterfaces).toContain('export interface IPost {');
+    expect(tsInterfaces).toContain('post_id: number;');
+    expect(tsInterfaces).toContain('user_id: number;');
+    expect(tsInterfaces).toContain('title: string;');
+    expect(tsInterfaces).toContain('content: string | null;');
+    expect(tsInterfaces).toContain('created_at: Date;');
+    expect(tsInterfaces).toContain('updated_at: Date;');
   });
 });
