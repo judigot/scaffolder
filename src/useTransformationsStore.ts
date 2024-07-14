@@ -61,7 +61,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
 
       set({
         interfaces: generateTypescriptInterfaces(formData),
-        SQLSchema: formatSQL(generateSQLCreateTables(formData)),
+        SQLSchema: formatSQL(generateSQLCreateTables(formData, relationships)),
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(relationships),
         mockData,

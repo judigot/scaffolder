@@ -1,4 +1,5 @@
 import convertType from './convertType';
+import { IRelationshipInfo } from './identifyRelationships';
 
 interface IFieldInfo {
   types: Set<string>;
@@ -32,6 +33,7 @@ const uniqueColumnNames = [
 
 const generateSQLSchema = (
   data: Record<string, Record<string, unknown>[]>,
+  relationships: IRelationshipInfo[],
 ): string => {
   const schemaParts: string[] = [];
 
@@ -58,56 +60,54 @@ const generateSQLSchema = (
       : `${tableName}_id`;
 
     const quotedTableName = quoteTableName(tableName);
-    const columns = Object.entries(fields)
-      .map(([columnName, { nullable }]) => {
-        const type = (() => {
-          if (columnName === primaryKeyField) {
-            return 'BIGSERIAL PRIMARY KEY';
-          }
+    const columns = Object.entries(fields).map(([columnName, { nullable }]) => {
+      const type = (() => {
+        if (columnName === primaryKeyField) {
+          return 'BIGSERIAL PRIMARY KEY';
+        }
 
-          if (columnName.endsWith('_id')) {
-            return 'BIGINT';
-          }
+        if (columnName.endsWith('_id')) {
+          return 'BIGINT';
+        }
 
-          if (columnName.toLowerCase().includes('password')) {
-            return 'CHAR(60)';
-          }
+        if (columnName.toLowerCase().includes('password')) {
+          return 'CHAR(60)';
+        }
 
-          return convertType({
-            value: records[0][columnName],
-            targetType: 'postgresql',
-          });
-        })();
-        const nullableString =
-          columnName === primaryKeyField ? '' : nullable ? '' : 'NOT NULL'; // Avoid adding NULL for default
-        const uniqueString =
-          uniqueColumnNames.includes(columnName) &&
-          columnName !== primaryKeyField
-            ? 'UNIQUE'
-            : '';
-        return `  ${columnName} ${type} ${uniqueString} ${nullableString}`.trim();
-      })
-      .join(',\n');
+        return convertType({
+          value: records[0][columnName],
+          targetType: 'postgresql',
+        });
+      })();
+      const nullableString =
+        columnName === primaryKeyField ? '' : nullable ? '' : 'NOT NULL'; // Avoid adding NULL for default
+      const uniqueString =
+        uniqueColumnNames.includes(columnName) && columnName !== primaryKeyField
+          ? 'UNIQUE'
+          : '';
+      return `  ${columnName} ${type} ${uniqueString} ${nullableString}`.trim();
+    });
 
-    const foreignKeys = Object.entries(fields)
-      .filter(([key]) => key.endsWith('_id') && key !== primaryKeyField)
-      .map(([key]) => {
-        // Determine referenced table dynamically
-        const referencedTable =
-          Object.keys(data).find((table) =>
-            data[table].some((record) =>
-              Object.prototype.hasOwnProperty.call(record, key),
-            ),
-          ) ?? key.slice(0, -3);
-        return ` CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (${key}) REFERENCES ${quoteTableName(
-          referencedTable,
-        )}(${key})`;
-      })
-      .join(',\n');
+    const tableRelationships = relationships.find(
+      (rel) => rel.table === tableName,
+    );
+    const foreignKeys = tableRelationships?.foreignKeys.map((key) => {
+      // Determine referenced table from relationships
+      const referencedTable =
+        tableRelationships.foreignTables.find((table) =>
+          key.startsWith(table),
+        ) ?? key.slice(0, -3);
+
+      return `  CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (${key}) REFERENCES ${quoteTableName(
+        referencedTable,
+      )}(${key})`;
+    });
+
+    const allColumnsAndKeys = [...columns, ...(foreignKeys ?? [])].join(',\n');
 
     const dropTableQuery = `DROP TABLE IF EXISTS ${quotedTableName} CASCADE;`;
 
-    const createTableQuery = `CREATE TABLE ${quotedTableName} (\n${columns}${foreignKeys ? ',\n' + foreignKeys : ''}\n);`;
+    const createTableQuery = `CREATE TABLE ${quotedTableName} (\n${allColumnsAndKeys}\n);`;
 
     schemaParts.push(`${dropTableQuery}\n${createTableQuery}`);
   });
