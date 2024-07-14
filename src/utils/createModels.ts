@@ -52,7 +52,7 @@ const generateModel = (
 
   const templatePath = path.resolve(
     __dirname,
-    `../templates/${framework}/model.txt`,
+    `../templates/backend/${framework}/model.txt`,
   );
   const template = fs.readFileSync(templatePath, 'utf-8');
   const outputDir = path.resolve(
