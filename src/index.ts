@@ -212,7 +212,6 @@ app.post(
           ? path.resolve(frontendDirPath, 'src/interfaces')
           : path.resolve(__dirname, '../output/frontend/src/interfaces');
         clearGeneratedFiles(interfaceDir);
-        /* prettier-ignore */ ((log = interfaces)=>{console.log(["string","number"].includes(typeof log)?log:JSON.stringify(log,null,4));})();
         createInterfaces(interfaces, interfaceDir);
         /*=====FRONTEND=====*/
 
