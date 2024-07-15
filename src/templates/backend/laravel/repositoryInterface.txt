@@ -1,0 +1,14 @@
+<?php
+{{ownerComment}}
+namespace App\Repositories;
+
+use App\Models\{{modelName}};
+
+interface {{className}}RepositoryInterface
+{
+    public function all();
+    public function find(int $id): ?{{modelName}};
+    public function create(array $data): {{modelName}};
+    public function update(int $id, array $data): bool;
+    public function delete(int $id): bool;
+}

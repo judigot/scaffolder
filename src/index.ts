@@ -14,6 +14,7 @@ import createAPIRoutes from '@/utils/createAPIRoutes';
 import createControllers from '@/utils/createControllers';
 import createInterfaces from '@/utils/createInterfaces';
 import createServices from '@/utils/createServices';
+import createRepositories from '@/utils/createRepositories';
 
 dotenv.config();
 
@@ -172,6 +173,15 @@ app.post(
         const isFrontendDirValid = fs.existsSync(frontendDirPath);
 
         /*=====BACKEND=====*/
+        // Routes
+        const routesDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.routes)
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/${frameworkDir.routes}`,
+            );
+        createAPIRoutes(relationships, routesDir);
+
         // Services
         const servicesDir = isBackendDirValid
           ? path.resolve(backendDirPath, frameworkDir.service)
@@ -193,15 +203,14 @@ app.post(
         createControllers(relationships, framework, controllersDir);
 
         // Resource
-
-        // Routes
-        const routesDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.routes)
+        const repositoriesDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.repository)
           : path.resolve(
               __dirname,
-              `../output/backend/${framework}/${frameworkDir.routes}`,
+              `../output/backend/${framework}/${frameworkDir.repository}`,
             );
-        createAPIRoutes(relationships, routesDir);
+        clearGeneratedFiles(repositoriesDir);
+        createRepositories(relationships, framework, repositoriesDir);
 
         // Models
         const modelsDir = isBackendDirValid
