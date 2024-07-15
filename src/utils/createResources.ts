@@ -29,14 +29,15 @@ const generateAttributes = (
   const attributes = columns
     .map((column) => `            '${column}' => $this->${column},`)
     .join('\n');
+
   const relationshipAttributes = relationships
     .map((relation) => {
       const relationName = relation.replace('_id', '');
-      return `            '${relationName}' => ${toPascalCase(relationName)}Resource::collection($this->whenLoaded('${relationName}'))`;
+      return `            '${relationName}' => ${toPascalCase(relationName)}Resource::collection($this->whenLoaded('${relationName}')),`;
     })
-    .join(',\n');
+    .join('\n');
 
-  return [attributes, relationshipAttributes].filter(Boolean).join(',\n');
+  return [attributes, relationshipAttributes].filter(Boolean).join('\n');
 };
 
 const createResources = (
