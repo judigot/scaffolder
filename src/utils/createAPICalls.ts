@@ -49,7 +49,7 @@ const createAPICalls = (tables: IRelationshipInfo[]): void => {
     '../templates/frontend/apiCalls.ts.txt',
   );
   const template = fs.readFileSync(templatePath, 'utf-8');
-  const outputDir = path.resolve(__dirname, '../output/frontend/api');
+  const outputDir = path.resolve(__dirname, '../../output/frontend/api');
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });

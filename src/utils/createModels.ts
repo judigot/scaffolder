@@ -57,7 +57,7 @@ const createModels = (
   const template = fs.readFileSync(templatePath, 'utf-8');
   const outputDir = path.resolve(
     __dirname,
-    `../output/backend/laravel/${frameworkDir.model}`,
+    `../../output/backend/laravel/${frameworkDir.model}`,
   );
 
   if (!fs.existsSync(outputDir)) {
