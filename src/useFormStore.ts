@@ -19,11 +19,15 @@ interface IFormData {
   frontendDir: string;
   dbConnection: string;
   framework: (typeof frameworks)[keyof typeof frameworks] | '';
+  includeInsertData: boolean;
+  insertOption: string;
 }
 
 interface IFormStore {
   formData: IFormData;
   setFormData: (data: Partial<IFormData>) => void;
+  setIncludeInsertData: (include: boolean) => void;
+  setInsertOption: (option: string) => void;
   resetForm: () => void;
 }
 
@@ -74,6 +78,8 @@ const defaultValues: IFormData = {
   frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/databasename',
   framework: frameworks[frameworkKeys.LARAVEL],
+  includeInsertData: false,
+  insertOption: 'SQLInsertQueries',
 };
 
 export const useFormStore = create(
@@ -83,6 +89,16 @@ export const useFormStore = create(
       setFormData: (data) => {
         set((state) => ({
           formData: { ...state.formData, ...data },
+        }));
+      },
+      setIncludeInsertData: (include: boolean) => {
+        set((state) => ({
+          formData: { ...state.formData, includeInsertData: include },
+        }));
+      },
+      setInsertOption: (option: string) => {
+        set((state) => ({
+          formData: { ...state.formData, insertOption: option },
         }));
       },
       resetForm: () => {

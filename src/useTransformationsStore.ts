@@ -36,8 +36,15 @@ export const useTransformationsStore = create<IStore>((set) => ({
   aggregateJoins: [],
   relationships: [],
   setTransformations: () => {
-    const { schemaInput, backendDir, frontendDir, dbConnection, framework } =
-      useFormStore.getState().formData;
+    const {
+      schemaInput,
+      backendDir,
+      frontendDir,
+      dbConnection,
+      framework,
+      includeInsertData,
+      insertOption,
+    } = useFormStore.getState().formData;
 
     if (schemaInput === '') {
       set({
@@ -57,21 +64,33 @@ export const useTransformationsStore = create<IStore>((set) => ({
     try {
       const formData: Record<string, Record<string, unknown>[]> =
         JSON5.parse(schemaInput);
-      const mockData = generateMockData(formData); // Generate mock data once
-      const relationships = identifyRelationships(formData); // Identify relationships once
+      const mockData = generateMockData(formData);
+      const relationships = identifyRelationships(formData);
 
       const interfaces = generateFile(relationships, 'ts-interfaces');
 
-      const SQLSchema = formatSQL(generateFile(relationships, 'sql-tables'));
+      const SQLSchema = (() => {
+        let sqlContent = generateFile(relationships, 'sql-tables');
+
+        if (includeInsertData) {
+          if (insertOption === 'SQLInsertQueries') {
+            sqlContent += `\n\n${generateSQLInserts(formData)}`;
+          }
+
+          if (insertOption === 'SQLInsertQueriesFromMockData') {
+            sqlContent += `\n\n${generateSQLInserts(mockData)}`;
+          }
+        }
+
+        return formatSQL(sqlContent);
+      })();
 
       fetch(`http://localhost:5000/scaffoldProject`, {
-        // *GET, POST, PATCH, PUT, DELETE
         method: 'POST',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
-        // For POST, PATCH, and PUT requests
         body: JSON.stringify({
           relationships,
           interfaces,
@@ -92,7 +111,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
         joins: generateSQLJoins(relationships),
         mockData,
         SQLInsertQueries: formatSQL(generateSQLInserts(formData)),
-        SQLInsertQueriesFromMockData: formatSQL(generateSQLInserts(mockData)), // Use the generated mock data
+        SQLInsertQueriesFromMockData: formatSQL(generateSQLInserts(mockData)),
         aggregateJoins: generateSQLAggregateJoins(relationships),
         relationships,
       });
