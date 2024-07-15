@@ -12,6 +12,7 @@ export interface IColumnInfo {
 
 export interface IRelationshipInfo {
   table: string;
+  requiredColumns: string[];
   columnsInfo: IColumnInfo[];
   foreignTables: string[];
   foreignKeys: string[];
@@ -81,7 +82,8 @@ function identifyRelationships(
     if (Object.prototype.hasOwnProperty.call(data, table)) {
       const foreignTables: string[] = [];
       const foreignKeys: string[] = [];
-      const columnsInfo = [];
+      const columnsInfo: IColumnInfo[] = [];
+      const requiredColumns: string[] = [];
       const rows = data[table];
 
       if (rows.length > 0) {
@@ -113,6 +115,10 @@ function identifyRelationships(
               unique: isUnique,
             };
 
+            if (!fields[key].nullable) {
+              requiredColumns.push(key);
+            }
+
             if (
               typeof key === 'string' &&
               key.endsWith('_id') &&
@@ -130,6 +136,7 @@ function identifyRelationships(
 
       relationships.push({
         table,
+        requiredColumns,
         columnsInfo,
         foreignTables: Array.from(new Set(foreignTables)),
         foreignKeys: Array.from(new Set(foreignKeys)),
