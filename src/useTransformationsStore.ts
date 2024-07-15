@@ -38,10 +38,10 @@ export const useTransformationsStore = create<IStore>((set) => ({
   setTransformations: () => {
     const {
       schemaInput,
-      backendDir,
-      frontendDir,
-      dbConnection,
-      framework,
+      // backendDir,
+      // frontendDir,
+      // dbConnection,
+      // framework,
       includeInsertData,
       insertOption,
     } = useFormStore.getState().formData;
@@ -85,24 +85,24 @@ export const useTransformationsStore = create<IStore>((set) => ({
         return formatSQL(sqlContent);
       })();
 
-      fetch(`http://localhost:5000/scaffoldProject`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          relationships,
-          interfaces,
-          backendDir,
-          frontendDir,
-          dbConnection,
-          framework,
-          SQLSchema,
-        }),
-      }).catch(() => {
-        // Failure
-      });
+      // fetch(`http://localhost:5000/scaffoldProject`, {
+      //   method: 'POST',
+      //   headers: {
+      //     Accept: 'application/json',
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     relationships,
+      //     interfaces,
+      //     backendDir,
+      //     frontendDir,
+      //     dbConnection,
+      //     framework,
+      //     SQLSchema,
+      //   }),
+      // }).catch(() => {
+      //   // Failure
+      // });
 
       set({
         interfaces,

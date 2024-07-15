@@ -140,26 +140,26 @@ app.post(
       framework: frameworkRaw,
       backendDir,
       frontendDir,
-      // dbConnection,
-      // SQLSchema,
+      dbConnection,
+      SQLSchema,
     } = req.body;
     const framework = frameworkRaw.toLowerCase();
 
     const frameworkDir = frameworkDirectories[framework];
 
-    // void (async () => {
-    //   try {
-    //     // let result;
-    //     if (dbConnection.startsWith('postgresql')) {
-    //       await executePostgreSQL(
-    //         dbConnection,
-    //         `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
-    //       );
-    //     }
-    //   } catch (error: unknown) {
-    //     // res.status(500).json({ error });
-    //   }
-    // })();
+    void (async () => {
+      try {
+        // let result;
+        if (dbConnection.startsWith('postgresql')) {
+          await executePostgreSQL(
+            dbConnection,
+            `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
+          );
+        }
+      } catch (error: unknown) {
+        // res.status(500).json({ error });
+      }
+    })();
 
     try {
       const backendDirPath = path.resolve(__dirname, backendDir);
