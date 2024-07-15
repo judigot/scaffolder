@@ -32,6 +32,62 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(publicDirectory));
 
+export const executePostgreSQL = async (
+  connectionString: string,
+  query: string,
+): Promise<Record<string, unknown>[]> => {
+  const pool = new Pool({ connectionString });
+
+  try {
+    const client = await pool.connect();
+    try {
+      const { rows }: { rows: Record<string, unknown>[] } =
+        await client.query(query);
+      return rows;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('PostgreSQL introspection error:', err);
+    throw new Error('Internal Server Error');
+  }
+};
+
+export const executeMySQL = async (
+  connectionString: string,
+  queryTemplate: string,
+): Promise<Record<string, unknown>[]> => {
+  const match = connectionString.match(
+    /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
+  );
+  if (!match) {
+    throw new Error('Invalid MySQL connection string');
+  }
+
+  const [, user, password, host, port, database] = match;
+  const query = queryTemplate.replace('$DB_NAME', database);
+
+  try {
+    const connection = await mysql.createConnection({
+      host,
+      port: parseInt(port, 10),
+      user,
+      password,
+      database,
+    });
+    try {
+      const [rows]: [RowDataPacket[], FieldPacket[]] =
+        await connection.execute(query);
+      return rows as Record<string, unknown>[];
+    } finally {
+      await connection.end();
+    }
+  } catch (err) {
+    console.error('MySQL introspection error:', err);
+    throw new Error('Internal Server Error');
+  }
+};
+
 app.post('/api/createFile', (req: Request, _res) => {
   const data = req.body as Record<string, string>;
 
@@ -73,6 +129,8 @@ app.post(
         framework: string;
         backendDir: string;
         frontendDir: string;
+        dbConnection: string;
+        SQLSchema: string;
       }
     >,
     res: Response,
@@ -82,10 +140,29 @@ app.post(
       framework: frameworkRaw,
       backendDir,
       frontendDir,
+      dbConnection,
+      SQLSchema,
     } = req.body;
     const framework = frameworkRaw.toLowerCase();
 
     const frameworkDir = frameworkDirectories[framework];
+
+    void (async () => {
+      try {
+        // let result;
+        if (dbConnection.startsWith('postgresql')) {
+          // await executePostgreSQL(dbConnection, );
+          await executePostgreSQL(
+            dbConnection,
+            `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
+          );
+          /* prettier-ignore */ ((log = `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`)=>{console.log(["string","number"].includes(typeof log)?log:JSON.stringify(log,null,4));})();
+        }
+        // res.status(200).json(result);
+      } catch (error: unknown) {
+        // res.status(500).json({ error });
+      }
+    })();
 
     try {
       const resolvedBackendDir = fs.existsSync(
@@ -159,66 +236,29 @@ app.post(
         'introspect_mysql.sql',
       );
 
-      const introspectPostgres = async (connectionString: string) => {
-        const pool = new Pool({ connectionString });
-
-        try {
-          const client = await pool.connect();
-          try {
-            const result = await client.query(pgIntrospectionQuery);
-            res.json(result.rows);
-          } finally {
-            client.release();
+      try {
+        let result;
+        if (dbConnection.startsWith('postgresql')) {
+          result = await executePostgreSQL(dbConnection, pgIntrospectionQuery);
+        } else if (dbConnection.startsWith('mysql')) {
+          const match = dbConnection.match(
+            /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
+          );
+          if (!match) {
+            return res
+              .status(400)
+              .json({ error: 'Invalid MySQL connection string' });
           }
-        } catch (err) {
-          console.error(err);
-          res.status(500).json({ error: 'Internal Server Error' });
+          const [, , , , , database] = match;
+          const mysqlIntrospectionQuery =
+            mysqlIntrospectionQueryTemplate.replace('$DB_NAME', database);
+          result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
+        } else {
+          return res.status(400).json({ error: 'Unsupported database type' });
         }
-      };
-
-      const introspectMysql = async (connectionString: string) => {
-        const match = connectionString.match(
-          /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
-        );
-        if (!match) {
-          return res
-            .status(400)
-            .json({ error: 'Invalid MySQL connection string' });
-        }
-
-        const [, user, password, host, port, database] = match;
-        const mysqlIntrospectionQuery = mysqlIntrospectionQueryTemplate.replace(
-          '$DB_NAME',
-          database,
-        );
-
-        try {
-          const connection = await mysql.createConnection({
-            host,
-            port: parseInt(port, 10),
-            user,
-            password,
-            database,
-          });
-          try {
-            const [rows]: [RowDataPacket[], FieldPacket[]] =
-              await connection.execute(mysqlIntrospectionQuery);
-            res.json(rows);
-          } finally {
-            await connection.end();
-          }
-        } catch (err) {
-          console.error(err);
-          res.status(500).json({ error: 'Internal Server Error' });
-        }
-      };
-
-      if (dbConnection.startsWith('postgresql')) {
-        await introspectPostgres(dbConnection);
-      } else if (dbConnection.startsWith('mysql')) {
-        await introspectMysql(dbConnection);
-      } else {
-        res.status(400).json({ error: 'Unsupported database type' });
+        res.status(200).json(result);
+      } catch (error: unknown) {
+        res.status(500).json({ error });
       }
     })();
   },

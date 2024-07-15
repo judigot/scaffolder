@@ -36,8 +36,9 @@ export const useTransformationsStore = create<IStore>((set) => ({
   aggregateJoins: [],
   relationships: [],
   setTransformations: () => {
-    const { schemaInput, framework, backendDir, frontendDir } =
+    const { schemaInput, backendDir, frontendDir, dbConnection, framework } =
       useFormStore.getState().formData;
+
     if (schemaInput === '') {
       set({
         interfaces: '',
@@ -61,6 +62,8 @@ export const useTransformationsStore = create<IStore>((set) => ({
 
       const interfaces = generateFile(relationships, 'ts-interfaces');
 
+      const SQLSchema = formatSQL(generateFile(relationships, 'sql-tables'));
+
       fetch(`http://localhost:5000/scaffoldProject`, {
         // *GET, POST, PATCH, PUT, DELETE
         method: 'POST',
@@ -72,9 +75,11 @@ export const useTransformationsStore = create<IStore>((set) => ({
         body: JSON.stringify({
           relationships,
           interfaces,
-          framework,
           backendDir,
           frontendDir,
+          dbConnection,
+          framework,
+          SQLSchema,
         }),
       }).catch(() => {
         // Failure
@@ -82,7 +87,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
 
       set({
         interfaces,
-        SQLSchema: formatSQL(generateFile(relationships, 'sql-tables')),
+        SQLSchema,
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(relationships),
         mockData,
