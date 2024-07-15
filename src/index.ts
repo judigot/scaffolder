@@ -66,15 +66,9 @@ app.post(
     const { relationships } = req.body;
 
     try {
-      const outputDir = path.resolve(__dirname, './out');
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-
-      createModels(relationships, "laravel");
+      createModels(relationships, 'laravel');
 
       createAPICalls(relationships);
-
 
       res.send('Models generated successfully');
     } catch (error) {
