@@ -16,6 +16,7 @@ import createServices from '@/utils/createServices';
 import createRepositories from '@/utils/createRepositories';
 import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
 import createInterfaces from '@/utils/createInterfaces';
+import createResources from '@/utils/createResources';
 
 dotenv.config();
 
@@ -221,6 +222,16 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.interface}`,
             );
         createInterfaces(relationships, framework, interfacesDir);
+
+        // Repositories
+        const resourcesDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.resource)
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/${frameworkDir.resource}`,
+            );
+        clearGeneratedFiles(resourcesDir);
+        createResources(relationships, framework, resourcesDir);
 
         // Models
         const modelsDir = isBackendDirValid
