@@ -6,12 +6,13 @@ import { toPascalCase } from '@/helpers/toPascalCase';
 
 // Global variables
 const platform: string = process.platform;
-const fillableExemptions = ['created_at', 'updated_at'];
 
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
+
+const fillableExemptions = ['created_at', 'updated_at'];
 
 const getOwnerComment = (extension: string): string =>
   ({
