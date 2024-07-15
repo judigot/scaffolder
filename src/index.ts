@@ -10,6 +10,7 @@ import createModels from '@/utils/createModels';
 import createAPICalls from '@/utils/createAPICalls';
 import clearGeneratedFiles from '@/utils/clearDirectory';
 import { frameworkDirectories } from '@/constants';
+import createControllers from '@/utils/createControllers';
 
 dotenv.config();
 
@@ -103,8 +104,12 @@ app.post(
 
       clearGeneratedFiles(resolvedBackendDir);
       clearGeneratedFiles(resolvedFrontendDir);
+      clearGeneratedFiles(path.resolve(__dirname, `${backendDir}/${frameworkDir.controller}`));
+
 
       createModels(relationships, framework, resolvedBackendDir);
+      createControllers(relationships, framework, path.resolve(__dirname, `${backendDir}/${frameworkDir.controller}`));
+
       createAPICalls(relationships, resolvedFrontendDir);
 
       res.send('Models generated successfully');
