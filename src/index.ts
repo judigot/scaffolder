@@ -60,7 +60,17 @@ app.get('/api', (_req: Request, res: Response) =>
 app.post(
   '/scaffoldProject',
   (
-    req: Request<unknown, unknown, { relationships: IRelationshipInfo[] }>,
+    req: Request<
+      unknown,
+      unknown,
+      {
+        relationships: IRelationshipInfo[];
+        interfaces: string[];
+        framework: string;
+        backendDir: string;
+        frontendDir: string;
+      }
+    >,
     res: Response,
   ) => {
     const { relationships } = req.body;
