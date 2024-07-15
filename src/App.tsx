@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
@@ -32,6 +32,18 @@ function App() {
     aggregateJoins,
     setTransformations,
   } = useTransformationsStore();
+
+  const [generationStatus, setGenerationStatus] = useState<{
+    isBackendDirValid: boolean;
+    isFrontendDirValid: boolean;
+    isDBConnectionValid: boolean;
+  }>({
+    isBackendDirValid: true,
+    isFrontendDirValid: true,
+    isDBConnectionValid: true,
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     setTransformations();
@@ -82,13 +94,22 @@ function App() {
               />
               <label htmlFor="backendDir" className="block text-sm font-medium">
                 Backend Directory:
+                {!generationStatus.isBackendDirValid && (
+                  <i className="text-red-500">
+                    &nbsp;Invalid backend directory
+                  </i>
+                )}
                 <input
                   type="text"
                   id="backendDir"
                   name="backendDir"
                   value={backendDir}
                   onChange={handleChange}
-                  className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isBackendDirValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
                 />
               </label>
               <label
@@ -96,13 +117,22 @@ function App() {
                 className="block text-sm font-medium"
               >
                 Frontend Directory:
+                {!generationStatus.isFrontendDirValid && (
+                  <i className="text-red-500">
+                    &nbsp;Invalid frontend directory
+                  </i>
+                )}
                 <input
                   type="text"
                   id="frontendDir"
                   name="frontendDir"
                   value={frontendDir}
                   onChange={handleChange}
-                  className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isFrontendDirValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
                 />
               </label>
               <label
@@ -110,13 +140,22 @@ function App() {
                 className="block text-sm font-medium"
               >
                 Database Connection:
+                {!generationStatus.isDBConnectionValid && (
+                  <i className="text-red-500">
+                    &nbsp;Invalid connection string
+                  </i>
+                )}
                 <input
                   type="text"
                   id="dbConnection"
                   name="dbConnection"
                   value={dbConnection}
                   onChange={handleChange}
-                  className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isDBConnectionValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
                 />
                 <button
                   type="button"
@@ -168,6 +207,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => {
+                  setIsLoading(true);
                   fetch(`http://localhost:5000/scaffoldProject`, {
                     method: 'POST',
                     headers: {
@@ -183,13 +223,29 @@ function App() {
                       framework,
                       SQLSchema,
                     }),
-                  }).catch(() => {
-                    // Failure
-                  });
+                  })
+                    .then((response) => response.json())
+                    .then((result: typeof generationStatus) => {
+                      // Success
+                      setGenerationStatus(result);
+                    })
+                    .catch((error: unknown) => {
+                      // Failure
+                      if (typeof error === `string`) {
+                        throw Error(`There was an error: error`);
+                      }
+                      if (error instanceof Error) {
+                        throw Error(`There was an error: ${error.message}`);
+                      }
+                    })
+                    .finally(() => {
+                      setIsLoading(false);
+                    });
                 }}
                 className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >
-                Generate App
+                {isLoading && 'Generating...'}
+                {!isLoading && 'Generate App'}
               </button>
             </form>
           </div>

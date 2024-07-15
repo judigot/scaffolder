@@ -148,70 +148,79 @@ app.post(
     const frameworkDir = frameworkDirectories[framework];
 
     void (async () => {
+      let isDBConnectionValid = false;
       try {
-        // let result;
         if (dbConnection.startsWith('postgresql')) {
           await executePostgreSQL(
             dbConnection,
             `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
           );
         }
+        isDBConnectionValid = true;
       } catch (error: unknown) {
-        // res.status(500).json({ error });
+        console.error('Error executing database command:', error);
+      }
+
+      try {
+        const backendDirPath = path.resolve(__dirname, backendDir);
+        const frontendDirPath = path.resolve(__dirname, frontendDir);
+
+        const isBackendDirValid = fs.existsSync(backendDirPath);
+        const isFrontendDirValid = fs.existsSync(frontendDirPath);
+
+        /*=====BACKEND=====*/
+        // Models
+        const modelsDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.model)
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/${frameworkDir.model}`,
+            );
+        clearGeneratedFiles(modelsDir);
+        createModels(relationships, framework, modelsDir);
+
+        // Controllers
+        const controllersDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.controller)
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/${frameworkDir.controller}`,
+            );
+        clearGeneratedFiles(controllersDir);
+        createControllers(relationships, framework, controllersDir);
+
+        // Routes
+        const routesDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.routes)
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/${frameworkDir.routes}`,
+            );
+        createAPIRoutes(relationships, routesDir);
+        /*=====BACKEND=====*/
+
+        /*=====FRONTEND=====*/
+        const APICallsDir = isFrontendDirValid
+          ? path.resolve(frontendDirPath, 'src')
+          : path.resolve(__dirname, '../output/frontend/src/api');
+        clearGeneratedFiles(APICallsDir);
+        createAPICalls(relationships, APICallsDir);
+        /*=====FRONTEND=====*/
+
+        res.json({
+          isBackendDirValid,
+          isFrontendDirValid,
+          isDBConnectionValid,
+        });
+      } catch (error) {
+        console.error('Error generating models:', error);
+        res.status(500).json({
+          isBackendDirValid: false,
+          isFrontendDirValid: false,
+          isDBConnectionValid: false,
+        });
       }
     })();
-
-    try {
-      const backendDirPath = path.resolve(__dirname, backendDir);
-      const frontendDirPath = path.resolve(__dirname, frontendDir);
-
-      const isBackendDirValid = fs.existsSync(backendDirPath);
-      const isFrontendDirValid = fs.existsSync(frontendDirPath);
-
-      /*=====BACKEND=====*/
-      // Models
-      const modelsDir = isBackendDirValid
-        ? path.resolve(backendDirPath, frameworkDir.model)
-        : path.resolve(
-            __dirname,
-            `../output/backend/${framework}/${frameworkDir.model}`,
-          );
-      clearGeneratedFiles(modelsDir);
-      createModels(relationships, framework, modelsDir);
-
-      // Controllers
-      const controllersDir = isBackendDirValid
-        ? path.resolve(backendDirPath, frameworkDir.controller)
-        : path.resolve(
-            __dirname,
-            `../output/backend/${framework}/${frameworkDir.controller}`,
-          );
-      clearGeneratedFiles(controllersDir);
-      createControllers(relationships, framework, controllersDir);
-
-      // Routes
-      const routesDir = isBackendDirValid
-        ? path.resolve(backendDirPath, frameworkDir.routes)
-        : path.resolve(
-            __dirname,
-            `../output/backend/${framework}/${frameworkDir.routes}`,
-          );
-      createAPIRoutes(relationships, routesDir);
-      /*=====BACKEND=====*/
-
-      /*=====FRONTEND=====*/
-      const APICallsDir = isFrontendDirValid
-        ? path.resolve(frontendDirPath, 'src')
-        : path.resolve(__dirname, '../output/frontend/src/api');
-      clearGeneratedFiles(APICallsDir);
-      createAPICalls(relationships, APICallsDir);
-      /*=====FRONTEND=====*/
-
-      res.send('Models generated successfully');
-    } catch (error) {
-      console.error('Error generating models:', error);
-      res.status(500).send('Error generating models');
-    }
   },
 );
 
