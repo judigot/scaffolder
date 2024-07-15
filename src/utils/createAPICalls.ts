@@ -58,7 +58,7 @@ const createAPICalls = (
       let apiCalls = operationTemplates[operation];
       apiCalls = apiCalls.replace(/{{className}}/g, className);
       apiCalls = apiCalls.replace(/ModelTemplate/g, className);
-      apiCalls = apiCalls.replace(/{{route}}/g, table);
+      apiCalls = apiCalls.replace(/modelTemplate/g, `${table}s`); // Pluralize resource
 
       const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
       const ownerComment = getOwnerComment('.ts');
