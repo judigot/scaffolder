@@ -3,7 +3,7 @@ import path from 'path';
 
 const getOwnerComment = (): string => '/* Owner: App Scaffolder */\n';
 
-const createInterfaces = (interfaces: string, outputDir: string): void => {
+const createTypescriptInterfaces = (interfaces: string, outputDir: string): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   const interfaceContent = `${getOwnerComment()}${interfaces}`;
@@ -11,4 +11,4 @@ const createInterfaces = (interfaces: string, outputDir: string): void => {
   fs.writeFileSync(outputFilePath, interfaceContent);
 };
 
-export default createInterfaces;
+export default createTypescriptInterfaces;

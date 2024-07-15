@@ -12,9 +12,9 @@ import { frameworkDirectories } from '@/constants';
 import createAPICalls from '@/utils/createAPICalls';
 import createAPIRoutes from '@/utils/createAPIRoutes';
 import createControllers from '@/utils/createControllers';
-import createInterfaces from '@/utils/createInterfaces';
 import createServices from '@/utils/createServices';
 import createRepositories from '@/utils/createRepositories';
+import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
 
 dotenv.config();
 
@@ -234,7 +234,7 @@ app.post(
           ? path.resolve(frontendDirPath, 'src/interfaces')
           : path.resolve(__dirname, '../output/frontend/src/interfaces');
         clearGeneratedFiles(interfaceDir);
-        createInterfaces(interfaces, interfaceDir);
+        createTypescriptInterfaces(interfaces, interfaceDir);
         /*=====FRONTEND=====*/
 
         res.json({
