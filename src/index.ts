@@ -15,6 +15,7 @@ import createControllers from '@/utils/createControllers';
 import createServices from '@/utils/createServices';
 import createRepositories from '@/utils/createRepositories';
 import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
+import createInterfaces from '@/utils/createInterfaces';
 
 dotenv.config();
 
@@ -212,6 +213,15 @@ app.post(
         clearGeneratedFiles(repositoriesDir);
         createRepositories(relationships, framework, repositoriesDir);
 
+        // Interfaces
+        const interfacesDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.interface)
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/${frameworkDir.interface}`,
+            );
+        createInterfaces(relationships, framework, interfacesDir);
+
         // Models
         const modelsDir = isBackendDirValid
           ? path.resolve(backendDirPath, frameworkDir.model)
@@ -230,11 +240,11 @@ app.post(
         clearGeneratedFiles(APICallsDir);
         createAPICalls(relationships, APICallsDir);
 
-        const interfaceDir = isFrontendDirValid
+        const typescriptInterfacesDir = isFrontendDirValid
           ? path.resolve(frontendDirPath, 'src/interfaces')
           : path.resolve(__dirname, '../output/frontend/src/interfaces');
-        clearGeneratedFiles(interfaceDir);
-        createTypescriptInterfaces(interfaces, interfaceDir);
+        clearGeneratedFiles(typescriptInterfacesDir);
+        createTypescriptInterfaces(interfaces, typescriptInterfacesDir);
         /*=====FRONTEND=====*/
 
         res.json({
