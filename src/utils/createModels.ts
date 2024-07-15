@@ -1,6 +1,7 @@
-import { frameworkDirectories } from '@/constants';
 import fs from 'fs';
 import path from 'path';
+import clearDirectory from './clearDirectory';
+import { frameworkDirectories } from '@/constants';
 
 const platform: string = process.platform;
 
@@ -33,17 +34,6 @@ const toPascalCase = (str: string): string => {
     .replace(/^(.)/, (match) => match.toUpperCase());
 };
 
-const clearDirectory = (directory: string): void => {
-  if (fs.existsSync(directory)) {
-    fs.readdirSync(directory).forEach((file) => {
-      const filePath = path.join(directory, file);
-      if (fs.lstatSync(filePath).isFile()) {
-        fs.unlinkSync(filePath);
-      }
-    });
-  }
-};
-
 const createModels = (
   tables: IRelationshipInfo[],
   framework: keyof typeof frameworkDirectories,
@@ -60,11 +50,12 @@ const createModels = (
     `../../output/backend/laravel/${frameworkDir.model}`,
   );
 
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  } else {
+  if (fs.existsSync(outputDir)) {
     clearDirectory(outputDir);
+    fs.rmdirSync(outputDir);
   }
+
+  fs.mkdirSync(outputDir, { recursive: true });
 
   tables.forEach(({ table, columnsInfo, foreignKeys, childTables }) => {
     const className = toPascalCase(table);

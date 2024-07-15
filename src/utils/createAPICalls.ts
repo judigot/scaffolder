@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import clearDirectory from './clearDirectory';
 
 const platform: string = process.platform;
 
@@ -32,24 +33,16 @@ const toPascalCase = (str: string): string => {
     .replace(/^(.)/, (match) => match.toUpperCase());
 };
 
-const clearDirectory = (directory: string): void => {
-  if (fs.existsSync(directory)) {
-    fs.readdirSync(directory).forEach((file) => {
-      const filePath = path.join(directory, file);
-      if (fs.lstatSync(filePath).isFile()) {
-        fs.unlinkSync(filePath);
-      }
-    });
-  }
-};
-
 const createAPICalls = (tables: IRelationshipInfo[]): void => {
-  const templateDir = path.resolve(__dirname, '../templates/frontend');
+  const templateDir = path.resolve(__dirname, '../templates/frontend/api');
   const outputDir = path.resolve(__dirname, '../../output/frontend/api');
 
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  if (fs.existsSync(outputDir)) {
+    clearDirectory(outputDir);
+    fs.rmdirSync(outputDir);
   }
+
+  fs.mkdirSync(outputDir, { recursive: true });
 
   // Copy customFetch.ts to the output directory
   const customFetchSourcePath = path.resolve(templateDir, 'customFetch.ts');
@@ -60,25 +53,21 @@ const createAPICalls = (tables: IRelationshipInfo[]): void => {
   const operationTemplates: Record<string, string> = {};
 
   operations.forEach((operation) => {
-    const templatePath = path.resolve(templateDir, `apiCalls.${operation}.ts.txt`);
+    const templatePath = path.resolve(templateDir, `model/${operation}.ts`);
     operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
   });
 
   tables.forEach(({ table }) => {
     const className = toPascalCase(table);
-    const camelCaseClassName = className.charAt(0).toLowerCase() + className.slice(1);
     const tableDir = path.join(outputDir, table);
 
     if (!fs.existsSync(tableDir)) {
       fs.mkdirSync(tableDir, { recursive: true });
-    } else {
-      clearDirectory(tableDir);
     }
 
     operations.forEach((operation) => {
       let apiCalls = operationTemplates[operation];
       apiCalls = apiCalls.replace(/{{className}}/g, className);
-      apiCalls = apiCalls.replace(/{{camelCaseClassName}}/g, camelCaseClassName);
       apiCalls = apiCalls.replace(/{{route}}/g, table);
 
       const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);

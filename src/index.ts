@@ -67,7 +67,6 @@ app.post(
 
     try {
       createModels(relationships, 'laravel');
-
       createAPICalls(relationships);
 
       res.send('Models generated successfully');
