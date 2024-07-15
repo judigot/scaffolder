@@ -73,7 +73,7 @@ const defaultValues: IFormData = {
   backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/databasename',
-  framework: frameworks[frameworkKeys.NEXTJS],
+  framework: frameworks[frameworkKeys.LARAVEL],
 };
 
 export const useFormStore = create(
