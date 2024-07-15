@@ -13,6 +13,7 @@ import createAPICalls from '@/utils/createAPICalls';
 import createAPIRoutes from '@/utils/createAPIRoutes';
 import createControllers from '@/utils/createControllers';
 import createInterfaces from '@/utils/createInterfaces';
+import createServices from '@/utils/createServices';
 
 dotenv.config();
 
@@ -171,15 +172,15 @@ app.post(
         const isFrontendDirValid = fs.existsSync(frontendDirPath);
 
         /*=====BACKEND=====*/
-        // Models
-        const modelsDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.model)
+        // Services
+        const servicesDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.service)
           : path.resolve(
               __dirname,
-              `../output/backend/${framework}/${frameworkDir.model}`,
+              `../output/backend/${framework}/${frameworkDir.service}`,
             );
-        clearGeneratedFiles(modelsDir);
-        createModels(relationships, framework, modelsDir);
+        clearGeneratedFiles(servicesDir);
+        createServices(relationships, framework, servicesDir);
 
         // Controllers
         const controllersDir = isBackendDirValid
@@ -191,6 +192,8 @@ app.post(
         clearGeneratedFiles(controllersDir);
         createControllers(relationships, framework, controllersDir);
 
+        // Resource
+
         // Routes
         const routesDir = isBackendDirValid
           ? path.resolve(backendDirPath, frameworkDir.routes)
@@ -199,6 +202,16 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.routes}`,
             );
         createAPIRoutes(relationships, routesDir);
+
+        // Models
+        const modelsDir = isBackendDirValid
+          ? path.resolve(backendDirPath, frameworkDir.model)
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/${frameworkDir.model}`,
+            );
+        clearGeneratedFiles(modelsDir);
+        createModels(relationships, framework, modelsDir);
         /*=====BACKEND=====*/
 
         /*=====FRONTEND=====*/
