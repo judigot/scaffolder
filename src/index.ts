@@ -156,7 +156,6 @@ app.post(
             dbConnection,
             `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
           );
-          /* prettier-ignore */ ((log = `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`)=>{console.log(["string","number"].includes(typeof log)?log:JSON.stringify(log,null,4));})();
         }
         // res.status(200).json(result);
       } catch (error: unknown) {
