@@ -11,6 +11,7 @@ import createAPICalls from '@/utils/createAPICalls';
 import clearGeneratedFiles from '@/utils/clearDirectory';
 import { frameworkDirectories } from '@/constants';
 import createControllers from '@/utils/createControllers';
+import createAPIRoutes from '@/utils/createAPIRoutes';
 
 dotenv.config();
 
@@ -104,11 +105,20 @@ app.post(
 
       clearGeneratedFiles(resolvedBackendDir);
       clearGeneratedFiles(resolvedFrontendDir);
-      clearGeneratedFiles(path.resolve(__dirname, `${backendDir}/${frameworkDir.controller}`));
-
+      clearGeneratedFiles(
+        path.resolve(__dirname, `${backendDir}/${frameworkDir.controller}`),
+      );
 
       createModels(relationships, framework, resolvedBackendDir);
-      createControllers(relationships, framework, path.resolve(__dirname, `${backendDir}/${frameworkDir.controller}`));
+      createControllers(
+        relationships,
+        framework,
+        path.resolve(__dirname, `${backendDir}/${frameworkDir.controller}`),
+      );
+      createAPIRoutes(
+        relationships,
+        path.resolve(__dirname, `${backendDir}/${frameworkDir.routes}`),
+      );
 
       createAPICalls(relationships, resolvedFrontendDir);
 

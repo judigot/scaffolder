@@ -1,6 +1,7 @@
 export const frameworkDirectories: Record<
   string,
   {
+    routes: string;
     service: string;
     controller: string;
     repository: string;
@@ -12,6 +13,7 @@ export const frameworkDirectories: Record<
   }
 > = {
   spring_boot: {
+    routes: 'routes/api.php',
     service: 'src/main/java/com/example/demo/service/user_service.java',
     controller:
       'src/main/java/com/example/demo/controller/user_controller.java',
@@ -25,6 +27,7 @@ export const frameworkDirectories: Record<
       'src/main/java/com/example/demo/exception/global_exception_handler.java',
   },
   laravel: {
+    routes: 'routes/api.php',
     service: 'app/Services',
     controller: 'app/Http/Controllers',
     repository: 'app/Repositories',
@@ -35,6 +38,7 @@ export const frameworkDirectories: Record<
     exception: 'app/Exceptions',
   },
   django: {
+    routes: 'routes/api.php',
     service: 'app/services/user_service.py',
     controller: 'app/views/user_view.py',
     repository: 'app/repositories/user_repository.py',
@@ -45,6 +49,7 @@ export const frameworkDirectories: Record<
     exception: 'app/exceptions/global_exception_handler.py',
   },
   nestjs: {
+    routes: 'routes/api.php',
     service: 'src/user/user_service.ts',
     controller: 'src/user/user_controller.ts',
     repository: 'src/user/user_repository.ts',
@@ -55,6 +60,7 @@ export const frameworkDirectories: Record<
     exception: 'src/exceptions/global_exception_handler.ts',
   },
   ruby_on_rails: {
+    routes: 'routes/api.php',
     service: 'app/services/user_service.rb',
     controller: 'app/controllers/users_controller.rb',
     repository: 'app/repositories/user_repository.rb',
