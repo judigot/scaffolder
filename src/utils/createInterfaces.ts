@@ -22,13 +22,13 @@ const createFile = (
   );
 
 const createInterfaces = (
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
   framework: string,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  tables.forEach(({ table }) => {
+  relationships.forEach(({ table }) => {
     const className = toPascalCase(table);
     const replacements = {
       ownerComment: getOwnerComment(),

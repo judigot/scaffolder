@@ -25,14 +25,14 @@ const createServiceFile = (
 
 // Function to create the services based on the provided relationships and framework
 const createServices = (
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
   framework: string,
   outputDir: string,
 ): void => {
   // Create the output directory if it doesn't exist
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  tables.forEach(({ table }) => {
+  relationships.forEach(({ table }) => {
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/service.txt`,

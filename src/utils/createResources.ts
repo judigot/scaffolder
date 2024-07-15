@@ -40,13 +40,13 @@ const generateAttributes = (
 };
 
 const createResources = (
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
   framework: string,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  tables.forEach(({ table, columnsInfo, childTables, foreignKeys }) => {
+  relationships.forEach(({ table, columnsInfo, childTables, foreignKeys }) => {
     const className = toPascalCase(table);
     const columns = columnsInfo.map((col) => col.column_name);
     const relationships = childTables.concat(foreignKeys);

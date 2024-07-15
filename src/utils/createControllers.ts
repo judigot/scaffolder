@@ -74,13 +74,13 @@ const createControllerFile = (
   );
 
 const createControllers = (
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
   framework: keyof typeof frameworkDirectories,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  tables.forEach(({ table }) => {
+  relationships.forEach(({ table }) => {
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/controller.txt`,

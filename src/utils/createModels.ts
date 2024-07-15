@@ -43,9 +43,9 @@ const createRelationships = (
   tableName: string,
   foreignKeys: string[],
   childTables: string[],
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
 ): string => {
-  const parentPrimaryKey = tables
+  const parentPrimaryKey = relationships
     .find((table) => table.table === tableName)
     ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
@@ -58,7 +58,7 @@ const createRelationships = (
 
   const hasManyRelations = childTables
     .map((childTable) => {
-      const childPrimaryKey = tables
+      const childPrimaryKey = relationships
         .find((table) => table.table === childTable)
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
       if (childPrimaryKey != null && parentPrimaryKey != null) {
@@ -85,13 +85,13 @@ const createModelFile = (
   );
 
 const createModels = (
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
   framework: keyof typeof frameworkDirectories,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  tables.forEach(({ table, columnsInfo, foreignKeys, childTables }) => {
+  relationships.forEach(({ table, columnsInfo, foreignKeys, childTables }) => {
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/model.txt`,
@@ -104,7 +104,7 @@ const createModels = (
       table,
       foreignKeys,
       childTables,
-      tables,
+      relationships,
     );
     const primaryKey =
       columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';

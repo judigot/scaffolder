@@ -11,17 +11,17 @@ const getOwnerComment = (extension: string): string => {
 };
 
 const createAPIRoutes = (
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
   outputFilePath: string,
 ): void => {
   const ownerComment = getOwnerComment('.php');
   const routesWithComment = `<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
-  const useStatements = tables
+  const useStatements = relationships
     .map(({ table }) => `use App\\Http\\Controllers\\${toPascalCase(table)}Controller;\n`)
     .join('');
 
-  const routeGroups = tables
+  const routeGroups = relationships
     .map(({ table }) => {
       const routeName = table.endsWith('s') ? table : `${table}s`; // Ensure plural routes
       const className = toPascalCase(table);

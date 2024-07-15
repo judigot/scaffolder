@@ -24,7 +24,7 @@ const getOwnerComment = (extension: string): string => {
 };
 
 const createAPICalls = (
-  tables: IRelationshipInfo[],
+  relationships: IRelationshipInfo[],
   outputDir: string,
 ): void => {
   const templateDir = path.resolve(__dirname, '../templates/frontend/api');
@@ -46,7 +46,7 @@ const createAPICalls = (
     operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
   });
 
-  tables.forEach(({ table }) => {
+  relationships.forEach(({ table }) => {
     const className = toPascalCase(table);
     const tableDir = path.join(outputDir, table);
 
