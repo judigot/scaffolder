@@ -36,7 +36,8 @@ export const useTransformationsStore = create<IStore>((set) => ({
   aggregateJoins: [],
   relationships: [],
   setTransformations: () => {
-    const schemaInput = useFormStore.getState().formData.schemaInput;
+    const { schemaInput, framework, backendDir, frontendDir } =
+      useFormStore.getState().formData;
     if (schemaInput === '') {
       set({
         interfaces: '',
@@ -68,7 +69,13 @@ export const useTransformationsStore = create<IStore>((set) => ({
           'Content-Type': 'application/json',
         },
         // For POST, PATCH, and PUT requests
-        body: JSON.stringify({ relationships, interfaces }),
+        body: JSON.stringify({
+          relationships,
+          interfaces,
+          framework,
+          backendDir,
+          frontendDir,
+        }),
       }).catch(() => {
         // Failure
       });
