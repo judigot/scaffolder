@@ -44,36 +44,46 @@ const clearDirectory = (directory: string): void => {
 };
 
 const createAPICalls = (tables: IRelationshipInfo[]): void => {
-  const templatePath = path.resolve(
-    __dirname,
-    '../templates/frontend/apiCalls.ts.txt',
-  );
-  const template = fs.readFileSync(templatePath, 'utf-8');
+  const templateDir = path.resolve(__dirname, '../templates/frontend');
   const outputDir = path.resolve(__dirname, '../../output/frontend/api');
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
-  } else {
-    clearDirectory(outputDir);
   }
 
   // Copy customFetch.ts to the output directory
-  const customFetchSourcePath = path.resolve(__dirname, '../templates/frontend/customFetch.ts');
+  const customFetchSourcePath = path.resolve(templateDir, 'customFetch.ts');
   const customFetchDestinationPath = path.join(outputDir, 'customFetch.ts');
   fs.copyFileSync(customFetchSourcePath, customFetchDestinationPath);
 
+  const operations = ['create', 'read', 'update', 'delete'];
+  const operationTemplates: Record<string, string> = {};
+
+  operations.forEach((operation) => {
+    const templatePath = path.resolve(templateDir, `apiCalls.${operation}.ts.txt`);
+    operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
+  });
+
   tables.forEach(({ table }) => {
     const className = toPascalCase(table);
-    const camelCaseClassName =
-      className.charAt(0).toLowerCase() + className.slice(1);
-    let apiCalls = template;
+    const camelCaseClassName = className.charAt(0).toLowerCase() + className.slice(1);
+    const tableDir = path.join(outputDir, table);
 
-    apiCalls = apiCalls.replace(/{{className}}/g, className);
-    apiCalls = apiCalls.replace(/{{camelCaseClassName}}/g, camelCaseClassName);
-    apiCalls = apiCalls.replace(/{{route}}/g, table);
+    if (!fs.existsSync(tableDir)) {
+      fs.mkdirSync(tableDir, { recursive: true });
+    } else {
+      clearDirectory(tableDir);
+    }
 
-    const outputFilePath = path.join(outputDir, `${className}API.ts`);
-    fs.writeFileSync(outputFilePath, apiCalls);
+    operations.forEach((operation) => {
+      let apiCalls = operationTemplates[operation];
+      apiCalls = apiCalls.replace(/{{className}}/g, className);
+      apiCalls = apiCalls.replace(/{{camelCaseClassName}}/g, camelCaseClassName);
+      apiCalls = apiCalls.replace(/{{route}}/g, table);
+
+      const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
+      fs.writeFileSync(outputFilePath, apiCalls);
+    });
   });
 };
 
