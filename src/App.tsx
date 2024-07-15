@@ -150,7 +150,9 @@ function App() {
                   <option value={''}>Select a framework</option>
                   {Object.entries(frameworks).map(
                     ([key, value]: [string, string]) => (
-                      <option key={key} value={value}>{value}</option>
+                      <option key={key} value={value}>
+                        {value}
+                      </option>
                     ),
                   )}
                 </select>
@@ -162,13 +164,19 @@ function App() {
             <h2 className="text-xl font-bold mb-2">Create Tables</h2>
             <textarea
               id="SQLSchema"
-              value={`${SQLSchema}${
-                includeInsertData
-                  ? insertOption === 'SQLInsertQueries'
-                    ? `\n\n${SQLInsertQueries}`
-                    : `\n\n${SQLInsertQueriesFromMockData}`
-                  : ''
-              }`}
+              value={(() => {
+                let sqlValue = SQLSchema;
+
+                if (includeInsertData) {
+                  if (insertOption === 'SQLInsertQueries') {
+                    sqlValue += `\n\n${SQLInsertQueries}`;
+                  } else if (insertOption === 'SQLInsertQueriesFromMockData') {
+                    sqlValue += `\n\n${SQLInsertQueriesFromMockData}`;
+                  }
+                }
+
+                return sqlValue;
+              })()}
               readOnly
               rows={15}
               className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
@@ -221,15 +229,19 @@ function App() {
             )}
             <button
               onClick={() => {
-                handleCopy(
-                  `${SQLSchema}${
-                    includeInsertData
-                      ? insertOption === 'SQLInsertQueries'
-                        ? `\n\n${SQLInsertQueries}`
-                        : `\n\n${SQLInsertQueriesFromMockData}`
-                      : ''
-                  }`,
-                );
+                let sqlContent = SQLSchema;
+
+                if (includeInsertData) {
+                  if (insertOption === 'SQLInsertQueries') {
+                    sqlContent += `\n\n${SQLInsertQueries}`;
+                  }
+
+                  if (insertOption === 'SQLInsertQueriesFromMockData') {
+                    sqlContent += `\n\n${SQLInsertQueriesFromMockData}`;
+                  }
+                }
+
+                handleCopy(sqlContent);
               }}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             >
