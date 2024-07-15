@@ -8,6 +8,8 @@ import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
 import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import createModels from '@/utils/createModels';
 import createAPICalls from '@/utils/createAPICalls';
+import clearGeneratedFiles from '@/utils/clearDirectory';
+import { frameworkDirectories } from '@/constants';
 
 dotenv.config();
 
@@ -73,11 +75,37 @@ app.post(
     >,
     res: Response,
   ) => {
-    const { relationships } = req.body;
+    const {
+      relationships,
+      framework: frameworkRaw,
+      backendDir,
+      frontendDir,
+    } = req.body;
+    const framework = frameworkRaw.toLowerCase();
+
+    const frameworkDir = frameworkDirectories[framework];
 
     try {
-      createModels(relationships, 'laravel');
-      createAPICalls(relationships);
+      const resolvedBackendDir = fs.existsSync(
+        path.resolve(__dirname, backendDir),
+      )
+        ? path.resolve(__dirname, `${backendDir}/${frameworkDir.model}`)
+        : path.resolve(
+            __dirname,
+            `../output/backend/${framework}/${frameworkDir.model}`,
+          );
+
+      const resolvedFrontendDir = fs.existsSync(
+        path.resolve(__dirname, frontendDir),
+      )
+        ? path.resolve(__dirname, `${frontendDir}/src`)
+        : path.resolve(__dirname, '../output/frontend/src/api');
+
+      clearGeneratedFiles(resolvedBackendDir);
+      clearGeneratedFiles(resolvedFrontendDir);
+
+      createModels(relationships, framework, resolvedBackendDir);
+      createAPICalls(relationships, resolvedFrontendDir);
 
       res.send('Models generated successfully');
     } catch (error) {

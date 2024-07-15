@@ -1,18 +1,26 @@
 import fs from 'fs';
 import path from 'path';
 
-const clearDirectory = (directory: string): void => {
+const specialText = 'Owner: App Scaffolder';
+
+const clearGeneratedFiles = (directory: string): void => {
   if (fs.existsSync(directory)) {
     fs.readdirSync(directory).forEach((file) => {
       const filePath = path.join(directory, file);
       if (fs.lstatSync(filePath).isFile()) {
-        fs.unlinkSync(filePath);
+        const fileContent = fs.readFileSync(filePath, 'utf-8');
+        if (fileContent.includes(specialText)) {
+          fs.unlinkSync(filePath);
+        }
       } else {
-        clearDirectory(filePath);
-        fs.rmdirSync(filePath);
+        clearGeneratedFiles(filePath);
+        // Remove the directory if it becomes empty
+        if (fs.readdirSync(filePath).length === 0) {
+          fs.rmdirSync(filePath);
+        }
       }
     });
   }
 };
 
-export default clearDirectory;
+export default clearGeneratedFiles;

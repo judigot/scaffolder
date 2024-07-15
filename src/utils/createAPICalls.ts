@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import clearDirectory from './clearDirectory';
+import { IRelationshipInfo } from '@/utils/identifyRelationships';
 
 const platform: string = process.platform;
 
@@ -10,39 +10,28 @@ if (platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
 
-interface IColumnInfo {
-  column_name: string;
-  data_type: string;
-  is_nullable: string;
-  column_default: string | null;
-  primary_key: boolean;
-  unique: boolean;
-}
-
-interface IRelationshipInfo {
-  table: string;
-  columnsInfo: IColumnInfo[];
-  foreignTables: string[];
-  foreignKeys: string[];
-  childTables: string[];
-}
-
 const toPascalCase = (str: string): string => {
   return str
     .replace(/_./g, (match) => match[1].toUpperCase())
     .replace(/^(.)/, (match) => match.toUpperCase());
 };
 
-const createAPICalls = (tables: IRelationshipInfo[]): void => {
+const getOwnerComment = (extension: string): string => {
+  const comments: Record<string, string> = {
+    '.ts': '/* Owner: App Scaffolder */\n',
+  };
+  return comments[extension] || '/* Owner: App Scaffolder */\n';
+};
+
+const createAPICalls = (
+  tables: IRelationshipInfo[],
+  outputDir: string,
+): void => {
   const templateDir = path.resolve(__dirname, '../templates/frontend/api');
-  const outputDir = path.resolve(__dirname, '../../output/frontend/api');
 
-  if (fs.existsSync(outputDir)) {
-    clearDirectory(outputDir);
-    fs.rmdirSync(outputDir);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
-
-  fs.mkdirSync(outputDir, { recursive: true });
 
   // Copy customFetch.ts to the output directory
   const customFetchSourcePath = path.resolve(templateDir, 'customFetch.ts');
@@ -71,7 +60,8 @@ const createAPICalls = (tables: IRelationshipInfo[]): void => {
       apiCalls = apiCalls.replace(/{{route}}/g, table);
 
       const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
-      fs.writeFileSync(outputFilePath, apiCalls);
+      const ownerComment = getOwnerComment('.ts');
+      fs.writeFileSync(outputFilePath, ownerComment + apiCalls);
     });
   });
 };
