@@ -57,6 +57,7 @@ const createAPICalls = (
     operations.forEach((operation) => {
       let apiCalls = operationTemplates[operation];
       apiCalls = apiCalls.replace(/{{className}}/g, className);
+      apiCalls = apiCalls.replace(/ModelTemplate/g, className);
       apiCalls = apiCalls.replace(/{{route}}/g, table);
 
       const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);

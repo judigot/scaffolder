@@ -1,5 +1,5 @@
 import { customFetch } from "../customFetch";
-import { IModelTemplate } from "../../interfaces/ModelTemplate";
+import { IModelTemplate } from "../../interfaces/interfaces";
 
 type IBody = IModelTemplate;
 
