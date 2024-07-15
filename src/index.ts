@@ -12,6 +12,7 @@ import { frameworkDirectories } from '@/constants';
 import createAPICalls from '@/utils/createAPICalls';
 import createAPIRoutes from '@/utils/createAPIRoutes';
 import createControllers from '@/utils/createControllers';
+import createInterfaces from '@/utils/createInterfaces';
 
 dotenv.config();
 
@@ -125,7 +126,7 @@ app.post(
       unknown,
       {
         relationships: IRelationshipInfo[];
-        interfaces: string[];
+        interfaces: string;
         framework: string;
         backendDir: string;
         frontendDir: string;
@@ -137,6 +138,7 @@ app.post(
   ) => {
     const {
       relationships,
+      interfaces,
       framework: frameworkRaw,
       backendDir,
       frontendDir,
@@ -201,10 +203,17 @@ app.post(
 
         /*=====FRONTEND=====*/
         const APICallsDir = isFrontendDirValid
-          ? path.resolve(frontendDirPath, 'src')
+          ? path.resolve(frontendDirPath, 'src/api')
           : path.resolve(__dirname, '../output/frontend/src/api');
         clearGeneratedFiles(APICallsDir);
         createAPICalls(relationships, APICallsDir);
+
+        const interfaceDir = isFrontendDirValid
+          ? path.resolve(frontendDirPath, 'src/interfaces')
+          : path.resolve(__dirname, '../output/frontend/src/interfaces');
+        clearGeneratedFiles(interfaceDir);
+        /* prettier-ignore */ ((log = interfaces)=>{console.log(["string","number"].includes(typeof log)?log:JSON.stringify(log,null,4));})();
+        createInterfaces(interfaces, interfaceDir);
         /*=====FRONTEND=====*/
 
         res.json({
