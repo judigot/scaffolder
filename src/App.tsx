@@ -150,7 +150,7 @@ function App() {
                   <option value={''}>Select a framework</option>
                   {Object.entries(frameworks).map(
                     ([key, value]: [string, string]) => (
-                      <option key={key}>{value}</option>
+                      <option key={key} value={value}>{value}</option>
                     ),
                   )}
                 </select>
