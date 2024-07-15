@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import { toPascalCase } from '@/helpers/toPascalCase';
 
@@ -13,27 +14,29 @@ const createAPIRoutes = (
   tables: IRelationshipInfo[],
   outputFilePath: string,
 ): void => {
-  let routes = `<?php\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
-
-  tables.forEach(({ table }) => {
-    const className = toPascalCase(table);
-    routes += `use App\\Http\\Controllers\\${className}Controller;\n`;
-  });
-
-  routes += `\nRoute::middleware('api')->group(function () {\n`;
-
-  tables.forEach(({ table }) => {
-    const routeName = table.endsWith('s') ? table : `${table}s`; // Ensure plural routes
-    const className = toPascalCase(table);
-    routes += `    Route::resource('${routeName}', ${className}Controller::class);\n`;
-  });
-
-  routes += `});\n`;
-
   const ownerComment = getOwnerComment('.php');
-  const routesWithComment = routes.replace('<?php', `<?php\n${ownerComment}`);
+  const routesWithComment = `<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
-  fs.writeFileSync(outputFilePath, routesWithComment);
+  const useStatements = tables
+    .map(({ table }) => `use App\\Http\\Controllers\\${toPascalCase(table)}Controller;\n`)
+    .join('');
+
+  const routeGroups = tables
+    .map(({ table }) => {
+      const routeName = table.endsWith('s') ? table : `${table}s`; // Ensure plural routes
+      const className = toPascalCase(table);
+      return `    Route::resource('${routeName}', ${className}Controller::class);`;
+    })
+    .join('\n');
+
+  const routes = `${routesWithComment}\n${useStatements}\nRoute::middleware('api')->group(function () {\n${routeGroups}\n});\n`;
+
+  const outputDir = path.dirname(outputFilePath);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  fs.writeFileSync(outputFilePath, routes);
 };
 
 export default createAPIRoutes;

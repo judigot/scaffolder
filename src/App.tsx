@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
@@ -6,8 +6,18 @@ import '@/styles/scss/main.scss';
 
 function App() {
   const {
-    formData: { schemaInput, backendDir, frontendDir, dbConnection, framework },
+    formData: {
+      schemaInput,
+      backendDir,
+      frontendDir,
+      dbConnection,
+      framework,
+      includeInsertData,
+      insertOption,
+    },
     setFormData,
+    setIncludeInsertData,
+    setInsertOption,
   } = useFormStore();
 
   const {
@@ -21,9 +31,6 @@ function App() {
     aggregateJoins,
     setTransformations,
   } = useTransformationsStore();
-
-  const [includeInsertData, setIncludeInsertData] = useState<boolean>(false);
-  const [insertOption, setInsertOption] = useState('SQLInsertQueries');
 
   useEffect(() => {
     setTransformations();
