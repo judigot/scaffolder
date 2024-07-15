@@ -1,70 +1,129 @@
 import fs from 'fs';
 import path from 'path';
 import { frameworkDirectories } from '@/constants';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
+import { IColumnInfo, IRelationshipInfo } from '@/utils/identifyRelationships';
+import { toPascalCase } from '@/helpers/toPascalCase';
 
+// Global variables
 const platform: string = process.platform;
+const fillableExemptions = ['created_at', 'updated_at'];
 
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
-
 if (platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
 
-const toPascalCase = (str: string): string => {
-  return str
-    .replace(/_./g, (match) => match[1].toUpperCase())
-    .replace(/^(.)/, (match) => match.toUpperCase());
+const getOwnerComment = (extension: string): string =>
+  ({
+    '.php': '/* Owner: App Scaffolder */\n',
+  })[extension] ?? '/* Owner: App Scaffolder */\n';
+
+const createFillable = (
+  columnsInfo: IColumnInfo[],
+  foreignKeys: string[],
+): string => {
+  const primaryKeyColumns = columnsInfo
+    .filter((column) => column.primary_key)
+    .map((column) => column.column_name);
+  const fillableColumns = columnsInfo
+    .filter(
+      (column) =>
+        !primaryKeyColumns.includes(column.column_name) &&
+        !fillableExemptions.includes(column.column_name),
+    )
+    .map((column) => column.column_name)
+    .concat(foreignKeys)
+    .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+
+  return fillableColumns.map((column) => `'${column}'`).join(',\n        ');
 };
 
-const getOwnerComment = (extension: string): string => {
-  const comments: Record<string, string> = {
-    '.php': '/* Owner: App Scaffolder */\n',
-  };
-  return comments[extension] || '/* Owner: App Scaffolder */\n';
+const createRelationships = (
+  tableName: string,
+  foreignKeys: string[],
+  childTables: string[],
+  tables: IRelationshipInfo[],
+): string => {
+  const parentPrimaryKey = tables
+    .find((table) => table.table === tableName)
+    ?.columnsInfo.find((column) => column.primary_key)?.column_name;
+
+  const belongsToRelations = foreignKeys
+    .map((foreignKey) => {
+      const relationshipName = foreignKey.replace('_id', '');
+      return `    public function ${relationshipName}()\n    {\n        return $this->belongsTo(${toPascalCase(relationshipName)}::class, '${foreignKey}');\n    }\n`;
+    })
+    .join('\n');
+
+  const hasManyRelations = childTables
+    .map((childTable) => {
+      const childPrimaryKey = tables
+        .find((table) => table.table === childTable)
+        ?.columnsInfo.find((column) => column.primary_key)?.column_name;
+      if (childPrimaryKey != null && parentPrimaryKey != null) {
+        return `    public function ${childTable}s()\n    {\n        return $this->hasMany(${toPascalCase(childTable)}::class, '${childPrimaryKey}');\n    }\n`;
+      }
+      return '';
+    })
+    .join('\n');
+
+  return [belongsToRelations, hasManyRelations]
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
 };
+
+const createModelFile = (
+  template: string,
+  replacements: Record<string, string>,
+): string =>
+  Object.entries(replacements).reduce(
+    (result, [key, value]) =>
+      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
+    template,
+  );
 
 const createModels = (
   tables: IRelationshipInfo[],
   framework: keyof typeof frameworkDirectories,
   outputDir: string,
 ): void => {
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   tables.forEach(({ table, columnsInfo, foreignKeys, childTables }) => {
     const templatePath = path.resolve(
       __dirname,
-      `../templates/backend/${framework}/${table === 'user' ? 'User.txt' : 'model.txt'}`,
+      `../templates/backend/${framework}/model.txt`,
     );
     const template = fs.readFileSync(templatePath, 'utf-8');
     const className = toPascalCase(table);
-    const fillable = columnsInfo
-      .map(({ column_name }) => `'${column_name}'`)
-      .join(',\n        ');
 
-    let relationships = '';
-    foreignKeys.forEach((foreignKey) => {
-      relationships += `    public function ${foreignKey}()\n    {\n        return $this->belongsTo(${toPascalCase(foreignKey)}::class, '${foreignKey}');\n    }\n\n`;
-    });
+    const fillable = createFillable(columnsInfo, foreignKeys);
+    const relationships = createRelationships(
+      table,
+      foreignKeys,
+      childTables,
+      tables,
+    );
+    const primaryKey =
+      columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';
+    const primaryKeyLine =
+      primaryKey !== 'id'
+        ? `protected $primaryKey = '${String(primaryKey)}';\n\n`
+        : '';
 
-    childTables.forEach((childTable) => {
-      relationships += `    public function ${childTable}s()\n    {\n        return $this->hasMany(${toPascalCase(childTable)}::class);\n    }\n\n`;
-    });
-
-    let model = template;
-    model = model.replace(/{{className}}/g, className);
-    model = model.replace(/{{tableName}}/g, table);
-    model = model.replace(/{{fillable}}/g, fillable);
-    model = model.replace(/{{relationships}}/g, relationships.trim());
+    const replacements = {
+      className,
+      tableName: table,
+      fillable,
+      relationships,
+      primaryKeyLine,
+    };
+    const model = createModelFile(template, replacements);
+    const ownerComment = getOwnerComment('.php');
+    const modelWithComment = model.replace('<?php', `<?php\n${ownerComment}`);
 
     const outputFilePath = path.join(outputDir, `${className}.php`);
-    const ownerComment = getOwnerComment('.php');
-    
-    // Insert the comment after <?php
-    const modelWithComment = model.replace('<?php', `<?php\n${ownerComment}`);
-    
     fs.writeFileSync(outputFilePath, modelWithComment);
   });
 };
