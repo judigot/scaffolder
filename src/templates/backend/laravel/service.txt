@@ -1,39 +1,72 @@
 <?php
 {{ownerComment}}
-
 namespace App\Services;
 
 use App\Models\{{modelName}};
+use Illuminate\Support\Collection;
 
 class {{className}}Service
 {
     /**
-     * Get all {{tableName}}s.
+     * Get all {{tableName}} records.
      *
-     * @return \Illuminate\Database\Eloquent\Collection|static[]
+     * @return Collection
      */
-    public function getAll{{className}}s()
+    public function getAll(): Collection
     {
         return {{modelName}}::all();
     }
 
     /**
-     * Get a single {{tableName}} by ID.
+     * Get a {{tableName}} record by ID.
      *
      * @param int $id
      * @return {{modelName}}|null
      */
-    public function get{{className}}ById(int $id): ?{{modelName}}
+    public function getById(int $id): ?{{modelName}}
     {
         return {{modelName}}::find($id);
     }
 
     /**
-     * Create a new {{tableName}}.
+     * Create a new {{tableName}} record.
      *
      * @param array $data
      * @return {{modelName}}
      */
-    public function create{{className}}(array $data): {{modelName}}
+    public function create(array $data): {{modelName}}
     {
         return {{modelName}}::create($data);
+    }
+
+    /**
+     * Update a {{tableName}} record by ID.
+     *
+     * @param int $id
+     * @param array $data
+     * @return bool
+     */
+    public function update(int $id, array $data): bool
+    {
+        ${{tableName}} = {{modelName}}::find($id);
+        if (${{tableName}}) {
+            return ${{tableName}}->update($data);
+        }
+        return false;
+    }
+
+    /**
+     * Delete a {{tableName}} record by ID.
+     *
+     * @param int $id
+     * @return bool
+     */
+    public function delete(int $id): bool
+    {
+        ${{tableName}} = {{modelName}}::find($id);
+        if (${{tableName}}) {
+            return ${{tableName}}->delete();
+        }
+        return false;
+    }
+}
