@@ -1,0 +1,39 @@
+<?php
+{{ownerComment}}
+
+namespace App\Services;
+
+use App\Models\{{modelName}};
+
+class {{className}}Service
+{
+    /**
+     * Get all {{tableName}}s.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection|static[]
+     */
+    public function getAll{{className}}s()
+    {
+        return {{modelName}}::all();
+    }
+
+    /**
+     * Get a single {{tableName}} by ID.
+     *
+     * @param int $id
+     * @return {{modelName}}|null
+     */
+    public function get{{className}}ById(int $id): ?{{modelName}}
+    {
+        return {{modelName}}::find($id);
+    }
+
+    /**
+     * Create a new {{tableName}}.
+     *
+     * @param array $data
+     * @return {{modelName}}
+     */
+    public function create{{className}}(array $data): {{modelName}}
+    {
+        return {{modelName}}::create($data);
