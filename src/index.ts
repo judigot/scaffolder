@@ -203,7 +203,7 @@ app.post(
         clearGeneratedFiles(controllersDir);
         createControllers(relationships, framework, controllersDir);
 
-        // Resource
+        // Repositories
         const repositoriesDir = isBackendDirValid
           ? path.resolve(backendDirPath, frameworkDir.repository)
           : path.resolve(
