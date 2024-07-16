@@ -7,7 +7,7 @@ const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
 const getType = (
   column: IColumnInfo,
-  fileType: 'sql-tables' | 'ts-interfaces',
+  fileType: 'sql-tables' | 'ts-interfaces' | 'ts-typeguards',
 ): string => {
   const targetType = fileType === 'sql-tables' ? 'postgresql' : 'typescript';
   const { column_name, data_type, primary_key } = column;
@@ -113,15 +113,61 @@ const generateTypescriptInterfaces = (
     .join('\n\n');
 };
 
+const generateTypescriptTypeGuards = (
+  relationships: IRelationshipInfo[],
+): string => {
+  const typeGuards = relationships
+    .map(({ table, columnsInfo }) => {
+      const interfaceName = toPascalCase(table);
+      const typeGuardName = `is${interfaceName}`;
+      const propertyChecks = columnsInfo
+        .map(({ column_name }) => `'${column_name}' in data`)
+        .join(' &&\n    ');
+
+      const typeChecks = columnsInfo
+        .map(({ column_name, data_type, is_nullable }) => {
+          const tsType = getType({
+            column_name,
+            data_type,
+            primary_key: false,
+            is_nullable,
+            column_default: '',
+            unique: false,
+            foreign_key: null,
+          }, 'ts-interfaces');
+          const nullableCheck = is_nullable === 'YES' ? `data.${column_name} === null || ` : '';
+          return `${nullableCheck}typeof data.${column_name} === '${tsType}'`;
+        })
+        .join(' &&\n    ');
+
+      return `
+export function ${typeGuardName}(data: unknown): data is I${interfaceName} {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    ${propertyChecks} &&
+    ${typeChecks}
+  );
+}`;
+    })
+    .join('\n\n');
+
+  const importStatements = `import { ${relationships.map(({ table }) => `I${toPascalCase(table)}`).join(', ')} } from '../interface';`;
+
+  return `${importStatements}\n\n${typeGuards}`;
+};
+
 const generateFile = (
   relationships: IRelationshipInfo[],
-  fileType: 'sql-tables' | 'ts-interfaces',
+  fileType: 'sql-tables' | 'ts-interfaces' | 'ts-typeguards',
 ): string => {
   switch (fileType) {
     case 'sql-tables':
       return formatSQL(generateSQLSchema(relationships));
     case 'ts-interfaces':
       return generateTypescriptInterfaces(relationships);
+    case 'ts-typeguards':
+      return generateTypescriptTypeGuards(relationships);
     default:
       throw new Error('Invalid file type specified');
   }

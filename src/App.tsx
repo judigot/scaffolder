@@ -3,6 +3,7 @@ import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
 import '@/styles/scss/main.scss';
+import generateFile from '@/utils/generateFile';
 
 function App() {
   const {
@@ -215,6 +216,7 @@ function App() {
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
+                      typeGuards: generateFile(relationships, "ts-typeguards"),
                       relationships,
                       interfaces,
                       backendDir,

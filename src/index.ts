@@ -8,7 +8,7 @@ import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
 import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import createModels from '@/utils/createModels';
 import clearGeneratedFiles from '@/utils/clearDirectory';
-import { frameworkDirectories } from '@/constants';
+import { frameworkDirectories, frontendDirectories } from '@/constants';
 import createAPICalls from '@/utils/createAPICalls';
 import createAPIRoutes from '@/utils/createAPIRoutes';
 import createControllers from '@/utils/createControllers';
@@ -17,6 +17,10 @@ import createRepositories from '@/utils/createRepositories';
 import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
 import createInterfaces from '@/utils/createInterfaces';
 import createResources from '@/utils/createResources';
+import convertIntrospectedStructure, {
+  ITable,
+} from '@/utils/convertIntrospectedStructure';
+import createTypeGuards from '@/utils/createTypeGuards';
 
 dotenv.config();
 
@@ -40,7 +44,7 @@ app.use(express.static(publicDirectory));
 export const executePostgreSQL = async (
   connectionString: string,
   query: string,
-): Promise<Record<string, unknown>[]> => {
+): Promise<unknown> => {
   const pool = new Pool({ connectionString });
 
   try {
@@ -83,7 +87,7 @@ export const executeMySQL = async (
     try {
       const [rows]: [RowDataPacket[], FieldPacket[]] =
         await connection.execute(query);
-      return rows as Record<string, unknown>[];
+      return rows;
     } finally {
       await connection.end();
     }
@@ -93,18 +97,31 @@ export const executeMySQL = async (
   }
 };
 
-app.post('/api/createFile', (req: Request, _res) => {
-  const data = req.body as Record<string, string>;
+app.post(
+  '/api/createFile',
+  (
+    req: Request<
+      unknown,
+      unknown,
+      {
+        targetDirectory: string;
+        framework: string;
+      }
+    >,
+    _res,
+  ) => {
+    const { targetDirectory, framework } = req.body;
 
-  const fileName = `${data.targetDirectory}/filename.txt`;
-  fs.writeFile(fileName, data.framework, (error) => {
-    if (error) {
-      /* eslint-disable-next-line no-console */
-      console.log(error);
-      return;
-    }
-  });
-});
+    const fileName = `${targetDirectory}/filename.txt`;
+    fs.writeFile(fileName, framework, (error) => {
+      if (error) {
+        /* eslint-disable-next-line no-console */
+        console.log(error);
+        return;
+      }
+    });
+  },
+);
 
 // Define routes
 app.get('/', (_req, res) => {
@@ -131,6 +148,7 @@ app.post(
       {
         relationships: IRelationshipInfo[];
         interfaces: string;
+        typeGuards: string;
         framework: string;
         backendDir: string;
         frontendDir: string;
@@ -143,6 +161,7 @@ app.post(
     const {
       relationships,
       interfaces,
+      typeGuards,
       framework: frameworkRaw,
       backendDir,
       frontendDir,
@@ -246,16 +265,31 @@ app.post(
 
         /*=====FRONTEND=====*/
         const APICallsDir = isFrontendDirValid
-          ? path.resolve(frontendDirPath, 'src/api')
-          : path.resolve(__dirname, '../output/frontend/src/api');
+          ? path.resolve(frontendDirPath, frontendDirectories.apiCalls)
+          : path.resolve(
+              __dirname,
+              `../output/frontend/${frontendDirectories.apiCalls}`,
+            );
         clearGeneratedFiles(APICallsDir);
         createAPICalls(relationships, APICallsDir);
 
         const typescriptInterfacesDir = isFrontendDirValid
-          ? path.resolve(frontendDirPath, 'src/interfaces')
-          : path.resolve(__dirname, '../output/frontend/src/interfaces');
+          ? path.resolve(frontendDirPath, frontendDirectories.interface)
+          : path.resolve(
+              __dirname,
+              `../output/frontend/${frontendDirectories.interface}`,
+            );
         clearGeneratedFiles(typescriptInterfacesDir);
         createTypescriptInterfaces(interfaces, typescriptInterfacesDir);
+
+        const typeGuardsDir = isFrontendDirValid
+          ? path.resolve(frontendDirPath, frontendDirectories.typeGuard)
+          : path.resolve(
+              __dirname,
+              `../output/frontend/${frontendDirectories.typeGuard}`,
+            );
+        clearGeneratedFiles(typeGuardsDir);
+        createTypeGuards(typeGuards, typeGuardsDir);
         /*=====FRONTEND=====*/
 
         res.json({
@@ -305,9 +339,31 @@ app.post(
       );
 
       try {
-        let result;
         if (dbConnection.startsWith('postgresql')) {
-          result = await executePostgreSQL(dbConnection, pgIntrospectionQuery);
+          const isITableArray = (data: unknown): data is ITable[] => {
+            return (
+              Array.isArray(data) &&
+              data.every(
+                (item) =>
+                  item !== null &&
+                  typeof item === 'object' &&
+                  'table_name' in item &&
+                  'columns' in item &&
+                  'check_constraints' in item,
+              )
+            );
+          };
+
+          const result = await executePostgreSQL(
+            dbConnection,
+            pgIntrospectionQuery,
+          );
+
+          if (isITableArray(result)) {
+            res.status(200).json(convertIntrospectedStructure(result));
+          } else {
+            res.status(400).json({ error: 'Unexpected result format' });
+          }
         } else if (dbConnection.startsWith('mysql')) {
           const match = dbConnection.match(
             /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
@@ -320,11 +376,14 @@ app.post(
           const [, , , , , database] = match;
           const mysqlIntrospectionQuery =
             mysqlIntrospectionQueryTemplate.replace('$DB_NAME', database);
-          result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
+          const result = await executeMySQL(
+            dbConnection,
+            mysqlIntrospectionQuery,
+          );
+          res.status(200).json(result);
         } else {
           return res.status(400).json({ error: 'Unsupported database type' });
         }
-        res.status(200).json(result);
       } catch (error: unknown) {
         res.status(500).json({ error });
       }

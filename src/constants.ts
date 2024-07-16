@@ -79,6 +79,8 @@ export const frameworkDirectories: Record<
 };
 
 export const frontendDirectories = {
+  apiCalls: 'src/api',
   component: 'src/components',
   interface: 'src/interface',
+  typeGuard: 'src/typeGuards',
 };
