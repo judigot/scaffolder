@@ -8,6 +8,10 @@ export interface IColumnInfo {
   column_default: string | null;
   primary_key: boolean;
   unique: boolean;
+  foreign_key: {
+    foreign_table_name: string;
+    foreign_column_name: string;
+  } | null;
 }
 
 export interface IRelationshipInfo {
@@ -104,6 +108,14 @@ function identifyRelationships(
             });
             const isPrimaryKey = key === primaryKeyField;
             const isUnique = uniqueColumnNames.includes(key) && !isPrimaryKey;
+            const foreignKey =
+              key.endsWith('_id') && key !== `${table}_id`
+                ? {
+                    foreign_table_name: key.replace('_id', ''),
+                    foreign_column_name: key,
+                  }
+                : null;
+
             const columnInfo = {
               column_name: key,
               data_type: fieldType,
@@ -113,19 +125,15 @@ function identifyRelationships(
                 : null,
               primary_key: isPrimaryKey,
               unique: isUnique,
+              foreign_key: foreignKey,
             };
 
             if (!fields[key].nullable) {
               requiredColumns.push(key);
             }
 
-            if (
-              typeof key === 'string' &&
-              key.endsWith('_id') &&
-              key !== `${table}_id`
-            ) {
-              const foreignTable = key.replace('_id', '');
-              foreignTables.push(foreignTable);
+            if (foreignKey) {
+              foreignTables.push(foreignKey.foreign_table_name);
               foreignKeys.push(key);
             }
 
