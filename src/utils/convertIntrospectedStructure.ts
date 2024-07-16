@@ -1,7 +1,7 @@
 import { typeMappings } from './convertType';
 import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
 
-interface ITable {
+export interface ITable {
   table_name: string;
   columns: IColumnInfo[];
   check_constraints: string[];
