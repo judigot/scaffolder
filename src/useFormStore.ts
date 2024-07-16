@@ -13,7 +13,7 @@ export const frameworks = {
   [frameworkKeys.SPRING_BOOT]: 'Spring Boot',
 } as const;
 
-interface IFormData {
+export interface IFormData {
   schemaInput: string;
   backendDir: string;
   frontendDir: string;
@@ -25,7 +25,7 @@ interface IFormData {
 
 interface IFormStore {
   formData: IFormData;
-  setFormData: (data: Partial<IFormData>) => void;
+  setFormData: (data: IFormData) => void;
   resetForm: () => void;
 }
 

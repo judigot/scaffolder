@@ -15,7 +15,7 @@ function App() {
       includeInsertData,
       insertOption,
     },
-    setFormData,
+    // setFormData,
   } = useFormStore();
 
   const {
@@ -44,8 +44,12 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    setTransformations();
-  }, [schemaInput, setTransformations]);
+    setTransformations({
+      schemaInput,
+      includeInsertData,
+      insertOption,
+    });
+  }, [schemaInput, includeInsertData, insertOption, setTransformations]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -56,8 +60,13 @@ function App() {
     const checked =
       type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
 
-    setFormData({
-      [name]: type === 'checkbox' ? !!(checked ?? false) : value,
+    useFormStore.setState((state) => {
+      const newFormData = {
+        ...state.formData,
+        [name]: type === 'checkbox' ? !!(checked ?? false) : value,
+      };
+      setTransformations(newFormData);
+      return { formData: newFormData };
     });
   };
 
