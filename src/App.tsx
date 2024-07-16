@@ -281,6 +281,7 @@ function App() {
             <h2 className="text-xl font-bold mb-2">Create Tables</h2>
             <textarea
               id="SQLSchema"
+              title='Double click to edit schema'
               value={(() => {
                 let sqlValue = SQLSchema;
 
