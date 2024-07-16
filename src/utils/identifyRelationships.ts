@@ -83,7 +83,7 @@ function identifyRelationships(
   const relationships: IRelationshipInfo[] = [];
 
   for (const table in data) {
-    if (Object.prototype.hasOwnProperty.call(data, table)) {
+    if (table in data) {
       const foreignTables: string[] = [];
       const foreignKeys: string[] = [];
       const columnsInfo: IColumnInfo[] = [];
@@ -98,7 +98,7 @@ function identifyRelationships(
         );
 
         for (const key in fields) {
-          if (Object.prototype.hasOwnProperty.call(fields, key)) {
+          if (key in fields) {
             const sampleValue = rows.find((record) => record[key] !== null)?.[
               key
             ];
