@@ -16,8 +16,6 @@ function App() {
       insertOption,
     },
     setFormData,
-    setIncludeInsertData,
-    setInsertOption,
   } = useFormStore();
 
   const {
@@ -58,13 +56,9 @@ function App() {
     const checked =
       type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
 
-    if (name === 'includeInsertData') {
-      setIncludeInsertData(checked ?? false);
-    } else {
-      setFormData({
-        [name]: type === 'checkbox' ? !!(checked ?? false) : value,
-      });
-    }
+    setFormData({
+      [name]: type === 'checkbox' ? !!(checked ?? false) : value,
+    });
   };
 
   const handleCopy = (text: string) => {
@@ -280,9 +274,7 @@ function App() {
                 id="includeInsertData"
                 name="includeInsertData"
                 checked={includeInsertData}
-                onChange={(e) => {
-                  setIncludeInsertData(e.target.checked);
-                }}
+                onChange={handleChange}
                 className="mr-2"
               />
               Include Insert Data
@@ -295,12 +287,10 @@ function App() {
                     name="insertOption"
                     value="SQLInsertQueries"
                     checked={insertOption === 'SQLInsertQueries'}
-                    onChange={(e) => {
-                      setInsertOption(e.target.value);
-                    }}
+                    onChange={handleChange}
                     className="mr-2"
                   />
-                  SQL Insert Queries
+                  Rows from JSON Database Schema
                 </label>
                 <label className="block text-sm font-medium">
                   <input
@@ -308,12 +298,10 @@ function App() {
                     name="insertOption"
                     value="SQLInsertQueriesFromMockData"
                     checked={insertOption === 'SQLInsertQueriesFromMockData'}
-                    onChange={(e) => {
-                      setInsertOption(e.target.value);
-                    }}
+                    onChange={handleChange}
                     className="mr-2"
                   />
-                  SQL Insert Queries from Mock Data
+                  Rows from mock data
                 </label>
               </div>
             )}

@@ -26,8 +26,6 @@ interface IFormData {
 interface IFormStore {
   formData: IFormData;
   setFormData: (data: Partial<IFormData>) => void;
-  setIncludeInsertData: (include: boolean) => void;
-  setInsertOption: (option: string) => void;
   resetForm: () => void;
 }
 
@@ -89,16 +87,6 @@ export const useFormStore = create(
       setFormData: (data) => {
         set((state) => ({
           formData: { ...state.formData, ...data },
-        }));
-      },
-      setIncludeInsertData: (include: boolean) => {
-        set((state) => ({
-          formData: { ...state.formData, includeInsertData: include },
-        }));
-      },
-      setInsertOption: (option: string) => {
-        set((state) => ({
-          formData: { ...state.formData, insertOption: option },
         }));
       },
       resetForm: () => {
