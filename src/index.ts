@@ -96,25 +96,69 @@ export const executeMySQL = async (
   }
 };
 
+const readSqlFile = (filename: string): string => {
+  return fs.readFileSync(path.join(__dirname, filename), 'utf8');
+};
+
+const introspect = async (dbConnection: string): Promise<unknown> => {
+  const pgIntrospectionQuery = readSqlFile('introspect_postgresql.sql');
+  const mysqlIntrospectionQueryTemplate = readSqlFile('introspect_mysql.sql');
+
+  if (dbConnection.startsWith('postgresql')) {
+    const isITableArray = (data: unknown): data is ITable[] => {
+      return (
+        Array.isArray(data) &&
+        data.every(
+          (item) =>
+            item !== null &&
+            typeof item === 'object' &&
+            'table_name' in item &&
+            'columns' in item &&
+            'check_constraints' in item,
+        )
+      );
+    };
+
+    const result = await executePostgreSQL(dbConnection, pgIntrospectionQuery);
+    if (isITableArray(result)) {
+      return convertIntrospectedStructure(result);
+    } else {
+      throw new Error('Unexpected result format');
+    }
+  } else if (dbConnection.startsWith('mysql')) {
+    const match = dbConnection.match(
+      /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
+    );
+    if (!match) {
+      throw new Error('Invalid MySQL connection string');
+    }
+    const [, , , , , database] = match;
+    const mysqlIntrospectionQuery = mysqlIntrospectionQueryTemplate.replace(
+      '$DB_NAME',
+      database,
+    );
+    const result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
+    return result;
+  } else {
+    throw new Error('Unsupported database type');
+  }
+};
+
 app.post(
   '/api/createFile',
   (
     req: Request<
       unknown,
       unknown,
-      {
-        targetDirectory: string;
-        framework: string;
-      }
+      { targetDirectory: string; framework: string }
     >,
     _res,
   ) => {
     const { targetDirectory, framework } = req.body;
-
     const fileName = `${targetDirectory}/filename.txt`;
     fs.writeFile(fileName, framework, (error) => {
       if (error) {
-        /* eslint-disable-next-line no-console */
+        // eslint-disable-next-line no-console
         console.log(error);
         return;
       }
@@ -136,6 +180,43 @@ app.get('/', (_req, res) => {
 
 app.get('/api', (_req: Request, res: Response) =>
   res.json({ message: path.join(publicDirectory, 'index.html') }),
+);
+
+app.post(
+  '/executeCustomSchema',
+  (
+    req: Request<
+      unknown,
+      unknown,
+      { dbConnection: string; SQLShemaEditable: string }
+    >,
+    res: Response,
+  ) => {
+    void (async () => {
+      const { dbConnection, SQLShemaEditable } = req.body;
+
+      if (!dbConnection) {
+        return res
+          .status(400)
+          .json({ error: 'Database connection string is required' });
+      }
+
+      try {
+        if (dbConnection.startsWith('postgresql')) {
+          await executePostgreSQL(dbConnection, SQLShemaEditable);
+        } else if (dbConnection.startsWith('mysql')) {
+          await executeMySQL(dbConnection, SQLShemaEditable);
+        } else {
+          return res.status(400).json({ error: 'Unsupported database type' });
+        }
+
+        const introspectionResult = await introspect(dbConnection);
+        res.status(200).json(introspectionResult);
+      } catch (error: unknown) {
+        res.status(500).json({ error });
+      }
+    })();
+  },
 );
 
 app.post(
@@ -166,7 +247,6 @@ app.post(
       SQLSchema,
     } = req.body;
     const framework = frameworkRaw.toLowerCase();
-
     const frameworkDir = frameworkDirectories[framework];
 
     void (async () => {
@@ -302,79 +382,17 @@ app.post(
 
 app.post(
   '/introspect',
-  (
-    req: Request<
-      unknown,
-      unknown,
-      {
-        dbConnection: string;
-      }
-    >,
-    res: Response,
-  ) => {
-    const readSqlFile = (filename: string): string => {
-      return fs.readFileSync(path.join(__dirname, filename), 'utf8');
-    };
+  (req: Request<unknown, unknown, { dbConnection: string }>, res: Response) => {
+    const { dbConnection } = req.body;
+    if (!dbConnection) {
+      return res
+        .status(400)
+        .json({ error: 'Database connection string is required' });
+    }
     void (async () => {
-      const { dbConnection } = req.body;
-
-      if (!dbConnection) {
-        return res
-          .status(400)
-          .json({ error: 'Database connection string is required' });
-      }
-
-      const pgIntrospectionQuery = readSqlFile('introspect_postgresql.sql');
-      const mysqlIntrospectionQueryTemplate = readSqlFile(
-        'introspect_mysql.sql',
-      );
-
       try {
-        if (dbConnection.startsWith('postgresql')) {
-          const isITableArray = (data: unknown): data is ITable[] => {
-            return (
-              Array.isArray(data) &&
-              data.every(
-                (item) =>
-                  item !== null &&
-                  typeof item === 'object' &&
-                  'table_name' in item &&
-                  'columns' in item &&
-                  'check_constraints' in item,
-              )
-            );
-          };
-
-          const result = await executePostgreSQL(
-            dbConnection,
-            pgIntrospectionQuery,
-          );
-
-          if (isITableArray(result)) {
-            res.status(200).json(convertIntrospectedStructure(result));
-          } else {
-            res.status(400).json({ error: 'Unexpected result format' });
-          }
-        } else if (dbConnection.startsWith('mysql')) {
-          const match = dbConnection.match(
-            /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
-          );
-          if (!match) {
-            return res
-              .status(400)
-              .json({ error: 'Invalid MySQL connection string' });
-          }
-          const [, , , , , database] = match;
-          const mysqlIntrospectionQuery =
-            mysqlIntrospectionQueryTemplate.replace('$DB_NAME', database);
-          const result = await executeMySQL(
-            dbConnection,
-            mysqlIntrospectionQuery,
-          );
-          res.status(200).json(result);
-        } else {
-          return res.status(400).json({ error: 'Unsupported database type' });
-        }
+        const introspectionResult = await introspect(dbConnection);
+        res.status(200).json(introspectionResult);
       } catch (error: unknown) {
         res.status(500).json({ error });
       }
@@ -384,7 +402,7 @@ app.post(
 
 // Start server
 app.listen(PORT, () => {
-  /* eslint-disable-next-line no-console */
+  // eslint-disable-next-line no-console
   console.log(
     `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on http://localhost:${PORT}`,
   );

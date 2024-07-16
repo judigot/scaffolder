@@ -3,6 +3,7 @@ import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
 import '@/styles/scss/main.scss';
+import { useModalStore } from '@/useModalStore';
 
 function App() {
   const {
@@ -75,6 +76,8 @@ function App() {
       console.error('Failed to copy text: ', err);
     });
   };
+
+  const { setSQLShemaEditable, setIsModalOpen } = useModalStore();
 
   return (
     <div className="text-white bg-black">
@@ -271,8 +274,12 @@ function App() {
                 return sqlValue;
               })()}
               readOnly
+              onDoubleClick={() => {
+                setSQLShemaEditable(SQLSchema);
+                setIsModalOpen(true);
+              }}
               rows={15}
-              className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+              className="cursor-pointer p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             />
             <label
               htmlFor="includeInsertData"
