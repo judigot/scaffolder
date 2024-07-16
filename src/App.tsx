@@ -3,7 +3,6 @@ import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
 import '@/styles/scss/main.scss';
-import generateFile from '@/utils/generateFile';
 
 function App() {
   const {
@@ -216,7 +215,6 @@ function App() {
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      typeGuards: generateFile(relationships, "ts-typeguards"),
                       relationships,
                       interfaces,
                       backendDir,
@@ -450,16 +448,53 @@ function App() {
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Interfaces</h2>
-            <textarea
-              id="interfaces"
-              value={interfaces}
-              readOnly
-              rows={10}
-              className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            />
+            <div className="max-h-96 overflow-y-auto">
+              {typeof interfaces === 'string' ? (
+                <textarea
+                  id="interfaces"
+                  value={interfaces}
+                  readOnly
+                  rows={10}
+                  className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  style={{ height: '150px' }}
+                />
+              ) : (
+                Object.entries(interfaces).map(([fileName, content]) => (
+                  <div key={fileName} className="mb-4">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {fileName}
+                    </h3>
+                    <textarea
+                      value={content}
+                      readOnly
+                      rows={10}
+                      className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                      style={{ height: '150px' }}
+                    />
+                    <button
+                      onClick={() => {
+                        handleCopy(content);
+                      }}
+                      className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                    >
+                      Copy {fileName}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
             <button
               onClick={() => {
-                handleCopy(interfaces);
+                const content =
+                  typeof interfaces === 'string'
+                    ? interfaces
+                    : Object.entries(interfaces)
+                        .map(
+                          ([fileName, content]) =>
+                            `\n/* ${fileName}.ts */\n${content}`,
+                        )
+                        .join('\n');
+                handleCopy(content);
               }}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             >

@@ -20,7 +20,6 @@ import createResources from '@/utils/createResources';
 import convertIntrospectedStructure, {
   ITable,
 } from '@/utils/convertIntrospectedStructure';
-import createTypeGuards from '@/utils/createTypeGuards';
 
 dotenv.config();
 
@@ -148,7 +147,6 @@ app.post(
       {
         relationships: IRelationshipInfo[];
         interfaces: string;
-        typeGuards: string;
         framework: string;
         backendDir: string;
         frontendDir: string;
@@ -161,7 +159,6 @@ app.post(
     const {
       relationships,
       interfaces,
-      typeGuards,
       framework: frameworkRaw,
       backendDir,
       frontendDir,
@@ -280,16 +277,19 @@ app.post(
               `../output/frontend/${frontendDirectories.interface}`,
             );
         clearGeneratedFiles(typescriptInterfacesDir);
-        createTypescriptInterfaces(interfaces, typescriptInterfacesDir);
+        createTypescriptInterfaces({
+          interfaces,
+          outputDir: typescriptInterfacesDir,
+        });
 
-        const typeGuardsDir = isFrontendDirValid
-          ? path.resolve(frontendDirPath, frontendDirectories.typeGuard)
-          : path.resolve(
-              __dirname,
-              `../output/frontend/${frontendDirectories.typeGuard}`,
-            );
-        clearGeneratedFiles(typeGuardsDir);
-        createTypeGuards(typeGuards, typeGuardsDir);
+        // const typeGuardsDir = isFrontendDirValid
+        //   ? path.resolve(frontendDirPath, frontendDirectories.typeGuard)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/frontend/${frontendDirectories.typeGuard}`,
+        //     );
+        // clearGeneratedFiles(typeGuardsDir);
+        // createTypeGuards(typeGuards, typeGuardsDir);
         /*=====FRONTEND=====*/
 
         res.json({
