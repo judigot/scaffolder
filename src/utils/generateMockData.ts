@@ -8,9 +8,11 @@ interface IFieldInfo {
     table: string;
     field: string;
   };
+  isNullable?: boolean;
 }
 
-const MAX_ROWS = 100;
+const MAX_ROWS = 10;
+const NULL_ROWS = 1; // Must not be greater than MAX_ROWS
 
 const generateMockData = (
   relationships: IRelationshipInfo[],
@@ -21,10 +23,14 @@ const generateMockData = (
     const fieldInfo: Record<string, IFieldInfo> = {};
 
     columnsInfo.forEach((column) => {
-      const { column_name, data_type, primary_key, foreign_key } = column;
+      const { column_name, data_type, primary_key, foreign_key, is_nullable } =
+        column;
 
       if (!(column_name in fieldInfo)) {
-        fieldInfo[column_name] = { types: new Set<string>() };
+        fieldInfo[column_name] = {
+          types: new Set<string>(),
+          isNullable: is_nullable === 'YES',
+        };
       }
       fieldInfo[column_name].types.add(data_type);
       fieldInfo[column_name].isPrimaryKey = primary_key;
@@ -59,6 +65,12 @@ const generateMockData = (
           mockRecord[rawColumnName] = faker.helpers.arrayElement(
             foreignRecords.map((r) => r[field]),
           );
+          return;
+        }
+
+        if ((info.isNullable ?? false) && i < NULL_ROWS) {
+          // Make the first 10 rows contain nulls for nullable columns
+          mockRecord[rawColumnName] = null;
           return;
         }
 
