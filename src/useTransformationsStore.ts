@@ -60,8 +60,8 @@ export const useTransformationsStore = create<IStore>((set) => ({
     try {
       const formData: Record<string, Record<string, unknown>[]> =
         JSON5.parse(schemaInput);
-      const mockData = generateMockData(formData);
       const relationships = identifyRelationships(formData);
+      const mockData = generateMockData(relationships);
 
       const interfaces = generateTypescriptInterfaces({
         relationships,
@@ -69,16 +69,19 @@ export const useTransformationsStore = create<IStore>((set) => ({
         outputOnSingleFile: !true,
       });
 
+      const SQLInsertQueries = generateSQLInserts(formData);
+      const SQLInsertQueriesFromMockData = generateSQLInserts(mockData);
+
       const SQLSchema = (() => {
         let sqlContent = generateFile(relationships, 'sql-tables');
 
         if (includeInsertData) {
           if (insertOption === 'SQLInsertQueries') {
-            sqlContent += `\n\n${generateSQLInserts(formData)}`;
+            sqlContent += `\n\n${SQLInsertQueries}`;
           }
 
           if (insertOption === 'SQLInsertQueriesFromMockData') {
-            sqlContent += `\n\n${generateSQLInserts(mockData)}`;
+            sqlContent += `\n\n${SQLInsertQueriesFromMockData}`;
           }
         }
 
@@ -91,8 +94,8 @@ export const useTransformationsStore = create<IStore>((set) => ({
         deleteTablesQueries: generateSQLDeleteTables(formData),
         joins: generateSQLJoins(relationships),
         mockData,
-        SQLInsertQueries: formatSQL(generateSQLInserts(formData)),
-        SQLInsertQueriesFromMockData: formatSQL(generateSQLInserts(mockData)),
+        SQLInsertQueries: formatSQL(SQLInsertQueries),
+        SQLInsertQueriesFromMockData: formatSQL(SQLInsertQueriesFromMockData),
         aggregateJoins: generateSQLAggregateJoins(relationships),
         relationships,
       });

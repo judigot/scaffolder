@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import convertType from './convertType';
+import { IRelationshipInfo } from '@/utils/identifyRelationships';
 
 interface IFieldInfo {
   types: Set<string>;
@@ -13,34 +13,26 @@ interface IFieldInfo {
 const MAX_ROWS = 100;
 
 const generateMockData = (
-  data: Record<string, Record<string, unknown>[]>,
+  relationships: IRelationshipInfo[],
 ): Record<string, Record<string, unknown>[]> => {
   const generatedData: Record<string, Record<string, unknown>[]> = {};
 
-  Object.entries(data).forEach(([tableName, records]) => {
+  relationships.forEach(({ table, columnsInfo }) => {
     const fieldInfo: Record<string, IFieldInfo> = {};
 
-    records.forEach((record) => {
-      Object.entries(record).forEach(([key, value]) => {
-        if (!(key in fieldInfo)) {
-          fieldInfo[key] = { types: new Set<string>() };
-        }
-        fieldInfo[key].types.add(value === null ? 'null' : typeof value);
-      });
-    });
+    columnsInfo.forEach((column) => {
+      const { column_name, data_type, primary_key, foreign_key } = column;
 
-    // Identify primary keys
-    Object.keys(fieldInfo).forEach((key) => {
-      if (key.endsWith('_id')) {
-        fieldInfo[key].isPrimaryKey = true;
+      if (!(column_name in fieldInfo)) {
+        fieldInfo[column_name] = { types: new Set<string>() };
       }
-    });
-
-    // Identify foreign keys
-    Object.entries(fieldInfo).forEach(([key, info]) => {
-      if (!(info.isPrimaryKey ?? false) && key.endsWith('_id')) {
-        const referencedTable = key.replace('_id', 's');
-        info.foreignKey = { table: referencedTable, field: key };
+      fieldInfo[column_name].types.add(data_type);
+      fieldInfo[column_name].isPrimaryKey = primary_key;
+      if (foreign_key) {
+        fieldInfo[column_name].foreignKey = {
+          table: foreign_key.foreign_table_name,
+          field: foreign_key.foreign_column_name,
+        };
       }
     });
 
@@ -54,14 +46,7 @@ const generateMockData = (
 
       Object.entries(fieldInfo).forEach(([rawColumnName, info]) => {
         const columnName = rawColumnName.toLowerCase();
-        const sampleValue = records.find(
-          (record) => record[rawColumnName] !== null,
-        )?.[rawColumnName];
-
-        const fieldType = convertType({
-          value: sampleValue,
-          targetType: 'typescript',
-        });
+        const fieldType = Array.from(info.types)[0];
 
         if (info.isPrimaryKey ?? false) {
           mockRecord[rawColumnName] = i + 1; // Generate ascending primary keys
@@ -86,12 +71,7 @@ const generateMockData = (
           if (columnName.includes('email')) {
             if (firstName && lastName) {
               mockRecord[rawColumnName] = faker.internet
-                .email({
-                  firstName,
-                  lastName,
-                  allowSpecialCharacters: false,
-                  provider: 'example.com',
-                })
+                .email({ firstName, lastName, provider: 'example.com' })
                 .toLowerCase();
             } else {
               mockRecord[rawColumnName] = faker.internet
@@ -103,10 +83,7 @@ const generateMockData = (
           if (columnName.includes('username')) {
             if (firstName && lastName) {
               mockRecord[rawColumnName] = faker.internet
-                .userName({
-                  firstName,
-                  lastName,
-                })
+                .userName({ firstName, lastName })
                 .toLowerCase();
             } else {
               mockRecord[rawColumnName] = faker.internet
@@ -167,7 +144,7 @@ const generateMockData = (
         }
 
         if (fieldType === 'Date') {
-          mockRecord[rawColumnName] = faker.date.past();
+          mockRecord[rawColumnName] = faker.date.past().toISOString(); // Ensure proper date format
           return;
         }
 
@@ -177,7 +154,7 @@ const generateMockData = (
       mockRecords.push(mockRecord);
     }
 
-    generatedData[tableName] = mockRecords;
+    generatedData[table] = mockRecords;
   });
 
   return generatedData;
