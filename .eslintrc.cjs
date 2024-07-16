@@ -14,7 +14,6 @@ module.exports = {
     'plugin:@typescript-eslint/stylistic-type-checked', // Very strict!
 
     'plugin:react/recommended',
-    'plugin:react-hooks/recommended',
     'plugin:jsx-a11y/recommended',
     //
   ],
@@ -32,6 +31,7 @@ module.exports = {
     '@typescript-eslint',
     'react-hooks',
     'jsx-a11y',
+    'no-type-assertion',
     //
   ],
   //
@@ -46,6 +46,7 @@ module.exports = {
   },
   //
   rules: {
+    "no-type-assertion/no-type-assertion": "error",
     'object-shorthand': ['error', 'always'],
     'react-refresh/only-export-components': [
       'warn',
