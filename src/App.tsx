@@ -11,6 +11,7 @@ import identifyRelationships, {
 
 function App() {
   const {
+    resetForm,
     formData: {
       schemaInput,
       backendDir,
@@ -102,6 +103,16 @@ function App() {
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
             <form className="space-y-4">
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                }}
+                className="float-right px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+              >
+                Reset Form
+              </button>
+              <br />
               <textarea
                 id="schemaInput"
                 name="schemaInput"
