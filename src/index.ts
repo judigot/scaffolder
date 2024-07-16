@@ -281,15 +281,6 @@ app.post(
           interfaces,
           outputDir: typescriptInterfacesDir,
         });
-
-        // const typeGuardsDir = isFrontendDirValid
-        //   ? path.resolve(frontendDirPath, frontendDirectories.typeGuard)
-        //   : path.resolve(
-        //       __dirname,
-        //       `../output/frontend/${frontendDirectories.typeGuard}`,
-        //     );
-        // clearGeneratedFiles(typeGuardsDir);
-        // createTypeGuards(typeGuards, typeGuardsDir);
         /*=====FRONTEND=====*/
 
         res.json({
