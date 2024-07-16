@@ -7,7 +7,7 @@
     "dev": "vite & vitest & tsc --noEmit --watch & nodemon --exec tsx src/index.ts",
     "test": "vitest",
     "build": "vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
