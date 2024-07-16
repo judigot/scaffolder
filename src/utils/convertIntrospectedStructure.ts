@@ -1,40 +1,10 @@
 import { typeMappings } from './convertType';
-
-interface IColumn {
-  column_name: string;
-  data_type: string;
-  is_nullable: string;
-  column_default: string | null;
-  primary_key: boolean;
-  unique: boolean;
-  foreign_key: {
-    foreign_table_name: string;
-    foreign_column_name: string;
-  } | null;
-}
+import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
 
 interface ITable {
   table_name: string;
-  columns: IColumn[];
+  columns: IColumnInfo[];
   check_constraints: string[];
-}
-
-interface IConvertedColumn {
-  column_name: string;
-  data_type: string;
-  is_nullable: string;
-  column_default: string | null;
-  primary_key: boolean;
-  unique: boolean;
-}
-
-interface IConvertedTable {
-  table: string;
-  requiredColumns: string[];
-  columnsInfo: IConvertedColumn[];
-  foreignTables: string[];
-  foreignKeys: string[];
-  childTables: string[];
 }
 
 const getTypeScriptType = (dataType: string): string => {
@@ -42,12 +12,12 @@ const getTypeScriptType = (dataType: string): string => {
   return typeMappings[identifiedType].typescript;
 };
 
-const getRequiredColumns = (columns: IColumn[]): string[] =>
+const getRequiredColumns = (columns: IColumnInfo[]): string[] =>
   columns
     .filter((column) => column.is_nullable === 'NO')
     .map((column) => column.column_name);
 
-const getForeignTables = (columns: IColumn[]): string[] =>
+const getForeignTables = (columns: IColumnInfo[]): string[] =>
   Array.from(
     new Set(
       columns
@@ -56,21 +26,22 @@ const getForeignTables = (columns: IColumn[]): string[] =>
     ),
   );
 
-const getForeignKeys = (columns: IColumn[]): string[] =>
+const getForeignKeys = (columns: IColumnInfo[]): string[] =>
   columns
     .filter((column) => column.foreign_key !== null)
     .map((column) => column.column_name);
 
-const convertColumn = (column: IColumn): IConvertedColumn => ({
+const convertColumn = (column: IColumnInfo): IColumnInfo => ({
   column_name: column.column_name,
   data_type: getTypeScriptType(column.data_type),
   is_nullable: column.is_nullable,
   column_default: column.column_default,
   primary_key: column.primary_key,
   unique: column.unique,
+  foreign_key: column.foreign_key,
 });
 
-const convertTable = (table: ITable): IConvertedTable => {
+const convertTable = (table: ITable): IRelationshipInfo => {
   const columnsInfo = table.columns.map(convertColumn);
   const requiredColumns = getRequiredColumns(table.columns);
   const foreignTables = getForeignTables(table.columns);
@@ -86,7 +57,9 @@ const convertTable = (table: ITable): IConvertedTable => {
   };
 };
 
-const populateChildTables = (tableMap: Map<string, IConvertedTable>): void => {
+const populateChildTables = (
+  tableMap: Map<string, IRelationshipInfo>,
+): void => {
   tableMap.forEach((table) => {
     table.foreignTables.forEach((foreignTable) => {
       if (tableMap.has(foreignTable)) {
@@ -96,8 +69,10 @@ const populateChildTables = (tableMap: Map<string, IConvertedTable>): void => {
   });
 };
 
-const convertIntrospectedStructure = (tables: ITable[]): IConvertedTable[] => {
-  const tableMap = new Map<string, IConvertedTable>();
+const convertIntrospectedStructure = (
+  tables: ITable[],
+): IRelationshipInfo[] => {
+  const tableMap = new Map<string, IRelationshipInfo>();
 
   tables.forEach((table) => {
     const convertedTable = convertTable(table);
