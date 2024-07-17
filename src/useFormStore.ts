@@ -26,10 +26,11 @@ export interface IFormData {
 interface IFormStore {
   formData: IFormData;
   setFormData: (data: IFormData) => void;
-  resetForm: () => void;
+  setExample1: () => void;
+  setExample2: () => void;
 }
 
-const defaultValues: IFormData = {
+const example1: IFormData = {
   schemaInput: `{
     "user": [
       {
@@ -80,17 +81,66 @@ const defaultValues: IFormData = {
   insertOption: 'SQLInsertQueries',
 };
 
+const example2: IFormData = {
+  schemaInput: `{
+    "customer": [
+      {
+        "customer_id": 1,
+        "name": "John Doe"
+      }
+    ],
+    "order": [
+      {
+        "order_id": 1,
+        "customer_id": 1
+      }
+    ],
+    "product": [
+      {
+        "product_id": 1,
+        "product_name": "Water"
+      },
+      {
+        "product_id": 2,
+        "product_name": "Yogurt"
+      }
+    ],
+    "order_product": [
+      {
+        "order_product_id": 1,
+        "order_id": 1,
+        "product_id": 1
+      },
+      {
+        "order_product_id": 2,
+        "order_id": 1,
+        "product_id": 2
+      }
+    ]
+  }
+  `,
+  backendDir: 'C:/Users/Username/Desktop/app/backend',
+  frontendDir: 'C:/Users/Username/Desktop/app/frontend',
+  dbConnection: 'postgresql://root:123@localhost:5432/databasename',
+  framework: frameworks[frameworkKeys.LARAVEL],
+  includeInsertData: false,
+  insertOption: 'SQLInsertQueries',
+};
+
 export const useFormStore = create(
   persist<IFormStore>(
     (set) => ({
-      formData: defaultValues,
+      formData: example1,
       setFormData: (data) => {
         set((state) => ({
           formData: { ...state.formData, ...data },
         }));
       },
-      resetForm: () => {
-        set(() => ({ formData: defaultValues }));
+      setExample1: () => {
+        set(() => ({ formData: example1 }));
+      },
+      setExample2: () => {
+        set(() => ({ formData: example2 }));
       },
     }),
     {
