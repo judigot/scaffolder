@@ -101,6 +101,26 @@ const isJunctionTable = (
   );
 };
 
+export const addHasOneOrMany = (relationships: IRelationshipInfo[]): void => {
+  relationships.forEach((relationship) => {
+    relationship.childTables = Array.from(new Set(relationship.childTables));
+    relationship.childTables.forEach((childTable) => {
+      const childRelationship = relationships.find(
+        (rel) => rel.table === childTable,
+      );
+      if (childRelationship) {
+        if (
+          isJunctionTable(childTable, childRelationship.columnsInfo, relationships)
+        ) {
+          relationship.hasMany.push(childTable);
+        } else {
+          relationship.hasOne.push(childTable);
+        }
+      }
+    });
+  });
+};
+
 function identifyRelationships(
   data: Record<string, Record<string, unknown>[]>,
 ): IRelationshipInfo[] {
@@ -190,23 +210,7 @@ function identifyRelationships(
     });
   });
 
-  relationships.forEach((relationship) => {
-    relationship.childTables = Array.from(new Set(relationship.childTables));
-    relationship.childTables.forEach((childTable) => {
-      const childRelationship = relationships.find(
-        (rel) => rel.table === childTable,
-      );
-      if (childRelationship) {
-        if (
-          isJunctionTable(childTable, childRelationship.columnsInfo, relationships)
-        ) {
-          relationship.hasMany.push(childTable);
-        } else {
-          relationship.hasOne.push(childTable);
-        }
-      }
-    });
-  });
+  addHasOneOrMany(relationships);
 
   return relationships;
 }

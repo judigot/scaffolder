@@ -1,5 +1,6 @@
 import { typeMappings } from './convertType';
 import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
+import { addHasOneOrMany } from './identifyRelationships';
 
 export interface ITable {
   table_name: string;
@@ -54,6 +55,8 @@ const convertTable = (table: ITable): IRelationshipInfo => {
     foreignTables,
     foreignKeys,
     childTables: [],
+    hasOne: [],
+    hasMany: [],
   };
 };
 
@@ -80,6 +83,7 @@ const convertIntrospectedStructure = (
   });
 
   populateChildTables(tableMap);
+  addHasOneOrMany(Array.from(tableMap.values()));
 
   return Array.from(tableMap.values());
 };
