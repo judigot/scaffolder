@@ -21,6 +21,8 @@ export interface IRelationshipInfo {
   foreignTables: string[];
   foreignKeys: string[];
   childTables: string[];
+  hasOne: string[];
+  hasMany: string[];
 }
 
 interface IFieldInfo {
@@ -75,6 +77,28 @@ const determinePrimaryKeyField = (
   firstKey: string,
 ): string => {
   return firstKey.includes('id') ? firstKey : `${tableName}_id`;
+};
+
+const isJunctionTable = (
+  _table: string,
+  columnsInfo: IColumnInfo[],
+  relationships: IRelationshipInfo[],
+): boolean => {
+  const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
+  return (
+    foreignKeys.length === 2 &&
+    foreignKeys.every((key) =>
+      relationships.some(
+        (rel) =>
+          rel.table === key.foreign_key?.foreign_table_name &&
+          rel.columnsInfo.some(
+            (col) =>
+              col.column_name === key.foreign_key?.foreign_column_name &&
+              col.foreign_key === null,
+          ),
+      ),
+    )
+  );
 };
 
 function identifyRelationships(
@@ -149,6 +173,8 @@ function identifyRelationships(
         foreignTables: Array.from(new Set(foreignTables)),
         foreignKeys: Array.from(new Set(foreignKeys)),
         childTables: [], // Initialize childTables as an empty array
+        hasOne: [],
+        hasMany: [],
       });
     }
   }
@@ -166,6 +192,20 @@ function identifyRelationships(
 
   relationships.forEach((relationship) => {
     relationship.childTables = Array.from(new Set(relationship.childTables));
+    relationship.childTables.forEach((childTable) => {
+      const childRelationship = relationships.find(
+        (rel) => rel.table === childTable,
+      );
+      if (childRelationship) {
+        if (
+          isJunctionTable(childTable, childRelationship.columnsInfo, relationships)
+        ) {
+          relationship.hasMany.push(childTable);
+        } else {
+          relationship.hasOne.push(childTable);
+        }
+      }
+    });
   });
 
   return relationships;
