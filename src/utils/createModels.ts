@@ -42,7 +42,8 @@ const createFillable = (
 const createRelationships = (
   tableName: string,
   foreignKeys: string[],
-  childTables: string[],
+  hasOne: string[],
+  hasMany: string[],
   tables: IRelationshipInfo[],
 ): string => {
   const parentPrimaryKey = tables
@@ -56,19 +57,26 @@ const createRelationships = (
     })
     .join('\n');
 
-  const hasManyRelations = childTables
+  const hasManyRelations = hasMany
     .map((childTable) => {
       const childPrimaryKey = tables
         .find((table) => table.table === childTable)
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
       if (childPrimaryKey != null && parentPrimaryKey != null) {
-        return `    public function ${childTable}s()\n    {\n        return $this->hasMany(${toPascalCase(childTable)}::class, '${childPrimaryKey}');\n    }\n`;
+        return `    public function ${childTable}s()\n    {\n        return $this->hasMany(${toPascalCase(childTable)}::class, '${parentPrimaryKey}');\n    }\n`;
       }
       return '';
     })
     .join('\n');
 
-  return [belongsToRelations, hasManyRelations]
+  const hasOneRelations = hasOne
+    .map((relatedTable) => {
+      const relatedTableClass = toPascalCase(relatedTable);
+      return `    public function ${relatedTable}()\n    {\n        return $this->hasOne(${relatedTableClass}::class, '${String(parentPrimaryKey)}');\n    }\n`;
+    })
+    .join('\n');
+
+  return [belongsToRelations, hasManyRelations, hasOneRelations]
     .filter(Boolean)
     .join('\n\n')
     .trim();
@@ -91,7 +99,7 @@ const createModels = (
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  tables.forEach(({ table, columnsInfo, foreignKeys, childTables }) => {
+  tables.forEach(({ table, columnsInfo, foreignKeys, hasOne, hasMany }) => {
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/model.txt`,
@@ -103,7 +111,8 @@ const createModels = (
     const relationships = createRelationships(
       table,
       foreignKeys,
-      childTables,
+      hasOne,
+      hasMany,
       tables,
     );
     const primaryKey =
