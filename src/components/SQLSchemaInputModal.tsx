@@ -10,18 +10,18 @@ interface IForm {
 
 function SQLSchemaInputModal() {
   const {
-    formData: { dbConnection },
+    formData: { dbConnection, includeInsertData, insertOption },
   } = useFormStore();
   const { isModalOpen, setIsModalOpen, SQLShemaEditable } = useModalStore();
-  const [formData, setFormData] = useState<IForm>({
-    SQLShemaEditable: '',
-  });
+  const { setTransformations } = useTransformationsStore();
+
+  const [formData, setFormData] = useState<IForm>({ SQLShemaEditable: '' });
   const [isEdited, setIsEdited] = useState<boolean>(false);
 
-  const {
-    formData: { includeInsertData, insertOption },
-  } = useFormStore();
-  const { setTransformations } = useTransformationsStore();
+  useEffect(() => {
+    setFormData({ SQLShemaEditable });
+    setIsEdited(false);
+  }, [SQLShemaEditable]);
 
   const handleInputChange = (e: FormEvent<HTMLTextAreaElement>) => {
     const { value } = e.currentTarget;
@@ -32,32 +32,46 @@ function SQLSchemaInputModal() {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    fetch(`http://localhost:5000/executeCustomSchema`, {
-      // *GET, POST, PATCH, PUT, DELETE
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      // For POST, PATCH, and PUT requests
-      body: JSON.stringify({ dbConnection, SQLShemaEditable }),
-    })
-      .then((response) => response.json())
-      .then((relationships: IRelationshipInfo[]) => {
-        setTransformations({
-          relationships,
-          includeInsertData,
-          insertOption,
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+
+    function isSchemaInput(data: unknown): data is IForm {
+      return (
+        data !== null &&
+        typeof data === 'object' &&
+        'SQLShemaEditable' in data &&
+        typeof data.SQLShemaEditable === 'string'
+      );
+    }
+
+    if (isSchemaInput(data)) {
+      fetch('http://localhost:5000/executeCustomSchema', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dbConnection,
+          SQLShemaEditable: data.SQLShemaEditable,
+        }),
+      })
+        .then((response) => response.json())
+        .then((relationships: IRelationshipInfo[]) => {
+          setTransformations({
+            relationships,
+            includeInsertData,
+            insertOption,
+          });
+        })
+        .catch(() => {
+          // Handle error
         });
 
-        /* prettier-ignore */ (() => { const QuickLog = JSON.stringify(relationships, null, 4); const parentDiv = document.getElementById('quicklogContainer') ?? (() => {const div = document.createElement('div');div.id = 'quicklogContainer';div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end;';document.body.appendChild(div);return div; })(); const createChildDiv = (text: typeof QuickLog) => {const newDiv = Object.assign(document.createElement('div'), { textContent: text, style: 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer;',});const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div');if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { const textArea = document.createElement('textarea'); textArea.value = clickedDiv.textContent ?? ''; document.body.appendChild(textArea); textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }};const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); }};newDiv.addEventListener('mousedown', handleMouseDown);newDiv.addEventListener('contextmenu', handleRightClick);return newDiv; };parentDiv.prepend(createChildDiv(QuickLog)); })()
-      })
-      .catch(() => {
-        // Failure
-      });
-    setIsModalOpen(false);
-    setIsEdited(false);
-    resetForm();
+      setIsModalOpen(false);
+      setIsEdited(false);
+      resetForm();
+    }
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -68,24 +82,15 @@ function SQLSchemaInputModal() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const ESCAPE: boolean = e.key === 'Escape';
-
-    if (!isEdited) {
-      if (ESCAPE) {
-        setIsModalOpen(false);
-        resetForm();
-      }
+    if (e.key === 'Escape' && !isEdited) {
+      setIsModalOpen(false);
+      resetForm();
     }
   };
 
   const resetForm = () => {
     setIsEdited(false);
   };
-
-  useEffect(() => {
-    setFormData({ SQLShemaEditable });
-    setIsEdited(false);
-  }, [SQLShemaEditable]);
 
   if (!isModalOpen) return null;
 
@@ -106,6 +111,7 @@ function SQLSchemaInputModal() {
           <div>
             <textarea
               id="SQLShemaEditable"
+              name="SQLShemaEditable"
               value={formData.SQLShemaEditable}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
