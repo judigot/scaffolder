@@ -59,7 +59,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
       const interfaces = generateTypescriptInterfaces({
         relationships,
         includeTypeGuards: true,
-        outputOnSingleFile: !true,
+        outputOnSingleFile: false,
       });
 
       const SQLInsertQueries = generateSQLInserts(mockData);
