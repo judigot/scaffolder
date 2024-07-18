@@ -84,6 +84,13 @@ const isJunctionTable = (
   columnsInfo: IColumnInfo[],
   relationships: IRelationshipInfo[],
 ): boolean => {
+  /*
+  Algorithm for finding junction tables:
+    1. If the table has more than one foreign key
+    2. If the foreign keys reference primary keys in other tables
+    3. If the table name combines the names of the tables it links (optional)
+    4. If the majority of the table’s columns are foreign keys
+  */
   const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
   return (
     foreignKeys.length === 2 &&
@@ -110,7 +117,11 @@ export const addHasOneOrMany = (relationships: IRelationshipInfo[]): void => {
       );
       if (childRelationship) {
         if (
-          isJunctionTable(childTable, childRelationship.columnsInfo, relationships)
+          isJunctionTable(
+            childTable,
+            childRelationship.columnsInfo,
+            relationships,
+          )
         ) {
           relationship.hasMany.push(childTable);
         } else {
