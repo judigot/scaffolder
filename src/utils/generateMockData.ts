@@ -105,6 +105,7 @@ const generateMockData = (
             return;
           }
           if (
+            columnName.includes('name') ||
             columnName.includes('first_name') ||
             columnName.includes('firstname')
           ) {
