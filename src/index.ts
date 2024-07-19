@@ -181,7 +181,10 @@ app.post(
 
       try {
         if (dbConnection.startsWith('postgresql')) {
-          await executePostgreSQL(dbConnection, SQLShemaEditable);
+          await executePostgreSQL(
+            dbConnection,
+            `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLShemaEditable}`,
+          );
         } else if (dbConnection.startsWith('mysql')) {
           await executeMySQL(dbConnection, SQLShemaEditable);
         } else {
