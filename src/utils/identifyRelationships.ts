@@ -132,6 +132,43 @@ export const addHasOneOrMany = (relationships: IRelationshipInfo[]): void => {
   });
 };
 
+// Topological sort to determine the correct order of tables
+const sortTablesBasedOnHierarchy = (
+  relationships: IRelationshipInfo[],
+): IRelationshipInfo[] => {
+  const sorted: IRelationshipInfo[] = [];
+  const visited = new Set<string>();
+  const temp = new Set<string>();
+
+  const visit = (table: IRelationshipInfo) => {
+    if (temp.has(table.table)) {
+      throw new Error('Cyclic dependency detected');
+    }
+    if (!visited.has(table.table)) {
+      temp.add(table.table);
+      table.childTables.forEach((childTable) => {
+        const childRelationship = relationships.find(
+          (r) => r.table === childTable,
+        );
+        if (childRelationship) {
+          visit(childRelationship);
+        }
+      });
+      temp.delete(table.table);
+      visited.add(table.table);
+      sorted.push(table);
+    }
+  };
+
+  relationships.forEach((table) => {
+    if (!visited.has(table.table)) {
+      visit(table);
+    }
+  });
+
+  return sorted.reverse(); // Reverse to get the correct order
+};
+
 function identifyRelationships(
   data: Record<string, Record<string, unknown>[]>,
 ): IRelationshipInfo[] {
@@ -222,8 +259,9 @@ function identifyRelationships(
   });
 
   addHasOneOrMany(relationships);
+  const sortedRelationships = sortTablesBasedOnHierarchy(relationships);
 
-  return relationships;
+  return sortedRelationships;
 }
 
 export default identifyRelationships;
