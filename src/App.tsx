@@ -1,13 +1,10 @@
-import JSON5 from 'json5';
 import { useEffect, useState } from 'react';
 import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
 import '@/styles/scss/main.scss';
 import { useModalStore } from '@/useModalStore';
-import identifyRelationships, {
-  IRelationshipInfo,
-} from '@/utils/identifyRelationships';
+import { IRelationshipInfo } from '@/utils/identifyRelationships';
 
 function App() {
   const {
@@ -26,11 +23,9 @@ function App() {
   } = useFormStore();
 
   const {
-    relationships,
+    getSchemaInfo,
     interfaces,
     SQLSchema,
-    SQLInsertQueries,
-    SQLInsertQueriesFromMockData,
     mockData,
     deleteTablesQueries,
     joins,
@@ -51,12 +46,7 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    const relationships = identifyRelationships(JSON5.parse(schemaInput));
-    setTransformations({
-      relationships,
-      includeInsertData,
-      insertOption,
-    });
+    setTransformations();
   }, [schemaInput, includeInsertData, insertOption, setTransformations]);
 
   const handleChange = (
@@ -73,14 +63,7 @@ function App() {
         ...state.formData,
         [name]: type === 'checkbox' ? !!(checked ?? false) : value,
       };
-      const relationships = identifyRelationships(
-        JSON5.parse(newFormData.schemaInput),
-      );
-      setTransformations({
-        relationships,
-        includeInsertData: newFormData.includeInsertData,
-        insertOption: newFormData.insertOption,
-      });
+
       return { formData: newFormData };
     });
   };
@@ -256,7 +239,7 @@ function App() {
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      relationships,
+                      relationships: getSchemaInfo(),
                       interfaces,
                       backendDir,
                       frontendDir,
@@ -296,19 +279,7 @@ function App() {
             <textarea
               id="SQLSchema"
               title="Double click to edit schema"
-              value={(() => {
-                let sqlValue = SQLSchema;
-
-                if (includeInsertData) {
-                  if (insertOption === 'SQLInsertQueries') {
-                    sqlValue += `\n\n${SQLInsertQueries}`;
-                  } else if (insertOption === 'SQLInsertQueriesFromMockData') {
-                    sqlValue += `\n\n${SQLInsertQueriesFromMockData}`;
-                  }
-                }
-
-                return sqlValue;
-              })()}
+              value={SQLSchema}
               readOnly
               onDoubleClick={() => {
                 setSQLShemaEditable(SQLSchema);
@@ -359,19 +330,7 @@ function App() {
             )}
             <button
               onClick={() => {
-                let sqlContent = SQLSchema;
-
-                if (includeInsertData) {
-                  if (insertOption === 'SQLInsertQueries') {
-                    sqlContent += `\n\n${SQLInsertQueries}`;
-                  }
-
-                  if (insertOption === 'SQLInsertQueriesFromMockData') {
-                    sqlContent += `\n\n${SQLInsertQueriesFromMockData}`;
-                  }
-                }
-
-                handleCopy(sqlContent);
+                handleCopy(SQLSchema);
               }}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             >
@@ -490,13 +449,13 @@ function App() {
             <h2 className="text-xl font-bold mb-2">Interfaces</h2>
             <div className="">
               {typeof interfaces === 'string' ? (
-                  <textarea
-                    id="interfaces"
-                    value={interfaces}
-                    readOnly
-                    rows={10}
-                    className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                  />
+                <textarea
+                  id="interfaces"
+                  value={interfaces}
+                  readOnly
+                  rows={10}
+                  className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                />
               ) : (
                 <div className="max-h-96 overflow-y-auto">
                   {Object.entries(interfaces).map(

@@ -144,28 +144,6 @@ const introspect = async (dbConnection: string): Promise<unknown> => {
   }
 };
 
-app.post(
-  '/api/createFile',
-  (
-    req: Request<
-      unknown,
-      unknown,
-      { targetDirectory: string; framework: string }
-    >,
-    _res,
-  ) => {
-    const { targetDirectory, framework } = req.body;
-    const fileName = `${targetDirectory}/filename.txt`;
-    fs.writeFile(fileName, framework, (error) => {
-      if (error) {
-        // eslint-disable-next-line no-console
-        console.log(error);
-        return;
-      }
-    });
-  },
-);
-
 // Define routes
 app.get('/', (_req, res) => {
   const isDevelopment: boolean = String(process.env.NODE_ENV) === 'development';

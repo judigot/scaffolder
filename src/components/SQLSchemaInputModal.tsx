@@ -10,10 +10,10 @@ interface IForm {
 
 function SQLSchemaInputModal() {
   const {
-    formData: { dbConnection, includeInsertData, insertOption },
+    formData: { dbConnection },
   } = useFormStore();
   const { isModalOpen, setIsModalOpen, SQLShemaEditable } = useModalStore();
-  const { setTransformations } = useTransformationsStore();
+  const { setIntrospectedSchema } = useTransformationsStore();
 
   const [formData, setFormData] = useState<IForm>({ SQLShemaEditable: '' });
   const [isEdited, setIsEdited] = useState<boolean>(false);
@@ -57,12 +57,8 @@ function SQLSchemaInputModal() {
         }),
       })
         .then((response) => response.json())
-        .then((relationships: IRelationshipInfo[]) => {
-          setTransformations({
-            relationships,
-            includeInsertData,
-            insertOption,
-          });
+        .then((schemaInfoNew: IRelationshipInfo[]) => {
+          setIntrospectedSchema(schemaInfoNew);
         })
         .catch(() => {
           // Handle error
