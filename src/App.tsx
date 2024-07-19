@@ -74,7 +74,7 @@ function App() {
     });
   };
 
-  const { setSQLShemaEditable, setIsModalOpen } = useModalStore();
+  const { setSQLSchemaEditable, setIsModalOpen } = useModalStore();
 
   return (
     <div className="text-white bg-black">
@@ -282,7 +282,7 @@ function App() {
               value={SQLSchema}
               readOnly
               onDoubleClick={() => {
-                setSQLShemaEditable(SQLSchema);
+                setSQLSchemaEditable(SQLSchema);
                 setIsModalOpen(true);
               }}
               rows={15}

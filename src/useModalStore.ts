@@ -3,8 +3,8 @@ import { create } from 'zustand';
 interface IStore {
   isModalOpen: boolean;
   setIsModalOpen: (isOpen: boolean) => void;
-  SQLShemaEditable: string;
-  setSQLShemaEditable: (query: string) => void;
+  SQLSchemaEditable: string;
+  setSQLSchemaEditable: (query: string) => void;
 }
 
 export const useModalStore = create<IStore>((set) => ({
@@ -12,8 +12,8 @@ export const useModalStore = create<IStore>((set) => ({
   setIsModalOpen: (isOpen) => {
     set({ isModalOpen: isOpen });
   },
-  SQLShemaEditable: '',
-  setSQLShemaEditable: (SQLShemaEditable) => {
-    set({ SQLShemaEditable });
+  SQLSchemaEditable: '',
+  setSQLSchemaEditable: (SQLSchemaEditable) => {
+    set({ SQLSchemaEditable });
   },
 }));

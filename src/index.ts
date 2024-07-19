@@ -166,12 +166,12 @@ app.post(
     req: Request<
       unknown,
       unknown,
-      { dbConnection: string; SQLShemaEditable: string }
+      { dbConnection: string; SQLSchemaEditable: string }
     >,
     res: Response,
   ) => {
     void (async () => {
-      const { dbConnection, SQLShemaEditable } = req.body;
+      const { dbConnection, SQLSchemaEditable } = req.body;
 
       if (!dbConnection) {
         return res
@@ -183,10 +183,10 @@ app.post(
         if (dbConnection.startsWith('postgresql')) {
           await executePostgreSQL(
             dbConnection,
-            `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLShemaEditable}`,
+            `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchemaEditable}`,
           );
         } else if (dbConnection.startsWith('mysql')) {
-          await executeMySQL(dbConnection, SQLShemaEditable);
+          await executeMySQL(dbConnection, SQLSchemaEditable);
         } else {
           return res.status(400).json({ error: 'Unsupported database type' });
         }

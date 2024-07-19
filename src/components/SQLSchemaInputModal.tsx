@@ -5,27 +5,27 @@ import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import React, { FormEvent, useEffect, useState } from 'react';
 
 interface IForm {
-  SQLShemaEditable: string;
+  SQLSchemaEditable: string;
 }
 
 function SQLSchemaInputModal() {
   const {
     formData: { dbConnection },
   } = useFormStore();
-  const { isModalOpen, setIsModalOpen, SQLShemaEditable } = useModalStore();
+  const { isModalOpen, setIsModalOpen, SQLSchemaEditable } = useModalStore();
   const { setIntrospectedSchema } = useTransformationsStore();
 
-  const [formData, setFormData] = useState<IForm>({ SQLShemaEditable: '' });
+  const [formData, setFormData] = useState<IForm>({ SQLSchemaEditable: '' });
   const [isEdited, setIsEdited] = useState<boolean>(false);
 
   useEffect(() => {
-    setFormData({ SQLShemaEditable });
+    setFormData({ SQLSchemaEditable });
     setIsEdited(false);
-  }, [SQLShemaEditable]);
+  }, [SQLSchemaEditable]);
 
   const handleInputChange = (e: FormEvent<HTMLTextAreaElement>) => {
     const { value } = e.currentTarget;
-    setFormData({ SQLShemaEditable: value });
+    setFormData({ SQLSchemaEditable: value });
     setIsEdited(true);
   };
 
@@ -39,8 +39,8 @@ function SQLSchemaInputModal() {
       return (
         data !== null &&
         typeof data === 'object' &&
-        'SQLShemaEditable' in data &&
-        typeof data.SQLShemaEditable === 'string'
+        'SQLSchemaEditable' in data &&
+        typeof data.SQLSchemaEditable === 'string'
       );
     }
 
@@ -53,7 +53,7 @@ function SQLSchemaInputModal() {
         },
         body: JSON.stringify({
           dbConnection,
-          SQLShemaEditable: data.SQLShemaEditable,
+          SQLSchemaEditable: data.SQLSchemaEditable,
         }),
       })
         .then((response) => response.json())
@@ -106,9 +106,9 @@ function SQLSchemaInputModal() {
         <form className="flex flex-col space-y-4" onSubmit={handleSubmit}>
           <div>
             <textarea
-              id="SQLShemaEditable"
-              name="SQLShemaEditable"
-              value={formData.SQLShemaEditable}
+              id="SQLSchemaEditable"
+              name="SQLSchemaEditable"
+              value={formData.SQLSchemaEditable}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               rows={10}
