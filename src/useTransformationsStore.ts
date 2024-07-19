@@ -6,9 +6,10 @@ import generateSQLJoins from '@/utils/generateSQLJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import { IRelationshipInfo } from '@/utils/identifyRelationships';
-import { IFormData } from './useFormStore';
+import { IFormData, useFormStore } from './useFormStore';
 import generateFile from '@/utils/generateFile';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
+import JSON5 from 'json5';
 
 interface IStore {
   interfaces: string | Record<string, string>;
@@ -38,6 +39,8 @@ export const useTransformationsStore = create<IStore>((set) => ({
   aggregateJoins: [],
   relationships: [],
   setTransformations: ({ relationships, includeInsertData, insertOption }) => {
+    const { schemaInput } = useFormStore.getState().formData;
+
     if (relationships.length === 0) {
       set({
         interfaces: '',
@@ -62,7 +65,9 @@ export const useTransformationsStore = create<IStore>((set) => ({
         outputOnSingleFile: false,
       });
 
-      const SQLInsertQueries = generateSQLInserts(mockData);
+      const parsedSchema: Record<string, Record<string, unknown>[]> =
+        JSON5.parse(schemaInput);
+      const SQLInsertQueries = generateSQLInserts(parsedSchema);
       const SQLInsertQueriesFromMockData = generateSQLInserts(mockData);
 
       const SQLSchema = (() => {
@@ -84,7 +89,7 @@ export const useTransformationsStore = create<IStore>((set) => ({
       set({
         interfaces,
         SQLSchema,
-        deleteTablesQueries: generateSQLDeleteTables(mockData),
+        deleteTablesQueries: generateSQLDeleteTables(parsedSchema),
         joins: generateSQLJoins(relationships),
         mockData,
         SQLInsertQueries: formatSQL(SQLInsertQueries),
