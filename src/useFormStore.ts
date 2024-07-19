@@ -25,100 +25,93 @@ export interface IFormData {
 
 interface IFormStore {
   formData: IFormData;
-  setFormData: (data: IFormData) => void;
+  setFormData: (data: Partial<IFormData>) => void;
   setExample1: () => void;
   setExample2: () => void;
 }
 
-const example1: IFormData = {
-  schemaInput: `{
-    "user": [
-      {
-        "user_id": 1,
-        "first_name": "John",
-        "last_name": "Doe",
-        "email": "john.doe@example.com",
-        "username": "johndoe",
-        "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
-        "created_at": "2024-06-18T10:17:19.846Z",
-        "updated_at": "2024-06-18T10:17:19.846Z"
-      },
-      {
-        "user_id": 2,
-        "first_name": "Jane",
-        "last_name": "Smith",
-        "email": "jane.smith@example.com",
-        "username": "janesmith",
-        "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
-        "created_at": "2024-06-18T10:17:19.846Z",
-        "updated_at": "2024-06-18T10:17:19.846Z"
-      }
-    ],
-    "post": [
-      {
-        "post_id": 1,
-        "user_id": 1,
-        "title": "John's Post",
-        "content": "Lorem ipsum",
-        "created_at": "2024-06-18T10:17:19.846Z",
-        "updated_at": "2024-06-18T10:17:19.846Z"
-      },
-      {
-        "post_id": 2,
-        "user_id": 2,
-        "title": "Jane's Post",
-        "content": null,
-        "created_at": "2024-06-18T10:17:19.846Z",
-        "updated_at": "2024-06-18T10:17:19.846Z"
-      }
-    ]
-  }`,
-  backendDir: 'C:/Users/Username/Desktop/app/backend',
-  frontendDir: 'C:/Users/Username/Desktop/app/frontend',
-  dbConnection: 'postgresql://root:123@localhost:5432/laravel',
-  framework: frameworks[frameworkKeys.LARAVEL],
-  includeInsertData: false,
-  insertOption: 'SQLInsertQueries',
-};
+const example1SchemaInput = `{
+  "user": [
+    {
+      "user_id": 1,
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@example.com",
+      "username": "johndoe",
+      "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
+      "created_at": "2024-06-18T10:17:19.846Z",
+      "updated_at": "2024-06-18T10:17:19.846Z"
+    },
+    {
+      "user_id": 2,
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "email": "jane.smith@example.com",
+      "username": "janesmith",
+      "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
+      "created_at": "2024-06-18T10:17:19.846Z",
+      "updated_at": "2024-06-18T10:17:19.846Z"
+    }
+  ],
+  "post": [
+    {
+      "post_id": 1,
+      "user_id": 1,
+      "title": "John's Post",
+      "content": "Lorem ipsum",
+      "created_at": "2024-06-18T10:17:19.846Z",
+      "updated_at": "2024-06-18T10:17:19.846Z"
+    },
+    {
+      "post_id": 2,
+      "user_id": 2,
+      "title": "Jane's Post",
+      "content": null,
+      "created_at": "2024-06-18T10:17:19.846Z",
+      "updated_at": "2024-06-18T10:17:19.846Z"
+    }
+  ]
+}`;
 
-const example2: IFormData = {
-  schemaInput: `{
-    "customer": [
-      {
-        "customer_id": 1,
-        "name": "John Doe"
-      }
-    ],
-    "order": [
-      {
-        "order_id": 1,
-        "customer_id": 1
-      }
-    ],
-    "product": [
-      {
-        "product_id": 1,
-        "product_name": "Water"
-      },
-      {
-        "product_id": 2,
-        "product_name": "Yogurt"
-      }
-    ],
-    "order_product": [
-      {
-        "order_product_id": 1,
-        "order_id": 1,
-        "product_id": 1
-      },
-      {
-        "order_product_id": 2,
-        "order_id": 1,
-        "product_id": 2
-      }
-    ]
-  }
-  `,
+const example2SchemaInput = `{
+  "customer": [
+    {
+      "customer_id": 1,
+      "name": "John Doe"
+    }
+  ],
+  "order": [
+    {
+      "order_id": 1,
+      "customer_id": 1
+    }
+  ],
+  "product": [
+    {
+      "product_id": 1,
+      "product_name": "Water"
+    },
+    {
+      "product_id": 2,
+      "product_name": "Yogurt"
+    }
+  ],
+  "order_product": [
+    {
+      "order_product_id": 1,
+      "order_id": 1,
+      "product_id": 1
+    },
+    {
+      "order_product_id": 2,
+      "order_id": 1,
+      "product_id": 2
+    }
+  ]
+}`;
+
+const initialFormData: IFormData = {
+  schemaInput: example1SchemaInput,
   backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/laravel',
@@ -130,17 +123,21 @@ const example2: IFormData = {
 export const useFormStore = create(
   persist<IFormStore>(
     (set) => ({
-      formData: example1,
+      formData: initialFormData,
       setFormData: (data) => {
         set((state) => ({
           formData: { ...state.formData, ...data },
         }));
       },
       setExample1: () => {
-        set(() => ({ formData: example1 }));
+        set((state) => ({
+          formData: { ...state.formData, schemaInput: example1SchemaInput },
+        }));
       },
       setExample2: () => {
-        set(() => ({ formData: example2 }));
+        set((state) => ({
+          formData: { ...state.formData, schemaInput: example2SchemaInput },
+        }));
       },
     }),
     {
