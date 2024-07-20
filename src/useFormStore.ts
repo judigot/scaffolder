@@ -7,8 +7,6 @@ export const frameworks = {
   SPRING_BOOT: 'Spring Boot',
 } as const;
 
-frameworks.
-
 export interface IFormData {
   schemaInput: string;
   backendDir: string;
