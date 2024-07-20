@@ -84,13 +84,6 @@ const isJunctionTable = (
   columnsInfo: IColumnInfo[],
   relationships: IRelationshipInfo[],
 ): boolean => {
-  /*
-  Algorithm for finding junction tables:
-    1. If the table has more than one foreign key
-    2. If the foreign keys reference primary keys in other tables
-    3. If the table name combines the names of the tables it links (optional)
-    4. If the majority of the table’s columns are foreign keys
-  */
   const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
   return (
     foreignKeys.length === 2 &&
@@ -167,6 +160,20 @@ const sortTablesBasedOnHierarchy = (
   });
 
   return sorted.reverse(); // Reverse to get the correct order
+};
+
+const isAlreadySorted = (relationships: IRelationshipInfo[]): boolean => {
+  for (let i = 0; i < relationships.length; i++) {
+    const relationship = relationships[i];
+    for (let j = 0; j < relationship.childTables.length; j++) {
+      const childTable = relationship.childTables[j];
+      const childIndex = relationships.findIndex((r) => r.table === childTable);
+      if (childIndex <= i) {
+        return false;
+      }
+    }
+  }
+  return true;
 };
 
 function identifyRelationships(
@@ -259,9 +266,12 @@ function identifyRelationships(
   });
 
   addHasOneOrMany(relationships);
-  const sortedRelationships = sortTablesBasedOnHierarchy(relationships);
 
-  return sortedRelationships;
+  if (!isAlreadySorted(relationships)) {
+    return sortTablesBasedOnHierarchy(relationships);
+  }
+
+  return relationships;
 }
 
 export default identifyRelationships;
