@@ -1,6 +1,5 @@
 import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
 import { typeMappings } from './convertType';
-import { toPascalCase } from '@/helpers/toPascalCase';
 
 export const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
@@ -77,5 +76,3 @@ export const getForeignKeyConstraints = (
     return `CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (${key}) REFERENCES ${quoteTableName(referencedTable)}(${key})`;
   });
 };
-
-export { toPascalCase };
