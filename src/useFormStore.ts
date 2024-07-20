@@ -8,9 +8,9 @@ const frameworkKeys = {
 } as const;
 
 export const frameworks = {
-  [frameworkKeys.NEXTJS]: 'Next.js',
   [frameworkKeys.LARAVEL]: 'Laravel',
-  [frameworkKeys.SPRING_BOOT]: 'Spring Boot',
+  // [frameworkKeys.NEXTJS]: 'Next.js',
+  // [frameworkKeys.SPRING_BOOT]: 'Spring Boot',
 } as const;
 
 export interface IFormData {
