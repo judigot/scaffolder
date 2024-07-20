@@ -1,17 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-const frameworkKeys = {
-  NEXTJS: 'NEXTJS',
-  LARAVEL: 'LARAVEL',
-  SPRING_BOOT: 'SPRING_BOOT',
+export const frameworks = {
+  LARAVEL: 'Laravel',
+  NEXTJS: 'Next.js',
+  SPRING_BOOT: 'Spring Boot',
 } as const;
 
-export const frameworks = {
-  [frameworkKeys.LARAVEL]: 'Laravel',
-  // [frameworkKeys.NEXTJS]: 'Next.js',
-  // [frameworkKeys.SPRING_BOOT]: 'Spring Boot',
-} as const;
+frameworks.
 
 export interface IFormData {
   schemaInput: string;
@@ -115,7 +111,7 @@ const initialFormData: IFormData = {
   backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/laravel',
-  framework: frameworks[frameworkKeys.LARAVEL],
+  framework: frameworks.LARAVEL,
   includeInsertData: false,
   insertOption: 'SQLInsertQueries',
 };
