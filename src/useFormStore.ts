@@ -68,6 +68,16 @@ const example1SchemaInput = `{
 }`;
 
 const example2SchemaInput = `{
+  "product": [
+    {
+      "product_id": 1,
+      "product_name": "Water"
+    },
+    {
+      "product_id": 2,
+      "product_name": "Yogurt"
+    }
+  ],
   "customer": [
     {
       "customer_id": 1,
@@ -78,16 +88,6 @@ const example2SchemaInput = `{
     {
       "order_id": 1,
       "customer_id": 1
-    }
-  ],
-  "product": [
-    {
-      "product_id": 1,
-      "product_name": "Water"
-    },
-    {
-      "product_id": 2,
-      "product_name": "Yogurt"
     }
   ],
   "order_product": [
