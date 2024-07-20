@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { frameworkDirectories } from '@/constants';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import { toPascalCase } from '@/helpers/toPascalCase';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 // Global variables
 const platform: string = process.platform;

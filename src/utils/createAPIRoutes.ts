@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import { toPascalCase } from '@/helpers/toPascalCase';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 const getOwnerComment = (extension: string): string => {
   const comments: Record<string, string> = {
@@ -18,7 +18,10 @@ const createAPIRoutes = (
   const routesWithComment = `<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
   const useStatements = relationships
-    .map(({ table }) => `use App\\Http\\Controllers\\${toPascalCase(table)}Controller;\n`)
+    .map(
+      ({ table }) =>
+        `use App\\Http\\Controllers\\${toPascalCase(table)}Controller;\n`,
+    )
     .join('');
 
   const routeGroups = relationships

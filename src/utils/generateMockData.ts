@@ -1,5 +1,5 @@
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 import { faker } from '@faker-js/faker';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 
 interface IFieldInfo {
   types: Set<string>;

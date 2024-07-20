@@ -1,7 +1,7 @@
-import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
 import { typeMappings } from './convertType';
 import { toPascalCase } from '../helpers/toPascalCase';
 import { format as formatSQL } from 'sql-formatter';
+import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
 
 const quoteTableName = (tableName: string): string => `"${tableName}"`;
 

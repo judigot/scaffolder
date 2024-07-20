@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import { toPascalCase } from '@/helpers/toPascalCase';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));

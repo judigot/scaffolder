@@ -1,5 +1,5 @@
+import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
 import { typeMappings } from './convertType';
-import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
 import { addHasOneOrMany } from './identifyRelationships';
 
 export interface ITable {

@@ -1,4 +1,4 @@
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 function generateSQLJoins(relationships: IRelationshipInfo[]): string[] {
   const allowSymmetricalJoins = true;

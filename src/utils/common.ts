@@ -1,4 +1,4 @@
-import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
+import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
 import { typeMappings } from './convertType';
 
 export const quoteTableName = (tableName: string): string => `"${tableName}"`;

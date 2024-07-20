@@ -1,4 +1,4 @@
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 function sortTablesByHierarchy(relationships: IRelationshipInfo[]): string[] {
   const tableReferenceCount: Record<string, number> = {};

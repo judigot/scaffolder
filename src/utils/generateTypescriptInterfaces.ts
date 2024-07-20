@@ -1,6 +1,6 @@
 import { toPascalCase } from '@/helpers/toPascalCase';
+import { IRelationshipInfo, IColumnInfo } from '@/interfaces/interfaces';
 import { getColumnDefinition, getType } from '@/utils/common';
-import { IColumnInfo, IRelationshipInfo } from './identifyRelationships';
 
 interface IGenerateOptions {
   relationships: IRelationshipInfo[];

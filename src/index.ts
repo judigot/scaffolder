@@ -235,8 +235,8 @@ app.post(
       const frontendDirPath = path.resolve(__dirname, frontendDir);
 
       let isDBConnectionValid = false;
-      let isBackendDirValid = fs.existsSync(backendDirPath);
-      let isFrontendDirValid = fs.existsSync(frontendDirPath);
+      const isBackendDirValid = fs.existsSync(backendDirPath);
+      const isFrontendDirValid = fs.existsSync(frontendDirPath);
       try {
         if (dbConnection.startsWith('postgresql')) {
           await executePostgreSQL(

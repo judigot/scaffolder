@@ -1,6 +1,6 @@
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 import fs from 'fs';
 import path from 'path';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 
 const platform: string = process.platform;
 

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import { toPascalCase } from '@/helpers/toPascalCase';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -11,9 +11,13 @@ if (process.platform === 'win32') {
 
 const getOwnerComment = (): string => '/* Owner: App Scaffolder */\n';
 
-const createFile = (template: string, replacements: Record<string, string>): string =>
+const createFile = (
+  template: string,
+  replacements: Record<string, string>,
+): string =>
   Object.entries(replacements).reduce(
-    (result, [key, value]) => result.replace(new RegExp(`{{${key}}}`, 'g'), value),
+    (result, [key, value]) =>
+      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
     template,
   );
 
@@ -41,7 +45,10 @@ const createRepositories = (
     if (fs.existsSync(repoTemplatePath)) {
       const repoTemplate = fs.readFileSync(repoTemplatePath, 'utf-8');
       const repoContent = createFile(repoTemplate, replacements);
-      const repoOutputFilePath = path.join(outputDir, `${className}Repository.php`);
+      const repoOutputFilePath = path.join(
+        outputDir,
+        `${className}Repository.php`,
+      );
       fs.writeFileSync(repoOutputFilePath, repoContent);
     } else {
       console.error(`Template not found: ${repoTemplatePath}`);
