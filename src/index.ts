@@ -5,7 +5,6 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import Pool from 'pg-pool';
 import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import createModels from '@/utils/createModels';
 import clearGeneratedFiles from '@/utils/clearDirectory';
 import { frameworkDirectories, frontendDirectories } from '@/constants';
@@ -20,6 +19,7 @@ import createResources from '@/utils/createResources';
 import convertIntrospectedStructure, {
   ITable,
 } from '@/utils/convertIntrospectedStructure';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 dotenv.config();
 

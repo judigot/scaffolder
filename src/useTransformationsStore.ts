@@ -5,13 +5,12 @@ import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
-import identifyRelationships, {
-  IRelationshipInfo,
-} from '@/utils/identifyRelationships';
+import identifyRelationships from '@/utils/identifyRelationships';
 import { useFormStore } from './useFormStore';
 import generateFile from '@/utils/generateFile';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import JSON5 from 'json5';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 interface IStore {
   interfaces: string | Record<string, string>;

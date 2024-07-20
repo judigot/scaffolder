@@ -13,12 +13,12 @@ const getTypeScriptType = (dataType: string): string => {
   const identifiedType = dataType.toLowerCase();
 
   // Check if the identified type directly exists in typeMappings
-  if (typeMappings[identifiedType]) {
+  if (identifiedType in typeMappings) {
     return typeMappings[identifiedType].typescript;
   }
 
   // Iterate through the typeMappings to find a matching introspected type
-  for (const [, mappings] of Object.entries(typeMappings)) {
+  for (const mappings of Object.values(typeMappings)) {
     if (
       mappings['postgresql-introspected'].includes(identifiedType) ||
       mappings['mysql-introspected'].includes(identifiedType)

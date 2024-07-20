@@ -1,7 +1,7 @@
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import { useModalStore } from '@/useModalStore';
 import useTransformationsStore from '@/useTransformationsStore';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
 import React, { FormEvent, useEffect, useState } from 'react';
 
 interface IForm {

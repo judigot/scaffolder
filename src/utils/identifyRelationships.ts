@@ -140,10 +140,8 @@ const sortTablesBasedOnHierarchy = (
 };
 
 const isAlreadySorted = (relationships: IRelationshipInfo[]): boolean => {
-  for (let i = 0; i < relationships.length; i++) {
-    const relationship = relationships[i];
-    for (let j = 0; j < relationship.childTables.length; j++) {
-      const childTable = relationship.childTables[j];
+  for (const [i, relationship] of relationships.entries()) {
+    for (const childTable of relationship.childTables) {
       const childIndex = relationships.findIndex((r) => r.table === childTable);
       if (childIndex <= i) {
         return false;
