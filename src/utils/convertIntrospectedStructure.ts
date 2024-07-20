@@ -9,8 +9,26 @@ export interface ITable {
 }
 
 const getTypeScriptType = (dataType: string): string => {
+  // Normalize the data type to lowercase
   const identifiedType = dataType.toLowerCase();
-  return typeMappings[identifiedType].typescript;
+
+  // Check if the identified type directly exists in typeMappings
+  if (typeMappings[identifiedType]) {
+    return typeMappings[identifiedType].typescript;
+  }
+
+  // Iterate through the typeMappings to find a matching introspected type
+  for (const [, mappings] of Object.entries(typeMappings)) {
+    if (
+      mappings['postgresql-introspected'].includes(identifiedType) ||
+      mappings['mysql-introspected'].includes(identifiedType)
+    ) {
+      return mappings.typescript;
+    }
+  }
+
+  // Fallback to string if no match is found
+  return typeMappings.string.typescript;
 };
 
 const getRequiredColumns = (columns: IColumnInfo[]): string[] =>
