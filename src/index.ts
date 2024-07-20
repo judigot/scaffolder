@@ -231,7 +231,12 @@ app.post(
     const frameworkDir = frameworkDirectories[framework];
 
     void (async () => {
+      const backendDirPath = path.resolve(__dirname, backendDir);
+      const frontendDirPath = path.resolve(__dirname, frontendDir);
+
       let isDBConnectionValid = false;
+      let isBackendDirValid = fs.existsSync(backendDirPath);
+      let isFrontendDirValid = fs.existsSync(frontendDirPath);
       try {
         if (dbConnection.startsWith('postgresql')) {
           await executePostgreSQL(
@@ -245,12 +250,6 @@ app.post(
       }
 
       try {
-        const backendDirPath = path.resolve(__dirname, backendDir);
-        const frontendDirPath = path.resolve(__dirname, frontendDir);
-
-        const isBackendDirValid = fs.existsSync(backendDirPath);
-        const isFrontendDirValid = fs.existsSync(frontendDirPath);
-
         /*=====BACKEND=====*/
         // Routes
         const routesDir = isBackendDirValid
@@ -344,7 +343,7 @@ app.post(
         });
         /*=====FRONTEND=====*/
 
-        res.json({
+        res.status(200).json({
           isBackendDirValid,
           isFrontendDirValid,
           isDBConnectionValid,
@@ -352,9 +351,9 @@ app.post(
       } catch (error) {
         console.error('Error generating models:', error);
         res.status(500).json({
-          isBackendDirValid: false,
-          isFrontendDirValid: false,
-          isDBConnectionValid: false,
+          isBackendDirValid,
+          isFrontendDirValid,
+          isDBConnectionValid,
         });
       }
     })();
