@@ -7,10 +7,10 @@ import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import identifyRelationships from '@/utils/identifySchema';
 import { useFormStore } from './useFormStore';
-import generateFile from '@/utils/generateFile';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import JSON5 from 'json5';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import generateSQLSchema from '@/utils/generateSQLSchema';
 
 interface IStore {
   interfaces: string | Record<string, string>;
@@ -119,7 +119,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       const SQLInsertQueriesFromMockData = generateSQLInserts(mockData);
 
       const SQLSchema = (() => {
-        let sqlContent = generateFile(schemaInfo, 'sql-tables');
+        let sqlContent = generateSQLSchema(schemaInfo);
 
         if (includeInsertData) {
           if (insertOption === 'SQLInsertQueries') {

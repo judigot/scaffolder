@@ -1,8 +1,9 @@
-import generateFile from '@/utils/generateFile';
 import identifyRelationships from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
 import JSON5 from 'json5';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
+import generateSQLSchema from '@/utils/generateSQLSchema';
 
 describe('generateFile', () => {
   const schemaInput = JSON5.stringify({
@@ -55,7 +56,7 @@ describe('generateFile', () => {
   const schemaInfo: ISchemaInfo[] = identifyRelationships(formData);
 
   it('should generate correct SQL schema', () => {
-    const sqlSchema = generateFile(schemaInfo, 'sql-tables');
+    const sqlSchema = generateSQLSchema(schemaInfo);
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user" CASCADE;');
     expect(sqlSchema).toContain('CREATE TABLE "user" (');
     expect(sqlSchema).toContain('user_id BIGSERIAL PRIMARY KEY');
@@ -80,7 +81,11 @@ describe('generateFile', () => {
   });
 
   it('should generate correct TypeScript interfaces', () => {
-    const tsInterfaces = generateFile(schemaInfo, 'ts-interfaces');
+    const tsInterfaces = generateTypescriptInterfaces({
+      schemaInfo,
+      includeTypeGuards: true,
+      outputOnSingleFile: true,
+    });
     expect(tsInterfaces).toContain('export interface IUser {');
     expect(tsInterfaces).toContain('user_id: number;');
     expect(tsInterfaces).toContain('first_name: string;');
