@@ -52,10 +52,10 @@ describe('generateFile', () => {
 
   const formData: Record<string, Record<string, unknown>[]> =
     JSON5.parse(schemaInput);
-  const relationships: IRelationshipInfo[] = identifyRelationships(formData);
+  const schemaInfo: IRelationshipInfo[] = identifyRelationships(formData);
 
   it('should generate correct SQL schema', () => {
-    const sqlSchema = generateFile(relationships, 'sql-tables');
+    const sqlSchema = generateFile(schemaInfo, 'sql-tables');
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user" CASCADE;');
     expect(sqlSchema).toContain('CREATE TABLE "user" (');
     expect(sqlSchema).toContain('user_id BIGSERIAL PRIMARY KEY');
@@ -80,7 +80,7 @@ describe('generateFile', () => {
   });
 
   it('should generate correct TypeScript interfaces', () => {
-    const tsInterfaces = generateFile(relationships, 'ts-interfaces');
+    const tsInterfaces = generateFile(schemaInfo, 'ts-interfaces');
     expect(tsInterfaces).toContain('export interface IUser {');
     expect(tsInterfaces).toContain('user_id: number;');
     expect(tsInterfaces).toContain('first_name: string;');
