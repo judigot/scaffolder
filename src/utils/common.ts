@@ -3,7 +3,7 @@ import { typeMappings } from './convertType';
 
 export const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
-export const getType = (
+export const getTypeMapping = (
   column: IColumnInfo,
   fileType: 'sql-tables' | 'ts-interfaces',
 ): string => {
@@ -30,7 +30,7 @@ export const getColumnDefinition = (
   fileType: 'sql-tables' | 'ts-interfaces',
 ): string => {
   const { column_name, is_nullable, primary_key, unique } = column;
-  const type = getType(column, fileType);
+  const type = getTypeMapping(column, fileType);
   let definition = '';
 
   switch (fileType) {

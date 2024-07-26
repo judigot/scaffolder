@@ -1,6 +1,6 @@
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { IRelationshipInfo, IColumnInfo } from '@/interfaces/interfaces';
-import { getColumnDefinition, getType } from '@/utils/common';
+import { getColumnDefinition, getTypeMapping } from '@/utils/common';
 
 interface IGenerateOptions {
   relationships: IRelationshipInfo[];
@@ -36,7 +36,7 @@ const generateTypescriptInterfaces = ({
 
     const typeChecks = columnsInfo
       .map(({ column_name, data_type, is_nullable }) => {
-        const tsType = getType(
+        const tsType = getTypeMapping(
           {
             column_name,
             data_type,
