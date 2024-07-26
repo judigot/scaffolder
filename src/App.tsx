@@ -4,7 +4,7 @@ import { useTransformationsStore } from '@/useTransformationsStore';
 
 import '@/styles/scss/main.scss';
 import { useModalStore } from '@/useModalStore';
-import { IRelationshipInfo } from '@/utils/identifyRelationships';
+import { IRelationshipInfo } from '@/interfaces/interfaces';
 
 function App() {
   const {
@@ -446,7 +446,24 @@ function App() {
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
+            <div className="float-right">
+              <label
+                htmlFor="includeTypeGuard"
+                className="block text-sm font-medium mt-4"
+              >
+                <input
+                  type="checkbox"
+                  id="includeTypeGuard"
+                  name="includeTypeGuard"
+                  checked={includeInsertData}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                Include Type Guard
+              </label>
+            </div>
             <h2 className="text-xl font-bold mb-2">Interfaces</h2>
+            <br />
             <div className="">
               {typeof interfaces === 'string' ? (
                 <textarea
