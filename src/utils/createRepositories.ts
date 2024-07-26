@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -22,13 +22,13 @@ const createFile = (
   );
 
 const createRepositories = (
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
   framework: string,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  relationships.forEach(({ table }) => {
+  schemaInfo.forEach(({ table }) => {
     const className = toPascalCase(table);
     const replacements = {
       ownerComment: getOwnerComment(),

@@ -1,10 +1,10 @@
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
-function sortTablesByHierarchy(relationships: IRelationshipInfo[]): string[] {
+function sortTablesByHierarchy(schemaInfo: ISchemaInfo[]): string[] {
   const tableReferenceCount: Record<string, number> = {};
   const junctionTables: string[] = [];
 
-  relationships.forEach(({ table, foreignTables }) => {
+  schemaInfo.forEach(({ table, foreignTables }) => {
     if (foreignTables.length > 1) {
       junctionTables.push(table);
     }
@@ -27,12 +27,12 @@ function sortTablesByHierarchy(relationships: IRelationshipInfo[]): string[] {
   return [...nonJunctionTables, ...junctionTables];
 }
 
-function generateSQLJoins(relationships: IRelationshipInfo[]): string[] {
-  const sortedTables = sortTablesByHierarchy(relationships);
+function generateSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
+  const sortedTables = sortTablesByHierarchy(schemaInfo);
   const joinQueries: string[] = [];
   const addedJoins = new Set<string>();
 
-  for (const relationship of relationships) {
+  for (const relationship of schemaInfo) {
     const { table, foreignTables, foreignKeys } = relationship;
     if (foreignTables.length === 0) continue;
 
@@ -119,9 +119,9 @@ function generateMultipleJoinQuery(
 }
 
 function generateSQLAggregateJoins(
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
 ): string[] {
-  const joinQueries = generateSQLJoins(relationships);
+  const joinQueries = generateSQLJoins(schemaInfo);
   return joinQueries;
 }
 

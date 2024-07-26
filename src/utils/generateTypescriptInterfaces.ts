@@ -1,15 +1,15 @@
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IRelationshipInfo, IColumnInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 import { getColumnDefinition, getTypeMapping } from '@/utils/common';
 
 interface IGenerateOptions {
-  relationships: IRelationshipInfo[];
+  schemaInfo: ISchemaInfo[];
   includeTypeGuards: boolean;
   outputOnSingleFile: boolean;
 }
 
 const generateTypescriptInterfaces = ({
-  relationships,
+  schemaInfo,
   includeTypeGuards,
   outputOnSingleFile,
 }: IGenerateOptions): string | Record<string, string> => {
@@ -66,7 +66,7 @@ export function ${typeGuardName}(data: unknown): data is I${interfaceName} {
   };
 
   if (outputOnSingleFile) {
-    const content = relationships
+    const content = schemaInfo
       .map(({ table, columnsInfo }) => {
         const interfaceContent = generateInterface(table, columnsInfo);
         const typeGuardContent = includeTypeGuards
@@ -78,7 +78,7 @@ export function ${typeGuardName}(data: unknown): data is I${interfaceName} {
     return content;
   } else {
     const filesContent: Record<string, string> = {};
-    relationships.forEach(({ table, columnsInfo }) => {
+    schemaInfo.forEach(({ table, columnsInfo }) => {
       const interfaceName = `I${toPascalCase(table)}`;
       const interfaceContent = generateInterface(table, columnsInfo);
       const typeGuardContent = includeTypeGuards

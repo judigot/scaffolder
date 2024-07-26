@@ -1,4 +1,4 @@
-import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
+import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import convertType from './convertType';
 import identifyTSPrimitiveType from './identifyTSPrimitiveType';
 
@@ -39,7 +39,9 @@ const populateFieldInfo = (
       if (!(key in fields)) {
         fields[key] = { types: new Set<string>(), nullable: false };
       }
-      fields[key].types.add(value === null ? 'null' : identifyTSPrimitiveType(value));
+      fields[key].types.add(
+        value === null ? 'null' : identifyTSPrimitiveType(value),
+      );
       if (value === null) {
         fields[key].nullable = true;
       }
@@ -59,13 +61,13 @@ const determinePrimaryKeyField = (
 const isJunctionTable = (
   _table: string,
   columnsInfo: IColumnInfo[],
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
 ): boolean => {
   const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
   return (
     foreignKeys.length === 2 &&
     foreignKeys.every((key) =>
-      relationships.some(
+      schemaInfo.some(
         (rel) =>
           rel.table === key.foreign_key?.foreign_table_name &&
           rel.columnsInfo.some(
@@ -78,20 +80,16 @@ const isJunctionTable = (
   );
 };
 
-export const addHasOneOrMany = (relationships: IRelationshipInfo[]): void => {
-  relationships.forEach((relationship) => {
+export const addHasOneOrMany = (schemaInfo: ISchemaInfo[]): void => {
+  schemaInfo.forEach((relationship) => {
     relationship.childTables = Array.from(new Set(relationship.childTables));
     relationship.childTables.forEach((childTable) => {
-      const childRelationship = relationships.find(
+      const childRelationship = schemaInfo.find(
         (rel) => rel.table === childTable,
       );
       if (childRelationship) {
         if (
-          isJunctionTable(
-            childTable,
-            childRelationship.columnsInfo,
-            relationships,
-          )
+          isJunctionTable(childTable, childRelationship.columnsInfo, schemaInfo)
         ) {
           relationship.hasMany.push(childTable);
         } else {
@@ -104,20 +102,20 @@ export const addHasOneOrMany = (relationships: IRelationshipInfo[]): void => {
 
 // Topological sort to determine the correct order of tables
 const sortTablesBasedOnHierarchy = (
-  relationships: IRelationshipInfo[],
-): IRelationshipInfo[] => {
-  const sorted: IRelationshipInfo[] = [];
+  schemaInfo: ISchemaInfo[],
+): ISchemaInfo[] => {
+  const sorted: ISchemaInfo[] = [];
   const visited = new Set<string>();
   const temp = new Set<string>();
 
-  const visit = (table: IRelationshipInfo) => {
+  const visit = (table: ISchemaInfo) => {
     if (temp.has(table.table)) {
       throw new Error('Cyclic dependency detected');
     }
     if (!visited.has(table.table)) {
       temp.add(table.table);
       table.childTables.forEach((childTable) => {
-        const childRelationship = relationships.find(
+        const childRelationship = schemaInfo.find(
           (r) => r.table === childTable,
         );
         if (childRelationship) {
@@ -130,7 +128,7 @@ const sortTablesBasedOnHierarchy = (
     }
   };
 
-  relationships.forEach((table) => {
+  schemaInfo.forEach((table) => {
     if (!visited.has(table.table)) {
       visit(table);
     }
@@ -139,10 +137,10 @@ const sortTablesBasedOnHierarchy = (
   return sorted.reverse(); // Reverse to get the correct order
 };
 
-const isAlreadySorted = (relationships: IRelationshipInfo[]): boolean => {
-  for (const [i, relationship] of relationships.entries()) {
+const isAlreadySorted = (schemaInfo: ISchemaInfo[]): boolean => {
+  for (const [i, relationship] of schemaInfo.entries()) {
     for (const childTable of relationship.childTables) {
-      const childIndex = relationships.findIndex((r) => r.table === childTable);
+      const childIndex = schemaInfo.findIndex((r) => r.table === childTable);
       if (childIndex <= i) {
         return false;
       }
@@ -153,8 +151,8 @@ const isAlreadySorted = (relationships: IRelationshipInfo[]): boolean => {
 
 function identifyRelationships(
   data: Record<string, Record<string, unknown>[]>,
-): IRelationshipInfo[] {
-  const relationships: IRelationshipInfo[] = [];
+): ISchemaInfo[] {
+  const schemaInfo: ISchemaInfo[] = [];
 
   for (const table in data) {
     if (table in data) {
@@ -216,7 +214,7 @@ function identifyRelationships(
         }
       }
 
-      relationships.push({
+      schemaInfo.push({
         table,
         requiredColumns,
         columnsInfo,
@@ -229,9 +227,9 @@ function identifyRelationships(
     }
   }
 
-  relationships.forEach((relationship) => {
+  schemaInfo.forEach((relationship) => {
     relationship.foreignTables.forEach((foreignTable) => {
-      const foreignRelationship = relationships.find(
+      const foreignRelationship = schemaInfo.find(
         (r) => r.table === foreignTable,
       );
       if (foreignRelationship) {
@@ -240,13 +238,13 @@ function identifyRelationships(
     });
   });
 
-  addHasOneOrMany(relationships);
+  addHasOneOrMany(schemaInfo);
 
-  if (!isAlreadySorted(relationships)) {
-    return sortTablesBasedOnHierarchy(relationships);
+  if (!isAlreadySorted(schemaInfo)) {
+    return sortTablesBasedOnHierarchy(schemaInfo);
   }
 
-  return relationships;
+  return schemaInfo;
 }
 
 export default identifyRelationships;

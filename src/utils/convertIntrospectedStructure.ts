@@ -1,6 +1,6 @@
-import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
+import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { typeMappings } from './convertType';
-import { addHasOneOrMany } from './identifyRelationships';
+import { addHasOneOrMany } from './identifySchema';
 
 export interface ITable {
   table_name: string;
@@ -60,7 +60,7 @@ const convertColumn = (column: IColumnInfo): IColumnInfo => ({
   foreign_key: column.foreign_key,
 });
 
-const convertTable = (table: ITable): IRelationshipInfo => {
+const convertTable = (table: ITable): ISchemaInfo => {
   const columnsInfo = table.columns.map(convertColumn);
   const requiredColumns = getRequiredColumns(table.columns);
   const foreignTables = getForeignTables(table.columns);
@@ -79,7 +79,7 @@ const convertTable = (table: ITable): IRelationshipInfo => {
 };
 
 const populateChildTables = (
-  tableMap: Map<string, IRelationshipInfo>,
+  tableMap: Map<string, ISchemaInfo>,
 ): void => {
   tableMap.forEach((table) => {
     table.foreignTables.forEach((foreignTable) => {
@@ -92,8 +92,8 @@ const populateChildTables = (
 
 const convertIntrospectedStructure = (
   tables: ITable[],
-): IRelationshipInfo[] => {
-  const tableMap = new Map<string, IRelationshipInfo>();
+): ISchemaInfo[] => {
+  const tableMap = new Map<string, ISchemaInfo>();
 
   tables.forEach((table) => {
     const convertedTable = convertTable(table);

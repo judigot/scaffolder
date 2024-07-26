@@ -1,8 +1,8 @@
 import generateFile from '@/utils/generateFile';
-import identifyRelationships from '@/utils/identifyRelationships';
+import identifyRelationships from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
 import JSON5 from 'json5';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 describe('generateFile', () => {
   const schemaInput = JSON5.stringify({
@@ -52,7 +52,7 @@ describe('generateFile', () => {
 
   const formData: Record<string, Record<string, unknown>[]> =
     JSON5.parse(schemaInput);
-  const schemaInfo: IRelationshipInfo[] = identifyRelationships(formData);
+  const schemaInfo: ISchemaInfo[] = identifyRelationships(formData);
 
   it('should generate correct SQL schema', () => {
     const sqlSchema = generateFile(schemaInfo, 'sql-tables');

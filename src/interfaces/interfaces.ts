@@ -11,7 +11,7 @@ export interface IColumnInfo {
   } | null;
 }
 
-export interface IRelationshipInfo {
+export interface ISchemaInfo {
   table: string;
   requiredColumns: string[];
   columnsInfo: IColumnInfo[];

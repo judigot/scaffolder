@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 // Determine the current directory based on platform
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -25,14 +25,14 @@ const createServiceFile = (
 
 // Function to create the services based on the provided relationships and framework
 const createServices = (
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
   framework: string,
   outputDir: string,
 ): void => {
   // Create the output directory if it doesn't exist
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  relationships.forEach(({ table }) => {
+  schemaInfo.forEach(({ table }) => {
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/service.txt`,

@@ -1,9 +1,9 @@
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
-function generateSQLJoins(relationships: IRelationshipInfo[]): string[] {
+function generateSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
   const allowSymmetricalJoins = true;
 
-  const joinQueries = relationships
+  const joinQueries = schemaInfo
     .filter(({ foreignTables }) => foreignTables.length > 0)
     .flatMap(({ table, foreignTables, foreignKeys }) => {
       const joinClauses = foreignTables.map((foreignTable, index) => {

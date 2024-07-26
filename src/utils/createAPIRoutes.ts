@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 const getOwnerComment = (extension: string): string => {
   const comments: Record<string, string> = {
@@ -11,20 +11,20 @@ const getOwnerComment = (extension: string): string => {
 };
 
 const createAPIRoutes = (
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
   outputFilePath: string,
 ): void => {
   const ownerComment = getOwnerComment('.php');
   const routesWithComment = `<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
-  const useStatements = relationships
+  const useStatements = schemaInfo
     .map(
       ({ table }) =>
         `use App\\Http\\Controllers\\${toPascalCase(table)}Controller;\n`,
     )
     .join('');
 
-  const routeGroups = relationships
+  const routeGroups = schemaInfo
     .map(({ table }) => {
       const routeName = table.endsWith('s') ? table : `${table}s`; // Ensure plural routes
       const className = toPascalCase(table);

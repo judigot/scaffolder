@@ -19,7 +19,7 @@ import createResources from '@/utils/createResources';
 import convertIntrospectedStructure, {
   ITable,
 } from '@/utils/convertIntrospectedStructure';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 dotenv.config();
 
@@ -207,7 +207,7 @@ app.post(
       unknown,
       unknown,
       {
-        relationships: IRelationshipInfo[];
+        schemaInfo: ISchemaInfo[];
         interfaces: string;
         framework: string;
         backendDir: string;
@@ -219,7 +219,7 @@ app.post(
     res: Response,
   ) => {
     const {
-      relationships,
+      schemaInfo,
       interfaces,
       framework: frameworkRaw,
       backendDir,
@@ -258,7 +258,7 @@ app.post(
               __dirname,
               `../output/backend/${framework}/${frameworkDir.routes}`,
             );
-        createAPIRoutes(relationships, routesDir);
+        createAPIRoutes(schemaInfo, routesDir);
 
         // Services
         const servicesDir = isBackendDirValid
@@ -268,7 +268,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.service}`,
             );
         clearGeneratedFiles(servicesDir);
-        createServices(relationships, framework, servicesDir);
+        createServices(schemaInfo, framework, servicesDir);
 
         // Controllers
         const controllersDir = isBackendDirValid
@@ -278,7 +278,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.controller}`,
             );
         clearGeneratedFiles(controllersDir);
-        createControllers(relationships, framework, controllersDir);
+        createControllers(schemaInfo, framework, controllersDir);
 
         // Repositories
         const repositoriesDir = isBackendDirValid
@@ -288,7 +288,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.repository}`,
             );
         clearGeneratedFiles(repositoriesDir);
-        createRepositories(relationships, framework, repositoriesDir);
+        createRepositories(schemaInfo, framework, repositoriesDir);
 
         // Interfaces
         const interfacesDir = isBackendDirValid
@@ -297,7 +297,7 @@ app.post(
               __dirname,
               `../output/backend/${framework}/${frameworkDir.interface}`,
             );
-        createInterfaces(relationships, framework, interfacesDir);
+        createInterfaces(schemaInfo, framework, interfacesDir);
 
         // Repositories
         const resourcesDir = isBackendDirValid
@@ -307,7 +307,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.resource}`,
             );
         clearGeneratedFiles(resourcesDir);
-        createResources(relationships, framework, resourcesDir);
+        createResources(schemaInfo, framework, resourcesDir);
 
         // Models
         const modelsDir = isBackendDirValid
@@ -317,7 +317,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.model}`,
             );
         clearGeneratedFiles(modelsDir);
-        createModels(relationships, framework, modelsDir);
+        createModels(schemaInfo, framework, modelsDir);
         /*=====BACKEND=====*/
 
         /*=====FRONTEND=====*/
@@ -328,7 +328,7 @@ app.post(
               `../output/frontend/${frontendDirectories.apiCalls}`,
             );
         clearGeneratedFiles(APICallsDir);
-        createAPICalls(relationships, APICallsDir);
+        createAPICalls(schemaInfo, APICallsDir);
 
         const typescriptInterfacesDir = isFrontendDirValid
           ? path.resolve(frontendDirPath, frontendDirectories.interface)

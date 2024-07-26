@@ -5,12 +5,12 @@ import generateSQLInserts from './utils/generateSQLInserts';
 import generateSQLJoins from '@/utils/generateSQLJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
-import identifyRelationships from '@/utils/identifyRelationships';
+import identifyRelationships from '@/utils/identifySchema';
 import { useFormStore } from './useFormStore';
 import generateFile from '@/utils/generateFile';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import JSON5 from 'json5';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 interface IStore {
   interfaces: string | Record<string, string>;
@@ -22,8 +22,8 @@ interface IStore {
   SQLInsertQueries: string;
   SQLInsertQueriesFromMockData: string;
   aggregateJoins: string[];
-  getSchemaInfo: () => IRelationshipInfo[];
-  setIntrospectedSchema: (schemaInfo: IRelationshipInfo[]) => void;
+  getSchemaInfo: () => ISchemaInfo[];
+  setIntrospectedSchema: (schemaInfo: ISchemaInfo[]) => void;
   setTransformations: () => void;
 }
 
@@ -62,7 +62,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
     try {
       const parsedSchema = generateMockData({
         mockDataRows: 2,
-        relationships: schemaInfo,
+        schemaInfo,
       });
       useFormStore.setState((state) => ({
         formData: {
@@ -106,11 +106,11 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       const parsedSchema = get().getParsedSchemaInput();
       const mockData = generateMockData({
         mockDataRows: 5,
-        relationships: schemaInfo,
+        schemaInfo,
       });
 
       const interfaces = generateTypescriptInterfaces({
-        relationships: schemaInfo,
+        schemaInfo,
         includeTypeGuards,
         outputOnSingleFile: false,
       });

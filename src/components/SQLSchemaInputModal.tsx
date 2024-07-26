@@ -1,4 +1,4 @@
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import { useModalStore } from '@/useModalStore';
 import useTransformationsStore from '@/useTransformationsStore';
@@ -57,7 +57,7 @@ function SQLSchemaInputModal() {
         }),
       })
         .then((response) => response.json())
-        .then((schemaInfoNew: IRelationshipInfo[]) => {
+        .then((schemaInfoNew: ISchemaInfo[]) => {
           setIntrospectedSchema(schemaInfoNew);
         })
         .catch(() => {

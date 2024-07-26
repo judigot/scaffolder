@@ -1,4 +1,4 @@
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 import { faker } from '@faker-js/faker';
 
 interface IFieldInfo {
@@ -15,21 +15,19 @@ interface IFieldInfo {
 const NULL_ROWS = 1; // Must not be greater than MAX_ROWS
 
 // Topological sort to determine the correct order of tables
-const topologicalSort = (
-  relationships: IRelationshipInfo[],
-): IRelationshipInfo[] => {
-  const sorted: IRelationshipInfo[] = [];
+const topologicalSort = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
+  const sorted: ISchemaInfo[] = [];
   const visited = new Set<string>();
   const temp = new Set<string>();
 
-  const visit = (table: IRelationshipInfo) => {
+  const visit = (table: ISchemaInfo) => {
     if (temp.has(table.table)) {
       throw new Error('Cyclic dependency detected');
     }
     if (!visited.has(table.table)) {
       temp.add(table.table);
       table.childTables.forEach((childTable) => {
-        const childRelationship = relationships.find(
+        const childRelationship = schemaInfo.find(
           (r) => r.table === childTable,
         );
         if (childRelationship) {
@@ -42,7 +40,7 @@ const topologicalSort = (
     }
   };
 
-  relationships.forEach((table) => {
+  schemaInfo.forEach((table) => {
     if (!visited.has(table.table)) {
       visit(table);
     }
@@ -53,13 +51,13 @@ const topologicalSort = (
 
 const generateMockData = ({
   mockDataRows,
-  relationships,
+  schemaInfo,
 }: {
   mockDataRows: number;
-  relationships: IRelationshipInfo[];
+  schemaInfo: ISchemaInfo[];
 }): Record<string, Record<string, unknown>[]> => {
   const generatedData: Record<string, Record<string, unknown>[]> = {};
-  const sortedRelationships = topologicalSort(relationships);
+  const sortedRelationships = topologicalSort(schemaInfo);
 
   sortedRelationships.forEach(({ table, columnsInfo }) => {
     const fieldInfo: Record<string, IFieldInfo> = {};

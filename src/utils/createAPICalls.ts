@@ -1,4 +1,4 @@
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 import fs from 'fs';
 import path from 'path';
 
@@ -23,10 +23,7 @@ const getOwnerComment = (extension: string): string => {
   return comments[extension] || '/* Owner: App Scaffolder */\n';
 };
 
-const createAPICalls = (
-  relationships: IRelationshipInfo[],
-  outputDir: string,
-): void => {
+const createAPICalls = (schemaInfo: ISchemaInfo[], outputDir: string): void => {
   const templateDir = path.resolve(__dirname, '../templates/frontend/api');
 
   if (!fs.existsSync(outputDir)) {
@@ -46,7 +43,7 @@ const createAPICalls = (
     operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
   });
 
-  relationships.forEach(({ table }) => {
+  schemaInfo.forEach(({ table }) => {
     const className = toPascalCase(table);
     const tableDir = path.join(outputDir, table);
 

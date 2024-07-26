@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { frameworkDirectories } from '@/constants';
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 // Global variables
 const platform: string = process.platform;
@@ -74,13 +74,13 @@ const createControllerFile = (
   );
 
 const createControllers = (
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
   framework: keyof typeof frameworkDirectories,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  relationships.forEach(({ table }) => {
+  schemaInfo.forEach(({ table }) => {
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/controller.txt`,

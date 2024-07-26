@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { frameworkDirectories } from '@/constants';
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
+import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 
 // Global variables
 const platform: string = process.platform;
@@ -44,7 +44,7 @@ const createRelationships = (
   foreignKeys: string[],
   hasOne: string[],
   hasMany: string[],
-  tables: IRelationshipInfo[],
+  tables: ISchemaInfo[],
 ): string => {
   const parentPrimaryKey = tables
     .find((table) => table.table === tableName)
@@ -93,7 +93,7 @@ const createModelFile = (
   );
 
 const createModels = (
-  tables: IRelationshipInfo[],
+  tables: ISchemaInfo[],
   framework: keyof typeof frameworkDirectories,
   outputDir: string,
 ): void => {

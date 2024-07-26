@@ -1,12 +1,12 @@
 import { toPascalCase } from '../helpers/toPascalCase';
 import { format as formatSQL } from 'sql-formatter';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 import { getColumnDefinition, getForeignKeyConstraints } from '@/utils/common';
 
 const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
-const generateSQLSchema = (relationships: IRelationshipInfo[]): string => {
-  return relationships
+const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
+  return schemaInfo
     .map(({ table, columnsInfo }) => {
       const quotedTableName = quoteTableName(table);
       const columns = columnsInfo
@@ -14,7 +14,7 @@ const generateSQLSchema = (relationships: IRelationshipInfo[]): string => {
         .join(',\n  ');
       const foreignKeyConstraints = getForeignKeyConstraints(
         table,
-        relationships,
+        schemaInfo,
       ).join(',\n  ');
       const allColumnsAndKeys = [columns, foreignKeyConstraints]
         .filter(Boolean)
@@ -25,10 +25,8 @@ const generateSQLSchema = (relationships: IRelationshipInfo[]): string => {
     .join('\n');
 };
 
-const generateTypescriptInterfaces = (
-  relationships: IRelationshipInfo[],
-): string => {
-  return relationships
+const generateTypescriptInterfaces = (schemaInfo: ISchemaInfo[]): string => {
+  return schemaInfo
     .map(({ table, columnsInfo }) => {
       const interfaceName = toPascalCase(table);
       const properties = columnsInfo
@@ -40,14 +38,14 @@ const generateTypescriptInterfaces = (
 };
 
 const generateFile = (
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
   fileType: 'sql-tables' | 'ts-interfaces',
 ): string => {
   switch (fileType) {
     case 'sql-tables':
-      return formatSQL(generateSQLSchema(relationships));
+      return formatSQL(generateSQLSchema(schemaInfo));
     case 'ts-interfaces':
-      return generateTypescriptInterfaces(relationships);
+      return generateTypescriptInterfaces(schemaInfo);
     default:
       throw new Error('Invalid file type specified');
   }

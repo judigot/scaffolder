@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IRelationshipInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 // Global variables
 const platform: string = process.platform;
@@ -41,13 +41,13 @@ const generateAttributes = (
 };
 
 const createResources = (
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
   framework: string,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  relationships.forEach(({ table, columnsInfo, childTables, foreignKeys }) => {
+  schemaInfo.forEach(({ table, columnsInfo, childTables, foreignKeys }) => {
     const className = toPascalCase(table);
     const columns = columnsInfo.map((col) => col.column_name);
     const relationships = childTables.concat(foreignKeys);

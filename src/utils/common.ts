@@ -1,4 +1,4 @@
-import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
+import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { typeMappings } from './convertType';
 
 export const quoteTableName = (tableName: string): string => `"${tableName}"`;
@@ -62,11 +62,9 @@ export const getColumnDefinition = (
 
 export const getForeignKeyConstraints = (
   tableName: string,
-  relationships: IRelationshipInfo[],
+  schemaInfo: ISchemaInfo[],
 ): string[] => {
-  const tableRelationships = relationships.find(
-    (rel) => rel.table === tableName,
-  );
+  const tableRelationships = schemaInfo.find((rel) => rel.table === tableName);
   if (!tableRelationships) return [];
 
   return tableRelationships.foreignKeys.map((key) => {
