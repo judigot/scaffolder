@@ -1,3 +1,14 @@
+export const SQLQueries = {
+  quote: {
+    mysql: '`',
+    postgresql: '"',
+  },
+  dropTables: {
+    mysql: 'DROP TABLE IF EXISTS `$TABLE_NAME`;',
+    postgresql: 'DROP TABLE IF EXISTS "$TABLE_NAME";',
+  },
+} as const;
+
 export const columnMappings = {
   'sql-tables': {
     columnTemplate: '$COLUMN_NAME $MAPPED_TYPE',
@@ -89,7 +100,7 @@ export const typeMappings: Record<
     'mysql-introspected': ['decimal(10,2)', 'float', 'double', 'real', 'dec'],
   },
   string: {
-    mysql: 'TEXT',
+    mysql: 'VARCHAR (32)',
     postgresql: 'TEXT',
     typescript: 'string',
     'postgresql-introspected': [
