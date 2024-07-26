@@ -246,7 +246,7 @@ function App() {
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      relationships: getSchemaInfo(),
+                      schemaInfo: getSchemaInfo(),
                       interfaces,
                       backendDir,
                       frontendDir,
