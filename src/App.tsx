@@ -18,6 +18,7 @@ function App() {
       framework,
       includeInsertData,
       insertOption,
+      includeTypeGuards,
     },
     // setFormData,
   } = useFormStore();
@@ -47,7 +48,13 @@ function App() {
 
   useEffect(() => {
     setTransformations();
-  }, [schemaInput, includeInsertData, insertOption, setTransformations]);
+  }, [
+    schemaInput,
+    includeInsertData,
+    insertOption,
+    includeTypeGuards,
+    setTransformations,
+  ]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -448,18 +455,18 @@ function App() {
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <div className="float-right">
               <label
-                htmlFor="includeTypeGuard"
+                htmlFor="includeTypeGuards"
                 className="block text-sm font-medium mt-4"
               >
                 <input
                   type="checkbox"
-                  id="includeTypeGuard"
-                  name="includeTypeGuard"
-                  checked={includeInsertData}
+                  id="includeTypeGuards"
+                  name="includeTypeGuards"
+                  checked={includeTypeGuards}
                   onChange={handleChange}
                   className="mr-2"
                 />
-                Include Type Guard
+                Include Type Guards
               </label>
             </div>
             <h2 className="text-xl font-bold mb-2">Interfaces</h2>

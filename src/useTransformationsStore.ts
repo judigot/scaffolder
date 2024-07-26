@@ -96,7 +96,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       return;
     }
 
-    const { includeInsertData, insertOption } =
+    const { includeInsertData, insertOption, includeTypeGuards } =
       useFormStore.getState().formData;
 
     try {
@@ -105,7 +105,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
 
       const interfaces = generateTypescriptInterfaces({
         relationships: schemaInfo,
-        includeTypeGuards: true,
+        includeTypeGuards,
         outputOnSingleFile: false,
       });
 

@@ -15,6 +15,7 @@ export interface IFormData {
   framework: (typeof frameworks)[keyof typeof frameworks] | '';
   includeInsertData: boolean;
   insertOption: string;
+  includeTypeGuards: boolean;
 }
 
 interface IFormStore {
@@ -112,6 +113,7 @@ const initialFormData: IFormData = {
   framework: frameworks.LARAVEL,
   includeInsertData: false,
   insertOption: 'SQLInsertQueries',
+  includeTypeGuards: true,
 };
 
 export const useFormStore = create(
