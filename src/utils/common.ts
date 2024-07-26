@@ -1,6 +1,5 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
-import { typeMappings } from './convertType';
-import { columnMappings } from '@/utils/mappings';
+import { columnMappings, typeMappings } from '@/utils/mappings';
 
 export const quoteTableName = (tableName: string): string => `"${tableName}"`;
 

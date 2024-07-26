@@ -1,6 +1,6 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
-import { typeMappings } from './convertType';
 import { addHasOneOrMany } from './identifySchema';
+import { typeMappings } from '@/utils/mappings';
 
 export interface ITable {
   table_name: string;
@@ -78,9 +78,7 @@ const convertTable = (table: ITable): ISchemaInfo => {
   };
 };
 
-const populateChildTables = (
-  tableMap: Map<string, ISchemaInfo>,
-): void => {
+const populateChildTables = (tableMap: Map<string, ISchemaInfo>): void => {
   tableMap.forEach((table) => {
     table.foreignTables.forEach((foreignTable) => {
       if (tableMap.has(foreignTable)) {
@@ -90,9 +88,7 @@ const populateChildTables = (
   });
 };
 
-const convertIntrospectedStructure = (
-  tables: ITable[],
-): ISchemaInfo[] => {
+const convertIntrospectedStructure = (tables: ITable[]): ISchemaInfo[] => {
   const tableMap = new Map<string, ISchemaInfo>();
 
   tables.forEach((table) => {
