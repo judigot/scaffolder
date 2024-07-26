@@ -11,7 +11,7 @@ interface IFieldInfo {
   isNullable?: boolean;
 }
 
-const MAX_ROWS = 10;
+// const MAX_ROWS = 10;
 const NULL_ROWS = 1; // Must not be greater than MAX_ROWS
 
 // Topological sort to determine the correct order of tables
@@ -51,9 +51,13 @@ const topologicalSort = (
   return sorted.reverse(); // Reverse to get the correct order
 };
 
-const generateMockData = (
-  relationships: IRelationshipInfo[],
-): Record<string, Record<string, unknown>[]> => {
+const generateMockData = ({
+  mockDataRows,
+  relationships,
+}: {
+  mockDataRows: number;
+  relationships: IRelationshipInfo[];
+}): Record<string, Record<string, unknown>[]> => {
   const generatedData: Record<string, Record<string, unknown>[]> = {};
   const sortedRelationships = topologicalSort(relationships);
 
@@ -82,7 +86,7 @@ const generateMockData = (
 
     const mockRecords = [];
 
-    for (let i = 0; i < MAX_ROWS; i++) {
+    for (let i = 0; i < mockDataRows; i++) {
       const mockRecord: Record<string, unknown> = {};
 
       let firstName = '';

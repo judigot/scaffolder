@@ -60,7 +60,10 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       return;
     }
     try {
-      const parsedSchema = generateMockData(schemaInfo);
+      const parsedSchema = generateMockData({
+        mockDataRows: 2,
+        relationships: schemaInfo,
+      });
       useFormStore.setState((state) => ({
         formData: {
           ...state.formData,
@@ -101,7 +104,10 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
 
     try {
       const parsedSchema = get().getParsedSchemaInput();
-      const mockData = generateMockData(schemaInfo);
+      const mockData = generateMockData({
+        mockDataRows: 5,
+        relationships: schemaInfo,
+      });
 
       const interfaces = generateTypescriptInterfaces({
         relationships: schemaInfo,
