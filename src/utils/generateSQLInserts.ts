@@ -1,3 +1,5 @@
+import { quote } from '@/utils/common';
+
 const generateSQLInserts = (
   data: Record<string, Record<string, unknown>[]>,
 ): string => {
@@ -30,7 +32,7 @@ const generateSQLInserts = (
       })
       .join(',\n');
 
-    inserts += `INSERT INTO "${tableName}" (${columnNames}) VALUES ${values};\n`;
+    inserts += `INSERT INTO ${quote}${tableName}${quote} (${columnNames}) VALUES ${values};\n`;
   });
 
   return inserts;

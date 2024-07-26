@@ -3,9 +3,8 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import {
   generateColumnDefinition,
   getForeignKeyConstraints,
+  quoteTableName,
 } from '@/utils/common';
-
-const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
 const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   return formatSQL(
@@ -25,7 +24,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
           .filter(Boolean)
           .join(',\n  ');
 
-        return `DROP TABLE IF EXISTS ${quotedTableName} CASCADE;\nCREATE TABLE ${quotedTableName} (\n${allColumnsAndKeys}\n);`;
+        return `DROP TABLE IF EXISTS ${quotedTableName};\nCREATE TABLE ${quotedTableName} (\n  ${allColumnsAndKeys}\n);`;
       })
       .join('\n'),
   );

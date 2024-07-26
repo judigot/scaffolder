@@ -1,13 +1,48 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
-import { columnMappings, typeMappings } from '@/utils/mappings';
+import { useFormStore } from '@/useFormStore';
+import { columnMappings, SQLQueries, typeMappings } from '@/utils/mappings';
 
-export const quoteTableName = (tableName: string): string => `"${tableName}"`;
+const dbConnection = useFormStore.getState().formData.dbConnection;
+
+export const dbType = determineSQLDatabaseType(dbConnection);
+
+export const quote =
+  SQLQueries.quote[dbType as keyof (typeof SQLQueries)['quote']];
+
+function determineSQLDatabaseType(
+  dbConnection: string,
+): 'postgresql' | 'mysql' | '' {
+  if (dbConnection.startsWith('postgresql')) {
+    return 'postgresql';
+  }
+  if (dbConnection.startsWith('mysql')) {
+    return 'mysql';
+  }
+
+  return '';
+}
+
+export const quoteTableName = (tableName: string): string => {
+  if (!dbType) {
+    throw new Error('Unsupported database type');
+  }
+  return `${quote}${tableName}${quote}`;
+};
 
 export const getTypeMapping = (
   column: IColumnInfo,
   fileType: 'sql-tables' | 'ts-interfaces',
 ): string => {
-  const targetType = fileType === 'sql-tables' ? 'postgresql' : 'typescript';
+  const dbConnection = useFormStore.getState().formData.dbConnection;
+  const targetType =
+    fileType === 'sql-tables'
+      ? determineSQLDatabaseType(dbConnection)
+      : 'typescript';
+
+  if (!targetType) {
+    throw new Error('Unsupported database type');
+  }
+
   const { column_name, data_type, primary_key } = column;
 
   if (primary_key) {
@@ -37,7 +72,7 @@ export const generateColumnDefinition = ({
   const language = columnMappings[columnType];
 
   let definition = language.columnTemplate
-    .replace('$COLUMN_NAME', column_name)
+    .replace('$COLUMN_NAME', `\`${column_name}\``)
     .replace('$MAPPED_TYPE', type);
 
   const isUnique = unique && columnType === 'sql-tables';
@@ -76,6 +111,6 @@ export const getForeignKeyConstraints = (
     const referencedTable =
       tableRelationships.foreignTables.find((table) => key.startsWith(table)) ??
       key.slice(0, -3);
-    return `CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (${key}) REFERENCES ${quoteTableName(referencedTable)}(${key})`;
+    return `CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (\`${key}\`) REFERENCES ${quoteTableName(referencedTable)}(\`${key}\`)`;
   });
 };

@@ -50,6 +50,7 @@ function App() {
     setTransformations();
   }, [
     schemaInput,
+    dbConnection,
     includeInsertData,
     insertOption,
     includeTypeGuards,
