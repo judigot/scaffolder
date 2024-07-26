@@ -1,4 +1,4 @@
-const identifyType = (value: unknown): string => {
+const identifyTSPrimitiveType = (value: unknown): string => {
   if (typeof value === 'number') {
     return Number.isInteger(value) ? 'number' : 'float';
   }
@@ -13,4 +13,4 @@ const identifyType = (value: unknown): string => {
   return typeof value;
 };
 
-export default identifyType;
+export default identifyTSPrimitiveType;

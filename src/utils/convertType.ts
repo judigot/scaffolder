@@ -1,4 +1,4 @@
-import identifyType from './identifyType';
+import identifyTSPrimitiveType from './identifyTSPrimitiveType';
 
 interface IConversionParams {
   value: unknown;
@@ -144,7 +144,7 @@ export const typeMappings: Record<
 };
 
 const convertType = ({ value, targetType }: IConversionParams): string => {
-  const identifiedType = identifyType(value);
+  const identifiedType = identifyTSPrimitiveType(value);
   if (identifiedType in typeMappings) {
     const targetTypeValue = typeMappings[identifiedType][targetType];
     if (Array.isArray(targetTypeValue)) {

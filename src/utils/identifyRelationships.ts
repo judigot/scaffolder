@@ -1,6 +1,6 @@
 import { IColumnInfo, IRelationshipInfo } from '@/interfaces/interfaces';
 import convertType from './convertType';
-import identifyType from './identifyType';
+import identifyTSPrimitiveType from './identifyTSPrimitiveType';
 
 interface IFieldInfo {
   types: Set<string>;
@@ -39,7 +39,7 @@ const populateFieldInfo = (
       if (!(key in fields)) {
         fields[key] = { types: new Set<string>(), nullable: false };
       }
-      fields[key].types.add(value === null ? 'null' : identifyType(value));
+      fields[key].types.add(value === null ? 'null' : identifyTSPrimitiveType(value));
       if (value === null) {
         fields[key].nullable = true;
       }
