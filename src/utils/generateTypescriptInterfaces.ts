@@ -1,6 +1,6 @@
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
-import { getColumnDefinition, getTypeMapping } from '@/utils/common';
+import { generateColumnDefinition, getTypeMapping } from '@/utils/common';
 
 interface IGenerateOptions {
   schemaInfo: ISchemaInfo[];
@@ -19,7 +19,9 @@ const generateTypescriptInterfaces = ({
   ): string => {
     const interfaceName = toPascalCase(table);
     const properties = columnsInfo
-      .map((col) => getColumnDefinition(col, 'ts-interfaces'))
+      .map((columnName) =>
+        generateColumnDefinition({ columnName, columnType: 'ts-interfaces' }),
+      )
       .join('\n  ');
     return `export interface I${interfaceName} {\n  ${properties}\n}`;
   };

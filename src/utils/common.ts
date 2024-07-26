@@ -1,5 +1,6 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { typeMappings } from './convertType';
+import { columnMappings } from '@/utils/mappings';
 
 export const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
@@ -25,39 +26,44 @@ export const getTypeMapping = (
   return typeMappings[data_type][targetType];
 };
 
-export const getColumnDefinition = (
-  column: IColumnInfo,
-  fileType: 'sql-tables' | 'ts-interfaces',
-): string => {
-  const { column_name, is_nullable, primary_key, unique } = column;
-  const type = getTypeMapping(column, fileType);
-  let definition = '';
+export const generateColumnDefinition = ({
+  columnName,
+  columnType,
+}: {
+  columnName: IColumnInfo;
+  columnType: 'sql-tables' | 'ts-interfaces';
+}): string => {
+  const { column_name, is_nullable, primary_key, unique } = columnName;
+  const type = getTypeMapping(columnName, columnType);
+  const language = columnMappings[columnType];
 
-  switch (fileType) {
-    case 'sql-tables':
-      definition = `${column_name} ${type}`;
-      if (unique) {
-        definition += ' UNIQUE';
-      }
-      if (!primary_key && is_nullable === 'NO') {
-        definition += ' NOT NULL';
-      }
-      definition = definition.trim();
-      break;
+  let definition = language.columnTemplate
+    .replace('$COLUMN_NAME', column_name)
+    .replace('$MAPPED_TYPE', type);
 
-    case 'ts-interfaces':
-      definition = `${column_name}: ${type}`;
-      if (!primary_key && is_nullable === 'YES') {
-        definition += ' | null';
-      }
-      definition += ';';
-      break;
+  const isUnique = unique && columnType === 'sql-tables';
+  const isNotNullable =
+    !primary_key && is_nullable === 'NO' && columnType === 'sql-tables';
+  const isNullable =
+    !primary_key && is_nullable === 'YES' && columnType === 'ts-interfaces';
 
-    default:
-      throw new Error('Invalid file type specified');
+  if (isUnique) {
+    definition += ` ${language.unique}`;
   }
 
-  return definition;
+  if (isNotNullable) {
+    definition += ` ${language.notNullable}`;
+  }
+
+  if (isNullable) {
+    definition += language.nullable;
+  }
+
+  if (columnType === 'ts-interfaces') {
+    definition += ';';
+  }
+
+  return definition.trim();
 };
 
 export const getForeignKeyConstraints = (

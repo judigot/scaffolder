@@ -1,6 +1,9 @@
 import { format as formatSQL } from 'sql-formatter';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { getColumnDefinition, getForeignKeyConstraints } from '@/utils/common';
+import {
+  generateColumnDefinition,
+  getForeignKeyConstraints,
+} from '@/utils/common';
 
 const quoteTableName = (tableName: string): string => `"${tableName}"`;
 
@@ -10,7 +13,9 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
       .map(({ table, columnsInfo }) => {
         const quotedTableName = quoteTableName(table);
         const columns = columnsInfo
-          .map((col) => getColumnDefinition(col, 'sql-tables'))
+          .map((columnName) =>
+            generateColumnDefinition({ columnName, columnType: 'sql-tables' }),
+          )
           .join(',\n  ');
         const foreignKeyConstraints = getForeignKeyConstraints(
           table,
