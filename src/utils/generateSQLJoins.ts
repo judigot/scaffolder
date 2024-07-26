@@ -22,22 +22,6 @@ function generateSQLJoins(relationships: IRelationshipInfo[]): string[] {
       return joinClauses.flat();
     });
 
-  // const joinQueriesWithoutDuplicates = relationships.map(
-  //   ({ table, foreignKeys, foreignTables }) => {
-  //     const joinClauses = foreignTables
-  //       .map((foreignTable, index) => {
-  //         const tablesInAlphabetical = [table, foreignTable].sort((a, b) =>
-  //           a.localeCompare(b),
-  //         );
-  //         if (table !== tablesInAlphabetical[0]) {
-  //           return `SELECT * FROM "${table}" JOIN "${tablesInAlphabetical[0]}" ON "${tablesInAlphabetical[0]}".${foreignKeys[index]} = "${tablesInAlphabetical[1]}".${foreignKeys[index]};`;
-  //         }
-  //       })
-  //       .join(' ');
-  //     return joinClauses;
-  //   },
-  // );
-
   return joinQueries;
 }
 
