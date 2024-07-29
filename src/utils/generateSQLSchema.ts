@@ -23,7 +23,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
           .filter(Boolean)
           .join(',\n  ');
 
-        return `DROP TABLE IF EXISTS ${quote}${table}${quote} CASCADE;\nCREATE TABLE ${quote}${table}${quote} (\n  ${allColumnsAndKeys}\n);`;
+        return `CREATE TABLE ${quote}${table}${quote} (\n  ${allColumnsAndKeys}\n);`;
       })
       .join('\n'),
   );

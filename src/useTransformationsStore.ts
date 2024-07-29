@@ -117,6 +117,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
 
       const SQLInsertQueries = generateSQLInserts(parsedSchema);
       const SQLInsertQueriesFromMockData = generateSQLInserts(mockData);
+      const deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
 
       const SQLSchema = (() => {
         let sqlContent = generateSQLSchema(schemaInfo);
@@ -131,13 +132,13 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
           }
         }
 
-        return formatSQL(sqlContent);
+        return `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(sqlContent)}`;
       })();
 
       set({
         interfaces,
         SQLSchema,
-        deleteTablesQueries: generateSQLDeleteTables(parsedSchema),
+        deleteTablesQueries,
         joins: generateSQLJoins(schemaInfo),
         mockData,
         SQLInsertQueries: formatSQL(SQLInsertQueries),

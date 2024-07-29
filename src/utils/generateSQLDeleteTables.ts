@@ -1,8 +1,37 @@
-function generateSQLDeleteTables(
-  tableInfo: Record<string, Record<string, unknown>[]>,
-): string[] {
-  const tables = Object.keys(tableInfo);
-  return tables.map((table) => `DROP TABLE IF EXISTS "${table}" CASCADE;`);
+import { ISchemaInfo } from '@/interfaces/interfaces';
+import { quote } from '@/utils/common';
+
+function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
+  const foreignKeys = schemaInfo.reduce<Record<string, string[]>>(
+    (acc, table) => {
+      acc[table.table] = table.foreignKeys.map((fk) => fk.replace('_id', ''));
+      return acc;
+    },
+    {},
+  );
+
+  const getDeletionOrder = (
+    foreignKeys: Record<string, string[]>,
+  ): string[] => {
+    const visited = new Set<string>();
+    const order: string[] = [];
+    const visit = (table: string) => {
+      if (!visited.has(table)) {
+        visited.add(table);
+        (foreignKeys[table] ?? []).forEach(visit);
+        order.push(table);
+      }
+    };
+    schemaInfo.forEach((table) => {
+      visit(table.table);
+    });
+    return order.reverse();
+  };
+
+  const deletionOrder = getDeletionOrder(foreignKeys);
+  return deletionOrder.map(
+    (table) => `DROP TABLE IF EXISTS ${quote}${table}${quote};`,
+  );
 }
 
 export default generateSQLDeleteTables;
