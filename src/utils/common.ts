@@ -72,7 +72,12 @@ export const generateColumnDefinition = ({
   const language = columnMappings[columnType];
 
   let definition = language.columnTemplate
-    .replace('$COLUMN_NAME', `\`${column_name}\``)
+    .replace(
+      '$COLUMN_NAME',
+      columnType === 'ts-interfaces'
+        ? column_name
+        : `${quote}${column_name}${quote}`,
+    )
     .replace('$MAPPED_TYPE', type);
 
   const isUnique = unique && columnType === 'sql-tables';
@@ -111,6 +116,6 @@ export const getForeignKeyConstraints = (
     const referencedTable =
       tableRelationships.foreignTables.find((table) => key.startsWith(table)) ??
       key.slice(0, -3);
-    return `CONSTRAINT FK_${tableName}_${key} FOREIGN KEY (\`${key}\`) REFERENCES ${quoteTableName(referencedTable)}(\`${key}\`)`;
+    return `CONSTRAINT ${quote}FK_${tableName}_${key}${quote} FOREIGN KEY (${quote}${key}${quote}) REFERENCES ${quoteTableName(referencedTable)}(${quote}${key}${quote})`;
   });
 };

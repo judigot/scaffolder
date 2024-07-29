@@ -3,14 +3,13 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import {
   generateColumnDefinition,
   getForeignKeyConstraints,
-  quoteTableName,
+  quote,
 } from '@/utils/common';
 
 const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   return formatSQL(
     schemaInfo
       .map(({ table, columnsInfo }) => {
-        const quotedTableName = quoteTableName(table);
         const columns = columnsInfo
           .map((columnName) =>
             generateColumnDefinition({ columnName, columnType: 'sql-tables' }),
@@ -24,7 +23,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
           .filter(Boolean)
           .join(',\n  ');
 
-        return `DROP TABLE IF EXISTS ${quotedTableName};\nCREATE TABLE ${quotedTableName} (\n  ${allColumnsAndKeys}\n);`;
+        return `DROP TABLE IF EXISTS ${quote}${table}${quote} CASCADE;\nCREATE TABLE ${quote}${table}${quote} (\n  ${allColumnsAndKeys}\n);`;
       })
       .join('\n'),
   );
