@@ -20,6 +20,8 @@ export interface IFormData {
 
 interface IFormStore {
   formData: IFormData;
+  dbType: 'postgresql' | 'mysql' | '';
+  quote: string;
   setFormData: (data: Partial<IFormData>) => void;
   setExample1: () => void;
   setExample2: () => void;
@@ -116,14 +118,43 @@ const initialFormData: IFormData = {
   includeTypeGuards: true,
 };
 
+function determineSQLDatabaseType(
+  dbConnection: string,
+): 'postgresql' | 'mysql' | '' {
+  if (dbConnection.startsWith('postgresql')) {
+    return 'postgresql';
+  }
+  if (dbConnection.startsWith('mysql')) {
+    return 'mysql';
+  }
+  return '';
+}
+
+function getQuote(dbType: 'postgresql' | 'mysql' | ''): string {
+  const quotes: Record<'postgresql' | 'mysql', string> = {
+    postgresql: '"',
+    mysql: '`',
+  };
+  return dbType ? quotes[dbType] : '';
+}
+
 export const useFormStore = create(
   persist<IFormStore>(
     (set) => ({
       formData: initialFormData,
+      dbType: determineSQLDatabaseType(initialFormData.dbConnection),
+      quote: getQuote(determineSQLDatabaseType(initialFormData.dbConnection)),
       setFormData: (data) => {
-        set((state) => ({
-          formData: { ...state.formData, ...data },
-        }));
+        set((state) => {
+          const newDbConnection =
+            data.dbConnection ?? state.formData.dbConnection;
+          const newDbType = determineSQLDatabaseType(newDbConnection);
+          return {
+            formData: { ...state.formData, ...data },
+            dbType: newDbType,
+            quote: getQuote(newDbType),
+          };
+        });
       },
       setExample1: () => {
         set((state) => ({

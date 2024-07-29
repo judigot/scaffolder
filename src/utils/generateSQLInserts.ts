@@ -1,4 +1,6 @@
-import { quote } from '@/utils/common';
+import { useFormStore } from '@/useFormStore';
+
+const quote = useFormStore.getState().quote;
 
 const generateSQLInserts = (
   data: Record<string, Record<string, unknown>[]>,
