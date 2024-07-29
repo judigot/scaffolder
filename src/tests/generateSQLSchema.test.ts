@@ -59,24 +59,24 @@ describe('generateFile', () => {
     const sqlSchema = generateSQLSchema(schemaInfo);
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user" CASCADE;');
     expect(sqlSchema).toContain('CREATE TABLE "user" (');
-    expect(sqlSchema).toContain('user_id BIGSERIAL PRIMARY KEY');
-    expect(sqlSchema).toContain('first_name TEXT NOT NULL');
-    expect(sqlSchema).toContain('last_name TEXT NOT NULL');
-    expect(sqlSchema).toContain('email TEXT UNIQUE NOT NULL');
-    expect(sqlSchema).toContain('username TEXT UNIQUE NOT NULL');
-    expect(sqlSchema).toContain('password CHAR(60) NOT NULL');
-    expect(sqlSchema).toContain('created_at TIMESTAMPTZ (6) NOT NULL');
-    expect(sqlSchema).toContain('updated_at TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain('"user_id" BIGSERIAL PRIMARY KEY');
+    expect(sqlSchema).toContain('"first_name" TEXT NOT NULL');
+    expect(sqlSchema).toContain('"last_name" TEXT NOT NULL');
+    expect(sqlSchema).toContain('"email" TEXT UNIQUE NOT NULL');
+    expect(sqlSchema).toContain('"username" TEXT UNIQUE NOT NULL');
+    expect(sqlSchema).toContain('"password" CHAR(60) NOT NULL');
+    expect(sqlSchema).toContain('"created_at" TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain('"updated_at" TIMESTAMPTZ (6) NOT NULL');
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "post" CASCADE;');
     expect(sqlSchema).toContain('CREATE TABLE "post" (');
-    expect(sqlSchema).toContain('post_id BIGSERIAL PRIMARY KEY');
-    expect(sqlSchema).toContain('user_id BIGINT NOT NULL');
-    expect(sqlSchema).toContain('title TEXT NOT NULL');
-    expect(sqlSchema).toContain('content TEXT');
-    expect(sqlSchema).toContain('created_at TIMESTAMPTZ (6) NOT NULL');
-    expect(sqlSchema).toContain('updated_at TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain('"post_id" BIGSERIAL PRIMARY KEY');
+    expect(sqlSchema).toContain('"user_id" BIGINT NOT NULL');
+    expect(sqlSchema).toContain('"title" TEXT NOT NULL');
+    expect(sqlSchema).toContain('"content" TEXT');
+    expect(sqlSchema).toContain('"created_at" TIMESTAMPTZ (6) NOT NULL');
+    expect(sqlSchema).toContain('"updated_at" TIMESTAMPTZ (6) NOT NULL');
     expect(sqlSchema).toContain(
-      'CONSTRAINT FK_post_user_id FOREIGN KEY (user_id) REFERENCES "user" (user_id)',
+      'CONSTRAINT "FK_post_user_id" FOREIGN KEY ("user_id") REFERENCES "user" ("user_id")',
     );
   });
 
