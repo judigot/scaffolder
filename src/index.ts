@@ -20,6 +20,9 @@ import convertIntrospectedStructure, {
   ITable,
 } from '@/utils/convertIntrospectedStructure';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import convertIntrospectedMysqlStructure, {
+  ITableMysql,
+} from '@/utils/convertIntrospectedMysqlStructure';
 
 dotenv.config();
 
@@ -137,8 +140,25 @@ const introspect = async (dbConnection: string): Promise<unknown> => {
       '$DB_NAME',
       database,
     );
+    const isITableArray = (data: unknown): data is ITableMysql[] => {
+      return (
+        Array.isArray(data) &&
+        data.every(
+          (item) =>
+            item !== null &&
+            typeof item === 'object' &&
+            'TABLE_NAME' in item &&
+            'table_definition' in item,
+        )
+      );
+    };
+
     const result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
-    return result;
+    if (isITableArray(result)) {
+      return convertIntrospectedMysqlStructure(result);
+    } else {
+      throw new Error('Unexpected result format');
+    }
   } else {
     throw new Error('Unsupported database type');
   }
