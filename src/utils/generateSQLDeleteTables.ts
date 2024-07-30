@@ -1,5 +1,5 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { quote } from '@/utils/common';
+import { useFormStore } from '@/useFormStore';
 
 function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
   const foreignKeys = schemaInfo.reduce<Record<string, string[]>>(
@@ -29,6 +29,8 @@ function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
   };
 
   const deletionOrder = getDeletionOrder(foreignKeys);
+  const quote = useFormStore.getState().quote;
+
   return deletionOrder.map(
     (table) =>
       // `DROP TABLE IF EXISTS ${quote}${table}${quote}${dbType === 'postgresql' ? ' CASCADE' : ''};`,

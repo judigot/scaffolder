@@ -20,7 +20,7 @@ function App() {
       insertOption,
       includeTypeGuards,
     },
-    // setFormData,
+    setFormData,
   } = useFormStore();
 
   const {
@@ -66,14 +66,12 @@ function App() {
     const checked =
       type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
 
-    useFormStore.setState((state) => {
-      const newFormData = {
-        ...state.formData,
-        [name]: type === 'checkbox' ? !!(checked ?? false) : value,
-      };
+    const newFormData = {
+      ...useFormStore.getState().formData,
+      [name]: type === 'checkbox' ? !!(checked ?? false) : value,
+    };
 
-      return { formData: newFormData };
-    });
+    setFormData(newFormData);
   };
 
   const handleCopy = (text: string) => {

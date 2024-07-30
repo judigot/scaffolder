@@ -1,13 +1,6 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
-import { columnMappings, SQLQueries, typeMappings } from '@/utils/mappings';
-
-const dbConnection = useFormStore.getState().formData.dbConnection;
-
-export const dbType = determineSQLDatabaseType(dbConnection);
-
-export const quote =
-  SQLQueries.quote[dbType as keyof (typeof SQLQueries)['quote']];
+import { columnMappings, typeMappings } from '@/utils/mappings';
 
 function determineSQLDatabaseType(
   dbConnection: string,
@@ -23,9 +16,7 @@ function determineSQLDatabaseType(
 }
 
 export const quoteTableName = (tableName: string): string => {
-  if (!dbType) {
-    throw new Error('Unsupported database type');
-  }
+  const quote = useFormStore.getState().quote;
   return `${quote}${tableName}${quote}`;
 };
 
@@ -67,6 +58,7 @@ export const generateColumnDefinition = ({
   columnName: IColumnInfo;
   columnType: 'sql-tables' | 'ts-interfaces';
 }): string => {
+  const quote = useFormStore.getState().quote;
   const { column_name, is_nullable, primary_key, unique } = columnName;
   const type = getTypeMapping(columnName, columnType);
   const language = columnMappings[columnType];
@@ -109,6 +101,7 @@ export const getForeignKeyConstraints = (
   tableName: string,
   schemaInfo: ISchemaInfo[],
 ): string[] => {
+  const quote = useFormStore.getState().quote;
   const tableRelationships = schemaInfo.find((rel) => rel.table === tableName);
   if (!tableRelationships) return [];
 

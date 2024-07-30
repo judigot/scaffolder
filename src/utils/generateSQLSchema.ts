@@ -3,10 +3,11 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import {
   generateColumnDefinition,
   getForeignKeyConstraints,
-  quote,
 } from '@/utils/common';
+import { useFormStore } from '@/useFormStore';
 
 const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
+  const quote = useFormStore.getState().quote;
   return formatSQL(
     schemaInfo
       .map(({ table, columnsInfo }) => {
