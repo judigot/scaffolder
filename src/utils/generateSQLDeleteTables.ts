@@ -30,7 +30,9 @@ function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
 
   const deletionOrder = getDeletionOrder(foreignKeys);
   return deletionOrder.map(
-    (table) => `DROP TABLE IF EXISTS ${quote}${table}${quote};`,
+    (table) =>
+      // `DROP TABLE IF EXISTS ${quote}${table}${quote}${dbType === 'postgresql' ? ' CASCADE' : ''};`,
+      `DROP TABLE IF EXISTS ${quote}${table}${quote};`,
   );
 }
 

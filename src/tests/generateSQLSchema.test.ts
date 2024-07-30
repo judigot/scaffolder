@@ -3,7 +3,9 @@ import { describe, it, expect } from 'vitest';
 import JSON5 from 'json5';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
+import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import generateSQLSchema from '@/utils/generateSQLSchema';
+import { format as formatSQL } from 'sql-formatter';
 
 describe('generateFile', () => {
   const schemaInput = JSON5.stringify({
@@ -56,8 +58,9 @@ describe('generateFile', () => {
   const schemaInfo: ISchemaInfo[] = identifyRelationships(formData);
 
   it('should generate correct SQL schema', () => {
-    const sqlSchema = generateSQLSchema(schemaInfo);
-    expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user" CASCADE;');
+    const deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
+    const sqlSchema = `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(generateSQLSchema(schemaInfo))}`;
+    expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user";');
     expect(sqlSchema).toContain('CREATE TABLE "user" (');
     expect(sqlSchema).toContain('"user_id" BIGSERIAL PRIMARY KEY');
     expect(sqlSchema).toContain('"first_name" TEXT NOT NULL');
@@ -67,7 +70,7 @@ describe('generateFile', () => {
     expect(sqlSchema).toContain('"password" CHAR(60) NOT NULL');
     expect(sqlSchema).toContain('"created_at" TIMESTAMPTZ (6) NOT NULL');
     expect(sqlSchema).toContain('"updated_at" TIMESTAMPTZ (6) NOT NULL');
-    expect(sqlSchema).toContain('DROP TABLE IF EXISTS "post" CASCADE;');
+    expect(sqlSchema).toContain('DROP TABLE IF EXISTS "post";');
     expect(sqlSchema).toContain('CREATE TABLE "post" (');
     expect(sqlSchema).toContain('"post_id" BIGSERIAL PRIMARY KEY');
     expect(sqlSchema).toContain('"user_id" BIGINT NOT NULL');
