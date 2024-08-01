@@ -220,7 +220,7 @@ function identifyRelationships(
         columnsInfo,
         foreignTables: Array.from(new Set(foreignTables)),
         foreignKeys: Array.from(new Set(foreignKeys)),
-        childTables: [], // Initialize childTables as an empty array
+        childTables: [],
         hasOne: [],
         hasMany: [],
       });

@@ -85,13 +85,32 @@ const generateForeignKeyValue = (
   generatedData: Record<string, unknown[]>,
 ): unknown => {
   const { foreign_table_name, foreign_column_name } = foreign_key;
-  const foreignRecords = generatedData[foreign_table_name] as Record<
-    string,
-    unknown
-  >[];
-  return faker.helpers.arrayElement(
-    foreignRecords.map((r) => r[foreign_column_name]),
+  const foreignRecords = generatedData[foreign_table_name];
+
+  /* Type guard to check if a value is a record */
+  const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  };
+
+  /* Ensure foreignRecords is an array */
+  if (!Array.isArray(foreignRecords)) {
+    throw new Error(`Data for table ${foreign_table_name} is not an array.`);
+  }
+
+  /* Filter out invalid records */
+  const validRecords = foreignRecords.filter(isRecord);
+
+  if (validRecords.length !== foreignRecords.length) {
+    throw new Error(
+      `Some records in table ${foreign_table_name} are not valid objects.`,
+    );
+  }
+
+  /* Extract and return a random foreign key value */
+  const foreignKeyValues = validRecords.map(
+    (record) => record[foreign_column_name],
   );
+  return faker.helpers.arrayElement(foreignKeyValues);
 };
 
 const generateMockValue = (dataType: string): unknown => {
