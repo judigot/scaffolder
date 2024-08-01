@@ -3,8 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
-  NEXTJS: 'Next.js',
-  SPRING_BOOT: 'Spring Boot',
+  // NEXTJS: 'Next.js',
+  // SPRING_BOOT: 'Spring Boot',
 } as const;
 
 export interface IFormData {
