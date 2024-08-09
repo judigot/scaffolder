@@ -1,10 +1,9 @@
 import { useFormStore } from '@/useFormStore';
 
-const quote = useFormStore.getState().quote;
-
 const generateSQLInserts = (
   data: Record<string, Record<string, unknown>[]>,
 ): string => {
+  const quote = useFormStore.getState().quote;
   let inserts = '';
 
   Object.entries(data).forEach(([tableName, records]) => {
