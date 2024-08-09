@@ -85,10 +85,11 @@ export const executeMySQL = async (
       user,
       password,
       database,
+      multipleStatements: true,
     });
     try {
       const [rows]: [RowDataPacket[], FieldPacket[]] =
-        await connection.execute(query);
+        await connection.query(query);
       return rows;
     } finally {
       await connection.end();
@@ -263,6 +264,9 @@ app.post(
             dbConnection,
             `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
           );
+        }
+        if (dbConnection.startsWith('mysql')) {
+          await executeMySQL(dbConnection, SQLSchema);
         }
         isDBConnectionValid = true;
       } catch (error: unknown) {
