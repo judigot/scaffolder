@@ -1,6 +1,11 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import { columnMappings, typeMappings } from '@/utils/mappings';
+import dayjs from 'dayjs';
+
+export const formatDateForMySQL = (date: Date): string => {
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
+};
 
 function determineSQLDatabaseType(
   dbConnection: string,

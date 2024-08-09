@@ -1,4 +1,6 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { useFormStore } from '@/useFormStore';
+import { formatDateForMySQL } from '@/utils/common';
 import { faker } from '@faker-js/faker';
 
 interface IFieldInfo {
@@ -197,7 +199,17 @@ const generateMockData = ({
         }
 
         if (fieldType === 'Date') {
-          mockRecord[rawColumnName] = faker.date.past().toISOString(); // Ensure proper date format
+          const { dbType } = useFormStore.getState();
+
+          if (dbType === 'postgresql') {
+            mockRecord[rawColumnName] = faker.date.past().toISOString(); // Ensure proper date format
+          }
+
+          if (dbType === 'mysql') {
+            const pastDate: Date = faker.date.past();
+            mockRecord[rawColumnName] = formatDateForMySQL(pastDate);
+          }
+
           return;
         }
 
