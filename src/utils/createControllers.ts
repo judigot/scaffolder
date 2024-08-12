@@ -158,27 +158,6 @@ const createControllerMethods = (tableName: string): string => {
           return response()->json(['exists' => $exists]);
       }
   
-      public function getPostCount(User $user)
-      {
-          $count = $this->${repositoryVariable}->getPostCount($user);
-          return response()->json(['post_count' => $count]);
-      }
-  
-      public function getAllUsersWithPostCount()
-      {
-          $users = $this->${repositoryVariable}->getAllUsersWithPostCount();
-          return response()->json($users);
-      }
-  
-      public function findBySlug($slug)
-      {
-          $${variableName} = $this->${repositoryVariable}->findBySlug($slug);
-          if ($${variableName}) {
-              return response()->json($${variableName});
-          }
-          return response()->json(['message' => '${className} not found'], 404);
-      }
-  
       public function pluck(Request $request)
       {
           $column = $request->input('column');

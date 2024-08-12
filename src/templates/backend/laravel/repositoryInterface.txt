@@ -22,9 +22,6 @@ interface {{className}}RepositoryInterface
     public function restore(int $id): bool;
     public function batchUpdate(array $criteria, array $data): bool;
     public function exists(array $criteria): bool;
-    public function getPostCount(User $user): int;
-    public function getAllUsersWithPostCount();
-    public function findBySlug(string $slug): ?{{modelName}};
     public function pluck(string $column, string $key = null): \Illuminate\Support\Collection;
     public function firstOrCreate(array $attributes, array $values = []): {{modelName}};
     public function firstOrNew(array $attributes, array $values = []): {{modelName}};

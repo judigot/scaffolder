@@ -215,38 +215,6 @@ abstract class BaseRepository
     }
 
     /**
-     * Count posts for a user.
-     *
-     * @param Model $user
-     * @return int
-     */
-    public function getPostCount(Model $user): int
-    {
-        return $user->posts()->count();
-    }
-
-    /**
-     * Get users with their post counts.
-     *
-     * @return Collection
-     */
-    public function getAllUsersWithPostCount(): Collection
-    {
-        return $this->model->withCount('posts')->get();
-    }
-
-    /**
-     * Find a record by slug.
-     *
-     * @param string $slug
-     * @return Model|null
-     */
-    public function findBySlug(string $slug): ?Model
-    {
-        return $this->model->where('slug', $slug)->first();
-    }
-
-    /**
      * Retrieve values from a column.
      *
      * @param string $column
