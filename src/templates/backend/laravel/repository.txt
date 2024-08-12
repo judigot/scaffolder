@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\{{modelName}};
 use Illuminate\Support\Collection;
+{{modelImports}}
 
 class {{className}}Repository extends BaseRepository implements {{className}}RepositoryInterface
 {
@@ -12,5 +13,5 @@ class {{className}}Repository extends BaseRepository implements {{className}}Rep
         parent::__construct($model);
     }
 
-    // Add any additional model-specific methods here
+{{modelSpecificMethods}}
 }
