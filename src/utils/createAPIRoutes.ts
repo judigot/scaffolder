@@ -24,15 +24,49 @@ const createAPIRoutes = (
     )
     .join('');
 
-  const routeGroups = schemaInfo
+  const customRoutes = schemaInfo
     .map(({ table }) => {
       const routeName = table.endsWith('s') ? table : `${table}s`; // Ensure plural routes
       const className = toPascalCase(table);
-      return `    Route::resource('${routeName}', ${className}Controller::class);`;
+
+      // Additional custom routes for each controller
+      const customRoutesForController = `
+        Route::get('${routeName}/find-by-attributes', [${className}Controller::class, 'findByAttributes']);
+        Route::get('${routeName}/paginate', [${className}Controller::class, 'paginate']);
+        Route::get('${routeName}/search', [${className}Controller::class, 'search']);
+        Route::get('${routeName}/count', [${className}Controller::class, 'count']);
+        Route::get('${routeName}/with-relations', [${className}Controller::class, 'getWithRelations']);
+        Route::get('${routeName}/latest', [${className}Controller::class, 'latest']);
+        Route::get('${routeName}/oldest', [${className}Controller::class, 'oldest']);
+        Route::get('${routeName}/random', [${className}Controller::class, 'random']);
+        Route::get('${routeName}/soft-delete/{id}', [${className}Controller::class, 'softDelete']);
+        Route::get('${routeName}/restore/{id}', [${className}Controller::class, 'restore']);
+        Route::get('${routeName}/with-trashed', [${className}Controller::class, 'withTrashed']);
+        Route::get('${routeName}/only-trashed', [${className}Controller::class, 'onlyTrashed']);
+        Route::get('${routeName}/without-trashed', [${className}Controller::class, 'withoutTrashed']);
+        Route::post('${routeName}/update-or-create', [${className}Controller::class, 'updateOrCreate']);
+        Route::post('${routeName}/batch-update', [${className}Controller::class, 'batchUpdate']);
+        Route::post('${routeName}/first-or-create', [${className}Controller::class, 'firstOrCreate']);
+        Route::post('${routeName}/first-or-new', [${className}Controller::class, 'firstOrNew']);
+        Route::post('${routeName}/pluck', [${className}Controller::class, 'pluck']);
+        Route::post('${routeName}/where-in', [${className}Controller::class, 'whereIn']);
+        Route::post('${routeName}/where-not-in', [${className}Controller::class, 'whereNotIn']);
+        Route::post('${routeName}/where-between', [${className}Controller::class, 'whereBetween']);
+        Route::post('${routeName}/order-by', [${className}Controller::class, 'orderBy']);
+        Route::post('${routeName}/group-by', [${className}Controller::class, 'groupBy']);
+      `;
+
+      return `
+        // Resource routes for ${className}
+        Route::resource('${routeName}', ${className}Controller::class);
+
+        // Custom routes for ${className}
+        ${customRoutesForController}
+      `;
     })
     .join('\n');
 
-  const routes = `${routesWithComment}\n${useStatements}\nRoute::middleware('api')->group(function () {\n${routeGroups}\n});\n`;
+  const routes = `${routesWithComment}\n${useStatements}\nRoute::middleware('api')->group(function () {\n${customRoutes}\n});\n`;
 
   const outputDir = path.dirname(outputFilePath);
   if (!fs.existsSync(outputDir)) {
