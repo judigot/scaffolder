@@ -11,7 +11,7 @@ class {{className}}Repository implements {{className}}RepositoryInterface
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function all()
+    public function getAll()
     {
         return {{modelName}}::all();
     }
@@ -22,7 +22,7 @@ class {{className}}Repository implements {{className}}RepositoryInterface
      * @param int $id
      * @return {{modelName}}|null
      */
-    public function find(int $id): ?{{modelName}}
+    public function findById(int $id): ?{{modelName}}
     {
         return {{modelName}}::find($id);
     }
