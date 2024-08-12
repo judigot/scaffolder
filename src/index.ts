@@ -23,6 +23,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import convertIntrospectedMysqlStructure, {
   ITableMysql,
 } from '@/utils/convertIntrospectedMysqlStructure';
+import createBaseRepository from '@/utils/createBaseRepository';
 
 dotenv.config();
 
@@ -332,6 +333,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.repository}`,
             );
         clearGeneratedFiles(repositoriesDir);
+        createBaseRepository(framework, repositoriesDir);
         createRepositories(schemaInfo, framework, repositoriesDir);
 
         // Interfaces
