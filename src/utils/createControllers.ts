@@ -19,43 +19,51 @@ const getOwnerComment = (extension: string): string =>
 
 const createControllerMethods = (tableName: string): string => {
   const className = toPascalCase(tableName);
+  const variableName = className.toLowerCase();
+  const repositoryVariable = `${variableName}Repository`;
+
   return `
+    protected $${repositoryVariable};
+
+    public function __construct(${className}RepositoryInterface $${repositoryVariable})
+    {
+        $this->${repositoryVariable} = $${repositoryVariable};
+    }
+
     public function index()
     {
-        $${className.toLowerCase()}s = ${className}::all();
-        return response()->json($${className.toLowerCase()}s);
+        $${variableName}s = $this->${repositoryVariable}->getAll();
+        return response()->json($${variableName}s);
     }
 
     public function show($id)
     {
-        $${className.toLowerCase()} = ${className}::find($id);
-        if ($${className.toLowerCase()}) {
-            return response()->json($${className.toLowerCase()});
+        $${variableName} = $this->${repositoryVariable}->findById($id);
+        if ($${variableName}) {
+            return response()->json($${variableName});
         }
         return response()->json(['message' => '${className} not found'], 404);
     }
 
     public function store(Request $request)
     {
-        $${className.toLowerCase()} = ${className}::create($request->all());
-        return response()->json($${className.toLowerCase()}, 201);
+        $${variableName} = $this->${repositoryVariable}->create($request->all());
+        return response()->json($${variableName}, 201);
     }
 
     public function update(Request $request, $id)
     {
-        $${className.toLowerCase()} = ${className}::find($id);
-        if ($${className.toLowerCase()}) {
-            $${className.toLowerCase()}->update($request->all());
-            return response()->json($${className.toLowerCase()});
+        $updated = $this->${repositoryVariable}->update($id, $request->all());
+        if ($updated) {
+            return response()->json(['message' => '${className} updated']);
         }
         return response()->json(['message' => '${className} not found'], 404);
     }
 
     public function destroy($id)
     {
-        $${className.toLowerCase()} = ${className}::find($id);
-        if ($${className.toLowerCase()}) {
-            $${className.toLowerCase()}->delete();
+        $deleted = $this->${repositoryVariable}->delete($id);
+        if ($deleted) {
             return response()->json(['message' => '${className} deleted']);
         }
         return response()->json(['message' => '${className} not found'], 404);
