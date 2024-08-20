@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
+import { generateModelImports } from '@/utils/generateModelImports';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -28,13 +30,21 @@ const createInterfaces = (
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach(({ table }) => {
-    const className = toPascalCase(table);
+  schemaInfo.forEach((tableInfo) => {
+    const className = toPascalCase(tableInfo.table);
+    const modelSpecificMethods = generateModelSpecificMethods({
+      schemaInfo: tableInfo,
+      fileToGenerate: 'interface',
+    });
+    const modelImports = generateModelImports(tableInfo);
+
     const replacements = {
       ownerComment: getOwnerComment(),
       className,
       modelName: className,
-      tableName: table,
+      tableName: tableInfo.table,
+      modelSpecificMethods,
+      modelImports,
     };
 
     const templatePath = path.resolve(
