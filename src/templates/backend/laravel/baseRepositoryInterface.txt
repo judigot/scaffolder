@@ -3,9 +3,9 @@
 namespace App\Repositories;
 
 use Illuminate\Support\Collection;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 
-interface BaseRepositoryInterface
+interface BaseInterface
 {
     public function getAll(): Collection;
     public function findById(int $id): ?Model;
@@ -13,8 +13,8 @@ interface BaseRepositoryInterface
     public function update(int $id, array $data): bool;
     public function delete(int $id): bool;
     public function findByAttributes(array $attributes): ?Model;
-    public function paginate(int $perPage = 15): LengthAwarePaginator;
-    public function search(string $query, array $fields, int $perPage = 15): LengthAwarePaginator;
+    public function paginate(int $perPage = 15);
+    public function search(string $query, array $fields, int $perPage = 15);
     public function count(array $criteria = []): int;
     public function getWithRelations(array $relations): Collection;
     public function findOrFail(int $id): Model;
