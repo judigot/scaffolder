@@ -75,14 +75,14 @@ class AppServiceProvider extends ServiceProvider
   const importStatements = schemaInfo
     .map(({ table }) => {
       const className = toPascalCase(table);
-      return `use App\\Repositories\\${className}Repository;\nuse App\\Repositories\\${className}RepositoryInterface;`;
+      return `use App\\Repositories\\${className}Repository;\nuse App\\Repositories\\${className}Interface;`;
     })
     .join('\n');
 
   const bindStatements = schemaInfo
     .map(({ table }) => {
       const className = toPascalCase(table);
-      return `$this->app->bind(${className}RepositoryInterface::class, ${className}Repository::class);`;
+      return `$this->app->bind(${className}Interface::class, ${className}Repository::class);`;
     })
     .join('\n        ');
 

@@ -5,7 +5,7 @@ namespace App\Repositories;
 use App\Models\{{modelName}};
 {{modelImports}}
 
-interface {{className}}RepositoryInterface extends BaseInterface
+interface {{className}}Interface extends BaseInterface
 {
 {{modelSpecificMethods}}
 }

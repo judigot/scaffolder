@@ -56,7 +56,7 @@ const createInterfaces = (
       const content = createFile(template, replacements);
       const outputFilePath = path.join(
         outputDir,
-        `${className}RepositoryInterface.php`,
+        `${className}Interface.php`,
       );
       fs.writeFileSync(outputFilePath, content);
     } else {

@@ -25,7 +25,7 @@ const createControllerMethods = (tableName: string): string => {
   return `
       protected $${repositoryVariable};
   
-      public function __construct(${className}RepositoryInterface $${repositoryVariable})
+      public function __construct(${className}Interface $${repositoryVariable})
       {
           $this->${repositoryVariable} = $${repositoryVariable};
       }
