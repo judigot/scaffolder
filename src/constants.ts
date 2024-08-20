@@ -34,7 +34,7 @@ export const frameworkDirectories: Record<
     service: 'app/Services',
     controller: 'app/Http/Controllers',
     repository: 'app/Repositories',
-    interface: 'app/Interfaces',
+    interface: 'app/Repositories',
     model: 'app/Models',
     dto: 'app/Http/Requests',
     validation: 'app/Http/Requests',
