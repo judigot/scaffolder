@@ -115,11 +115,11 @@ const createModels = (
       hasMany,
       tables,
     );
-    const primaryKey =
+    const primaryKeyName =
       columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';
-    const primaryKeyLine =
-      primaryKey !== 'id'
-        ? `protected $primaryKey = '${String(primaryKey)}';\n\n`
+    const primaryKey =
+      primaryKeyName !== 'id'
+        ? `protected $primaryKey = '${String(primaryKeyName)}';`
         : '';
 
     const replacements = {
@@ -127,7 +127,7 @@ const createModels = (
       tableName: table,
       fillable,
       relationships,
-      primaryKeyLine,
+      primaryKey,
     };
     const model = createModelFile(template, replacements);
     const ownerComment = getOwnerComment('.php');
