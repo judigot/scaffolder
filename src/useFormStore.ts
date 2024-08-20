@@ -42,9 +42,9 @@ const example1SchemaInput = `{
     {
       "user_id": 2,
       "first_name": "Jane",
-      "last_name": "Smith",
-      "email": "jane.smith@example.com",
-      "username": "janesmith",
+      "last_name": "Doe",
+      "email": "jane.doe@example.com",
+      "username": "janedoe",
       "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
       "created_at": "2024-06-18T10:17:19.846Z",
       "updated_at": "2024-06-18T10:17:19.846Z"
