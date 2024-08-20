@@ -94,6 +94,13 @@ const detectOneToOneRelationship = (
   return Object.values(foreignKeyCounts).every((count) => count === 1);
 };
 
+const isJunctionTable = (
+  columnsInfo: IColumnInfo[],
+): boolean => {
+  const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
+  return foreignKeys.length === 2;
+};
+
 export const addHasOneOrMany = (
   schemaInfo: ISchemaInfo[],
   data: Record<string, Record<string, unknown>[]>,
@@ -106,7 +113,10 @@ export const addHasOneOrMany = (
       if (childRelationship) {
         const foreignKey = `${relationship.table}_id`;
 
-        if (detectOneToOneRelationship(data[childTable], foreignKey)) {
+        if (isJunctionTable(childRelationship.columnsInfo)) {
+          relationship.hasMany.push(childTable);
+          childRelationship.hasOne.push(relationship.table);
+        } else if (detectOneToOneRelationship(data[childTable], foreignKey)) {
           relationship.hasOne.push(childTable);
           childRelationship.hasOne.push(relationship.table);
         } else if (detectOneToManyRelationship(data[childTable], foreignKey)) {
