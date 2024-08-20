@@ -10,6 +10,8 @@ class {{className}} extends Model
 
     protected $table = '{{tableName}}';
 
+    {{primaryKey}}
+
     protected $fillable = [
         {{fillable}}
     ];
