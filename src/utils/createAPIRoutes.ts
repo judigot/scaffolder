@@ -57,12 +57,9 @@ const createAPIRoutes = (
       `;
 
       return `
+        // Custom routes for ${className}${customRoutesForController}
         // Resource routes for ${className}
-        Route::resource('${routeName}', ${className}Controller::class);
-
-        // Custom routes for ${className}
-        ${customRoutesForController}
-      `;
+        Route::resource('${routeName}', ${className}Controller::class);`;
     })
     .join('\n');
 
