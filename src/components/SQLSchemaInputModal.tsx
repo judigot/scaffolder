@@ -131,7 +131,7 @@ function SQLSchemaInputModal() {
               type="submit"
               className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             >
-              Submit
+              Execute Query
             </button>
           </div>
         </form>

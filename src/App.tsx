@@ -339,17 +339,19 @@ function App() {
             >
               Copy Database Schema
             </button>
-            <br />
-            {schemaInput !== '' && dbConnection !== '' && (
-              <button
-                onClick={() => {
-                  handleCopy(SQLSchema);
-                }}
-                className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                Execute Query
-              </button>
-            )}
+            {/* {schemaInput !== '' && dbConnection !== '' && (
+              <>
+                <br />
+                <button
+                  onClick={() => {
+                    handleCopy(SQLSchema);
+                  }}
+                  className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                >
+                  Execute Query
+                </button>
+              </>
+            )} */}
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
@@ -370,16 +372,6 @@ function App() {
               Copy Delete Queries
             </button>
             <br />
-            {schemaInput !== '' && dbConnection !== '' && (
-              <button
-                onClick={() => {
-                  handleCopy(SQLSchema);
-                }}
-                className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                Execute Query
-              </button>
-            )}
           </div>
         </div>
 
@@ -404,17 +396,6 @@ function App() {
               Copy Join Queries
             </button>
             <br />
-
-            {schemaInput !== '' && dbConnection !== '' && (
-              <button
-                onClick={() => {
-                  handleCopy(SQLSchema);
-                }}
-                className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                Execute Query
-              </button>
-            )}
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
@@ -436,16 +417,6 @@ function App() {
               Copy Join Queries
             </button>
             <br />
-            {schemaInput !== '' && dbConnection !== '' && (
-              <button
-                onClick={() => {
-                  handleCopy(SQLSchema);
-                }}
-                className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                Execute Query
-              </button>
-            )}
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
