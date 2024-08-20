@@ -3,8 +3,9 @@
 namespace App\Repositories;
 
 use App\Models\{{modelName}};
-use Illuminate\Support\Collection;
 {{modelImports}}
+use Illuminate\Support\Collection;
+use App\Repositories\BaseRepository;
 
 class {{className}}Repository extends BaseRepository implements {{className}}Interface
 {
