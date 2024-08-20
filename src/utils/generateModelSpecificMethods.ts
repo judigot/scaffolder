@@ -18,29 +18,29 @@ export const generateModelSpecificMethods = ({
 
     if (fileToGenerate === 'repository') {
       methods += `
-      /**
-       * Get the related ${relatedClass}.
-       *
-       * @param int $id
-       * @return ${relatedClass}|null
-       */
-      public function get${relatedClass}(int $id): ?${relatedClass}
-      {
-          return $this->model->find($id)?->${relatedTable};
-      }
-      `;
+    /**
+     * Get the related ${relatedClass}.
+     *
+     * @param int $id
+     * @return ${relatedClass}|null
+     */
+    public function get${relatedClass}(int $id): ?${relatedClass}
+    {
+        return $this->model->find($id)?->${relatedTable};
+    }
+    `;
     }
 
     if (fileToGenerate === 'interface') {
       methods += `
-      /**
-       * Get the related ${relatedClass}.
-       *
-       * @param int $id
-       * @return ${relatedClass}|null
-       */
-      public function get${relatedClass}(int $id): ?${relatedClass};
-      `;
+    /**
+     * Get the related ${relatedClass}.
+     *
+     * @param int $id
+     * @return ${relatedClass}|null
+     */
+    public function get${relatedClass}(int $id): ?${relatedClass};
+    `;
     }
   });
 
@@ -50,29 +50,29 @@ export const generateModelSpecificMethods = ({
 
     if (fileToGenerate === 'repository') {
       methods += `
-      /**
-       * Get ${relatedTable} for a given ${className}.
-       *
-       * @param int $id
-       * @return Collection
-       */
-      public function get${relatedClass}s(int $id): Collection
-      {
-          return $this->model->find($id)?->${relatedTable}s ?? collect();
-      }
-      `;
+    /**
+     * Get ${relatedTable} for a given ${className}.
+     *
+     * @param int $id
+     * @return Collection
+     */
+    public function get${relatedClass}s(int $id): Collection
+    {
+        return $this->model->find($id)?->${relatedTable}s ?? collect();
+    }
+    `;
     }
 
     if (fileToGenerate === 'interface') {
       methods += `
-      /**
-       * Get ${relatedTable} for a given ${className}.
-       *
-       * @param int $id
-       * @return Collection
-       */
-      public function get${relatedClass}s(int $id): Collection;
-      `;
+    /**
+     * Get ${relatedTable} for a given ${className}.
+     *
+     * @param int $id
+     * @return Collection
+     */
+    public function get${relatedClass}s(int $id): Collection;
+    `;
     }
   });
 
@@ -83,29 +83,29 @@ export const generateModelSpecificMethods = ({
 
       if (fileToGenerate === 'repository') {
         methods += `
-        /**
-         * Find ${className} by ${column.column_name}.
-         *
-         * @param int $${column.column_name}
-         * @return ${className}|null
-         */
-        public function findBy${foreignKeyName}(int $${column.column_name}): ?${className}
-        {
-            return $this->model->where('${column.column_name}', $${column.column_name})->first();
-        }
-        `;
+    /**
+     * Find ${className} by ${column.column_name}.
+     *
+     * @param int $${column.column_name}
+     * @return ${className}|null
+     */
+    public function findBy${foreignKeyName}(int $${column.column_name}): ?${className}
+    {
+        return $this->model->where('${column.column_name}', $${column.column_name})->first();
+    }
+    `;
       }
 
       if (fileToGenerate === 'interface') {
         methods += `
-        /**
-         * Find ${className} by ${column.column_name}.
-         *
-         * @param int $${column.column_name}
-         * @return ${className}|null
-         */
-        public function findBy${foreignKeyName}(int $${column.column_name}): ?${className};
-        `;
+    /**
+     * Find ${className} by ${column.column_name}.
+     *
+     * @param int $${column.column_name}
+     * @return ${className}|null
+     */
+    public function findBy${foreignKeyName}(int $${column.column_name}): ?${className};
+    `;
       }
     }
   });
