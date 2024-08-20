@@ -25,6 +25,7 @@ import convertIntrospectedMysqlStructure, {
 } from '@/utils/convertIntrospectedMysqlStructure';
 import createBaseRepository from '@/utils/createBaseRepository';
 import createBaseRepositoryInterface from '@/utils/createBaseRepositoryInterface';
+import createAppServiceProviderScaffolding from '@/utils/createAppServiceProviderScaffolding';
 
 dotenv.config();
 
@@ -366,6 +367,19 @@ app.post(
             );
         clearGeneratedFiles(modelsDir);
         createModels(schemaInfo, framework, modelsDir);
+
+        const serviceProviderDir = isBackendDirValid
+          ? path.resolve(backendDirPath, 'app/Providers')
+          : path.resolve(
+              __dirname,
+              `../output/backend/${framework}/app/Providers`,
+            );
+        createAppServiceProviderScaffolding({
+          schemaInfo,
+          outputDir: serviceProviderDir,
+          recreateFile: !isBackendDirValid
+        });
+
         /*=====BACKEND=====*/
 
         /*=====FRONTEND=====*/
