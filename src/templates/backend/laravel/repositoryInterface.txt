@@ -4,39 +4,7 @@ namespace App\Repositories;
 
 use App\Models\{{modelName}};
 
-interface {{className}}RepositoryInterface
+interface {{className}}RepositoryInterface extends BaseRepositoryInterface
 {
-    public function getAll();
-    public function findById(int $id): ?{{modelName}};
-    public function create(array $data): {{modelName}};
-    public function update(int $id, array $data): bool;
-    public function delete(int $id): bool;
-    public function findByAttributes(array $attributes): ?{{modelName}};
-    public function paginate(int $perPage = 15);
-    public function search(string $query, array $fields, int $perPage = 15);
-    public function count(array $criteria = []): int;
-    public function getWithRelations(array $relations);
-    public function findOrFail(int $id): {{modelName}};
-    public function updateOrCreate(array $attributes, array $values = []): {{modelName}};
-    public function softDelete(int $id): bool;
-    public function restore(int $id): bool;
-    public function batchUpdate(array $criteria, array $data): bool;
-    public function exists(array $criteria): bool;
-    public function pluck(string $column, string $key = null): \Illuminate\Support\Collection;
-    public function firstOrCreate(array $attributes, array $values = []): {{modelName}};
-    public function firstOrNew(array $attributes, array $values = []): {{modelName}};
-    public function chunk(int $size, callable $callback): bool;
-    public function each(callable $callback): bool;
-    public function random(int $count = 1): \Illuminate\Support\Collection;
-    public function latest(string $column = 'created_at'): ?{{modelName}};
-    public function oldest(string $column = 'created_at'): ?{{modelName}};
-    public function findMany(array $ids): \Illuminate\Support\Collection;
-    public function whereIn(string $column, array $values): \Illuminate\Support\Collection;
-    public function whereNotIn(string $column, array $values): \Illuminate\Support\Collection;
-    public function whereBetween(string $column, array $range): \Illuminate\Support\Collection;
-    public function withTrashed(): \Illuminate\Support\Collection;
-    public function onlyTrashed(): \Illuminate\Support\Collection;
-    public function withoutTrashed(): \Illuminate\Support\Collection;
-    public function orderBy(string $column, string $direction = 'asc'): \Illuminate\Support\Collection;
-    public function groupBy(string $column): \Illuminate\Support\Collection;
+    // Add any model-specific methods here if needed
 }

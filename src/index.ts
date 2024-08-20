@@ -24,6 +24,7 @@ import convertIntrospectedMysqlStructure, {
   ITableMysql,
 } from '@/utils/convertIntrospectedMysqlStructure';
 import createBaseRepository from '@/utils/createBaseRepository';
+import createBaseRepositoryInterface from '@/utils/createBaseRepositoryInterface';
 
 dotenv.config();
 
@@ -343,6 +344,7 @@ app.post(
               __dirname,
               `../output/backend/${framework}/${frameworkDir.interface}`,
             );
+        createBaseRepositoryInterface(framework, interfacesDir);
         createInterfaces(schemaInfo, framework, interfacesDir);
 
         // Repositories
