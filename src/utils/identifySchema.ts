@@ -58,45 +58,71 @@ const determinePrimaryKeyField = (
   return firstKey.includes('id') ? firstKey : `${tableName}_id`;
 };
 
-const isJunctionTable = (
-  _table: string,
-  columnsInfo: IColumnInfo[],
-  schemaInfo: ISchemaInfo[],
+const detectOneToManyRelationship = (
+  rows: Record<string, unknown>[],
+  foreignKey: string,
 ): boolean => {
-  const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
-  return (
-    foreignKeys.length === 2 &&
-    foreignKeys.every((key) =>
-      schemaInfo.some(
-        (rel) =>
-          rel.table === key.foreign_key?.foreign_table_name &&
-          rel.columnsInfo.some(
-            (col) =>
-              col.column_name === key.foreign_key?.foreign_column_name &&
-              col.foreign_key === null,
-          ),
-      ),
-    )
-  );
+  const foreignKeyCounts: Record<string, number> = {};
+
+  rows.forEach((row) => {
+    const value = String(row[foreignKey]);
+    if (foreignKeyCounts[value]) {
+      foreignKeyCounts[value]++;
+    } else {
+      foreignKeyCounts[value] = 1;
+    }
+  });
+
+  return Object.values(foreignKeyCounts).some((count) => count > 1);
 };
 
-export const addHasOneOrMany = (schemaInfo: ISchemaInfo[]): void => {
+const detectOneToOneRelationship = (
+  rows: Record<string, unknown>[],
+  foreignKey: string,
+): boolean => {
+  const foreignKeyCounts: Record<string, number> = {};
+
+  rows.forEach((row) => {
+    const value = String(row[foreignKey]);
+    if (foreignKeyCounts[value]) {
+      foreignKeyCounts[value]++;
+    } else {
+      foreignKeyCounts[value] = 1;
+    }
+  });
+
+  return Object.values(foreignKeyCounts).every((count) => count === 1);
+};
+
+export const addHasOneOrMany = (
+  schemaInfo: ISchemaInfo[],
+  data: Record<string, Record<string, unknown>[]>,
+): void => {
   schemaInfo.forEach((relationship) => {
-    relationship.childTables = Array.from(new Set(relationship.childTables));
     relationship.childTables.forEach((childTable) => {
       const childRelationship = schemaInfo.find(
         (rel) => rel.table === childTable,
       );
       if (childRelationship) {
-        if (
-          isJunctionTable(childTable, childRelationship.columnsInfo, schemaInfo)
-        ) {
-          relationship.hasMany.push(childTable);
-        } else {
+        const foreignKey = `${relationship.table}_id`;
+
+        if (detectOneToOneRelationship(data[childTable], foreignKey)) {
           relationship.hasOne.push(childTable);
+          childRelationship.hasOne.push(relationship.table);
+        } else if (detectOneToManyRelationship(data[childTable], foreignKey)) {
+          relationship.hasMany.push(childTable);
+          childRelationship.hasOne.push(relationship.table);
+        } else {
+          // Default case, treat it as one-to-many if no clear distinction
+          relationship.hasMany.push(childTable);
+          childRelationship.hasOne.push(relationship.table);
         }
       }
     });
+
+    // Remove duplicates
+    relationship.hasOne = Array.from(new Set(relationship.hasOne));
+    relationship.hasMany = Array.from(new Set(relationship.hasMany));
   });
 };
 
@@ -238,7 +264,7 @@ function identifyRelationships(
     });
   });
 
-  addHasOneOrMany(schemaInfo);
+  addHasOneOrMany(schemaInfo, data);
 
   if (!isAlreadySorted(schemaInfo)) {
     return sortTablesBasedOnHierarchy(schemaInfo);
