@@ -36,7 +36,7 @@ const example1SchemaInput = `{
       "email": "john.doe@example.com",
       "username": "johndoe",
       "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
-      "created_at": "2024-06-18T10:17:19.846Z",
+      "created_at": "2023-06-18T10:17:19.846Z",
       "updated_at": "2024-06-18T10:17:19.846Z"
     },
     {
@@ -56,7 +56,7 @@ const example1SchemaInput = `{
       "user_id": 1,
       "title": "John's Post",
       "content": "Lorem ipsum",
-      "created_at": "2024-06-18T10:17:19.846Z",
+      "created_at": "2023-06-18T10:17:19.846Z",
       "updated_at": "2024-06-18T10:17:19.846Z"
     },
     {
