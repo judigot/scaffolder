@@ -1,20 +1,5 @@
-import { addHasOneOrMany } from '@/utils/identifySchema';
-
-interface IForeignKey {
-  foreign_table_name: string;
-  foreign_column_name: string;
-}
-
-interface IColumnInfo {
-  unique: boolean;
-  data_type: string;
-  column_name: string;
-  foreign_key: IForeignKey | null;
-  is_nullable: string;
-  primary_key: boolean;
-  column_default: string | null;
-  check_constraints: unknown[];
-}
+import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
+import { addRelationshipInfo } from '@/utils/identifySchema';
 
 interface ITableDefinition {
   columns: IColumnInfo[];
@@ -23,27 +8,6 @@ interface ITableDefinition {
 export interface ITableMysql {
   TABLE_NAME: string;
   table_definition: ITableDefinition;
-}
-
-interface IConvertedColumnInfo {
-  column_name: string;
-  data_type: string;
-  is_nullable: string;
-  column_default: string | null;
-  primary_key: boolean;
-  unique: boolean;
-  foreign_key: IForeignKey | null;
-}
-
-interface IConvertedTable {
-  table: string;
-  requiredColumns: string[];
-  columnsInfo: IConvertedColumnInfo[];
-  foreignTables: string[];
-  foreignKeys: string[];
-  childTables: string[];
-  hasOne: string[];
-  hasMany: string[];
 }
 
 const convertType = (dataType: string): string => {
@@ -79,7 +43,7 @@ const getForeignKeys = (columns: IColumnInfo[]): string[] =>
     .filter((column) => column.foreign_key !== null)
     .map((column) => column.column_name);
 
-const convertColumn = (column: IColumnInfo): IConvertedColumnInfo => ({
+const convertColumn = (column: IColumnInfo): IColumnInfo => ({
   column_name: column.column_name,
   data_type: convertType(column.data_type),
   is_nullable: column.is_nullable,
@@ -89,7 +53,7 @@ const convertColumn = (column: IColumnInfo): IConvertedColumnInfo => ({
   foreign_key: column.foreign_key,
 });
 
-const convertTable = (table: ITableMysql): IConvertedTable => {
+const convertTable = (table: ITableMysql): ISchemaInfo => {
   const columnsInfo = table.table_definition.columns.map(convertColumn);
   const requiredColumns = getRequiredColumns(table.table_definition.columns);
   const foreignTables = getForeignTables(table.table_definition.columns);
@@ -104,10 +68,11 @@ const convertTable = (table: ITableMysql): IConvertedTable => {
     childTables: [],
     hasOne: [],
     hasMany: [],
+    belongsTo: [],
   };
 };
 
-const populateChildTables = (tableMap: Map<string, IConvertedTable>): void => {
+const populateChildTables = (tableMap: Map<string, ISchemaInfo>): void => {
   tableMap.forEach((table) => {
     table.foreignTables.forEach((foreignTable) => {
       if (tableMap.has(foreignTable)) {
@@ -117,10 +82,8 @@ const populateChildTables = (tableMap: Map<string, IConvertedTable>): void => {
   });
 };
 
-const convertIntrospectedStructure = (
-  tables: ITableMysql[],
-): IConvertedTable[] => {
-  const tableMap = new Map<string, IConvertedTable>();
+const convertIntrospectedStructure = (tables: ITableMysql[]): ISchemaInfo[] => {
+  const tableMap = new Map<string, ISchemaInfo>();
 
   tables.forEach((table) => {
     const convertedTable = convertTable(table);
@@ -128,7 +91,7 @@ const convertIntrospectedStructure = (
   });
 
   populateChildTables(tableMap);
-  addHasOneOrMany(Array.from(tableMap.values()));
+  addRelationshipInfo(Array.from(tableMap.values()));
 
   return Array.from(tableMap.values());
 };

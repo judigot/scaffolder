@@ -1,5 +1,5 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
-import { addHasOneOrMany } from './identifySchema';
+import { addRelationshipInfo } from './identifySchema';
 import { typeMappings } from '@/utils/mappings';
 
 export interface ITable {
@@ -75,6 +75,7 @@ const convertTable = (table: ITable): ISchemaInfo => {
     childTables: [],
     hasOne: [],
     hasMany: [],
+    belongsTo: [],
   };
 };
 
@@ -97,7 +98,7 @@ const convertIntrospectedStructure = (tables: ITable[]): ISchemaInfo[] => {
   });
 
   populateChildTables(tableMap);
-  addHasOneOrMany(Array.from(tableMap.values()));
+  addRelationshipInfo(Array.from(tableMap.values()));
 
   return Array.from(tableMap.values());
 };
