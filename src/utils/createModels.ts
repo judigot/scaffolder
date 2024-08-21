@@ -44,6 +44,7 @@ const createRelationships = (
   foreignKeys: string[],
   hasOne: string[],
   hasMany: string[],
+  belongsToMany: string[],
   tables: ISchemaInfo[],
 ): string => {
   const parentPrimaryKey = tables
@@ -76,11 +77,38 @@ const createRelationships = (
     })
     .join('\n');
 
-  return [belongsToRelations, hasManyRelations, hasOneRelations]
+    const belongsToManyRelations = belongsToMany
+    .map((relatedTable) => {
+      const relatedTableClass = toPascalCase(relatedTable);
+  
+      // Find the junction table that references both the current table and the related table
+      const junctionTable = tables.find((table) =>
+        table.foreignTables.includes(relatedTable) && table.foreignTables.includes(tableName)
+      )?.table;
+  
+      if (junctionTable == null) {
+        throw new Error(`Junction table not found for ${tableName} and ${relatedTable}`);
+      }
+  
+      // Find the foreign keys in the junction table
+      const currentTableForeignKey = `${tableName}_id`;
+      const relatedTableForeignKey = `${relatedTable}_id`;
+  
+      return `    public function ${relatedTable}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${currentTableForeignKey}', '${relatedTableForeignKey}');\n    }\n`;
+    })
+    .join('\n');
+
+  return [
+    belongsToRelations,
+    hasManyRelations,
+    hasOneRelations,
+    belongsToManyRelations,
+  ]
     .filter(Boolean)
     .join('\n\n')
     .trim();
 };
+
 
 const createModelFile = (
   template: string,
@@ -92,50 +120,52 @@ const createModelFile = (
     template,
   );
 
-const createModels = (
-  tables: ISchemaInfo[],
-  framework: keyof typeof frameworkDirectories,
-  outputDir: string,
-): void => {
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-
-  tables.forEach(({ table, columnsInfo, foreignKeys, hasOne, hasMany }) => {
-    const templatePath = path.resolve(
-      __dirname,
-      `../templates/backend/${framework}/model.txt`,
-    );
-    const template = fs.readFileSync(templatePath, 'utf-8');
-    const className = toPascalCase(table);
-
-    const fillable = createFillable(columnsInfo, foreignKeys);
-    const relationships = createRelationships(
-      table,
-      foreignKeys,
-      hasOne,
-      hasMany,
-      tables,
-    );
-    const primaryKeyName =
-      columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';
-    const primaryKey =
-      primaryKeyName !== 'id'
-        ? `protected $primaryKey = '${String(primaryKeyName)}';`
-        : '';
-
-    const replacements = {
-      className,
-      tableName: table,
-      fillable,
-      relationships,
-      primaryKey,
-    };
-    const model = createModelFile(template, replacements);
-    const ownerComment = getOwnerComment('.php');
-    const modelWithComment = model.replace('<?php', `<?php\n${ownerComment}`);
-
-    const outputFilePath = path.join(outputDir, `${className}.php`);
-    fs.writeFileSync(outputFilePath, modelWithComment);
-  });
-};
+  const createModels = (
+    tables: ISchemaInfo[],
+    framework: keyof typeof frameworkDirectories,
+    outputDir: string,
+  ): void => {
+    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+  
+    tables.forEach(({ table, columnsInfo, foreignKeys, hasOne, hasMany, belongsToMany }) => {
+      const templatePath = path.resolve(
+        __dirname,
+        `../templates/backend/${framework}/model.txt`,
+      );
+      const template = fs.readFileSync(templatePath, 'utf-8');
+      const className = toPascalCase(table);
+  
+      const fillable = createFillable(columnsInfo, foreignKeys);
+      const relationships = createRelationships(
+        table,
+        foreignKeys,
+        hasOne,
+        hasMany,
+        belongsToMany, // Pass the belongsToMany array here
+        tables,
+      );
+      const primaryKeyName =
+        columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';
+      const primaryKey =
+        primaryKeyName !== 'id'
+          ? `protected $primaryKey = '${String(primaryKeyName)}';`
+          : '';
+  
+      const replacements = {
+        className,
+        tableName: table,
+        fillable,
+        relationships,
+        primaryKey,
+      };
+      const model = createModelFile(template, replacements);
+      const ownerComment = getOwnerComment('.php');
+      const modelWithComment = model.replace('<?php', `<?php\n${ownerComment}`);
+  
+      const outputFilePath = path.join(outputDir, `${className}.php`);
+      fs.writeFileSync(outputFilePath, modelWithComment);
+    });
+  };
+  
 
 export default createModels;
