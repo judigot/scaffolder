@@ -2,6 +2,19 @@ import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import convertType from './convertType';
 import identifyTSPrimitiveType from './identifyTSPrimitiveType';
 
+/* Relationship Rules:
+HasMany Rules:
+  - if there is a junction table and the table is a parent table
+
+HasOne Rules:
+  - only applicable for one-to-one relationship
+  - if the foreign value exists multiple times in the child table
+
+BelongsTo Rules:
+  - if the table is a child table
+  - if the relationship is one-to-many
+*/
+
 interface IFieldInfo {
   types: Set<string>;
   nullable: boolean;
