@@ -90,17 +90,15 @@ const populateChildTables = (tableMap: Map<string, ISchemaInfo>): void => {
 };
 
 const convertIntrospectedStructure = (tables: ITable[]): ISchemaInfo[] => {
-  const tableMap = new Map<string, ISchemaInfo>();
-
-  tables.forEach((table) => {
-    const convertedTable = convertTable(table);
-    tableMap.set(table.table_name, convertedTable);
-  });
-
+  const tableMap = new Map(
+    tables.map((table) => [table.table_name, convertTable(table)]),
+  );
   populateChildTables(tableMap);
-  addRelationshipInfo(Array.from(tableMap.values()));
 
-  return Array.from(tableMap.values());
+  const schemaInfo = [...tableMap.values()];
+  addRelationshipInfo(schemaInfo);
+
+  return schemaInfo;
 };
 
 export default convertIntrospectedStructure;
