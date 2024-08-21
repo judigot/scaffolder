@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 
+{{modelImports}}
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 

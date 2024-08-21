@@ -77,23 +77,23 @@ const createRelationships = (
     })
     .join('\n');
 
-    const belongsToManyRelations = belongsToMany
+  const belongsToManyRelations = belongsToMany
     .map((relatedTable) => {
       const relatedTableClass = toPascalCase(relatedTable);
-  
+
       // Find the junction table that references both the current table and the related table
       const junctionTable = tables.find((table) =>
         table.foreignTables.includes(relatedTable) && table.foreignTables.includes(tableName)
       )?.table;
-  
+
       if (junctionTable == null) {
         throw new Error(`Junction table not found for ${tableName} and ${relatedTable}`);
       }
-  
+
       // Find the foreign keys in the junction table
       const currentTableForeignKey = `${tableName}_id`;
       const relatedTableForeignKey = `${relatedTable}_id`;
-  
+
       return `    public function ${relatedTable}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${currentTableForeignKey}', '${relatedTableForeignKey}');\n    }\n`;
     })
     .join('\n');
@@ -109,6 +109,23 @@ const createRelationships = (
     .trim();
 };
 
+const generateModelImports = (
+  hasOne: string[],
+  hasMany: string[],
+  belongsToMany: string[],
+  foreignKeys: string[],
+): string => {
+  const relatedTables = [...hasOne, ...hasMany, ...belongsToMany, ...foreignKeys.map(fk => fk.replace('_id', ''))];
+  const uniqueRelatedTables = Array.from(new Set(relatedTables));
+
+  // Sort the table names alphabetically
+  uniqueRelatedTables.sort((a, b) => a.localeCompare(b));
+
+  return uniqueRelatedTables
+    .map((table) => `use App\\Models\\${toPascalCase(table)};`)
+    .join('\n');
+};
+
 
 const createModelFile = (
   template: string,
@@ -120,52 +137,54 @@ const createModelFile = (
     template,
   );
 
-  const createModels = (
-    tables: ISchemaInfo[],
-    framework: keyof typeof frameworkDirectories,
-    outputDir: string,
-  ): void => {
-    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  
-    tables.forEach(({ table, columnsInfo, foreignKeys, hasOne, hasMany, belongsToMany }) => {
-      const templatePath = path.resolve(
-        __dirname,
-        `../templates/backend/${framework}/model.txt`,
-      );
-      const template = fs.readFileSync(templatePath, 'utf-8');
-      const className = toPascalCase(table);
-  
-      const fillable = createFillable(columnsInfo, foreignKeys);
-      const relationships = createRelationships(
-        table,
-        foreignKeys,
-        hasOne,
-        hasMany,
-        belongsToMany, // Pass the belongsToMany array here
-        tables,
-      );
-      const primaryKeyName =
-        columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';
-      const primaryKey =
-        primaryKeyName !== 'id'
-          ? `protected $primaryKey = '${String(primaryKeyName)}';`
-          : '';
-  
-      const replacements = {
-        className,
-        tableName: table,
-        fillable,
-        relationships,
-        primaryKey,
-      };
-      const model = createModelFile(template, replacements);
-      const ownerComment = getOwnerComment('.php');
-      const modelWithComment = model.replace('<?php', `<?php\n${ownerComment}`);
-  
-      const outputFilePath = path.join(outputDir, `${className}.php`);
-      fs.writeFileSync(outputFilePath, modelWithComment);
-    });
-  };
-  
+const createModels = (
+  tables: ISchemaInfo[],
+  framework: keyof typeof frameworkDirectories,
+  outputDir: string,
+): void => {
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+  tables.forEach(({ table, columnsInfo, foreignKeys, hasOne, hasMany, belongsToMany }) => {
+    const templatePath = path.resolve(
+      __dirname,
+      `../templates/backend/${framework}/model.txt`,
+    );
+    const template = fs.readFileSync(templatePath, 'utf-8');
+    const className = toPascalCase(table);
+
+    const fillable = createFillable(columnsInfo, foreignKeys);
+    const relationships = createRelationships(
+      table,
+      foreignKeys,
+      hasOne,
+      hasMany,
+      belongsToMany,
+      tables,
+    );
+    const primaryKeyName =
+      columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';
+    const primaryKey =
+      primaryKeyName !== 'id'
+        ? `protected $primaryKey = '${String(primaryKeyName)}';`
+        : '';
+
+    const modelImports = generateModelImports(hasOne, hasMany, belongsToMany, foreignKeys);
+
+    const replacements = {
+      className,
+      tableName: table,
+      fillable,
+      relationships,
+      primaryKey,
+      modelImports,
+    };
+    const model = createModelFile(template, replacements);
+    const ownerComment = getOwnerComment('.php');
+    const modelWithComment = model.replace('<?php', `<?php\n${ownerComment}`);
+
+    const outputFilePath = path.join(outputDir, `${className}.php`);
+    fs.writeFileSync(outputFilePath, modelWithComment);
+  });
+};
 
 export default createModels;
