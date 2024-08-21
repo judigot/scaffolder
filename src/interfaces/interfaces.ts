@@ -22,4 +22,5 @@ export interface ISchemaInfo {
   hasOne: string[];
   hasMany: string[];
   belongsTo: string[];
+  belongsToMany: string[];
 }

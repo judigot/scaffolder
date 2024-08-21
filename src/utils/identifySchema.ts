@@ -1,24 +1,31 @@
+interface IFieldInfo {
+  types: Set<string>;
+  nullable: boolean;
+}
+
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import convertType from './convertType';
 import identifyTSPrimitiveType from './identifyTSPrimitiveType';
 
 /* Relationship Rules:
+
 HasMany Rules:
-  - if there is a junction table and the table is a parent table
+  - Use `hasMany` when the current table (parent table) has a one-to-many relationship with another table (child table).
+  - Applicable when the foreign key in the child table references the primary key in the parent table, and the foreign key can appear multiple times in the child table.
 
 HasOne Rules:
-  - only applicable for one-to-one relationship
-  - if the foreign value exists multiple times in the child table
+  - Use `hasOne` for one-to-one relationships where the current table (parent table) is associated with exactly one record in another table (child table).
+  - Typically applied when the foreign key is in the child table, referencing the primary key in the parent table.
 
 BelongsTo Rules:
-  - if the table is a child table
-  - if the relationship is one-to-many
-*/
+  - Use `belongsTo` when the current table (child table) has a foreign key that references the primary key in another table (parent table).
+  - Applicable when the current table is the child in a one-to-one or one-to-many relationship.
 
-interface IFieldInfo {
-  types: Set<string>;
-  nullable: boolean;
-}
+BelongsToMany Rules:
+  - Use `belongsToMany` for many-to-many relationships where the current table (child table) is linked to another table through a junction/pivot table.
+  - Applicable when the current table and another table are both parents, and their relationship is managed by a separate junction table with foreign keys referencing both parent tables.
+
+*/
 
 const uniqueColumnNames = [
   'id',
@@ -89,77 +96,77 @@ const detectOneToManyRelationship = (
   return Object.values(foreignKeyCounts).some((count) => count > 1);
 };
 
-const detectOneToOneRelationship = (
-  rows: Record<string, unknown>[],
-  foreignKey: string,
+const isJunctionTable = (
+  relationship: ISchemaInfo,
+  schemaInfo: ISchemaInfo[],
 ): boolean => {
-  const foreignKeyCounts: Record<string, number> = {};
-
-  rows.forEach((row) => {
-    const value = String(row[foreignKey]);
-    if (foreignKeyCounts[value]) {
-      foreignKeyCounts[value]++;
-    } else {
-      foreignKeyCounts[value] = 1;
-    }
-  });
-
-  return Object.values(foreignKeyCounts).every((count) => count === 1);
+  const foreignKeys = relationship.columnsInfo.filter((column) => column.foreign_key);
+  if (foreignKeys.length === 2) {
+    const [firstKey, secondKey] = foreignKeys;
+    const parentTable1 = schemaInfo.find(
+      (rel) => rel.table === firstKey.foreign_key?.foreign_table_name,
+    );
+    const parentTable2 = schemaInfo.find(
+      (rel) => rel.table === secondKey.foreign_key?.foreign_table_name,
+    );
+    return parentTable1 !== undefined && parentTable2 !== undefined;
+  }
+  return false;
 };
 
-const isJunctionTable = (columnsInfo: IColumnInfo[]): boolean => {
-  const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
-  return foreignKeys.length === 2;
-};
-
-export const addRelationshipInfo = (schemaInfo: ISchemaInfo[]): void => {
+export const addRelationshipInfo = (
+  schemaInfo: ISchemaInfo[],
+  data?: Record<string, Record<string, unknown>[]>,
+): void => {
   schemaInfo.forEach((relationship) => {
+    const rows = data ? data[relationship.table] : [];
+
     relationship.columnsInfo.forEach((column) => {
       if (column.foreign_key) {
         const parentTable = schemaInfo.find(
           (rel) => rel.table === column.foreign_key?.foreign_table_name,
         );
+
         if (parentTable) {
           relationship.belongsTo.push(parentTable.table);
-          if (isJunctionTable(relationship.columnsInfo)) {
+
+          if (data && detectOneToManyRelationship(rows, column.column_name)) {
             parentTable.hasMany.push(relationship.table);
-          } else {
-            const childRows = schemaInfo.find(
-              (rel) => rel.table === relationship.table,
-            )?.columnsInfo;
-
-            if (childRows) {
-              const childRowsData = childRows.map((row) => ({
-                [column.column_name]: row.column_name,
-              }));
-
-              const isOneToMany = detectOneToManyRelationship(
-                childRowsData,
-                column.column_name,
-              );
-
-              const isOneToOne = detectOneToOneRelationship(
-                childRowsData,
-                column.column_name,
-              );
-
-              if (isOneToOne) {
-                parentTable.hasOne.push(relationship.table);
-              } else if (isOneToMany) {
-                parentTable.hasMany.push(relationship.table);
-              }
-            }
+          } else if (!isJunctionTable(relationship, schemaInfo)) {
+            parentTable.hasOne.push(relationship.table);
           }
         }
       }
     });
 
+    // Handle belongsToMany relationships
+    if (isJunctionTable(relationship, schemaInfo)) {
+      const foreignKeys = relationship.columnsInfo.filter(col => col.foreign_key);
+
+      if (foreignKeys.length === 2) {
+        const table1 = schemaInfo.find(
+          (rel) => rel.table === foreignKeys[0].foreign_key?.foreign_table_name,
+        );
+        const table2 = schemaInfo.find(
+          (rel) => rel.table === foreignKeys[1].foreign_key?.foreign_table_name,
+        );
+
+        if (table1 && table2) {
+          table1.belongsToMany.push(table2.table);
+          table2.belongsToMany.push(table1.table);
+        }
+      }
+    }
+
     // Remove duplicates
     relationship.hasOne = Array.from(new Set(relationship.hasOne));
     relationship.hasMany = Array.from(new Set(relationship.hasMany));
     relationship.belongsTo = Array.from(new Set(relationship.belongsTo));
+    relationship.belongsToMany = Array.from(new Set(relationship.belongsToMany));
   });
 };
+
+
 
 // Topological sort to determine the correct order of tables
 const sortTablesBasedOnHierarchy = (
@@ -285,6 +292,7 @@ function identifySchema(
         hasOne: [],
         hasMany: [],
         belongsTo: [],
+        belongsToMany: [],
       });
     }
   }
@@ -300,7 +308,7 @@ function identifySchema(
     });
   });
 
-  addRelationshipInfo(schemaInfo);
+  addRelationshipInfo(schemaInfo, data);
 
   if (!isAlreadySorted(schemaInfo)) {
     schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);

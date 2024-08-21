@@ -69,6 +69,7 @@ const convertTable = (table: ITableMysql): ISchemaInfo => {
     hasOne: [],
     hasMany: [],
     belongsTo: [],
+    belongsToMany: [],
   };
 };
 
