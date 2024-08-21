@@ -9,6 +9,7 @@ export interface IColumnInfo {
     foreign_table_name: string;
     foreign_column_name: string;
   } | null;
+  check_constraints?: unknown[];
 }
 
 export interface ISchemaInfo {
@@ -20,4 +21,5 @@ export interface ISchemaInfo {
   childTables: string[];
   hasOne: string[];
   hasMany: string[];
+  belongsTo: string[];
 }

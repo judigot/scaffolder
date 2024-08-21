@@ -1,4 +1,4 @@
-import identifyRelationships from '@/utils/identifySchema';
+import identifySchema from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
 import JSON5 from 'json5';
 import { ISchemaInfo } from '@/interfaces/interfaces';
@@ -55,7 +55,7 @@ describe('generateFile', () => {
 
   const formData: Record<string, Record<string, unknown>[]> =
     JSON5.parse(schemaInput);
-  const schemaInfo: ISchemaInfo[] = identifyRelationships(formData);
+  const schemaInfo: ISchemaInfo[] = identifySchema(formData);
 
   it('should generate correct SQL schema', () => {
     const deleteTablesQueries = generateSQLDeleteTables(schemaInfo);

@@ -94,38 +94,49 @@ const detectOneToOneRelationship = (
   return Object.values(foreignKeyCounts).every((count) => count === 1);
 };
 
-const isJunctionTable = (
-  columnsInfo: IColumnInfo[],
-): boolean => {
+const isJunctionTable = (columnsInfo: IColumnInfo[]): boolean => {
   const foreignKeys = columnsInfo.filter((column) => column.foreign_key);
   return foreignKeys.length === 2;
 };
 
-export const addHasOneOrMany = (
-  schemaInfo: ISchemaInfo[],
-  data: Record<string, Record<string, unknown>[]>,
-): void => {
+export const addRelationshipInfo = (schemaInfo: ISchemaInfo[]): void => {
   schemaInfo.forEach((relationship) => {
-    relationship.childTables.forEach((childTable) => {
-      const childRelationship = schemaInfo.find(
-        (rel) => rel.table === childTable,
-      );
-      if (childRelationship) {
-        const foreignKey = `${relationship.table}_id`;
+    relationship.columnsInfo.forEach((column) => {
+      if (column.foreign_key) {
+        const parentTable = schemaInfo.find(
+          (rel) => rel.table === column.foreign_key?.foreign_table_name,
+        );
+        if (parentTable) {
+          relationship.belongsTo.push(parentTable.table);
+          if (isJunctionTable(relationship.columnsInfo)) {
+            parentTable.hasMany.push(relationship.table);
+          } else {
+            const childRows = schemaInfo.find(
+              (rel) => rel.table === relationship.table,
+            )?.columnsInfo;
 
-        if (isJunctionTable(childRelationship.columnsInfo)) {
-          relationship.hasMany.push(childTable);
-          childRelationship.hasOne.push(relationship.table);
-        } else if (detectOneToOneRelationship(data[childTable], foreignKey)) {
-          relationship.hasOne.push(childTable);
-          childRelationship.hasOne.push(relationship.table);
-        } else if (detectOneToManyRelationship(data[childTable], foreignKey)) {
-          relationship.hasMany.push(childTable);
-          childRelationship.hasOne.push(relationship.table);
-        } else {
-          // Default case, treat it as one-to-many if no clear distinction
-          relationship.hasMany.push(childTable);
-          childRelationship.hasOne.push(relationship.table);
+            if (childRows) {
+              const childRowsData = childRows.map((row) => ({
+                [column.column_name]: row.column_name,
+              }));
+
+              const isOneToMany = detectOneToManyRelationship(
+                childRowsData,
+                column.column_name,
+              );
+
+              const isOneToOne = detectOneToOneRelationship(
+                childRowsData,
+                column.column_name,
+              );
+
+              if (isOneToOne) {
+                parentTable.hasOne.push(relationship.table);
+              } else if (isOneToMany) {
+                parentTable.hasMany.push(relationship.table);
+              }
+            }
+          }
         }
       }
     });
@@ -133,6 +144,7 @@ export const addHasOneOrMany = (
     // Remove duplicates
     relationship.hasOne = Array.from(new Set(relationship.hasOne));
     relationship.hasMany = Array.from(new Set(relationship.hasMany));
+    relationship.belongsTo = Array.from(new Set(relationship.belongsTo));
   });
 };
 
@@ -185,10 +197,10 @@ const isAlreadySorted = (schemaInfo: ISchemaInfo[]): boolean => {
   return true;
 };
 
-function identifyRelationships(
+function identifySchema(
   data: Record<string, Record<string, unknown>[]>,
 ): ISchemaInfo[] {
-  const schemaInfo: ISchemaInfo[] = [];
+  let schemaInfo: ISchemaInfo[] = [];
 
   for (const table in data) {
     if (table in data) {
@@ -259,6 +271,7 @@ function identifyRelationships(
         childTables: [],
         hasOne: [],
         hasMany: [],
+        belongsTo: [],
       });
     }
   }
@@ -274,13 +287,13 @@ function identifyRelationships(
     });
   });
 
-  addHasOneOrMany(schemaInfo, data);
+  addRelationshipInfo(schemaInfo);
 
   if (!isAlreadySorted(schemaInfo)) {
-    return sortTablesBasedOnHierarchy(schemaInfo);
+    schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
   }
 
   return schemaInfo;
 }
 
-export default identifyRelationships;
+export default identifySchema;
