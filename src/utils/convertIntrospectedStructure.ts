@@ -73,9 +73,11 @@ const convertTable = (table: ITable): ISchemaInfo => {
     foreignTables,
     foreignKeys,
     childTables: [],
+    isPivot: false,
     hasOne: [],
     hasMany: [],
     belongsTo: [],
+    belongsToMany: [],
   };
 };
 

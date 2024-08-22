@@ -147,18 +147,16 @@ export const addRelationshipInfo = (
         (col) => col.foreign_key,
       );
 
-      if (foreignKeys.length === 2) {
-        const table1 = schemaInfo.find(
-          (rel) => rel.table === foreignKeys[0].foreign_key?.foreign_table_name,
-        );
-        const table2 = schemaInfo.find(
-          (rel) => rel.table === foreignKeys[1].foreign_key?.foreign_table_name,
-        );
+      const table1 = schemaInfo.find(
+        (rel) => rel.table === foreignKeys[0].foreign_key?.foreign_table_name,
+      );
+      const table2 = schemaInfo.find(
+        (rel) => rel.table === foreignKeys[1].foreign_key?.foreign_table_name,
+      );
 
-        if (table1 && table2) {
-          table1.belongsToMany.push(table2.table);
-          table2.belongsToMany.push(table1.table);
-        }
+      if (table1 && table2) {
+        table1.belongsToMany.push(table2.table);
+        table2.belongsToMany.push(table1.table);
       }
     }
 
@@ -292,6 +290,22 @@ function identifySchema(
         columnsInfo,
         foreignTables: Array.from(new Set(foreignTables)),
         foreignKeys: Array.from(new Set(foreignKeys)),
+        isPivot: isJunctionTable(
+          {
+            table,
+            columnsInfo,
+            foreignTables,
+            foreignKeys,
+            requiredColumns,
+            isPivot: false,
+            childTables: [],
+            hasOne: [],
+            hasMany: [],
+            belongsTo: [],
+            belongsToMany: [],
+          },
+          schemaInfo,
+        ),
         childTables: [],
         hasOne: [],
         hasMany: [],

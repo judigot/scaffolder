@@ -66,6 +66,7 @@ const convertTable = (table: ITableMysql): ISchemaInfo => {
     foreignTables,
     foreignKeys,
     childTables: [],
+    isPivot: false,
     hasOne: [],
     hasMany: [],
     belongsTo: [],

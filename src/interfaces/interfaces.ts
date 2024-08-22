@@ -19,6 +19,7 @@ export interface ISchemaInfo {
   foreignTables: string[];
   foreignKeys: string[];
   childTables: string[];
+  isPivot: boolean;
   hasOne: string[];
   hasMany: string[];
   belongsTo: string[];
