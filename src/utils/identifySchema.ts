@@ -1,8 +1,3 @@
-interface IFieldInfo {
-  types: Set<string>;
-  nullable: boolean;
-}
-
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import convertType from './convertType';
 import identifyTSPrimitiveType from './identifyTSPrimitiveType';
@@ -48,6 +43,11 @@ const uniqueColumnNames = [
   'registration_number',
   'tracking_number',
 ];
+
+interface IFieldInfo {
+  types: Set<string>;
+  nullable: boolean;
+}
 
 const populateFieldInfo = (
   records: Record<string, unknown>[],
@@ -100,7 +100,9 @@ const isJunctionTable = (
   relationship: ISchemaInfo,
   schemaInfo: ISchemaInfo[],
 ): boolean => {
-  const foreignKeys = relationship.columnsInfo.filter((column) => column.foreign_key);
+  const foreignKeys = relationship.columnsInfo.filter(
+    (column) => column.foreign_key,
+  );
   if (foreignKeys.length === 2) {
     const [firstKey, secondKey] = foreignKeys;
     const parentTable1 = schemaInfo.find(
@@ -141,7 +143,9 @@ export const addRelationshipInfo = (
 
     // Handle belongsToMany relationships
     if (isJunctionTable(relationship, schemaInfo)) {
-      const foreignKeys = relationship.columnsInfo.filter(col => col.foreign_key);
+      const foreignKeys = relationship.columnsInfo.filter(
+        (col) => col.foreign_key,
+      );
 
       if (foreignKeys.length === 2) {
         const table1 = schemaInfo.find(
@@ -162,11 +166,11 @@ export const addRelationshipInfo = (
     relationship.hasOne = Array.from(new Set(relationship.hasOne));
     relationship.hasMany = Array.from(new Set(relationship.hasMany));
     relationship.belongsTo = Array.from(new Set(relationship.belongsTo));
-    relationship.belongsToMany = Array.from(new Set(relationship.belongsToMany));
+    relationship.belongsToMany = Array.from(
+      new Set(relationship.belongsToMany),
+    );
   });
 };
-
-
 
 // Topological sort to determine the correct order of tables
 const sortTablesBasedOnHierarchy = (
