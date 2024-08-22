@@ -13,6 +13,5 @@ class {{className}}Repository extends BaseRepository implements {{className}}Int
     {
         parent::__construct($model);
     }
-
 {{modelSpecificMethods}}
 }

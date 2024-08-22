@@ -16,6 +16,5 @@ class {{className}} extends Model
     protected $fillable = [
         {{fillable}}
     ];
-
     {{relationships}}
 }
