@@ -3,6 +3,7 @@ import path from 'path';
 import { frameworkDirectories } from '@/constants';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 
 // Global variables
 const platform: string = process.platform;
@@ -17,7 +18,13 @@ const getOwnerComment = (extension: string): string =>
     '.php': '/* Owner: App Scaffolder */\n',
   })[extension] ?? '/* Owner: App Scaffolder */\n';
 
-const createControllerMethods = (tableName: string): string => {
+const createControllerMethods = ({
+  tableName,
+  schemaInfo,
+}: {
+  tableName: string;
+  schemaInfo: ISchemaInfo[];
+}): string => {
   const className = toPascalCase(tableName);
   const variableName = className.toLowerCase();
   const repositoryVariable = `${variableName}Repository`;
@@ -283,6 +290,19 @@ const createControllerMethods = (tableName: string): string => {
           $${variableName}s = $this->${repositoryVariable}->groupBy($column);
           return response()->json($${variableName}s);
       }
+
+      ${(() => {
+        const foundSchemaInfo = schemaInfo.find(
+          (tableInfo) => tableInfo.table === tableName,
+        );
+        return foundSchemaInfo
+          ? generateModelSpecificMethods({
+              schemaInfo: foundSchemaInfo,
+              fileToGenerate: 'controllerMethod',
+            })
+          : '';
+      })()}
+      
     `;
 };
 
@@ -303,15 +323,18 @@ const createControllers = (
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach(({ table }) => {
+  schemaInfo.forEach(({ table: tableName }) => {
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/controller.txt`,
     );
     const template = fs.readFileSync(templatePath, 'utf-8');
-    const className = toPascalCase(table);
+    const className = toPascalCase(tableName);
 
-    const controllerMethods = createControllerMethods(table);
+    const controllerMethods = createControllerMethods({
+      tableName,
+      schemaInfo,
+    });
     const replacements = {
       className,
       controllerMethods,

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 
 const getOwnerComment = (extension: string): string => {
   const comments: Record<string, string> = {
@@ -25,12 +26,23 @@ const createAPIRoutes = (
     .join('');
 
   const customRoutes = schemaInfo
-    .map(({ table }) => {
-      const routeName = table.endsWith('s') ? table : `${table}s`; // Ensure plural routes
-      const className = toPascalCase(table);
+    .map(({ table: tableName }) => {
+      const routeName = tableName.endsWith('s') ? tableName : `${tableName}s`; // Ensure plural routes
+      const className = toPascalCase(tableName);
 
       // Additional custom routes for each controller
       const customRoutesForController = `
+        ${(() => {
+          const foundSchemaInfo = schemaInfo.find(
+            (tableInfo) => tableInfo.table === tableName,
+          );
+          return foundSchemaInfo
+            ? generateModelSpecificMethods({
+                schemaInfo: foundSchemaInfo,
+                fileToGenerate: 'routes',
+              })
+            : '';
+        })()}
         Route::get('${routeName}/find-by-attributes', [${className}Controller::class, 'findByAttributes']);
         Route::get('${routeName}/paginate', [${className}Controller::class, 'paginate']);
         Route::get('${routeName}/search', [${className}Controller::class, 'search']);
