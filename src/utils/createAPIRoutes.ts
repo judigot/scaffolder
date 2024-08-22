@@ -30,19 +30,21 @@ const createAPIRoutes = (
       const routeName = tableName.endsWith('s') ? tableName : `${tableName}s`; // Ensure plural routes
       const className = toPascalCase(tableName);
 
+      const modelSpecificRoutes = (() => {
+        const foundSchemaInfo = schemaInfo.find(
+          (tableInfo) => tableInfo.table === tableName,
+        );
+        return foundSchemaInfo
+          ? generateModelSpecificMethods({
+              schemaInfo: foundSchemaInfo,
+              fileToGenerate: 'routes',
+            })
+          : '';
+      })();
+
       // Additional custom routes for each controller
       const customRoutesForController = `
-        ${(() => {
-          const foundSchemaInfo = schemaInfo.find(
-            (tableInfo) => tableInfo.table === tableName,
-          );
-          return foundSchemaInfo
-            ? generateModelSpecificMethods({
-                schemaInfo: foundSchemaInfo,
-                fileToGenerate: 'routes',
-              })
-            : '';
-        })()}
+        ${modelSpecificRoutes}
         Route::get('${routeName}/find-by-attributes', [${className}Controller::class, 'findByAttributes']);
         Route::get('${routeName}/paginate', [${className}Controller::class, 'paginate']);
         Route::get('${routeName}/search', [${className}Controller::class, 'search']);

@@ -29,6 +29,18 @@ const createControllerMethods = ({
   const variableName = className.toLowerCase();
   const repositoryVariable = `${variableName}Repository`;
 
+  const modelSpecificMethods = (() => {
+    const foundSchemaInfo = schemaInfo.find(
+      (tableInfo) => tableInfo.table === tableName,
+    );
+    return foundSchemaInfo
+      ? generateModelSpecificMethods({
+          schemaInfo: foundSchemaInfo,
+          fileToGenerate: 'controllerMethod',
+        })
+      : '';
+  })();
+
   return `
       protected $${repositoryVariable};
   
@@ -291,18 +303,7 @@ const createControllerMethods = ({
           return response()->json($${variableName}s);
       }
 
-      ${(() => {
-        const foundSchemaInfo = schemaInfo.find(
-          (tableInfo) => tableInfo.table === tableName,
-        );
-        return foundSchemaInfo
-          ? generateModelSpecificMethods({
-              schemaInfo: foundSchemaInfo,
-              fileToGenerate: 'controllerMethod',
-            })
-          : '';
-      })()}
-      
+      ${modelSpecificMethods}
     `;
 };
 
