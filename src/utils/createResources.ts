@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { APP_SETTINGS } from '@/constants';
 
 // Global variables
 const platform: string = process.platform;
@@ -47,30 +48,35 @@ const createResources = (
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach(({ table, columnsInfo, childTables, foreignKeys }) => {
-    const className = toPascalCase(table);
-    const columns = columnsInfo.map((col) => col.column_name);
-    const relationships = childTables.concat(foreignKeys);
+  schemaInfo.forEach(
+    ({ table, columnsInfo, childTables, foreignKeys, isPivot }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-    const replacements = {
-      ownerComment: getOwnerComment(),
-      className,
-      attributes: generateAttributes(columns, relationships),
-    };
+      const className = toPascalCase(table);
+      const columns = columnsInfo.map((col) => col.column_name);
+      const relationships = childTables.concat(foreignKeys);
 
-    const templatePath = path.resolve(
-      __dirname,
-      `../templates/backend/${framework}/resource.txt`,
-    );
-    if (fs.existsSync(templatePath)) {
-      const template = fs.readFileSync(templatePath, 'utf-8');
-      const content = createFile(template, replacements);
-      const outputFilePath = path.join(outputDir, `${className}Resource.php`);
-      fs.writeFileSync(outputFilePath, content);
-    } else {
-      console.error(`Template not found: ${templatePath}`);
-    }
-  });
+      const replacements = {
+        ownerComment: getOwnerComment(),
+        className,
+        attributes: generateAttributes(columns, relationships),
+      };
+
+      const templatePath = path.resolve(
+        __dirname,
+        `../templates/backend/${framework}/resource.txt`,
+      );
+      if (fs.existsSync(templatePath)) {
+        const template = fs.readFileSync(templatePath, 'utf-8');
+        const content = createFile(template, replacements);
+        const outputFilePath = path.join(outputDir, `${className}Resource.php`);
+        fs.writeFileSync(outputFilePath, content);
+      } else {
+        console.error(`Template not found: ${templatePath}`);
+      }
+    },
+  );
 };
 
 export default createResources;

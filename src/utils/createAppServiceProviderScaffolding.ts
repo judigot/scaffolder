@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { APP_SETTINGS } from '@/constants';
 
 const updateOrCreateSection = (
   content: string,
@@ -9,16 +10,16 @@ const updateOrCreateSection = (
   endMarker: string,
   newContent: string,
 ): string => {
-  const startIdx = content.indexOf(startMarker);
-  const endIdx = content.indexOf(endMarker);
+  const startId = content.indexOf(startMarker);
+  const endId = content.indexOf(endMarker);
 
-  if (startIdx !== -1 && endIdx !== -1) {
+  if (startId !== -1 && endId !== -1) {
     return (
-      content.slice(0, startIdx + startMarker.length) +
+      content.slice(0, startId + startMarker.length) +
       '\n' +
       newContent +
       '\n' +
-      content.slice(endIdx)
+      content.slice(endId)
     );
   }
 
@@ -73,14 +74,20 @@ class AppServiceProvider extends ServiceProvider
   }
 
   const importStatements = schemaInfo
-    .map(({ table }) => {
+    .map(({ table, isPivot }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+
       const className = toPascalCase(table);
       return `use App\\Repositories\\${className}Repository;\nuse App\\Repositories\\${className}Interface;`;
     })
     .join('\n');
 
   const bindStatements = schemaInfo
-    .map(({ table }) => {
+    .map(({ table, isPivot }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+
       const className = toPascalCase(table);
       return `$this->app->bind(${className}Interface::class, ${className}Repository::class);`;
     })
@@ -89,12 +96,12 @@ class AppServiceProvider extends ServiceProvider
   // Ensure that Import section exists
   if (!content.includes('// Import start')) {
     const importSection = `// Import start\n${importStatements}\n// Import end`;
-    const serviceProviderIdx = content.indexOf('class AppServiceProvider');
+    const serviceProviderId = content.indexOf('class AppServiceProvider');
     content =
-      content.slice(0, serviceProviderIdx) +
+      content.slice(0, serviceProviderId) +
       importSection +
       '\n\n' +
-      content.slice(serviceProviderIdx);
+      content.slice(serviceProviderId);
   } else {
     content = updateOrCreateSection(
       content,
@@ -107,13 +114,13 @@ class AppServiceProvider extends ServiceProvider
   // Ensure that Bind section exists
   if (!content.includes('// Bind start')) {
     const bindSection = `// Bind start\n        ${bindStatements}\n        // Bind end`;
-    const registerIdx = content.indexOf('register(): void');
-    const registerCloseIdx = content.indexOf('}', registerIdx);
+    const registerId = content.indexOf('register(): void');
+    const registerCloseId = content.indexOf('}', registerId);
     content =
-      content.slice(0, registerCloseIdx) +
+      content.slice(0, registerCloseId) +
       bindSection +
       '\n' +
-      content.slice(registerCloseIdx);
+      content.slice(registerCloseId);
   } else {
     content = updateOrCreateSection(
       content,

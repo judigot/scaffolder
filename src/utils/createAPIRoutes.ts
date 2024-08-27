@@ -3,6 +3,7 @@ import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
+import { APP_SETTINGS } from '@/constants';
 
 const getOwnerComment = (extension: string): string => {
   const comments: Record<string, string> = {
@@ -26,16 +27,32 @@ const createAPIRoutes = (
     .join('');
 
   const customRoutes = schemaInfo
-    .map(({ table: tableName, columnsInfo }) => {
-      const routeName = tableName.endsWith('s') ? tableName : `${tableName}s`; // Ensure plural routes
-      const className = toPascalCase(tableName);
+    .map(({ table, columnsInfo, isPivot }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+
+      const routeName = (() => {
+        let modifiedTable = table;
+
+        // Ensure plural routes
+        modifiedTable = modifiedTable.endsWith('s')
+          ? modifiedTable
+          : `${modifiedTable}s`;
+
+        // Replace underscores with hyphens
+        modifiedTable = modifiedTable.replace(/_/g, '-');
+
+        return modifiedTable;
+      })();
+
+      const className = toPascalCase(table);
 
       const firstColumn = columnsInfo[0].column_name; // Example using the first column for simplicity
       const secondColumn = columnsInfo[1].column_name;
 
       const modelSpecificRoutes = (() => {
         const foundSchemaInfo = schemaInfo.find(
-          (tableInfo) => tableInfo.table === tableName,
+          (tableInfo) => tableInfo.table === table,
         );
         return foundSchemaInfo
           ? generateModelSpecificMethods({
@@ -52,7 +69,7 @@ const createAPIRoutes = (
 
         // Find records by specific attributes
         // Usage: http://localhost:8000/api/${routeName}/find-by-attributes?${firstColumn}=value&${secondColumn}=value
-        Route::get('${routeName}/find-by-attributes', [${className}Controller::class, 'findByAttributes']);
+        Route::get('${routeName}__${String(isPivot)}/find-by-attributes', [${className}Controller::class, 'findByAttributes']);
 
         // Order records by specified criteria
         // Usage: http://localhost:8000/api/${routeName}/order-by?column=${firstColumn}&direction=asc

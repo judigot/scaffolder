@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { frameworkDirectories } from '@/constants';
+import { APP_SETTINGS, frameworkDirectories } from '@/constants';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
@@ -324,16 +324,19 @@ const createControllers = (
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach(({ table: tableName }) => {
+  schemaInfo.forEach(({ table, isPivot }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/controller.txt`,
     );
     const template = fs.readFileSync(templatePath, 'utf-8');
-    const className = toPascalCase(tableName);
+    const className = toPascalCase(table);
 
     const controllerMethods = createControllerMethods({
-      tableName,
+      tableName: table,
       schemaInfo,
     });
     const replacements = {

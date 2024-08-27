@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { APP_SETTINGS } from '@/constants';
 
 // Determine the current directory based on platform
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -32,7 +33,10 @@ const createServices = (
   // Create the output directory if it doesn't exist
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach(({ table }) => {
+  schemaInfo.forEach(({ table, isPivot }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+
     const templatePath = path.resolve(
       __dirname,
       `../templates/backend/${framework}/service.txt`,

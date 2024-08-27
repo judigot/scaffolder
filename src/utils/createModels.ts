@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { frameworkDirectories } from '@/constants';
+import { APP_SETTINGS, frameworkDirectories } from '@/constants';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 
@@ -146,14 +146,25 @@ const createModelFile = (
   );
 
 const createModels = (
-  tables: ISchemaInfo[],
+  schemaInfo: ISchemaInfo[],
   framework: keyof typeof frameworkDirectories,
   outputDir: string,
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  tables.forEach(
-    ({ table, columnsInfo, foreignKeys, hasOne, hasMany, belongsToMany }) => {
+  schemaInfo.forEach(
+    ({
+      table,
+      columnsInfo,
+      foreignKeys,
+      hasOne,
+      hasMany,
+      belongsToMany,
+      isPivot,
+    }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+
       const templatePath = path.resolve(
         __dirname,
         `../templates/backend/${framework}/model.txt`,
@@ -168,7 +179,7 @@ const createModels = (
         hasOne,
         hasMany,
         belongsToMany,
-        tables,
+        schemaInfo,
       );
       const primaryKeyName =
         columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';

@@ -1,3 +1,7 @@
+export const APP_SETTINGS = {
+  excludePivotTableFiles: true,
+} as const;
+
 export const frameworkDirectories: Record<
   string,
   {

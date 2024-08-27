@@ -4,6 +4,7 @@ import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/generateModelImports';
+import { APP_SETTINGS } from '@/constants';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -31,7 +32,12 @@ const createInterfaces = (
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   schemaInfo.forEach((tableInfo) => {
-    const className = toPascalCase(tableInfo.table);
+    const { table, isPivot } = tableInfo;
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+
+    const className = toPascalCase(table);
     const modelSpecificMethods = generateModelSpecificMethods({
       schemaInfo: tableInfo,
       fileToGenerate: 'interface',
@@ -42,7 +48,7 @@ const createInterfaces = (
       ownerComment: getOwnerComment(),
       className,
       modelName: className,
-      tableName: tableInfo.table,
+      tableName: table,
       modelSpecificMethods,
       modelImports,
     };
@@ -54,10 +60,7 @@ const createInterfaces = (
     if (fs.existsSync(templatePath)) {
       const template = fs.readFileSync(templatePath, 'utf-8');
       const content = createFile(template, replacements);
-      const outputFilePath = path.join(
-        outputDir,
-        `${className}Interface.php`,
-      );
+      const outputFilePath = path.join(outputDir, `${className}Interface.php`);
       fs.writeFileSync(outputFilePath, content);
     } else {
       console.error(`Template not found: ${templatePath}`);
