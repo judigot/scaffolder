@@ -3,7 +3,7 @@ import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { generateModelImports } from '@/utils/generateModelImports';
+import { generateModelImports } from '@/utils/common';
 import { APP_SETTINGS } from '@/constants';
 
 // Global variables
