@@ -6,7 +6,7 @@ use App\Models\{{className}};
 use App\Repositories\{{className}}Interface;
 use Illuminate\Http\Request;
 
-class {{className}}Controller extends Controller
+class {{className}}Controller extends BaseController
 {
 {{controllerMethods}}
 }

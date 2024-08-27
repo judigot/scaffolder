@@ -128,7 +128,7 @@ export const generateModelSpecificMethods = ({
       relationshipType: 'hasMany',
       returnType: null,
       bodyContent: (_, relatedMethodName) =>
-        `$${relatedMethodName} = $this->${table}Repository->get${toPascalCase(
+        `$${relatedMethodName} = $this->repository->get${toPascalCase(
           relatedMethodName,
         )}($${primaryKey});
         return response()->json($${relatedMethodName});`,
