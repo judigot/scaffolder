@@ -25,9 +25,9 @@ const createControllerMethods = ({
   tableName: string;
   schemaInfo: ISchemaInfo[];
 }): string => {
-  const className = toPascalCase(tableName);
-  const variableName = className.toLowerCase();
-  const repositoryVariable = `${variableName}Repository`;
+  const model = toPascalCase(tableName);
+  const modelLowercase = model.toLowerCase();
+  const repositoryVariable = `${modelLowercase}Repository`;
 
   const modelSpecificMethods = (() => {
     const foundSchemaInfo = schemaInfo.find(
@@ -44,48 +44,48 @@ const createControllerMethods = ({
   return `
       protected $${repositoryVariable};
   
-      public function __construct(${className}Interface $${repositoryVariable})
+      public function __construct(${model}Interface $${repositoryVariable})
       {
           $this->${repositoryVariable} = $${repositoryVariable};
       }
   
       public function index()
       {
-          $${variableName}s = $this->${repositoryVariable}->getAll();
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->getAll();
+          return response()->json($${modelLowercase}s);
       }
   
       public function show($id)
       {
-          $${variableName} = $this->${repositoryVariable}->findById($id);
-          if ($${variableName}) {
-              return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->findById($id);
+          if ($${modelLowercase}) {
+              return response()->json($${modelLowercase});
           }
-          return response()->json(['message' => '${className} not found'], 404);
+          return response()->json(['message' => '${model} not found'], 404);
       }
   
       public function store(Request $request)
       {
-          $${variableName} = $this->${repositoryVariable}->create($request->all());
-          return response()->json($${variableName}, 201);
+          $${modelLowercase} = $this->${repositoryVariable}->create($request->all());
+          return response()->json($${modelLowercase}, 201);
       }
   
       public function update(Request $request, $id)
       {
           $updated = $this->${repositoryVariable}->update($id, $request->all());
           if ($updated) {
-              return response()->json(['message' => '${className} updated']);
+              return response()->json(['message' => '${model} updated']);
           }
-          return response()->json(['message' => '${className} not found'], 404);
+          return response()->json(['message' => '${model} not found'], 404);
       }
   
       public function destroy($id)
       {
           $deleted = $this->${repositoryVariable}->delete($id);
           if ($deleted) {
-              return response()->json(['message' => '${className} deleted']);
+              return response()->json(['message' => '${model} deleted']);
           }
-          return response()->json(['message' => '${className} not found'], 404);
+          return response()->json(['message' => '${model} not found'], 404);
       }
   
       // Additional Methods
@@ -93,18 +93,18 @@ const createControllerMethods = ({
       public function findByAttributes(Request $request)
       {
           $attributes = $request->all();
-          $${variableName} = $this->${repositoryVariable}->findByAttributes($attributes);
-          if ($${variableName}) {
-              return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->findByAttributes($attributes);
+          if ($${modelLowercase}) {
+              return response()->json($${modelLowercase});
           }
-          return response()->json(['message' => '${className} not found'], 404);
+          return response()->json(['message' => '${model} not found'], 404);
       }
   
       public function paginate(Request $request)
       {
           $perPage = $request->input('per_page', 15);
-          $${variableName}s = $this->${repositoryVariable}->paginate($perPage);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->paginate($perPage);
+          return response()->json($${modelLowercase}s);
       }
   
       public function search(Request $request)
@@ -126,40 +126,40 @@ const createControllerMethods = ({
       public function getWithRelations(Request $request)
       {
           $relations = $request->input('relations', []);
-          $${variableName}s = $this->${repositoryVariable}->getWithRelations($relations);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->getWithRelations($relations);
+          return response()->json($${modelLowercase}s);
       }
   
       public function findOrFail($id)
       {
-          $${variableName} = $this->${repositoryVariable}->findOrFail($id);
-          return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->findOrFail($id);
+          return response()->json($${modelLowercase});
       }
   
       public function updateOrCreate(Request $request)
       {
           $attributes = $request->input('attributes', []);
           $values = $request->input('values', []);
-          $${variableName} = $this->${repositoryVariable}->updateOrCreate($attributes, $values);
-          return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->updateOrCreate($attributes, $values);
+          return response()->json($${modelLowercase});
       }
   
       public function softDelete($id)
       {
           $softDeleted = $this->${repositoryVariable}->softDelete($id);
           if ($softDeleted) {
-              return response()->json(['message' => '${className} soft-deleted']);
+              return response()->json(['message' => '${model} soft-deleted']);
           }
-          return response()->json(['message' => '${className} not found'], 404);
+          return response()->json(['message' => '${model} not found'], 404);
       }
   
       public function restore($id)
       {
           $restored = $this->${repositoryVariable}->restore($id);
           if ($restored) {
-              return response()->json(['message' => '${className} restored']);
+              return response()->json(['message' => '${model} restored']);
           }
-          return response()->json(['message' => '${className} not found'], 404);
+          return response()->json(['message' => '${model} not found'], 404);
       }
   
       public function batchUpdate(Request $request)
@@ -189,31 +189,31 @@ const createControllerMethods = ({
       {
           $attributes = $request->input('attributes', []);
           $values = $request->input('values', []);
-          $${variableName} = $this->${repositoryVariable}->firstOrCreate($attributes, $values);
-          return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->firstOrCreate($attributes, $values);
+          return response()->json($${modelLowercase});
       }
   
       public function firstOrNew(Request $request)
       {
           $attributes = $request->input('attributes', []);
           $values = $request->input('values', []);
-          $${variableName} = $this->${repositoryVariable}->firstOrNew($attributes, $values);
-          return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->firstOrNew($attributes, $values);
+          return response()->json($${modelLowercase});
       }
   
       public function chunk(Request $request)
       {
           $size = $request->input('size', 100);
-          $callback = function ($${variableName}s) {
-              return response()->json($${variableName}s);
+          $callback = function ($${modelLowercase}s) {
+              return response()->json($${modelLowercase}s);
           };
           $this->${repositoryVariable}->chunk($size, $callback);
       }
   
       public function each()
       {
-          $callback = function ($${variableName}) {
-              return response()->json($${variableName});
+          $callback = function ($${modelLowercase}) {
+              return response()->json($${modelLowercase});
           };
           $this->${repositoryVariable}->each($callback);
       }
@@ -221,86 +221,86 @@ const createControllerMethods = ({
       public function random(Request $request)
       {
           $count = $request->input('count', 1);
-          $${variableName}s = $this->${repositoryVariable}->random($count);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->random($count);
+          return response()->json($${modelLowercase}s);
       }
   
       public function latest(Request $request)
       {
           $column = $request->input('column', 'created_at');
-          $${variableName} = $this->${repositoryVariable}->latest($column);
-          return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->latest($column);
+          return response()->json($${modelLowercase});
       }
   
       public function oldest(Request $request)
       {
           $column = $request->input('column', 'created_at');
-          $${variableName} = $this->${repositoryVariable}->oldest($column);
-          return response()->json($${variableName});
+          $${modelLowercase} = $this->${repositoryVariable}->oldest($column);
+          return response()->json($${modelLowercase});
       }
   
       public function findMany(Request $request)
       {
           $ids = $request->input('ids', []);
-          $${variableName}s = $this->${repositoryVariable}->findMany($ids);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->findMany($ids);
+          return response()->json($${modelLowercase}s);
       }
   
       public function whereIn(Request $request)
       {
           $column = $request->input('column');
           $values = $request->input('values', []);
-          $${variableName}s = $this->${repositoryVariable}->whereIn($column, $values);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->whereIn($column, $values);
+          return response()->json($${modelLowercase}s);
       }
   
       public function whereNotIn(Request $request)
       {
           $column = $request->input('column');
           $values = $request->input('values', []);
-          $${variableName}s = $this->${repositoryVariable}->whereNotIn($column, $values);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->whereNotIn($column, $values);
+          return response()->json($${modelLowercase}s);
       }
   
       public function whereBetween(Request $request)
       {
           $column = $request->input('column');
           $range = $request->input('range', []);
-          $${variableName}s = $this->${repositoryVariable}->whereBetween($column, $range);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->whereBetween($column, $range);
+          return response()->json($${modelLowercase}s);
       }
   
       public function withTrashed()
       {
-          $${variableName}s = $this->${repositoryVariable}->withTrashed();
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->withTrashed();
+          return response()->json($${modelLowercase}s);
       }
   
       public function onlyTrashed()
       {
-          $${variableName}s = $this->${repositoryVariable}->onlyTrashed();
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->onlyTrashed();
+          return response()->json($${modelLowercase}s);
       }
   
       public function withoutTrashed()
       {
-          $${variableName}s = $this->${repositoryVariable}->withoutTrashed();
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->withoutTrashed();
+          return response()->json($${modelLowercase}s);
       }
   
       public function orderBy(Request $request)
       {
           $column = $request->input('column');
           $direction = $request->input('direction', 'asc');
-          $${variableName}s = $this->${repositoryVariable}->orderBy($column, $direction);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->orderBy($column, $direction);
+          return response()->json($${modelLowercase}s);
       }
   
       public function groupBy(Request $request)
       {
           $column = $request->input('column');
-          $${variableName}s = $this->${repositoryVariable}->groupBy($column);
-          return response()->json($${variableName}s);
+          $${modelLowercase}s = $this->${repositoryVariable}->groupBy($column);
+          return response()->json($${modelLowercase}s);
       }
 
       ${modelSpecificMethods}
