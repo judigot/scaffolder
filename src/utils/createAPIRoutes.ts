@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { toPascalCase } from '@/helpers/toPascalCase';
+import { convertToUrlFormat, toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS } from '@/constants';
@@ -40,7 +40,7 @@ const createAPIRoutes = (
           : `${modifiedTable}s`;
 
         // Replace underscores with hyphens
-        modifiedTable = modifiedTable.replace(/_/g, '-');
+        modifiedTable = convertToUrlFormat(modifiedTable);
 
         return modifiedTable;
       })();
@@ -69,7 +69,7 @@ const createAPIRoutes = (
 
         // Find records by specific attributes
         // Usage: http://localhost:8000/api/${routeName}/find-by-attributes?${firstColumn}=value&${secondColumn}=value
-        Route::get('${routeName}__${String(isPivot)}/find-by-attributes', [${className}Controller::class, 'findByAttributes']);
+        Route::get('${routeName}/find-by-attributes', [${className}Controller::class, 'findByAttributes']);
 
         // Order records by specified criteria
         // Usage: http://localhost:8000/api/${routeName}/order-by?column=${firstColumn}&direction=asc

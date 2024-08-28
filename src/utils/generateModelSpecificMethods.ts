@@ -1,4 +1,4 @@
-import { toPascalCase } from '@/helpers/toPascalCase';
+import { convertToUrlFormat, toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 
 export const generateModelSpecificMethods = ({
@@ -139,7 +139,7 @@ export const generateModelSpecificMethods = ({
     methods += hasMany
       .map(
         (relatedTable) =>
-          `Route::get('${table}s/{id}/${relatedTable}s', [${className}Controller::class, 'get${toPascalCase(
+          `Route::get('${convertToUrlFormat(`${table}s/{id}/${relatedTable}s`)}', [${className}Controller::class, 'get${toPascalCase(
             relatedTable,
           )}s']);`,
       )

@@ -4,3 +4,7 @@ export const toPascalCase = (str: string): string => {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join('');
 };
+
+export const convertToUrlFormat = (str: string): string => {
+  return str.replace(/_/g, '-');
+};
