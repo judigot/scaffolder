@@ -43,7 +43,7 @@ const createRelationships = (
   tableName: string,
   foreignKeys: string[],
   hasOne: string[],
-  hasMany: string[],
+  // hasMany: string[],
   belongsToMany: string[],
   tables: ISchemaInfo[],
 ): string => {
@@ -58,13 +58,28 @@ const createRelationships = (
     })
     .join('\n');
 
-  const hasManyRelations = hasMany
-    .map((childTable) => {
+  // Generate hasMany relationships based on the hasMany array and pivotRelationships
+  const hasManyRelations = tables
+    .find((table) => table.table === tableName)
+    ?.hasMany.filter((relatedTable) => {
+      const relatedTableInfo = tables.find(
+        (table) => table.table === relatedTable,
+      );
+      return (
+        (relatedTableInfo?.pivotRelationships.some(
+          (pivot) => pivot.relatedTable === tableName,
+        ) ??
+          false) ||
+        !(relatedTableInfo?.isPivot ?? false)
+      );
+    })
+    .map((relatedTable) => {
       const childPrimaryKey = tables
-        .find((table) => table.table === childTable)
+        .find((table) => table.table === relatedTable)
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
+
       if (childPrimaryKey != null && parentPrimaryKey != null) {
-        return `    public function ${childTable}s()\n    {\n        return $this->hasMany(${toPascalCase(childTable)}::class, '${parentPrimaryKey}');\n    }\n`;
+        return `    public function ${relatedTable}s()\n    {\n        return $this->hasMany(${toPascalCase(relatedTable)}::class, '${parentPrimaryKey}');\n    }\n`;
       }
       return '';
     })
@@ -104,7 +119,7 @@ const createRelationships = (
 
   return [
     belongsToRelations,
-    hasManyRelations,
+    hasManyRelations, // Generate hasMany relationships correctly
     hasOneRelations,
     belongsToManyRelations,
   ]
@@ -177,7 +192,7 @@ const createModels = (
         table,
         foreignKeys,
         hasOne,
-        hasMany,
+        // hasMany,
         belongsToMany,
         schemaInfo,
       );
