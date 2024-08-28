@@ -24,4 +24,8 @@ export interface ISchemaInfo {
   hasMany: string[];
   belongsTo: string[];
   belongsToMany: string[];
+  pivotRelationships: {
+    relatedTable: string;
+    pivotTable: string | null;
+  }[];
 }

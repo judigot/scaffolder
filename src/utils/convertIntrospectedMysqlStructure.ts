@@ -71,6 +71,7 @@ const convertTable = (table: ITableMysql): ISchemaInfo => {
     hasMany: [],
     belongsTo: [],
     belongsToMany: [],
+    pivotRelationships: [],
   };
 };
 

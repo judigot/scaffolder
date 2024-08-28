@@ -78,6 +78,7 @@ const convertTable = (table: ITable): ISchemaInfo => {
     hasMany: [],
     belongsTo: [],
     belongsToMany: [],
+    pivotRelationships: [],
   };
 };
 

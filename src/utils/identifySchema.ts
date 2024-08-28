@@ -280,11 +280,40 @@ const linkChildTables = (schemaInfo: ISchemaInfo[]) => {
   });
 };
 
+function addPivotRelationships(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
+  schemaInfo.forEach((info) => {
+    if (info.isPivot) {
+      // Iterate over the parent tables in 'belongsTo' to set their pivot relationships
+      info.belongsTo.forEach((parentTable) => {
+        const parentTableInfo = schemaInfo.find(
+          (schema) => schema.table === parentTable,
+        );
+
+        if (parentTableInfo) {
+          // Identify the other parent table in the pivot relationship
+          const partnerTable = info.belongsTo.find(
+            (table) => table !== parentTable,
+          );
+
+          if (partnerTable != null) {
+            parentTableInfo.pivotRelationships.push({
+              relatedTable: partnerTable,
+              pivotTable: info.table,
+            });
+          }
+        }
+      });
+    }
+  });
+
+  return schemaInfo;
+}
+
 // Main function to identify schema relationships
 function identifySchema(
   data: Record<string, Record<string, unknown>[]>,
 ): ISchemaInfo[] {
-  const schemaInfo: ISchemaInfo[] = Object.keys(data).map((table) => {
+  let schemaInfo: ISchemaInfo[] = Object.keys(data).map((table) => {
     const rows = data[table];
     const fields = populateFieldInfo(rows);
     const primaryKeyField = determinePrimaryKeyField(
@@ -307,6 +336,7 @@ function identifySchema(
       hasMany: [],
       belongsTo: [],
       belongsToMany: [],
+      pivotRelationships: [],
     };
   });
 
@@ -321,8 +351,10 @@ function identifySchema(
 
   // Sort tables based on hierarchy
   if (!isAlreadySorted(schemaInfo)) {
-    return sortTablesBasedOnHierarchy(schemaInfo);
+    schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
   }
+
+  schemaInfo = addPivotRelationships(schemaInfo);
 
   return schemaInfo;
 }
