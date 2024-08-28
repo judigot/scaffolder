@@ -55,7 +55,7 @@ const createInterfaces = (
 
     const templatePath = path.resolve(
       __dirname,
-      `../templates/backend/${framework}/repositoryInterface.txt`,
+      `../templates/backend/${framework}/repository-interface.txt`,
     );
     if (fs.existsSync(templatePath)) {
       const template = fs.readFileSync(templatePath, 'utf-8');

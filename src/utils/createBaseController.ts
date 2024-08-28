@@ -29,7 +29,7 @@ const createBaseController = (framework: string, outputDir: string): void => {
   // Create Base Controller
   const baseRepoTemplatePath = path.resolve(
     __dirname,
-    `../templates/backend/${framework}/baseController.txt`,
+    `../templates/backend/${framework}/base-controller.txt`,
   );
   if (fs.existsSync(baseRepoTemplatePath)) {
     const baseRepoTemplate = fs.readFileSync(baseRepoTemplatePath, 'utf-8');
