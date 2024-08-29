@@ -101,7 +101,7 @@ export const generateModelSpecificMethods = ({
         const description = `Find ${className} by ${foreignTablePrimaryKey}.`;
         const methodName = `findBy${toPascalCase(foreignTablePrimaryKey)}`;
         const returnType = `?${className}`;
-        const body = `return $this->model->where('${foreignTablePrimaryKey}', $${foreignTablePrimaryKey}).first();`;
+        const body = `return $this->model->where('${foreignTablePrimaryKey}', $${foreignTablePrimaryKey})->first();`;
 
         methods += generateMethod(
           description,
