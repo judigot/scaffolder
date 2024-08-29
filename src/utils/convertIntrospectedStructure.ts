@@ -1,6 +1,7 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { addRelationshipInfo } from './identifySchema';
 import { typeMappings } from '@/utils/mappings';
+import pluralize from 'pluralize';
 
 export interface ITable {
   table_name: string;
@@ -68,6 +69,7 @@ const convertTable = (table: ITable): ISchemaInfo => {
 
   return {
     table: table.table_name,
+    tablePlural: pluralize(table.table_name),
     requiredColumns,
     columnsInfo,
     foreignTables,
