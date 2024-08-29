@@ -30,33 +30,18 @@ const createAPIRoutes = (
   const customRoutes = schemaInfo
     .map(({ table, tablePlural, columnsInfo, isPivot }) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
 
-      const routeName = (() => {
-        let modifiedTable = pluralize(tablePlural);
-
-        // Replace underscores with hyphens
-        modifiedTable = convertToUrlFormat(modifiedTable);
-
-        return modifiedTable;
-      })();
-
+      const routeName = convertToUrlFormat(pluralize(tablePlural));
       const className = toPascalCase(table);
+      const firstColumn = columnsInfo[0]?.column_name || 'id'; // Fallback to 'id' if no columns exist
+      const secondColumn = columnsInfo[1]?.column_name || 'id';
 
-      const firstColumn = columnsInfo[0].column_name; // Example using the first column for simplicity
-      const secondColumn = columnsInfo[1].column_name;
-
-      const modelSpecificRoutes = (() => {
-        const foundSchemaInfo = schemaInfo.find(
-          (tableInfo) => tableInfo.table === table,
-        );
-        return foundSchemaInfo
-          ? generateModelSpecificMethods({
-              schemaInfo: foundSchemaInfo,
-              fileToGenerate: 'routes',
-            })
-          : '';
-      })();
+      const modelSpecificRoutes = generateModelSpecificMethods({
+        targetTable: table,
+        schemaInfo,
+        fileToGenerate: 'routes',
+      });
 
       // Additional custom routes for each controller
       const customRoutesForController = `

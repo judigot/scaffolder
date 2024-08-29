@@ -121,7 +121,8 @@ describe('generateModelSpecificMethods', () => {
       const orderSchema = schemaInfo.find((info) => info.table === 'order');
       if (orderSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: orderSchema,
+          targetTable: orderSchema.table,
+          schemaInfo,
           fileToGenerate: 'repository',
         });
 
@@ -148,7 +149,8 @@ describe('generateModelSpecificMethods', () => {
       );
       if (orderProductSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: orderProductSchema,
+          targetTable: orderProductSchema.table,
+          schemaInfo,
           fileToGenerate: 'interface',
         });
 
@@ -172,7 +174,8 @@ describe('generateModelSpecificMethods', () => {
       const orderSchema = schemaInfo.find((info) => info.table === 'order');
       if (orderSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: orderSchema,
+          targetTable: orderSchema.table,
+          schemaInfo,
           fileToGenerate: 'controllerMethod',
         });
 
@@ -199,7 +202,8 @@ describe('generateModelSpecificMethods', () => {
       const orderSchema = schemaInfo.find((info) => info.table === 'order');
       if (orderSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: orderSchema,
+          targetTable: orderSchema.table,
+          schemaInfo,
           fileToGenerate: 'routes',
         });
 
@@ -219,7 +223,8 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const userSchema = schemaInfo.find((info) => info.table === 'user');
       if (userSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: userSchema,
+          targetTable: userSchema.table,
+          schemaInfo,
           fileToGenerate: 'repository',
         });
 
@@ -244,7 +249,8 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const postSchema = schemaInfo.find((info) => info.table === 'post');
       if (postSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: postSchema,
+          targetTable: postSchema.table,
+          schemaInfo,
           fileToGenerate: 'interface',
         });
 
@@ -268,7 +274,8 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const userSchema = schemaInfo.find((info) => info.table === 'user');
       if (userSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: userSchema,
+          targetTable: userSchema.table,
+          schemaInfo,
           fileToGenerate: 'controllerMethod',
         });
 
@@ -295,7 +302,8 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const userSchema = schemaInfo.find((info) => info.table === 'user');
       if (userSchema) {
         const methods = generateModelSpecificMethods({
-          schemaInfo: userSchema,
+          targetTable: userSchema.table,
+          schemaInfo,
           fileToGenerate: 'routes',
         });
 

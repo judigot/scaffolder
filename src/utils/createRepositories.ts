@@ -34,12 +34,14 @@ const createRepositories = (
   schemaInfo.forEach((tableInfo) => {
     const { table, isPivot } = tableInfo;
 
+    // Skip pivot tables if necessary
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
     const className = toPascalCase(table);
     const modelSpecificMethods = generateModelSpecificMethods({
-      schemaInfo: tableInfo,
+      targetTable: table, // Pass the table name as targetTable
+      schemaInfo,
       fileToGenerate: 'repository',
     });
     const modelImports = generateModelImports(tableInfo);

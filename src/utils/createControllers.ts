@@ -29,17 +29,11 @@ const createControllerMethods = ({
   const modelLowercase = model.toLowerCase();
   const repositoryVariable = `${modelLowercase}Repository`;
 
-  const modelSpecificMethods = (() => {
-    const foundSchemaInfo = schemaInfo.find(
-      (tableInfo) => tableInfo.table === tableName,
-    );
-    return foundSchemaInfo
-      ? generateModelSpecificMethods({
-          schemaInfo: foundSchemaInfo,
-          fileToGenerate: 'controllerMethod',
-        })
-      : '';
-  })();
+  const modelSpecificMethods = generateModelSpecificMethods({
+    targetTable: tableName,
+    schemaInfo,
+    fileToGenerate: 'controllerMethod',
+  });
 
   return `
       protected $repository;
@@ -72,7 +66,6 @@ const createControllers = (
 
   schemaInfo.forEach(({ table, isPivot }) => {
     // Skip pivot tables if necessary
-
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 

@@ -39,7 +39,8 @@ const createInterfaces = (
 
     const className = toPascalCase(table);
     const modelSpecificMethods = generateModelSpecificMethods({
-      schemaInfo: tableInfo,
+      targetTable: table, // Pass the table name as targetTable
+      schemaInfo,
       fileToGenerate: 'interface',
     });
     const modelImports = generateModelImports(tableInfo);

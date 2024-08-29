@@ -2,20 +2,26 @@ import { convertToUrlFormat, toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 
 export const generateModelSpecificMethods = ({
+  targetTable,
   schemaInfo,
   fileToGenerate,
 }: {
-  schemaInfo: ISchemaInfo;
+  targetTable: ISchemaInfo['table'];
+  schemaInfo: ISchemaInfo[];
   fileToGenerate: 'interface' | 'repository' | 'controllerMethod' | 'routes';
 }): string => {
-  const { table, pivotRelationships, columnsInfo, hasMany } = schemaInfo;
+  const tableInfo = schemaInfo.find((table) => table.table === targetTable);
+  if (!tableInfo) return '';
+
+  const { table, tablePlural, pivotRelationships, columnsInfo, hasMany } =
+    tableInfo;
   const className = toPascalCase(table);
 
   // Find the primary key for the current table
   const primaryKeyColumn: IColumnInfo | undefined = columnsInfo.find(
     (column) => column.primary_key,
   );
-  const primaryKey = primaryKeyColumn?.column_name ?? `${table}_id`; // Use primary key name from column, or fallback
+  const primaryKey = primaryKeyColumn?.column_name ?? `${table}_id`;
 
   const generateMethod = (
     description: string,
@@ -41,89 +47,52 @@ export const generateModelSpecificMethods = ({
 
   let methods = '';
 
-  const generatePivotRelationshipMethods = () => {
-    pivotRelationships.forEach(({ relatedTable }) => {
+  const getTablePlural = (tableName: string): string => {
+    const relatedSchema = schemaInfo.find(
+      (schema) => schema.table === tableName,
+    );
+    return relatedSchema ? relatedSchema.tablePlural : tableName;
+  };
+
+  const generateRelationshipMethods = (
+    relatedTables: string[],
+    isController: boolean,
+    descriptionPrefix: string,
+  ) => {
+    relatedTables.forEach((relatedTable) => {
       const relatedClass = toPascalCase(relatedTable);
-      const description = `Get the related ${relatedClass}s.`;
+      const relatedTablePlural = getTablePlural(relatedTable);
+      const description = isController
+        ? `${descriptionPrefix} ${relatedClass}s related to the given ${className}.`
+        : `${descriptionPrefix} ${relatedClass}s.`;
       const methodName = `get${relatedClass}s`;
       const returnType = `?Collection`;
-      const body = `return $this->model->find($${primaryKey})?->${relatedTable}s;`;
+      const body = `return $this->model->find($${primaryKey})?->${relatedTablePlural};`;
 
       methods += generateMethod(
         description,
-        returnType,
+        isController ? null : returnType,
         methodName,
-        body,
-        primaryKey,
-      );
-    });
-  };
-
-  const generateHasManyMethods = () => {
-    hasMany.forEach((relatedTable) => {
-      const relatedClass = toPascalCase(relatedTable);
-      const description = `Get the related ${relatedClass}s.`;
-      const methodName = `get${relatedClass}s`;
-      const returnType = `?Collection`;
-      const body = `return $this->model->find($${primaryKey})?->${relatedTable}s;`;
-
-      methods += generateMethod(
-        description,
-        returnType,
-        methodName,
-        body,
-        primaryKey,
-      );
-    });
-  };
-
-  const generateControllerPivotMethods = () => {
-    pivotRelationships.forEach(({ relatedTable }) => {
-      const relatedClass = toPascalCase(relatedTable);
-      const description = `Get all ${relatedClass}s related to the given ${className}.`;
-      const methodName = `get${relatedClass}s`;
-
-      const body = `
-        $${relatedTable}s = $this->repository->get${relatedClass}s($${primaryKey});
-        return response()->json($${relatedTable}s);
-      `;
-
-      methods += generateMethod(
-        description,
-        null,
-        methodName,
-        body,
-        primaryKey,
-      );
-    });
-  };
-
-  const generateHasManyControllerMethods = () => {
-    hasMany.forEach((relatedTable) => {
-      const relatedClass = toPascalCase(relatedTable);
-      const description = `Get all ${relatedClass}s related to the given ${className}.`;
-      const methodName = `get${relatedClass}s`;
-
-      const body = `
-        $${relatedTable}s = $this->repository->get${relatedClass}s($${primaryKey});
-        return response()->json($${relatedTable}s);
-      `;
-
-      methods += generateMethod(
-        description,
-        null,
-        methodName,
-        body,
+        isController
+          ? `
+        $${relatedTablePlural} = $this->repository->get${relatedClass}s($${primaryKey});
+        return response()->json($${relatedTablePlural});
+      `
+          : body,
         primaryKey,
       );
     });
   };
 
   if (fileToGenerate === 'repository' || fileToGenerate === 'interface') {
-    generatePivotRelationshipMethods();
+    generateRelationshipMethods(
+      pivotRelationships.map(({ relatedTable }) => relatedTable),
+      false,
+      'Get the related', // Prefix for repository and interface
+    );
 
     if (pivotRelationships.length === 0) {
-      generateHasManyMethods();
+      generateRelationshipMethods(hasMany, false, 'Get the related');
     }
 
     columnsInfo.forEach((column) => {
@@ -146,10 +115,14 @@ export const generateModelSpecificMethods = ({
   }
 
   if (fileToGenerate === 'controllerMethod') {
-    generateControllerPivotMethods();
+    generateRelationshipMethods(
+      pivotRelationships.map(({ relatedTable }) => relatedTable),
+      true,
+      'Get all', // Prefix for controller methods
+    );
 
     if (pivotRelationships.length === 0) {
-      generateHasManyControllerMethods();
+      generateRelationshipMethods(hasMany, true, 'Get all');
     }
   }
 
@@ -157,7 +130,7 @@ export const generateModelSpecificMethods = ({
     methods += pivotRelationships
       .map(
         ({ relatedTable }) =>
-          `Route::get('${convertToUrlFormat(`${table}s/{id}/${relatedTable}s`)}', [${className}Controller::class, 'get${toPascalCase(
+          `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural(relatedTable)}`)}', [${className}Controller::class, 'get${toPascalCase(
             relatedTable,
           )}s']);`,
       )
@@ -167,7 +140,7 @@ export const generateModelSpecificMethods = ({
       methods += hasMany
         .map(
           (relatedTable) =>
-            `Route::get('${convertToUrlFormat(`${table}s/{id}/${relatedTable}s`)}', [${className}Controller::class, 'get${toPascalCase(
+            `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural(relatedTable)}`)}', [${className}Controller::class, 'get${toPascalCase(
               relatedTable,
             )}s']);`,
         )
