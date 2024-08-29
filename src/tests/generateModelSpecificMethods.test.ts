@@ -3,9 +3,7 @@ import JSON5 from 'json5';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import identifySchema from '@/utils/identifySchema';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-
-// Utility function to normalize whitespace in strings
-const normalizeWhitespace = (str: string) => str.replace(/\s+/g, ' ').trim();
+import { normalizeWhitespace } from '@/helpers/toPascalCase';
 
 describe('generateModelSpecificMethods', () => {
   const schemaInput = JSON5.stringify({
