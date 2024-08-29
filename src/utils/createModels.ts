@@ -39,11 +39,10 @@ const createFillable = (
   return fillableColumns.map((column) => `'${column}'`).join(',\n        ');
 };
 
-const createRelationships = (
+export const createRelationships = (
   tableName: string,
   foreignKeys: string[],
   hasOne: string[],
-  // hasMany: string[],
   belongsToMany: string[],
   tables: ISchemaInfo[],
 ): string => {
