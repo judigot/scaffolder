@@ -14,6 +14,7 @@ export interface IColumnInfo {
 
 export interface ISchemaInfo {
   table: string;
+  tablePlural: string;
   requiredColumns: string[];
   columnsInfo: IColumnInfo[];
   foreignTables: string[];

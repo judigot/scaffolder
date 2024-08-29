@@ -1,6 +1,7 @@
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import convertType from './convertType';
 import identifyTSPrimitiveType from './identifyTSPrimitiveType';
+import pluralize from 'pluralize';
 
 /* Relationship Rules:
 
@@ -324,6 +325,7 @@ function identifySchema(
 
     return {
       table,
+      tablePlural: pluralize(table),
       requiredColumns: Object.keys(fields).filter(
         (key) => !fields[key].nullable,
       ),
