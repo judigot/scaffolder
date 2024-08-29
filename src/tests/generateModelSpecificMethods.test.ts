@@ -1,130 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import JSON5 from 'json5';
-import { ISchemaInfo } from '@/interfaces/interfaces';
 import identifySchema from '@/utils/identifySchema';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { normalizeWhitespace } from '@/helpers/toPascalCase';
+import { userPostOneToOneSchema } from '@/json-schemas/userPostOneToOneSchema';
+import { userPostsOneToManySchema } from '@/json-schemas/userPostsOneToManySchema';
+import { POSSchema } from '@/json-schemas/POSSchema';
 
 describe('generateModelSpecificMethods', () => {
-  const schemaInput = JSON5.stringify({
-    product: [
-      {
-        product_id: 1,
-        product_name: 'Water',
-      },
-      {
-        product_id: 2,
-        product_name: 'Yogurt',
-      },
-    ],
-    customer: [
-      {
-        customer_id: 1,
-        name: 'John Doe',
-      },
-      {
-        customer_id: 2,
-        name: 'Jane Doe',
-      },
-    ],
-    order: [
-      {
-        order_id: 1,
-        customer_id: 1,
-      },
-      {
-        order_id: 2,
-        customer_id: 1,
-      },
-      {
-        order_id: 3,
-        customer_id: 2,
-      },
-    ],
-    order_product: [
-      {
-        order_product_id: 1,
-        order_id: 1,
-        product_id: 1,
-      },
-      {
-        order_product_id: 2,
-        order_id: 1,
-        product_id: 2,
-      },
-      {
-        order_product_id: 3,
-        order_id: 2,
-        product_id: 2,
-      },
-    ],
-    user: [
-      {
-        user_id: 1,
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john.doe@example.com',
-        username: 'johndoe',
-        password:
-          '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
-        created_at: '2023-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-      {
-        user_id: 2,
-        first_name: 'Jane',
-        last_name: 'Doe',
-        email: 'jane.doe@example.com',
-        username: 'janedoe',
-        password:
-          '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
-        created_at: '2024-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-    ],
-    post: [
-      {
-        post_id: 1,
-        user_id: 1,
-        title: "John's Post",
-        content: 'Lorem ipsum',
-        created_at: '2023-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-      {
-        post_id: 2,
-        user_id: 1,
-        title: "John's 2nd Post",
-        content: 'Lorem ipsum',
-        created_at: '2023-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-      {
-        post_id: 3,
-        user_id: 2,
-        title: "Jane's Post",
-        content: null,
-        created_at: '2024-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-    ],
-  });
-
-  const formData: Record<string, Record<string, unknown>[]> =
-    JSON5.parse(schemaInput);
-  const schemaInfo: ISchemaInfo[] = identifySchema(formData);
+  const userPostsOneToManySchemaInfo = identifySchema(userPostsOneToManySchema);
+  const POSSchemaInfo = identifySchema(POSSchema);
+  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
 
   describe('POS', () => {
     it('should generate correct methods for repository', () => {
-      const orderSchema = schemaInfo.find((info) => info.table === 'order');
-      if (orderSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: orderSchema.table,
-          schemaInfo,
-          fileToGenerate: 'repository',
-        });
+      const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
+      if (!orderSchema) throw new Error("Schema for 'order' not found");
 
-        const expectedMethod = `
+      const methods = generateModelSpecificMethods({
+        targetTable: orderSchema.table,
+        schemaInfo: POSSchemaInfo,
+        fileToGenerate: 'repository',
+      });
+
+      const expectedMethod = `
     /**
      * Get the related Products.
      *
@@ -135,24 +33,25 @@ describe('generateModelSpecificMethods', () => {
         return $this->model->find($order_id)?->products;
     }`;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedMethod),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
     });
 
     it('should generate correct methods for interface', () => {
-      const orderProductSchema = schemaInfo.find(
+      const orderProductSchema = POSSchemaInfo.find(
         (info) => info.table === 'order_product',
       );
-      if (orderProductSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: orderProductSchema.table,
-          schemaInfo,
-          fileToGenerate: 'interface',
-        });
+      if (!orderProductSchema)
+        throw new Error("Schema for 'order_product' not found");
 
-        const expectedMethod = `
+      const methods = generateModelSpecificMethods({
+        targetTable: orderProductSchema.table,
+        schemaInfo: POSSchemaInfo,
+        fileToGenerate: 'interface',
+      });
+
+      const expectedMethod = `
     /**
      * Find OrderProduct by order_id.
      *
@@ -162,22 +61,22 @@ describe('generateModelSpecificMethods', () => {
     public function findByOrderId(int $order_id): ?OrderProduct;
     `;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedMethod),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
     });
 
     it('should generate correct methods for controllerMethod', () => {
-      const orderSchema = schemaInfo.find((info) => info.table === 'order');
-      if (orderSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: orderSchema.table,
-          schemaInfo,
-          fileToGenerate: 'controllerMethod',
-        });
+      const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
+      if (!orderSchema) throw new Error("Schema for 'order' not found");
 
-        const expectedMethod = `
+      const methods = generateModelSpecificMethods({
+        targetTable: orderSchema.table,
+        schemaInfo: POSSchemaInfo,
+        fileToGenerate: 'controllerMethod',
+      });
+
+      const expectedMethod = `
     /**
      * Get all Products related to the given Order.
      *
@@ -190,43 +89,45 @@ describe('generateModelSpecificMethods', () => {
         return response()->json($products);
     }`;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedMethod),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
     });
 
     it('should generate correct routes', () => {
-      const orderSchema = schemaInfo.find((info) => info.table === 'order');
-      if (orderSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: orderSchema.table,
-          schemaInfo,
-          fileToGenerate: 'routes',
-        });
+      const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
+      if (!orderSchema) throw new Error("Schema for 'order' not found");
 
-        const expectedRoute = `
+      const methods = generateModelSpecificMethods({
+        targetTable: orderSchema.table,
+        schemaInfo: POSSchemaInfo,
+        fileToGenerate: 'routes',
+      });
+
+      const expectedRoute = `
 Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
 `;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedRoute),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedRoute),
+      );
     });
   });
 
   describe('User Posts', () => {
     it('should generate correct methods for repository', () => {
-      const userSchema = schemaInfo.find((info) => info.table === 'user');
-      if (userSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: userSchema.table,
-          schemaInfo,
-          fileToGenerate: 'repository',
-        });
+      const userSchema = userPostsOneToManySchemaInfo.find(
+        (info) => info.table === 'user',
+      );
+      if (!userSchema) throw new Error("Schema for 'user' not found");
 
-        const expectedMethod = `
+      const methods = generateModelSpecificMethods({
+        targetTable: userSchema.table,
+        schemaInfo: userPostsOneToManySchemaInfo,
+        fileToGenerate: 'repository',
+      });
+
+      const expectedMethod = `
     /**
      * Get the related Posts.
      *
@@ -237,22 +138,24 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
         return $this->model->find($user_id)?->posts;
     }`;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedMethod),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
     });
 
     it('should generate correct methods for interface', () => {
-      const postSchema = schemaInfo.find((info) => info.table === 'post');
-      if (postSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: postSchema.table,
-          schemaInfo,
-          fileToGenerate: 'interface',
-        });
+      const postSchema = userPostsOneToManySchemaInfo.find(
+        (info) => info.table === 'post',
+      );
+      if (!postSchema) throw new Error("Schema for 'post' not found");
 
-        const expectedMethod = `
+      const methods = generateModelSpecificMethods({
+        targetTable: postSchema.table,
+        schemaInfo: userPostsOneToManySchemaInfo,
+        fileToGenerate: 'interface',
+      });
+
+      const expectedMethod = `
     /**
      * Find Post by user_id.
      *
@@ -262,22 +165,24 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
     public function findByUserId(int $user_id): ?Post;
     `;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedMethod),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
     });
 
     it('should generate correct methods for controllerMethod', () => {
-      const userSchema = schemaInfo.find((info) => info.table === 'user');
-      if (userSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: userSchema.table,
-          schemaInfo,
-          fileToGenerate: 'controllerMethod',
-        });
+      const userSchema = userPostsOneToManySchemaInfo.find(
+        (info) => info.table === 'user',
+      );
+      if (!userSchema) throw new Error("Schema for 'user' not found");
 
-        const expectedMethod = `
+      const methods = generateModelSpecificMethods({
+        targetTable: userSchema.table,
+        schemaInfo: userPostsOneToManySchemaInfo,
+        fileToGenerate: 'controllerMethod',
+      });
+
+      const expectedMethod = `
     /**
      * Get all Posts related to the given User.
      *
@@ -290,29 +195,140 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
         return response()->json($posts);
     }`;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedMethod),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
     });
 
     it('should generate correct routes', () => {
-      const userSchema = schemaInfo.find((info) => info.table === 'user');
-      if (userSchema) {
-        const methods = generateModelSpecificMethods({
-          targetTable: userSchema.table,
-          schemaInfo,
-          fileToGenerate: 'routes',
-        });
+      const userSchema = userPostsOneToManySchemaInfo.find(
+        (info) => info.table === 'user',
+      );
+      if (!userSchema) throw new Error("Schema for 'user' not found");
 
-        const expectedRoute = `
+      const methods = generateModelSpecificMethods({
+        targetTable: userSchema.table,
+        schemaInfo: userPostsOneToManySchemaInfo,
+        fileToGenerate: 'routes',
+      });
+
+      const expectedRoute = `
 Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
 `;
 
-        expect(normalizeWhitespace(methods)).toContain(
-          normalizeWhitespace(expectedRoute),
-        );
-      }
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedRoute),
+      );
+    });
+  });
+
+  describe('User Post One-to-One', () => {
+    it('should generate correct methods for repository', () => {
+      const userSchema = userPostOneToOneSchemaInfo.find(
+        (info) => info.table === 'user',
+      );
+      if (!userSchema) throw new Error("Schema for 'user' not found");
+
+      const methods = generateModelSpecificMethods({
+        targetTable: userSchema.table,
+        schemaInfo: userPostOneToOneSchemaInfo,
+        fileToGenerate: 'repository',
+      });
+
+      const expectedMethod = normalizeWhitespace(`
+        /**
+         * Get the related Post.
+         *
+         * @param int $user_id
+         * @return ?Post
+         */
+        public function getPost(int $user_id): ?Post {
+            return $this->model->find($user_id)?->post;
+        }
+      `);
+
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
+    });
+
+    it('should generate correct methods for interface', () => {
+      const postSchema = userPostOneToOneSchemaInfo.find(
+        (info) => info.table === 'post',
+      );
+      if (!postSchema) throw new Error("Schema for 'post' not found");
+
+      const methods = generateModelSpecificMethods({
+        targetTable: postSchema.table,
+        schemaInfo: userPostOneToOneSchemaInfo,
+        fileToGenerate: 'interface',
+      });
+
+      const expectedMethod = normalizeWhitespace(`
+        /**
+         * Find Post by user_id.
+         *
+         * @param int $user_id
+         * @return ?Post
+         */
+        public function findByUserId(int $user_id): ?Post;
+      `);
+
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
+    });
+
+    it('should generate correct methods for controllerMethod', () => {
+      const userSchema = userPostOneToOneSchemaInfo.find(
+        (info) => info.table === 'user',
+      );
+      if (!userSchema) throw new Error("Schema for 'user' not found");
+
+      const methods = generateModelSpecificMethods({
+        targetTable: userSchema.table,
+        schemaInfo: userPostOneToOneSchemaInfo,
+        fileToGenerate: 'controllerMethod',
+      });
+
+      const expectedMethod = normalizeWhitespace(`
+        /**
+         * Get the related Post related to the given User.
+         *
+         * @param int $user_id
+         * 
+         */
+        public function getPost(int $user_id) {
+
+            $post = $this->repository->getPost($user_id);
+            return response()->json($post);
+        }
+      `);
+
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedMethod),
+      );
+    });
+
+    it('should generate correct routes', () => {
+      const userSchema = userPostOneToOneSchemaInfo.find(
+        (info) => info.table === 'user',
+      );
+      if (!userSchema) throw new Error("Schema for 'user' not found");
+
+      const methods = generateModelSpecificMethods({
+        targetTable: userSchema.table,
+        schemaInfo: userPostOneToOneSchemaInfo,
+        fileToGenerate: 'routes',
+      });
+
+      const expectedRoute = normalizeWhitespace(`
+        Route::get('users/{id}/post', [UserController::class, 'getPost']);
+      `);
+
+      expect(normalizeWhitespace(methods)).toContain(
+        normalizeWhitespace(expectedRoute),
+      );
     });
   });
 });
