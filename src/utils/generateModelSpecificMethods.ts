@@ -13,8 +13,14 @@ export const generateModelSpecificMethods = ({
   const tableInfo = schemaInfo.find((table) => table.table === targetTable);
   if (!tableInfo) return '';
 
-  const { table, tablePlural, pivotRelationships, columnsInfo, hasMany } =
-    tableInfo;
+  const {
+    table,
+    tablePlural,
+    pivotRelationships,
+    columnsInfo,
+    hasOne,
+    hasMany,
+  } = tableInfo;
   const className = toPascalCase(table);
 
   // Find the primary key for the current table
@@ -58,16 +64,17 @@ export const generateModelSpecificMethods = ({
     relatedTables: string[],
     isController: boolean,
     descriptionPrefix: string,
+    isHasOne = false,
   ) => {
     relatedTables.forEach((relatedTable) => {
       const relatedClass = toPascalCase(relatedTable);
       const relatedTablePlural = getTablePlural(relatedTable);
       const description = isController
-        ? `${descriptionPrefix} ${relatedClass}s related to the given ${className}.`
-        : `${descriptionPrefix} ${relatedClass}s.`;
-      const methodName = `get${relatedClass}s`;
-      const returnType = `?Collection`;
-      const body = `return $this->model->find($${primaryKey})?->${relatedTablePlural};`;
+        ? `${descriptionPrefix} ${relatedClass}${isHasOne ? '' : 's'} related to the given ${className}.`
+        : `${descriptionPrefix} ${relatedClass}${isHasOne ? '' : 's'}.`;
+      const methodName = `get${relatedClass}${isHasOne ? '' : 's'}`;
+      const returnType = isHasOne ? `?${relatedClass}` : `?Collection`;
+      const body = `return $this->model->find($${primaryKey})?->${isHasOne ? relatedTable : relatedTablePlural};`;
 
       methods += generateMethod(
         description,
@@ -75,8 +82,8 @@ export const generateModelSpecificMethods = ({
         methodName,
         isController
           ? `
-        $${relatedTablePlural} = $this->repository->get${relatedClass}s($${primaryKey});
-        return response()->json($${relatedTablePlural});
+        $${isHasOne ? relatedTable : relatedTablePlural} = $this->repository->get${relatedClass}${isHasOne ? '' : 's'}($${primaryKey});
+        return response()->json($${isHasOne ? relatedTable : relatedTablePlural});
       `
           : body,
         primaryKey,
@@ -84,14 +91,17 @@ export const generateModelSpecificMethods = ({
     });
   };
 
+  // Handle repository and interface file generation
   if (fileToGenerate === 'repository' || fileToGenerate === 'interface') {
-    generateRelationshipMethods(
-      pivotRelationships.map(({ relatedTable }) => relatedTable),
-      false,
-      'Get the related', // Prefix for repository and interface
-    );
-
-    if (pivotRelationships.length === 0) {
+    if (pivotRelationships.length > 0) {
+      generateRelationshipMethods(
+        pivotRelationships.map(({ relatedTable }) => relatedTable),
+        false,
+        'Get the related', // Prefix for repository and interface
+      );
+    } else if (hasOne.length > 0) {
+      generateRelationshipMethods(hasOne, false, 'Get the related', true);
+    } else if (hasMany.length > 0) {
       generateRelationshipMethods(hasMany, false, 'Get the related');
     }
 
@@ -114,29 +124,42 @@ export const generateModelSpecificMethods = ({
     });
   }
 
+  // Handle controller method generation
   if (fileToGenerate === 'controllerMethod') {
-    generateRelationshipMethods(
-      pivotRelationships.map(({ relatedTable }) => relatedTable),
-      true,
-      'Get all', // Prefix for controller methods
-    );
-
-    if (pivotRelationships.length === 0) {
+    if (pivotRelationships.length > 0) {
+      generateRelationshipMethods(
+        pivotRelationships.map(({ relatedTable }) => relatedTable),
+        true,
+        'Get all', // Prefix for controller methods
+      );
+    } else if (hasOne.length > 0) {
+      generateRelationshipMethods(hasOne, true, 'Get the related', true);
+    } else if (hasMany.length > 0) {
       generateRelationshipMethods(hasMany, true, 'Get all');
     }
   }
 
+  // Handle route generation
   if (fileToGenerate === 'routes') {
-    methods += pivotRelationships
-      .map(
-        ({ relatedTable }) =>
-          `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural(relatedTable)}`)}', [${className}Controller::class, 'get${toPascalCase(
-            relatedTable,
-          )}s']);`,
-      )
-      .join('\n');
-
-    if (pivotRelationships.length === 0) {
+    if (pivotRelationships.length > 0) {
+      methods += pivotRelationships
+        .map(
+          ({ relatedTable }) =>
+            `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural(relatedTable)}`)}', [${className}Controller::class, 'get${toPascalCase(
+              relatedTable,
+            )}s']);`,
+        )
+        .join('\n');
+    } else if (hasOne.length > 0) {
+      methods += hasOne
+        .map(
+          (relatedTable) =>
+            `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${relatedTable}`)}', [${className}Controller::class, 'get${toPascalCase(
+              relatedTable,
+            )}']);`,
+        )
+        .join('\n');
+    } else if (hasMany.length > 0) {
       methods += hasMany
         .map(
           (relatedTable) =>
