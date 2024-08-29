@@ -17,9 +17,9 @@ const loadTemplate = (framework: string) => {
 };
 
 describe('createModels', () => {
-  const schemaInfo1 = identifySchema(userPostsOneToManySchema);
-  const schemaInfo2 = identifySchema(POSSchema);
-  const schemaInfo3 = identifySchema(userPostOneToOneSchema);
+  const userPostsOneToManySchemaInfo = identifySchema(userPostsOneToManySchema);
+  const POSSchemaInfo = identifySchema(POSSchema);
+  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
 
   it('should generate correct relationships for User model with one-to-one Post using model.txt template', () => {
     const framework = 'laravel';
@@ -30,7 +30,7 @@ describe('createModels', () => {
       [],
       ['post'],
       [],
-      schemaInfo3,
+      userPostOneToOneSchemaInfo,
     );
 
     const expectedUserModel = normalizeWhitespace(`
@@ -83,7 +83,7 @@ describe('createModels', () => {
       [],
       [],
       [],
-      schemaInfo1,
+      userPostsOneToManySchemaInfo,
     );
 
     const expectedUserModel = normalizeWhitespace(`
@@ -136,7 +136,7 @@ describe('createModels', () => {
       ['user_id'],
       [],
       [],
-      schemaInfo1,
+      userPostsOneToManySchemaInfo,
     );
 
     const expectedPostModel = normalizeWhitespace(`
@@ -187,7 +187,7 @@ describe('createModels', () => {
       [],
       [],
       [],
-      schemaInfo2,
+      POSSchemaInfo,
     );
 
     const expectedCustomerModel = normalizeWhitespace(`
@@ -233,7 +233,7 @@ describe('createModels', () => {
       ['customer_id'],
       [],
       ['product'],
-      schemaInfo2,
+      POSSchemaInfo,
     );
 
     const expectedOrderModel = normalizeWhitespace(`
@@ -288,7 +288,7 @@ describe('createModels', () => {
       ['order_id', 'product_id'],
       [],
       [],
-      schemaInfo2,
+      POSSchemaInfo,
     );
 
     const expectedOrderProductModel = normalizeWhitespace(`
