@@ -43,7 +43,7 @@ const createAPICalls = (schemaInfo: ISchemaInfo[], outputDir: string): void => {
     operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
   });
 
-  schemaInfo.forEach(({ table }) => {
+  schemaInfo.forEach(({ table, tablePlural }) => {
     const className = toPascalCase(table);
     const tableDir = path.join(outputDir, table);
 
@@ -54,7 +54,7 @@ const createAPICalls = (schemaInfo: ISchemaInfo[], outputDir: string): void => {
     operations.forEach((operation) => {
       let apiCalls = operationTemplates[operation];
       apiCalls = apiCalls.replace(/ModelTemplate/g, className);
-      apiCalls = apiCalls.replace(/modelTemplate/g, `${table}s`); // Pluralize resource
+      apiCalls = apiCalls.replace(/modelTemplate/g, tablePlural); // Pluralize resource
 
       const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
       const ownerComment = getOwnerComment('.ts');

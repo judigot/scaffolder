@@ -4,6 +4,7 @@ import { convertToUrlFormat, toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS } from '@/constants';
+import pluralize from 'pluralize';
 
 const getOwnerComment = (extension: string): string => {
   const comments: Record<string, string> = {
@@ -27,17 +28,12 @@ const createAPIRoutes = (
     .join('');
 
   const customRoutes = schemaInfo
-    .map(({ table, columnsInfo, isPivot }) => {
+    .map(({ table, tablePlural, columnsInfo, isPivot }) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
       const routeName = (() => {
-        let modifiedTable = table;
-
-        // Ensure plural routes
-        modifiedTable = modifiedTable.endsWith('s')
-          ? modifiedTable
-          : `${modifiedTable}s`;
+        let modifiedTable = pluralize(tablePlural);
 
         // Replace underscores with hyphens
         modifiedTable = convertToUrlFormat(modifiedTable);
