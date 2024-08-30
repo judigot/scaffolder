@@ -16,17 +16,12 @@ import createRepositories from '@/utils/createRepositories';
 import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
 import createInterfaces from '@/utils/createInterfaces';
 import createResources from '@/utils/createResources';
-import convertIntrospectedStructure, {
-  ITable,
-} from '@/utils/convertIntrospectedStructure';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import convertIntrospectedMysqlStructure, {
-  ITableMysql,
-} from '@/utils/convertIntrospectedMysqlStructure';
 import createBaseRepository from '@/utils/createBaseRepository';
 import createBaseRepositoryInterface from '@/utils/createBaseRepositoryInterface';
 import createAppServiceProviderScaffolding from '@/utils/createAppServiceProviderScaffolding';
 import createBaseController from '@/utils/createBaseController';
+import introspect from '@/utils/introspect';
 
 dotenv.config();
 
@@ -101,71 +96,6 @@ export const executeMySQL = async (
   } catch (err) {
     console.error('MySQL introspection error:', err);
     throw new Error('Internal Server Error');
-  }
-};
-
-const readSqlFile = (filename: string): string => {
-  return fs.readFileSync(path.join(__dirname, filename), 'utf8');
-};
-
-const introspect = async (dbConnection: string): Promise<unknown> => {
-  const pgIntrospectionQuery = readSqlFile('introspect_postgresql.sql');
-  const mysqlIntrospectionQueryTemplate = readSqlFile('introspect_mysql.sql');
-
-  if (dbConnection.startsWith('postgresql')) {
-    const isITableArray = (data: unknown): data is ITable[] => {
-      return (
-        Array.isArray(data) &&
-        data.every(
-          (item) =>
-            item !== null &&
-            typeof item === 'object' &&
-            'table_name' in item &&
-            'columns' in item &&
-            'check_constraints' in item,
-        )
-      );
-    };
-
-    const result = await executePostgreSQL(dbConnection, pgIntrospectionQuery);
-    if (isITableArray(result)) {
-      return convertIntrospectedStructure(result);
-    } else {
-      throw new Error('Unexpected result format');
-    }
-  } else if (dbConnection.startsWith('mysql')) {
-    const match = dbConnection.match(
-      /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
-    );
-    if (!match) {
-      throw new Error('Invalid MySQL connection string');
-    }
-    const [, , , , , database] = match;
-    const mysqlIntrospectionQuery = mysqlIntrospectionQueryTemplate.replace(
-      '$DB_NAME',
-      database,
-    );
-    const isITableArray = (data: unknown): data is ITableMysql[] => {
-      return (
-        Array.isArray(data) &&
-        data.every(
-          (item) =>
-            item !== null &&
-            typeof item === 'object' &&
-            'TABLE_NAME' in item &&
-            'table_definition' in item,
-        )
-      );
-    };
-
-    const result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
-    if (isITableArray(result)) {
-      return convertIntrospectedMysqlStructure(result);
-    } else {
-      throw new Error('Unexpected result format');
-    }
-  } else {
-    throw new Error('Unsupported database type');
   }
 };
 
@@ -350,7 +280,7 @@ app.post(
         createBaseRepositoryInterface(framework, interfacesDir);
         createInterfaces(schemaInfo, framework, interfacesDir);
 
-        // Repositories
+        // Resources
         const resourcesDir = isBackendDirValid
           ? path.resolve(backendDirPath, frameworkDir.resource)
           : path.resolve(
