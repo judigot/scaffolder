@@ -17,9 +17,9 @@ const loadTemplate = (framework: string) => {
 };
 
 describe('createModels', () => {
+  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
   const userPostsOneToManySchemaInfo = identifySchema(userPostsOneToManySchema);
   const POSSchemaInfo = identifySchema(POSSchema);
-  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
 
   it('should generate correct relationships for User model with one-to-one Post using model.txt template', () => {
     const framework = 'laravel';

@@ -1,65 +1,19 @@
 import identifySchema from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
-import JSON5 from 'json5';
-import { ISchemaInfo } from '@/interfaces/interfaces';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import generateSQLSchema from '@/utils/generateSQLSchema';
 import { format as formatSQL } from 'sql-formatter';
+import { userPostOneToOneSchema } from '@/json-schemas/userPostOneToOneSchema';
 
 describe('generateFile', () => {
-  const schemaInput = JSON5.stringify({
-    user: [
-      {
-        user_id: 1,
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john.doe@example.com',
-        username: 'johndoe',
-        password:
-          '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
-        created_at: '2023-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-      {
-        user_id: 2,
-        first_name: 'Jane',
-        last_name: 'Doe',
-        email: 'jane.doe@example.com',
-        username: 'janedoe',
-        password:
-          '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
-        created_at: '2024-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-    ],
-    post: [
-      {
-        post_id: 1,
-        user_id: 1,
-        title: "John's Post",
-        content: 'Lorem ipsum',
-        created_at: '2023-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-      {
-        post_id: 2,
-        user_id: 2,
-        title: "Jane's Post",
-        content: null,
-        created_at: '2024-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
-      },
-    ],
-  });
-
-  const formData: Record<string, Record<string, unknown>[]> =
-    JSON5.parse(schemaInput);
-  const schemaInfo: ISchemaInfo[] = identifySchema(formData);
+  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
 
   it('should generate correct SQL schema', () => {
-    const deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
-    const sqlSchema = `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(generateSQLSchema(schemaInfo))}`;
+    const deleteTablesQueries = generateSQLDeleteTables(
+      userPostOneToOneSchemaInfo,
+    );
+    const sqlSchema = `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(generateSQLSchema(userPostOneToOneSchemaInfo))}`;
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user";');
     expect(sqlSchema).toContain('CREATE TABLE "user" (');
     expect(sqlSchema).toContain('"user_id" BIGSERIAL PRIMARY KEY');
@@ -85,7 +39,7 @@ describe('generateFile', () => {
 
   it('should generate correct TypeScript interfaces', () => {
     const tsInterfaces = generateTypescriptInterfaces({
-      schemaInfo,
+      schemaInfo: userPostOneToOneSchemaInfo,
       includeTypeGuards: true,
       outputOnSingleFile: true,
     });
