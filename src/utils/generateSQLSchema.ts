@@ -1,25 +1,70 @@
 import { format as formatSQL } from 'sql-formatter';
-import { ISchemaInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 import {
   generateColumnDefinition,
   getForeignKeyConstraints,
 } from '@/utils/common';
 import { useFormStore } from '@/useFormStore';
+import { APP_SETTINGS } from '@/constants';
 
 const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   const quote = useFormStore.getState().quote;
+
+  // Function to generate column definition and append UNIQUE to the foreign key where applicable
+  const generateColumnDefinitionWithUnique = (
+    columnInfo: IColumnInfo,
+    table: string,
+  ): string => {
+    let columnDef = generateColumnDefinition({
+      columnName: columnInfo,
+      columnType: 'sql-tables',
+    });
+
+    // Check if the column is a foreign key and the related table is in a hasOne relationship with the current table
+    const relatedTable = columnInfo.foreign_key?.foreign_table_name ?? '';
+    const parentTable = schemaInfo.find((t) => t.table === relatedTable);
+    const hasOneRelationship = parentTable?.hasOne.includes(table) ?? false;
+
+    if (hasOneRelationship) {
+      columnDef += ' UNIQUE';
+    }
+
+    return columnDef;
+  };
+
+  // Function to generate foreign key constraints with ON DELETE CASCADE where applicable
+  const generateForeignKeyConstraint = (
+    table: string,
+    schemaInfo: ISchemaInfo[],
+  ): string[] => {
+    return getForeignKeyConstraints(table, schemaInfo).map((constraint) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (APP_SETTINGS.onDeleteCascade) {
+        const relatedTable = constraint.match(/REFERENCES\s+"(\w+)"/)?.[1];
+        const parentTable = schemaInfo.find((t) => t.table === relatedTable);
+        const hasOneRelationship = parentTable?.hasOne.includes(table) ?? false;
+
+        if (hasOneRelationship) {
+          return constraint.replace(/;?$/, ' ON DELETE CASCADE');
+        }
+      }
+
+      return constraint;
+    });
+  };
+
   return formatSQL(
     schemaInfo
       .map(({ table, columnsInfo }) => {
         const columns = columnsInfo
-          .map((columnName) =>
-            generateColumnDefinition({ columnName, columnType: 'sql-tables' }),
-          )
+          .map((column) => generateColumnDefinitionWithUnique(column, table))
           .join(',\n  ');
-        const foreignKeyConstraints = getForeignKeyConstraints(
+
+        const foreignKeyConstraints = generateForeignKeyConstraint(
           table,
           schemaInfo,
         ).join(',\n  ');
+
         const allColumnsAndKeys = [columns, foreignKeyConstraints]
           .filter(Boolean)
           .join(',\n  ');

@@ -1,4 +1,5 @@
 export const APP_SETTINGS = {
+  onDeleteCascade: false,
   excludePivotTableFiles: true,
 } as const;
 
@@ -80,11 +81,11 @@ export const frameworkDirectories: Record<
     validation: 'app/validators/user_validator.rb',
     exception: 'app/exceptions/global_exception_handler.rb',
   },
-};
+} as const;
 
 export const frontendDirectories = {
   apiCalls: 'src/api',
   component: 'src/components',
   interface: 'src/interface',
   typeGuard: 'src/typeGuards',
-};
+} as const;
