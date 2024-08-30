@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -54,13 +55,8 @@ const initialFormData: IFormData = {
 function determineSQLDatabaseType(
   dbConnection: string,
 ): 'postgresql' | 'mysql' | '' {
-  if (dbConnection.startsWith('postgresql')) {
-    return 'postgresql';
-  }
-  if (dbConnection.startsWith('mysql')) {
-    return 'mysql';
-  }
-  return '';
+  const dbType = extractDBConnectionInfo(dbConnection).dbType;
+  return dbType === 'postgresql' || dbType === 'mysql' ? dbType : '';
 }
 
 function getQuote(dbType: 'postgresql' | 'mysql' | ''): string {
@@ -73,38 +69,52 @@ function getQuote(dbType: 'postgresql' | 'mysql' | ''): string {
 
 export const useFormStore = create(
   persist<IFormStore>(
-    (set) => ({
-      formData: initialFormData,
-      dbType: determineSQLDatabaseType(initialFormData.dbConnection),
-      quote: getQuote(determineSQLDatabaseType(initialFormData.dbConnection)),
-      setFormData: (data) => {
-        set((state) => {
-          const newDbConnection =
-            data.dbConnection ?? state.formData.dbConnection;
-          const newDbType = determineSQLDatabaseType(newDbConnection);
-          return {
-            formData: { ...state.formData, ...data },
-            dbType: newDbType,
-            quote: getQuote(newDbType),
-          };
-        });
-      },
-      setOneToOne: () => {
-        set((state) => ({
-          formData: { ...state.formData, schemaInput: usersPostOneToOneInput },
-        }));
-      },
-      setOneToMany: () => {
-        set((state) => ({
-          formData: { ...state.formData, schemaInput: usersPostOneToManyInput },
-        }));
-      },
-      setManyToMany: () => {
-        set((state) => ({
-          formData: { ...state.formData, schemaInput: POSSchemaInput },
-        }));
-      },
-    }),
+    (set) => {
+      const initialDbType = determineSQLDatabaseType(
+        initialFormData.dbConnection,
+      );
+      const initialQuote = getQuote(initialDbType);
+
+      return {
+        formData: initialFormData,
+        dbType: initialDbType,
+        quote: initialQuote,
+        setFormData: (data) => {
+          set((state) => {
+            const newDbConnection =
+              data.dbConnection ?? state.formData.dbConnection;
+            const newDbType = determineSQLDatabaseType(newDbConnection);
+
+            return {
+              formData: { ...state.formData, ...data },
+              dbType: newDbType,
+              quote: getQuote(newDbType),
+            };
+          });
+        },
+        setOneToOne: () => {
+          set((state) => ({
+            formData: {
+              ...state.formData,
+              schemaInput: usersPostOneToOneInput,
+            },
+          }));
+        },
+        setOneToMany: () => {
+          set((state) => ({
+            formData: {
+              ...state.formData,
+              schemaInput: usersPostOneToManyInput,
+            },
+          }));
+        },
+        setManyToMany: () => {
+          set((state) => ({
+            formData: { ...state.formData, schemaInput: POSSchemaInput },
+          }));
+        },
+      };
+    },
     {
       name: 'formData',
       storage: createJSONStorage(() => localStorage),

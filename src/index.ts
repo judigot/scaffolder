@@ -136,12 +136,12 @@ app.post(
       }
 
       try {
-        if (dbConnection.startsWith('postgresql')) {
+        if (extractDBConnectionInfo(dbConnection).dbType === 'postgresql') {
           await executePostgreSQL(
             dbConnection,
             `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchemaEditable}`,
           );
-        } else if (dbConnection.startsWith('mysql')) {
+        } else if (extractDBConnectionInfo(dbConnection).dbType === 'mysql') {
           await executeMySQL(
             dbConnection,
             `
@@ -214,13 +214,13 @@ app.post(
       const isBackendDirValid = fs.existsSync(backendDirPath);
       const isFrontendDirValid = fs.existsSync(frontendDirPath);
       try {
-        if (dbConnection.startsWith('postgresql')) {
+        if (extractDBConnectionInfo(dbConnection).dbType === 'postgresql') {
           await executePostgreSQL(
             dbConnection,
             `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
           );
         }
-        if (dbConnection.startsWith('mysql')) {
+        if (extractDBConnectionInfo(dbConnection).dbType === 'mysql') {
           await executeMySQL(
             dbConnection,
             `
@@ -234,7 +234,7 @@ app.post(
                   '\`;'
                 )
                 FROM information_schema.tables
-                WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbName}'
+                WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbType}'
               );
             
               -- Execute the drop statements
