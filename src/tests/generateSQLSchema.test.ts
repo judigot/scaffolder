@@ -4,10 +4,10 @@ import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import generateSQLSchema from '@/utils/generateSQLSchema';
 import { format as formatSQL } from 'sql-formatter';
-import { userPostOneToOneSchema } from '@/json-schemas/userPostOneToOneSchema';
+import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 
 describe('generateFile', () => {
-  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
+  const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
 
   it('should generate correct SQL schema', () => {
     const deleteTablesQueries = generateSQLDeleteTables(

@@ -1,4 +1,4 @@
-export const userPostsOneToManySchema = {
+export const usersPostsOneToManySchema = {
   user: [
     {
       user_id: 1,

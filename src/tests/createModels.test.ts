@@ -4,9 +4,9 @@ import fs from 'fs';
 import identifySchema from '@/utils/identifySchema';
 import { createRelationships } from '@/utils/createModels';
 import { normalizeWhitespace } from '@/helpers/toPascalCase';
-import { userPostOneToOneSchema } from '@/json-schemas/userPostOneToOneSchema';
-import { userPostsOneToManySchema } from '@/json-schemas/userPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
+import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
+import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 
 const loadTemplate = (framework: string) => {
   const templatePath = path.resolve(
@@ -17,8 +17,10 @@ const loadTemplate = (framework: string) => {
 };
 
 describe('createModels', () => {
-  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
-  const userPostsOneToManySchemaInfo = identifySchema(userPostsOneToManySchema);
+  const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
+  const userPostsOneToManySchemaInfo = identifySchema(
+    usersPostsOneToManySchema,
+  );
   const POSSchemaInfo = identifySchema(POSSchema);
 
   it('should generate correct relationships for User model with one-to-one Post using model.txt template', () => {

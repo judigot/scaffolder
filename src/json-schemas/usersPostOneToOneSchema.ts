@@ -1,4 +1,4 @@
-export const userPostOneToOneSchema = {
+export const usersPostOneToOneSchema = {
   user: [
     {
       user_id: 1,

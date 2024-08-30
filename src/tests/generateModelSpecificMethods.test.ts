@@ -2,14 +2,16 @@ import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { normalizeWhitespace } from '@/helpers/toPascalCase';
-import { userPostOneToOneSchema } from '@/json-schemas/userPostOneToOneSchema';
-import { userPostsOneToManySchema } from '@/json-schemas/userPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
+import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
+import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 
 describe('generateModelSpecificMethods', () => {
-  const userPostsOneToManySchemaInfo = identifySchema(userPostsOneToManySchema);
+  const userPostsOneToManySchemaInfo = identifySchema(
+    usersPostsOneToManySchema,
+  );
   const POSSchemaInfo = identifySchema(POSSchema);
-  const userPostOneToOneSchemaInfo = identifySchema(userPostOneToOneSchema);
+  const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
 
   describe('POS', () => {
     it('should generate correct methods for repository', () => {
