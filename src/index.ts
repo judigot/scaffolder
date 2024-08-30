@@ -22,6 +22,7 @@ import createBaseRepositoryInterface from '@/utils/createBaseRepositoryInterface
 import createAppServiceProviderScaffolding from '@/utils/createAppServiceProviderScaffolding';
 import createBaseController from '@/utils/createBaseController';
 import introspect from '@/utils/introspect';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 
 dotenv.config();
 
@@ -175,18 +176,6 @@ app.post(
   },
 );
 
-export function extractDatabaseName(connectionString: string): string {
-  const regex =
-    /^(?<protocol>mysql):\/\/(?<username>[^:]+):(?<password>[^@]+)@(?<host>[^:]+):(?<port>\d+)\/(?<database>[^?]+)/;
-  const match = connectionString.match(regex);
-
-  if (!match?.groups) {
-    throw new Error('Invalid connection string format.');
-  }
-
-  return match.groups.database.trim();
-}
-
 app.post(
   '/scaffoldProject',
   (
@@ -245,7 +234,7 @@ app.post(
                   '\`;'
                 )
                 FROM information_schema.tables
-                WHERE table_schema = '${extractDatabaseName(dbConnection)}'
+                WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbName}'
               );
             
               -- Execute the drop statements
