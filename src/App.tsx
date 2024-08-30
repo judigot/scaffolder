@@ -8,8 +8,9 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 
 function App() {
   const {
-    setExample1,
-    setExample2,
+    setOneToOne,
+    setOneToMany,
+    setManyToMany,
     formData: {
       schemaInput,
       backendDir,
@@ -94,21 +95,31 @@ function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setExample1();
+                    setOneToOne();
                   }}
                   className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
                 >
-                  Example 1
+                  One to One
                 </button>
                 &nbsp; &nbsp;
                 <button
                   type="button"
                   onClick={() => {
-                    setExample2();
+                    setOneToMany();
                   }}
                   className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
                 >
-                  Example 2
+                  One to Many
+                </button>
+                &nbsp; &nbsp;
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManyToMany();
+                  }}
+                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  Many to Many
                 </button>
               </div>
 

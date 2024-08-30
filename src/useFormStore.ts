@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
+import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
+import { POSSchema } from '@/json-schemas/POSSchema';
+
 export const frameworks = {
   LARAVEL: 'Laravel',
   // NEXTJS: 'Next.js',
@@ -23,109 +27,21 @@ interface IFormStore {
   dbType: 'postgresql' | 'mysql' | '';
   quote: string;
   setFormData: (data: Partial<IFormData>) => void;
-  setExample1: () => void;
-  setExample2: () => void;
+  setOneToOne: () => void;
+  setOneToMany: () => void;
+  setManyToMany: () => void;
 }
 
-const example1SchemaInput = `{
-  "user": [
-    {
-      "user_id": 1,
-      "first_name": "John",
-      "last_name": "Doe",
-      "email": "john.doe@example.com",
-      "username": "johndoe",
-      "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
-      "created_at": "2023-06-18T10:17:19.846Z",
-      "updated_at": "2024-06-18T10:17:19.846Z"
-    },
-    {
-      "user_id": 2,
-      "first_name": "Jane",
-      "last_name": "Doe",
-      "email": "jane.doe@example.com",
-      "username": "janedoe",
-      "password": "$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m",
-      "created_at": "2024-06-18T10:17:19.846Z",
-      "updated_at": "2024-06-18T10:17:19.846Z"
-    }
-  ],
-  "post": [
-    {
-      "post_id": 1,
-      "user_id": 1,
-      "title": "John's Post",
-      "content": "Lorem ipsum",
-      "created_at": "2023-06-18T10:17:19.846Z",
-      "updated_at": "2024-06-18T10:17:19.846Z"
-    },
-    {
-      "post_id": 2,
-      "user_id": 2,
-      "title": "Jane's Post",
-      "content": null,
-      "created_at": "2024-06-18T10:17:19.846Z",
-      "updated_at": "2024-06-18T10:17:19.846Z"
-    }
-  ]
-}`;
-
-const example2SchemaInput = `{
-  "product": [
-    {
-      "product_id": 1,
-      "product_name": "Water"
-    },
-    {
-      "product_id": 2,
-      "product_name": "Yogurt"
-    }
-  ],
-  "customer": [
-    {
-      "customer_id": 1,
-      "name": "John Doe"
-    },
-    {
-      "customer_id": 2,
-      "name": "Jane Doe"
-    }
-  ],
-  "order": [
-    {
-      "order_id": 1,
-      "customer_id": 1
-    },
-    {
-      "order_id": 2,
-      "customer_id": 1
-    },
-    {
-      "order_id": 3,
-      "customer_id": 2
-    }
-  ],
-  "order_product": [
-    {
-      "order_product_id": 1,
-      "order_id": 1,
-      "product_id": 1
-    },
-    {
-      "order_product_id": 2,
-      "order_id": 1,
-      "product_id": 2
-    },
-    {
-      "order_product_id": 3,
-      "order_id": 2,
-      "product_id": 2
-    }
-  ]
-}`;
+const usersPostOneToOneInput = JSON.stringify(usersPostOneToOneSchema, null, 4);
+const usersPostOneToManyInput = JSON.stringify(
+  usersPostsOneToManySchema,
+  null,
+  4,
+);
+const POSSchemaInput = JSON.stringify(POSSchema, null, 4);
 
 const initialFormData: IFormData = {
-  schemaInput: example1SchemaInput,
+  schemaInput: usersPostOneToOneInput,
   backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/laravel',
@@ -173,14 +89,19 @@ export const useFormStore = create(
           };
         });
       },
-      setExample1: () => {
+      setOneToOne: () => {
         set((state) => ({
-          formData: { ...state.formData, schemaInput: example1SchemaInput },
+          formData: { ...state.formData, schemaInput: usersPostOneToOneInput },
         }));
       },
-      setExample2: () => {
+      setOneToMany: () => {
         set((state) => ({
-          formData: { ...state.formData, schemaInput: example2SchemaInput },
+          formData: { ...state.formData, schemaInput: usersPostOneToManyInput },
+        }));
+      },
+      setManyToMany: () => {
+        set((state) => ({
+          formData: { ...state.formData, schemaInput: POSSchemaInput },
         }));
       },
     }),
