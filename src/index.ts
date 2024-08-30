@@ -175,6 +175,18 @@ app.post(
   },
 );
 
+export function extractDatabaseName(connectionString: string): string {
+  const regex =
+    /^(?<protocol>mysql):\/\/(?<username>[^:]+):(?<password>[^@]+)@(?<host>[^:]+):(?<port>\d+)\/(?<database>[^?]+)/;
+  const match = connectionString.match(regex);
+
+  if (!match?.groups) {
+    throw new Error('Invalid connection string format.');
+  }
+
+  return match.groups.database.trim();
+}
+
 app.post(
   '/scaffoldProject',
   (
@@ -220,7 +232,34 @@ app.post(
           );
         }
         if (dbConnection.startsWith('mysql')) {
-          await executeMySQL(dbConnection, SQLSchema);
+          await executeMySQL(
+            dbConnection,
+            `
+              SET FOREIGN_KEY_CHECKS = 0;
+              
+              -- Prepare the drop statements for all tables in the specified database
+              SET @drop := (
+                SELECT CONCAT(
+                  'DROP TABLE IF EXISTS \`',
+                  GROUP_CONCAT(table_name SEPARATOR '\`, \`'),
+                  '\`;'
+                )
+                FROM information_schema.tables
+                WHERE table_schema = '${extractDatabaseName(dbConnection)}'
+              );
+            
+              -- Execute the drop statements
+              PREPARE stmt FROM @drop;
+              EXECUTE stmt;
+              DEALLOCATE PREPARE stmt;
+            
+              -- Re-enable foreign key checks
+              SET FOREIGN_KEY_CHECKS = 1;
+            
+              -- Execute the provided SQL schema to create new tables
+              ${SQLSchema}
+              `,
+          );
         }
         isDBConnectionValid = true;
       } catch (error: unknown) {
