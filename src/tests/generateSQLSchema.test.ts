@@ -33,7 +33,7 @@ describe('generateSQLSchema', () => {
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "post";');
     expect(sqlSchema).toContain('CREATE TABLE "post" (');
     expect(sqlSchema).toContain('"post_id" BIGSERIAL PRIMARY KEY');
-    expect(sqlSchema).toContain('"user_id" BIGINT NOT NULL UNIQUE'); // Enforce one-to-one with UNIQUE constraint
+    expect(sqlSchema).toContain('"user_id" BIGINT UNIQUE NOT NULL'); // Enforce one-to-one with UNIQUE constraint
     expect(sqlSchema).toContain('"title" TEXT NOT NULL');
     expect(sqlSchema).toContain('"content" TEXT');
     expect(sqlSchema).toContain('"created_at" TIMESTAMPTZ (6) NOT NULL');

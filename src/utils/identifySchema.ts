@@ -310,6 +310,33 @@ function addPivotRelationships(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo;
 }
 
+const determineUniqueForeignKeys = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
+  schemaInfo.forEach((relationship) => {
+    relationship.columnsInfo.forEach((column) => {
+      if (column.foreign_key) {
+        // Find the parent table that this foreign key references
+        const parentTable = schemaInfo.find(
+          (rel) => rel.table === column.foreign_key?.foreign_table_name,
+        );
+
+        if (parentTable) {
+          // Check if the parent table has a `hasOne` relationship with the current table
+          const isOneToOne = parentTable.hasOne.includes(relationship.table);
+
+          // If the relationship is one-to-one, mark the foreign key as unique
+          if (isOneToOne) {
+            column.unique = true;
+          }
+        }
+      }
+    });
+  });
+
+  return schemaInfo;
+};
+
+
+
 // Main function to identify schema relationships
 function identifySchema(
   data: Record<string, Record<string, unknown>[]>,
@@ -357,6 +384,9 @@ function identifySchema(
   }
 
   schemaInfo = addPivotRelationships(schemaInfo);
+
+  schemaInfo = determineUniqueForeignKeys(schemaInfo);
+
 
   return schemaInfo;
 }

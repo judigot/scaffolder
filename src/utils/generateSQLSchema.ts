@@ -11,23 +11,13 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   const quote = useFormStore.getState().quote;
 
   // Function to generate column definition and append UNIQUE to the foreign key where applicable
-  const generateColumnDefinitionWithUnique = (
+  const generateColumnDefinitions = (
     columnInfo: IColumnInfo,
-    table: string,
   ): string => {
-    let columnDef = generateColumnDefinition({
+    const columnDef = generateColumnDefinition({
       columnName: columnInfo,
       columnType: 'sql-tables',
     });
-
-    // Check if the column is a foreign key and the related table is in a hasOne relationship with the current table
-    const relatedTable = columnInfo.foreign_key?.foreign_table_name ?? '';
-    const parentTable = schemaInfo.find((t) => t.table === relatedTable);
-    const hasOneRelationship = parentTable?.hasOne.includes(table) ?? false;
-
-    if (hasOneRelationship) {
-      columnDef += ' UNIQUE';
-    }
 
     return columnDef;
   };
@@ -57,7 +47,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
     schemaInfo
       .map(({ table, columnsInfo }) => {
         const columns = columnsInfo
-          .map((column) => generateColumnDefinitionWithUnique(column, table))
+          .map((column) => generateColumnDefinitions(column))
           .join(',\n  ');
 
         const foreignKeyConstraints = generateForeignKeyConstraint(
