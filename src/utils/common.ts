@@ -29,7 +29,7 @@ export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
   return Array.from(imports).join('\n');
 };
 
-export function determineSQLDatabaseType(
+function determineSQLDatabaseType(
   dbConnection: string,
 ): 'postgresql' | 'mysql' | '' {
   const dbType = extractDBConnectionInfo(dbConnection).dbType;

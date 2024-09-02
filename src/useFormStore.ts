@@ -4,7 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
-import { determineSQLDatabaseType } from '@/utils/common';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -58,6 +58,13 @@ function getQuote(dbType: 'postgresql' | 'mysql' | ''): string {
     mysql: '`',
   };
   return dbType ? quotes[dbType] : '';
+}
+
+function determineSQLDatabaseType(
+  dbConnection: string,
+): 'postgresql' | 'mysql' | '' {
+  const dbType = extractDBConnectionInfo(dbConnection).dbType;
+  return dbType === 'postgresql' || dbType === 'mysql' ? dbType : '';
 }
 
 export const useFormStore = create(
