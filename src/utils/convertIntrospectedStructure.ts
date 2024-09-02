@@ -32,33 +32,41 @@ const getTypeScriptType = (dataType: string): string => {
   return typeMappings.string.typescript;
 };
 
-const getRequiredColumns = (columns: IColumnInfo[]): string[] =>
+export const getRequiredColumns = (columns: IColumnInfo[]): string[] =>
   columns
     .filter((column) => column.is_nullable === 'NO')
     .map((column) => column.column_name);
 
-const getForeignTables = (columns: IColumnInfo[]): string[] =>
+export const getForeignTables = (columns: IColumnInfo[]): string[] =>
   Array.from(
     new Set(
       columns
         .filter((column) => column.foreign_key !== null)
         .map((column) => column.foreign_key?.foreign_table_name ?? ''),
     ),
-  );
+  ).filter((tableName) => tableName !== '');
 
-const getForeignKeys = (columns: IColumnInfo[]): string[] =>
+export const getForeignKeys = (columns: IColumnInfo[]): string[] =>
   columns
     .filter((column) => column.foreign_key !== null)
     .map((column) => column.column_name);
 
-const convertColumn = (column: IColumnInfo): IColumnInfo => ({
-  column_name: column.column_name,
-  data_type: getTypeScriptType(column.data_type),
-  is_nullable: column.is_nullable,
-  column_default: column.column_default,
-  primary_key: column.primary_key,
-  unique: column.unique,
-  foreign_key: column.foreign_key,
+const convertColumn = ({
+  column_name,
+  data_type,
+  is_nullable,
+  column_default,
+  primary_key,
+  unique,
+  foreign_key,
+}: IColumnInfo): IColumnInfo => ({
+  column_name,
+  data_type: getTypeScriptType(data_type),
+  is_nullable,
+  column_default,
+  primary_key,
+  unique,
+  foreign_key,
 });
 
 const convertTable = (table: ITable): ISchemaInfo => {
@@ -84,7 +92,9 @@ const convertTable = (table: ITable): ISchemaInfo => {
   };
 };
 
-const populateChildTables = (tableMap: Map<string, ISchemaInfo>): void => {
+export const populateChildTables = (
+  tableMap: Map<string, ISchemaInfo>,
+): void => {
   tableMap.forEach((table) => {
     table.foreignTables.forEach((foreignTable) => {
       if (tableMap.has(foreignTable)) {
