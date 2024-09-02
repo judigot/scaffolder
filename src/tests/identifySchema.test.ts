@@ -311,7 +311,7 @@ describe('identifySchema', () => {
           is_nullable: 'NO',
           column_default: null,
           primary_key: false,
-          unique: false,
+          unique: true,
           foreign_key: {
             foreign_table_name: 'user',
             foreign_column_name: 'user_id',
