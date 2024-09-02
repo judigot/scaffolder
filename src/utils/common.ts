@@ -1,6 +1,7 @@
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { columnMappings, typeMappings } from '@/utils/mappings';
 import dayjs from 'dayjs';
 
@@ -28,17 +29,11 @@ export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
   return Array.from(imports).join('\n');
 };
 
-function determineSQLDatabaseType(
+export function determineSQLDatabaseType(
   dbConnection: string,
 ): 'postgresql' | 'mysql' | '' {
-  if (dbConnection.startsWith('postgresql')) {
-    return 'postgresql';
-  }
-  if (dbConnection.startsWith('mysql')) {
-    return 'mysql';
-  }
-
-  return '';
+  const dbType = extractDBConnectionInfo(dbConnection).dbType;
+  return dbType === 'postgresql' || dbType === 'mysql' ? dbType : '';
 }
 
 export const quoteTableName = (tableName: string): string => {
