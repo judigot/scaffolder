@@ -5,181 +5,6 @@ import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema'
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 
 describe('identifySchema', () => {
-  it('should correctly identify the full structure for POSSchema', () => {
-    const schemaInfo = identifySchema(POSSchema);
-
-    // Validate the product table
-    const product = schemaInfo.find((t) => t.table === 'product');
-    expect(product).toEqual({
-      table: 'product',
-      tablePlural: 'products',
-      requiredColumns: ['product_id', 'product_name'],
-      columnsInfo: [
-        {
-          column_name: 'product_id',
-          data_type: 'number',
-          is_nullable: 'NO',
-          column_default: "nextval('product_product_id_seq'::regclass)",
-          primary_key: true,
-          unique: false,
-          foreign_key: null,
-        },
-        {
-          column_name: 'product_name',
-          data_type: 'string',
-          is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false,
-          foreign_key: null,
-        },
-      ],
-      foreignTables: [],
-      foreignKeys: [],
-      isPivot: false,
-      childTables: ['order_product'],
-      hasOne: [],
-      hasMany: ['order_product'],
-      belongsTo: [],
-      belongsToMany: ['order'],
-      pivotRelationships: [
-        { relatedTable: 'order', pivotTable: 'order_product' },
-      ],
-    });
-
-    // Validate the customer table
-    const customer = schemaInfo.find((t) => t.table === 'customer');
-    expect(customer).toEqual({
-      table: 'customer',
-      tablePlural: 'customers',
-      requiredColumns: ['customer_id', 'name'],
-      columnsInfo: [
-        {
-          column_name: 'customer_id',
-          data_type: 'number',
-          is_nullable: 'NO',
-          column_default: "nextval('customer_customer_id_seq'::regclass)",
-          primary_key: true,
-          unique: false,
-          foreign_key: null,
-        },
-        {
-          column_name: 'name',
-          data_type: 'string',
-          is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false,
-          foreign_key: null,
-        },
-      ],
-      foreignTables: [],
-      foreignKeys: [],
-      isPivot: false,
-      childTables: ['order'],
-      hasOne: [],
-      hasMany: ['order'],
-      belongsTo: [],
-      belongsToMany: [],
-      pivotRelationships: [],
-    });
-
-    // Validate the order table
-    const order = schemaInfo.find((t) => t.table === 'order');
-    expect(order).toEqual({
-      table: 'order',
-      tablePlural: 'orders',
-      requiredColumns: ['order_id', 'customer_id'],
-      columnsInfo: [
-        {
-          column_name: 'order_id',
-          data_type: 'number',
-          is_nullable: 'NO',
-          column_default: "nextval('order_order_id_seq'::regclass)",
-          primary_key: true,
-          unique: false,
-          foreign_key: null,
-        },
-        {
-          column_name: 'customer_id',
-          data_type: 'number',
-          is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false,
-          foreign_key: {
-            foreign_table_name: 'customer',
-            foreign_column_name: 'customer_id',
-          },
-        },
-      ],
-      foreignTables: ['customer'],
-      foreignKeys: ['customer_id'],
-      isPivot: false,
-      childTables: ['order_product'],
-      hasOne: [],
-      hasMany: ['order_product'],
-      belongsTo: ['customer'],
-      belongsToMany: ['product'],
-      pivotRelationships: [
-        { relatedTable: 'product', pivotTable: 'order_product' },
-      ],
-    });
-
-    // Validate the order_product table
-    const orderProduct = schemaInfo.find((t) => t.table === 'order_product');
-    expect(orderProduct).toEqual({
-      table: 'order_product',
-      tablePlural: 'order_products',
-      requiredColumns: ['order_product_id', 'order_id', 'product_id'],
-      columnsInfo: [
-        {
-          column_name: 'order_product_id',
-          data_type: 'number',
-          is_nullable: 'NO',
-          column_default:
-            "nextval('order_product_order_product_id_seq'::regclass)",
-          primary_key: true,
-          unique: false,
-          foreign_key: null,
-        },
-        {
-          column_name: 'order_id',
-          data_type: 'number',
-          is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false,
-          foreign_key: {
-            foreign_table_name: 'order',
-            foreign_column_name: 'order_id',
-          },
-        },
-        {
-          column_name: 'product_id',
-          data_type: 'number',
-          is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false,
-          foreign_key: {
-            foreign_table_name: 'product',
-            foreign_column_name: 'product_id',
-          },
-        },
-      ],
-      foreignTables: ['order', 'product'],
-      foreignKeys: ['order_id', 'product_id'],
-      isPivot: true,
-      childTables: [],
-      hasOne: [],
-      hasMany: [],
-      belongsTo: ['order', 'product'],
-      belongsToMany: [],
-      pivotRelationships: [],
-    });
-  });
-
   it('should correctly identify the full structure for usersPostOneToOneSchema', () => {
     const schemaInfo = identifySchema(usersPostOneToOneSchema);
 
@@ -547,6 +372,181 @@ describe('identifySchema', () => {
       hasOne: [],
       hasMany: [],
       belongsTo: ['user'],
+      belongsToMany: [],
+      pivotRelationships: [],
+    });
+  });
+
+  it('should correctly identify the full structure for POSSchema', () => {
+    const schemaInfo = identifySchema(POSSchema);
+
+    // Validate the product table
+    const product = schemaInfo.find((t) => t.table === 'product');
+    expect(product).toEqual({
+      table: 'product',
+      tablePlural: 'products',
+      requiredColumns: ['product_id', 'product_name'],
+      columnsInfo: [
+        {
+          column_name: 'product_id',
+          data_type: 'number',
+          is_nullable: 'NO',
+          column_default: "nextval('product_product_id_seq'::regclass)",
+          primary_key: true,
+          unique: false,
+          foreign_key: null,
+        },
+        {
+          column_name: 'product_name',
+          data_type: 'string',
+          is_nullable: 'NO',
+          column_default: null,
+          primary_key: false,
+          unique: false,
+          foreign_key: null,
+        },
+      ],
+      foreignTables: [],
+      foreignKeys: [],
+      isPivot: false,
+      childTables: ['order_product'],
+      hasOne: [],
+      hasMany: ['order_product'],
+      belongsTo: [],
+      belongsToMany: ['order'],
+      pivotRelationships: [
+        { relatedTable: 'order', pivotTable: 'order_product' },
+      ],
+    });
+
+    // Validate the customer table
+    const customer = schemaInfo.find((t) => t.table === 'customer');
+    expect(customer).toEqual({
+      table: 'customer',
+      tablePlural: 'customers',
+      requiredColumns: ['customer_id', 'name'],
+      columnsInfo: [
+        {
+          column_name: 'customer_id',
+          data_type: 'number',
+          is_nullable: 'NO',
+          column_default: "nextval('customer_customer_id_seq'::regclass)",
+          primary_key: true,
+          unique: false,
+          foreign_key: null,
+        },
+        {
+          column_name: 'name',
+          data_type: 'string',
+          is_nullable: 'NO',
+          column_default: null,
+          primary_key: false,
+          unique: false,
+          foreign_key: null,
+        },
+      ],
+      foreignTables: [],
+      foreignKeys: [],
+      isPivot: false,
+      childTables: ['order'],
+      hasOne: [],
+      hasMany: ['order'],
+      belongsTo: [],
+      belongsToMany: [],
+      pivotRelationships: [],
+    });
+
+    // Validate the order table
+    const order = schemaInfo.find((t) => t.table === 'order');
+    expect(order).toEqual({
+      table: 'order',
+      tablePlural: 'orders',
+      requiredColumns: ['order_id', 'customer_id'],
+      columnsInfo: [
+        {
+          column_name: 'order_id',
+          data_type: 'number',
+          is_nullable: 'NO',
+          column_default: "nextval('order_order_id_seq'::regclass)",
+          primary_key: true,
+          unique: false,
+          foreign_key: null,
+        },
+        {
+          column_name: 'customer_id',
+          data_type: 'number',
+          is_nullable: 'NO',
+          column_default: null,
+          primary_key: false,
+          unique: false,
+          foreign_key: {
+            foreign_table_name: 'customer',
+            foreign_column_name: 'customer_id',
+          },
+        },
+      ],
+      foreignTables: ['customer'],
+      foreignKeys: ['customer_id'],
+      isPivot: false,
+      childTables: ['order_product'],
+      hasOne: [],
+      hasMany: ['order_product'],
+      belongsTo: ['customer'],
+      belongsToMany: ['product'],
+      pivotRelationships: [
+        { relatedTable: 'product', pivotTable: 'order_product' },
+      ],
+    });
+
+    // Validate the order_product table
+    const orderProduct = schemaInfo.find((t) => t.table === 'order_product');
+    expect(orderProduct).toEqual({
+      table: 'order_product',
+      tablePlural: 'order_products',
+      requiredColumns: ['order_product_id', 'order_id', 'product_id'],
+      columnsInfo: [
+        {
+          column_name: 'order_product_id',
+          data_type: 'number',
+          is_nullable: 'NO',
+          column_default:
+            "nextval('order_product_order_product_id_seq'::regclass)",
+          primary_key: true,
+          unique: false,
+          foreign_key: null,
+        },
+        {
+          column_name: 'order_id',
+          data_type: 'number',
+          is_nullable: 'NO',
+          column_default: null,
+          primary_key: false,
+          unique: false,
+          foreign_key: {
+            foreign_table_name: 'order',
+            foreign_column_name: 'order_id',
+          },
+        },
+        {
+          column_name: 'product_id',
+          data_type: 'number',
+          is_nullable: 'NO',
+          column_default: null,
+          primary_key: false,
+          unique: false,
+          foreign_key: {
+            foreign_table_name: 'product',
+            foreign_column_name: 'product_id',
+          },
+        },
+      ],
+      foreignTables: ['order', 'product'],
+      foreignKeys: ['order_id', 'product_id'],
+      isPivot: true,
+      childTables: [],
+      hasOne: [],
+      hasMany: [],
+      belongsTo: ['order', 'product'],
       belongsToMany: [],
       pivotRelationships: [],
     });
