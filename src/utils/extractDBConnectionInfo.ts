@@ -1,11 +1,13 @@
-function extractDBConnectionInfo(connectionString: string): {
-  dbType: string;
+interface IDBConnectionInfo {
+  dbType: 'postgresql' | 'mysql';
   username: string;
   password: string;
   host: string;
   port: number;
   dbName: string;
-} {
+}
+
+function extractDBConnectionInfo(connectionString: string): IDBConnectionInfo {
   const regex =
     /^(?<dbType>[a-z]+):\/\/(?<username>[^:]+):(?<password>[^@]+)@(?<host>[^:]+):(?<port>\d+)\/(?<dbName>[^/]+)$/;
   const match = connectionString.match(regex);
@@ -15,6 +17,10 @@ function extractDBConnectionInfo(connectionString: string): {
   }
 
   const { dbType, username, password, host, port, dbName } = match.groups;
+
+  if (dbType !== 'postgresql' && dbType !== 'mysql') {
+    throw new Error('Unsupported database type');
+  }
 
   return {
     dbType,

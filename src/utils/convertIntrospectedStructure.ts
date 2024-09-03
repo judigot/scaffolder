@@ -1,15 +1,14 @@
-import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
-import { addRelationshipInfo } from './identifySchema';
+import {
+  IColumnInfo,
+  ISchemaInfo,
+  ITable,
+  ITableMySQL,
+} from '@/interfaces/interfaces';
+import { addRelationshipInfo, addSchemaInfo } from '@/utils/identifySchema';
 import { typeMappings } from '@/utils/mappings';
 import pluralize from 'pluralize';
 
-export interface ITable {
-  table_name: string;
-  columns: IColumnInfo[];
-  check_constraints: string[];
-}
-
-const getTypeScriptType = (dataType: string): string => {
+export const getTypeScriptType = (dataType: string): string => {
   // Normalize the data type to lowercase
   const identifiedType = dataType.toLowerCase();
 
@@ -46,12 +45,15 @@ export const getForeignTables = (columns: IColumnInfo[]): string[] =>
     ),
   ).filter((tableName) => tableName !== '');
 
-export const getForeignKeys = (columns: IColumnInfo[]): string[] =>
-  columns
-    .filter((column) => column.foreign_key !== null)
-    .map((column) => column.column_name);
+export const getForeignKeys = (columns: IColumnInfo[]): string[] => {
+  return Array.from(
+    new Set(
+      columns.filter((col) => col.foreign_key).map((col) => col.column_name),
+    ),
+  );
+};
 
-const convertColumn = ({
+export const convertColumn = ({
   column_name,
   data_type,
   is_nullable,
@@ -63,21 +65,57 @@ const convertColumn = ({
   column_name,
   data_type: getTypeScriptType(data_type),
   is_nullable,
-  column_default,
+  column_default: primary_key ? `AUTO_INCREMENT` : column_default,
   primary_key,
   unique,
   foreign_key,
 });
 
-const convertTable = (table: ITable): ISchemaInfo => {
-  const columnsInfo = table.columns.map(convertColumn);
-  const requiredColumns = getRequiredColumns(table.columns);
-  const foreignTables = getForeignTables(table.columns);
-  const foreignKeys = getForeignKeys(table.columns);
+// Type guards for single objects
+export const isITable = (data: unknown): data is ITable => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'table_name' in data &&
+    'columns' in data &&
+    'check_constraints' in data
+  );
+};
+
+export const isITableMySQL = (data: unknown): data is ITableMySQL => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'TABLE_NAME' in data &&
+    'table_definition' in data
+  );
+};
+
+export const convertTable = (
+  table: ITable | ITableMySQL,
+  dbType: 'postgresql' | 'mysql',
+): ISchemaInfo => {
+  let tableName: string;
+  let columns: IColumnInfo[];
+
+  if (dbType === 'mysql' && isITableMySQL(table)) {
+    tableName = table.TABLE_NAME;
+    columns = table.table_definition.columns;
+  } else if (dbType === 'postgresql' && isITable(table)) {
+    tableName = table.table_name;
+    columns = table.columns;
+  } else {
+    throw new Error('Invalid table structure or dbType');
+  }
+
+  const columnsInfo = columns.map(convertColumn);
+  const requiredColumns = getRequiredColumns(columnsInfo);
+  const foreignTables = getForeignTables(columnsInfo);
+  const foreignKeys = getForeignKeys(columnsInfo);
 
   return {
-    table: table.table_name,
-    tablePlural: pluralize(table.table_name),
+    table: tableName,
+    tablePlural: pluralize(tableName),
     requiredColumns,
     columnsInfo,
     foreignTables,
@@ -104,14 +142,26 @@ export const populateChildTables = (
   });
 };
 
-const convertIntrospectedStructure = (tables: ITable[]): ISchemaInfo[] => {
+const convertIntrospectedStructure = (
+  tables: ITable[] | ITableMySQL[],
+  dbType: 'postgresql' | 'mysql',
+): ISchemaInfo[] => {
   const tableMap = new Map(
-    tables.map((table) => [table.table_name, convertTable(table)]),
+    tables.map((table) => {
+      if (dbType === 'mysql' && isITableMySQL(table)) {
+        return [table.TABLE_NAME, convertTable(table, 'mysql')];
+      } else if (dbType === 'postgresql' && isITable(table)) {
+        return [table.table_name, convertTable(table, 'postgresql')];
+      } else {
+        throw new Error('Invalid table structure or dbType');
+      }
+    }),
   );
-  populateChildTables(tableMap);
 
-  const schemaInfo = [...tableMap.values()];
-  addRelationshipInfo(schemaInfo);
+  let schemaInfo = [...tableMap.values()];
+
+  schemaInfo = addRelationshipInfo(schemaInfo);
+  schemaInfo = addSchemaInfo(schemaInfo);
 
   return schemaInfo;
 };

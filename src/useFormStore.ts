@@ -64,7 +64,7 @@ function determineSQLDatabaseType(
   dbConnection: string,
 ): 'postgresql' | 'mysql' | '' {
   const dbType = extractDBConnectionInfo(dbConnection).dbType;
-  return dbType === 'postgresql' || dbType === 'mysql' ? dbType : '';
+  return dbType;
 }
 
 export const useFormStore = create(

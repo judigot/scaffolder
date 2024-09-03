@@ -29,11 +29,11 @@ export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
   return Array.from(imports).join('\n');
 };
 
-function determineSQLDatabaseType(
+export function determineSQLDatabaseType(
   dbConnection: string,
 ): 'postgresql' | 'mysql' | '' {
   const dbType = extractDBConnectionInfo(dbConnection).dbType;
-  return dbType === 'postgresql' || dbType === 'mysql' ? dbType : '';
+  return dbType;
 }
 
 export const quoteTableName = (tableName: string): string => {
