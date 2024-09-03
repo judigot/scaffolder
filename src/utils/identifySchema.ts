@@ -13,6 +13,8 @@ import {
 HasMany Rules:
   - Use `hasMany` when the current table (parent table) has a one-to-many relationship with another table (child table).
   - Applicable when the foreign key in the child table references the primary key in the parent table, and the foreign key can appear multiple times in the child table.
+  - If a column is both a foreign key and is not unique, then the table should be added in hasMany.
+      Example: If user_id column is a foreign key and is not unique in the post table, then in the users table, it should have hasMany: ["post"]
 
 HasOne Rules:
   - Use `hasOne` for one-to-one relationships where the current table (parent table) is associated with exactly one record in another table (child table).
@@ -76,7 +78,7 @@ const populateFieldInfo = (
   return fields;
 };
 
-function identifyPivotTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
+export function identifyPivotTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo.map((relationship) => {
     relationship.isPivot = isJunctionTable(relationship, schemaInfo);
 
@@ -348,19 +350,22 @@ export function addSchemaInfo(
   schemaInfo: ISchemaInfo[],
   data: Record<string, Record<string, unknown>[]> | null = null,
 ): ISchemaInfo[] {
-  schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
+  const isIntrospection = data === null;
 
-  if (data !== null) {
+  if (!isIntrospection) {
     schemaInfo = addAssociations(schemaInfo, data);
   } else {
     schemaInfo = addAssociations(schemaInfo);
   }
 
+  schemaInfo = linkChildTables(schemaInfo);
+  schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
   schemaInfo = identifyPivotTables(schemaInfo);
   schemaInfo = addPivotRelationships(schemaInfo);
-  schemaInfo = linkChildTables(schemaInfo);
-  schemaInfo = determineUniqueForeignKeys(schemaInfo);
 
+  if (!isIntrospection) {
+    schemaInfo = determineUniqueForeignKeys(schemaInfo);
+  }
   return schemaInfo;
 }
 
