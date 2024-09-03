@@ -36,8 +36,6 @@ export interface ITable {
   columns: IColumnInfo[];
   check_constraints: string[];
 }
-// prettier-ignore
-export const isITableArray = ( data: unknown, ): data is ITable[] => { return ( Array.isArray(data) && data.every( (item) => item !== null && typeof item === 'object' && 'table_name' in item && 'columns' in item && 'check_constraints' in item, ) ); };
 
 export interface ITableMySQL {
   TABLE_NAME: string;
@@ -45,5 +43,13 @@ export interface ITableMySQL {
     columns: IColumnInfo[];
   };
 }
+
+// prettier-ignore
+export const isITable = (data: unknown): data is ITable => { return ( typeof data === 'object' && data !== null && 'table_name' in data && 'columns' in data && 'check_constraints' in data ); };
+// prettier-ignore
+export const isITableArray = ( data: unknown, ): data is ITable[] => { return ( Array.isArray(data) && data.every( (item) => item !== null && typeof item === 'object' && 'table_name' in item && 'columns' in item && 'check_constraints' in item, ) ); };
+
+// prettier-ignore
+export const isITableMySQL = (data: unknown): data is ITableMySQL => { return ( typeof data === 'object' && data !== null && 'TABLE_NAME' in data && 'table_definition' in data ); };
 // prettier-ignore
 export const isITableMySQLArray = ( data: unknown, ): data is ITableMySQL[] => { return ( Array.isArray(data) && data.every( (item) => item !== null && typeof item === 'object' && 'TABLE_NAME' in item && 'table_definition' in item, ) ); };
