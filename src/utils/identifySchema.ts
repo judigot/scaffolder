@@ -310,7 +310,9 @@ function addPivotRelationships(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo;
 }
 
-const determineUniqueForeignKeys = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
+const determineUniqueForeignKeys = (
+  schemaInfo: ISchemaInfo[],
+): ISchemaInfo[] => {
   schemaInfo.forEach((relationship) => {
     relationship.columnsInfo.forEach((column) => {
       if (column.foreign_key) {
@@ -334,8 +336,6 @@ const determineUniqueForeignKeys = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] =>
 
   return schemaInfo;
 };
-
-
 
 // Main function to identify schema relationships
 function identifySchema(
@@ -386,7 +386,6 @@ function identifySchema(
   schemaInfo = addPivotRelationships(schemaInfo);
 
   schemaInfo = determineUniqueForeignKeys(schemaInfo);
-
 
   return schemaInfo;
 }
