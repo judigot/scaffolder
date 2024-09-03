@@ -14,6 +14,7 @@ function App() {
     setOneToOne,
     setOneToMany,
     setManyToMany,
+    setDBType,
     formData: {
       schemaInput,
       backendDir,
@@ -188,6 +189,26 @@ function App() {
                     &nbsp;Invalid connection string
                   </i>
                 )}
+                &nbsp; &nbsp;
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDBType('postgresql');
+                  }}
+                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  PostgreSQL
+                </button>
+                &nbsp; &nbsp;
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDBType('mysql');
+                  }}
+                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  MySQL
+                </button>
                 <input
                   type="text"
                   id="dbConnection"

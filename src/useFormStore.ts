@@ -31,6 +31,7 @@ interface IFormStore {
   setOneToOne: () => void;
   setOneToMany: () => void;
   setManyToMany: () => void;
+  setDBType: (dbType: 'postgresql' | 'mysql') => void;
 }
 
 const usersPostOneToOneInput = JSON.stringify(usersPostOneToOneSchema, null, 4);
@@ -112,6 +113,38 @@ export const useFormStore = create(
           set((state) => ({
             formData: { ...state.formData, schemaInput: POSSchemaInput },
           }));
+        },
+        setDBType: (dbType) => {
+          set((state) => {
+            let connectionString = state.formData.dbConnection;
+
+            switch (dbType) {
+              case 'postgresql':
+                connectionString = connectionString
+                  .replace(/^\w+:\/\//, 'postgresql://')
+                  .replace(/:\d+\//, ':5432/');
+                break;
+              case 'mysql':
+                connectionString = connectionString
+                  .replace(/^\w+:\/\//, 'mysql://')
+                  .replace(/:\d+\//, ':3306/');
+                break;
+              default:
+                throw new Error(`Unsupported database type: ${String(dbType)}`);
+            }
+
+            const newDbType = determineSQLDatabaseType(connectionString);
+            const newQuote = getQuote(newDbType);
+
+            return {
+              formData: {
+                ...state.formData,
+                dbConnection: connectionString,
+              },
+              dbType: newDbType,
+              quote: newQuote,
+            };
+          });
         },
       };
     },
