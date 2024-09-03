@@ -33,9 +33,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
   interfaces: '',
   getParsedSchemaInput: () => {
     const { schemaInput } = useFormStore.getState().formData;
-    const parsedSchema: Record<string, Record<string, unknown>[]> =
-      JSON5.parse(schemaInput);
-    return parsedSchema;
+    return JSON5.parse(schemaInput);
   },
   SQLSchema: '',
   deleteTablesQueries: [],
@@ -104,105 +102,92 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
     const { includeInsertData, insertOption, includeTypeGuards } =
       useFormStore.getState().formData;
 
+    const parsedSchema = get().getParsedSchemaInput();
+
+    let mockData: Record<string, Record<string, unknown>[]> = {};
     try {
-      const parsedSchema = get().getParsedSchemaInput();
+      mockData = generateMockData({
+        mockDataRows: 5,
+        schemaInfo,
+      });
+      set({ mockData });
+    } catch (e) {
+      set({ mockData: {} });
+    }
 
-      let mockData: Record<string, Record<string, unknown>[]> = {};
-      try {
-        mockData = generateMockData({
-          mockDataRows: 5,
-          schemaInfo,
-        });
-        set({ mockData });
-      } catch (e) {
-        set({ mockData: {} });
-      }
+    let interfaces: string | Record<string, string> = '';
+    try {
+      interfaces = generateTypescriptInterfaces({
+        schemaInfo,
+        includeTypeGuards,
+        outputOnSingleFile: false,
+      });
+      set({ interfaces });
+    } catch (e) {
+      set({ interfaces: errorMessage });
+    }
 
-      let interfaces: string | Record<string, string> = '';
-      try {
-        interfaces = generateTypescriptInterfaces({
-          schemaInfo,
-          includeTypeGuards,
-          outputOnSingleFile: false,
-        });
-        set({ interfaces });
-      } catch (e) {
-        set({ interfaces: errorMessage });
-      }
+    let SQLInsertQueries = '';
+    try {
+      SQLInsertQueries = generateSQLInserts(parsedSchema);
+      set({ SQLInsertQueries: formatSQL(SQLInsertQueries) });
+    } catch (e) {
+      set({ SQLInsertQueries: errorMessage });
+    }
 
-      let SQLInsertQueries = '';
-      try {
-        SQLInsertQueries = generateSQLInserts(parsedSchema);
-        set({ SQLInsertQueries: formatSQL(SQLInsertQueries) });
-      } catch (e) {
-        set({ SQLInsertQueries: errorMessage });
-      }
+    let SQLInsertQueriesFromMockData = '';
+    try {
+      SQLInsertQueriesFromMockData = generateSQLInserts(mockData);
+      set({
+        SQLInsertQueriesFromMockData: formatSQL(SQLInsertQueriesFromMockData),
+      });
+    } catch (e) {
+      set({ SQLInsertQueriesFromMockData: errorMessage });
+    }
 
-      let SQLInsertQueriesFromMockData = '';
-      try {
-        SQLInsertQueriesFromMockData = generateSQLInserts(mockData);
-        set({
-          SQLInsertQueriesFromMockData: formatSQL(SQLInsertQueriesFromMockData),
-        });
-      } catch (e) {
-        set({ SQLInsertQueriesFromMockData: errorMessage });
-      }
+    let deleteTablesQueries: string[] = [];
+    try {
+      deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
+      set({ deleteTablesQueries });
+    } catch (e) {
+      set({ deleteTablesQueries: [errorMessage] });
+    }
 
-      let deleteTablesQueries: string[] = [];
-      try {
-        deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
-        set({ deleteTablesQueries });
-      } catch (e) {
-        set({ deleteTablesQueries: [errorMessage] });
-      }
+    let SQLSchema = '';
+    try {
+      SQLSchema = generateSQLSchema(schemaInfo);
 
-      let SQLSchema = '';
-      try {
-        SQLSchema = generateSQLSchema(schemaInfo);
-
-        if (includeInsertData) {
-          if (insertOption === 'SQLInsertQueries') {
-            SQLSchema += `\n\n${SQLInsertQueries}`;
-          }
-
-          if (insertOption === 'SQLInsertQueriesFromMockData') {
-            SQLSchema += `\n\n${SQLInsertQueriesFromMockData}`;
-          }
+      if (includeInsertData) {
+        if (insertOption === 'SQLInsertQueries') {
+          SQLSchema += `\n\n${SQLInsertQueries}`;
         }
 
-        set({
-          SQLSchema: `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(SQLSchema)}`,
-        });
-      } catch (e) {
-        set({ SQLSchema: errorMessage });
+        if (insertOption === 'SQLInsertQueriesFromMockData') {
+          SQLSchema += `\n\n${SQLInsertQueriesFromMockData}`;
+        }
       }
 
-      let joins: string[] = [];
-      try {
-        joins = generateSQLJoins(schemaInfo);
-        set({ joins });
-      } catch (e) {
-        set({ joins: [errorMessage] });
-      }
-
-      let aggregateJoins: string[] = [];
-      try {
-        aggregateJoins = generateSQLAggregateJoins(schemaInfo);
-        set({ aggregateJoins });
-      } catch (e) {
-        set({ aggregateJoins: [errorMessage] });
-      }
-    } catch (e) {
       set({
-        interfaces: errorMessage,
-        SQLSchema: errorMessage,
-        deleteTablesQueries: [errorMessage],
-        joins: [errorMessage],
-        mockData: {},
-        SQLInsertQueries: errorMessage,
-        SQLInsertQueriesFromMockData: errorMessage,
-        aggregateJoins: [errorMessage],
+        SQLSchema: `${deleteTablesQueries.join('\n')}\n\n${formatSQL(SQLSchema)}`,
       });
+    } catch (e) {
+      set({ SQLSchema: errorMessage });
+    }
+
+    let joins: string[] = [];
+    try {
+      joins = generateSQLJoins(schemaInfo);
+      set({ joins });
+    } catch (e) {
+      set({ joins: [errorMessage] });
+    }
+
+    let aggregateJoins: string[] = [];
+    try {
+      aggregateJoins = generateSQLAggregateJoins(schemaInfo);
+      set({ aggregateJoins });
+    } catch (e) {
+      set({ aggregateJoins: [errorMessage] });
     }
   },
 }));
