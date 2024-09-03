@@ -234,7 +234,7 @@ app.post(
                   '\`;'
                 )
                 FROM information_schema.tables
-                WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbType}'
+                WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbName}'
               );
             
               -- Execute the drop statements
