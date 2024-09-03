@@ -84,7 +84,7 @@ const generateMockData = ({
       }
     });
 
-    const mockRecords = [];
+    const mockRecords: Record<string, unknown>[] = [];
 
     for (let i = 0; i < mockDataRows; i++) {
       const mockRecord: Record<string, unknown> = {};
@@ -104,9 +104,7 @@ const generateMockData = ({
         if (info.foreignKey) {
           const { table, field } = info.foreignKey;
           const foreignRecords = generatedData[table];
-          mockRecord[rawColumnName] = faker.helpers.arrayElement(
-            foreignRecords.map((r) => r[field]),
-          );
+          mockRecord[rawColumnName] = foreignRecords[i][field]; // Use a unique value from foreign key records
           return;
         }
 
