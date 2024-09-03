@@ -129,7 +129,7 @@ export const isJunctionTable = (
 };
 
 // Function to add relationship info to schema
-export const addRelationshipInfo = (
+export const addAssociations = (
   schemaInfo: ISchemaInfo[],
   data?: Record<string, Record<string, unknown>[]>,
 ): ISchemaInfo[] => {
@@ -261,7 +261,8 @@ const createColumnsInfo = ({
       data_type: fieldType,
       is_nullable: fields[key].nullable ? 'YES' : 'NO',
       column_default: isPrimaryKey
-        ? `nextval('${table}_${key}_seq'::regclass)`
+        ? // ? `nextval('${table}_${key}_seq'::regclass)`
+          `AUTO_INCREMENT`
         : null,
       primary_key: isPrimaryKey,
       unique: isUnique,
@@ -343,16 +344,26 @@ export const determineUniqueForeignKeys = (
   return schemaInfo;
 };
 
-export function addSchemaInfo(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
+export function addSchemaInfo(
+  schemaInfo: ISchemaInfo[],
+  data: Record<string, Record<string, unknown>[]> | null = null,
+): ISchemaInfo[] {
+  schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
+
+  if (data !== null) {
+    schemaInfo = addAssociations(schemaInfo, data);
+  } else {
+    schemaInfo = addAssociations(schemaInfo);
+  }
+
   schemaInfo = identifyPivotTables(schemaInfo);
+  schemaInfo = addPivotRelationships(schemaInfo);
   schemaInfo = linkChildTables(schemaInfo);
   schemaInfo = determineUniqueForeignKeys(schemaInfo);
-  schemaInfo = addPivotRelationships(schemaInfo);
-  schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
+
   return schemaInfo;
 }
 
-// Main function to identify schema relationships
 function identifySchema(
   data: Record<string, Record<string, unknown>[]>,
 ): ISchemaInfo[] {
@@ -392,9 +403,7 @@ function identifySchema(
     };
   });
 
-  schemaInfo = addRelationshipInfo(schemaInfo, data);
-
-  schemaInfo = addSchemaInfo(schemaInfo);
+  schemaInfo = addSchemaInfo(schemaInfo, data);
 
   return schemaInfo;
 }
