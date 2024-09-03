@@ -491,7 +491,7 @@ function App() {
                 Include Type Guards
               </label>
             </div>
-            <h2 className="text-xl font-bold mb-2">Interfaces</h2>
+            <h2 className="text-xl font-bold mb-2">TypeScript Interfaces</h2>
             <br />
             <div className="">
               {typeof interfaces === 'string' ? (
