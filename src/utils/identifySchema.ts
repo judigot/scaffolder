@@ -133,64 +133,94 @@ export const isJunctionTable = (
 // Function to add relationship info to schema
 export const addAssociations = (
   schemaInfo: ISchemaInfo[],
-  data?: Record<string, Record<string, unknown>[]>,
+  data: Record<string, Record<string, unknown>[]> | null = null,
 ): ISchemaInfo[] => {
+  const isIntrospection = data === null;
+  const tempSchemaInfo = schemaInfo.map((relationship) => ({
+    ...relationship,
+    hasOne: [...relationship.hasOne],
+    hasMany: [...relationship.hasMany],
+    belongsTo: [...relationship.belongsTo],
+    belongsToMany: [...relationship.belongsToMany],
+  }));
+
   // Helper function to handle belongsToMany relationships
-  const handleBelongsToMany = (
-    relationship: ISchemaInfo,
-    schemaInfo: ISchemaInfo[],
-  ) => {
+  const handleBelongsToMany = (relationship: ISchemaInfo) => {
     const foreignKeys = relationship.columnsInfo.filter(
       (col) => col.foreign_key,
     );
 
     if (foreignKeys.length === 2) {
-      const table1 = schemaInfo.find(
+      const table1 = tempSchemaInfo.find(
         (rel) => rel.table === foreignKeys[0].foreign_key?.foreign_table_name,
       );
-      const table2 = schemaInfo.find(
+      const table2 = tempSchemaInfo.find(
         (rel) => rel.table === foreignKeys[1].foreign_key?.foreign_table_name,
       );
 
       if (table1 && table2) {
-        table1.belongsToMany.push(table2.table);
-        table2.belongsToMany.push(table1.table);
+        table1.belongsToMany = Array.from(
+          new Set([...table1.belongsToMany, table2.table]),
+        );
+        table2.belongsToMany = Array.from(
+          new Set([...table2.belongsToMany, table1.table]),
+        );
       }
     }
   };
-  return schemaInfo.map((relationship) => {
+
+  tempSchemaInfo.forEach((relationship) => {
     const rows = data ? data[relationship.table] : [];
 
-    relationship.columnsInfo.map((column) => {
+    relationship.columnsInfo.forEach((column) => {
       if (column.foreign_key) {
-        const parentTable = schemaInfo.find(
+        const parentTable = tempSchemaInfo.find(
           (rel) => rel.table === column.foreign_key?.foreign_table_name,
         );
         if (parentTable) {
-          relationship.belongsTo.push(parentTable.table);
+          relationship.belongsTo = Array.from(
+            new Set([...relationship.belongsTo, parentTable.table]),
+          );
 
-          if (data && detectOneToManyRelationship(rows, column.column_name)) {
-            parentTable.hasMany.push(relationship.table);
-          } else if (!isJunctionTable(relationship, schemaInfo)) {
-            parentTable.hasOne.push(relationship.table);
+          if (!isIntrospection) {
+            if (detectOneToManyRelationship(rows, column.column_name)) {
+              parentTable.hasMany = Array.from(
+                new Set([...parentTable.hasMany, relationship.table]),
+              );
+            } else if (!isJunctionTable(relationship, schemaInfo)) {
+              parentTable.hasOne = Array.from(
+                new Set([...parentTable.hasOne, relationship.table]),
+              );
+            }
+          } else {
+            const foreignTable = tempSchemaInfo.find((rel) =>
+              rel.columnsInfo.some(
+                (col) =>
+                  col.primary_key && col.column_name === column.column_name,
+              ),
+            );
+            if (foreignTable) {
+              if (!column.unique) {
+                foreignTable.hasMany = Array.from(
+                  new Set([...foreignTable.hasMany, relationship.table]),
+                );
+              } else if (!isJunctionTable(relationship, schemaInfo)) {
+                foreignTable.hasOne = Array.from(
+                  new Set([...foreignTable.hasOne, relationship.table]),
+                );
+              }
+            }
           }
         }
       }
     });
 
     if (isJunctionTable(relationship, schemaInfo)) {
-      handleBelongsToMany(relationship, schemaInfo);
+      handleBelongsToMany(relationship);
     }
-
-    relationship.hasOne = Array.from(new Set(relationship.hasOne));
-    relationship.hasMany = Array.from(new Set(relationship.hasMany));
-    relationship.belongsTo = Array.from(new Set(relationship.belongsTo));
-    relationship.belongsToMany = Array.from(
-      new Set(relationship.belongsToMany),
-    );
-
-    return relationship; /* Return the modified relationship */
   });
+
+  return tempSchemaInfo;
 };
 
 // Function to perform topological sorting based on table hierarchy
