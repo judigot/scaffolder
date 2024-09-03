@@ -95,7 +95,7 @@ function App() {
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
             <form className="space-y-4">
-              <div className="float-right">
+              <div className="float-right pb-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -127,7 +127,6 @@ function App() {
                 </button>
               </div>
 
-              <br />
               <textarea
                 id="schemaInput"
                 name="schemaInput"
@@ -189,26 +188,27 @@ function App() {
                     &nbsp;Invalid connection string
                   </i>
                 )}
-                &nbsp; &nbsp;
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDBType('postgresql');
-                  }}
-                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                >
-                  PostgreSQL
-                </button>
-                &nbsp; &nbsp;
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDBType('mysql');
-                  }}
-                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                >
-                  MySQL
-                </button>
+                <div className="float-right pb-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDBType('postgresql');
+                    }}
+                    className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                  >
+                    PostgreSQL
+                  </button>
+                  &nbsp; &nbsp;
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDBType('mysql');
+                    }}
+                    className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                  >
+                    MySQL
+                  </button>
+                </div>
                 <input
                   type="text"
                   id="dbConnection"
@@ -243,10 +243,23 @@ function App() {
                           extractDBConnectionInfo(dbConnection).dbType,
                         );
 
+                        setGenerationStatus({
+                          ...generationStatus,
+                          ...{
+                            isDBConnectionValid: true,
+                          },
+                        });
+
                         /* prettier-ignore */ (() => { const QuickLog = JSON.stringify(schemaInfo, null, 4); const parentDiv = document.getElementById('quicklogContainer') ?? (() => {const div = document.createElement('div');div.id = 'quicklogContainer';div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end;';document.body.appendChild(div);return div; })(); const createChildDiv = (text: typeof QuickLog) => {const newDiv = Object.assign(document.createElement('div'), { textContent: text, style: 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer;',});const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div');if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { const textArea = document.createElement('textarea'); textArea.value = clickedDiv.textContent ?? ''; document.body.appendChild(textArea); textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }};const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); }};newDiv.addEventListener('mousedown', handleMouseDown);newDiv.addEventListener('contextmenu', handleRightClick);return newDiv; };parentDiv.prepend(createChildDiv(QuickLog)); })()
                       })
                       .catch(() => {
                         // Failure
+                        setGenerationStatus({
+                          ...generationStatus,
+                          ...{
+                            isDBConnectionValid: false,
+                          },
+                        });
                       });
                   }}
                   className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
