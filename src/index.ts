@@ -16,11 +16,7 @@ import createRepositories from '@/utils/createRepositories';
 import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
 import createInterfaces from '@/utils/createInterfaces';
 import createResources from '@/utils/createResources';
-import {
-  ISchemaInfo,
-  isITableArray,
-  isITableMySQLArray,
-} from '@/interfaces/interfaces';
+import { ISchemaInfo, isITableArray } from '@/interfaces/interfaces';
 import createBaseRepository from '@/utils/createBaseRepository';
 import createBaseRepositoryInterface from '@/utils/createBaseRepositoryInterface';
 import createAppServiceProviderScaffolding from '@/utils/createAppServiceProviderScaffolding';
@@ -400,15 +396,10 @@ app.post(
       try {
         const introspectionResult = await introspect(dbConnection);
 
-        if (
-          isITableArray(introspectionResult) ||
-          isITableMySQLArray(introspectionResult)
-        ) {
-          const { dbType } = extractDBConnectionInfo(dbConnection);
-          const schemaInfo = convertIntrospectedStructure(
-            introspectionResult,
-            dbType,
-          );
+        // res.status(200).json(introspectionResult);
+
+        if (isITableArray(introspectionResult)) {
+          const schemaInfo = convertIntrospectedStructure(introspectionResult);
 
           res.status(200).json(schemaInfo);
         }

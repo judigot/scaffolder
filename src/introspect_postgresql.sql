@@ -42,14 +42,19 @@ unique_constraints AS (
 ),
 composite_unique_constraints AS (
     SELECT tc.table_schema,
-           tc.table_name,
-           tc.constraint_name,
-           array_agg(kcu.column_name ORDER BY kcu.ordinal_position) AS composite_unique_columns
+        tc.table_name,
+        tc.constraint_name,
+        array_agg(
+            kcu.column_name
+            ORDER BY kcu.ordinal_position
+        ) AS composite_unique_columns
     FROM information_schema.table_constraints AS tc
         JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
         AND tc.table_schema = kcu.table_schema
     WHERE tc.constraint_type = 'UNIQUE'
-    GROUP BY tc.table_schema, tc.table_name, tc.constraint_name
+    GROUP BY tc.table_schema,
+        tc.table_name,
+        tc.constraint_name
     HAVING count(kcu.column_name) > 1 -- Only select composite unique constraints
 ),
 check_constraints AS (
@@ -64,31 +69,42 @@ check_constraints AS (
 SELECT c.table_name,
     json_agg(
         json_build_object(
-            'column_name', c.column_name,
-            'data_type', c.data_type,
-            'is_nullable', c.is_nullable,
-            'column_default', c.column_default,
-            'primary_key', (pk.column_name IS NOT NULL),
-            'unique', (uc.column_name IS NOT NULL),
-            'foreign_key', CASE
+            'column_name',
+            c.column_name,
+            'data_type',
+            c.data_type,
+            'is_nullable',
+            c.is_nullable,
+            'column_default',
+            c.column_default,
+            'primary_key',
+            (pk.column_name IS NOT NULL),
+            'unique',
+            (uc.column_name IS NOT NULL),
+            'foreign_key',
+            CASE
                 WHEN fk.foreign_table_name IS NOT NULL THEN json_build_object(
-                    'foreign_table_name', fk.foreign_table_name,
-                    'foreign_column_name', fk.foreign_column_name
+                    'foreign_table_name',
+                    fk.foreign_table_name,
+                    'foreign_column_name',
+                    fk.foreign_column_name
                 )
                 ELSE NULL
             END
         )
         ORDER BY c.ordinal_position
     ) AS columns,
-    (SELECT json_agg(check_clause)
-     FROM check_constraints cc
-     WHERE cc.table_schema = c.table_schema
-       AND cc.table_name = c.table_name
+    (
+        SELECT json_agg(check_clause)
+        FROM check_constraints cc
+        WHERE cc.table_schema = c.table_schema
+            AND cc.table_name = c.table_name
     ) AS check_constraints,
-    (SELECT json_agg(composite_unique_columns)
-     FROM composite_unique_constraints cuc
-     WHERE cuc.table_schema = c.table_schema
-       AND cuc.table_name = c.table_name
+    (
+        SELECT json_agg(composite_unique_columns)
+        FROM composite_unique_constraints cuc
+        WHERE cuc.table_schema = c.table_schema
+            AND cuc.table_name = c.table_name
     ) AS composite_unique_constraints
 FROM columns_info c
     LEFT JOIN foreign_keys fk ON c.table_schema = fk.table_schema
@@ -99,5 +115,6 @@ FROM columns_info c
     AND c.column_name = pk.column_name
     LEFT JOIN unique_constraints uc ON c.table_schema = uc.table_schema
     AND c.table_name = uc.table_name
-GROUP BY c.table_schema, c.table_name
+GROUP BY c.table_schema,
+    c.table_name
 ORDER BY c.table_name;

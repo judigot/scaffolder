@@ -1,11 +1,8 @@
 import {
-  DBTypes,
   IColumnInfo,
   ISchemaInfo,
   isITable,
-  isITableMySQL,
-  ITable,
-  ITableMySQL,
+  IIntrospectedSchemaInfo,
 } from '@/interfaces/interfaces';
 import { addSchemaInfo } from '@/utils/identifySchema';
 import { typeMappings } from '@/utils/mappings';
@@ -74,17 +71,11 @@ export const convertColumn = ({
   foreign_key,
 });
 
-export const convertTable = (
-  table: ITable | ITableMySQL,
-  dbType: DBTypes,
-): ISchemaInfo => {
+export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
   let tableName: string;
   let columns: IColumnInfo[];
 
-  if (dbType === 'mysql' && isITableMySQL(table)) {
-    tableName = table.TABLE_NAME;
-    columns = table.table_definition.columns;
-  } else if (dbType === 'postgresql' && isITable(table)) {
+  if (isITable(table)) {
     tableName = table.table_name;
     columns = table.columns;
   } else {
@@ -125,16 +116,11 @@ export const populateChildTables = (
   });
 };
 
-const convertIntrospectedStructure = (
-  tables: ITable[] | ITableMySQL[],
-  dbType: DBTypes,
-): ISchemaInfo[] => {
+const convertIntrospectedStructure = (tables: IIntrospectedSchemaInfo[]): ISchemaInfo[] => {
   const tableMap = new Map(
     tables.map((table) => {
-      if (dbType === 'mysql' && isITableMySQL(table)) {
-        return [table.TABLE_NAME, convertTable(table, 'mysql')];
-      } else if (dbType === 'postgresql' && isITable(table)) {
-        return [table.table_name, convertTable(table, 'postgresql')];
+      if (isITable(table)) {
+        return [table.table_name, convertTable(table)];
       } else {
         throw new Error('Invalid table structure or dbType');
       }

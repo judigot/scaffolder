@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
-import { ITable } from '@/interfaces/interfaces';
+import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces';
 
 describe('convertIntrospectedStructure', () => {
-  const usersPostOneToOneSchema: ITable[] = [
+  const usersPostOneToOneSchema: IIntrospectedSchemaInfo[] = [
     {
       table_name: 'post',
       columns: [
@@ -162,7 +162,7 @@ describe('convertIntrospectedStructure', () => {
     },
   ];
 
-  const usersPostsOneToManySchema: ITable[] = [
+  const usersPostsOneToManySchema: IIntrospectedSchemaInfo[] = [
     {
       table_name: 'post',
       columns: [
@@ -321,7 +321,7 @@ describe('convertIntrospectedStructure', () => {
     },
   ];
 
-  const POSSchema: ITable[] = [
+  const POSSchema: IIntrospectedSchemaInfo[] = [
     {
       table_name: 'customer',
       columns: [
@@ -444,10 +444,7 @@ describe('convertIntrospectedStructure', () => {
   ];
 
   it('should correctly convert and identify the full structure for usersPostOneToOneSchema (PostgreSQL)', () => {
-    const schemaInfo = convertIntrospectedStructure(
-      usersPostOneToOneSchema,
-      'postgresql',
-    );
+    const schemaInfo = convertIntrospectedStructure(usersPostOneToOneSchema);
 
     expect(schemaInfo).toStrictEqual([
       {
@@ -630,10 +627,7 @@ describe('convertIntrospectedStructure', () => {
   });
 
   it('should correctly convert and identify the full structure for usersPostsOneToManySchema (PostgreSQL)', () => {
-    const schemaInfo = convertIntrospectedStructure(
-      usersPostsOneToManySchema,
-      'postgresql',
-    );
+    const schemaInfo = convertIntrospectedStructure(usersPostsOneToManySchema);
 
     expect(schemaInfo).toStrictEqual([
       {
@@ -816,7 +810,7 @@ describe('convertIntrospectedStructure', () => {
   });
 
   it('should correctly convert and identify the full structure for POSSchema (PostgreSQL)', () => {
-    const schemaInfo = convertIntrospectedStructure(POSSchema, 'postgresql');
+    const schemaInfo = convertIntrospectedStructure(POSSchema);
 
     expect(schemaInfo).toStrictEqual([
       {
