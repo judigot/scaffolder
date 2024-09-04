@@ -1,5 +1,5 @@
 -- SET @database_name = ;
-SELECT c.table_name,
+SELECT c.table_name as table_name,
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'column_name',
