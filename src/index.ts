@@ -167,9 +167,11 @@ app.post(
         } else {
           return res.status(400).json({ error: 'Unsupported database type' });
         }
-
         const introspectionResult = await introspect(dbConnection);
-        res.status(200).json(introspectionResult);
+        if (isITableArray(introspectionResult)) {
+          const schemaInfo = convertIntrospectedStructure(introspectionResult);
+          res.status(200).json(schemaInfo);
+        }
       } catch (error: unknown) {
         res.status(500).json({ error });
       }
@@ -395,12 +397,9 @@ app.post(
     void (async () => {
       try {
         const introspectionResult = await introspect(dbConnection);
-
         // res.status(200).json(introspectionResult);
-
         if (isITableArray(introspectionResult)) {
           const schemaInfo = convertIntrospectedStructure(introspectionResult);
-
           res.status(200).json(schemaInfo);
         }
       } catch (error: unknown) {
