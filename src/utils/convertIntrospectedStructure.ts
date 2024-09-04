@@ -2,6 +2,8 @@ import {
   DBTypes,
   IColumnInfo,
   ISchemaInfo,
+  isITable,
+  isITableMySQL,
   ITable,
   ITableMySQL,
 } from '@/interfaces/interfaces';
@@ -71,26 +73,6 @@ export const convertColumn = ({
   unique,
   foreign_key,
 });
-
-// Type guards for single objects
-export const isITable = (data: unknown): data is ITable => {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'table_name' in data &&
-    'columns' in data &&
-    'check_constraints' in data
-  );
-};
-
-export const isITableMySQL = (data: unknown): data is ITableMySQL => {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'TABLE_NAME' in data &&
-    'table_definition' in data
-  );
-};
 
 export const convertTable = (
   table: ITable | ITableMySQL,
