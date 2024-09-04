@@ -398,14 +398,13 @@ app.post(
     }
     void (async () => {
       try {
-        const { dbType } = extractDBConnectionInfo(dbConnection);
-
         const introspectionResult = await introspect(dbConnection);
 
         if (
           isITableArray(introspectionResult) ||
           isITableMySQLArray(introspectionResult)
         ) {
+          const { dbType } = extractDBConnectionInfo(dbConnection);
           const schemaInfo = convertIntrospectedStructure(
             introspectionResult,
             dbType,
