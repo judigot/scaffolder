@@ -238,9 +238,12 @@ function App() {
                       .then((introspectedSchema: ITable[] | ITableMySQL[]) => {
                         let schemaInfo: ISchemaInfo[] | undefined = undefined;
 
+                        const { dbType } =
+                          extractDBConnectionInfo(dbConnection);
+
                         schemaInfo = convertIntrospectedStructure(
                           introspectedSchema,
-                          extractDBConnectionInfo(dbConnection).dbType,
+                          dbType,
                         );
 
                         setGenerationStatus({

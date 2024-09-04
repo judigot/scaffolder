@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { executePostgreSQL, executeMySQL } from '..';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 
 const platform: string = process.platform;
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -14,30 +15,29 @@ const readSqlFile = (filename: string): string => {
 };
 
 export const introspect = async (dbConnection: string): Promise<unknown> => {
-  const pgIntrospectionQuery = readSqlFile('introspect_postgresql.sql');
-  const mysqlIntrospectionQueryTemplate = readSqlFile('introspect_mysql.sql');
-
-  if (dbConnection.startsWith('postgresql')) {
-    const result = await executePostgreSQL(dbConnection, pgIntrospectionQuery);
-    return result;
-  } else if (dbConnection.startsWith('mysql')) {
-    const match = dbConnection.match(
-      /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
-    );
-    if (!match) {
-      throw new Error('Invalid MySQL connection string');
-    }
-    const [, , , , , database] = match;
-    const mysqlIntrospectionQuery = mysqlIntrospectionQueryTemplate.replace(
-      '$DB_NAME',
-      database,
-    );
-
-    const result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
-    return result;
-  } else {
-    throw new Error('Unsupported database type');
+  if (!dbConnection) {
+    throw new Error('Database connection string is required');
   }
+
+  const { dbType, dbName } = extractDBConnectionInfo(dbConnection);
+
+  const query = readSqlFile(`introspect_${String(dbType)}.sql`);
+  let result: unknown;
+
+  if (dbType === 'postgresql') {
+    result = await executePostgreSQL(dbConnection, query);
+  }
+
+  if (dbType === 'mysql') {
+    const mysqlIntrospectionQuery = query.replace('$DB_NAME', dbName);
+    result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
+  }
+
+  if (result === null) {
+    throw new Error(`Unsupported database type`);
+  }
+
+  return result;
 };
 
 export default introspect;

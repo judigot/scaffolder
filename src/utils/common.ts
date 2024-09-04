@@ -1,5 +1,5 @@
 import { toPascalCase } from '@/helpers/toPascalCase';
-import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
+import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { columnMappings, typeMappings } from '@/utils/mappings';
@@ -29,9 +29,7 @@ export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
   return Array.from(imports).join('\n');
 };
 
-export function determineSQLDatabaseType(
-  dbConnection: string,
-): 'postgresql' | 'mysql' | '' {
+export function determineSQLDatabaseType(dbConnection: string): DBTypes {
   const dbType = extractDBConnectionInfo(dbConnection).dbType;
   return dbType;
 }
@@ -50,10 +48,6 @@ export const getTypeMapping = (
     fileType === 'sql-tables'
       ? determineSQLDatabaseType(dbConnection)
       : 'typescript';
-
-  if (!targetType) {
-    throw new Error('Unsupported database type');
-  }
 
   const { column_name, data_type, primary_key } = column;
 

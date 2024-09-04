@@ -44,6 +44,8 @@ export interface ITableMySQL {
   };
 }
 
+export type DBTypes = 'postgresql' | 'mysql';
+
 // prettier-ignore
 export const isITable = (data: unknown): data is ITable => { return ( typeof data === 'object' && data !== null && 'table_name' in data && 'columns' in data && 'check_constraints' in data ); };
 // prettier-ignore

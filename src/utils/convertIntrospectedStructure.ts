@@ -1,4 +1,5 @@
 import {
+  DBTypes,
   IColumnInfo,
   ISchemaInfo,
   ITable,
@@ -93,7 +94,7 @@ export const isITableMySQL = (data: unknown): data is ITableMySQL => {
 
 export const convertTable = (
   table: ITable | ITableMySQL,
-  dbType: 'postgresql' | 'mysql',
+  dbType: DBTypes,
 ): ISchemaInfo => {
   let tableName: string;
   let columns: IColumnInfo[];
@@ -144,7 +145,7 @@ export const populateChildTables = (
 
 const convertIntrospectedStructure = (
   tables: ITable[] | ITableMySQL[],
-  dbType: 'postgresql' | 'mysql',
+  dbType: DBTypes,
 ): ISchemaInfo[] => {
   const tableMap = new Map(
     tables.map((table) => {

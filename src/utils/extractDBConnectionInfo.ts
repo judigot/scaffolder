@@ -1,5 +1,7 @@
+import { DBTypes } from '@/interfaces/interfaces';
+
 interface IDBConnectionInfo {
-  dbType: 'postgresql' | 'mysql';
+  dbType: DBTypes;
   username: string;
   password: string;
   host: string;

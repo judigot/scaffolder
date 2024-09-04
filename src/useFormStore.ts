@@ -5,6 +5,7 @@ import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema'
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
+import { DBTypes } from '@/interfaces/interfaces';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -25,13 +26,13 @@ export interface IFormData {
 
 interface IFormStore {
   formData: IFormData;
-  dbType: 'postgresql' | 'mysql' | '';
+  dbType: DBTypes | undefined;
   quote: string;
   setFormData: (data: Partial<IFormData>) => void;
   setOneToOne: () => void;
   setOneToMany: () => void;
   setManyToMany: () => void;
-  setDBType: (dbType: 'postgresql' | 'mysql') => void;
+  setDBType: (dbType: DBTypes) => void;
 }
 
 const usersPostOneToOneInput = JSON.stringify(usersPostOneToOneSchema, null, 4);
@@ -53,17 +54,15 @@ const initialFormData: IFormData = {
   includeTypeGuards: true,
 };
 
-function getQuote(dbType: 'postgresql' | 'mysql' | ''): string {
-  const quotes: Record<'postgresql' | 'mysql', string> = {
+function getQuote(dbType: DBTypes): string {
+  const quotes: Record<DBTypes, string> = {
     postgresql: '"',
     mysql: '`',
   };
-  return dbType ? quotes[dbType] : '';
+  return quotes[dbType];
 }
 
-function determineSQLDatabaseType(
-  dbConnection: string,
-): 'postgresql' | 'mysql' | '' {
+function determineSQLDatabaseType(dbConnection: string): DBTypes {
   const dbType = extractDBConnectionInfo(dbConnection).dbType;
   return dbType;
 }
