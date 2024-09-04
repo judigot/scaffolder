@@ -33,7 +33,7 @@ export const introspect = async (dbConnection: string): Promise<unknown> => {
     result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
   }
 
-  if (result === null) {
+  if (result === null || result === undefined) {
     throw new Error(`Unsupported database type`);
   }
 

@@ -16,13 +16,18 @@ import createRepositories from '@/utils/createRepositories';
 import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
 import createInterfaces from '@/utils/createInterfaces';
 import createResources from '@/utils/createResources';
-import { ISchemaInfo } from '@/interfaces/interfaces';
+import {
+  ISchemaInfo,
+  isITableArray,
+  isITableMySQLArray,
+} from '@/interfaces/interfaces';
 import createBaseRepository from '@/utils/createBaseRepository';
 import createBaseRepositoryInterface from '@/utils/createBaseRepositoryInterface';
 import createAppServiceProviderScaffolding from '@/utils/createAppServiceProviderScaffolding';
 import createBaseController from '@/utils/createBaseController';
 import introspect from '@/utils/introspect';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
+import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
 
 dotenv.config();
 
@@ -393,8 +398,21 @@ app.post(
     }
     void (async () => {
       try {
+        const { dbType } = extractDBConnectionInfo(dbConnection);
+
         const introspectionResult = await introspect(dbConnection);
-        res.status(200).json(introspectionResult);
+
+        if (
+          isITableArray(introspectionResult) ||
+          isITableMySQLArray(introspectionResult)
+        ) {
+          const schemaInfo = convertIntrospectedStructure(
+            introspectionResult,
+            dbType,
+          );
+
+          res.status(200).json(schemaInfo);
+        }
       } catch (error: unknown) {
         res.status(500).json({ error });
       }
