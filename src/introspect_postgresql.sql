@@ -40,6 +40,18 @@ unique_constraints AS (
         AND tc.table_schema = kcu.table_schema
     WHERE tc.constraint_type = 'UNIQUE'
 ),
+composite_unique_constraints AS (
+    SELECT tc.table_schema,
+           tc.table_name,
+           tc.constraint_name,
+           array_agg(kcu.column_name ORDER BY kcu.ordinal_position) AS composite_unique_columns
+    FROM information_schema.table_constraints AS tc
+        JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+    WHERE tc.constraint_type = 'UNIQUE'
+    GROUP BY tc.table_schema, tc.table_name, tc.constraint_name
+    HAVING count(kcu.column_name) > 1 -- Only select composite unique constraints
+),
 check_constraints AS (
     SELECT tc.table_schema,
         tc.table_name,
@@ -72,7 +84,12 @@ SELECT c.table_name,
      FROM check_constraints cc
      WHERE cc.table_schema = c.table_schema
        AND cc.table_name = c.table_name
-    ) AS check_constraints
+    ) AS check_constraints,
+    (SELECT json_agg(composite_unique_columns)
+     FROM composite_unique_constraints cuc
+     WHERE cuc.table_schema = c.table_schema
+       AND cuc.table_name = c.table_name
+    ) AS composite_unique_constraints
 FROM columns_info c
     LEFT JOIN foreign_keys fk ON c.table_schema = fk.table_schema
     AND c.table_name = fk.table_name
@@ -82,6 +99,5 @@ FROM columns_info c
     AND c.column_name = pk.column_name
     LEFT JOIN unique_constraints uc ON c.table_schema = uc.table_schema
     AND c.table_name = uc.table_name
-    AND c.column_name = uc.column_name
 GROUP BY c.table_schema, c.table_name
 ORDER BY c.table_name;
