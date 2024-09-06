@@ -1,9 +1,10 @@
-import identifySchema from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
+import identifySchema from '@/utils/identifySchema';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
+import { normalizeWhitespace } from '@/helpers/toPascalCase';
 
 describe('generateTypescriptInterfaces', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
@@ -12,72 +13,271 @@ describe('generateTypescriptInterfaces', () => {
   );
   const POSSchemaInfo = identifySchema(POSSchema);
 
-  it('should generate correct TypeScript interfaces for one-to-one relationship', () => {
+  it('should generate correct TypeScript interfaces and type guards for one-to-one relationship', () => {
     const tsInterfaces = generateTypescriptInterfaces({
       schemaInfo: userPostOneToOneSchemaInfo,
       includeTypeGuards: true,
       outputOnSingleFile: true,
     });
-    expect(tsInterfaces).toContain('export interface IUser {');
-    expect(tsInterfaces).toContain('user_id: number;');
-    expect(tsInterfaces).toContain('first_name: string;');
-    expect(tsInterfaces).toContain('last_name: string;');
-    expect(tsInterfaces).toContain('email: string;');
-    expect(tsInterfaces).toContain('username: string;');
-    expect(tsInterfaces).toContain('password: string;');
-    expect(tsInterfaces).toContain('created_at: Date;');
-    expect(tsInterfaces).toContain('updated_at: Date;');
-    expect(tsInterfaces).toContain('export interface IPost {');
-    expect(tsInterfaces).toContain('post_id: number;');
-    expect(tsInterfaces).toContain('user_id: number;');
-    expect(tsInterfaces).toContain('title: string;');
-    expect(tsInterfaces).toContain('content: string | null;');
-    expect(tsInterfaces).toContain('created_at: Date;');
-    expect(tsInterfaces).toContain('updated_at: Date;');
+
+    const expectedOutput = `
+export interface IUserd {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  username: string;
+  password: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export function isIUser(data: unknown): data is IUser {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'user_id' in data &&
+    'first_name' in data &&
+    'last_name' in data &&
+    'email' in data &&
+    'username' in data &&
+    'password' in data &&
+    'created_at' in data &&
+    'updated_at' in data &&
+    typeof data.user_id === 'number' &&
+    typeof data.first_name === 'string' &&
+    typeof data.last_name === 'string' &&
+    typeof data.email === 'string' &&
+    typeof data.username === 'string' &&
+    typeof data.password === 'string' &&
+    data.created_at instanceof Date &&
+    data.updated_at instanceof Date
+  );
+}
+
+export function isIUserArray(data: unknown): data is IUser[] {
+  return Array.isArray(data) && data.every(isIUser);
+}
+
+export interface IPost {
+  post_id: number;
+  user_id: number;
+  title: string;
+  content: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export function isIPost(data: unknown): data is IPost {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'post_id' in data &&
+    'user_id' in data &&
+    'title' in data &&
+    'content' in data &&
+    'created_at' in data &&
+    'updated_at' in data &&
+    typeof data.post_id === 'number' &&
+    typeof data.user_id === 'number' &&
+    typeof data.title === 'string' &&
+    (data.content === null || typeof data.content === 'string') &&
+    data.created_at instanceof Date &&
+    data.updated_at instanceof Date
+  );
+}
+
+export function isIPostArray(data: unknown): data is IPost[] {
+  return Array.isArray(data) && data.every(isIPost);
+}`;
+
+    if (typeof tsInterfaces === 'string') {
+      expect(normalizeWhitespace(tsInterfaces)).toBe(
+        normalizeWhitespace(expectedOutput),
+      );
+    }
   });
 
-  it('should generate correct TypeScript interfaces for one-to-many relationship', () => {
+  it('should generate correct TypeScript interfaces and type guards for one-to-many relationship', () => {
     const tsInterfaces = generateTypescriptInterfaces({
       schemaInfo: userPostsOneToManySchemaInfo,
       includeTypeGuards: true,
       outputOnSingleFile: true,
     });
-    expect(tsInterfaces).toContain('export interface IUser {');
-    expect(tsInterfaces).toContain('user_id: number;');
-    expect(tsInterfaces).toContain('first_name: string;');
-    expect(tsInterfaces).toContain('last_name: string;');
-    expect(tsInterfaces).toContain('email: string;');
-    expect(tsInterfaces).toContain('username: string;');
-    expect(tsInterfaces).toContain('password: string;');
-    expect(tsInterfaces).toContain('created_at: Date;');
-    expect(tsInterfaces).toContain('updated_at: Date;');
-    expect(tsInterfaces).toContain('export interface IPost {');
-    expect(tsInterfaces).toContain('post_id: number;');
-    expect(tsInterfaces).toContain('user_id: number;');
-    expect(tsInterfaces).toContain('title: string;');
-    expect(tsInterfaces).toContain('content: string | null;');
-    expect(tsInterfaces).toContain('created_at: Date;');
-    expect(tsInterfaces).toContain('updated_at: Date;');
+
+    const expectedOutput = `
+export interface IUser {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  username: string;
+  password: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export function isIUser(data: unknown): data is IUser {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'user_id' in data &&
+    'first_name' in data &&
+    'last_name' in data &&
+    'email' in data &&
+    'username' in data &&
+    'password' in data &&
+    'created_at' in data &&
+    'updated_at' in data &&
+    typeof data.user_id === 'number' &&
+    typeof data.first_name === 'string' &&
+    typeof data.last_name === 'string' &&
+    typeof data.email === 'string' &&
+    typeof data.username === 'string' &&
+    typeof data.password === 'string' &&
+    data.created_at instanceof Date &&
+    data.updated_at instanceof Date
+  );
+}
+
+export function isIUserArray(data: unknown): data is IUser[] {
+  return Array.isArray(data) && data.every(isIUser);
+}
+
+export interface IPost {
+  post_id: number;
+  user_id: number;
+  title: string;
+  content: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export function isIPost(data: unknown): data is IPost {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'post_id' in data &&
+    'user_id' in data &&
+    'title' in data &&
+    'content' in data &&
+    'created_at' in data &&
+    'updated_at' in data &&
+    typeof data.post_id === 'number' &&
+    typeof data.user_id === 'number' &&
+    typeof data.title === 'string' &&
+    (data.content === null || typeof data.content === 'string') &&
+    data.created_at instanceof Date &&
+    data.updated_at instanceof Date
+  );
+}
+
+export function isIPostArray(data: unknown): data is IPost[] {
+  return Array.isArray(data) && data.every(isIPost);
+}`;
+
+    if (typeof tsInterfaces === 'string') {
+      expect(normalizeWhitespace(tsInterfaces)).toBe(
+        normalizeWhitespace(expectedOutput),
+      );
+    }
   });
 
-  it('should generate correct TypeScript interfaces for POS', () => {
+  it('should generate correct TypeScript interfaces and type guards for POS', () => {
     const tsInterfaces = generateTypescriptInterfaces({
       schemaInfo: POSSchemaInfo,
       includeTypeGuards: true,
       outputOnSingleFile: true,
     });
-    expect(tsInterfaces).toContain('export interface IProduct {');
-    expect(tsInterfaces).toContain('product_id: number;');
-    expect(tsInterfaces).toContain('product_name: string;');
-    expect(tsInterfaces).toContain('export interface ICustomer {');
-    expect(tsInterfaces).toContain('customer_id: number;');
-    expect(tsInterfaces).toContain('name: string;');
-    expect(tsInterfaces).toContain('export interface IOrder {');
-    expect(tsInterfaces).toContain('order_id: number;');
-    expect(tsInterfaces).toContain('customer_id: number;');
-    expect(tsInterfaces).toContain('export interface IOrderProduct {');
-    expect(tsInterfaces).toContain('order_product_id: number;');
-    expect(tsInterfaces).toContain('order_id: number;');
-    expect(tsInterfaces).toContain('product_id: number;');
+
+    const expectedOutput = `
+export interface IProduct {
+  product_id: number;
+  product_name: string;
+}
+
+export function isIProduct(data: unknown): data is IProduct {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'product_id' in data &&
+    'product_name' in data &&
+    typeof data.product_id === 'number' &&
+    typeof data.product_name === 'string'
+  );
+}
+
+export function isIProductArray(data: unknown): data is IProduct[] {
+  return Array.isArray(data) && data.every(isIProduct);
+}
+
+export interface ICustomer {
+  customer_id: number;
+  name: string;
+}
+
+export function isICustomer(data: unknown): data is ICustomer {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'customer_id' in data &&
+    'name' in data &&
+    typeof data.customer_id === 'number' &&
+    typeof data.name === 'string'
+  );
+}
+
+export function isICustomerArray(data: unknown): data is ICustomer[] {
+  return Array.isArray(data) && data.every(isICustomer);
+}
+
+export interface IOrder {
+  order_id: number;
+  customer_id: number;
+}
+
+export function isIOrder(data: unknown): data is IOrder {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'order_id' in data &&
+    'customer_id' in data &&
+    typeof data.order_id === 'number' &&
+    typeof data.customer_id === 'number'
+  );
+}
+
+export function isIOrderArray(data: unknown): data is IOrder[] {
+  return Array.isArray(data) && data.every(isIOrder);
+}
+
+export interface IOrderProduct {
+  order_product_id: number;
+  order_id: number;
+  product_id: number;
+}
+
+export function isIOrderProduct(data: unknown): data is IOrderProduct {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'order_product_id' in data &&
+    'order_id' in data &&
+    'product_id' in data &&
+    typeof data.order_product_id === 'number' &&
+    typeof data.order_id === 'number' &&
+    typeof data.product_id === 'number'
+  );
+}
+
+export function isIOrderProductArray(data: unknown): data is IOrderProduct[] {
+  return Array.isArray(data) && data.every(isIOrderProduct);
+}`;
+
+    if (typeof tsInterfaces === 'string') {
+      expect(normalizeWhitespace(tsInterfaces)).toBe(
+        normalizeWhitespace(expectedOutput),
+      );
+    }
   });
 });
