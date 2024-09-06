@@ -45,7 +45,8 @@ const POSSchemaInput = JSON.stringify(POSSchema, null, 4);
 
 const initialFormData: IFormData = {
   schemaInput: usersPostOneToOneInput,
-  backendDir: 'C:/Users/Username/Desktop/app/backend',
+  backendDir: 'C:/Users/Jude/Desktop/laravel',
+  // backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/laravel',
   framework: frameworks.LARAVEL,
