@@ -1,3 +1,5 @@
+export type DBTypes = 'postgresql' | 'mysql';
+
 export interface IColumnInfo {
   column_name: string;
   data_type: string;
@@ -34,11 +36,22 @@ export interface IIntrospectedSchemaInfo {
   table_name: string;
   columns: IColumnInfo[];
   check_constraints: string[];
+  composite_unique_constraints: string[];
 }
 
-export type DBTypes = 'postgresql' | 'mysql';
+export const isITable = (data: unknown): data is IIntrospectedSchemaInfo => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'table_name' in data &&
+    'columns' in data &&
+    'check_constraints' in data &&
+    'composite_unique_constraints' in data
+  );
+};
 
-// prettier-ignore
-export const isITable = (data: unknown): data is IIntrospectedSchemaInfo => { return ( typeof data === 'object' && data !== null && 'table_name' in data && 'columns' in data && 'check_constraints' in data ); };
-// prettier-ignore
-export const isITableArray = ( data: unknown, ): data is IIntrospectedSchemaInfo[] => { return ( Array.isArray(data) && data.every( (item) => item !== null && typeof item === 'object' && 'table_name' in item && 'columns' in item && 'check_constraints' in item, ) ); };
+export const isITableArray = (
+  data: unknown,
+): data is IIntrospectedSchemaInfo[] => {
+  return Array.isArray(data) && data.every(isITable);
+};
