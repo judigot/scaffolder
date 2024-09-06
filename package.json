@@ -8,11 +8,12 @@
     "test": "vitest",
     "build": "vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "pnpm exec husky init && cp pre-commit .husky/pre-commit"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "pnpm lint && pnpm test && lint-staged"
+      "pre-commit": "node .husky/pre-commit"
     }
   },
   "lint-staged": {
