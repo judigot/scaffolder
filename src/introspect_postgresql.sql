@@ -101,8 +101,9 @@ SELECT c.table_name,
             AND cc.table_name = c.table_name
     ) AS check_constraints,
     (
-        SELECT json_agg(composite_unique_columns)
-        FROM composite_unique_constraints cuc
+        SELECT jsonb_agg(composite_column)
+        FROM composite_unique_constraints cuc,
+            LATERAL jsonb_array_elements_text(to_jsonb(cuc.composite_unique_columns)) AS composite_column
         WHERE cuc.table_schema = c.table_schema
             AND cuc.table_name = c.table_name
     ) AS composite_unique_constraints
