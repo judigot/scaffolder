@@ -35,8 +35,8 @@ export interface ISchemaInfo {
 export interface IIntrospectedSchemaInfo {
   table_name: string;
   columns: IColumnInfo[];
-  check_constraints: string[];
-  composite_unique_constraints: string[];
+  check_constraints: string[] | null;
+  composite_unique_constraints: string[] | null;
 }
 
 export const isISchemaInfo = (data: unknown): data is ISchemaInfo => {
