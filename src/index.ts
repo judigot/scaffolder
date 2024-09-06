@@ -397,10 +397,17 @@ app.post(
     void (async () => {
       try {
         const introspectionResult = await introspect(dbConnection);
-        // res.status(200).json(introspectionResult);
-        if (isITableArray(introspectionResult)) {
-          const schemaInfo = convertIntrospectedStructure(introspectionResult);
-          res.status(200).json(schemaInfo);
+        const debugIntrospection = true;
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (debugIntrospection) {
+          res.status(200).json(introspectionResult);
+        } else {
+          if (isITableArray(introspectionResult)) {
+            const schemaInfo =
+              convertIntrospectedStructure(introspectionResult);
+            res.status(200).json(schemaInfo);
+          }
         }
       } catch (error: unknown) {
         res.status(500).json({ error });
