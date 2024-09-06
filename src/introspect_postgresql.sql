@@ -80,11 +80,18 @@ SELECT t.table_name,
         )
         ORDER BY c.ordinal_position
     ) AS columns,
-    (
-        SELECT json_agg(cc.check_clause)
-        FROM check_constraints cc
-        WHERE cc.table_name = t.table_name
-    ) AS check_constraints,
+    CASE
+        WHEN (
+            SELECT count(*)
+            FROM check_constraints cc
+            WHERE cc.table_name = t.table_name
+        ) = 0 THEN NULL
+        ELSE (
+            SELECT json_agg(cc.check_clause)
+            FROM check_constraints cc
+            WHERE cc.table_name = t.table_name
+        )
+    END AS check_constraints,
     (
         SELECT json_agg(u.columns)
         FROM unique_keys u

@@ -29,7 +29,7 @@ export const introspect = async (dbConnection: string): Promise<unknown> => {
   }
 
   if (dbType === 'mysql') {
-    const mysqlIntrospectionQuery = query.replace('$DB_NAME', dbName);
+    const mysqlIntrospectionQuery = query.replace(/\$DB_NAME/g, dbName);
     result = await executeMySQL(dbConnection, mysqlIntrospectionQuery);
   }
 

@@ -66,12 +66,13 @@ describe('convertIntrospectedStructure', () => {
         },
       ],
       check_constraints: [
-        'post_id IS NOT NULL',
-        'user_id IS NOT NULL',
         'title IS NOT NULL',
         'created_at IS NOT NULL',
         'updated_at IS NOT NULL',
+        'user_id IS NOT NULL',
+        'post_id IS NOT NULL',
       ],
+      composite_unique_constraints: null,
     },
     {
       table_name: 'user',
@@ -151,14 +152,15 @@ describe('convertIntrospectedStructure', () => {
       ],
       check_constraints: [
         'user_id IS NOT NULL',
-        'first_name IS NOT NULL',
-        'last_name IS NOT NULL',
         'email IS NOT NULL',
         'username IS NOT NULL',
-        'password IS NOT NULL',
-        'created_at IS NOT NULL',
         'updated_at IS NOT NULL',
+        'password IS NOT NULL',
+        'last_name IS NOT NULL',
+        'created_at IS NOT NULL',
+        'first_name IS NOT NULL',
       ],
+      composite_unique_constraints: null,
     },
   ];
 
@@ -231,6 +233,7 @@ describe('convertIntrospectedStructure', () => {
         'created_at IS NOT NULL',
         'updated_at IS NOT NULL',
       ],
+      composite_unique_constraints: null,
     },
     {
       table_name: 'user',
@@ -318,6 +321,7 @@ describe('convertIntrospectedStructure', () => {
         'created_at IS NOT NULL',
         'updated_at IS NOT NULL',
       ],
+      composite_unique_constraints: null,
     },
   ];
 
@@ -345,6 +349,7 @@ describe('convertIntrospectedStructure', () => {
         },
       ],
       check_constraints: ['customer_id IS NOT NULL', 'name IS NOT NULL'],
+      composite_unique_constraints: null,
     },
     {
       table_name: 'order',
@@ -372,6 +377,7 @@ describe('convertIntrospectedStructure', () => {
         },
       ],
       check_constraints: ['order_id IS NOT NULL', 'customer_id IS NOT NULL'],
+      composite_unique_constraints: null,
     },
     {
       table_name: 'order_product',
@@ -412,10 +418,11 @@ describe('convertIntrospectedStructure', () => {
         },
       ],
       check_constraints: [
-        'order_product_id IS NOT NULL',
-        'order_id IS NOT NULL',
         'product_id IS NOT NULL',
+        'order_id IS NOT NULL',
+        'order_product_id IS NOT NULL',
       ],
+      composite_unique_constraints: null,
     },
     {
       table_name: 'product',
@@ -439,7 +446,8 @@ describe('convertIntrospectedStructure', () => {
           foreign_key: null,
         },
       ],
-      check_constraints: ['product_id IS NOT NULL', 'product_name IS NOT NULL'],
+      check_constraints: ['product_name IS NOT NULL', 'product_id IS NOT NULL'],
+      composite_unique_constraints: null,
     },
   ];
 
