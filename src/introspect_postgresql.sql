@@ -1,72 +1,52 @@
-WITH columns_info AS (
-    SELECT table_schema,
-        table_name,
-        column_name,
-        data_type,
-        is_nullable,
-        column_default,
-        ordinal_position
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-),
-foreign_keys AS (
-    SELECT tc.table_schema,
-        tc.table_name,
-        kcu.column_name,
-        ccu.table_name AS foreign_table_name,
-        ccu.column_name AS foreign_column_name
-    FROM information_schema.table_constraints AS tc
-        JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
-        AND tc.table_schema = kcu.table_schema
-        JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
-        AND ccu.table_schema = tc.table_schema
-    WHERE tc.constraint_type = 'FOREIGN KEY'
-),
-primary_keys AS (
-    SELECT tc.table_schema,
-        tc.table_name,
+WITH primary_keys AS (
+    SELECT kcu.table_name,
         kcu.column_name
-    FROM information_schema.table_constraints AS tc
-        JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
+    FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
         AND tc.table_schema = kcu.table_schema
     WHERE tc.constraint_type = 'PRIMARY KEY'
 ),
-unique_constraints AS (
-    SELECT tc.table_schema,
-        tc.table_name,
-        kcu.column_name
-    FROM information_schema.table_constraints AS tc
-        JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
-        AND tc.table_schema = kcu.table_schema
-    WHERE tc.constraint_type = 'UNIQUE'
-),
-composite_unique_constraints AS (
-    SELECT tc.table_schema,
-        tc.table_name,
-        tc.constraint_name,
+unique_keys AS (
+    SELECT kcu.table_name,
+        kcu.constraint_name,
         array_agg(
             kcu.column_name
             ORDER BY kcu.ordinal_position
-        ) AS composite_unique_columns
-    FROM information_schema.table_constraints AS tc
-        JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
+        ) AS columns
+    FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
         AND tc.table_schema = kcu.table_schema
     WHERE tc.constraint_type = 'UNIQUE'
-    GROUP BY tc.table_schema,
-        tc.table_name,
-        tc.constraint_name
-    HAVING count(kcu.column_name) > 1 -- Only select composite unique constraints
+    GROUP BY kcu.table_name,
+        kcu.constraint_name
+),
+foreign_keys AS (
+    SELECT kcu.table_name,
+        kcu.column_name,
+        ccu.table_name AS foreign_table_name,
+        ccu.column_name AS foreign_column_name
+    FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+    WHERE tc.constraint_type = 'FOREIGN KEY'
 ),
 check_constraints AS (
-    SELECT tc.table_schema,
-        tc.table_name,
+    SELECT tc.table_name,
         cc.check_clause
-    FROM information_schema.table_constraints AS tc
-        JOIN information_schema.check_constraints AS cc ON tc.constraint_name = cc.constraint_name
+    FROM information_schema.table_constraints tc
+        JOIN information_schema.check_constraints cc ON tc.constraint_name = cc.constraint_name
         AND tc.table_schema = cc.constraint_schema
     WHERE tc.constraint_type = 'CHECK'
+),
+table_oids AS (
+    SELECT c.relname AS table_name,
+        c.oid AS table_oid
+    FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
 )
-SELECT c.table_name,
+SELECT t.table_name,
     json_agg(
         json_build_object(
             'column_name',
@@ -78,16 +58,22 @@ SELECT c.table_name,
             'column_default',
             c.column_default,
             'primary_key',
-            (pk.column_name IS NOT NULL),
+            (p.column_name IS NOT NULL),
             'unique',
-            (uc.column_name IS NOT NULL),
+            EXISTS (
+                SELECT 1
+                FROM unique_keys u
+                WHERE u.table_name = c.table_name
+                    AND c.column_name = ANY(u.columns)
+                    AND array_length(u.columns, 1) = 1
+            ),
             'foreign_key',
             CASE
-                WHEN fk.foreign_table_name IS NOT NULL THEN json_build_object(
+                WHEN f.column_name IS NOT NULL THEN json_build_object(
                     'foreign_table_name',
-                    fk.foreign_table_name,
+                    f.foreign_table_name,
                     'foreign_column_name',
-                    fk.foreign_column_name
+                    f.foreign_column_name
                 )
                 ELSE NULL
             END
@@ -95,27 +81,24 @@ SELECT c.table_name,
         ORDER BY c.ordinal_position
     ) AS columns,
     (
-        SELECT json_agg(check_clause)
+        SELECT json_agg(cc.check_clause)
         FROM check_constraints cc
-        WHERE cc.table_schema = c.table_schema
-            AND cc.table_name = c.table_name
+        WHERE cc.table_name = t.table_name
     ) AS check_constraints,
     (
-        SELECT jsonb_agg(composite_column)
-        FROM composite_unique_constraints cuc,
-            LATERAL jsonb_array_elements_text(to_jsonb(cuc.composite_unique_columns)) AS composite_column
-        WHERE cuc.table_schema = c.table_schema
-            AND cuc.table_name = c.table_name
+        SELECT json_agg(u.columns)
+        FROM unique_keys u
+        WHERE u.table_name = t.table_name
+            AND array_length(u.columns, 1) > 1
     ) AS composite_unique_constraints
-FROM columns_info c
-    LEFT JOIN foreign_keys fk ON c.table_schema = fk.table_schema
-    AND c.table_name = fk.table_name
-    AND c.column_name = fk.column_name
-    LEFT JOIN primary_keys pk ON c.table_schema = pk.table_schema
-    AND c.table_name = pk.table_name
-    AND c.column_name = pk.column_name
-    LEFT JOIN unique_constraints uc ON c.table_schema = uc.table_schema
-    AND c.table_name = uc.table_name
-GROUP BY c.table_schema,
-    c.table_name
-ORDER BY c.table_name;
+FROM information_schema.tables t
+    JOIN information_schema.columns c ON t.table_name = c.table_name
+    LEFT JOIN primary_keys p ON p.table_name = c.table_name
+    AND p.column_name = c.column_name
+    LEFT JOIN foreign_keys f ON f.table_name = c.table_name
+    AND f.column_name = c.column_name
+    JOIN table_oids toid ON toid.table_name = t.table_name
+WHERE t.table_schema = 'public'
+GROUP BY t.table_name,
+    toid.table_oid
+ORDER BY t.table_name;
