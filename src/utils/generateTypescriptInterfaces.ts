@@ -19,8 +19,8 @@ const generateTypescriptInterfaces = ({
   ): string => {
     const interfaceName = toPascalCase(table);
     const properties = columnsInfo
-      .map((columnName) =>
-        generateColumnDefinition({ columnName, columnType: 'ts-interfaces' }),
+      .map((column) =>
+        generateColumnDefinition({ columnName: column, columnType: 'ts-interfaces' }),
       )
       .join('\n  ');
     return `export interface I${interfaceName} {\n  ${properties}\n}`;
@@ -50,9 +50,18 @@ const generateTypescriptInterfaces = ({
           },
           'ts-interfaces',
         );
+
+        // Create a type check for Date
+        if (tsType === 'Date') {
+          return `data.${column_name} instanceof Date`;
+        }
+
+        // Handle nullable fields
         const nullableCheck =
-          is_nullable === 'YES' ? `data.${column_name} === null || ` : '';
-        return `${nullableCheck}typeof data.${column_name} === '${tsType}'`;
+          is_nullable === 'YES' ? `(data.${column_name} === null || ` : '';
+
+        // Check for type with proper grouping
+        return `${nullableCheck}typeof data.${column_name} === '${tsType}'${is_nullable === 'YES' ? ')' : ''}`;
       })
       .join(' &&\n    ');
 
@@ -91,7 +100,7 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
       const typeGuardContent = includeTypeGuards
         ? generateTypeGuard(table, columnsInfo)
         : '';
-      filesContent[interfaceName] = `${interfaceContent}\n${typeGuardContent}`;
+      filesContent[`${interfaceName}.ts`] = `${interfaceContent}\n${typeGuardContent}`;
     });
     return filesContent;
   }
