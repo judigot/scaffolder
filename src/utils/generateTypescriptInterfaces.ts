@@ -64,7 +64,12 @@ export function ${typeGuardName}(data: unknown): data is I${interfaceName} {
     ${propertyChecks} &&
     ${typeChecks}
   );
-}`;
+}
+
+export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[] {
+  return Array.isArray(data) && data.every(${typeGuardName});
+}
+`;
   };
 
   if (outputOnSingleFile) {
