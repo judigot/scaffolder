@@ -32,6 +32,8 @@ export interface ISchemaInfo {
   }[];
 }
 
+export type ParsedJSONSchema = Record<string, Record<string, unknown>[]>;
+
 export interface IIntrospectedSchemaInfo {
   table_name: string;
   columns: IColumnInfo[];

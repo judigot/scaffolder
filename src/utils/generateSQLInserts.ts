@@ -1,10 +1,9 @@
+import { ParsedJSONSchema } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import { formatDateForMySQL } from '@/utils/common';
 import dayjs from 'dayjs';
 
-const generateSQLInserts = (
-  data: Record<string, Record<string, unknown>[]>,
-): string => {
+const generateSQLInserts = (data: ParsedJSONSchema): string => {
   const quote = useFormStore.getState().quote;
   let inserts = '';
   const { dbType } = useFormStore.getState();

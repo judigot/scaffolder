@@ -1,4 +1,8 @@
-import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
+import {
+  IColumnInfo,
+  ISchemaInfo,
+  ParsedJSONSchema,
+} from '@/interfaces/interfaces';
 import convertType from './convertType';
 import identifyTSPrimitiveType from './identifyTSPrimitiveType';
 import pluralize from 'pluralize';
@@ -133,7 +137,7 @@ export const isJunctionTable = (
 // Function to add relationship info to schema
 export const addAssociations = (
   schemaInfo: ISchemaInfo[],
-  data: Record<string, Record<string, unknown>[]> | null = null,
+  data: ParsedJSONSchema | null = null,
 ): ISchemaInfo[] => {
   const isIntrospection = data === null;
   const tempSchemaInfo = schemaInfo.map((relationship) => ({
@@ -378,7 +382,7 @@ export const determineUniqueForeignKeys = (
 
 export function addSchemaInfo(
   schemaInfo: ISchemaInfo[],
-  data: Record<string, Record<string, unknown>[]> | null = null,
+  data: ParsedJSONSchema | null = null,
 ): ISchemaInfo[] {
   const isIntrospection = data === null;
 
@@ -399,9 +403,7 @@ export function addSchemaInfo(
   return schemaInfo;
 }
 
-function identifySchema(
-  data: Record<string, Record<string, unknown>[]>,
-): ISchemaInfo[] {
+function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
   let schemaInfo: ISchemaInfo[] = Object.keys(data).map((table) => {
     const rows = data[table];
     const fields = populateFieldInfo(rows);

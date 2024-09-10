@@ -9,16 +9,16 @@ import identifySchema from '@/utils/identifySchema';
 import { useFormStore } from './useFormStore';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import JSON5 from 'json5';
-import { ISchemaInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
 import generateSQLSchema from '@/utils/generateSQLSchema';
 
 interface IStore {
   interfaces: string | Record<string, string>;
-  getParsedSchemaInput: () => Record<string, Record<string, unknown>[]>;
+  getParsedSchemaInput: () => ParsedJSONSchema;
   SQLSchema: string;
   deleteTablesQueries: string[];
   joins: string[];
-  mockData: Record<string, Record<string, unknown>[]>;
+  mockData: ParsedJSONSchema;
   SQLInsertQueries: string;
   SQLInsertQueriesFromMockData: string;
   aggregateJoins: string[];
@@ -109,7 +109,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
 
     const parsedSchema = get().getParsedSchemaInput();
 
-    let mockData: Record<string, Record<string, unknown>[]> = {};
+    let mockData: ParsedJSONSchema = {};
     try {
       mockData = generateMockData({
         mockDataRows: 5,

@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import { formatDateForMySQL } from '@/utils/common';
 import { faker } from '@faker-js/faker';
@@ -57,8 +57,8 @@ const generateMockData = ({
 }: {
   mockDataRows: number;
   schemaInfo: ISchemaInfo[];
-}): Record<string, Record<string, unknown>[]> => {
-  const generatedData: Record<string, Record<string, unknown>[]> = {};
+}): ParsedJSONSchema => {
+  const generatedData: ParsedJSONSchema = {};
   const sortedRelationships = topologicalSort(schemaInfo);
 
   sortedRelationships.forEach(({ table, columnsInfo }) => {
@@ -221,7 +221,7 @@ const generateMockData = ({
   });
 
   // Return the object sorted based on hierarchy
-  const sortedData: Record<string, Record<string, unknown>[]> = {};
+  const sortedData: ParsedJSONSchema = {};
   sortedRelationships.forEach(({ table }) => {
     sortedData[table] = generatedData[table];
   });
