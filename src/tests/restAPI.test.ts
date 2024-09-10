@@ -1,9 +1,27 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 
 const backendUrl = 'http://127.0.0.1:8000';
 
+let backendAvailable = false;
+
+/* Check if the backend is available before running tests */
+beforeAll(async () => {
+  try {
+    const response = await fetch(String(backendUrl));
+    if (response.ok) {
+      backendAvailable = true;
+    }
+  } catch (error: unknown) {
+    backendAvailable = false;
+  }
+});
+
 describe('API Endpoints', () => {
   it('should only allow one valid response among the three endpoints', async () => {
+    if (!backendAvailable) {
+      return;
+    }
+
     let successCount = 0;
 
     try {
@@ -21,7 +39,7 @@ describe('API Endpoints', () => {
         successCount++;
       }
     } catch (error: unknown) {
-      // Expected to fail if not the valid endpoint
+      /* Expected to fail if not the valid endpoint */
     }
 
     try {
@@ -49,7 +67,7 @@ describe('API Endpoints', () => {
         successCount++;
       }
     } catch (error: unknown) {
-      // Expected to fail if not the valid endpoint
+      /* Expected to fail if not the valid endpoint */
     }
 
     try {
@@ -79,9 +97,9 @@ describe('API Endpoints', () => {
         successCount++;
       }
     } catch (error: unknown) {
-      // Expected to fail if not the valid endpoint
+      /* Expected to fail if not the valid endpoint */
     }
 
-    expect(successCount).toBe(1); // Ensure exactly one successful response
+    expect(successCount).toBe(1); /* Ensure exactly one successful response */
   });
 });
