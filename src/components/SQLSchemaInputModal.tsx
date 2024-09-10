@@ -113,8 +113,7 @@ function SQLSchemaInputModal() {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               rows={10}
-              className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              style={{ height: '150px' }}
+              className="h-[150px] p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             />
           </div>
           <div className="flex justify-end space-x-3">
