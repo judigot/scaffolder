@@ -337,68 +337,75 @@ function App() {
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">Create Tables</h2>
-            <textarea
-              id="SQLSchema"
-              title="Double click to edit schema"
-              value={SQLSchema}
-              readOnly
-              onDoubleClick={() => {
-                setSQLSchemaEditable(SQLSchema);
-                setIsModalOpen(true);
-              }}
-              rows={15}
-              className="cursor-pointer p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            />
-            <label
-              htmlFor="includeInsertData"
-              className="block text-sm font-medium mt-4"
-            >
-              <input
-                type="checkbox"
-                id="includeInsertData"
-                name="includeInsertData"
-                checked={includeInsertData}
-                onChange={handleChange}
-                className="mr-2"
+            <h2 className="text-xl font-bold mb-2">Additional Settings</h2>
+          </div>
+
+          <div className="bg-gray-800 p-4 shadow-md rounded-md">
+            <div>
+              <h2 className="text-xl font-bold mb-2">Create Tables</h2>
+              <textarea
+                id="SQLSchema"
+                title="Double click to edit schema"
+                value={SQLSchema}
+                readOnly
+                onDoubleClick={() => {
+                  setSQLSchemaEditable(SQLSchema);
+                  setIsModalOpen(true);
+                }}
+                rows={15}
+                className="cursor-pointer p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               />
-              Include Insert Data
-            </label>
-            {includeInsertData && (
-              <div className="mt-2">
-                <label className="block text-sm font-medium">
-                  <input
-                    type="radio"
-                    name="insertOption"
-                    value="SQLInsertQueries"
-                    checked={insertOption === 'SQLInsertQueries'}
-                    onChange={handleChange}
-                    className="mr-2"
-                  />
-                  Rows from JSON Database Schema
-                </label>
-                <label className="block text-sm font-medium">
-                  <input
-                    type="radio"
-                    name="insertOption"
-                    value="SQLInsertQueriesFromMockData"
-                    checked={insertOption === 'SQLInsertQueriesFromMockData'}
-                    onChange={handleChange}
-                    className="mr-2"
-                  />
-                  Rows from mock data
-                </label>
-              </div>
-            )}
-            <button
-              onClick={() => {
-                handleCopy(SQLSchema);
-              }}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            >
-              Copy Database Schema
-            </button>
-            {/* {schemaInput !== '' && dbConnection !== '' && (
+              <label
+                htmlFor="includeInsertData"
+                className="block text-sm font-medium mt-4"
+              >
+                <input
+                  type="checkbox"
+                  id="includeInsertData"
+                  name="includeInsertData"
+                  checked={includeInsertData}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                Include Insert Data
+              </label>
+              {includeInsertData && (
+                <div className="mt-2">
+                  <label className="block text-sm font-medium">
+                    <input
+                      type="radio"
+                      name="insertOption"
+                      value="SQLInsertQueries"
+                      checked={insertOption === 'SQLInsertQueries'}
+                      onChange={handleChange}
+                      className="mr-2"
+                    />
+                    Rows from JSON Database Schema
+                  </label>
+                  <label className="block text-sm font-medium">
+                    <input
+                      type="radio"
+                      name="insertOption"
+                      value="SQLInsertQueriesFromMockData"
+                      checked={insertOption === 'SQLInsertQueriesFromMockData'}
+                      onChange={handleChange}
+                      className="mr-2"
+                    />
+                    Rows from mock data
+                  </label>
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  handleCopy(SQLSchema);
+                }}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+              >
+                Copy Database Schema
+              </button>
+              <br />
+              <br />
+              {/* {schemaInput !== '' && dbConnection !== '' && (
               <>
                 <br />
                 <button
@@ -411,26 +418,25 @@ function App() {
                 </button>
               </>
             )} */}
-          </div>
-
-          <div className="bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">Delete Tables</h2>
-            <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
-              {deleteTablesQueries.map((value, i) => (
-                <p key={i} className="whitespace-pre-wrap">
-                  {value}
-                </p>
-              ))}
             </div>
-            <button
-              onClick={() => {
-                handleCopy(deleteTablesQueries.join('\n'));
-              }}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            >
-              Copy Delete Queries
-            </button>
-            <br />
+            <div>
+              <h2 className="text-xl font-bold mb-2">Delete Tables</h2>
+              <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
+                {deleteTablesQueries.map((value, i) => (
+                  <p key={i} className="whitespace-pre-wrap">
+                    {value}
+                  </p>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  handleCopy(deleteTablesQueries.join('\n'));
+                }}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+              >
+                Copy Delete Queries
+              </button>
+            </div>
           </div>
         </div>
 
