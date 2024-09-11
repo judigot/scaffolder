@@ -36,7 +36,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
     try {
       const result: ParsedJSONSchema = JSON5.parse(schemaInput);
       return result;
-    } catch (error: unknown) {
+    } catch {
       return {};
     }
   },
@@ -75,7 +75,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
           schemaInput: JSON.stringify(parsedSchema, null, 2),
         },
       }));
-    } catch (e) {
+    } catch {
       set({
         interfaces: errorMessage,
         SQLSchema: errorMessage,
@@ -116,7 +116,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
         schemaInfo,
       });
       set({ mockData });
-    } catch (e) {
+    } catch {
       set({ mockData: {} });
     }
 
@@ -128,7 +128,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
         outputOnSingleFile: false,
       });
       set({ interfaces });
-    } catch (e) {
+    } catch {
       set({ interfaces: errorMessage });
     }
 
@@ -136,7 +136,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
     try {
       SQLInsertQueries = generateSQLInserts(parsedSchema);
       set({ SQLInsertQueries: formatSQL(SQLInsertQueries) });
-    } catch (e) {
+    } catch {
       set({ SQLInsertQueries: errorMessage });
     }
 
@@ -146,7 +146,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       set({
         SQLInsertQueriesFromMockData: formatSQL(SQLInsertQueriesFromMockData),
       });
-    } catch (e) {
+    } catch {
       set({ SQLInsertQueriesFromMockData: errorMessage });
     }
 
@@ -154,7 +154,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
     try {
       deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
       set({ deleteTablesQueries });
-    } catch (e) {
+    } catch {
       set({ deleteTablesQueries: [errorMessage] });
     }
 
@@ -175,7 +175,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       set({
         SQLSchema: `${deleteTablesQueries.join('\n')}\n\n${formatSQL(SQLSchema)}`,
       });
-    } catch (e) {
+    } catch {
       set({ SQLSchema: errorMessage });
     }
 
@@ -183,7 +183,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
     try {
       joins = generateSQLJoins(schemaInfo);
       set({ joins });
-    } catch (e) {
+    } catch {
       set({ joins: [errorMessage] });
     }
 
@@ -191,7 +191,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
     try {
       aggregateJoins = generateSQLAggregateJoins(schemaInfo);
       set({ aggregateJoins });
-    } catch (e) {
+    } catch {
       set({ aggregateJoins: [errorMessage] });
     }
   },

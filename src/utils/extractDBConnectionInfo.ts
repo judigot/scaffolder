@@ -12,7 +12,7 @@ interface IDBConnectionInfo {
 function extractDBConnectionInfo(connectionString: string): IDBConnectionInfo {
   const regex =
     /^(?<dbType>[a-z]*):\/\/(?<username>[^:]*):(?<password>[^@]*)@(?<host>[^:]*):(?<port>\d*)\/(?<dbName>[^/]*)$/;
-  const match = connectionString.match(regex);
+  const match = regex.exec(connectionString);
 
   if (!match?.groups) {
     throw new Error('Invalid connection string format');

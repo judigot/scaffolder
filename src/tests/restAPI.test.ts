@@ -11,7 +11,7 @@ beforeAll(async () => {
     if (response.ok) {
       backendAvailable = true;
     }
-  } catch (error: unknown) {
+  } catch {
     backendAvailable = false;
   }
 });
@@ -38,7 +38,7 @@ describe('API Endpoints', () => {
         });
         successCount++;
       }
-    } catch (error: unknown) {
+    } catch {
       /* Expected to fail if not the valid endpoint */
     }
 
@@ -66,7 +66,7 @@ describe('API Endpoints', () => {
         ]);
         successCount++;
       }
-    } catch (error: unknown) {
+    } catch {
       /* Expected to fail if not the valid endpoint */
     }
 
@@ -96,7 +96,7 @@ describe('API Endpoints', () => {
         ]);
         successCount++;
       }
-    } catch (error: unknown) {
+    } catch {
       /* Expected to fail if not the valid endpoint */
     }
 

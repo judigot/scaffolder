@@ -69,9 +69,7 @@ export const executeMySQL = async (
   connectionString: string,
   queryTemplate: string,
 ): Promise<Record<string, unknown>[]> => {
-  const match = connectionString.match(
-    /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/,
-  );
+  const match = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/.exec(connectionString);
   if (!match) {
     throw new Error('Invalid MySQL connection string');
   }
