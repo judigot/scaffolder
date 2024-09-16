@@ -337,7 +337,7 @@ function App() {
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">Additional Settings</h2>
+            <h2 className="text-xl font-bold mb-2">Additional Schema Settings</h2>
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
