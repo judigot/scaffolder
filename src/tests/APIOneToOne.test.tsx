@@ -68,7 +68,7 @@ describe('App Component with API Endpoint and Checkbox', () => {
             updated_at: '2024-06-18T10:17:19.846000Z',
           });
 
-          expect(JSON.stringify(data)).toStrictEqual(expectedData);
+          expect(JSON.stringify(data)).toBe(expectedData);
         } else {
           console.error('Failed to fetch data. Status:', response.status);
         }
