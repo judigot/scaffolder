@@ -127,28 +127,6 @@ export const createRelationships = (
     .trim();
 };
 
-const generateModelImports = (
-  hasOne: string[],
-  hasMany: string[],
-  belongsToMany: string[],
-  foreignKeys: string[],
-): string => {
-  const relatedTables = [
-    ...hasOne,
-    ...hasMany,
-    ...belongsToMany,
-    ...foreignKeys.map((fk) => fk.replace('_id', '')),
-  ];
-  const uniqueRelatedTables = Array.from(new Set(relatedTables));
-
-  // Sort the table names alphabetically
-  uniqueRelatedTables.sort((a, b) => a.localeCompare(b));
-
-  return uniqueRelatedTables
-    .map((table) => `use App\\Models\\${toPascalCase(table)};`)
-    .join('\n');
-};
-
 const createModelFile = (
   template: string,
   replacements: Record<string, string>,
@@ -201,6 +179,28 @@ const createModels = (
         primaryKeyName !== 'id'
           ? `protected $primaryKey = '${String(primaryKeyName)}';`
           : '';
+
+      const generateModelImports = (
+        hasOne: string[],
+        hasMany: string[],
+        belongsToMany: string[],
+        foreignKeys: string[],
+      ): string => {
+        const relatedTables = [
+          ...hasOne,
+          ...hasMany,
+          ...belongsToMany,
+          ...foreignKeys.map((fk) => fk.replace('_id', '')),
+        ];
+        const uniqueRelatedTables = Array.from(new Set(relatedTables));
+
+        // Sort the table names alphabetically
+        uniqueRelatedTables.sort((a, b) => a.localeCompare(b));
+
+        return uniqueRelatedTables
+          .map((table) => `use App\\Models\\${toPascalCase(table)};`)
+          .join('\n');
+      };
 
       const modelImports = generateModelImports(
         hasOne,

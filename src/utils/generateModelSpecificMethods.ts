@@ -35,21 +35,39 @@ export const generateModelSpecificMethods = ({
     methodName: string,
     body: string,
     paramName: string,
-  ) => `
-    /**
-     * ${description}
-     *
-     * @param int $${paramName}
-     * ${returnType != null ? `@return ${returnType}` : ''}
-     */
-    public function ${methodName}(int $${paramName})${returnType != null ? `: ${returnType}` : ''}${
-      fileToGenerate === 'interface'
-        ? ';'
-        : ` {
-        ${body}
-    }`
+    isController = false,
+  ) => {
+    let params: string;
+    if (isController) {
+      params = `(Request $request, int $${paramName})`;
+    } else {
+      params = `(int $${paramName}, ?string $column = null, string $direction = 'asc')`;
     }
-  `;
+
+    let returnTypeDeclaration = '';
+    if (returnType != null) {
+      returnTypeDeclaration = `: ${returnType}`;
+    }
+
+    let methodBody: string;
+    if (fileToGenerate === 'interface') {
+      methodBody = ';';
+    } else {
+      methodBody = `{
+          ${body}
+      }`;
+    }
+
+    return `
+      /**
+       * ${description}
+       *
+       * @param int $${paramName}
+       * ${returnType != null ? `@return ${returnType}` : ''}
+       */
+      public function ${methodName}${params}${returnTypeDeclaration}${methodBody}
+    `;
+  };
 
   let methods = '';
 
@@ -69,24 +87,43 @@ export const generateModelSpecificMethods = ({
     relatedTables.forEach((relatedTable) => {
       const relatedClass = toPascalCase(relatedTable);
       const relatedTablePlural = getTablePlural(relatedTable);
+      const relatedTableName = isHasOne ? relatedTable : relatedTablePlural;
       const description = isController
         ? `${descriptionPrefix} ${relatedClass}${isHasOne ? '' : 's'} related to the given ${className}.`
         : `${descriptionPrefix} ${relatedClass}${isHasOne ? '' : 's'}.`;
       const methodName = `get${relatedClass}${isHasOne ? '' : 's'}`;
       const returnType = isHasOne ? `?${relatedClass}` : `?Collection`;
-      const body = `return $this->model->find($${primaryKey})?->${isHasOne ? relatedTable : relatedTablePlural};`;
+      const body = isHasOne
+        ? `
+        return $this->model->find($${primaryKey})?->${relatedTableName};`
+        : `
+        $${relatedTable}Model = new ${relatedClass}();
+        $query = $this->model->find($${primaryKey})?->${relatedTableName}();
+        $column = $column ?? $${relatedTable}Model->getKeyName();
+        $query->orderBy($column, $direction);
+        return $query ? $query->get() : null;
+        `;
 
       methods += generateMethod(
         description,
         isController ? null : returnType,
         methodName,
         isController
-          ? `
-        $${isHasOne ? relatedTable : relatedTablePlural} = $this->repository->get${relatedClass}${isHasOne ? '' : 's'}($${primaryKey});
-        return response()->json($${isHasOne ? relatedTable : relatedTablePlural});
+          ? `${
+              isHasOne
+                ? ''
+                : `
+        // Extract optional URL parameters
+        $column = $request->input('column', null); // Default to null if no column is provided
+        $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided\n`
+            }
+        // Fetch the ${relatedTableName} from the repository
+        $${relatedTableName} = $this->repository->get${relatedClass}${isHasOne ? '' : 's'}($${primaryKey}${isHasOne ? '' : ', $column, $direction'});
+        return response()->json($${relatedTableName});
       `
           : body,
         primaryKey,
+        isController,
       );
     });
   };

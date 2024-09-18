@@ -11,10 +11,14 @@ export const formatDateForMySQL = (date: Date): string => {
 
 export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
   const imports = new Set<string>();
-  const { hasOne, hasMany, columnsInfo } = schemaInfo;
+  const { hasOne, hasMany, columnsInfo, pivotRelationships } = schemaInfo;
 
   // Collect unique import statements for related models
-  [...hasOne, ...hasMany].forEach((relatedTable) => {
+  [
+    ...hasOne,
+    ...hasMany,
+    ...pivotRelationships.map((item) => item.relatedTable),
+  ].forEach((relatedTable) => {
     const relatedClass = toPascalCase(relatedTable);
     imports.add(`use App\\Models\\${relatedClass};`);
   });

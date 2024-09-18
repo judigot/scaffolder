@@ -31,8 +31,14 @@ describe('generateModelSpecificMethods', () => {
      * @param int $order_id
      * @return ?Collection
      */
-    public function getProducts(int $order_id): ?Collection {
-        return $this->model->find($order_id)?->products;
+    public function getProducts(int $order_id, ?string $column = null, string $direction = 'asc'): ?Collection{
+        
+      $productModel = new Product();
+      $query = $this->model->find($order_id)?->products();
+      $column = $column ?? $productModel->getKeyName();
+      $query->orderBy($column, $direction);
+      return $query ? $query->get() : null;
+      
     }`;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -44,8 +50,9 @@ describe('generateModelSpecificMethods', () => {
       const orderProductSchema = POSSchemaInfo.find(
         (info) => info.table === 'order_product',
       );
-      if (!orderProductSchema)
+      if (!orderProductSchema) {
         throw new Error("Schema for 'order_product' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: orderProductSchema.table,
@@ -60,7 +67,15 @@ describe('generateModelSpecificMethods', () => {
      * @param int $order_id
      * @return ?OrderProduct
      */
-    public function findByOrderId(int $order_id): ?OrderProduct;
+    public function findByOrderId(int $order_id, ?string $column = null, string $direction = 'asc'): ?OrderProduct;
+  
+    /**
+     * Find OrderProduct by product_id.
+     *
+     * @param int $product_id
+     * @return ?OrderProduct
+     */
+    public function findByProductId(int $product_id, ?string $column = null, string $direction = 'asc'): ?OrderProduct;
     `;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -85,10 +100,16 @@ describe('generateModelSpecificMethods', () => {
      * @param int $order_id
      * 
      */
-    public function getProducts(int $order_id) {
+    public function getProducts(Request $request, int $order_id){
+        
+      // Extract optional URL parameters
+      $column = $request->input('column', null); // Default to null if no column is provided
+      $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided
 
-        $products = $this->repository->getProducts($order_id);
-        return response()->json($products);
+      // Fetch the products from the repository
+      $products = $this->repository->getProducts($order_id, $column, $direction);
+      return response()->json($products);
+    
     }`;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -136,8 +157,14 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
      * @param int $user_id
      * @return ?Collection
      */
-    public function getPosts(int $user_id): ?Collection {
-        return $this->model->find($user_id)?->posts;
+    public function getPosts(int $user_id, ?string $column = null, string $direction = 'asc'): ?Collection{
+        
+      $postModel = new Post();
+      $query = $this->model->find($user_id)?->posts();
+      $column = $column ?? $postModel->getKeyName();
+      $query->orderBy($column, $direction);
+      return $query ? $query->get() : null;
+      
     }`;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -164,7 +191,7 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
      * @param int $user_id
      * @return ?Post
      */
-    public function findByUserId(int $user_id): ?Post;
+    public function findByUserId(int $user_id, ?string $column = null, string $direction = 'asc'): ?Post;
     `;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -191,10 +218,16 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
      * @param int $user_id
      * 
      */
-    public function getPosts(int $user_id) {
+    public function getPosts(Request $request, int $user_id){
+        
+      // Extract optional URL parameters
+      $column = $request->input('column', null); // Default to null if no column is provided
+      $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided
 
-        $posts = $this->repository->getPosts($user_id);
-        return response()->json($posts);
+      // Fetch the posts from the repository
+      $posts = $this->repository->getPosts($user_id, $column, $direction);
+      return response()->json($posts);
+    
     }`;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -238,16 +271,15 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
       });
 
       const expectedMethod = normalizeWhitespace(`
-        /**
-         * Get the related Post.
-         *
-         * @param int $user_id
-         * @return ?Post
-         */
-        public function getPost(int $user_id): ?Post {
-            return $this->model->find($user_id)?->post;
-        }
-      `);
+      /**
+       * Get the related Post.
+       *
+       * @param int $user_id
+       * @return ?Post
+       */
+      public function getPost(int $user_id, ?string $column = null, string $direction = 'asc'): ?Post{
+        return $this->model->find($user_id)?->post;
+      }`);
 
       expect(normalizeWhitespace(methods)).toContain(
         normalizeWhitespace(expectedMethod),
@@ -267,13 +299,13 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
       });
 
       const expectedMethod = normalizeWhitespace(`
-        /**
-         * Find Post by user_id.
-         *
-         * @param int $user_id
-         * @return ?Post
-         */
-        public function findByUserId(int $user_id): ?Post;
+      /**
+       * Find Post by user_id.
+       *
+       * @param int $user_id
+       * @return ?Post
+       */
+      public function findByUserId(int $user_id, ?string $column = null, string $direction = 'asc'): ?Post;
       `);
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -294,17 +326,19 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
       });
 
       const expectedMethod = normalizeWhitespace(`
-        /**
-         * Get the related Post related to the given User.
-         *
-         * @param int $user_id
-         * 
-         */
-        public function getPost(int $user_id) {
-
-            $post = $this->repository->getPost($user_id);
-            return response()->json($post);
-        }
+      /**
+       * Get the related Post related to the given User.
+       *
+       * @param int $user_id
+       * 
+       */
+      public function getPost(Request $request, int $user_id){
+          
+        // Fetch the post from the repository
+        $post = $this->repository->getPost($user_id);
+        return response()->json($post);
+      
+      }
       `);
 
       expect(normalizeWhitespace(methods)).toContain(

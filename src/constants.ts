@@ -1,6 +1,6 @@
 export const APP_SETTINGS = {
   onDeleteCascade: false,
-  excludePivotTableFiles: true,
+  excludePivotTableFiles: !true,
 } as const;
 
 export const frameworkDirectories: Record<
