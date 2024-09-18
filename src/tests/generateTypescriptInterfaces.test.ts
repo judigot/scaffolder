@@ -92,7 +92,7 @@ export function isIPostArray(data: unknown): data is IPost[] {
 }`;
 
     if (typeof tsInterfaces === 'string') {
-      expect(normalizeWhitespace(tsInterfaces)).toBe(
+      expect(normalizeWhitespace(tsInterfaces)).toStrictEqual(
         normalizeWhitespace(expectedOutput),
       );
     }
@@ -177,7 +177,7 @@ export function isIPostArray(data: unknown): data is IPost[] {
 }`;
 
     if (typeof tsInterfaces === 'string') {
-      expect(normalizeWhitespace(tsInterfaces)).toBe(
+      expect(normalizeWhitespace(tsInterfaces)).toStrictEqual(
         normalizeWhitespace(expectedOutput),
       );
     }
@@ -275,7 +275,7 @@ export function isIOrderProductArray(data: unknown): data is IOrderProduct[] {
 }`;
 
     if (typeof tsInterfaces === 'string') {
-      expect(normalizeWhitespace(tsInterfaces)).toBe(
+      expect(normalizeWhitespace(tsInterfaces)).toStrictEqual(
         normalizeWhitespace(expectedOutput),
       );
     }

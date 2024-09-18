@@ -23,7 +23,7 @@ beforeAll(async () => {
 
 describe('App Component with API Endpoint and Checkbox', () => {
   // Test for the checkbox, button clicks, and API validation
-  it('should check the checkbox, simulate button clicks, and validate the API response object with a single toBe', async () => {
+  it('should check the checkbox, simulate button clicks, and validate the API response object with a single toStrictEqual', async () => {
     if (!backendAvailable) {
       console.error('Backend is not available');
       return;
@@ -51,14 +51,14 @@ describe('App Component with API Endpoint and Checkbox', () => {
     fireEvent.click(oneToOneButton);
     fireEvent.click(generateAppButton);
 
-    // Wait for the API response and validate the result with a single `toBe`
+    // Wait for the API response and validate the result with a single `toStrictEqual`
     await waitFor(async () => {
       try {
         const response = await fetch(`${backendUrl}/api/users/1/post`);
         if (response.ok) {
           const data: unknown = await response.json();
 
-          // Verify the entire API response object with a single `toBe` using JSON.stringify
+          // Verify the entire API response object with a single `toStrictEqual` using JSON.stringify
           const expectedData = JSON.stringify({
             post_id: 1,
             user_id: 1,
@@ -68,7 +68,7 @@ describe('App Component with API Endpoint and Checkbox', () => {
             updated_at: '2024-06-18T10:17:19.846000Z',
           });
 
-          expect(JSON.stringify(data)).toBe(expectedData);
+          expect(JSON.stringify(data)).toStrictEqual(expectedData);
         } else {
           console.error('Failed to fetch data. Status:', response.status);
         }
