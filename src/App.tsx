@@ -96,6 +96,7 @@ function App() {
             <form className="space-y-4">
               <div className="float-right pb-3">
                 <button
+                  data-testid="one-to-one-button"
                   type="button"
                   onClick={() => {
                     setOneToOne();
@@ -106,6 +107,7 @@ function App() {
                 </button>
                 &nbsp; &nbsp;
                 <button
+                  data-testid="one-to-many-button"
                   type="button"
                   onClick={() => {
                     setOneToMany();
@@ -116,6 +118,7 @@ function App() {
                 </button>
                 &nbsp; &nbsp;
                 <button
+                  data-testid="many-to-many-button"
                   type="button"
                   onClick={() => {
                     setManyToMany();
@@ -127,6 +130,7 @@ function App() {
               </div>
 
               <textarea
+                data-testid="schema-input"
                 id="schemaInput"
                 name="schemaInput"
                 value={schemaInput}
@@ -291,6 +295,7 @@ function App() {
                 </select>
               </label>
               <button
+                data-testid="generate-app-button"
                 type="button"
                 onClick={() => {
                   setIsLoading(true);
@@ -337,7 +342,9 @@ function App() {
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">Additional Schema Settings</h2>
+            <h2 className="text-xl font-bold mb-2">
+              Additional Schema Settings
+            </h2>
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
@@ -360,6 +367,7 @@ function App() {
                 className="block text-sm font-medium mt-4"
               >
                 <input
+                  data-testid="include-insert-data-checkbox"
                   type="checkbox"
                   id="includeInsertData"
                   name="includeInsertData"
