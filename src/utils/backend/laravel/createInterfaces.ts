@@ -24,7 +24,7 @@ const createFile = (
     template,
   );
 
-const createRepositories = (
+const createInterfaces = (
   schemaInfo: ISchemaInfo[],
   framework: string,
   outputDir: string,
@@ -34,7 +34,6 @@ const createRepositories = (
   schemaInfo.forEach((tableInfo) => {
     const { table, isPivot } = tableInfo;
 
-    // Skip pivot tables if necessary
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
@@ -42,34 +41,32 @@ const createRepositories = (
     const modelSpecificMethods = generateModelSpecificMethods({
       targetTable: table, // Pass the table name as targetTable
       schemaInfo,
-      fileToGenerate: 'repository',
+      fileToGenerate: 'interface',
     });
     const modelImports = generateModelImports(tableInfo);
 
-    // Create Repository
-    const repoTemplatePath = path.resolve(
+    const replacements = {
+      ownerComment: getOwnerComment(),
+      className,
+      modelName: className,
+      tableName: table,
+      modelSpecificMethods,
+      modelImports,
+    };
+
+    const templatePath = path.resolve(
       __dirname,
-      `../../templates/backend/${framework}/repository.txt`,
+      `../../../templates/backend/${framework}/repository-interface.txt`,
     );
-    if (fs.existsSync(repoTemplatePath)) {
-      const repoTemplate = fs.readFileSync(repoTemplatePath, 'utf-8');
-      const repoContent = createFile(repoTemplate, {
-        ownerComment: getOwnerComment(),
-        className,
-        modelName: className,
-        tableName: table,
-        modelSpecificMethods,
-        modelImports,
-      });
-      const repoOutputFilePath = path.join(
-        outputDir,
-        `${className}Repository.php`,
-      );
-      fs.writeFileSync(repoOutputFilePath, repoContent);
+    if (fs.existsSync(templatePath)) {
+      const template = fs.readFileSync(templatePath, 'utf-8');
+      const content = createFile(template, replacements);
+      const outputFilePath = path.join(outputDir, `${className}Interface.php`);
+      fs.writeFileSync(outputFilePath, content);
     } else {
-      console.error(`Template not found: ${repoTemplatePath}`);
+      console.error(`Template not found: ${templatePath}`);
     }
   });
 };
 
-export default createRepositories;
+export default createInterfaces;

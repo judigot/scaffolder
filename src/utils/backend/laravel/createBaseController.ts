@@ -19,26 +19,26 @@ const createFile = (
     template,
   );
 
-const createBaseRepository = (framework: string, outputDir: string): void => {
+const createBaseController = (framework: string, outputDir: string): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   const replacements = {
     ownerComment: getOwnerComment(),
   };
 
-  // Create Base Repository
+  // Create Base Controller
   const baseRepoTemplatePath = path.resolve(
     __dirname,
-    `../../templates/backend/${framework}/base-repository.txt`,
+    `../../../templates/backend/${framework}/base-controller.txt`,
   );
   if (fs.existsSync(baseRepoTemplatePath)) {
     const baseRepoTemplate = fs.readFileSync(baseRepoTemplatePath, 'utf-8');
     const baseRepoContent = createFile(baseRepoTemplate, replacements);
-    const baseRepoOutputFilePath = path.join(outputDir, `BaseRepository.php`);
+    const baseRepoOutputFilePath = path.join(outputDir, `BaseController.php`);
     fs.writeFileSync(baseRepoOutputFilePath, baseRepoContent);
   } else {
     console.error(`Template not found: ${baseRepoTemplatePath}`);
   }
 };
 
-export default createBaseRepository;
+export default createBaseController;

@@ -71,7 +71,7 @@ const createControllers = (
 
     const templatePath = path.resolve(
       __dirname,
-      `../../templates/backend/${framework}/controller.txt`,
+      `../../../templates/backend/${framework}/controller.txt`,
     );
     const template = fs.readFileSync(templatePath, 'utf-8');
     const className = toPascalCase(table);

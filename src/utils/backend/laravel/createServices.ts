@@ -2,19 +2,19 @@ import fs from 'fs';
 import path from 'path';
 import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { generateModelImports } from '@/utils/common';
 import { APP_SETTINGS } from '@/constants';
 
-// Global variables
+// Determine the current directory based on platform
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (process.platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
 
+// Function to get the owner comment
 const getOwnerComment = (): string => '/* Owner: App Scaffolder */\n';
 
-const createFile = (
+// Function to create the service file content by replacing placeholders with actual values
+const createServiceFile = (
   template: string,
   replacements: Record<string, string>,
 ): string =>
@@ -24,49 +24,42 @@ const createFile = (
     template,
   );
 
-const createInterfaces = (
+// Function to create the services based on the provided relationships and framework
+const createServices = (
   schemaInfo: ISchemaInfo[],
   framework: string,
   outputDir: string,
 ): void => {
+  // Create the output directory if it doesn't exist
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach((tableInfo) => {
-    const { table, isPivot } = tableInfo;
-
+  schemaInfo.forEach(({ table, isPivot }) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-    const className = toPascalCase(table);
-    const modelSpecificMethods = generateModelSpecificMethods({
-      targetTable: table, // Pass the table name as targetTable
-      schemaInfo,
-      fileToGenerate: 'interface',
-    });
-    const modelImports = generateModelImports(tableInfo);
-
-    const replacements = {
-      ownerComment: getOwnerComment(),
-      className,
-      modelName: className,
-      tableName: table,
-      modelSpecificMethods,
-      modelImports,
-    };
-
     const templatePath = path.resolve(
       __dirname,
-      `../../templates/backend/${framework}/repository-interface.txt`,
+      `../../../templates/backend/${framework}/service.txt`,
     );
+
+    // Check if the template file exists
     if (fs.existsSync(templatePath)) {
       const template = fs.readFileSync(templatePath, 'utf-8');
-      const content = createFile(template, replacements);
-      const outputFilePath = path.join(outputDir, `${className}Interface.php`);
-      fs.writeFileSync(outputFilePath, content);
+      const className = toPascalCase(table);
+      const replacements = {
+        ownerComment: getOwnerComment(),
+        className,
+        modelName: className,
+        tableName: table,
+      };
+
+      const serviceContent = createServiceFile(template, replacements);
+      const outputFilePath = path.join(outputDir, `${className}Service.php`);
+      fs.writeFileSync(outputFilePath, serviceContent);
     } else {
       console.error(`Template not found: ${templatePath}`);
     }
   });
 };
 
-export default createInterfaces;
+export default createServices;
