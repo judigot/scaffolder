@@ -39,7 +39,7 @@ const createServices = (
 
     const templatePath = path.resolve(
       __dirname,
-      `../templates/backend/${framework}/service.txt`,
+      `../../templates/backend/${framework}/service.txt`,
     );
 
     // Check if the template file exists

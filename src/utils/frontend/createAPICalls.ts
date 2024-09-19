@@ -24,7 +24,7 @@ const getOwnerComment = (extension: string): string => {
 };
 
 const createAPICalls = (schemaInfo: ISchemaInfo[], outputDir: string): void => {
-  const templateDir = path.resolve(__dirname, '../templates/frontend/api');
+  const templateDir = path.resolve(__dirname, '../../templates/frontend/api');
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });

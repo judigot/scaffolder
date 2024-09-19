@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 import identifySchema from '@/utils/identifySchema';
-import { createRelationships } from '@/utils/createModels';
+import { createRelationships } from '@/utils/backend/createModels';
 import { normalizeWhitespace } from '@/helpers/toPascalCase';
 import { POSSchema } from '@/json-schemas/POSSchema';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';

@@ -5,22 +5,22 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import Pool from 'pg-pool';
 import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
-import createModels from '@/utils/createModels';
+import createModels from '@/utils/backend/createModels';
 import clearGeneratedFiles from '@/utils/clearDirectory';
 import { frameworkDirectories, frontendDirectories } from '@/constants';
-import createAPICalls from '@/utils/createAPICalls';
-import createAPIRoutes from '@/utils/createAPIRoutes';
-import createControllers from '@/utils/createControllers';
-import createServices from '@/utils/createServices';
-import createRepositories from '@/utils/createRepositories';
-import createTypescriptInterfaces from '@/utils/createTypescriptInterfaces';
-import createInterfaces from '@/utils/createInterfaces';
-import createResources from '@/utils/createResources';
+import createAPICalls from '@/utils/frontend/createAPICalls';
+import createAPIRoutes from '@/utils/backend/createAPIRoutes';
+import createControllers from '@/utils/backend/createControllers';
+import createServices from '@/utils/backend/createServices';
+import createRepositories from '@/utils/backend/createRepositories';
+import createTypescriptInterfaces from '@/utils/frontend/createTypescriptInterfaces';
+import createInterfaces from '@/utils/backend/createInterfaces';
+import createResources from '@/utils/backend/createResources';
 import { ISchemaInfo, isITableArray } from '@/interfaces/interfaces';
-import createBaseRepository from '@/utils/createBaseRepository';
-import createBaseRepositoryInterface from '@/utils/createBaseRepositoryInterface';
-import createAppServiceProviderScaffolding from '@/utils/createAppServiceProviderScaffolding';
-import createBaseController from '@/utils/createBaseController';
+import createBaseRepository from '@/utils/backend/createBaseRepository';
+import createBaseRepositoryInterface from '@/utils/backend/createBaseRepositoryInterface';
+import createAppServiceProviderScaffolding from '@/utils/backend/createAppServiceProviderScaffolding';
+import createBaseController from '@/utils/backend/createBaseController';
 import introspect from '@/utils/introspect';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
@@ -69,7 +69,9 @@ export const executeMySQL = async (
   connectionString: string,
   queryTemplate: string,
 ): Promise<Record<string, unknown>[]> => {
-  const match = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/.exec(connectionString);
+  const match = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/.exec(
+    connectionString,
+  );
   if (!match) {
     throw new Error('Invalid MySQL connection string');
   }

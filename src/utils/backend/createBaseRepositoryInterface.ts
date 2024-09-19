@@ -29,7 +29,7 @@ const createBaseRepository = (framework: string, outputDir: string): void => {
   // Create Base Repository
   const baseRepoTemplatePath = path.resolve(
     __dirname,
-    `../templates/backend/${framework}/base-repository-interface.txt`,
+    `../../templates/backend/${framework}/base-repository-interface.txt`,
   );
   if (fs.existsSync(baseRepoTemplatePath)) {
     const baseRepoTemplate = fs.readFileSync(baseRepoTemplatePath, 'utf-8');

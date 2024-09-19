@@ -106,7 +106,7 @@ const createResources = (
 
     const templatePath = path.resolve(
       __dirname,
-      `../templates/backend/${framework}/resource.txt`,
+      `../../templates/backend/${framework}/resource.txt`,
     );
 
     // Check if the template exists and create the file
