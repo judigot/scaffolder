@@ -89,7 +89,6 @@ function App() {
         <h1 className="text-2xl font-bold text-center">App Scaffolder</h1>
       </div>
       <div className="grid gap-4 p-4">
-        {/* First row with form, create tables, and delete tables */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
@@ -448,7 +447,6 @@ function App() {
           </div>
         </div>
 
-        {/* Second row with other content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Join Queries</h2>
