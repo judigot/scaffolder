@@ -20,10 +20,24 @@ const generateTypescriptInterfaces = ({
     const interfaceName = toPascalCase(table);
     const properties = columnsInfo
       .map((column) =>
-        generateColumnDefinition({ columnName: column, columnType: 'ts-interfaces' }),
+        generateColumnDefinition({
+          columnName: column,
+          columnType: 'ts-interfaces',
+        }),
       )
       .join('\n  ');
     return `export interface I${interfaceName} {\n  ${properties}\n}`;
+  };
+
+  const generateInterfaceContent = (
+    table: string,
+    columnsInfo: IColumnInfo[],
+  ) => {
+    const interfaceContent = generateInterface(table, columnsInfo);
+    const typeGuardContent = includeTypeGuards
+      ? generateTypeGuard(table, columnsInfo)
+      : '';
+    return `${interfaceContent}${typeGuardContent ? '\n' + typeGuardContent : ''}`;
   };
 
   const generateTypeGuard = (
@@ -82,26 +96,22 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
   };
 
   if (outputOnSingleFile) {
-    const content = schemaInfo
-      .map(({ table, columnsInfo }) => {
-        const interfaceContent = generateInterface(table, columnsInfo);
-        const typeGuardContent = includeTypeGuards
-          ? generateTypeGuard(table, columnsInfo)
-          : '';
-        return `${interfaceContent}${typeGuardContent ? '\n' + typeGuardContent : ''}`;
-      })
+    return schemaInfo
+      .map(({ table, columnsInfo }) =>
+        generateInterfaceContent(table, columnsInfo),
+      )
       .join('\n\n');
-    return content;
   } else {
     const filesContent: Record<string, string> = {};
+
     schemaInfo.forEach(({ table, columnsInfo }) => {
       const interfaceName = `I${toPascalCase(table)}`;
-      const interfaceContent = generateInterface(table, columnsInfo);
-      const typeGuardContent = includeTypeGuards
-        ? generateTypeGuard(table, columnsInfo)
-        : '';
-      filesContent[`${interfaceName}.ts`] = `${interfaceContent}\n${typeGuardContent}`;
+      filesContent[`${interfaceName}.ts`] = generateInterfaceContent(
+        table,
+        columnsInfo,
+      );
     });
+
     return filesContent;
   }
 };
