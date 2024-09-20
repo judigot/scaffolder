@@ -36,9 +36,9 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
   }, [schemaInfo]);
 
   const getSuggestions = (schema: ISchemaInfo): string[] => {
-    const primaryKeys = schema.columnsInfo
-      .filter((column) => column.primary_key)
-      .map((column) => column.column_name);
+    // const primaryKeys = schema.columnsInfo
+    //   .filter((column) => column.primary_key)
+    //   .map((column) => column.column_name);
 
     const foreignKeys = schema.columnsInfo
       .filter((column) => column.foreign_key)
