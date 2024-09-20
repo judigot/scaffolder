@@ -7,6 +7,7 @@ import { useModalStore } from '@/useModalStore';
 
 import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
 import generateMockData from '@/utils/generateMockData';
+import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
 
 function App() {
   const {
@@ -344,6 +345,7 @@ function App() {
             <h2 className="text-xl font-bold mb-2">
               Additional Schema Settings
             </h2>
+            <AdditionalSchemaSettings schemaInfo={getSchemaInfo()} />
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
