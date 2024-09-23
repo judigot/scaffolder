@@ -37,13 +37,6 @@ function TagInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputValue, addedValues]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
-      e.preventDefault();
-      addValue(inputValue.trim());
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onInputChange(e);
   };
@@ -75,9 +68,10 @@ function TagInput({
     );
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    addValue(suggestion);
-    const updatedSuggestions = filterUnselectedSuggestions(suggestion);
+  const addSuggestion = (suggestion: string) => {
+    const suggestionVal = suggestion.trim();
+    addValue(suggestionVal);
+    const updatedSuggestions = filterUnselectedSuggestions(suggestionVal);
     setFilteredSuggestions(updatedSuggestions);
 
     const element = document.querySelector(`#${id}`);
@@ -88,6 +82,17 @@ function TagInput({
           setShowSuggestions(true);
         }
       }, 200);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    addSuggestion(suggestion);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault();
+      addSuggestion(inputValue);
     }
   };
 
