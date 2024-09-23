@@ -69,31 +69,37 @@ function TagInput({
     setFilteredSuggestions(filtered);
   };
 
-  const showAllUnselectedSuggestions = () => {
-    const unselectedSuggestions = suggestions.filter(
-      (suggestion) => !addedValues.includes(suggestion),
+  const filterUnselectedSuggestions = (currentSuggestion?: string) => {
+    return suggestions.filter(
+      (item) => !addedValues.includes(item) && item !== currentSuggestion,
     );
-    setFilteredSuggestions(unselectedSuggestions);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     addValue(suggestion);
+    const updatedSuggestions = filterUnselectedSuggestions(suggestion);
+    setFilteredSuggestions(updatedSuggestions);
+
     const element = document.querySelector(`#${id}`);
     if (element instanceof HTMLElement) {
       setIsFocused(true);
       setTimeout(() => {
         if (showSuggestionsOnFocus) {
-          showAllUnselectedSuggestions(); // Show all unselected suggestions when focused
           setShowSuggestions(true);
         }
       }, 200);
     }
   };
 
+  const showAllUnselectedSuggestions = () => {
+    const unselectedSuggestions = filterUnselectedSuggestions();
+    setFilteredSuggestions(unselectedSuggestions);
+  };
+
   const handleFocus = () => {
     setIsFocused(true);
     if (showSuggestionsOnFocus) {
-      showAllUnselectedSuggestions(); // Show all unselected suggestions when focused
+      showAllUnselectedSuggestions();
       setShowSuggestions(true);
     }
   };
@@ -102,7 +108,7 @@ function TagInput({
     setIsFocused(false);
     setTimeout(() => {
       setShowSuggestions(false);
-    }, 200); // Delay hiding to allow click event
+    }, 200);
   };
 
   return (
