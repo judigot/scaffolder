@@ -192,7 +192,7 @@ app.post(
         backendDir: string;
         frontendDir: string;
         dbConnection: string;
-        SQLSchema: string;
+        SQLSchema: string | null;
       }
     >,
     res: Response,
@@ -216,46 +216,51 @@ app.post(
       let isDBConnectionValid = false;
       const isBackendDirValid = fs.existsSync(backendDirPath);
       const isFrontendDirValid = fs.existsSync(frontendDirPath);
-      try {
-        if (extractDBConnectionInfo(dbConnection).dbType === 'postgresql') {
-          await executePostgreSQL(
-            dbConnection,
-            `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
-          );
-        }
-        if (extractDBConnectionInfo(dbConnection).dbType === 'mysql') {
-          await executeMySQL(
-            dbConnection,
-            `
-              SET FOREIGN_KEY_CHECKS = 0;
+
+      if (SQLSchema != null) {
+        try {
+          if (extractDBConnectionInfo(dbConnection).dbType === 'postgresql') {
+            await executePostgreSQL(
+              dbConnection,
+              `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
+            );
+          }
+          if (extractDBConnectionInfo(dbConnection).dbType === 'mysql') {
+            await executeMySQL(
+              dbConnection,
+              `
+                SET FOREIGN_KEY_CHECKS = 0;
+                
+                -- Prepare the drop statements for all tables in the specified database
+                SET @drop := (
+                  SELECT CONCAT(
+                    'DROP TABLE IF EXISTS \`',
+                    GROUP_CONCAT(table_name SEPARATOR '\`, \`'),
+                    '\`;'
+                  )
+                  FROM information_schema.tables
+                  WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbName}'
+                );
               
-              -- Prepare the drop statements for all tables in the specified database
-              SET @drop := (
-                SELECT CONCAT(
-                  'DROP TABLE IF EXISTS \`',
-                  GROUP_CONCAT(table_name SEPARATOR '\`, \`'),
-                  '\`;'
-                )
-                FROM information_schema.tables
-                WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbName}'
-              );
-            
-              -- Execute the drop statements
-              PREPARE stmt FROM @drop;
-              EXECUTE stmt;
-              DEALLOCATE PREPARE stmt;
-            
-              -- Re-enable foreign key checks
-              SET FOREIGN_KEY_CHECKS = 1;
-            
-              -- Execute the provided SQL schema to create new tables
-              ${SQLSchema}
-              `,
-          );
+                -- Execute the drop statements
+                PREPARE stmt FROM @drop;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+              
+                -- Re-enable foreign key checks
+                SET FOREIGN_KEY_CHECKS = 1;
+              
+                -- Execute the provided SQL schema to create new tables
+                ${SQLSchema}
+                `,
+            );
+          }
+          isDBConnectionValid = true;
+        } catch (error: unknown) {
+          console.error('Error executing database command:', error);
         }
+      } else {
         isDBConnectionValid = true;
-      } catch (error: unknown) {
-        console.error('Error executing database command:', error);
       }
 
       try {
