@@ -24,7 +24,7 @@ interface IStore {
   aggregateJoins: string[];
   getSchemaInfo: () => ISchemaInfo[];
   setIntrospectedSchema: (schemaInfo: ISchemaInfo[]) => void;
-  setTransformations: () => void;
+  setTransformations: (schemaInfo?: ISchemaInfo[] | null) => void;
 }
 
 const errorMessage = 'An error occurred';
@@ -88,8 +88,10 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       });
     }
   },
-  setTransformations: () => {
-    const schemaInfo = get().getSchemaInfo();
+  setTransformations: (tempSchemaInfo?: ISchemaInfo[] | null) => {
+    // If schemaInfo is not provided, get it from the current state
+    const schemaInfo = tempSchemaInfo ?? get().getSchemaInfo();
+
     if (schemaInfo.length === 0) {
       set({
         interfaces: '',
