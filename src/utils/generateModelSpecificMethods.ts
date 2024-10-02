@@ -270,35 +270,41 @@ export const generateModelSpecificMethods = ({
 
   /* Handle route generation */
   if (fileToGenerate === 'routes') {
+    const generatedRoutes = new Set<string>(); // Set to track unique routes
+  
     if (pivotRelationships.length > 0) {
       methods += pivotRelationships
-        .map(
-          ({ relatedTable }) =>
-            `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`)}', [${className}Controller::class, 'get${toPascalCase(
-              relatedTable,
-            )}s']);`,
-        )
-        .join('\n');
+        .map(({ relatedTable }) => {
+          const route = convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`);
+          if (!generatedRoutes.has(route)) {
+            generatedRoutes.add(route); // Add route to Set
+            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}s']);`;
+          }
+        })
+        .join('\n        ');
     } else if (hasOne.length > 0) {
       methods += hasOne
-        .map(
-          (relatedTable) =>
-            `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${relatedTable}`)}', [${className}Controller::class, 'get${toPascalCase(
-              relatedTable,
-            )}']);`,
-        )
-        .join('\n');
+        .map((relatedTable) => {
+          const route = convertToUrlFormat(`${tablePlural}/{id}/${relatedTable}`);
+          if (!generatedRoutes.has(route)) {
+            generatedRoutes.add(route); // Add route to Set
+            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}']);`;
+          }
+        })
+        .join('\n        ');
     } else if (hasMany.length > 0) {
       methods += hasMany
-        .map(
-          (relatedTable) =>
-            `Route::get('${convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`)}', [${className}Controller::class, 'get${toPascalCase(
-              relatedTable,
-            )}s']);`,
-        )
-        .join('\n');
+        .map((relatedTable) => {
+          const route = convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`);
+          if (!generatedRoutes.has(route)) {
+            generatedRoutes.add(route); // Add route to Set
+            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}s']);`;
+          }
+        })
+        .join('\n        ');
     }
   }
+  
 
   return methods;
 };
