@@ -84,6 +84,7 @@ export const generateModelSpecificMethods = ({
   };
 
   let methods = '';
+  const generatedMethods = new Set(); // Keep track of methods that have been generated
 
   const getTablePlural = ({ tableName }: { tableName: string }): string => {
     const relatedSchema = schemaInfo.find(
@@ -137,6 +138,10 @@ export const generateModelSpecificMethods = ({
         methodName += 's';
       }
 
+      // Check if the method is already generated
+      if (generatedMethods.has(methodName)) return; // Skip if already generated
+      generatedMethods.add(methodName); // Mark as generated
+
       let returnType = '';
       if (isHasOne) {
         returnType = `?${relatedClass}`;
@@ -168,7 +173,9 @@ export const generateModelSpecificMethods = ({
         }
         methodBody += `
         // Fetch the ${relatedTableName} from the repository
-        $${relatedTableName} = $this->repository->get${relatedClass}${isHasOne ? '' : 's'}($${primaryKey}${isHasOne ? '' : ', $column, $direction'});
+        $${relatedTableName} = $this->repository->get${relatedClass}${
+          isHasOne ? '' : 's'
+        }($${primaryKey}${isHasOne ? '' : ', $column, $direction'});
         return response()->json($${relatedTableName});
       `;
       } else {
@@ -216,8 +223,13 @@ export const generateModelSpecificMethods = ({
         const foreignTablePrimaryKey = column.column_name;
         const description = `Find ${className} by ${foreignTablePrimaryKey}.`;
         const methodName = `findBy${toPascalCase(foreignTablePrimaryKey)}`;
+
+        // Check if the method is already generated
+        if (generatedMethods.has(methodName)) return; // Skip if already generated
+        generatedMethods.add(methodName); // Mark as generated
+
         const returnType = `?${className}`;
-        const body = `return $this->model->where('${foreignTablePrimaryKey}', $${foreignTablePrimaryKey}).first();`;
+        const body = `return $this->model->where('${foreignTablePrimaryKey}', $${foreignTablePrimaryKey})->first();`;
 
         methods += generateMethod({
           description,

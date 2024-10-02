@@ -266,7 +266,7 @@ function App() {
                               frontendDir,
                               dbConnection,
                               framework,
-                              SQLSchema,
+                              SQLSchema: null, // Null since we already have an existing schema
                             }),
                           })
                             .then((response) => response.json())
