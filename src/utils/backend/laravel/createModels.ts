@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { APP_SETTINGS, frameworkDirectories } from '@/constants';
-import { toPascalCase } from '@/helpers/toPascalCase';
+import { snakeToCamelCase, toPascalCase } from '@/helpers/toPascalCase';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 
 // Global variables
@@ -53,7 +53,7 @@ export const createRelationships = (
   const belongsToRelations = foreignKeys
     .map((foreignKey) => {
       const relationshipName = foreignKey.replace('_id', '');
-      return `    public function ${relationshipName}()\n    {\n        return $this->belongsTo(${toPascalCase(relationshipName)}::class, '${foreignKey}');\n    }\n`;
+      return `    public function ${snakeToCamelCase(relationshipName)}()\n    {\n        return $this->belongsTo(${toPascalCase(relationshipName)}::class, '${foreignKey}');\n    }\n`;
     })
     .join('\n');
 
@@ -78,7 +78,7 @@ export const createRelationships = (
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
       if (childPrimaryKey != null && parentPrimaryKey != null) {
-        return `    public function ${relatedTable}s()\n    {\n        return $this->hasMany(${toPascalCase(relatedTable)}::class, '${parentPrimaryKey}');\n    }\n`;
+        return `    public function ${snakeToCamelCase(relatedTable)}s()\n    {\n        return $this->hasMany(${toPascalCase(relatedTable)}::class, '${parentPrimaryKey}');\n    }\n`;
       }
       return '';
     })
@@ -87,7 +87,7 @@ export const createRelationships = (
   const hasOneRelations = hasOne
     .map((relatedTable) => {
       const relatedTableClass = toPascalCase(relatedTable);
-      return `    public function ${relatedTable}()\n    {\n        return $this->hasOne(${relatedTableClass}::class, '${String(parentPrimaryKey)}');\n    }\n`;
+      return `    public function ${snakeToCamelCase(relatedTable)}()\n    {\n        return $this->hasOne(${relatedTableClass}::class, '${String(parentPrimaryKey)}');\n    }\n`;
     })
     .join('\n');
 
@@ -112,7 +112,7 @@ export const createRelationships = (
       const currentTableForeignKey = `${tableName}_id`;
       const relatedTableForeignKey = `${relatedTable}_id`;
 
-      return `    public function ${relatedTable}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${currentTableForeignKey}', '${relatedTableForeignKey}');\n    }\n`;
+      return `    public function ${snakeToCamelCase(junctionTable)}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${currentTableForeignKey}', '${relatedTableForeignKey}');\n    }\n`;
     })
     .join('\n');
 
