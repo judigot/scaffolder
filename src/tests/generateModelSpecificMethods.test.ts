@@ -26,16 +26,16 @@ describe('generateModelSpecificMethods', () => {
 
       const expectedMethod = `
     /**
-     * Get the related Products.
+     * Get the related OrderProducts.
      *
      * @param int $order_id
      * @return ?Collection
      */
-    public function getProducts(int $order_id, ?string $column = null, string $direction = 'asc'): ?Collection{
+    public function getOrderProducts(int $order_id, ?string $column = null, string $direction = 'asc'): ?Collection{
         
-      $productModel = new Product();
-      $query = $this->model->find($order_id)?->products();
-      $column = $column ?? $productModel->getKeyName();
+      $orderProductModel = new OrderProduct();
+      $query = $this->model->find($order_id)?->orderProducts();
+      $column = $column ?? $orderProductModel->getKeyName();
       $query->orderBy($column, $direction);
       return $query ? $query->get() : null;
       
@@ -95,20 +95,20 @@ describe('generateModelSpecificMethods', () => {
 
       const expectedMethod = `
     /**
-     * Get all Products related to the given Order.
+     * Get all OrderProducts related to the given Order.
      *
      * @param int $order_id
      * 
      */
-    public function getProducts(Request $request, int $order_id){
+    public function getOrderProducts(Request $request, int $order_id){
         
       // Extract optional URL parameters
       $column = $request->input('column', null); // Default to null if no column is provided
       $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided
 
-      // Fetch the products from the repository
-      $products = $this->repository->getProducts($order_id, $column, $direction);
-      return response()->json($products);
+      // Fetch the order_products from the repository
+      $order_products = $this->repository->getOrderProducts($order_id, $column, $direction);
+      return response()->json($order_products);
     
     }`;
 
@@ -128,7 +128,7 @@ describe('generateModelSpecificMethods', () => {
       });
 
       const expectedRoute = `
-Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
+Route::get('orders/{id}/products', [OrderController::class, 'getOrderProducts']);
 `;
 
       expect(normalizeWhitespace(methods)).toContain(

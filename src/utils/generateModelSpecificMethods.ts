@@ -1,4 +1,8 @@
-import { convertToUrlFormat, toPascalCase } from '@/helpers/toPascalCase';
+import {
+  convertToUrlFormat,
+  snakeToCamelCase,
+  toPascalCase,
+} from '@/helpers/toPascalCase';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 
 export const generateModelSpecificMethods = ({
@@ -155,9 +159,9 @@ export const generateModelSpecificMethods = ({
         return $this->model->find($${primaryKey})?->${relatedTableName};`;
       } else {
         body = `
-        $${relatedTable}Model = new ${relatedClass}();
-        $query = $this->model->find($${primaryKey})?->${relatedTableName}();
-        $column = $column ?? $${relatedTable}Model->getKeyName();
+        $${snakeToCamelCase(relatedTable)}Model = new ${relatedClass}();
+        $query = $this->model->find($${primaryKey})?->${snakeToCamelCase(relatedTableName)}();
+        $column = $column ?? $${snakeToCamelCase(relatedTable)}Model->getKeyName();
         $query->orderBy($column, $direction);
         return $query ? $query->get() : null;
         `;
@@ -197,9 +201,7 @@ export const generateModelSpecificMethods = ({
   if (fileToGenerate === 'repository' || fileToGenerate === 'interface') {
     if (pivotRelationships.length > 0) {
       generateRelationshipMethods({
-        relatedTables: pivotRelationships.map(
-          ({ relatedTable }) => relatedTable,
-        ),
+        relatedTables: pivotRelationships.map(({ pivotTable }) => pivotTable),
         isController: false,
         descriptionPrefix: 'Get the related',
       });
@@ -246,9 +248,10 @@ export const generateModelSpecificMethods = ({
   if (fileToGenerate === 'controllerMethod') {
     if (pivotRelationships.length > 0) {
       generateRelationshipMethods({
-        relatedTables: pivotRelationships.map(
-          ({ relatedTable }) => relatedTable,
-        ),
+        // relatedTables: pivotRelationships.map(
+        //   ({ relatedTable }) => relatedTable,
+        // ),
+        relatedTables: pivotRelationships.map(({ pivotTable }) => pivotTable),
         isController: true,
         descriptionPrefix: 'Get all',
       });
@@ -271,21 +274,25 @@ export const generateModelSpecificMethods = ({
   /* Handle route generation */
   if (fileToGenerate === 'routes') {
     const generatedRoutes = new Set<string>(); // Set to track unique routes
-  
+
     if (pivotRelationships.length > 0) {
       methods += pivotRelationships
-        .map(({ relatedTable }) => {
-          const route = convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`);
+        .map(({ relatedTable, pivotTable }) => {
+          const route = convertToUrlFormat(
+            `${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`,
+          );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
-            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}s']);`;
+            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(pivotTable)}s']);`;
           }
         })
         .join('\n        ');
     } else if (hasOne.length > 0) {
       methods += hasOne
         .map((relatedTable) => {
-          const route = convertToUrlFormat(`${tablePlural}/{id}/${relatedTable}`);
+          const route = convertToUrlFormat(
+            `${tablePlural}/{id}/${relatedTable}`,
+          );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
             return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}']);`;
@@ -295,7 +302,9 @@ export const generateModelSpecificMethods = ({
     } else if (hasMany.length > 0) {
       methods += hasMany
         .map((relatedTable) => {
-          const route = convertToUrlFormat(`${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`);
+          const route = convertToUrlFormat(
+            `${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`,
+          );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
             return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}s']);`;
@@ -304,7 +313,6 @@ export const generateModelSpecificMethods = ({
         .join('\n        ');
     }
   }
-  
 
   return methods;
 };
