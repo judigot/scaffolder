@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { frameworks, useFormStore } from '@/useFormStore';
 import { useTransformationsStore } from '@/useTransformationsStore';
 
-import '@/styles/scss/main.scss';
 import { useModalStore } from '@/useModalStore';
 
 import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
