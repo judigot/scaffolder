@@ -9,7 +9,8 @@
     "build": "vite build",
     "lint": "eslint src --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "postinstall": "pnpm exec husky init && cp pre-commit .husky/pre-commit"
+    "postinstall": "pnpm exec husky init && cp pre-commit .husky/pre-commit",
+    "prepare": "husky"
   },
   "husky": {
     "hooks": {
