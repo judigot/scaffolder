@@ -4,6 +4,46 @@ import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { columnMappings, typeMappings } from '@/utils/mappings';
 import dayjs from 'dayjs';
+import pluralize from 'pluralize';
+
+export const convertToCases = (
+  input: string,
+): {
+  sentenceCase: string;
+  phraseCase: string;
+  pascalCase: string;
+  camelCase: string;
+  kebabCase: string;
+  snakeCase: string;
+  underscoreCase: string;
+  plural: string;
+} => {
+  const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
+
+  const capitalize = (str: string) =>
+    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+  const sentenceCase = capitalize(words.join(' ')) + '.';
+  const phraseCase = words.join(' ').toLowerCase();
+  const pascalCase = words.map(capitalize).join('');
+  const camelCase =
+    words[0].toLowerCase() + words.slice(1).map(capitalize).join('');
+  const kebabCase = words.join('-').toLowerCase();
+  const snakeCase = words.join('_').toLowerCase();
+  const underscoreCase = snakeCase;
+  const plural = pluralize(input.replace(/[_-]/g, ' '));
+
+  return {
+    sentenceCase,
+    phraseCase,
+    pascalCase,
+    camelCase,
+    kebabCase,
+    snakeCase,
+    underscoreCase,
+    plural,
+  };
+};
 
 export const formatDateForMySQL = (date: Date): string => {
   return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
