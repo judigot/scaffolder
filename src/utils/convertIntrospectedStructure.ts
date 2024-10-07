@@ -89,6 +89,23 @@ export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
 
   return {
     table: tableName,
+    tableCases: {
+      plural: '',
+      titleCase: '',
+      sentenceCase: '',
+      phraseCase: '',
+      pascalCase: '',
+      camelCase: '',
+      kebabCase: '',
+      snakeCase: '',
+      titleCasePlural: '',
+      sentenceCasePlural: '',
+      phraseCasePlural: '',
+      pascalCasePlural: '',
+      camelCasePlural: '',
+      kebabCasePlural: '',
+      snakeCasePlural: '',
+    },
     tablePlural: pluralize(tableName),
     requiredColumns,
     columnsInfo,

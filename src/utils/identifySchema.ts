@@ -380,6 +380,47 @@ export const determineUniqueForeignKeys = (
   return schemaInfo;
 };
 
+export function convertToCases(input: string) {
+  const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
+  const pluralWords = [
+    ...words.slice(0, -1),
+    pluralize(words[words.length - 1]),
+  ];
+
+  const capitalize = (str: string) =>
+    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  const joinWords = (arr: string[], separator: string) =>
+    arr.join(separator).toLowerCase();
+  const titleCase = (arr: string[]) => arr.map(capitalize).join(' ');
+
+  return {
+    plural: pluralWords.join(' '),
+    titleCase: titleCase(words),
+    sentenceCase: capitalize(joinWords(words, ' ')),
+    phraseCase: joinWords(words, ' '),
+    pascalCase: words.map(capitalize).join(''),
+    camelCase: words[0].toLowerCase() + words.slice(1).map(capitalize).join(''),
+    kebabCase: joinWords(words, '-'),
+    snakeCase: joinWords(words, '_'),
+    titleCasePlural: titleCase(pluralWords),
+    sentenceCasePlural: capitalize(joinWords(pluralWords, ' ')),
+    phraseCasePlural: joinWords(pluralWords, ' '),
+    pascalCasePlural: pluralWords.map(capitalize).join(''),
+    camelCasePlural:
+      pluralWords[0].toLowerCase() +
+      pluralWords.slice(1).map(capitalize).join(''),
+    kebabCasePlural: joinWords(pluralWords, '-'),
+    snakeCasePlural: joinWords(pluralWords, '_'),
+  };
+}
+
+function addTableNameCases(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
+  return schemaInfo.map((info) => {
+    info.tableCases = convertToCases(info.table);
+    return info;
+  });
+}
+
 export function addSchemaInfo(
   schemaInfo: ISchemaInfo[],
   data: ParsedJSONSchema | null = null,
@@ -396,6 +437,7 @@ export function addSchemaInfo(
   schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
   schemaInfo = identifyPivotTables(schemaInfo);
   schemaInfo = addPivotRelationships(schemaInfo);
+  schemaInfo = addTableNameCases(schemaInfo);
 
   if (!isIntrospection) {
     schemaInfo = determineUniqueForeignKeys(schemaInfo);
@@ -425,6 +467,23 @@ function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
 
     return {
       table,
+      tableCases: {
+        plural: '',
+        titleCase: '',
+        sentenceCase: '',
+        phraseCase: '',
+        pascalCase: '',
+        camelCase: '',
+        kebabCase: '',
+        snakeCase: '',
+        titleCasePlural: '',
+        sentenceCasePlural: '',
+        phraseCasePlural: '',
+        pascalCasePlural: '',
+        camelCasePlural: '',
+        kebabCasePlural: '',
+        snakeCasePlural: '',
+      },
       tablePlural: pluralize(table),
       requiredColumns,
       columnsInfo,
