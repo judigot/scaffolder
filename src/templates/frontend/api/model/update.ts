@@ -1,5 +1,5 @@
-import { customFetch } from "../customFetch";
-import { IModelTemplate } from "../../interfaces/interfaces";
+import { customFetch } from '../customFetch';
+import { IModelTemplate } from '../../interfaces/interfaces';
 
 type IBody = IModelTemplate;
 
@@ -10,4 +10,3 @@ export const updateModelTemplate = async (formData: IBody): Promise<IBody> => {
   });
   return result;
 };
-

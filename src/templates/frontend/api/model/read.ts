@@ -1,5 +1,5 @@
-import { customFetch } from "../customFetch";
-import { IModelTemplate } from "../../interfaces/interfaces";
+import { customFetch } from '../customFetch';
+import { IModelTemplate } from '../../interfaces/interfaces';
 
 type IBody = IModelTemplate;
 
@@ -9,4 +9,3 @@ export const readModelTemplate = async (): Promise<IBody[] | null> => {
   });
   return result;
 };
-

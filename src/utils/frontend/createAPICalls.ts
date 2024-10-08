@@ -47,7 +47,7 @@ const createAPICalls = (
     operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
   });
 
-  schemaInfo.forEach(({ table, tableCases,tablePlural }) => {
+  schemaInfo.forEach(({ table, tableCases, tablePlural, columnsInfo }) => {
     const className = toPascalCase(table);
     const tableDir = path.join(outputDir, table);
 
@@ -59,8 +59,19 @@ const createAPICalls = (
       let apiCalls = operationTemplates[operation];
       apiCalls = apiCalls.replace(/ModelTemplate/g, className);
       apiCalls = apiCalls.replace(/modelTemplate/g, tablePlural); // Pluralize resource
+
+      // Ensure we find a primary key column, or provide a default value (like an empty string)
+      const primaryKeyColumn = columnsInfo.find((column) => column.primary_key);
+      apiCalls = apiCalls.replace(
+        /PRIMARY_KEY/g,
+        primaryKeyColumn ? primaryKeyColumn.column_name : '',
+      );
+
       if (!outputOnSingleFile) {
-        apiCalls = apiCalls.replace(/\/interfaces";/g, `/I${tableCases.pascalCase}";`); // Pluralize resource
+        apiCalls = apiCalls.replace(
+          /\/interfaces';/g,
+          `/I${tableCases.pascalCase}';`,
+        ); // Pluralize resource
       }
 
       const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);

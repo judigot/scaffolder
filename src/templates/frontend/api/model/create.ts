@@ -1,7 +1,7 @@
-import { customFetch } from "../customFetch";
-import { IModelTemplate } from "../../interfaces/interfaces";
+import { customFetch } from '../customFetch';
+import { IModelTemplate } from '../../interfaces/interfaces';
 
-type IBody = Omit<IModelTemplate, 'id'>;
+type IBody = Omit<IModelTemplate, 'PRIMARY_KEY' | 'created_at' | 'updated_at'>;
 
 export const createModelTemplate = async (
   formData: IBody,
@@ -12,4 +12,3 @@ export const createModelTemplate = async (
   });
   return result;
 };
-
