@@ -86,6 +86,6 @@ export const frameworkDirectories: Record<
 export const frontendDirectories = {
   apiCalls: 'src/api',
   component: 'src/components',
-  interface: 'src/interface',
+  interface: 'src/interfaces',
   typeGuard: 'src/typeGuards',
 } as const;
