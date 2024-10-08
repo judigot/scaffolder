@@ -1,6 +1,6 @@
 type DataBody = BodyInit;
 
-const FALLBACK_URL = 'http://localhost:3000/api/v1';
+const FALLBACK_URL = '$BACKEND_URL';
 
 const API_URL: string =
   typeof import.meta.env.API_URL === 'string'

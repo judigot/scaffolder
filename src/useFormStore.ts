@@ -15,6 +15,7 @@ export const frameworks = {
 
 export interface IFormData {
   schemaInput: string;
+  backendUrl: string;
   backendDir: string;
   frontendDir: string;
   dbConnection: string;
@@ -46,6 +47,7 @@ const POSSchemaInput = JSON.stringify(POSSchema, null, 4);
 
 const initialFormData: IFormData = {
   schemaInput: usersPostOneToOneInput,
+  backendUrl: 'http://localhost:3000/api/v1',
   backendDir: 'C:/Users/Jude/Desktop/laravel',
   // backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',

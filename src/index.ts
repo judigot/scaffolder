@@ -24,6 +24,8 @@ import createBaseController from '@/utils/backend/laravel/createBaseController';
 import introspect from '@/utils/introspect';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
+import http from 'http';
+import https from 'https';
 
 dotenv.config();
 
@@ -194,6 +196,7 @@ app.post(
         dbConnection: string;
         SQLSchema: string | null;
         outputOnSingleFile: boolean;
+        backendUrl: string;
       }
     >,
     res: Response,
@@ -207,6 +210,7 @@ app.post(
       dbConnection,
       SQLSchema,
       outputOnSingleFile,
+      backendUrl,
     } = req.body;
     const framework = frameworkRaw.toLowerCase();
     const frameworkDir = frameworkDirectories[framework];
@@ -216,6 +220,37 @@ app.post(
       const frontendDirPath = path.resolve(__dirname, frontendDir);
 
       let isDBConnectionValid = false;
+      const checkBackendUrlValidity = (
+        backendUrl: string,
+      ): Promise<boolean> => {
+        return new Promise((resolve) => {
+          try {
+            const parsedUrl = new URL(backendUrl); // Use the WHATWG URL API
+            const request =
+              parsedUrl.protocol === 'https:' ? https.get : http.get;
+
+            request(backendUrl, (res) => {
+              // Check for successful response codes (2xx)
+              if (
+                res.statusCode != null &&
+                res.statusCode >= 200 &&
+                res.statusCode < 300
+              ) {
+                resolve(true);
+              } else {
+                resolve(false);
+              }
+            }).on('error', () => {
+              resolve(false);
+            });
+          } catch (error) {
+            // If URL construction fails, resolve as false
+            // eslint-disable-next-line no-console
+            /* prettier-ignore */ ((log = error)=>{console.log(["string","number"].includes(typeof log)?log:JSON.stringify(log,null,4));})();
+            resolve(false);
+          }
+        });
+      };
       const isBackendDirValid = fs.existsSync(backendDirPath);
       const isFrontendDirValid = fs.existsSync(frontendDirPath);
 
@@ -360,7 +395,7 @@ app.post(
               `../output/frontend/${frontendDirectories.apiCalls}`,
             );
         clearGeneratedFiles(APICallsDir);
-        createAPICalls(schemaInfo, APICallsDir, outputOnSingleFile);
+        createAPICalls(schemaInfo, APICallsDir, outputOnSingleFile, backendUrl);
 
         const typescriptInterfacesDir = isFrontendDirValid
           ? path.resolve(frontendDirPath, frontendDirectories.interface)
@@ -375,18 +410,52 @@ app.post(
         });
         /*=====FRONTEND=====*/
 
-        res.status(200).json({
-          isBackendDirValid,
-          isFrontendDirValid,
-          isDBConnectionValid,
-        });
+        checkBackendUrlValidity(backendUrl)
+          .then((isBackendUrlValid) => {
+            // Success
+            res.status(200).json({
+              isBackendUrlValid,
+              isBackendDirValid,
+              isFrontendDirValid,
+              isDBConnectionValid,
+            });
+          })
+          .catch((error: unknown) => {
+            // Failure
+            if (typeof error === `string`) {
+              throw Error(`There was an error: error`);
+            }
+            if (error instanceof Error) {
+              throw Error(`There was an error: ${error.message}`);
+            }
+          })
+          .finally(() => {
+            // Finally
+          });
       } catch (error) {
         console.error('Error generating models:', error);
-        res.status(500).json({
-          isBackendDirValid,
-          isFrontendDirValid,
-          isDBConnectionValid,
-        });
+        checkBackendUrlValidity(backendUrl)
+          .then(() => {
+            // Success
+            res.status(500).json({
+              isBackendUrlValid: false,
+              isBackendDirValid,
+              isFrontendDirValid,
+              isDBConnectionValid,
+            });
+          })
+          .catch((error: unknown) => {
+            // Failure
+            if (typeof error === `string`) {
+              throw Error(`There was an error: error`);
+            }
+            if (error instanceof Error) {
+              throw Error(`There was an error: ${error.message}`);
+            }
+          })
+          .finally(() => {
+            // Finally
+          });
       }
     })();
   },

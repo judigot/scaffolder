@@ -16,6 +16,7 @@ function App() {
     setDBType,
     formData: {
       schemaInput,
+      backendUrl,
       backendDir,
       frontendDir,
       dbConnection,
@@ -42,10 +43,12 @@ function App() {
   const stringInterfaces = consolidateInterfaces(interfaces);
 
   const [generationStatus, setGenerationStatus] = useState<{
+    isBackendUrlValid: boolean;
     isBackendDirValid: boolean;
     isFrontendDirValid: boolean;
     isDBConnectionValid: boolean;
   }>({
+    isBackendUrlValid: true,
     isBackendDirValid: true,
     isFrontendDirValid: true,
     isDBConnectionValid: true,
@@ -140,6 +143,26 @@ function App() {
                 rows={10}
                 className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               />
+              <label htmlFor="backendUrl" className="block text-sm font-medium">
+                Backend Directory:
+                {!generationStatus.isBackendUrlValid && (
+                  <i className="text-red-500">
+                    &nbsp;Invalid backend directory
+                  </i>
+                )}
+                <input
+                  type="text"
+                  id="backendUrl"
+                  name="backendUrl"
+                  value={backendUrl}
+                  onChange={handleChange}
+                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isBackendUrlValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
+                />
+              </label>
               <label htmlFor="backendDir" className="block text-sm font-medium">
                 Backend Directory:
                 {!generationStatus.isBackendDirValid && (
@@ -273,6 +296,7 @@ function App() {
                               framework,
                               SQLSchema: null, // Null since we already have an existing schema
                               outputOnSingleFile,
+                              backendUrl
                             }),
                           })
                             .then((response) => response.json())
@@ -360,6 +384,7 @@ function App() {
                       framework,
                       SQLSchema,
                       outputOnSingleFile,
+                      backendUrl
                     }),
                   })
                     .then((response) => response.json())

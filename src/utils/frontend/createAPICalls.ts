@@ -27,6 +27,7 @@ const createAPICalls = (
   schemaInfo: ISchemaInfo[],
   outputDir: string,
   outputOnSingleFile: boolean,
+  backendUrl: string,
 ): void => {
   const templateDir = path.resolve(__dirname, '../../templates/frontend/api');
 
@@ -34,10 +35,18 @@ const createAPICalls = (
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // Copy customFetch.ts to the output directory
+  // Define paths
   const customFetchSourcePath = path.resolve(templateDir, 'customFetch.ts');
   const customFetchDestinationPath = path.join(outputDir, 'customFetch.ts');
-  fs.copyFileSync(customFetchSourcePath, customFetchDestinationPath);
+  // Read the source file
+  const customFetchContent = fs.readFileSync(customFetchSourcePath, 'utf-8');
+  // Replace $BACKEND_URL with xxxxxxxx
+  const modifiedContent = customFetchContent.replace(
+    /\$BACKEND_URL/g,
+    backendUrl,
+  );
+  // Write the modified content to the new file
+  fs.writeFileSync(customFetchDestinationPath, modifiedContent);
 
   const operations = ['create', 'read', 'update', 'delete'];
   const operationTemplates: Record<string, string> = {};
@@ -63,7 +72,7 @@ const createAPICalls = (
       // Ensure we find a primary key column, or provide a default value (like an empty string)
       const primaryKeyColumn = columnsInfo.find((column) => column.primary_key);
       apiCalls = apiCalls.replace(
-        /PRIMARY_KEY/g,
+        /\$PRIMARY_KEY/g,
         primaryKeyColumn ? primaryKeyColumn.column_name : '',
       );
 
