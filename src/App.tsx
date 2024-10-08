@@ -6,6 +6,7 @@ import { useModalStore } from '@/useModalStore';
 
 import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
+import { consolidateInterfaces } from '@/utils/common';
 
 function App() {
   const {
@@ -22,6 +23,7 @@ function App() {
       includeInsertData,
       insertOption,
       includeTypeGuards,
+      outputOnSingleFile,
     },
     setFormData,
   } = useFormStore();
@@ -36,6 +38,8 @@ function App() {
     aggregateJoins,
     setTransformations,
   } = useTransformationsStore();
+
+  const stringInterfaces = consolidateInterfaces(interfaces);
 
   const [generationStatus, setGenerationStatus] = useState<{
     isBackendDirValid: boolean;
@@ -260,12 +264,15 @@ function App() {
                             },
                             body: JSON.stringify({
                               schemaInfo,
-                              interfaces,
+                              interfaces: outputOnSingleFile
+                                ? stringInterfaces
+                                : interfaces,
                               backendDir,
                               frontendDir,
                               dbConnection,
                               framework,
                               SQLSchema: null, // Null since we already have an existing schema
+                              outputOnSingleFile,
                             }),
                           })
                             .then((response) => response.json())
@@ -344,12 +351,15 @@ function App() {
                     },
                     body: JSON.stringify({
                       schemaInfo: getSchemaInfo(),
-                      interfaces,
+                      interfaces: outputOnSingleFile
+                        ? stringInterfaces
+                        : interfaces,
                       backendDir,
                       frontendDir,
                       dbConnection,
                       framework,
                       SQLSchema,
+                      outputOnSingleFile,
                     }),
                   })
                     .then((response) => response.json())
@@ -545,18 +555,38 @@ function App() {
                 />
                 Include Type Guards
               </label>
+              <label
+                htmlFor="outputOnSingleFile"
+                className="block text-sm font-medium mt-4"
+              >
+                <input
+                  type="checkbox"
+                  id="outputOnSingleFile"
+                  name="outputOnSingleFile"
+                  checked={outputOnSingleFile}
+                  onChange={handleChange}
+                  className="mr-2"
+                />
+                Output on a Single File
+              </label>
             </div>
+            <br />
             <h2 className="text-xl font-bold mb-2">TypeScript Interfaces</h2>
             <br />
             <div className="">
-              {typeof interfaces === 'string' ? (
-                <textarea
-                  id="interfaces"
-                  value={interfaces}
-                  readOnly
-                  rows={10}
-                  className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                />
+              {outputOnSingleFile ? (
+                <>
+                  <h3 className="text-base font-semibold text-white mb-2">
+                    interfaces.ts
+                  </h3>
+                  <textarea
+                    id="interfaces"
+                    value={stringInterfaces}
+                    readOnly
+                    rows={10}
+                    className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  />
+                </>
               ) : (
                 <div className="max-h-96 overflow-y-auto">
                   {Object.entries(interfaces).map(
@@ -587,20 +617,11 @@ function App() {
             </div>
             <button
               onClick={() => {
-                const content =
-                  typeof interfaces === 'string'
-                    ? interfaces
-                    : Object.entries(interfaces)
-                        .map(
-                          ([fileName, content]) =>
-                            `\n/* ${fileName}.ts */\n${content}`,
-                        )
-                        .join('\n');
-                handleCopy(content);
+                handleCopy(stringInterfaces);
               }}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             >
-              Copy Interfaces
+              Copy All Interfaces
             </button>
           </div>
 

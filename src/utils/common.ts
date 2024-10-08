@@ -5,6 +5,15 @@ import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { columnMappings, typeMappings } from '@/utils/mappings';
 import dayjs from 'dayjs';
 
+export function consolidateInterfaces(
+  interfaces: Record<string, string>,
+): string {
+  return Object.entries(interfaces)
+    .map(([fileName, content]) => `\n/* ${fileName}.ts */\n${content}`)
+    .join('\n')
+    .trimStart();
+}
+
 export const formatDateForMySQL = (date: Date): string => {
   return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
 };

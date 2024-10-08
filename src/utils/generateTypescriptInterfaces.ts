@@ -11,8 +11,7 @@ interface IGenerateOptions {
 const generateTypescriptInterfaces = ({
   schemaInfo,
   includeTypeGuards,
-  outputOnSingleFile,
-}: IGenerateOptions): string | Record<string, string> => {
+}: IGenerateOptions): Record<string, string> => {
   const generateInterface = (
     table: string,
     columnsInfo: IColumnInfo[],
@@ -95,25 +94,34 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
 `;
   };
 
-  if (outputOnSingleFile) {
-    return schemaInfo
-      .map(({ table, columnsInfo }) =>
-        generateInterfaceContent(table, columnsInfo),
-      )
-      .join('\n\n');
-  } else {
-    const filesContent: Record<string, string> = {};
+  const filesContent: Record<string, string> = {};
 
-    schemaInfo.forEach(({ table, columnsInfo }) => {
-      const interfaceName = `I${toPascalCase(table)}`;
-      filesContent[interfaceName] = generateInterfaceContent(
-        table,
-        columnsInfo,
-      );
-    });
+  schemaInfo.forEach(({ table, columnsInfo }) => {
+    const interfaceName = `I${toPascalCase(table)}`;
+    filesContent[interfaceName] = generateInterfaceContent(table, columnsInfo);
+  });
 
-    return filesContent;
-  }
+  return filesContent;
+
+  // if (outputOnSingleFile) {
+  //   return schemaInfo
+  //     .map(({ table, columnsInfo }) =>
+  //       generateInterfaceContent(table, columnsInfo),
+  //     )
+  //     .join('\n\n');
+  // } else {
+  //   const filesContent: Record<string, string> = {};
+
+  //   schemaInfo.forEach(({ table, columnsInfo }) => {
+  //     const interfaceName = `I${toPascalCase(table)}`;
+  //     filesContent[interfaceName] = generateInterfaceContent(
+  //       table,
+  //       columnsInfo,
+  //     );
+  //   });
+
+  //   return filesContent;
+  // }
 };
 
 export default generateTypescriptInterfaces;

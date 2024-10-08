@@ -22,6 +22,7 @@ export interface IFormData {
   includeInsertData: boolean;
   insertOption: string;
   includeTypeGuards: boolean;
+  outputOnSingleFile: boolean;
 }
 
 interface IFormStore {
@@ -54,6 +55,7 @@ const initialFormData: IFormData = {
   includeInsertData: false,
   insertOption: 'SQLInsertQueries',
   includeTypeGuards: true,
+  outputOnSingleFile: false,
 };
 
 function getQuote(dbType: DBTypes): string {

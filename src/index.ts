@@ -193,6 +193,7 @@ app.post(
         frontendDir: string;
         dbConnection: string;
         SQLSchema: string | null;
+        outputOnSingleFile: boolean;
       }
     >,
     res: Response,
@@ -205,6 +206,7 @@ app.post(
       frontendDir,
       dbConnection,
       SQLSchema,
+      outputOnSingleFile,
     } = req.body;
     const framework = frameworkRaw.toLowerCase();
     const frameworkDir = frameworkDirectories[framework];
@@ -358,7 +360,7 @@ app.post(
               `../output/frontend/${frontendDirectories.apiCalls}`,
             );
         clearGeneratedFiles(APICallsDir);
-        createAPICalls(schemaInfo, APICallsDir);
+        createAPICalls(schemaInfo, APICallsDir, outputOnSingleFile);
 
         const typescriptInterfacesDir = isFrontendDirValid
           ? path.resolve(frontendDirPath, frontendDirectories.interface)

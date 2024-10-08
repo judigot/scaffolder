@@ -18,14 +18,14 @@ const createTypescriptInterfaces = ({
     const interfaceContent = `${getOwnerComment()}${interfaces}`;
     const outputFilePath = path.join(outputDir, 'interfaces.ts');
     fs.writeFileSync(outputFilePath, interfaceContent);
+    return;
   } else if (typeof interfaces === 'object') {
     for (const [interfaceName, content] of Object.entries(interfaces)) {
       const interfaceContent = `${getOwnerComment()}${content}`;
       const outputFilePath = path.join(outputDir, `${interfaceName}.ts`);
       fs.writeFileSync(outputFilePath, interfaceContent);
     }
-  } else {
-    throw new Error('Invalid input for createTypescriptInterfaces function');
+    return;
   }
 };
 

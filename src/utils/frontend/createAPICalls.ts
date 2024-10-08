@@ -23,7 +23,11 @@ const getOwnerComment = (extension: string): string => {
   return comments[extension] || '/* Owner: App Scaffolder */\n';
 };
 
-const createAPICalls = (schemaInfo: ISchemaInfo[], outputDir: string): void => {
+const createAPICalls = (
+  schemaInfo: ISchemaInfo[],
+  outputDir: string,
+  outputOnSingleFile: boolean,
+): void => {
   const templateDir = path.resolve(__dirname, '../../templates/frontend/api');
 
   if (!fs.existsSync(outputDir)) {
@@ -43,7 +47,7 @@ const createAPICalls = (schemaInfo: ISchemaInfo[], outputDir: string): void => {
     operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
   });
 
-  schemaInfo.forEach(({ table, tablePlural }) => {
+  schemaInfo.forEach(({ table, tableCases,tablePlural }) => {
     const className = toPascalCase(table);
     const tableDir = path.join(outputDir, table);
 
@@ -55,6 +59,9 @@ const createAPICalls = (schemaInfo: ISchemaInfo[], outputDir: string): void => {
       let apiCalls = operationTemplates[operation];
       apiCalls = apiCalls.replace(/ModelTemplate/g, className);
       apiCalls = apiCalls.replace(/modelTemplate/g, tablePlural); // Pluralize resource
+      if (!outputOnSingleFile) {
+        apiCalls = apiCalls.replace(/\/interfaces";/g, `/I${tableCases.pascalCase}";`); // Pluralize resource
+      }
 
       const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
       const ownerComment = getOwnerComment('.ts');
