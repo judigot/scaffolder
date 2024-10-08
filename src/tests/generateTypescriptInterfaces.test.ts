@@ -50,8 +50,8 @@ export function isIUser(data: unknown): data is IUser {
     typeof data.email === 'string' &&
     typeof data.username === 'string' &&
     typeof data.password === 'string' &&
-    data.created_at instanceof Date &&
-    data.updated_at instanceof Date
+    typeof data.created_at === 'string' &&
+    typeof data.updated_at === 'string'
   );
 }
 
@@ -82,8 +82,8 @@ export function isIPost(data: unknown): data is IPost {
     typeof data.user_id === 'number' &&
     typeof data.title === 'string' &&
     (data.content === null || typeof data.content === 'string') &&
-    data.created_at instanceof Date &&
-    data.updated_at instanceof Date
+    typeof data.created_at === 'string' &&
+    typeof data.updated_at === 'string'
   );
 }
 
@@ -135,8 +135,8 @@ export function isIUser(data: unknown): data is IUser {
     typeof data.email === 'string' &&
     typeof data.username === 'string' &&
     typeof data.password === 'string' &&
-    data.created_at instanceof Date &&
-    data.updated_at instanceof Date
+    typeof data.created_at === 'string' &&
+    typeof data.updated_at === 'string'
   );
 }
 
@@ -167,8 +167,8 @@ export function isIPost(data: unknown): data is IPost {
     typeof data.user_id === 'number' &&
     typeof data.title === 'string' &&
     (data.content === null || typeof data.content === 'string') &&
-    data.created_at instanceof Date &&
-    data.updated_at instanceof Date
+    typeof data.created_at === 'string' &&
+    typeof data.updated_at === 'string'
   );
 }
 

@@ -67,7 +67,7 @@ const generateTypescriptInterfaces = ({
 
         // Create a type check for Date
         if (tsType === 'Date') {
-          return `data.${column_name} instanceof Date`;
+          return `typeof data.${column_name} === 'string'`;
         }
 
         // Handle nullable fields
