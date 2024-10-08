@@ -106,7 +106,7 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
 
     schemaInfo.forEach(({ table, columnsInfo }) => {
       const interfaceName = `I${toPascalCase(table)}`;
-      filesContent[`${interfaceName}.ts`] = generateInterfaceContent(
+      filesContent[interfaceName] = generateInterfaceContent(
         table,
         columnsInfo,
       );
