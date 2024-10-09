@@ -14,6 +14,10 @@ import {
 
 /* Relationship Rules:
 
+Pivot Table Description:
+  - It does not have any child tables.
+  - The table name should be a combination of the related table names, formatted as either order_product or product_order, depending on the preferred order.
+
 HasMany Rules:
   - Use `hasMany` when the current table (parent table) has a one-to-many relationship with another table (child table).
   - Applicable when the foreign key in the child table references the primary key in the parent table, and the foreign key can appear multiple times in the child table.
@@ -118,19 +122,37 @@ export const isJunctionTable = (
   relationship: ISchemaInfo,
   schemaInfo: ISchemaInfo[],
 ): boolean => {
+  // Get all foreign keys in the table
   const foreignKeys = relationship.columnsInfo.filter(
     (column) => column.foreign_key,
   );
+
+  // Check if the table has exactly two foreign keys
   if (foreignKeys.length === 2) {
     const [firstKey, secondKey] = foreignKeys;
+
+    // Find the parent tables based on foreign keys
     const parentTable1 = schemaInfo.find(
       (rel) => rel.table === firstKey.foreign_key?.foreign_table_name,
     );
     const parentTable2 = schemaInfo.find(
       (rel) => rel.table === secondKey.foreign_key?.foreign_table_name,
     );
-    return parentTable1 !== undefined && parentTable2 !== undefined;
+
+    // Check if the table has no child tables
+    const hasNoChildTables = relationship.childTables.length === 0;
+
+    // Ensure both parent tables are defined before checking name combination
+    if (parentTable1 && parentTable2) {
+      const isNameCombination =
+        relationship.table === `${parentTable1.table}_${parentTable2.table}` ||
+        relationship.table === `${parentTable2.table}_${parentTable1.table}`;
+
+      // Return true if the table name matches the combination rule and has no child tables
+      return hasNoChildTables && isNameCombination;
+    }
   }
+
   return false;
 };
 
@@ -322,32 +344,30 @@ export function linkChildTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   });
 }
 
-export function addPivotRelationships(
+export function addParentRelationships(
   schemaInfo: ISchemaInfo[],
 ): ISchemaInfo[] {
   schemaInfo.forEach((info) => {
-    if (info.isPivot) {
-      // Iterate over the parent tables in 'belongsTo' to set their pivot relationships
-      info.belongsTo.forEach((parentTable) => {
-        const parentTableInfo = schemaInfo.find(
-          (schema) => schema.table === parentTable,
+    // Iterate over the parent tables in 'belongsTo' to set their pivot relationships
+    info.belongsTo.forEach((parentTable) => {
+      const parentTableInfo = schemaInfo.find(
+        (schema) => schema.table === parentTable,
+      );
+
+      if (parentTableInfo) {
+        // Identify the other parent table in the pivot relationship
+        const partnerTable = info.belongsTo.find(
+          (table) => table !== parentTable,
         );
 
-        if (parentTableInfo) {
-          // Identify the other parent table in the pivot relationship
-          const partnerTable = info.belongsTo.find(
-            (table) => table !== parentTable,
-          );
-
-          if (partnerTable != null) {
-            parentTableInfo.pivotRelationships.push({
-              relatedTable: partnerTable,
-              pivotTable: info.table,
-            });
-          }
+        if (partnerTable != null) {
+          parentTableInfo.pivotRelationships.push({
+            relatedTable: partnerTable,
+            pivotTable: info.table,
+          });
         }
-      });
-    }
+      }
+    });
   });
 
   return schemaInfo;
@@ -436,7 +456,7 @@ export function addSchemaInfo(
   schemaInfo = linkChildTables(schemaInfo);
   schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
   schemaInfo = identifyPivotTables(schemaInfo);
-  schemaInfo = addPivotRelationships(schemaInfo);
+  schemaInfo = addParentRelationships(schemaInfo);
   schemaInfo = addTableNameCases(schemaInfo);
 
   if (!isIntrospection) {
