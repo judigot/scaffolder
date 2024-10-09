@@ -4,7 +4,6 @@ import { convertToUrlFormat, toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS } from '@/constants';
-import pluralize from 'pluralize';
 
 const getOwnerComment = (extension: string): string => {
   const comments: Record<string, string> = {
@@ -32,7 +31,7 @@ const createAPIRoutes = (
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
 
-      const routeName = convertToUrlFormat(pluralize(tablePlural));
+      const routeName = convertToUrlFormat(tablePlural);
       const className = toPascalCase(table);
       const firstColumn = columnsInfo[0]?.column_name || 'id'; // Fallback to 'id' if no columns exist
       const secondColumn = columnsInfo[1]?.column_name || 'id';
