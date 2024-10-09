@@ -1058,7 +1058,7 @@ describe('convertIntrospectedStructure', () => {
       {
         table: 'order_product',
         tableCases: {
-          plural: 'order products',
+          plural: 'order_products',
           titleCase: 'Order Product',
           sentenceCase: 'Order product',
           phraseCase: 'order product',

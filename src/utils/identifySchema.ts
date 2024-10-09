@@ -414,7 +414,7 @@ export function convertToCases(input: string) {
   const titleCase = (arr: string[]) => arr.map(capitalize).join(' ');
 
   return {
-    plural: pluralWords.join(' '),
+    plural: pluralize(input),
     titleCase: titleCase(words),
     sentenceCase: capitalize(joinWords(words, ' ')),
     phraseCase: joinWords(words, ' '),
