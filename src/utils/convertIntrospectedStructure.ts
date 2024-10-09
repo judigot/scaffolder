@@ -6,7 +6,6 @@ import {
 } from '@/interfaces/interfaces';
 import { addSchemaInfo } from '@/utils/identifySchema';
 import { typeMappings } from '@/utils/mappings';
-import pluralize from 'pluralize';
 
 export const getTypeScriptType = (dataType: string): string => {
   // Normalize the data type to lowercase
@@ -106,7 +105,6 @@ export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
       kebabCasePlural: '',
       snakeCasePlural: '',
     },
-    tablePlural: pluralize(tableName),
     requiredColumns,
     columnsInfo,
     foreignTables,

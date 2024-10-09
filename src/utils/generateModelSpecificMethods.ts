@@ -19,7 +19,7 @@ export const generateModelSpecificMethods = ({
 
   const {
     table,
-    tablePlural,
+    tableCases,
     pivotRelationships,
     columnsInfo,
     hasOne,
@@ -95,7 +95,7 @@ export const generateModelSpecificMethods = ({
       (schema) => schema.table === tableName,
     );
     if (relatedSchema) {
-      return relatedSchema.tablePlural;
+      return relatedSchema.tableCases.plural;
     }
     return tableName;
   };
@@ -279,7 +279,7 @@ export const generateModelSpecificMethods = ({
       methods += pivotRelationships
         .map(({ relatedTable, pivotTable }) => {
           const route = convertToUrlFormat(
-            `${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`,
+            `${tableCases.plural}/{id}/${getTablePlural({ tableName: relatedTable })}`,
           );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
@@ -291,7 +291,7 @@ export const generateModelSpecificMethods = ({
       methods += hasOne
         .map((relatedTable) => {
           const route = convertToUrlFormat(
-            `${tablePlural}/{id}/${relatedTable}`,
+            `${tableCases.plural}/{id}/${relatedTable}`,
           );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
@@ -303,7 +303,7 @@ export const generateModelSpecificMethods = ({
       methods += hasMany
         .map((relatedTable) => {
           const route = convertToUrlFormat(
-            `${tablePlural}/{id}/${getTablePlural({ tableName: relatedTable })}`,
+            `${tableCases.plural}/{id}/${getTablePlural({ tableName: relatedTable })}`,
           );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set

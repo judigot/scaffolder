@@ -474,7 +474,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'users',
           snakeCasePlural: 'users',
         },
-        tablePlural: 'users',
         requiredColumns: [
           'user_id',
           'first_name',
@@ -588,7 +587,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'posts',
           snakeCasePlural: 'posts',
         },
-        tablePlural: 'posts',
         requiredColumns: [
           'post_id',
           'user_id',
@@ -691,7 +689,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'users',
           snakeCasePlural: 'users',
         },
-        tablePlural: 'users',
         requiredColumns: [
           'user_id',
           'first_name',
@@ -805,7 +802,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'posts',
           snakeCasePlural: 'posts',
         },
-        tablePlural: 'posts',
         requiredColumns: [
           'post_id',
           'user_id',
@@ -908,7 +904,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'products',
           snakeCasePlural: 'products',
         },
-        tablePlural: 'products',
         requiredColumns: ['product_id', 'product_name'],
         columnsInfo: [
           {
@@ -964,7 +959,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'customers',
           snakeCasePlural: 'customers',
         },
-        tablePlural: 'customers',
         requiredColumns: ['customer_id', 'name'],
         columnsInfo: [
           {
@@ -1015,7 +1009,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'orders',
           snakeCasePlural: 'orders',
         },
-        tablePlural: 'orders',
         requiredColumns: ['order_id', 'customer_id'],
         columnsInfo: [
           {
@@ -1074,7 +1067,6 @@ describe('convertIntrospectedStructure', () => {
           kebabCasePlural: 'order-products',
           snakeCasePlural: 'order_products',
         },
-        tablePlural: 'order_products',
         requiredColumns: ['order_product_id', 'order_id', 'product_id'],
         columnsInfo: [
           {

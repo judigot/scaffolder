@@ -32,7 +32,6 @@ export interface ISchemaInfo {
     kebabCasePlural: string;
     snakeCasePlural: string;
   };
-  tablePlural: string;
   requiredColumns: string[];
   columnsInfo: IColumnInfo[];
   foreignTables: string[];
@@ -63,7 +62,6 @@ export const isISchemaInfo = (data: unknown): data is ISchemaInfo => {
     typeof data === 'object' &&
     data !== null &&
     'table' in data &&
-    'tablePlural' in data &&
     'requiredColumns' in data &&
     'columnsInfo' in data &&
     'foreignTables' in data &&

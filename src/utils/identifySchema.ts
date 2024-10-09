@@ -504,7 +504,6 @@ function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
         kebabCasePlural: '',
         snakeCasePlural: '',
       },
-      tablePlural: pluralize(table),
       requiredColumns,
       columnsInfo,
       foreignTables,

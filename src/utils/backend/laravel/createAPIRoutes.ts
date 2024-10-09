@@ -27,11 +27,11 @@ const createAPIRoutes = (
     .join('');
 
   const customRoutes = schemaInfo
-    .map(({ table, tablePlural, columnsInfo, isPivot }) => {
+    .map(({ table, tableCases, columnsInfo, isPivot }) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
 
-      const routeName = convertToUrlFormat(tablePlural);
+      const routeName = convertToUrlFormat(tableCases.plural);
       const className = toPascalCase(table);
       const firstColumn = columnsInfo[0]?.column_name || 'id'; // Fallback to 'id' if no columns exist
       const secondColumn = columnsInfo[1]?.column_name || 'id';
