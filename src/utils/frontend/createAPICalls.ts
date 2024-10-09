@@ -38,9 +38,7 @@ const createAPICalls = (
   // Define paths
   const customFetchSourcePath = path.resolve(templateDir, 'customFetch.ts');
   const customFetchDestinationPath = path.join(outputDir, 'customFetch.ts');
-  // Read the source file
   const customFetchContent = fs.readFileSync(customFetchSourcePath, 'utf-8');
-  // Replace $BACKEND_URL with xxxxxxxx
   const modifiedContent = customFetchContent.replace(
     /\$BACKEND_URL/g,
     backendUrl,
