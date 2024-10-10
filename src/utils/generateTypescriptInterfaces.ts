@@ -1,22 +1,19 @@
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 import { generateColumnDefinition, getTypeMapping } from '@/utils/common';
-
-interface IGenerateOptions {
-  schemaInfo: ISchemaInfo[];
-  includeTypeGuards: boolean;
-  outputOnSingleFile: boolean;
-}
 
 const generateTypescriptInterfaces = ({
   schemaInfo,
   includeTypeGuards,
-}: IGenerateOptions): Record<string, string> => {
+}: {
+  schemaInfo: ISchemaInfo[];
+  includeTypeGuards: boolean;
+  outputOnSingleFile: boolean;
+}): Record<string, string> => {
   const generateInterface = (
     table: string,
     columnsInfo: IColumnInfo[],
   ): string => {
-    const interfaceName = toPascalCase(table);
+    const interfaceName = table;
     const properties = columnsInfo
       .map((column) =>
         generateColumnDefinition({
@@ -43,7 +40,7 @@ const generateTypescriptInterfaces = ({
     table: string,
     columnsInfo: IColumnInfo[],
   ): string => {
-    const interfaceName = toPascalCase(table);
+    const interfaceName = table;
     const typeGuardName = `isI${interfaceName}`;
     const propertyChecks = columnsInfo
       .map(({ column_name }) => `'${column_name}' in data`)
@@ -96,32 +93,15 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
 
   const filesContent: Record<string, string> = {};
 
-  schemaInfo.forEach(({ table, columnsInfo }) => {
-    const interfaceName = `I${toPascalCase(table)}`;
-    filesContent[interfaceName] = generateInterfaceContent(table, columnsInfo);
-  });
+  schemaInfo.forEach(
+    ({ tableCases: { pascalCase }, columnsInfo }) =>
+      (filesContent[`I${pascalCase}`] = generateInterfaceContent(
+        pascalCase,
+        columnsInfo,
+      )),
+  );
 
   return filesContent;
-
-  // if (outputOnSingleFile) {
-  //   return schemaInfo
-  //     .map(({ table, columnsInfo }) =>
-  //       generateInterfaceContent(table, columnsInfo),
-  //     )
-  //     .join('\n\n');
-  // } else {
-  //   const filesContent: Record<string, string> = {};
-
-  //   schemaInfo.forEach(({ table, columnsInfo }) => {
-  //     const interfaceName = `I${toPascalCase(table)}`;
-  //     filesContent[interfaceName] = generateInterfaceContent(
-  //       table,
-  //       columnsInfo,
-  //     );
-  //   });
-
-  //   return filesContent;
-  // }
 };
 
 export default generateTypescriptInterfaces;
