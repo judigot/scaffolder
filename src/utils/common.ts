@@ -132,13 +132,18 @@ export const getForeignKeyConstraints = (
   schemaInfo: ISchemaInfo[],
 ): string[] => {
   const quote = useFormStore.getState().quote;
-  const tableRelationships = schemaInfo.find((rel) => rel.table === tableName);
-  if (!tableRelationships) return [];
+  const tableRelationships =
+    schemaInfo.find((rel) => rel.table === tableName) ?? null;
 
-  return tableRelationships.foreignKeys.map((key) => {
-    const referencedTable =
-      tableRelationships.foreignTables.find((table) => key.startsWith(table)) ??
-      key.slice(0, -3);
-    return `CONSTRAINT ${quote}FK_${tableName}_${key}${quote} FOREIGN KEY (${quote}${key}${quote}) REFERENCES ${quoteTableName(referencedTable)}(${quote}${key}${quote})`;
-  });
+  if (tableRelationships?.foreignKeys) {
+    return tableRelationships.foreignKeys.map((key) => {
+      const referencedTable =
+        tableRelationships.foreignTables.find((table) =>
+          key.startsWith(table),
+        ) ?? key.slice(0, -3);
+      return `CONSTRAINT ${quote}FK_${tableName}_${key}${quote} FOREIGN KEY (${quote}${key}${quote}) REFERENCES ${quoteTableName(referencedTable)}(${quote}${key}${quote})`;
+    });
+  } else {
+    return [];
+  }
 };
