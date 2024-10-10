@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS } from '@/constants';
 
@@ -74,21 +73,21 @@ class AppServiceProvider extends ServiceProvider
   }
 
   const importStatements = schemaInfo
-    .map(({ table, isPivot }) => {
+    .map(({ tableCases: { pascalCase }, isPivot }) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-      const className = toPascalCase(table);
+      const className = pascalCase;
       return `use App\\Repositories\\${className}Repository;\nuse App\\Repositories\\${className}Interface;`;
     })
     .join('\n');
 
   const bindStatements = schemaInfo
-    .map(({ table, isPivot }) => {
+    .map(({ tableCases: { pascalCase }, isPivot }) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-      const className = toPascalCase(table);
+      const className = pascalCase;
       return `$this->app->bind(${className}Interface::class, ${className}Repository::class);`;
     })
     .join('\n        ');

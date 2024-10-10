@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
@@ -31,44 +30,50 @@ const createRepositories = (
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach((tableInfo) => {
-    const { table, isPivot } = tableInfo;
+  const repoTemplatePath = path.resolve(
+    __dirname,
+    `../../../templates/backend/${framework}/repository.txt`,
+  );
+  const repoTemplate = fs.existsSync(repoTemplatePath)
+    ? fs.readFileSync(repoTemplatePath, 'utf-8')
+    : null;
 
-    // Skip pivot tables if necessary
+  if (repoTemplate == null) {
+    console.error(`Template not found: ${repoTemplatePath}`);
+    return;
+  }
+
+  schemaInfo.forEach((tableInfo) => {
+    const {
+      table,
+      tableCases: { pascalCase },
+      isPivot,
+    } = tableInfo;
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-    const className = toPascalCase(table);
     const modelSpecificMethods = generateModelSpecificMethods({
-      targetTable: table, // Pass the table name as targetTable
+      targetTable: table,
       schemaInfo,
       fileToGenerate: 'repository',
     });
     const modelImports = generateModelImports(tableInfo);
 
-    // Create Repository
-    const repoTemplatePath = path.resolve(
-      __dirname,
-      `../../../templates/backend/${framework}/repository.txt`,
+    const repoContent = createFile(repoTemplate, {
+      ownerComment: getOwnerComment(),
+      className: pascalCase,
+      modelName: pascalCase,
+      tableName: table,
+      modelSpecificMethods,
+      modelImports,
+    });
+
+    const repoOutputFilePath = path.join(
+      outputDir,
+      `${pascalCase}Repository.php`,
     );
-    if (fs.existsSync(repoTemplatePath)) {
-      const repoTemplate = fs.readFileSync(repoTemplatePath, 'utf-8');
-      const repoContent = createFile(repoTemplate, {
-        ownerComment: getOwnerComment(),
-        className,
-        modelName: className,
-        tableName: table,
-        modelSpecificMethods,
-        modelImports,
-      });
-      const repoOutputFilePath = path.join(
-        outputDir,
-        `${className}Repository.php`,
-      );
-      fs.writeFileSync(repoOutputFilePath, repoContent);
-    } else {
-      console.error(`Template not found: ${repoTemplatePath}`);
-    }
+    fs.writeFileSync(repoOutputFilePath, repoContent);
   });
 };
 

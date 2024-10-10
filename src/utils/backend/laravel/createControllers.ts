@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { APP_SETTINGS, frameworkDirectories } from '@/constants';
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
+import { changeCase } from '@/utils/identifySchema';
 
 // Global variables
 const platform: string = process.platform;
@@ -25,7 +25,7 @@ const createControllerMethods = ({
   tableName: string;
   schemaInfo: ISchemaInfo[];
 }): string => {
-  const model = toPascalCase(tableName);
+  const model = changeCase(tableName).pascalCase;
   const modelLowercase = model.toLowerCase();
   const repositoryVariable = `${modelLowercase}Repository`;
 
@@ -62,37 +62,39 @@ const createControllers = (
   framework: keyof typeof frameworkDirectories,
   outputDir: string,
 ): void => {
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const templatePath = path.resolve(
+    __dirname,
+    `../../../templates/backend/${framework}/controller.txt`,
+  );
+  const template = fs.readFileSync(templatePath, 'utf-8');
+  const ownerComment = getOwnerComment('.php');
 
   schemaInfo.forEach(({ table, isPivot }) => {
     // Skip pivot tables if necessary
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-    const templatePath = path.resolve(
-      __dirname,
-      `../../../templates/backend/${framework}/controller.txt`,
-    );
-    const template = fs.readFileSync(templatePath, 'utf-8');
-    const className = toPascalCase(table);
+    const className = schemaInfo.find((rel) => rel.table === table)?.tableCases
+      .pascalCase;
+    if (className == null) return;
 
     const controllerMethods = createControllerMethods({
       tableName: table,
       schemaInfo,
     });
-    const replacements = {
+    const controller = createControllerFile(template, {
       className,
       controllerMethods,
-    };
-    const controller = createControllerFile(template, replacements);
-    const ownerComment = getOwnerComment('.php');
-    const controllerWithComment = controller.replace(
-      '<?php',
-      `<?php\n${ownerComment}`,
-    );
+    }).replace('<?php', `<?php\n${ownerComment}`);
 
-    const outputFilePath = path.join(outputDir, `${className}Controller.php`);
-    fs.writeFileSync(outputFilePath, controllerWithComment);
+    fs.writeFileSync(
+      path.join(outputDir, `${className}Controller.php`),
+      controller,
+    );
   });
 };
 

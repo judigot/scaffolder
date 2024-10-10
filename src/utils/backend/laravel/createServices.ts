@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS } from '@/constants';
 
@@ -30,35 +29,37 @@ const createServices = (
   framework: string,
   outputDir: string,
 ): void => {
-  // Create the output directory if it doesn't exist
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach(({ table, isPivot }) => {
+  const templatePath = path.resolve(
+    __dirname,
+    `../../../templates/backend/${framework}/service.txt`,
+  );
+  const template = fs.existsSync(templatePath)
+    ? fs.readFileSync(templatePath, 'utf-8')
+    : null;
+
+  if (template == null) {
+    console.error(`Template not found: ${templatePath}`);
+    return;
+  }
+
+  schemaInfo.forEach(({ table, tableCases: { pascalCase }, isPivot }) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-    const templatePath = path.resolve(
-      __dirname,
-      `../../../templates/backend/${framework}/service.txt`,
+    const replacements = {
+      ownerComment: getOwnerComment(),
+      className: pascalCase,
+      modelName: pascalCase,
+      tableName: table,
+    };
+
+    const serviceContent = createServiceFile(template, replacements);
+    fs.writeFileSync(
+      path.join(outputDir, `${pascalCase}Service.php`),
+      serviceContent,
     );
-
-    // Check if the template file exists
-    if (fs.existsSync(templatePath)) {
-      const template = fs.readFileSync(templatePath, 'utf-8');
-      const className = toPascalCase(table);
-      const replacements = {
-        ownerComment: getOwnerComment(),
-        className,
-        modelName: className,
-        tableName: table,
-      };
-
-      const serviceContent = createServiceFile(template, replacements);
-      const outputFilePath = path.join(outputDir, `${className}Service.php`);
-      fs.writeFileSync(outputFilePath, serviceContent);
-    } else {
-      console.error(`Template not found: ${templatePath}`);
-    }
   });
 };
 

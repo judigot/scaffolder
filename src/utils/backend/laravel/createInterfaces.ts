@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
@@ -29,7 +28,22 @@ const createInterfaces = (
   framework: string,
   outputDir: string,
 ): void => {
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const templatePath = path.resolve(
+    __dirname,
+    `../../../templates/backend/${framework}/repository-interface.txt`,
+  );
+
+  if (!fs.existsSync(templatePath)) {
+    console.error(`Template not found: ${templatePath}`);
+    return;
+  }
+
+  const template = fs.readFileSync(templatePath, 'utf-8');
+  const ownerComment = getOwnerComment();
 
   schemaInfo.forEach((tableInfo) => {
     const { table, isPivot } = tableInfo;
@@ -37,34 +51,28 @@ const createInterfaces = (
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-    const className = toPascalCase(table);
-    const modelSpecificMethods = generateModelSpecificMethods({
-      targetTable: table, // Pass the table name as targetTable
-      schemaInfo,
-      fileToGenerate: 'interface',
-    });
-    const modelImports = generateModelImports(tableInfo);
+    const className =
+      schemaInfo.find((rel) => rel.table === table)?.tableCases.pascalCase ??
+      null;
+    if (className != null) {
+      const modelImports = generateModelImports(tableInfo);
 
-    const replacements = {
-      ownerComment: getOwnerComment(),
-      className,
-      modelName: className,
-      tableName: table,
-      modelSpecificMethods,
-      modelImports,
-    };
+      const replacements = {
+        ownerComment,
+        className,
+        modelName: className,
+        tableName: table,
+        modelSpecificMethods: generateModelSpecificMethods({
+          targetTable: table,
+          schemaInfo,
+          fileToGenerate: 'interface',
+        }),
+        modelImports,
+      };
 
-    const templatePath = path.resolve(
-      __dirname,
-      `../../../templates/backend/${framework}/repository-interface.txt`,
-    );
-    if (fs.existsSync(templatePath)) {
-      const template = fs.readFileSync(templatePath, 'utf-8');
       const content = createFile(template, replacements);
       const outputFilePath = path.join(outputDir, `${className}Interface.php`);
       fs.writeFileSync(outputFilePath, content);
-    } else {
-      console.error(`Template not found: ${templatePath}`);
     }
   });
 };

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { convertToUrlFormat, toPascalCase } from '@/helpers/toPascalCase';
+import { convertToUrlFormat } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS } from '@/constants';
@@ -21,29 +21,30 @@ const createAPIRoutes = (
 
   const useStatements = schemaInfo
     .map(
-      ({ table }) =>
-        `use App\\Http\\Controllers\\${toPascalCase(table)}Controller;\n`,
+      ({ tableCases: { pascalCase } }) =>
+        `use App\\Http\\Controllers\\${pascalCase}Controller;\n`,
     )
     .join('');
 
   const customRoutes = schemaInfo
-    .map(({ table, tableCases, columnsInfo, isPivot }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
+    .map(
+      ({ table, tableCases: { plural, pascalCase }, columnsInfo, isPivot }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
 
-      const routeName = convertToUrlFormat(tableCases.plural);
-      const className = toPascalCase(table);
-      const firstColumn = columnsInfo[0]?.column_name || 'id'; // Fallback to 'id' if no columns exist
-      const secondColumn = columnsInfo[1]?.column_name || 'id';
+        const routeName = convertToUrlFormat(plural);
+        const className = pascalCase;
+        const firstColumn = columnsInfo[0]?.column_name || 'id'; // Fallback to 'id' if no columns exist
+        const secondColumn = columnsInfo[1]?.column_name || 'id';
 
-      const modelSpecificRoutes = generateModelSpecificMethods({
-        targetTable: table,
-        schemaInfo,
-        fileToGenerate: 'routes',
-      });
+        const modelSpecificRoutes = generateModelSpecificMethods({
+          targetTable: table,
+          schemaInfo,
+          fileToGenerate: 'routes',
+        });
 
-      // Additional custom routes for each controller
-      const customRoutesForController = `
+        // Additional custom routes for each controller
+        const customRoutesForController = `
         ${modelSpecificRoutes}
         // GET routes for retrieving data
 
@@ -144,11 +145,12 @@ const createAPIRoutes = (
         Route::post('${routeName}/group-by', [${className}Controller::class, 'groupBy']);
       `;
 
-      return `
+        return `
         // Custom routes for ${className}${customRoutesForController}
         // Resource routes for ${className}
         Route::resource('${routeName}', ${className}Controller::class);`;
-    })
+      },
+    )
     .join('\n');
 
   const routes = `${routesWithComment}\n${useStatements}\nRoute::middleware('api')->group(function () {\n${customRoutes}\n});\n`;

@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { APP_SETTINGS, frameworkDirectories } from '@/constants';
-import { snakeToCamelCase, toPascalCase } from '@/helpers/toPascalCase';
+import { snakeToCamelCase } from '@/helpers/toPascalCase';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
+import { changeCase } from '@/utils/identifySchema';
 
 // Global variables
 const platform: string = process.platform;
@@ -53,7 +54,7 @@ export const createRelationships = (
   const belongsToRelations = foreignKeys
     .map((foreignKey) => {
       const relationshipName = foreignKey.replace('_id', '');
-      return `    public function ${snakeToCamelCase(relationshipName)}()\n    {\n        return $this->belongsTo(${toPascalCase(relationshipName)}::class, '${foreignKey}');\n    }\n`;
+      return `    public function ${snakeToCamelCase(relationshipName)}()\n    {\n        return $this->belongsTo(${changeCase(relationshipName).pascalCase}::class, '${foreignKey}');\n    }\n`;
     })
     .join('\n');
 
@@ -78,7 +79,7 @@ export const createRelationships = (
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
       if (childPrimaryKey != null && parentPrimaryKey != null) {
-        return `    public function ${snakeToCamelCase(relatedTable)}s()\n    {\n        return $this->hasMany(${toPascalCase(relatedTable)}::class, '${parentPrimaryKey}');\n    }\n`;
+        return `    public function ${snakeToCamelCase(relatedTable)}s()\n    {\n        return $this->hasMany(${changeCase(relatedTable).pascalCase}::class, '${parentPrimaryKey}');\n    }\n`;
       }
       return '';
     })
@@ -86,14 +87,14 @@ export const createRelationships = (
 
   const hasOneRelations = hasOne
     .map((relatedTable) => {
-      const relatedTableClass = toPascalCase(relatedTable);
+      const relatedTableClass = changeCase(relatedTable).pascalCase;
       return `    public function ${snakeToCamelCase(relatedTable)}()\n    {\n        return $this->hasOne(${relatedTableClass}::class, '${String(parentPrimaryKey)}');\n    }\n`;
     })
     .join('\n');
 
   const belongsToManyRelations = belongsToMany
     .map((relatedTable) => {
-      const relatedTableClass = toPascalCase(relatedTable);
+      const relatedTableClass = changeCase(relatedTable).pascalCase;
 
       // Find the junction table that references both the current table and the related table
       const junctionTable = tables.find(
@@ -144,87 +145,72 @@ const createModels = (
 ): void => {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfo.forEach(
-    ({
+  const templatePath = path.resolve(
+    __dirname,
+    `../../../templates/backend/${framework}/model.txt`,
+  );
+  const template = fs.existsSync(templatePath)
+    ? fs.readFileSync(templatePath, 'utf-8')
+    : null;
+  if (template == null) {
+    console.error(`Template not found: ${templatePath}`);
+    return;
+  }
+
+  schemaInfo.forEach((tableInfo) => {
+    const {
       table,
+      tableCases: { pascalCase },
       columnsInfo,
       foreignKeys,
       hasOne,
       hasMany,
       belongsToMany,
       isPivot,
-    }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+    } = tableInfo;
 
-      const templatePath = path.resolve(
-        __dirname,
-        `../../../templates/backend/${framework}/model.txt`,
-      );
-      const template = fs.readFileSync(templatePath, 'utf-8');
-      const className = toPascalCase(table);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-      const fillable = createFillable(columnsInfo, foreignKeys);
-      const relationships = createRelationships(
-        table,
-        foreignKeys,
-        hasOne,
-        // hasMany,
-        belongsToMany,
-        schemaInfo,
-      );
-      const primaryKeyName =
-        columnsInfo.find((column) => column.primary_key)?.column_name ?? 'id';
-      const primaryKey =
-        primaryKeyName !== 'id'
-          ? `protected $primaryKey = '${String(primaryKeyName)}';`
-          : '';
+    const fillable = createFillable(columnsInfo, foreignKeys);
+    const relationships = createRelationships(
+      table,
+      foreignKeys,
+      hasOne,
+      belongsToMany,
+      schemaInfo,
+    );
+    const primaryKey =
+      columnsInfo.find((column) => column.primary_key)?.column_name !== 'id'
+        ? `protected $primaryKey = '${String(columnsInfo.find((column) => column.primary_key)?.column_name)}';`
+        : '';
 
-      const generateModelImports = (
-        hasOne: string[],
-        hasMany: string[],
-        belongsToMany: string[],
-        foreignKeys: string[],
-      ): string => {
-        const relatedTables = [
-          ...hasOne,
-          ...hasMany,
-          ...belongsToMany,
-          ...foreignKeys.map((fk) => fk.replace('_id', '')),
-        ];
-        const uniqueRelatedTables = Array.from(new Set(relatedTables));
+    const modelImports = [
+      ...new Set([
+        ...hasOne,
+        ...hasMany,
+        ...belongsToMany,
+        ...foreignKeys.map((fk) => fk.replace('_id', '')),
+      ]),
+    ]
+      .sort()
+      .map(
+        (relatedTable) =>
+          `use App\\Models\\${changeCase(relatedTable).pascalCase};`,
+      )
+      .join('\n');
 
-        // Sort the table names alphabetically
-        uniqueRelatedTables.sort((a, b) => a.localeCompare(b));
+    const model = createModelFile(template, {
+      className: pascalCase,
+      tableName: table,
+      fillable,
+      relationships,
+      primaryKey,
+      modelImports,
+    }).replace('<?php', `<?php\n${getOwnerComment('.php')}`);
 
-        return uniqueRelatedTables
-          .map((table) => `use App\\Models\\${toPascalCase(table)};`)
-          .join('\n');
-      };
-
-      const modelImports = generateModelImports(
-        hasOne,
-        hasMany,
-        belongsToMany,
-        foreignKeys,
-      );
-
-      const replacements = {
-        className,
-        tableName: table,
-        fillable,
-        relationships,
-        primaryKey,
-        modelImports,
-      };
-      const model = createModelFile(template, replacements);
-      const ownerComment = getOwnerComment('.php');
-      const modelWithComment = model.replace('<?php', `<?php\n${ownerComment}`);
-
-      const outputFilePath = path.join(outputDir, `${className}.php`);
-      fs.writeFileSync(outputFilePath, modelWithComment);
-    },
-  );
+    fs.writeFileSync(path.join(outputDir, `${pascalCase}.php`), model);
+  });
 };
 
 export default createModels;

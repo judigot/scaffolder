@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS } from '@/constants';
+import { changeCase } from '@/utils/identifySchema';
 
 /* Resource Generation Rules:
 
@@ -61,14 +61,14 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
   if (pivotRelationships.length > 0) {
     // Generate attributes only for pivot relationships
     relationshipAttributes = pivotRelationships.map(({ relatedTable }) => {
-      const relatedClass = toPascalCase(relatedTable);
+      const relatedClass = changeCase(relatedTable).pascalCase;
       const relationName = relatedTable + 's';
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
   } else if (hasMany.length > 0 && childTables.length > 0) {
     // Generate attributes for hasMany and childTables if no pivotRelationships exist
     relationshipAttributes = hasMany.map((relatedTable) => {
-      const relatedClass = toPascalCase(relatedTable);
+      const relatedClass = changeCase(relatedTable).pascalCase;
       const relationName = relatedTable + 's';
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
@@ -78,46 +78,45 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
   return [...columns, ...relationshipAttributes].join('\n');
 };
 
-// Function to create resource files based on schema information
 const createResources = (
-  schemaInfoList: ISchemaInfo[],
+  schemaInfo: ISchemaInfo[],
   framework: string,
   outputDir: string,
 ): void => {
-  // Ensure the output directory exists
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  schemaInfoList.forEach((schemaInfo) => {
-    const { table, isPivot } = schemaInfo;
+  const templatePath = path.resolve(
+    __dirname,
+    `../../../templates/backend/${framework}/resource.txt`,
+  );
+  const template = fs.existsSync(templatePath)
+    ? fs.readFileSync(templatePath, 'utf-8')
+    : null;
 
-    // Skip generating resource files for pivot tables if configured
+  if (template == null) {
+    console.error(`Template not found: ${templatePath}`);
+    return;
+  }
+
+  schemaInfo.forEach((tableInfo) => {
+    const {
+      tableCases: { pascalCase },
+      isPivot,
+    } = tableInfo;
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
-    const className = toPascalCase(table);
-    const attributes = generateAttributes(schemaInfo);
+    const attributes = generateAttributes(tableInfo);
 
-    // Prepare replacements for the template
-    const replacements = {
+    const content = createFile(template, {
       ownerComment: getOwnerComment(),
-      className,
+      className: pascalCase,
       attributes,
-    };
+    });
 
-    const templatePath = path.resolve(
-      __dirname,
-      `../../../templates/backend/${framework}/resource.txt`,
-    );
-
-    // Check if the template exists and create the file
-    if (fs.existsSync(templatePath)) {
-      const template = fs.readFileSync(templatePath, 'utf-8');
-      const content = createFile(template, replacements);
-      const outputFilePath = path.join(outputDir, `${className}Resource.php`);
-      fs.writeFileSync(outputFilePath, content);
-    } else {
-      console.error(`Template not found: ${templatePath}`);
-    }
+    const outputFilePath = path.join(outputDir, `${pascalCase}Resource.php`);
+    fs.writeFileSync(outputFilePath, content);
   });
 };
 

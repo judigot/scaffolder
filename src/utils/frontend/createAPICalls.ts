@@ -10,12 +10,6 @@ if (platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
 
-const toPascalCase = (str: string): string => {
-  return str
-    .replace(/_./g, (match) => match[1].toUpperCase())
-    .replace(/^(.)/, (match) => match.toUpperCase());
-};
-
 const getOwnerComment = (extension: string): string => {
   const comments: Record<string, string> = {
     '.ts': '/* Owner: App Scaffolder */\n',
@@ -35,57 +29,75 @@ const createAPICalls = (
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // Define paths
+  // Define paths for customFetch
   const customFetchSourcePath = path.resolve(templateDir, 'customFetch.ts');
+  const customFetchContent = fs.existsSync(customFetchSourcePath)
+    ? fs.readFileSync(customFetchSourcePath, 'utf-8')
+    : null;
+
+  if (customFetchContent == null) {
+    console.error(`Template not found: ${customFetchSourcePath}`);
+    return;
+  }
+
   const customFetchDestinationPath = path.join(outputDir, 'customFetch.ts');
-  const customFetchContent = fs.readFileSync(customFetchSourcePath, 'utf-8');
   const modifiedContent = customFetchContent.replace(
     /\$BACKEND_URL/g,
     backendUrl,
   );
-  // Write the modified content to the new file
   fs.writeFileSync(customFetchDestinationPath, modifiedContent);
 
   const operations = ['create', 'read', 'update', 'delete'];
   const operationTemplates: Record<string, string> = {};
 
+  // Load operation templates
   operations.forEach((operation) => {
     const templatePath = path.resolve(templateDir, `model/${operation}.ts`);
-    operationTemplates[operation] = fs.readFileSync(templatePath, 'utf-8');
-  });
+    const template = fs.existsSync(templatePath)
+      ? fs.readFileSync(templatePath, 'utf-8')
+      : null;
 
-  schemaInfo.forEach(({ table, tableCases, columnsInfo }) => {
-    const className = toPascalCase(table);
-    const tableDir = path.join(outputDir, table);
-
-    if (!fs.existsSync(tableDir)) {
-      fs.mkdirSync(tableDir, { recursive: true });
+    if (template == null) {
+      console.error(`Template not found: ${templatePath}`);
+      return;
     }
 
-    operations.forEach((operation) => {
-      let apiCalls = operationTemplates[operation];
-      apiCalls = apiCalls.replace(/ModelTemplate/g, className);
-      apiCalls = apiCalls.replace(/modelTemplate/g, tableCases.plural); // Pluralize resource
+    operationTemplates[operation] = template;
+  });
 
-      // Ensure we find a primary key column, or provide a default value (like an empty string)
-      const primaryKeyColumn = columnsInfo.find((column) => column.primary_key);
-      apiCalls = apiCalls.replace(
-        /\$PRIMARY_KEY/g,
-        primaryKeyColumn ? primaryKeyColumn.column_name : '',
-      );
+  schemaInfo.forEach(
+    ({ table, tableCases: { plural, pascalCase }, columnsInfo }) => {
+      const className = pascalCase;
+      const tableDir = path.join(outputDir, table);
 
-      if (!outputOnSingleFile) {
-        apiCalls = apiCalls.replace(
-          /\/interfaces';/g,
-          `/I${tableCases.pascalCase}';`,
-        ); // Pluralize resource
+      if (!fs.existsSync(tableDir)) {
+        fs.mkdirSync(tableDir, { recursive: true });
       }
 
-      const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
-      const ownerComment = getOwnerComment('.ts');
-      fs.writeFileSync(outputFilePath, ownerComment + apiCalls);
-    });
-  });
+      operations.forEach((operation) => {
+        let apiCalls = operationTemplates[operation];
+        apiCalls = apiCalls.replace(/ModelTemplate/g, className);
+        apiCalls = apiCalls.replace(/modelTemplate/g, plural);
+
+        // Find the primary key column
+        const primaryKeyColumn = columnsInfo.find(
+          (column) => column.primary_key,
+        );
+        apiCalls = apiCalls.replace(
+          /\$PRIMARY_KEY/g,
+          primaryKeyColumn ? primaryKeyColumn.column_name : '',
+        );
+
+        if (!outputOnSingleFile) {
+          apiCalls = apiCalls.replace(/\/interfaces';/g, `/I${pascalCase}';`);
+        }
+
+        const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
+        const ownerComment = getOwnerComment('.ts');
+        fs.writeFileSync(outputFilePath, ownerComment + apiCalls);
+      });
+    },
+  );
 };
 
 export default createAPICalls;
