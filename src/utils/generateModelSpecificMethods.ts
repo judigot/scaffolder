@@ -1,9 +1,6 @@
-import {
-  convertToUrlFormat,
-  snakeToCamelCase,
-  toPascalCase,
-} from '@/helpers/toPascalCase';
+import { convertToUrlFormat, snakeToCamelCase } from '@/helpers/toPascalCase';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
+import { changeCase } from '@/utils/identifySchema';
 
 export const generateModelSpecificMethods = ({
   targetTable,
@@ -25,7 +22,7 @@ export const generateModelSpecificMethods = ({
     hasOne,
     hasMany,
   } = tableInfo;
-  const className = toPascalCase(table);
+  const className = changeCase(table).pascalCase;
 
   /* Find the primary key for the current table */
   const primaryKeyColumn: IColumnInfo | undefined = columnsInfo.find(
@@ -112,7 +109,7 @@ export const generateModelSpecificMethods = ({
     isHasOne?: boolean;
   }) => {
     relatedTables.forEach((relatedTable) => {
-      const relatedClass = toPascalCase(relatedTable);
+      const relatedClass = changeCase(relatedTable).pascalCase;
       const relatedTablePlural = getTablePlural({ tableName: relatedTable });
       let relatedTableName = '';
 
@@ -224,7 +221,7 @@ export const generateModelSpecificMethods = ({
       if (column.foreign_key) {
         const foreignTablePrimaryKey = column.column_name;
         const description = `Find ${className} by ${foreignTablePrimaryKey}.`;
-        const methodName = `findBy${toPascalCase(foreignTablePrimaryKey)}`;
+        const methodName = `findBy${changeCase(foreignTablePrimaryKey).pascalCase}`;
 
         // Check if the method is already generated
         if (generatedMethods.has(methodName)) return; // Skip if already generated
@@ -283,7 +280,7 @@ export const generateModelSpecificMethods = ({
           );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
-            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(pivotTable)}s']);`;
+            return `Route::get('${route}', [${className}Controller::class, 'get${changeCase(pivotTable).pascalCasePlural}']);`;
           }
         })
         .join('\n        ');
@@ -295,7 +292,7 @@ export const generateModelSpecificMethods = ({
           );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
-            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}']);`;
+            return `Route::get('${route}', [${className}Controller::class, 'get${changeCase(relatedTable).pascalCase}']);`;
           }
         })
         .join('\n        ');
@@ -307,7 +304,7 @@ export const generateModelSpecificMethods = ({
           );
           if (!generatedRoutes.has(route)) {
             generatedRoutes.add(route); // Add route to Set
-            return `Route::get('${route}', [${className}Controller::class, 'get${toPascalCase(relatedTable)}s']);`;
+            return `Route::get('${route}', [${className}Controller::class, 'get${changeCase(relatedTable).pascalCasePlural}']);`;
           }
         })
         .join('\n        ');

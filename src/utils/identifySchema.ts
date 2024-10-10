@@ -400,7 +400,7 @@ export const determineUniqueForeignKeys = (
   return schemaInfo;
 };
 
-export function convertToCases(input: string) {
+export function changeCase(input: string) {
   const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
   const allWordsExceptLast = words.slice(0, -1);
   const lastWord = words[words.length - 1];
@@ -435,7 +435,7 @@ export function convertToCases(input: string) {
 
 function addTableNameCases(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo.map((info) => {
-    info.tableCases = convertToCases(info.table);
+    info.tableCases = changeCase(info.table);
     return info;
   });
 }
