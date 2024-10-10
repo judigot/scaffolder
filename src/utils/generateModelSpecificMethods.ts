@@ -1,4 +1,4 @@
-import { convertToUrlFormat, snakeToCamelCase } from '@/helpers/stringHelper';
+import { convertToUrlFormat } from '@/helpers/stringHelper';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
 
@@ -155,10 +155,11 @@ export const generateModelSpecificMethods = ({
         body = `
         return $this->model->find($${primaryKey})?->${relatedTableName};`;
       } else {
+        const model = changeCase(relatedTable).camelCase;
         body = `
-        $${snakeToCamelCase(relatedTable)}Model = new ${relatedClass}();
-        $query = $this->model->find($${primaryKey})?->${snakeToCamelCase(relatedTableName)}();
-        $column = $column ?? $${snakeToCamelCase(relatedTable)}Model->getKeyName();
+        $${model}Model = new ${relatedClass}();
+        $query = $this->model->find($${primaryKey})?->${changeCase(relatedTableName).camelCase}();
+        $column = $column ?? $${model}Model->getKeyName();
         $query->orderBy($column, $direction);
         return $query ? $query->get() : null;
         `;
