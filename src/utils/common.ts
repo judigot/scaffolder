@@ -1,7 +1,7 @@
-import { toPascalCase } from '@/helpers/toPascalCase';
 import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
+import { changeCase } from '@/utils/identifySchema';
 import { columnMappings, typeMappings } from '@/utils/mappings';
 import dayjs from 'dayjs';
 
@@ -28,13 +28,15 @@ export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
     ...hasMany,
     ...pivotRelationships.map((item) => item.relatedTable),
   ].forEach((relatedTable) => {
-    const relatedClass = toPascalCase(relatedTable);
+    const relatedClass = changeCase(relatedTable).pascalCase;
     imports.add(`use App\\Models\\${relatedClass};`);
   });
 
   columnsInfo.forEach((column) => {
     if (column.foreign_key) {
-      const relatedClass = toPascalCase(column.foreign_key.foreign_table_name);
+      const relatedClass = changeCase(
+        column.foreign_key.foreign_table_name,
+      ).pascalCase;
       imports.add(`use App\\Models\\${relatedClass};`);
     }
   });
