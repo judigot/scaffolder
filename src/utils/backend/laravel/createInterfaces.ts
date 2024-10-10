@@ -3,25 +3,14 @@ import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
-import { APP_SETTINGS } from '@/constants';
+import { APP_SETTINGS, ownerComment } from '@/constants';
+import { createFile } from '@/utils/backend/laravel/createBaseFile';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (process.platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
-
-const getOwnerComment = (): string => '/* Owner: App Scaffolder */\n';
-
-const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
 
 const createInterfaces = (
   schemaInfo: ISchemaInfo[],
@@ -43,7 +32,6 @@ const createInterfaces = (
   }
 
   const template = fs.readFileSync(templatePath, 'utf-8');
-  const ownerComment = getOwnerComment();
 
   schemaInfo.forEach((tableInfo) => {
     const { table, isPivot } = tableInfo;

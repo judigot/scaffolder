@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS } from '@/constants';
+import { APP_SETTINGS, ownerComment } from '@/constants';
 import { changeCase } from '@/utils/identifySchema';
+import { createFile } from '@/utils/backend/laravel/createBaseFile';
 
 /* Resource Generation Rules:
 
@@ -33,18 +34,8 @@ if (platform === 'win32') {
 }
 
 // Function to get the owner comment for the resource file
-const getOwnerComment = (): string => '/* Owner: App Scaffolder */\n';
 
 // Function to create a file with dynamic replacements
-const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
 
 // Function to generate attributes for the resource file
 const generateAttributes = (schemaInfo: ISchemaInfo): string => {
@@ -110,7 +101,7 @@ const createResources = (
     const attributes = generateAttributes(tableInfo);
 
     const content = createFile(template, {
-      ownerComment: getOwnerComment(),
+      ownerComment,
       className: pascalCase,
       attributes,
     });

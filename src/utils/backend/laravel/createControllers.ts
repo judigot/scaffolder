@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { APP_SETTINGS, frameworkDirectories } from '@/constants';
+import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { changeCase } from '@/utils/identifySchema';
+import { createFile } from '@/utils/backend/laravel/createBaseFile';
 
 // Global variables
 const platform: string = process.platform;
@@ -12,11 +13,6 @@ let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
-
-const getOwnerComment = (extension: string): string =>
-  ({
-    '.php': '/* Owner: App Scaffolder */\n',
-  })[extension] ?? '/* Owner: App Scaffolder */\n';
 
 const createControllerMethods = ({
   tableName,
@@ -47,16 +43,6 @@ const createControllerMethods = ({
     `;
 };
 
-const createControllerFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
-
 const createControllers = (
   schemaInfo: ISchemaInfo[],
   framework: keyof typeof frameworkDirectories,
@@ -71,7 +57,6 @@ const createControllers = (
     `../../../templates/backend/${framework}/controller.txt`,
   );
   const template = fs.readFileSync(templatePath, 'utf-8');
-  const ownerComment = getOwnerComment('.php');
 
   schemaInfo.forEach(({ table, isPivot }) => {
     // Skip pivot tables if necessary
@@ -86,15 +71,14 @@ const createControllers = (
       tableName: table,
       schemaInfo,
     });
-    const controller = createControllerFile(template, {
+    const content = createFile(template, {
+      ownerComment,
       className,
       controllerMethods,
-    }).replace('<?php', `<?php\n${ownerComment}`);
+    });
 
-    fs.writeFileSync(
-      path.join(outputDir, `${className}Controller.php`),
-      controller,
-    );
+    const outputFilePath = path.join(outputDir, `${className}Controller.php`);
+    fs.writeFileSync(outputFilePath, content);
   });
 };
 

@@ -3,20 +3,12 @@ import path from 'path';
 import { convertToUrlFormat } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { APP_SETTINGS } from '@/constants';
-
-const getOwnerComment = (extension: string): string => {
-  const comments: Record<string, string> = {
-    '.php': '/* Owner: App Scaffolder */\n',
-  };
-  return comments[extension] || '/* Owner: App Scaffolder */\n';
-};
+import { APP_SETTINGS, ownerComment } from '@/constants';
 
 const createAPIRoutes = (
   schemaInfo: ISchemaInfo[],
   outputFilePath: string,
 ): void => {
-  const ownerComment = getOwnerComment('.php');
   const routesWithComment = `<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
   const useStatements = schemaInfo
@@ -153,14 +145,14 @@ const createAPIRoutes = (
     )
     .join('\n');
 
-  const routes = `${routesWithComment}\n${useStatements}\nRoute::middleware('api')->group(function () {\n${customRoutes}\n});\n`;
+  const content = `${routesWithComment}\n${useStatements}\nRoute::middleware('api')->group(function () {\n${customRoutes}\n});\n`;
 
   const outputDir = path.dirname(outputFilePath);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  fs.writeFileSync(outputFilePath, routes);
+  fs.writeFileSync(outputFilePath, content);
 };
 
 export default createAPIRoutes;

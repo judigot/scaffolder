@@ -1,3 +1,5 @@
+export const ownerComment = '/* Owner: App Scaffolder */';
+
 export const APP_SETTINGS = {
   onDeleteCascade: false,
   excludePivotTableFiles: !true,

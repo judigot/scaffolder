@@ -3,25 +3,14 @@ import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
-import { APP_SETTINGS } from '@/constants';
+import { APP_SETTINGS, ownerComment } from '@/constants';
+import { createFile } from '@/utils/backend/laravel/createBaseFile';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (process.platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
-
-const getOwnerComment = (): string => '/* Owner: App Scaffolder */\n';
-
-const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
 
 const createRepositories = (
   schemaInfo: ISchemaInfo[],
@@ -60,8 +49,8 @@ const createRepositories = (
     });
     const modelImports = generateModelImports(tableInfo);
 
-    const repoContent = createFile(repoTemplate, {
-      ownerComment: getOwnerComment(),
+    const content = createFile(repoTemplate, {
+      ownerComment,
       className: pascalCase,
       modelName: pascalCase,
       tableName: table,
@@ -69,11 +58,8 @@ const createRepositories = (
       modelImports,
     });
 
-    const repoOutputFilePath = path.join(
-      outputDir,
-      `${pascalCase}Repository.php`,
-    );
-    fs.writeFileSync(repoOutputFilePath, repoContent);
+    const outputFilePath = path.join(outputDir, `${pascalCase}Repository.php`);
+    fs.writeFileSync(outputFilePath, content);
   });
 };
 

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS } from '@/constants';
+import { APP_SETTINGS, ownerComment } from '@/constants';
 
 const updateOrCreateSection = (
   content: string,
@@ -34,7 +34,7 @@ const createAppServiceProviderScaffolding = ({
   outputDir: string;
   recreateFile: boolean;
 }): void => {
-  const filePath = path.join(outputDir, 'AppServiceProvider.php');
+  const outputFilePath = path.join(outputDir, 'AppServiceProvider.php');
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
@@ -42,8 +42,9 @@ const createAppServiceProviderScaffolding = ({
 
   let content = '';
 
-  if (recreateFile || !fs.existsSync(filePath)) {
+  if (recreateFile || !fs.existsSync(outputFilePath)) {
     content = `<?php
+${ownerComment}
 
 namespace App\\Providers;
 
@@ -69,7 +70,7 @@ class AppServiceProvider extends ServiceProvider
     }
 }`;
   } else {
-    content = fs.readFileSync(filePath, 'utf-8');
+    content = fs.readFileSync(outputFilePath, 'utf-8');
   }
 
   const importStatements = schemaInfo
@@ -129,7 +130,7 @@ class AppServiceProvider extends ServiceProvider
     );
   }
 
-  fs.writeFileSync(filePath, content, 'utf-8');
+  fs.writeFileSync(outputFilePath, content, 'utf-8');
 };
 
 export default createAppServiceProviderScaffolding;

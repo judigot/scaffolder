@@ -22,7 +22,12 @@ export const generateModelSpecificMethods = ({
     hasOne,
     hasMany,
   } = tableInfo;
+
   const className = changeCase(table).pascalCase;
+
+  const hasPivotRelationships = pivotRelationships.length > 0;
+  const hasOneRelationship = hasOne.length > 0;
+  const hasManyRelationship = hasMany.length > 0;
 
   /* Find the primary key for the current table */
   const primaryKeyColumn: IColumnInfo | undefined = columnsInfo.find(
@@ -197,20 +202,20 @@ export const generateModelSpecificMethods = ({
 
   /* Handle repository and interface file generation */
   if (fileToGenerate === 'repository' || fileToGenerate === 'interface') {
-    if (pivotRelationships.length > 0) {
+    if (hasPivotRelationships) {
       generateRelationshipMethods({
         relatedTables: pivotRelationships.map(({ pivotTable }) => pivotTable),
         isController: false,
         descriptionPrefix: 'Get the related',
       });
-    } else if (hasOne.length > 0) {
+    } else if (hasOneRelationship) {
       generateRelationshipMethods({
         relatedTables: hasOne,
         isController: false,
         descriptionPrefix: 'Get the related',
         isHasOne: true,
       });
-    } else if (hasMany.length > 0) {
+    } else if (hasManyRelationship) {
       generateRelationshipMethods({
         relatedTables: hasMany,
         isController: false,
@@ -244,23 +249,20 @@ export const generateModelSpecificMethods = ({
 
   /* Handle controller method generation */
   if (fileToGenerate === 'controllerMethod') {
-    if (pivotRelationships.length > 0) {
+    if (hasPivotRelationships) {
       generateRelationshipMethods({
-        // relatedTables: pivotRelationships.map(
-        //   ({ relatedTable }) => relatedTable,
-        // ),
         relatedTables: pivotRelationships.map(({ pivotTable }) => pivotTable),
         isController: true,
         descriptionPrefix: 'Get all',
       });
-    } else if (hasOne.length > 0) {
+    } else if (hasOneRelationship) {
       generateRelationshipMethods({
         relatedTables: hasOne,
         isController: true,
         descriptionPrefix: 'Get the related',
         isHasOne: true,
       });
-    } else if (hasMany.length > 0) {
+    } else if (hasManyRelationship) {
       generateRelationshipMethods({
         relatedTables: hasMany,
         isController: true,
@@ -273,7 +275,7 @@ export const generateModelSpecificMethods = ({
   if (fileToGenerate === 'routes') {
     const generatedRoutes = new Set<string>(); // Set to track unique routes
 
-    if (pivotRelationships.length > 0) {
+    if (hasPivotRelationships) {
       methods += pivotRelationships
         .map(({ relatedTable, pivotTable }) => {
           const route = convertToUrlFormat(
@@ -285,7 +287,7 @@ export const generateModelSpecificMethods = ({
           }
         })
         .join('\n        ');
-    } else if (hasOne.length > 0) {
+    } else if (hasOneRelationship) {
       methods += hasOne
         .map((relatedTable) => {
           const route = convertToUrlFormat(
@@ -297,7 +299,7 @@ export const generateModelSpecificMethods = ({
           }
         })
         .join('\n        ');
-    } else if (hasMany.length > 0) {
+    } else if (hasManyRelationship) {
       methods += hasMany
         .map((relatedTable) => {
           const route = convertToUrlFormat(

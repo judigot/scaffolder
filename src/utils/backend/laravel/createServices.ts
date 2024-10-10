@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS } from '@/constants';
+import { APP_SETTINGS, ownerComment } from '@/constants';
 
 // Determine the current directory based on platform
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -10,7 +10,6 @@ if (process.platform === 'win32') {
 }
 
 // Function to get the owner comment
-const getOwnerComment = (): string => '/* Owner: App Scaffolder */\n';
 
 // Function to create the service file content by replacing placeholders with actual values
 const createServiceFile = (
@@ -49,17 +48,15 @@ const createServices = (
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
     const replacements = {
-      ownerComment: getOwnerComment(),
+      ownerComment,
       className: pascalCase,
       modelName: pascalCase,
       tableName: table,
     };
 
-    const serviceContent = createServiceFile(template, replacements);
-    fs.writeFileSync(
-      path.join(outputDir, `${pascalCase}Service.php`),
-      serviceContent,
-    );
+    const content = createServiceFile(template, replacements);
+    const outputFilePath = path.join(outputDir, `${pascalCase}Service.php`);
+    fs.writeFileSync(outputFilePath, content);
   });
 };
 

@@ -17,15 +17,13 @@ import createTypescriptInterfaces from '@/utils/frontend/createTypescriptInterfa
 import createInterfaces from '@/utils/backend/laravel/createInterfaces';
 import createResources from '@/utils/backend/laravel/createResources';
 import { ISchemaInfo, isITableArray } from '@/interfaces/interfaces';
-import createBaseRepository from '@/utils/backend/laravel/createBaseRepository';
-import createBaseRepositoryInterface from '@/utils/backend/laravel/createBaseRepositoryInterface';
 import createAppServiceProviderScaffolding from '@/utils/backend/laravel/createAppServiceProviderScaffolding';
-import createBaseController from '@/utils/backend/laravel/createBaseController';
 import introspect from '@/utils/introspect';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
 import http from 'http';
 import https from 'https';
+import createBaseFile from '@/utils/backend/laravel/createBaseFile';
 
 dotenv.config();
 
@@ -329,7 +327,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.controller}`,
             );
         clearGeneratedFiles(controllersDir);
-        createBaseController(framework, controllersDir);
+        createBaseFile(framework, controllersDir, 'controller');
         createControllers(schemaInfo, framework, controllersDir);
 
         // Repositories
@@ -340,7 +338,7 @@ app.post(
               `../output/backend/${framework}/${frameworkDir.repository}`,
             );
         clearGeneratedFiles(repositoriesDir);
-        createBaseRepository(framework, repositoriesDir);
+        createBaseFile(framework, repositoriesDir, 'repository');
         createRepositories(schemaInfo, framework, repositoriesDir);
 
         // Interfaces
@@ -350,7 +348,7 @@ app.post(
               __dirname,
               `../output/backend/${framework}/${frameworkDir.interface}`,
             );
-        createBaseRepositoryInterface(framework, interfacesDir);
+        createBaseFile(framework, interfacesDir, 'repositoryInterface');
         createInterfaces(schemaInfo, framework, interfacesDir);
 
         // Resources

@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { APP_SETTINGS, frameworkDirectories } from '@/constants';
+import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
+import { createFile } from '@/utils/backend/laravel/createBaseFile';
 
 // Global variables
 const platform: string = process.platform;
@@ -13,11 +14,6 @@ if (platform === 'win32') {
 }
 
 const fillableExemptions = ['created_at', 'updated_at'];
-
-const getOwnerComment = (extension: string): string =>
-  ({
-    '.php': '/* Owner: App Scaffolder */\n',
-  })[extension] ?? '/* Owner: App Scaffolder */\n';
 
 const createFillable = (
   columnsInfo: IColumnInfo[],
@@ -127,16 +123,6 @@ export const createRelationships = (
     .trim();
 };
 
-const createModelFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
-
 const createModels = (
   schemaInfo: ISchemaInfo[],
   framework: keyof typeof frameworkDirectories,
@@ -199,16 +185,18 @@ const createModels = (
       )
       .join('\n');
 
-    const model = createModelFile(template, {
+    const content = createFile(template, {
+      ownerComment,
       className: pascalCase,
       tableName: table,
       fillable,
       relationships,
       primaryKey,
       modelImports,
-    }).replace('<?php', `<?php\n${getOwnerComment('.php')}`);
+    });
 
-    fs.writeFileSync(path.join(outputDir, `${pascalCase}.php`), model);
+    const outputFilePath = path.join(outputDir, `${pascalCase}.php`);
+    fs.writeFileSync(outputFilePath, content);
   });
 };
 
