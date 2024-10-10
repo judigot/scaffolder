@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { normalizeWhitespace } from '@/helpers/toPascalCase';
+import { normalizeWhitespace } from '@/helpers/stringHelper';
 import { POSSchema } from '@/json-schemas/POSSchema';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';

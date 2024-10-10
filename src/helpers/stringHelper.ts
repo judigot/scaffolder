@@ -1,10 +1,3 @@
-export const toPascalCase = (str: string): string => {
-  return str
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join('');
-};
-
 export const snakeToCamelCase = (input: string): string => {
   return input
     .split('_') // Split the string by underscores

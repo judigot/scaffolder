@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { convertToUrlFormat } from '@/helpers/toPascalCase';
+import { convertToUrlFormat } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS } from '@/constants';

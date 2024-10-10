@@ -4,7 +4,7 @@ import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
-import { normalizeWhitespace } from '@/helpers/toPascalCase';
+import { normalizeWhitespace } from '@/helpers/stringHelper';
 
 describe('generateTypescriptInterfaces', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);

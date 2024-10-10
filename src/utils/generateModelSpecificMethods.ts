@@ -1,4 +1,4 @@
-import { convertToUrlFormat, snakeToCamelCase } from '@/helpers/toPascalCase';
+import { convertToUrlFormat, snakeToCamelCase } from '@/helpers/stringHelper';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
 

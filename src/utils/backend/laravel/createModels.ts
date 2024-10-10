@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { APP_SETTINGS, frameworkDirectories } from '@/constants';
-import { snakeToCamelCase } from '@/helpers/toPascalCase';
+import { snakeToCamelCase } from '@/helpers/stringHelper';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
 
