@@ -402,10 +402,9 @@ export const determineUniqueForeignKeys = (
 
 export function convertToCases(input: string) {
   const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
-  const pluralWords = [
-    ...words.slice(0, -1),
-    pluralize(words[words.length - 1]),
-  ];
+  const allWordsExceptLast = words.slice(0, -1);
+  const lastWord = words[words.length - 1];
+  const tableNamePlural = [...allWordsExceptLast, pluralize(lastWord)];
 
   const capitalize = (str: string) =>
     str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -422,15 +421,15 @@ export function convertToCases(input: string) {
     camelCase: words[0].toLowerCase() + words.slice(1).map(capitalize).join(''),
     kebabCase: joinWords(words, '-'),
     snakeCase: joinWords(words, '_'),
-    titleCasePlural: titleCase(pluralWords),
-    sentenceCasePlural: capitalize(joinWords(pluralWords, ' ')),
-    phraseCasePlural: joinWords(pluralWords, ' '),
-    pascalCasePlural: pluralWords.map(capitalize).join(''),
+    titleCasePlural: titleCase(tableNamePlural),
+    sentenceCasePlural: capitalize(joinWords(tableNamePlural, ' ')),
+    phraseCasePlural: joinWords(tableNamePlural, ' '),
+    pascalCasePlural: tableNamePlural.map(capitalize).join(''),
     camelCasePlural:
-      pluralWords[0].toLowerCase() +
-      pluralWords.slice(1).map(capitalize).join(''),
-    kebabCasePlural: joinWords(pluralWords, '-'),
-    snakeCasePlural: joinWords(pluralWords, '_'),
+      tableNamePlural[0].toLowerCase() +
+      tableNamePlural.slice(1).map(capitalize).join(''),
+    kebabCasePlural: joinWords(tableNamePlural, '-'),
+    snakeCasePlural: joinWords(tableNamePlural, '_'),
   };
 }
 
