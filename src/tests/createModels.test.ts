@@ -268,7 +268,7 @@ describe('createModels', () => {
           {
               return $this->belongsTo(Customer::class, 'customer_id');
           }
-          public function orderProducts()
+          public function products()
           {
               return $this->belongsToMany(Product::class, 'order_product', 'order_id', 'product_id');
           }

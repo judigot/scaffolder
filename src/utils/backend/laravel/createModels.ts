@@ -4,6 +4,7 @@ import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
 import { createFile } from '@/utils/backend/laravel/createBaseFile';
+import { getPrimaryKey } from '@/utils/common';
 
 // Global variables
 const platform: string = process.platform;
@@ -40,9 +41,9 @@ export const createRelationships = (
   foreignKeys: string[],
   hasOne: string[],
   belongsToMany: string[],
-  tables: ISchemaInfo[],
+  schemaInfo: ISchemaInfo[],
 ): string => {
-  const parentPrimaryKey = tables
+  const parentPrimaryKey = schemaInfo
     .find((table) => table.table === tableName)
     ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
@@ -54,10 +55,10 @@ export const createRelationships = (
     .join('\n');
 
   // Generate hasMany relationships based on the hasMany array and pivotRelationships
-  const hasManyRelations = tables
+  const hasManyRelations = schemaInfo
     .find((table) => table.table === tableName)
     ?.hasMany.filter((relatedTable) => {
-      const relatedTableInfo = tables.find(
+      const relatedTableInfo = schemaInfo.find(
         (table) => table.table === relatedTable,
       );
       return (
@@ -69,7 +70,7 @@ export const createRelationships = (
       );
     })
     .map((relatedTable) => {
-      const childPrimaryKey = tables
+      const childPrimaryKey = schemaInfo
         .find((table) => table.table === relatedTable)
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
@@ -92,7 +93,7 @@ export const createRelationships = (
       const relatedTableClass = changeCase(relatedTable).pascalCase;
 
       // Find the junction table that references both the current table and the related table
-      const junctionTable = tables.find(
+      const junctionTable = schemaInfo.find(
         (table) =>
           table.foreignTables.includes(relatedTable) &&
           table.foreignTables.includes(tableName),
@@ -105,10 +106,10 @@ export const createRelationships = (
       }
 
       // Find the foreign keys in the junction table
-      const currentTableForeignKey = `${tableName}_id`;
-      const relatedTableForeignKey = `${relatedTable}_id`;
+      const primaryKey = getPrimaryKey(tableName, schemaInfo);
+      const relatedTableForeignKey = getPrimaryKey(relatedTable, schemaInfo);
 
-      return `    public function ${changeCase(junctionTable).camelCase}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${currentTableForeignKey}', '${relatedTableForeignKey}');\n    }\n`;
+      return `    public function ${changeCase(relatedTable).camelCase}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${primaryKey}', '${relatedTableForeignKey}');\n    }\n`;
     })
     .join('\n');
 

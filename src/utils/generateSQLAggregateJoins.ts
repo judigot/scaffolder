@@ -1,5 +1,6 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
+import { getPrimaryKey } from '@/utils/common';
 
 function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
   const quote = useFormStore.getState().quote;
@@ -76,8 +77,6 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
     sortedTables: string[],
     addedJoins: Set<string>,
   ): string | null {
-    
-
     const key = `${table}-${foreignTable}`;
     const reverseKey = `${foreignTable}-${table}`;
 
@@ -91,7 +90,9 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
 
     addedJoins.add(key);
 
-    return `SELECT ${quote}${baseTable}${quote}.*, json_agg(${quote}${joinTable}${quote}.*) AS ${joinTable}_data FROM ${quote}${baseTable}${quote} LEFT JOIN ${quote}${joinTable}${quote} ON ${quote}${baseTable}${quote}.${quote}${foreignKey}${quote} = ${quote}${joinTable}${quote}.${quote}${foreignKey}${quote} GROUP BY ${quote}${baseTable}${quote}.${quote}${baseTable}_id${quote};`;
+    const baseTablePrimaryKey = getPrimaryKey(baseTable, schemaInfo);
+
+    return `SELECT ${quote}${baseTable}${quote}.*, json_agg(${quote}${joinTable}${quote}.*) AS ${joinTable}_data FROM ${quote}${baseTable}${quote} LEFT JOIN ${quote}${joinTable}${quote} ON ${quote}${baseTable}${quote}.${quote}${foreignKey}${quote} = ${quote}${joinTable}${quote}.${quote}${foreignKey}${quote} GROUP BY ${quote}${baseTable}${quote}.${quote}${baseTablePrimaryKey}${quote};`;
   }
 
   function generateMultipleJoinQuery(
@@ -100,7 +101,6 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
     foreignKeys: string[],
     addedJoins: Set<string>,
   ): string | null {
-
     const joins: string[] = [];
     const baseTable = table;
 
@@ -119,13 +119,15 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
 
     if (joins.length === 0) return null;
 
+    const tablePrimaryKey = getPrimaryKey(table, schemaInfo);
+
     return `SELECT ${quote}${baseTable}${quote}.*, ${foreignTables
       .map((ft) => `json_agg(${quote}${ft}${quote}.*) AS ${ft}_data`)
       .join(', ')} FROM ${quote}${baseTable}${quote} ${joins.join(
       ' ',
-    )} GROUP BY ${quote}${baseTable}${quote}.${quote}${table}_id${quote};`;
+    )} GROUP BY ${quote}${baseTable}${quote}.${quote}${tablePrimaryKey}${quote};`;
   }
-  
+
   return joinQueries;
 }
 

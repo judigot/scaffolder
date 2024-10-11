@@ -5,6 +5,27 @@ import { changeCase } from '@/utils/identifySchema';
 import { columnMappings, typeMappings } from '@/utils/mappings';
 import dayjs from 'dayjs';
 
+export function getPrimaryKey(
+  tableName: string,
+  schemaInfo: ISchemaInfo[],
+): string {
+  const tableSchema = schemaInfo.find((schema) => schema.table === tableName);
+
+  if (!tableSchema) {
+    throw new Error(`Table "${tableName}" not found in schema information.`);
+  }
+
+  const primaryKeyColumn = tableSchema.columnsInfo.find(
+    (column) => column.primary_key,
+  );
+
+  if (!primaryKeyColumn) {
+    throw new Error(`Primary key not found in table "${tableName}".`);
+  }
+
+  return primaryKeyColumn.column_name;
+}
+
 export function consolidateInterfaces(
   interfaces: Record<string, string>,
 ): string {
