@@ -1,8 +1,8 @@
 #!/bin/bash
+
 # Check if Node.js is in PATH and source local bashrc if not
 if ! command -v node &> /dev/null; then
     [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
 fi
 
-# Run lint-staged
-pnpm lint-staged
+pnpm lint-staged # Run lint-staged commands in package.json

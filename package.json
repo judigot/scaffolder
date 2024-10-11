@@ -26,7 +26,7 @@
     "*.json": [
       "prettier --write"
     ],
-    "*.css": [
+    "*.{css,scss,sass}": [
       "prettier --write"
     ]
   },
