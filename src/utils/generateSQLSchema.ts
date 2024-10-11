@@ -11,9 +11,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   const quote = useFormStore.getState().quote;
 
   // Function to generate column definition and append UNIQUE to the foreign key where applicable
-  const generateColumnDefinitions = (
-    columnInfo: IColumnInfo,
-  ): string => {
+  const generateColumnDefinitions = (columnInfo: IColumnInfo): string => {
     const columnDef = generateColumnDefinition({
       columnName: columnInfo,
       columnType: 'sql-tables',
@@ -30,7 +28,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
     return getForeignKeyConstraints(table, schemaInfo).map((constraint) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (APP_SETTINGS.onDeleteCascade) {
-        const relatedTable = (/REFERENCES\s+"(\w+)"/.exec(constraint))?.[1];
+        const relatedTable = /REFERENCES\s+"(\w+)"/.exec(constraint)?.[1];
         const parentTable = schemaInfo.find((t) => t.table === relatedTable);
         const hasOneRelationship = parentTable?.hasOne.includes(table) ?? false;
 

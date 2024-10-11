@@ -17,7 +17,9 @@ describe('identifyTSPrimitiveType', () => {
   });
 
   it('should return "Date" for valid date strings', () => {
-    expect(identifyTSPrimitiveType('2023-08-30T12:00:00Z')).toStrictEqual('Date');
+    expect(identifyTSPrimitiveType('2023-08-30T12:00:00Z')).toStrictEqual(
+      'Date',
+    );
     expect(identifyTSPrimitiveType('2023-08-30')).toStrictEqual('Date');
   });
 
@@ -53,7 +55,9 @@ describe('identifyTSPrimitiveType', () => {
   });
 
   it('should return "bigint" for bigints', () => {
-    expect(identifyTSPrimitiveType(BigInt(9007199254740991))).toStrictEqual('bigint');
+    expect(identifyTSPrimitiveType(BigInt(9007199254740991))).toStrictEqual(
+      'bigint',
+    );
   });
 
   it('should return "string" for invalid date strings', () => {

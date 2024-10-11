@@ -131,7 +131,9 @@ export const populateChildTables = (
   });
 };
 
-const convertIntrospectedStructure = (tables: IIntrospectedSchemaInfo[]): ISchemaInfo[] => {
+const convertIntrospectedStructure = (
+  tables: IIntrospectedSchemaInfo[],
+): ISchemaInfo[] => {
   const tableMap = new Map(
     tables.map((table) => {
       if (isITable(table)) {

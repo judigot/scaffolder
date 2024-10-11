@@ -296,7 +296,7 @@ function App() {
                               framework,
                               SQLSchema: null, // Null since we already have an existing schema
                               outputOnSingleFile,
-                              backendUrl
+                              backendUrl,
                             }),
                           })
                             .then((response) => response.json())
@@ -384,7 +384,7 @@ function App() {
                       framework,
                       SQLSchema,
                       outputOnSingleFile,
-                      backendUrl
+                      backendUrl,
                     }),
                   })
                     .then((response) => response.json())

@@ -20,15 +20,14 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --fix",
-      "git add"
+      "prettier --write",
+      "vitest --run --passWithNoTests"
     ],
     "*.json": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ],
     "*.css": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ]
   },
   "dependencies": {
