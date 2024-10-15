@@ -184,7 +184,7 @@ function App() {
   return (
     <div
       style={{
-        zoom: '200%',
+        zoom: '50%',
         textAlign: 'center',
       }}
     >
