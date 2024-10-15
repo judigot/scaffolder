@@ -1,14 +1,12 @@
 import { generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects } from '@/utils/generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects';
 import { describe, it, expect } from 'vitest';
 
-/* Define a function to normalize code strings for comparison */
 const normalizeCodeString = (code: string): string => {
   return code
     .replace(/\s+/g, '') // Replace multiple whitespace with a single space
     .trim(); // Trim leading and trailing whitespace
 };
 
-/* Define the test cases */
 describe('Generated Code String Comparison Tests', () => {
   const jsonSchema = {
     user: [
@@ -112,7 +110,14 @@ export interface IArrayOfObjects {
   created_at: string;
   updated_at: string;
 }
-export function isIArrayOfObjects(data: unknown): data is IArrayOfObjects {
+
+export function isIArrayOfObjects(
+  data: unknown,
+): data is IArrayOfObjects | IArrayOfObjects[] {
+  if (Array.isArray(data)) {
+    return data.every(isIArrayOfObjects);
+  }
+
   if (data === null || typeof data !== 'object') return false;
   if (!('post_id' in data)) return false;
   if (!('user_id' in data)) return false;
@@ -120,17 +125,18 @@ export function isIArrayOfObjects(data: unknown): data is IArrayOfObjects {
   if (!('content' in data)) return false;
   if (!('created_at' in data)) return false;
   if (!('updated_at' in data)) return false;
-  if (!(typeof data.post_id === 'number')) return false;
-  if (!(typeof data.user_id === 'number')) return false;
-  if (!(typeof data.title === 'string')) return false;
-  if (!(typeof data.content === 'string' || data.content === null))
-    return false;
-  if (!(typeof data.created_at === 'string')) return false;
-  if (!(typeof data.updated_at === 'string')) return false;
+  if (typeof data.post_id !== 'number') return false;
+  if (typeof data.user_id !== 'number') return false;
+  if (typeof data.title !== 'string') return false;
+  if (typeof data.content !== 'string' && data.content !== null) return false;
+  if (typeof data.created_at !== 'string') return false;
+  if (typeof data.updated_at !== 'string') return false;
+
   return true;
 }
+
 export function isIArrayOfObjectsArray(
-  data: unknown
+  data: unknown,
 ): data is IArrayOfObjects[] {
   return Array.isArray(data) && data.every(isIArrayOfObjects);
 }
@@ -156,6 +162,9 @@ export interface IObject {
   key2: string;
 }
 export function isIObject(data: unknown): data is IObject {
+  if (Array.isArray(data)) {
+    return data.every(isIObject);
+  }
   if (data === null || typeof data !== 'object') return false;
   if (!('key1' in data)) return false;
   if (!('key2' in data)) return false;
@@ -183,31 +192,38 @@ export function isIObjectArray(data: unknown): data is IObject[] {
 
   it('should generate correct code for JSONSchema', () => {
     const expectedCode = `
-export interface IUser {
-  user_id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  username: string;
-  password: string;
-  created_at: string;
-  updated_at: string;
-}
-export interface IPost {
-  post_id: number;
-  user_id: number;
-  title: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-}
 export interface IJSONSchema {
-  user: IUser[];
-  post: IPost[];
+  user: {
+    user_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    username: string;
+    password: string;
+    created_at: string;
+    updated_at: string;
+  };
+  post: {
+    post_id: number;
+    user_id: number;
+    title: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+  };
 }
 export function isIJSONSchema(data: unknown): data is IJSONSchema {
-  type IUser = IJSONSchema['user'][number];
+  if (Array.isArray(data)) {
+    return data.every(isIJSONSchema);
+  }
+
+  type IUser = IJSONSchema['user'];
+  type IPost = IJSONSchema['post'];
+
   function isUser(data: unknown): data is IUser {
+    if (Array.isArray(data)) {
+      return data.every(isIJSONSchema);
+    }
     if (data === null || typeof data !== 'object') return false;
     if (!('user_id' in data)) return false;
     if (!('first_name' in data)) return false;
@@ -227,8 +243,11 @@ export function isIJSONSchema(data: unknown): data is IJSONSchema {
     if (!(typeof data.updated_at === 'string')) return false;
     return true;
   }
-  type IPost = IJSONSchema['post'][number];
+
   function isPost(data: unknown): data is IPost {
+    if (Array.isArray(data)) {
+      return data.every(isIJSONSchema);
+    }
     if (data === null || typeof data !== 'object') return false;
     if (!('post_id' in data)) return false;
     if (!('user_id' in data)) return false;
@@ -239,7 +258,8 @@ export function isIJSONSchema(data: unknown): data is IJSONSchema {
     if (!(typeof data.post_id === 'number')) return false;
     if (!(typeof data.user_id === 'number')) return false;
     if (!(typeof data.title === 'string')) return false;
-    if (!(typeof data.content === 'string')) return false;
+    if (!(typeof data.content === 'string' || data.content === null))
+      return false;
     if (!(typeof data.created_at === 'string')) return false;
     if (!(typeof data.updated_at === 'string')) return false;
     return true;
@@ -247,6 +267,7 @@ export function isIJSONSchema(data: unknown): data is IJSONSchema {
   if (data === null || typeof data !== 'object') return false;
   if (!('user' in data)) return false;
   if (!('post' in data)) return false;
+
   if (!(Array.isArray(data.user) && data.user.every(isUser))) return false;
   if (!(Array.isArray(data.post) && data.post.every(isPost))) return false;
   return true;
@@ -255,96 +276,6 @@ export function isIJSONSchemaArray(data: unknown): data is IJSONSchema[] {
   return Array.isArray(data) && data.every(isIJSONSchema);
 }
     `;
-
-    //     const expectedCode = `
-    // export interface IJSONSchema {
-    //   user: IUser[];
-    //   post: IPost[];
-    // }
-
-    // export interface IUser {
-    //   user_id: number;
-    //   first_name: string;
-    //   last_name: string;
-    //   email: string;
-    //   username: string;
-    //   password: string;
-    //   created_at: string;
-    //   updated_at: Date;
-    // }
-
-    // export interface IPost {
-    //   post_id: number;
-    //   user_id: number;
-    //   title: string;
-    //   content: string | null;
-    //   created_at: string;
-    //   updated_at: Date;
-    // }
-
-    // export function isIJSONSchema(data: unknown): data is IJSONSchema {
-    //   function isIUser(data: unknown): data is IUser {
-    //     return (
-    //       data !== null &&
-    //       typeof data === 'object' &&
-    //       'user_id' in data &&
-    //       'first_name' in data &&
-    //       'last_name' in data &&
-    //       'email' in data &&
-    //       'username' in data &&
-    //       'password' in data &&
-    //       'created_at' in data &&
-    //       'updated_at' in data &&
-    //       typeof (data as any).user_id === 'number' &&
-    //       typeof (data as any).first_name === 'string' &&
-    //       typeof (data as any).last_name === 'string' &&
-    //       typeof (data as any).email === 'string' &&
-    //       typeof (data as any).username === 'string' &&
-    //       typeof (data as any).password === 'string' &&
-    //       typeof (data as any).created_at === 'string' &&
-    //       !isNaN(Date.parse((data as any).created_at)) &&
-    //       typeof (data as any).updated_at === 'string' &&
-    //       !isNaN(Date.parse((data as any).updated_at))
-    //     );
-    //   }
-
-    //   function isIPost(data: unknown): data is IPost {
-    //     return (
-    //       data !== null &&
-    //       typeof data === 'object' &&
-    //       'post_id' in data &&
-    //       'user_id' in data &&
-    //       'title' in data &&
-    //       'content' in data &&
-    //       'created_at' in data &&
-    //       'updated_at' in data &&
-    //       typeof (data as any).post_id === 'number' &&
-    //       typeof (data as any).user_id === 'number' &&
-    //       typeof (data as any).title === 'string' &&
-    //       ((data as any).content === null || typeof (data as any).content === 'string') &&
-    //       typeof (data as any).created_at === 'string' &&
-    //       !isNaN(Date.parse((data as any).created_at)) &&
-    //       typeof (data as any).updated_at === 'string' &&
-    //       !isNaN(Date.parse((data as any).updated_at))
-    //     );
-    //   }
-
-    //   return (
-    //     data !== null &&
-    //     typeof data === 'object' &&
-    //     'user' in data &&
-    //     'post' in data &&
-    //     Array.isArray((data as any).user) &&
-    //     (data as any).user.every(isIUser) &&
-    //     Array.isArray((data as any).post) &&
-    //     (data as any).post.every(isIPost)
-    //   );
-    // }
-
-    // export function isIJSONSchemaArray(data: unknown): data is IJSONSchema[] {
-    //   return Array.isArray(data) && data.every(isIJSONSchema);
-    // }
-    //     `.trim();
 
     const generatedCode =
       generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({

@@ -1,0 +1,170 @@
+// Type mappings for generating TypeScript types
+const typeMappings = {
+  primaryKey: {
+    typescript: 'number',
+  },
+  password: {
+    typescript: 'string',
+  },
+  number: {
+    typescript: 'number',
+  },
+  float: {
+    typescript: 'number',
+  },
+  string: {
+    typescript: 'string',
+  },
+  boolean: {
+    typescript: 'boolean',
+  },
+  Date: {
+    typescript: 'string', // Treat dates as strings for this example
+  },
+} as const;
+
+export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
+  interfaceName,
+  arrayOfObjectsVariableOrObject,
+  typeMappings,
+  isDateStringFormat,
+}: {
+  interfaceName: string;
+  arrayOfObjectsVariableOrObject: unknown;
+  typeMappings: {
+    primaryKey: {
+      typescript: 'number';
+    };
+    password: {
+      typescript: 'string';
+    };
+    number: {
+      typescript: 'number';
+    };
+    float: {
+      typescript: 'number';
+    };
+    string: {
+      typescript: 'string';
+    };
+    boolean: {
+      typescript: 'boolean';
+    };
+    Date: {
+      typescript: 'Date';
+    };
+  };
+  isDateStringFormat: boolean;
+}): string => {
+  /*
+  Algorithm:
+  Compile all the nested objects inside an array using analyzeObjectHierarchy. These will be used for generating the main exported interface.
+  Example:
+  export IData {
+    key: string;
+    nestedObject: *INestedObject interface body*
+    nestedObject2: *INestedObject2 interface body*[]
+  }
+  
+  The same array will be used for generating the child types and child type guards inside the main type guard.
+  Example:
+  // Main type guard
+  export function isData(data: unknown): data is isData {
+    if (Array.isArray(data)) {
+      return data.every(isIJSONSchema);
+    }
+      // Start of child types. Iterate over the heirarchy array
+      type INestedType = IData['NestedTypeKey'];
+      // End of child types
+
+      // Start of child type guards for the child types. Iterate over the heirarchy array
+      
+      // End of child type guards for the child types
+  }
+
+  If isDateStringFormat is true, i want all the string-formatted dates to be string:
+
+  Example:
+  created_at: '2023-06-18T10:17:19.846Z',
+  It should be
+  created_date: string;
+  Also in the typeguard
+
+  If isDateStringFormat is false then:
+  created_date: string;
+  Also in the typeguard
+  */
+  interface IHierarchyNode {
+    key: string;
+    level: number;
+    value: unknown;
+    children?: IHierarchyNode[];
+  }
+
+  const analyzeObjectHierarchy = (
+    obj: Record<string, unknown>,
+    level = 0,
+  ): IHierarchyNode[] => {
+    const hierarchy: IHierarchyNode[] = [];
+
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const value = obj[key];
+        const node: IHierarchyNode = { key, level, value }; // Include the primitive value
+
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            node.children = value.map((item, index) => ({
+              key: `${key}[${index}]`,
+              level: level + 1,
+              value: item, // Include the array item as value
+            }));
+          } else {
+            node.children = analyzeObjectHierarchy(
+              value as Record<string, unknown>,
+              level + 1,
+            );
+          }
+        }
+
+        hierarchy.push(node);
+      }
+    }
+
+    return hierarchy;
+  };
+
+  const hierarchy = analyzeObjectHierarchy(arrayOfObjectsVariableOrObject);
+  
+  function populateInterfaceProperties(element: IHierarchyNode): string {
+    if (typeof element.value !== 'object') {
+      return `${element.key}: ${typeof element.value};`;
+    } else {
+      if (Array.isArray(element.value)) {
+        return `${element.key}: I${element.key.toUpperCase()}[];`;
+      } else {
+        return `${element.key}: I${element.key.toUpperCase()};`;
+      }
+    }
+  }
+
+  return `
+  export interface I${interfaceName} {
+    ${(() => {
+      return hierarchy
+        .map(populateInterfaceProperties) // Use the helper function for consistency
+        .join('\n    '); // Join the elements with a newline and indentation
+    })()}
+  }
+
+  export function isI${interfaceName}(data: unknown): data is I${interfaceName} {
+    if (Array.isArray(data)) {
+      return data.every(isIJSONSchema);
+    }
+  }
+
+  export function isI${interfaceName}(data: unknown): data is I${interfaceName}[] {
+    return Array.isArray(data) && data.every(isI${interfaceName});
+  }
+  `;
+};
