@@ -25,12 +25,12 @@ const typeMappings = {
 
 export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
   interfaceName,
-  arrayOfObjectsVariableOrObject,
+  data,
   typeMappings,
   isDateStringFormat,
 }: {
   interfaceName: string;
-  arrayOfObjectsVariableOrObject: unknown;
+  data: unknown;
   typeMappings: {
     primaryKey: {
       typescript: 'number';
@@ -134,8 +134,8 @@ export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
     return hierarchy;
   };
 
-  const hierarchy = analyzeObjectHierarchy(arrayOfObjectsVariableOrObject);
-  
+  const hierarchy = analyzeObjectHierarchy(data);
+
   function populateInterfaceProperties(element: IHierarchyNode): string {
     if (typeof element.value !== 'object') {
       return `${element.key}: ${typeof element.value};`;
@@ -146,6 +146,77 @@ export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
         return `${element.key}: I${element.key.toUpperCase()};`;
       }
     }
+  }
+
+  /**
+   * Summarizes the value types of keys in an array of objects.
+   *
+   * @param data - The array of objects to summarize.
+   * @returns An array of { key: string; value_types: string[]; } representing the value types of each key.
+   */
+  function summarizeArrayOfObjectValueTypes(data: Record<string, unknown>[]): {
+    key: string;
+    value_types: string[];
+  }[] {
+    const typeSummary: Record<string, Set<string>> = {};
+    data.forEach((item) => {
+      for (const key in item) {
+        const value = item[key];
+        let valueType: string;
+        if (value === null) {
+          valueType = 'null';
+        } else if (value instanceof Date) {
+          valueType = 'Date';
+        } else if (typeof value === 'string') {
+          valueType = 'string';
+        } else if (typeof value === 'number') {
+          valueType = Number.isInteger(value) ? 'number' : 'float';
+        } else {
+          valueType = typeof value;
+        }
+        if (!typeSummary[key]) {
+          typeSummary[key] = new Set<string>();
+        }
+        typeSummary[key].add(valueType);
+      }
+    });
+    return Object.entries(typeSummary).map(([key, valueTypes]) => ({
+      key,
+      value_types: Array.from(valueTypes),
+    }));
+  }
+
+  /**
+   * Checks if an array consists of similar objects, meaning all objects in the
+   * array must have the same keys. If any element in the array is not an object,
+   * or if the objects have different keys, the function returns false.
+   * Returns true for empty arrays or arrays with a single object.
+   *
+   * @param arr - The array to check.
+   * @returns A boolean indicating whether all objects in the array have similar keys.
+   */
+  function haveSimilarObjects<T>(arr: T[]): boolean {
+    if (arr.length === 0 || arr.length === 1) {
+      return true;
+    }
+
+    if (typeof arr[0] !== 'object' || arr[0] === null) {
+      return false;
+    }
+
+    const firstKeys = Object.keys(arr[0]);
+
+    return arr.every((obj) => {
+      if (typeof obj !== 'object' || obj === null) {
+        return false;
+      }
+
+      const keys = Object.keys(obj);
+      return (
+        keys.length === firstKeys.length &&
+        keys.every((key) => firstKeys.includes(key))
+      );
+    });
   }
 
   return `
@@ -163,7 +234,7 @@ export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
     }
   }
 
-  export function isI${interfaceName}(data: unknown): data is I${interfaceName}[] {
+  export function isI${interfaceName}Array(data: unknown): data is I${interfaceName}[] {
     return Array.isArray(data) && data.every(isI${interfaceName});
   }
   `;
