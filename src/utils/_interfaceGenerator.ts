@@ -12,17 +12,24 @@ export function summarizeArrayOfObjectValueTypes(
   key: string;
   value_types: string[];
 }[] {
-  const typeSummary: Record<string, Set<string>> = {};
+  const typeSummary = new Map<string, Set<string>>();
+
   data.forEach((item) => {
-    for (const key in item) {
+    Object.keys(item).forEach((key) => {
       const value = item[key];
-      typeSummary[key] = new Set<string>();
-      typeSummary[key].add(identifyTSPrimitiveType(value));
-    }
+      const valueType =
+        value === null ? 'null' : identifyTSPrimitiveType(value);
+
+      if (!typeSummary.has(key)) {
+        typeSummary.set(key, new Set());
+      }
+      typeSummary.get(key)?.add(valueType);
+    });
   });
-  return Object.entries(typeSummary).map(([key, valueTypes]) => ({
+
+  return Array.from(typeSummary.entries()).map(([key, valueSet]) => ({
     key,
-    value_types: Array.from(valueTypes),
+    value_types: Array.from(valueSet),
   }));
 }
 
@@ -116,133 +123,85 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
   interfaceName = 'IRootInterface',
   isChildObject = false,
 ): string {
-  function generateInterfaceContent(
-    obj: Record<string, unknown> | Record<string, unknown>[],
-  ): string {
-    if (Array.isArray(obj)) {
-      const dataArray = obj;
+  // Helper function to check if a value is an array
+  const isArray = (value: unknown): boolean => {
+    return Array.isArray(value);
+  };
 
-      const isArrayOfObjectsSimilarType =
-        Array.isArray(dataArray) && haveSimilarObjects(dataArray);
+  // Helper function to check if a value is a non-null object
+  const isObject = (value: unknown): boolean => {
+    return (
+      typeof value === 'object' && value !== null && !isArray(value)
+    ); /* Check for non-null objects */
+  };
 
-      if (isArrayOfObjectsSimilarType) {
-        if (typeof dataArray[0] === 'object' && dataArray[0] !== null) {
-          const typeSummary: Record<string, Set<string>> = {};
+  // Helper function to generate interface content from an object
+  const generateInterfaceContent = (obj: Record<string, unknown>): string => {
+    return (
+      Object.entries(obj)
+        .map(([key, value]) => {
+          const valueType =
+            value === null ? 'null' : identifyTSPrimitiveType(value);
 
-          dataArray.forEach((item) => {
-            const itemObj = item;
-            for (const key in itemObj) {
-              const value = itemObj[key];
-              if (!typeSummary[key]) {
-                typeSummary[key] = new Set<string>();
-              }
+          // Check if value is a Date object
+          if (value instanceof Date) {
+            return `${key}: Date;`; // Explicitly handle Date type
+          }
 
-              if (Array.isArray(value)) {
-                // Nested array
-                const nestedType = generateInterfaceContent(value);
-                typeSummary[key].add(`${nestedType}[]`);
-              } else if (typeof value === 'object' && value !== null) {
-                // Nested object
-                const nestedType = generateInterfaceContent(
-                  value as Record<string, unknown>,
-                );
-                typeSummary[key].add(`{\n  ${nestedType}\n}`);
-              } else {
-                typeSummary[key].add(identifyTSPrimitiveType(value));
-              }
+          if (typeof value !== 'string') {
+            if (isArray(value)) {
+              return `\n  ${key}: {${generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(value, key, true)}}[];`; /* Array of similar objects */
+            } else if (isObject(value)) {
+              return `\n  ${key}: {${generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(value, key, true)}};`; /* Recursion for nested objects */
             }
-          });
-
-          // Generate interface content with correct formatting for union types
-          const lines = [];
-          for (const [key, types] of Object.entries(typeSummary)) {
-            const typeStr = Array.from(types).join(' | ');
-            lines.push(`${key}: ${typeStr};`);
           }
 
-          const interfaceContent = lines.join('\n  ');
+          return `\n  ${key}: ${valueType};`;
+        })
+        .join('  ') + '\n'
+    );
+  };
 
-          return `{\n  ${interfaceContent}\n}[]`;
-        } else {
-          // Array of primitives
-          const types = new Set<string>();
-          dataArray.forEach((item) => {
-            types.add(identifyTSPrimitiveType(item));
-          });
-          const typeStr = Array.from(types).join(' | ');
-          return `${typeStr}[]`;
-        }
-      } else {
-        // Items are not similar, generate union of types
-        const itemTypes = dataArray.map((item) =>
-          generateInterfaceContent(item),
+  let interfaceContent = '';
+
+  if (isArray(data)) {
+    if (haveSimilarObjects(data)) {
+      interfaceContent =
+        generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
+          data[0],
+          '',
+          true,
         );
-        const uniqueItemTypes = Array.from(new Set(itemTypes));
-        const unionType = uniqueItemTypes.join(' | ');
-        return `(${unionType})[]`;
-      }
-    } else if (typeof obj === 'object' && obj !== null) {
-      const lines = [];
-
-      for (const [key, value] of Object.entries(obj)) {
-        let typeStr = '';
-
-        if (Array.isArray(value)) {
-          // Value is an array
-          const dataArray = value as Record<string, unknown>[];
-
-          const isArrayOfObjectsSimilarType =
-            Array.isArray(dataArray) && haveSimilarObjects(dataArray);
-
-          if (isArrayOfObjectsSimilarType) {
-            // Process the array items to collect types for each key
-            const itemType = generateInterfaceContent(dataArray);
-            typeStr = itemType;
-          } else {
-            // Items are not similar, generate union of types
-            const itemTypes = dataArray.map((item) =>
-              generateInterfaceContent(item),
-            );
-            const uniqueItemTypes = Array.from(new Set(itemTypes));
-            const unionType = uniqueItemTypes.join(' | ');
-            typeStr = `(${unionType})[]`;
-          }
-        } else if (typeof value === 'object' && value !== null) {
-          // Value is an object, process recursively
-          const nestedType = generateInterfaceContent(
-            value as Record<string, unknown>,
-          );
-          typeStr = `{\n  ${nestedType}\n}`;
-        } else {
-          // Value is a primitive, get its type
-          typeStr = identifyTSPrimitiveType(value);
-        }
-
-        lines.push(`${key}: ${typeStr};`);
-      }
-
-      const interfaceContent = lines.join('\n  ');
-
-      return interfaceContent;
     } else {
-      // Value is a primitive
-      return identifyTSPrimitiveType(obj);
+      const typeSummary = summarizeArrayOfObjectValueTypes(data);
+      interfaceContent = typeSummary
+        .map(({ key, value_types }) => {
+          const typeUnion = value_types.join(' | ');
+          return `${key}: ${typeUnion};`;
+        })
+        .join('\n  ');
     }
+  } else if (isObject(data)) {
+    interfaceContent = generateInterfaceContent(data);
   }
 
-  const interfaceContent = generateInterfaceContent(data);
-
   return isChildObject
-    ? `{\n  ${interfaceContent}\n}`
-    : `interface ${interfaceName} {\n  ${interfaceContent}\n}`;
+    ? `  ${interfaceContent}`
+    : `interface ${interfaceName} {  ${interfaceContent}}`;
 }
 
-// const objectVariable = {
-//   key1: 1,
-//   key2: 'Value',
-// };
-
 const objectVariable = {
+  key: null,
+  key1: 1,
+  key2: '2023-06-18T18:17:19.000000Z',
+  key3: new Date(),
+  prop: {
+    child1: 2,
+    child2: {
+      child1: 2,
+      child2: new Date(),
+    },
+  },
   prop1: [
     {
       child1: 1,
@@ -250,7 +209,38 @@ const objectVariable = {
     },
     {
       child1: 2,
-      child2: 'Value',
+      child2: 1,
+    },
+  ],
+  prop2: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: new Date(),
+    },
+  ],
+  prop3: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: {
+        prop1: [
+          {
+            child1: 1,
+            child2: 1,
+          },
+          {
+            child1: 2,
+            child2: 1,
+          },
+        ],
+      },
     },
   ],
 };

@@ -1,4 +1,4 @@
-import { generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects } from '@/utils/generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects';
+import { generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects } from '@/utils/_interfaceGenerator';
 import { useEffect, useState } from 'react';
 
 function App() {
