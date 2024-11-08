@@ -123,19 +123,10 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
   interfaceName = 'IRootInterface',
   isChildObject = false,
 ): string {
-  // Helper function to check if a value is an array
-  const isArray = (value: unknown): boolean => {
-    return Array.isArray(value);
-  };
-
-  // Helper function to check if a value is a non-null object
   const isObject = (value: unknown): boolean => {
-    return (
-      typeof value === 'object' && value !== null && !isArray(value)
-    ); /* Check for non-null objects */
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   };
 
-  // Helper function to generate interface content from an object
   const generateInterfaceContent = (obj: Record<string, unknown>): string => {
     return (
       Object.entries(obj)
@@ -143,13 +134,12 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
           const valueType =
             value === null ? 'null' : identifyTSPrimitiveType(value);
 
-          // Check if value is a Date object
           if (value instanceof Date) {
-            return `${key}: Date;`; // Explicitly handle Date type
+            return `${key}: Date;`;
           }
 
           if (typeof value !== 'string') {
-            if (isArray(value)) {
+            if (Array.isArray(value)) {
               return `\n  ${key}: {${generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(value, key, true)}}[];`; /* Array of similar objects */
             } else if (isObject(value)) {
               return `\n  ${key}: {${generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(value, key, true)}};`; /* Recursion for nested objects */
@@ -164,7 +154,7 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
 
   let interfaceContent = '';
 
-  if (isArray(data)) {
+  if (Array.isArray(data)) {
     if (haveSimilarObjects(data)) {
       interfaceContent =
         generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
@@ -210,6 +200,12 @@ const objectVariable = {
     {
       child1: 2,
       child2: 1,
+      child3: false,
+    },
+    {
+      child1: 2,
+      child2: 1,
+      child3: "false",
     },
   ],
   prop2: [
@@ -255,4 +251,5 @@ interface IData {
 }
 */
 
+// eslint-disable-next-line no-console
 /*prettier-ignore*/ (($= generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(objectVariable, "IData"))=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();

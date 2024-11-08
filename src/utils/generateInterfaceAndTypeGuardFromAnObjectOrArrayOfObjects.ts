@@ -230,7 +230,7 @@ export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
 
   export function isI${interfaceName}(data: unknown): data is I${interfaceName} {
     if (Array.isArray(data)) {
-      return data.every(isIJSONSchema);
+      return data.every(isI${interfaceName});
     }
   }
 
