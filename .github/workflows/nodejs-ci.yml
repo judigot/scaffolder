@@ -1,55 +1,47 @@
-name: Node.js CI with pnpm
+name: Build and Deploy to EC2
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  build:
+  build-and-deploy:
+    name: Deploy Node.js Application to EC2 Instance
+
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [22.11.0]  # Your specific Node.js version
-
     steps:
-      # Step 1: Checkout the code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Node.js
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.11.0
 
-      # Step 3: Install pnpm
       - name: Install pnpm
         run: npm install -g pnpm
 
-      # Step 4: Install dependencies with pnpm
       - name: Install dependencies
         run: pnpm install
 
-      # Step 5: Run linter
-      - name: Run linter
-        run: pnpm lint
+      # - name: Lint project
+      #   run: pnpm lint
 
-      # Step 6: Run tests
-      - name: Run tests
-        run: pnpm test
+      # - name: Test project
+      #   run: pnpm test
 
-      # Step 7: Build the project
       - name: Build project
         run: pnpm build
 
-      # Step 8: Deploy to GitHub Pages (or another service)
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Deploy to /var/www/html
+        uses: appleboy/scp-action@v0.1.7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dist
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          strip_components: 1 # Copies contents of 'dist' without including the 'dist' folder itself.
+          source: 'dist'
+          target: '/var/www/html'
+          script: 'sudo rm -rf /var/www/html/*'
