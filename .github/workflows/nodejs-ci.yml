@@ -1,0 +1,55 @@
+name: Node.js CI with pnpm
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.11.0]  # Your specific Node.js version
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # Step 3: Install pnpm
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      # Step 4: Install dependencies with pnpm
+      - name: Install dependencies
+        run: pnpm install
+
+      # Step 5: Run linter
+      - name: Run linter
+        run: pnpm lint
+
+      # Step 6: Run tests
+      - name: Run tests
+        run: pnpm test
+
+      # Step 7: Build the project
+      - name: Build project
+        run: pnpm build
+
+      # Step 8: Deploy to GitHub Pages (or another service)
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
