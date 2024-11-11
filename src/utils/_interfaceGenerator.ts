@@ -123,7 +123,7 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
   interfaceName = 'IRootInterface',
   isChildObject = false,
 ): string {
-  const isObject = (value: unknown): boolean => {
+  const isObject = (value: unknown): value is Record<string, unknown> => {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   };
 
@@ -205,7 +205,7 @@ const objectVariable = {
     {
       child1: 2,
       child2: 1,
-      child3: "false",
+      child3: 'false',
     },
   ],
   prop2: [
