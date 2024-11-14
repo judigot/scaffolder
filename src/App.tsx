@@ -6,7 +6,7 @@ import { useModalStore } from '@/useModalStore';
 
 import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
 import { consolidateInterfaces } from '@/utils/common';
-import FileViewer from '@/FileViewer';
+import FileViewer from '@/components/FileViewer';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
 
 function App() {
