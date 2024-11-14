@@ -80,9 +80,6 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
 
   return (
     <div className="bg-gray-800 p-4 rounded-md flex flex-col items-center">
-      <h2 className="text-xl font-bold mb-4 text-center">
-        Additional Schema Settings
-      </h2>
       <table className="min-w-full border border-gray-300 bg-gray-900 overflow-visible text-center relative">
         <thead className="bg-gray-700">
           <tr>
@@ -132,10 +129,9 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
           ))}
         </tbody>
       </table>
-      {/* For debugging or inspection, this can be removed later */}
-      <pre className="mt-4 text-sm text-gray-400">
+      {/* <pre className="mt-4 text-sm text-gray-400">
         {JSON.stringify(formData, null, 4)}
-      </pre>
+      </pre> */}
     </div>
   );
 }

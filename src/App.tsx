@@ -5,8 +5,9 @@ import { useTransformationsStore } from '@/useTransformationsStore';
 import { useModalStore } from '@/useModalStore';
 
 import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
-import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
 import { consolidateInterfaces } from '@/utils/common';
+import FileViewer from '@/FileViewer';
+import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
 
 function App() {
   const {
@@ -97,9 +98,9 @@ function App() {
           Pre-commit hook is temporarily disabled!
         </h2>
       </div>
-      <div className="grid gap-4 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-700 p-4 shadow-md rounded-md">
+      <div className="p-4">
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
+          <div className="col-span-1 bg-gray-700 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
             <form className="space-y-4">
               <div className="float-right pb-3">
@@ -146,112 +147,202 @@ function App() {
                 rows={10}
                 className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               />
-              <label htmlFor="backendUrl" className="block text-sm font-medium">
-                Backend URL:
-                {!generationStatus.isBackendUrlValid && (
-                  <i className="text-red-500">
-                    &nbsp;Invalid backend directory
-                  </i>
-                )}
-                <input
-                  type="text"
-                  id="backendUrl"
-                  name="backendUrl"
-                  value={backendUrl}
+
+              <div>
+                <label
+                  htmlFor="framework"
+                  className="block text-sm font-medium"
+                >
+                  Additional Schema Settings:
+                  <AdditionalSchemaSettings schemaInfo={getSchemaInfo()} />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label
+                  htmlFor="backendUrl"
+                  className="block text-sm font-medium"
+                >
+                  Backend URL:
+                  {!generationStatus.isBackendUrlValid && (
+                    <i className="text-red-500">
+                      &nbsp;Invalid backend directory
+                    </i>
+                  )}
+                  <input
+                    type="text"
+                    id="backendUrl"
+                    name="backendUrl"
+                    value={backendUrl}
+                    onChange={handleChange}
+                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                      generationStatus.isBackendUrlValid
+                        ? 'border-gray-700 focus:border-indigo-500'
+                        : 'border-red-500 focus:border-red-500'
+                    }`}
+                  />
+                </label>
+                <label
+                  htmlFor="backendDir"
+                  className="block text-sm font-medium"
+                >
+                  Backend Directory:
+                  {!generationStatus.isBackendDirValid && (
+                    <i className="text-red-500">
+                      &nbsp;Invalid backend directory
+                    </i>
+                  )}
+                  <input
+                    type="text"
+                    id="backendDir"
+                    name="backendDir"
+                    value={backendDir}
+                    onChange={handleChange}
+                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                      generationStatus.isBackendDirValid
+                        ? 'border-gray-700 focus:border-indigo-500'
+                        : 'border-red-500 focus:border-red-500'
+                    }`}
+                  />
+                </label>
+                <label
+                  htmlFor="frontendDir"
+                  className="block text-sm font-medium"
+                >
+                  Frontend Directory:
+                  {!generationStatus.isFrontendDirValid && (
+                    <i className="text-red-500">
+                      &nbsp;Invalid frontend directory
+                    </i>
+                  )}
+                  <input
+                    type="text"
+                    id="frontendDir"
+                    name="frontendDir"
+                    value={frontendDir}
+                    onChange={handleChange}
+                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                      generationStatus.isFrontendDirValid
+                        ? 'border-gray-700 focus:border-indigo-500'
+                        : 'border-red-500 focus:border-red-500'
+                    }`}
+                  />
+                </label>
+                <label
+                  htmlFor="dbConnection"
+                  className="block text-sm font-medium"
+                >
+                  Database Connection:
+                  {!generationStatus.isDBConnectionValid && (
+                    <i className="text-red-500">
+                      &nbsp;Invalid connection string
+                    </i>
+                  )}
+                  <div className="float-right pb-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDBType('postgresql');
+                      }}
+                      className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                    >
+                      PostgreSQL
+                    </button>
+                    &nbsp; &nbsp;
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDBType('mysql');
+                      }}
+                      className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                    >
+                      MySQL
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    id="dbConnection"
+                    name="dbConnection"
+                    value={dbConnection}
+                    onChange={handleChange}
+                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                      generationStatus.isDBConnectionValid
+                        ? 'border-gray-700 focus:border-indigo-500'
+                        : 'border-red-500 focus:border-red-500'
+                    }`}
+                  />
+                </label>
+              </div>
+
+              <label htmlFor="framework" className="block text-sm font-medium">
+                Framework:
+                <select
+                  id="framework"
+                  name="framework"
+                  value={framework}
                   onChange={handleChange}
-                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                    generationStatus.isBackendUrlValid
-                      ? 'border-gray-700 focus:border-indigo-500'
-                      : 'border-red-500 focus:border-red-500'
-                  }`}
-                />
+                  className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                >
+                  <option value={''}>Select a framework</option>
+                  {Object.entries(frameworks).map(
+                    ([key, value]: [string, string]) => (
+                      <option key={key} value={value}>
+                        {value}
+                      </option>
+                    ),
+                  )}
+                </select>
               </label>
-              <label htmlFor="backendDir" className="block text-sm font-medium">
-                Backend Directory:
-                {!generationStatus.isBackendDirValid && (
-                  <i className="text-red-500">
-                    &nbsp;Invalid backend directory
-                  </i>
-                )}
-                <input
-                  type="text"
-                  id="backendDir"
-                  name="backendDir"
-                  value={backendDir}
-                  onChange={handleChange}
-                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                    generationStatus.isBackendDirValid
-                      ? 'border-gray-700 focus:border-indigo-500'
-                      : 'border-red-500 focus:border-red-500'
-                  }`}
-                />
-              </label>
-              <label
-                htmlFor="frontendDir"
-                className="block text-sm font-medium"
-              >
-                Frontend Directory:
-                {!generationStatus.isFrontendDirValid && (
-                  <i className="text-red-500">
-                    &nbsp;Invalid frontend directory
-                  </i>
-                )}
-                <input
-                  type="text"
-                  id="frontendDir"
-                  name="frontendDir"
-                  value={frontendDir}
-                  onChange={handleChange}
-                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                    generationStatus.isFrontendDirValid
-                      ? 'border-gray-700 focus:border-indigo-500'
-                      : 'border-red-500 focus:border-red-500'
-                  }`}
-                />
-              </label>
-              <label
-                htmlFor="dbConnection"
-                className="block text-sm font-medium"
-              >
-                Database Connection:
-                {!generationStatus.isDBConnectionValid && (
-                  <i className="text-red-500">
-                    &nbsp;Invalid connection string
-                  </i>
-                )}
-                <div className="float-right pb-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDBType('postgresql');
-                    }}
-                    className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                  >
-                    PostgreSQL
-                  </button>
-                  &nbsp; &nbsp;
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDBType('mysql');
-                    }}
-                    className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                  >
-                    MySQL
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  id="dbConnection"
-                  name="dbConnection"
-                  value={dbConnection}
-                  onChange={handleChange}
-                  className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                    generationStatus.isDBConnectionValid
-                      ? 'border-gray-700 focus:border-indigo-500'
-                      : 'border-red-500 focus:border-red-500'
-                  }`}
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  data-testid="generate-app-button"
+                  type="button"
+                  onClick={() => {
+                    setIsLoading(true);
+                    fetch(`http://localhost:5000/scaffoldProject`, {
+                      method: 'POST',
+                      headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        schemaInfo: getSchemaInfo(),
+                        interfaces: outputOnSingleFile
+                          ? stringInterfaces
+                          : interfaces,
+                        backendDir,
+                        frontendDir,
+                        dbConnection,
+                        framework,
+                        SQLSchema,
+                        outputOnSingleFile,
+                        backendUrl,
+                      }),
+                    })
+                      .then((response) => response.json())
+                      .then((result: typeof generationStatus) => {
+                        // Success
+                        setGenerationStatus(result);
+                      })
+                      .catch((error: unknown) => {
+                        // Failure
+                        if (typeof error === `string`) {
+                          throw Error(`There was an error: error`);
+                        }
+                        if (error instanceof Error) {
+                          throw Error(`There was an error: ${error.message}`);
+                        }
+                      })
+                      .finally(() => {
+                        setIsLoading(false);
+                      });
+                  }}
+                  className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                >
+                  {isLoading && 'Generating...'}
+                  {!isLoading && 'Generate App From JSON Schema'}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -345,84 +436,17 @@ function App() {
                 >
                   Generate App From Existing Database
                 </button>
-              </label>
-              <label htmlFor="framework" className="block text-sm font-medium">
-                Framework:
-                <select
-                  id="framework"
-                  name="framework"
-                  value={framework}
-                  onChange={handleChange}
-                  className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                >
-                  <option value={''}>Select a framework</option>
-                  {Object.entries(frameworks).map(
-                    ([key, value]: [string, string]) => (
-                      <option key={key} value={value}>
-                        {value}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </label>
-              <button
-                data-testid="generate-app-button"
-                type="button"
-                onClick={() => {
-                  setIsLoading(true);
-                  fetch(`http://localhost:5000/scaffoldProject`, {
-                    method: 'POST',
-                    headers: {
-                      Accept: 'application/json',
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      schemaInfo: getSchemaInfo(),
-                      interfaces: outputOnSingleFile
-                        ? stringInterfaces
-                        : interfaces,
-                      backendDir,
-                      frontendDir,
-                      dbConnection,
-                      framework,
-                      SQLSchema,
-                      outputOnSingleFile,
-                      backendUrl,
-                    }),
-                  })
-                    .then((response) => response.json())
-                    .then((result: typeof generationStatus) => {
-                      // Success
-                      setGenerationStatus(result);
-                    })
-                    .catch((error: unknown) => {
-                      // Failure
-                      if (typeof error === `string`) {
-                        throw Error(`There was an error: error`);
-                      }
-                      if (error instanceof Error) {
-                        throw Error(`There was an error: ${error.message}`);
-                      }
-                    })
-                    .finally(() => {
-                      setIsLoading(false);
-                    });
-                }}
-                className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                {isLoading && 'Generating...'}
-                {!isLoading && 'Generate App From JSON Schema'}
-              </button>
+              </div>
             </form>
           </div>
 
-          <div className="bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">
-              Additional Schema Settings
-            </h2>
-            <AdditionalSchemaSettings schemaInfo={getSchemaInfo()} />
+          <div className="col-span-2 bg-gray-800 p-4 shadow-md rounded-md">
+            <h2 className="text-xl font-bold mb-2">Scaffolded Files Preview</h2>
+            <FileViewer />
           </div>
-
+        </div>
+        <br />
+        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-4">
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <div>
               <h2 className="text-xl font-bold mb-2">Create Tables</h2>
@@ -522,9 +546,7 @@ function App() {
               </button>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Join Queries</h2>
             <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
@@ -544,9 +566,7 @@ function App() {
               Copy Join Queries
             </button>
             <br />
-          </div>
-
-          <div className="bg-gray-800 p-4 shadow-md rounded-md">
+            <br />
             <h2 className="text-xl font-bold mb-2">Aggregate Join Queries</h2>
             <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
               {aggregateJoins.map((value, i) => (
@@ -565,6 +585,25 @@ function App() {
               Copy Join Queries
             </button>
             <br />
+          </div>
+
+          <div className="bg-gray-800 p-4 shadow-md rounded-md">
+            <h2 className="text-xl font-bold mb-2">Mock Data</h2>
+            <textarea
+              id="mockData"
+              value={JSON.stringify(mockData, null, 2)}
+              readOnly
+              rows={10}
+              className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            />
+            <button
+              onClick={() => {
+                handleCopy(JSON.stringify(mockData, null, 2));
+              }}
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+              Copy Mock Data
+            </button>
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
@@ -650,25 +689,6 @@ function App() {
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             >
               Copy All Interfaces
-            </button>
-          </div>
-
-          <div className="bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">Mock Data</h2>
-            <textarea
-              id="mockData"
-              value={JSON.stringify(mockData, null, 2)}
-              readOnly
-              rows={10}
-              className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            />
-            <button
-              onClick={() => {
-                handleCopy(JSON.stringify(mockData, null, 2));
-              }}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            >
-              Copy Mock Data
             </button>
           </div>
         </div>
