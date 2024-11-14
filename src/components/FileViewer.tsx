@@ -3,6 +3,17 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
+import { ISchemaInfo } from '@/interfaces/interfaces';
+import _createAPIRoutes from '@/utils/backend/laravel/_createAPIRoutes';
+import _createControllers from '@/utils/backend/laravel/_createControllers';
+import _createResources from '@/utils/backend/laravel/_createResources';
+import _createModels from '@/utils/backend/laravel/_createModels';
+import _createRepositories from '@/utils/backend/laravel/_createRepositories';
+import _createAppServiceProviderScaffolding from '@/utils/backend/laravel/_createAppServiceProviderScaffolding';
+import _createServices from '@/utils/backend/laravel/_createServices';
+import _createInterfaces from '@/utils/backend/laravel/_createInterfaces';
+import _createBaseRepository from '@/utils/backend/laravel/_createBaseRepository';
+import _createBaseInterface from '@/utils/backend/laravel/_createBaseInterface';
 
 const darkTheme = createTheme({
   palette: {
@@ -10,106 +21,144 @@ const darkTheme = createTheme({
   },
 });
 
-interface IFile {
+export interface IFile {
   type: 'file';
   name: string;
   content: string;
 }
 
-interface IFolder {
+export interface IFolder {
   type: 'folder';
   name: string;
   files: (IFile | IFolder)[];
 }
 
-type IStructure = (IFile | IFolder)[];
+export type IStructure = (IFile | IFolder)[];
 
-const structure: IStructure = [
-  {
-    type: 'folder',
-    name: 'src',
-    files: [
-      {
-        type: 'file',
-        name: 'main.js',
-        content: 'console.log("Main file content");',
-      },
-    ],
-  },
-  {
-    type: 'file',
-    name: 'script.sh',
-    content: `#!/bin/bash
-
-GLOBAL_VARIABLE="Hello, World!"
-
-main() {
-    action1
-    action2
-}
-
-action1() {
-    echo -e "Action 1"
-}
-
-action2() {
-    echo -e "Action 2"
-}
-
-main`,
-  },
-];
-
-function renderTree(
-  items: IStructure,
-  onSelectFile: (file: IFile) => void,
-  parentId = '',
-) {
-  return items.map((item, index) => {
-    const itemId = `${parentId}-${item.name}-${String(index)}`;
-    if (item.type === 'folder') {
-      return (
-        <TreeItem key={itemId} itemId={itemId} label={item.name}>
-          {renderTree(item.files, onSelectFile, itemId)}
-        </TreeItem>
-      );
-    } else {
-      return (
-        <TreeItem
-          key={itemId}
-          itemId={itemId}
-          label={item.name}
-          onClick={() => {
-            onSelectFile(item);
-          }}
-        />
-      );
-    }
-  });
-}
-
-function LineCounter({ lines }: { lines: number }) {
-  return (
-    <div
-      className="pr-4 text-gray-500 text-right select-none"
-      aria-hidden="true"
-    >
-      {Array.from({ length: lines }, (_, index) => (
-        <pre key={index}>{index + 1}</pre>
-      ))}
-    </div>
-  );
-}
-
-export default function FileViewer() {
+export default function FileViewer({
+  schemaInfo,
+}: {
+  schemaInfo: ISchemaInfo[];
+}) {
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
+
+  const fileStructure: IStructure = [
+    {
+      type: 'folder',
+      name: 'app',
+      files: [
+        {
+          type: 'folder',
+          name: 'Http',
+          files: [
+            {
+              type: 'folder',
+              name: 'Controllers',
+              files: [
+                _createBaseRepository(),
+                ..._createControllers(schemaInfo),
+              ],
+            },
+            {
+              type: 'folder',
+              name: 'Resources',
+              files: _createResources(schemaInfo),
+            },
+          ],
+        },
+        {
+          type: 'folder',
+          name: 'Models',
+          files: _createModels(schemaInfo),
+        },
+        {
+          type: 'folder',
+          name: 'Providers',
+          files: [
+            {
+              type: 'file',
+              name: 'AppServiceProvider.php',
+              content: _createAppServiceProviderScaffolding({ schemaInfo }),
+            },
+          ],
+        },
+        {
+          type: 'folder',
+          name: 'Repositories',
+          files: [
+            _createBaseRepository(),
+            _createBaseInterface(),
+            ..._createRepositories(schemaInfo),
+            ..._createInterfaces(schemaInfo),
+          ],
+        },
+        {
+          type: 'folder',
+          name: 'Services',
+          files: _createServices(schemaInfo),
+        },
+      ],
+    },
+    {
+      type: 'folder',
+      name: 'routes',
+      files: [
+        {
+          type: 'file',
+          name: 'api.php',
+          content: _createAPIRoutes(schemaInfo),
+        },
+      ],
+    },
+  ];
+
+  function LineCounter({ lines }: { lines: number }) {
+    return (
+      <div
+        className="pr-4 text-gray-500 text-right select-none"
+        aria-hidden="true"
+      >
+        {Array.from({ length: lines }, (_, index) => (
+          <pre key={index}>{index + 1}</pre>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTree(
+    items: IStructure,
+    onSelectFile: (file: IFile) => void,
+    parentId = '',
+  ) {
+    return items.map((item, index) => {
+      const itemId = `${parentId}-${item.name}-${String(index)}`;
+      if (item.type === 'folder') {
+        return (
+          <TreeItem key={itemId} itemId={itemId} label={`📁 ${item.name}`}>
+            {renderTree(item.files, onSelectFile, itemId)}
+          </TreeItem>
+        );
+      } else {
+        return (
+          <TreeItem
+            key={itemId}
+            itemId={itemId}
+            label={`📄 ${item.name}`}
+            onClick={() => {
+              onSelectFile(item);
+            }}
+          />
+        );
+      }
+    });
+  }
 
   return (
     <ThemeProvider theme={darkTheme}>
       <div className="grid grid-cols-3 h-screen text-white">
         <div className="col-span-1 bg-gray-800 p-4">
           <SimpleTreeView>
-            {renderTree(structure, setSelectedFile)}
+            {renderTree(fileStructure, setSelectedFile)}
           </SimpleTreeView>
         </div>
         <div className="col-span-2 bg-gray-900 p-4">
