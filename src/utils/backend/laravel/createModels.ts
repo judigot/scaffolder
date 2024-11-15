@@ -3,7 +3,7 @@ import path from 'path';
 import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
-import { createFile } from '@/utils/backend/laravel/createBaseFile';
+import { createFile } from '@/helpers/stringHelper';
 import { getPrimaryKey } from '@/utils/common';
 
 // Global variables

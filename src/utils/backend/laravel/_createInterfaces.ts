@@ -5,10 +5,8 @@ import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
 
-// Function to create interfaces based on schema information and return an array of IFile
-const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
-  const template = `<?php
-${ownerComment}
+const TEMPLATE = `<?php
+{{ownerComment}}
 
 namespace App\\Repositories;
 
@@ -23,17 +21,16 @@ interface {{className}}Interface extends BaseInterface
 }
 `;
 
-  const files: IFile[] = schemaInfo
+const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
+  return schemaInfo
     .filter(
       // Exclude pivot tables if specified in APP_SETTINGS
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
     )
     .map((tableInfo) => {
-      const { table } = tableInfo;
-      const className = tableInfo.tableCases.pascalCase;
-
-      if (!className) return null; // Skip if className is not found
+      const { table, tableCases } = tableInfo;
+      const className = tableCases.pascalCase;
 
       const modelImports = generateModelImports(tableInfo);
       const modelSpecificMethods = generateModelSpecificMethods({
@@ -51,17 +48,14 @@ interface {{className}}Interface extends BaseInterface
         modelImports,
       };
 
-      const content = createFile(template, replacements);
+      const content = createFile(TEMPLATE, replacements);
 
       return {
         type: 'file',
         name: `${className}Interface.php`,
         content,
       };
-    })
-    .filter((file): file is IFile => file !== null); // Filter out null values
-
-  return files;
+    });
 };
 
 export default createInterfaces;

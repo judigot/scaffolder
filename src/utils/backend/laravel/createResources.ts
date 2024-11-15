@@ -3,7 +3,7 @@ import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { changeCase } from '@/utils/identifySchema';
-import { createFile } from '@/utils/backend/laravel/createBaseFile';
+import { createFile } from '@/helpers/stringHelper';
 
 /* Resource Generation Rules:
 

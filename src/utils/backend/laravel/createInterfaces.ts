@@ -4,7 +4,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
 import { APP_SETTINGS, ownerComment } from '@/constants';
-import { createFile } from '@/utils/backend/laravel/createBaseFile';
+import { createFile } from '@/helpers/stringHelper';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
