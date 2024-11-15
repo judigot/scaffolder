@@ -162,7 +162,7 @@ export default function FileViewer({
           </SimpleTreeView>
         </div>
         <div className="col-span-2 bg-gray-900 p-4">
-          {selectedFile ? (
+          {selectedFile && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <span className="">{selectedFile.name}</span>
@@ -188,7 +188,9 @@ export default function FileViewer({
                 }
               </div>
             </div>
-          ) : (
+          )}
+
+          {!selectedFile && (
             <div className="text-gray-400 text-center">No file selected</div>
           )}
         </div>
