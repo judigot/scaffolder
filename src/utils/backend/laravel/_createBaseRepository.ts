@@ -1,9 +1,9 @@
 import { IFile } from '@/components/FileViewer';
+import { ownerComment } from '@/constants';
 
 const createBaseRepository = (): IFile => {
-  const content = `
-  <?php
-{{ownerComment}}
+  const content = `<?php
+${ownerComment}
 
 namespace App\\Repositories;
 
@@ -193,8 +193,7 @@ abstract class BaseRepository implements BaseInterface
         return $this->model->groupBy($column)->get();
     }
 }
-
-  `;
+`;
 
   return {
     type: 'file',
