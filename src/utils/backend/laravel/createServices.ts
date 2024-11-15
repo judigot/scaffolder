@@ -12,7 +12,7 @@ if (process.platform === 'win32') {
 // Function to get the owner comment
 
 // Function to create the service file content by replacing placeholders with actual values
-const createServiceFile = (
+const createFile = (
   template: string,
   replacements: Record<string, string>,
 ): string =>
@@ -54,7 +54,7 @@ const createServices = (
       tableName: table,
     };
 
-    const content = createServiceFile(template, replacements);
+    const content = createFile(template, replacements);
     const outputFilePath = path.join(outputDir, `${pascalCase}Service.php`);
     fs.writeFileSync(outputFilePath, content);
   });

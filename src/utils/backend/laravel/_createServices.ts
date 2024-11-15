@@ -78,7 +78,7 @@ class {{className}}Service
 `;
 
 // Helper function to create the service file content by replacing placeholders
-const createFileContent = (
+const createFile = (
   template: string,
   replacements: Record<string, string>,
 ): string =>
@@ -102,7 +102,7 @@ const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
         tableName: table,
       };
 
-      const content = createFileContent(TEMPLATE, replacements);
+      const content = createFile(TEMPLATE, replacements);
 
       return {
         type: 'file',
