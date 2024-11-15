@@ -72,19 +72,27 @@ const createResources = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
     const template = `<?php
 ${ownerComment}
+
 namespace App\\Http\\Resources;
 
 use Illuminate\\Http\\Resources\\Json\\JsonResource;
 
 class ${pascalCase}Resource extends JsonResource
 {
+    /**
+     * Transform the resource into an array.
+     *
+     * @param \\Illuminate\\Http\\Request $request
+     * @return array
+     */
     public function toArray($request)
     {
         return [
 ${attributes}
         ];
     }
-}`;
+}
+`;
 
     resources.push({
       type: 'file',
