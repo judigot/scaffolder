@@ -91,8 +91,8 @@ export default function FileViewer({
           type: 'folder',
           name: 'Repositories',
           files: [
-            _createBaseRepository(),
             _createBaseInterface(),
+            _createBaseRepository(),
             ..._createRepositories(schemaInfo),
             ..._createInterfaces(schemaInfo),
           ],
@@ -187,9 +187,13 @@ export default function FileViewer({
             <div>
               <div className="flex justify-between items-center mb-4">
                 <span className="">{selectedFile.name}</span>
-                <CopyIcon onClick={() => {
-                  handleCopy(selectedFile.content)
-                }} fontSize="small" className="cursor-pointer" />
+                <CopyIcon
+                  onClick={() => {
+                    handleCopy(selectedFile.content);
+                  }}
+                  fontSize="small"
+                  className="cursor-pointer"
+                />
                 <button
                   onClick={() => {
                     setSelectedFile(null);

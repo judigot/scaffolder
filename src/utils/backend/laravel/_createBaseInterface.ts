@@ -1,9 +1,9 @@
 import { IFile } from '@/components/FileViewer';
+import { ownerComment } from '@/constants';
 
 const createBaseInterface = (): IFile => {
-  const content = `
-  <?php
-{{ownerComment}}
+  const content = `<?php
+${ownerComment}
 
 namespace App\\Repositories;
 
@@ -46,8 +46,7 @@ interface BaseInterface
     public function orderBy(string $column, string $direction = 'asc'): Collection;
     public function groupBy(string $column): Collection;
 }
-
-  `;
+`;
 
   return {
     type: 'file',
