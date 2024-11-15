@@ -8,6 +8,7 @@ import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
 import { consolidateInterfaces } from '@/utils/common';
 import FileViewer from '@/components/FileViewer';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
+import { handleCopy } from '@/helpers/stringHelper';
 
 function App() {
   const {
@@ -80,12 +81,6 @@ function App() {
       [name]: type === 'checkbox' ? checked : value,
     };
     setFormData(newFormData);
-  };
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text).catch((err: unknown) => {
-      console.error('Failed to copy text: ', err);
-    });
   };
 
   const { setSQLSchemaEditable, setIsModalOpen } = useModalStore();
