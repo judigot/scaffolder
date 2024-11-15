@@ -15,8 +15,7 @@ const createServiceFile = (
 
 // Function to create services based on schema information and return an array of IFile
 const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
-  const template = `
-  <?php
+  const template = `<?php
 {{ownerComment}}
 
 namespace App\\Services;
