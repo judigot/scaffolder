@@ -3,6 +3,8 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
+import CodeIcon from '@mui/icons-material/Code';
+import FolderIcon from '@mui/icons-material/Folder';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import _createAPIRoutes from '@/utils/backend/laravel/_createAPIRoutes';
 import _createControllers from '@/utils/backend/laravel/_createControllers';
@@ -134,7 +136,17 @@ export default function FileViewer({
       const itemId = `${parentId}-${item.name}-${String(index)}`;
       if (item.type === 'folder') {
         return (
-          <TreeItem key={itemId} itemId={itemId} label={`📁 ${item.name}`}>
+          <TreeItem
+            key={itemId}
+            itemId={itemId}
+            label={
+              <>
+                <FolderIcon fontSize="small" className="text-yellow-500" />
+                &nbsp;
+                {item.name}
+              </>
+            }
+          >
             {renderTree(item.files, onSelectFile, itemId)}
           </TreeItem>
         );
@@ -143,7 +155,13 @@ export default function FileViewer({
           <TreeItem
             key={itemId}
             itemId={itemId}
-            label={`📄 ${item.name}`}
+            label={
+              <>
+                <CodeIcon fontSize="small" className="text-yellow-500" />
+                &nbsp;
+                {item.name}
+              </>
+            }
             onClick={() => {
               onSelectFile(item);
             }}
@@ -156,7 +174,7 @@ export default function FileViewer({
   return (
     <ThemeProvider theme={darkTheme}>
       <div className="grid grid-cols-3 h-screen text-white">
-        <div className="col-span-1 bg-gray-800 p-4">
+        <div className="col-span-1 bg-gray-800 p-4 select-none">
           <SimpleTreeView>
             {renderTree(fileStructure, setSelectedFile)}
           </SimpleTreeView>
