@@ -5,6 +5,7 @@ import { APP_SETTINGS, ownerComment } from '@/constants';
 
 const TEMPLATE = `<?php
 {{ownerComment}}
+
 use Illuminate\\Http\\Request;
 use Illuminate\\Support\\Facades\\Route;
 
