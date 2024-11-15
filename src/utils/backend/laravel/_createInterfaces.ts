@@ -17,9 +17,8 @@ const createFile = (
 
 // Function to create interfaces based on schema information and return an array of IFile
 const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
-  const template = `
-<?php
-{{ownerComment}}
+  const template = `<?php
+${ownerComment}
 
 namespace App\\Repositories;
 
