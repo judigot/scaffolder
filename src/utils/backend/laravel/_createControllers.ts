@@ -1,5 +1,5 @@
 import { IFile } from '@/components/FileViewer';
-import { APP_SETTINGS } from '@/constants';
+import { APP_SETTINGS, ownerComment } from '@/constants';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { changeCase } from '@/utils/identifySchema';
@@ -53,15 +53,15 @@ const createControllers = (
     });
 
     const template = `<?php
-{{ownerComment}}
+${ownerComment}
 
 namespace App\\Http\\Controllers;
 
-use App\\Models\\{{className}};
-use App\\Repositories\\{{className}}Interface;
+use App\\Models\\${className};
+use App\\Repositories\\${className}Interface;
 use Illuminate\\Http\\Request;
 
-class {{className}}Controller extends BaseController
+class ${className}Controller extends BaseController
 {
 ${controllerMethods}
 }
