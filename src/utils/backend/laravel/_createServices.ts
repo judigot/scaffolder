@@ -8,7 +8,7 @@ const TEMPLATE = `<?php
 
 namespace App\\Services;
 
-use App\\Models\\{{modelName}};
+use App\\Models\\{{className}};
 use Illuminate\\Support\\Collection;
 
 class {{className}}Service
@@ -20,29 +20,29 @@ class {{className}}Service
      */
     public function getAll(): Collection
     {
-        return {{modelName}}::all();
+        return {{className}}::all();
     }
 
     /**
      * Get a {{tableName}} record by ID.
      *
      * @param int $id
-     * @return {{modelName}}|null
+     * @return {{className}}|null
      */
-    public function getById(int $id): ?{{modelName}}
+    public function getById(int $id): ?{{className}}
     {
-        return {{modelName}}::find($id);
+        return {{className}}::find($id);
     }
 
     /**
      * Create a new {{tableName}} record.
      *
      * @param array $data
-     * @return {{modelName}}
+     * @return {{className}}
      */
-    public function create(array $data): {{modelName}}
+    public function create(array $data): {{className}}
     {
-        return {{modelName}}::create($data);
+        return {{className}}::create($data);
     }
 
     /**
@@ -54,7 +54,7 @@ class {{className}}Service
      */
     public function update(int $id, array $data): bool
     {
-        \${{tableName}} = {{modelName}}::find($id);
+        \${{tableName}} = {{className}}::find($id);
         if (\${{tableName}}) {
             return \${{tableName}}->update($data);
         }
@@ -69,7 +69,7 @@ class {{className}}Service
      */
     public function delete(int $id): bool
     {
-        \${{tableName}} = {{modelName}}::find($id);
+        \${{tableName}} = {{className}}::find($id);
         if (\${{tableName}}) {
             return \${{tableName}}->delete();
         }
@@ -82,13 +82,15 @@ const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
-    .map(({ table, tableCases: { pascalCase } }) => {
+    .map((tableInfo) => {
+      const { table, tableCases } = tableInfo;
+      const className = tableCases.pascalCase;
+
       const replacements = {
         ownerComment,
-        className: pascalCase,
-        modelName: pascalCase,
+        className,
         tableName: table,
       };
 
@@ -96,7 +98,7 @@ const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
       return {
         type: 'file',
-        name: `${pascalCase}Service.php`,
+        name: `${className}Service.php`,
         content,
       };
     });

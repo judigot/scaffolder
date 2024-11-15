@@ -10,7 +10,7 @@ const TEMPLATE = `<?php
 
 namespace App\\Repositories;
 
-use App\\Models\\{{modelName}};
+use App\\Models\\{{className}};
 {{modelImports}}
 use Illuminate\\Support\\Collection;
 use App\\Repositories\\BaseInterface;
@@ -24,9 +24,8 @@ interface {{className}}Interface extends BaseInterface
 const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
-      // Exclude pivot tables if specified in APP_SETTINGS
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
       const { table, tableCases } = tableInfo;
@@ -42,7 +41,6 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const replacements = {
         ownerComment,
         className,
-        modelName: className,
         tableName: table,
         modelSpecificMethods,
         modelImports,
