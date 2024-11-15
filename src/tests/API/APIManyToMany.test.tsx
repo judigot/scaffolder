@@ -22,7 +22,7 @@ beforeAll(async () => {
 });
 
 describe('App Component with API Endpoint and Checkbox', () => {
-  // Test for the checkbox, button clicks, and API validation
+  
   it('should check the checkbox, simulate button clicks, and validate the API response object with a single toStrictEqual', async () => {
     if (!backendAvailable) {
       console.error('Backend is not available');
@@ -34,9 +34,7 @@ describe('App Component with API Endpoint and Checkbox', () => {
 
     // Get the checkbox and buttons using test ids
     const oneToOneButton = screen.getByTestId('many-to-many-button');
-    const checkbox: HTMLInputElement = screen.getByTestId(
-      'include-insert-data-checkbox',
-    );
+    const checkbox: HTMLInputElement = screen.getByTestId('include-insert-data-checkbox');
     const generateAppButton = screen.getByTestId('generate-app-button');
 
     // Simulate checking the checkbox if it's not already checked
@@ -79,12 +77,18 @@ describe('App Component with API Endpoint and Checkbox', () => {
           ]);
 
           expect(JSON.stringify(data)).toStrictEqual(expectedData);
+
+          const response2 = await fetch(`${backendUrl}/api/users/1/post`);
+          expect(response2.status).toBe(404);
+          
+          const response3 = await fetch(`${backendUrl}/api/users/1/posts`);
+          expect(response3.status).toBe(404);
         } else {
           console.error('Failed to fetch data. Status:', response.status);
         }
       } catch (error) {
         console.error('Error during fetch:', error);
-        throw error; // Throwing error so that the test fails
+        throw error;
       }
     });
   });

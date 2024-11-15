@@ -33,7 +33,7 @@ describe('App Component with API Endpoint and Checkbox', () => {
     render(<App />);
 
     // Get the checkbox and buttons using test ids
-    const oneToOneButton = screen.getByTestId('one-to-many-button');
+    const oneToManyButton = screen.getByTestId('one-to-many-button');
     const checkbox: HTMLInputElement = screen.getByTestId(
       'include-insert-data-checkbox',
     );
@@ -48,7 +48,7 @@ describe('App Component with API Endpoint and Checkbox', () => {
     expect(checkbox).toBeChecked();
 
     // Simulate clicking the buttons
-    fireEvent.click(oneToOneButton);
+    fireEvent.click(oneToManyButton);
     fireEvent.click(generateAppButton);
 
     // Wait for the API response and validate the result with a single `toStrictEqual`
@@ -79,6 +79,12 @@ describe('App Component with API Endpoint and Checkbox', () => {
           ]);
 
           expect(JSON.stringify(data)).toStrictEqual(expectedData);
+
+          const response2 = await fetch(`${backendUrl}/api/users/1/post`);
+          expect(response2.status).toBe(404);
+          
+          const response3 = await fetch(`${backendUrl}/api/orders/1/products`);
+          expect(response3.status).toBe(404);
         } else {
           console.error('Failed to fetch data. Status:', response.status);
         }
