@@ -25,10 +25,10 @@ const updateOrCreateSection = (
 
 const createAppServiceProviderScaffolding = ({
   schemaInfo,
-  recreateFile = true,
+  recreateFile,
 }: {
   schemaInfo: ISchemaInfo[];
-  recreateFile?: boolean;
+  recreateFile: boolean;
 }): string => {
   let content = '';
 

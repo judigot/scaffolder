@@ -436,7 +436,7 @@ function App() {
           </div>
 
           <div className="col-span-2 bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">Scaffolded Files Preview</h2>
+            <h2 className="text-xl font-bold mb-2">Files to Generate</h2>
             <FileViewer schemaInfo={getSchemaInfo()} />
           </div>
         </div>

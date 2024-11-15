@@ -205,7 +205,7 @@ const generateMockData = ({
 
           if (dbType === 'mysql') {
             const pastDate: Date = faker.date.past();
-            mockRecord[rawColumnName] = formatDateForMySQL(pastDate);
+            mockRecord[rawColumnName] = formatDateForMySQL(String(pastDate));
           }
 
           return;

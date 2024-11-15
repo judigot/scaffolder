@@ -7,18 +7,8 @@ import CopyIcon from '@mui/icons-material/ContentCopy';
 import CodeIcon from '@mui/icons-material/Code';
 import FolderIcon from '@mui/icons-material/Folder';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import _createAPIRoutes from '@/utils/backend/laravel/_createAPIRoutes';
-import _createControllers from '@/utils/backend/laravel/_createControllers';
-import _createResources from '@/utils/backend/laravel/_createResources';
-import _createModels from '@/utils/backend/laravel/_createModels';
-import _createRepositories from '@/utils/backend/laravel/_createRepositories';
-import _createAppServiceProviderScaffolding from '@/utils/backend/laravel/_createAppServiceProviderScaffolding';
-import _createServices from '@/utils/backend/laravel/_createServices';
-import _createInterfaces from '@/utils/backend/laravel/_createInterfaces';
-import _createBaseRepository from '@/utils/backend/laravel/_createBaseRepository';
-import _createBaseInterface from '@/utils/backend/laravel/_createBaseInterface';
 import { handleCopy } from '@/helpers/stringHelper';
-import _createBaseController from '@/utils/backend/laravel/_createBaseController';
+import { folderStructure } from '@/utils/backend/laravel/folderStructure';
 
 const darkTheme = createTheme({
   palette: {
@@ -47,75 +37,10 @@ export default function FileViewer({
 }) {
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
-  const fileStructure: IStructure = [
-    {
-      type: 'folder',
-      name: 'app',
-      files: [
-        {
-          type: 'folder',
-          name: 'Http',
-          files: [
-            {
-              type: 'folder',
-              name: 'Controllers',
-              files: [
-                _createBaseController(),
-                ..._createControllers(schemaInfo),
-              ],
-            },
-            {
-              type: 'folder',
-              name: 'Resources',
-              files: _createResources(schemaInfo),
-            },
-          ],
-        },
-        {
-          type: 'folder',
-          name: 'Models',
-          files: _createModels(schemaInfo),
-        },
-        {
-          type: 'folder',
-          name: 'Providers',
-          files: [
-            {
-              type: 'file',
-              name: 'AppServiceProvider.php',
-              content: _createAppServiceProviderScaffolding({ schemaInfo }),
-            },
-          ],
-        },
-        {
-          type: 'folder',
-          name: 'Repositories',
-          files: [
-            _createBaseInterface(),
-            _createBaseRepository(),
-            ..._createRepositories(schemaInfo),
-            ..._createInterfaces(schemaInfo),
-          ],
-        },
-        {
-          type: 'folder',
-          name: 'Services',
-          files: _createServices(schemaInfo),
-        },
-      ],
-    },
-    {
-      type: 'folder',
-      name: 'routes',
-      files: [
-        {
-          type: 'file',
-          name: 'api.php',
-          content: _createAPIRoutes(schemaInfo),
-        },
-      ],
-    },
-  ];
+  const fileStructure: IStructure = folderStructure({
+    schemaInfo,
+    isPreview: true,
+  });
 
   function LineCounter({ lines }: { lines: number }) {
     return (

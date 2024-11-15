@@ -2,6 +2,7 @@ import { ParsedJSONSchema } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import { formatDateForMySQL } from '@/utils/common';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 const generateSQLInserts = (data: ParsedJSONSchema): string => {
   const quote = useFormStore.getState().quote;
@@ -18,31 +19,53 @@ const generateSQLInserts = (data: ParsedJSONSchema): string => {
 
     const values = records.map((record) => {
       const mappedValues = Object.values(record).map((value) => {
+        if (value === null) {
+          return 'NULL'; // Directly handle null values
+        }
+
         if (typeof value === 'string') {
           // Check if the string is a valid date
-          if (dayjs(value).isValid()) {
-            value = new Date(value);
-          } else {
-            return `'${value.replace(/'/g, "''")}'`;
-          }
-        }
-        if (value === null) {
-          return 'NULL';
-        }
-        if (
-          value instanceof Date ||
-          (typeof value === 'string' && dayjs(value).isValid())
-        ) {
-          const dateValue = value instanceof Date ? value : new Date(value);
-          if (dbType === 'postgresql') {
-            return `'${dateValue.toISOString()}'`;
+          const isValidDate = dayjs(value).isValid();
+          if (isValidDate) {
+            dayjs.extend(utc);
+            const formattedDate = `${dayjs.utc(value).format('YYYY-MM-DDTHH:mm:ss')}.${value.split('.')[1]}`;
+            const isPostgreSQL = dbType === 'postgresql';
+            const isMySQL = dbType === 'mysql';
+
+            if (isPostgreSQL) {
+              return `'${formattedDate}'`;
+            }
+
+            if (isMySQL) {
+              return `'${formatDateForMySQL(formattedDate)}'`;
+            }
+
+            return `'${formattedDate}'`; // Fallback for other databases
           }
 
-          if (dbType === 'mysql') {
-            return `'${formatDateForMySQL(dateValue)}'`;
-          }
+          // Escape single quotes in non-date strings
+          return `'${value.replace(/'/g, "''")}'`;
         }
-        return value;
+
+        if (value instanceof Date) {
+          // Handle Date objects directly
+          dayjs.extend(utc);
+          const formattedDate = `${dayjs.utc(value).format('YYYY-MM-DDTHH:mm:ss')}.${String(value.getMilliseconds()).padStart(3, '0')}000`;
+          const isPostgreSQL = dbType === 'postgresql';
+          const isMySQL = dbType === 'mysql';
+
+          if (isPostgreSQL) {
+            return `'${formattedDate}'`;
+          }
+
+          if (isMySQL) {
+            return `'${formatDateForMySQL(formattedDate)}'`;
+          }
+
+          return `'${formattedDate}'`; // Fallback for other databases
+        }
+
+        return value; // Return value as is if it doesn't meet any of the above conditions
       });
 
       return `(${mappedValues.join(', ')})`;

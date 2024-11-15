@@ -85,7 +85,7 @@ export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
   If isDateStringFormat is true, i want all the string-formatted dates to be string:
 
   Example:
-  created_at: '2023-06-18T10:17:19.846Z',
+  created_at: '2023-06-18T10:17:19.000Z',
   It should be
   created_date: string;
   Also in the typeguard

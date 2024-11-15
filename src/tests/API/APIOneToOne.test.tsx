@@ -64,8 +64,8 @@ describe('App Component with API Endpoint and Checkbox', () => {
             user_id: 1,
             title: "John's Post",
             content: 'Lorem ipsum',
-            created_at: '2023-06-18T10:17:19.846000Z',
-            updated_at: '2024-06-18T10:17:19.846000Z',
+            created_at: '2023-06-18T10:17:19.123456Z',
+            updated_at: '2024-06-18T10:17:19.123456Z',
           });
 
           expect(JSON.stringify(data)).toStrictEqual(expectedData);
