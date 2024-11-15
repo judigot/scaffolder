@@ -2,25 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS, ownerComment } from '@/constants';
+import { createFile } from '@/helpers/stringHelper';
 
 // Determine the current directory based on platform
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (process.platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
-
-// Function to get the owner comment
-
-// Function to create the service file content by replacing placeholders with actual values
-const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
 
 // Function to create the services based on the provided relationships and framework
 const createServices = (

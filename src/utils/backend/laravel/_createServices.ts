@@ -1,6 +1,7 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
+import { createFile } from '@/helpers/stringHelper';
 
 const TEMPLATE = `<?php
 {{ownerComment}}
@@ -76,17 +77,6 @@ class {{className}}Service
     }
 }
 `;
-
-// Helper function to create the service file content by replacing placeholders
-const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
 
 const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo

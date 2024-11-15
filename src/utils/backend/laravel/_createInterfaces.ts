@@ -3,17 +3,7 @@ import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMetho
 import { generateModelImports } from '@/utils/common';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
-
-// Helper function to replace placeholders in the template
-const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
+import { createFile } from '@/helpers/stringHelper';
 
 // Function to create interfaces based on schema information and return an array of IFile
 const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {

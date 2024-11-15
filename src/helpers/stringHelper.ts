@@ -10,3 +10,13 @@ export const handleCopy = (text: string) => {
     console.error('Failed to copy text: ', err);
   });
 };
+
+export const createFile = (
+  template: string,
+  replacements: Record<string, string>,
+): string =>
+  Object.entries(replacements).reduce(
+    (result, [key, value]) =>
+      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
+    template,
+  );
