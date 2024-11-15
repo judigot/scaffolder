@@ -2,20 +2,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 
-// Helper function to create the service file content by replacing placeholders
-const createServiceFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
-
-// Function to create services based on schema information and return an array of IFile
-const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
-  const template = `<?php
+const TEMPLATE = `<?php
 {{ownerComment}}
 
 namespace App\\Services;
@@ -90,7 +77,18 @@ class {{className}}Service
 }
 `;
 
-  // Generate services based on schema information and return them as an array of IFile
+// Helper function to create the service file content by replacing placeholders
+const createFileContent = (
+  template: string,
+  replacements: Record<string, string>,
+): string =>
+  Object.entries(replacements).reduce(
+    (result, [key, value]) =>
+      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
+    template,
+  );
+
+const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -104,7 +102,7 @@ class {{className}}Service
         tableName: table,
       };
 
-      const content = createServiceFile(template, replacements);
+      const content = createFileContent(TEMPLATE, replacements);
 
       return {
         type: 'file',
