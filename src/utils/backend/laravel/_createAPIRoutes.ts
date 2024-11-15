@@ -4,7 +4,10 @@ import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMetho
 import { APP_SETTINGS, ownerComment } from '@/constants';
 
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
-  const routesWithComment = `<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
+  const routesWithComment = `<?php
+${ownerComment}
+
+use Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
   const useStatements = schemaInfo
     .map(
