@@ -27,14 +27,23 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
     const template = `<?php
 ${ownerComment}
+
 namespace App\\Repositories;
 
+use App\\Models\\${pascalCase};
 ${modelImports}
+use Illuminate\\Support\\Collection;
+use App\\Repositories\\BaseRepository;
 
-class ${pascalCase}Repository
+class ${pascalCase}Repository extends BaseRepository implements ${pascalCase}Interface
 {
-    ${modelSpecificMethods}
-}`;
+    public function __construct(${pascalCase} $model)
+    {
+        parent::__construct($model);
+    }
+${modelSpecificMethods}
+}
+`;
 
     repositories.push({
       type: 'file',
