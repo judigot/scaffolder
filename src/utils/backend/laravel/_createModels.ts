@@ -1,18 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
+import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
-import { createFile } from '@/helpers/stringHelper';
 import { getPrimaryKey } from '@/utils/common';
-
-// Global variables
-const platform: string = process.platform;
-
-let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
-if (platform === 'win32') {
-  __dirname = __dirname.substring(1);
-}
+import { IFile } from '@/components/FileViewer';
 
 const fillableExemptions = ['created_at', 'updated_at'];
 
@@ -31,7 +21,7 @@ const createFillable = (
     )
     .map((column) => column.column_name)
     .concat(foreignKeys)
-    .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+    .filter((value, index, self) => self.indexOf(value) === index);
 
   return fillableColumns.map((column) => `'${column}'`).join(',\n        ');
 };
@@ -54,7 +44,6 @@ export const createRelationships = (
     })
     .join('\n');
 
-  // Generate hasMany relationships based on the hasMany array and pivotRelationships
   const hasManyRelations = schemaInfo
     .find((table) => table.table === tableName)
     ?.hasMany.filter((relatedTable) => {
@@ -91,8 +80,6 @@ export const createRelationships = (
   const belongsToManyRelations = belongsToMany
     .map((relatedTable) => {
       const relatedTableClass = changeCase(relatedTable).pascalCase;
-
-      // Find the junction table that references both the current table and the related table
       const junctionTable = schemaInfo.find(
         (table) =>
           table.foreignTables.includes(relatedTable) &&
@@ -105,7 +92,6 @@ export const createRelationships = (
         );
       }
 
-      // Find the foreign keys in the junction table
       const primaryKey = getPrimaryKey(tableName, schemaInfo);
       const relatedTableForeignKey = getPrimaryKey(relatedTable, schemaInfo);
 
@@ -115,7 +101,7 @@ export const createRelationships = (
 
   return [
     belongsToRelations,
-    hasManyRelations, // Generate hasMany relationships correctly
+    hasManyRelations,
     hasOneRelations,
     belongsToManyRelations,
   ]
@@ -124,81 +110,82 @@ export const createRelationships = (
     .trim();
 };
 
-const createModels = (
-  schemaInfo: ISchemaInfo[],
-  framework: keyof typeof frameworkDirectories,
-  outputDir: string,
-): void => {
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      const {
+        table,
+        tableCases,
+        columnsInfo,
+        foreignKeys,
+        hasOne,
+        hasMany,
+        belongsToMany,
+      } = tableInfo;
+      const className = tableCases.pascalCase;
 
-  const templatePath = path.resolve(
-    __dirname,
-    `../../../templates/backend/${framework}/model.txt`,
-  );
-  const template = fs.existsSync(templatePath)
-    ? fs.readFileSync(templatePath, 'utf-8')
-    : null;
-  if (template == null) {
-    console.error(`Template not found: ${templatePath}`);
-    return;
-  }
+      const fillable = createFillable(columnsInfo, foreignKeys);
+      const relationships = createRelationships(
+        table,
+        foreignKeys,
+        hasOne,
+        belongsToMany,
+        schemaInfo,
+      );
+      const primaryKey =
+        columnsInfo.find((column) => column.primary_key)?.column_name !== 'id'
+          ? `protected $primaryKey = '${String(columnsInfo.find((column) => column.primary_key)?.column_name)}';`
+          : '';
 
-  schemaInfo.forEach((tableInfo) => {
-    const {
-      table,
-      tableCases: { pascalCase },
-      columnsInfo,
-      foreignKeys,
-      hasOne,
-      hasMany,
-      belongsToMany,
-      isPivot,
-    } = tableInfo;
+      const modelImports = [
+        ...new Set([
+          ...hasOne,
+          ...hasMany,
+          ...belongsToMany,
+          ...foreignKeys.map((fk) => fk.replace('_id', '')),
+        ]),
+      ]
+        .sort()
+        .map(
+          (relatedTable) =>
+            `use App\\Models\\${changeCase(relatedTable).pascalCase};`,
+        )
+        .join('\n');
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+      const template = `<?php
+${ownerComment}
 
-    const fillable = createFillable(columnsInfo, foreignKeys);
-    const relationships = createRelationships(
-      table,
-      foreignKeys,
-      hasOne,
-      belongsToMany,
-      schemaInfo,
-    );
-    const primaryKey =
-      columnsInfo.find((column) => column.primary_key)?.column_name !== 'id'
-        ? `protected $primaryKey = '${String(columnsInfo.find((column) => column.primary_key)?.column_name)}';`
-        : '';
+namespace App\\Models;
 
-    const modelImports = [
-      ...new Set([
-        ...hasOne,
-        ...hasMany,
-        ...belongsToMany,
-        ...foreignKeys.map((fk) => fk.replace('_id', '')),
-      ]),
-    ]
-      .sort()
-      .map(
-        (relatedTable) =>
-          `use App\\Models\\${changeCase(relatedTable).pascalCase};`,
-      )
-      .join('\n');
+${modelImports}
+use Illuminate\\Database\\Eloquent\\Model;
+use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
-    const content = createFile(template, {
-      ownerComment,
-      className: pascalCase,
-      tableName: table,
-      fillable,
-      relationships,
-      primaryKey,
-      modelImports,
+class ${className} extends Model
+{
+    use HasFactory;
+
+    protected $table = '${table}';
+
+    ${primaryKey}
+
+    protected $fillable = [
+        ${fillable}
+    ];
+    ${relationships}
+}
+`;
+
+      return {
+        type: 'file',
+        name: `${className}.php`,
+        content: template,
+      };
     });
-
-    const outputFilePath = path.join(outputDir, `${pascalCase}.php`);
-    fs.writeFileSync(outputFilePath, content);
-  });
 };
 
 export default createModels;

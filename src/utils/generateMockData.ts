@@ -1,6 +1,5 @@
 import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
-import { formatDateForMySQL } from '@/utils/common';
 import { faker } from '@faker-js/faker';
 
 interface IFieldInfo {
@@ -198,14 +197,22 @@ const generateMockData = ({
 
         if (fieldType === 'Date') {
           const { dbType } = useFormStore.getState();
+          const pastDate: Date = faker.date.past();
+
+          // Extract milliseconds and pad to 6 digits
+          const milliseconds = pastDate.getMilliseconds();
+          const microseconds = `${String(milliseconds)}000`.slice(0, 3); // Pad to 6 digits
 
           if (dbType === 'postgresql') {
-            mockRecord[rawColumnName] = faker.date.past().toISOString(); // Ensure proper date format
+            // Format as ISO 8601 with padded microseconds for PostgreSQL
+            const formattedDate = `${pastDate.toISOString().split('.')[0]}.${microseconds}Z`;
+            mockRecord[rawColumnName] = formattedDate;
           }
 
           if (dbType === 'mysql') {
-            const pastDate: Date = faker.date.past();
-            mockRecord[rawColumnName] = formatDateForMySQL(pastDate);
+            // Format as 'YYYY-MM-DD HH:mm:ss.ffffff' for MySQL
+            const formattedDate = `${pastDate.toISOString().replace('T', ' ').split('.')[0]}.${microseconds}`;
+            mockRecord[rawColumnName] = formattedDate;
           }
 
           return;

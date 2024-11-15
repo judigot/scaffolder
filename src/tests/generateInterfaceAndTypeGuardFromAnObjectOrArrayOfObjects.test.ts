@@ -18,8 +18,8 @@ describe('Generated Code String Comparison Tests', () => {
         username: 'johndoe',
         password:
           '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
-        created_at: '2023-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
+        created_at: '2023-06-18T10:17:19.123456Z',
+        updated_at: '2024-06-18T10:17:19.123456Z',
       },
       {
         user_id: 2,
@@ -29,8 +29,8 @@ describe('Generated Code String Comparison Tests', () => {
         username: 'janedoe',
         password:
           '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m',
-        created_at: '2024-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
+        created_at: '2024-06-18T10:17:19.123456Z',
+        updated_at: '2024-06-18T10:17:19.123456Z',
       },
     ],
     post: [
@@ -39,16 +39,16 @@ describe('Generated Code String Comparison Tests', () => {
         user_id: 1,
         title: "John's Post",
         content: 'Lorem ipsum',
-        created_at: '2023-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
+        created_at: '2023-06-18T10:17:19.123456Z',
+        updated_at: '2024-06-18T10:17:19.123456Z',
       },
       {
         post_id: 2,
         user_id: 2,
         title: "Jane's Post",
         content: null,
-        created_at: '2024-06-18T10:17:19.846Z',
-        updated_at: '2024-06-18T10:17:19.846Z',
+        created_at: '2024-06-18T10:17:19.123456Z',
+        updated_at: '2024-06-18T10:17:19.123456Z',
       },
     ],
   };
@@ -59,16 +59,16 @@ describe('Generated Code String Comparison Tests', () => {
       user_id: 1,
       title: "John's Post",
       content: 'Lorem ipsum',
-      created_at: '2023-06-18T10:17:19.846Z',
-      updated_at: '2024-06-18T10:17:19.846Z',
+      created_at: '2023-06-18T10:17:19.123456Z',
+      updated_at: '2024-06-18T10:17:19.123456Z',
     },
     {
       post_id: 2,
       user_id: 2,
       title: "Jane's Post",
       content: null,
-      created_at: '2024-06-18T10:17:19.846Z',
-      updated_at: '2024-06-18T10:17:19.846Z',
+      created_at: '2024-06-18T10:17:19.123456Z',
+      updated_at: '2024-06-18T10:17:19.123456Z',
     },
   ];
 

@@ -1,3 +1,4 @@
+import { ownerComment } from '@/constants';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import fs from 'fs';
 import path from 'path';
@@ -9,13 +10,6 @@ let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
-
-const getOwnerComment = (extension: string): string => {
-  const comments: Record<string, string> = {
-    '.ts': '/* Owner: App Scaffolder */\n',
-  };
-  return comments[extension] || '/* Owner: App Scaffolder */\n';
-};
 
 const createAPICalls = (
   schemaInfo: ISchemaInfo[],
@@ -93,8 +87,7 @@ const createAPICalls = (
         }
 
         const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
-        const ownerComment = getOwnerComment('.ts');
-        fs.writeFileSync(outputFilePath, ownerComment + apiCalls);
+        fs.writeFileSync(outputFilePath, `${ownerComment}\n${apiCalls}`);
       });
     },
   );

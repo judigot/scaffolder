@@ -1,23 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { ownerComment } from '@/constants';
+import { createFile } from '@/helpers/stringHelper';
 
 // Global variables
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 if (process.platform === 'win32') {
   __dirname = __dirname.substring(1);
 }
-
-// Helper function to create a file from a template
-export const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
-  Object.entries(replacements).reduce(
-    (result, [key, value]) =>
-      result.replace(new RegExp(`{{${key}}}`, 'g'), value),
-    template,
-  );
 
 // Define a type for file types
 type FileType = 'controller' | 'repository' | 'repositoryInterface';

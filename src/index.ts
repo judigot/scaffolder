@@ -5,25 +5,18 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import Pool from 'pg-pool';
 import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
-import createModels from '@/utils/backend/laravel/createModels';
 import clearGeneratedFiles from '@/utils/clearDirectory';
-import { frameworkDirectories, frontendDirectories } from '@/constants';
+import { frontendDirectories } from '@/constants';
 import createAPICalls from '@/utils/frontend/createAPICalls';
-import createAPIRoutes from '@/utils/backend/laravel/createAPIRoutes';
-import createControllers from '@/utils/backend/laravel/createControllers';
-import createServices from '@/utils/backend/laravel/createServices';
-import createRepositories from '@/utils/backend/laravel/createRepositories';
 import createTypescriptInterfaces from '@/utils/frontend/createTypescriptInterfaces';
-import createInterfaces from '@/utils/backend/laravel/createInterfaces';
-import createResources from '@/utils/backend/laravel/createResources';
 import { ISchemaInfo, isITableArray } from '@/interfaces/interfaces';
-import createAppServiceProviderScaffolding from '@/utils/backend/laravel/createAppServiceProviderScaffolding';
 import introspect from '@/utils/introspect';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
 import http from 'http';
 import https from 'https';
-import createBaseFile from '@/utils/backend/laravel/createBaseFile';
+import createFolderStructure from '@/utils/createFolderStructure';
+import { folderStructure } from '@/utils/backend/laravel/folderStructure';
 
 dotenv.config();
 
@@ -202,7 +195,7 @@ app.post(
     const {
       schemaInfo,
       interfaces,
-      framework: frameworkRaw,
+      framework: _frameworkRaw,
       backendDir,
       frontendDir,
       dbConnection,
@@ -210,8 +203,8 @@ app.post(
       outputOnSingleFile,
       backendUrl,
     } = req.body;
-    const framework = frameworkRaw.toLowerCase();
-    const frameworkDir = frameworkDirectories[framework];
+    // const framework = frameworkRaw.toLowerCase();
+    // const frameworkDir = frameworkDirectories[framework];
 
     void (async () => {
       const backendDirPath = path.resolve(__dirname, backendDir);
@@ -299,90 +292,94 @@ app.post(
       }
 
       try {
-        /*=====BACKEND=====*/
-        // Routes
-        const routesDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.routes)
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/${frameworkDir.routes}`,
-            );
-        createAPIRoutes(schemaInfo, routesDir);
-
-        // Services
-        const servicesDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.service)
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/${frameworkDir.service}`,
-            );
-        clearGeneratedFiles(servicesDir);
-        createServices(schemaInfo, framework, servicesDir);
-
-        // Controllers
-        const controllersDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.controller)
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/${frameworkDir.controller}`,
-            );
-        clearGeneratedFiles(controllersDir);
-        createBaseFile(framework, controllersDir, 'controller');
-        createControllers(schemaInfo, framework, controllersDir);
-
-        // Repositories
-        const repositoriesDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.repository)
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/${frameworkDir.repository}`,
-            );
-        clearGeneratedFiles(repositoriesDir);
-        createBaseFile(framework, repositoriesDir, 'repository');
-        createRepositories(schemaInfo, framework, repositoriesDir);
-
-        // Interfaces
-        const interfacesDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.interface)
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/${frameworkDir.interface}`,
-            );
-        createBaseFile(framework, interfacesDir, 'repositoryInterface');
-        createInterfaces(schemaInfo, framework, interfacesDir);
-
-        // Resources
-        const resourcesDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.resource)
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/${frameworkDir.resource}`,
-            );
-        clearGeneratedFiles(resourcesDir);
-        createResources(schemaInfo, framework, resourcesDir);
-
-        // Models
-        const modelsDir = isBackendDirValid
-          ? path.resolve(backendDirPath, frameworkDir.model)
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/${frameworkDir.model}`,
-            );
-        clearGeneratedFiles(modelsDir);
-        createModels(schemaInfo, framework, modelsDir);
-
-        const serviceProviderDir = isBackendDirValid
-          ? path.resolve(backendDirPath, 'app/Providers')
-          : path.resolve(
-              __dirname,
-              `../output/backend/${framework}/app/Providers`,
-            );
-        createAppServiceProviderScaffolding({
-          schemaInfo,
-          outputDir: serviceProviderDir,
-          recreateFile: !isBackendDirValid,
+        createFolderStructure({
+          structure: folderStructure({ schemaInfo, isPreview: true }),
+          targetDirectory: backendDirPath,
         });
 
+        /*=====BACKEND=====*/
+        // Routes
+        // const routesDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, frameworkDir.routes)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/${frameworkDir.routes}`,
+        //     );
+        // createAPIRoutes(schemaInfo, routesDir);
+
+        // // Services
+        // const servicesDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, frameworkDir.service)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/${frameworkDir.service}`,
+        //     );
+        // clearGeneratedFiles(servicesDir);
+        // createServices(schemaInfo, framework, servicesDir);
+
+        // // Controllers
+        // const controllersDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, frameworkDir.controller)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/${frameworkDir.controller}`,
+        //     );
+        // clearGeneratedFiles(controllersDir);
+        // createBaseFile(framework, controllersDir, 'controller');
+        // createControllers(schemaInfo, framework, controllersDir);
+
+        // // Repositories
+        // const repositoriesDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, frameworkDir.repository)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/${frameworkDir.repository}`,
+        //     );
+        // clearGeneratedFiles(repositoriesDir);
+        // createBaseFile(framework, repositoriesDir, 'repository');
+        // createRepositories(schemaInfo, framework, repositoriesDir);
+
+        // // Interfaces
+        // const interfacesDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, frameworkDir.interface)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/${frameworkDir.interface}`,
+        //     );
+        // createBaseFile(framework, interfacesDir, 'repositoryInterface');
+        // createInterfaces(schemaInfo, framework, interfacesDir);
+
+        // // Resources
+        // const resourcesDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, frameworkDir.resource)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/${frameworkDir.resource}`,
+        //     );
+        // clearGeneratedFiles(resourcesDir);
+        // createResources(schemaInfo, framework, resourcesDir);
+
+        // // Models
+        // const modelsDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, frameworkDir.model)
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/${frameworkDir.model}`,
+        //     );
+        // clearGeneratedFiles(modelsDir);
+        // createModels(schemaInfo, framework, modelsDir);
+
+        // const serviceProviderDir = isBackendDirValid
+        //   ? path.resolve(backendDirPath, 'app/Providers')
+        //   : path.resolve(
+        //       __dirname,
+        //       `../output/backend/${framework}/app/Providers`,
+        //     );
+        // createAppServiceProviderScaffolding({
+        //   schemaInfo,
+        //   outputDir: serviceProviderDir,
+        //   recreateFile: !isBackendDirValid,
+        // });
         /*=====BACKEND=====*/
 
         /*=====FRONTEND=====*/

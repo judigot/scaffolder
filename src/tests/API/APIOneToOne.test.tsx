@@ -21,6 +21,7 @@ beforeAll(async () => {
   }
 });
 
+// Run tests sequentially
 describe('App Component with API Endpoint and Checkbox', () => {
   // Test for the checkbox, button clicks, and API validation
   it('should check the checkbox, simulate button clicks, and validate the API response object with a single toStrictEqual', async () => {
@@ -64,11 +65,17 @@ describe('App Component with API Endpoint and Checkbox', () => {
             user_id: 1,
             title: "John's Post",
             content: 'Lorem ipsum',
-            created_at: '2023-06-18T10:17:19.846000Z',
-            updated_at: '2024-06-18T10:17:19.846000Z',
+            created_at: '2023-06-18T10:17:19.123456Z',
+            updated_at: '2024-06-18T10:17:19.123456Z',
           });
 
           expect(JSON.stringify(data)).toStrictEqual(expectedData);
+
+          const response2 = await fetch(`${backendUrl}/api/users/1/posts`);
+          expect(response2.status).toBe(404);
+
+          const response3 = await fetch(`${backendUrl}/api/orders/1/products`);
+          expect(response3.status).toBe(404);
         } else {
           console.error('Failed to fetch data. Status:', response.status);
         }

@@ -3,7 +3,6 @@ import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { changeCase } from '@/utils/identifySchema';
 import { columnMappings, typeMappings } from '@/utils/mappings';
-import dayjs from 'dayjs';
 
 export function getPrimaryKey(
   tableName: string,
@@ -35,9 +34,15 @@ export function consolidateInterfaces(
     .trimStart();
 }
 
-export const formatDateForMySQL = (date: Date): string => {
-  return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
+export const formatDateForMySQL = (date: string): string => {
+  // Extract the date and microseconds
+  const [datePart, timePart] = date.split('T');
+  const [time, microseconds] = timePart.split('.');
+  const formattedMicroseconds = microseconds.slice(0, 6) || '000000'; // Ensure 6 digits
+  
+  return `${datePart} ${time}.${formattedMicroseconds.replace('Z', '')}`;
 };
+
 
 export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
   const imports = new Set<string>();

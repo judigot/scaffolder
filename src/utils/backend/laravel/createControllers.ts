@@ -4,7 +4,7 @@ import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { changeCase } from '@/utils/identifySchema';
-import { createFile } from '@/utils/backend/laravel/createBaseFile';
+import { createFile } from '@/helpers/stringHelper';
 
 // Global variables
 const platform: string = process.platform;

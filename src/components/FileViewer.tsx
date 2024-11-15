@@ -3,6 +3,12 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
+import CopyIcon from '@mui/icons-material/ContentCopy';
+import CodeIcon from '@mui/icons-material/Code';
+import FolderIcon from '@mui/icons-material/Folder';
+import { ISchemaInfo } from '@/interfaces/interfaces';
+import { handleCopy } from '@/helpers/stringHelper';
+import { folderStructure } from '@/utils/backend/laravel/folderStructure';
 
 const darkTheme = createTheme({
   palette: {
@@ -10,113 +16,109 @@ const darkTheme = createTheme({
   },
 });
 
-interface IFile {
+export interface IFile {
   type: 'file';
   name: string;
   content: string;
 }
 
-interface IFolder {
+export interface IFolder {
   type: 'folder';
   name: string;
   files: (IFile | IFolder)[];
 }
 
-type IStructure = (IFile | IFolder)[];
+export type IStructure = (IFile | IFolder)[];
 
-const structure: IStructure = [
-  {
-    type: 'folder',
-    name: 'src',
-    files: [
-      {
-        type: 'file',
-        name: 'main.js',
-        content: 'console.log("Main file content");',
-      },
-    ],
-  },
-  {
-    type: 'file',
-    name: 'script.sh',
-    content: `#!/bin/bash
-
-GLOBAL_VARIABLE="Hello, World!"
-
-main() {
-    action1
-    action2
-}
-
-action1() {
-    echo -e "Action 1"
-}
-
-action2() {
-    echo -e "Action 2"
-}
-
-main`,
-  },
-];
-
-function renderTree(
-  items: IStructure,
-  onSelectFile: (file: IFile) => void,
-  parentId = '',
-) {
-  return items.map((item, index) => {
-    const itemId = `${parentId}-${item.name}-${String(index)}`;
-    if (item.type === 'folder') {
-      return (
-        <TreeItem key={itemId} itemId={itemId} label={item.name}>
-          {renderTree(item.files, onSelectFile, itemId)}
-        </TreeItem>
-      );
-    } else {
-      return (
-        <TreeItem
-          key={itemId}
-          itemId={itemId}
-          label={item.name}
-          onClick={() => {
-            onSelectFile(item);
-          }}
-        />
-      );
-    }
-  });
-}
-
-function LineCounter({ lines }: { lines: number }) {
-  return (
-    <div
-      className="pr-4 text-gray-500 text-right select-none"
-      aria-hidden="true"
-    >
-      {Array.from({ length: lines }, (_, index) => (
-        <pre key={index}>{index + 1}</pre>
-      ))}
-    </div>
-  );
-}
-
-export default function FileViewer() {
+export default function FileViewer({
+  schemaInfo,
+}: {
+  schemaInfo: ISchemaInfo[];
+}) {
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
+
+  const fileStructure: IStructure = folderStructure({
+    schemaInfo,
+    isPreview: true,
+  });
+
+  function LineCounter({ lines }: { lines: number }) {
+    return (
+      <div
+        className="pr-4 text-gray-500 text-right select-none"
+        aria-hidden="true"
+      >
+        {Array.from({ length: lines }, (_, index) => (
+          <pre key={index}>{index + 1}</pre>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTree(
+    items: IStructure,
+    onSelectFile: (file: IFile) => void,
+    parentId = '',
+  ) {
+    return items.map((item, index) => {
+      const itemId = `${parentId}-${item.name}-${String(index)}`;
+      if (item.type === 'folder') {
+        return (
+          <TreeItem
+            key={itemId}
+            itemId={itemId}
+            label={
+              <>
+                <FolderIcon fontSize="small" className="text-yellow-500" />
+                &nbsp;
+                {item.name}
+              </>
+            }
+          >
+            {renderTree(item.files, onSelectFile, itemId)}
+          </TreeItem>
+        );
+      } else {
+        return (
+          <TreeItem
+            key={itemId}
+            itemId={itemId}
+            label={
+              <>
+                <CodeIcon fontSize="small" className="text-yellow-500" />
+                &nbsp;
+                {item.name}
+              </>
+            }
+            onClick={() => {
+              onSelectFile(item);
+            }}
+          />
+        );
+      }
+    });
+  }
 
   return (
     <ThemeProvider theme={darkTheme}>
       <div className="grid grid-cols-3 h-screen text-white">
-        <div className="col-span-1 bg-gray-800 p-4">
+        <div className="col-span-1 bg-gray-800 p-4 select-none">
           <SimpleTreeView>
-            {renderTree(structure, setSelectedFile)}
+            {renderTree(fileStructure, setSelectedFile)}
           </SimpleTreeView>
         </div>
         <div className="col-span-2 bg-gray-900 p-4">
-          {selectedFile ? (
+          {selectedFile && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <span className="">{selectedFile.name}</span>
+                <CopyIcon
+                  onClick={() => {
+                    handleCopy(selectedFile.content);
+                  }}
+                  fontSize="small"
+                  className="cursor-pointer"
+                />
                 <button
                   onClick={() => {
                     setSelectedFile(null);
@@ -139,7 +141,9 @@ export default function FileViewer() {
                 }
               </div>
             </div>
-          ) : (
+          )}
+
+          {!selectedFile && (
             <div className="text-gray-400 text-center">No file selected</div>
           )}
         </div>

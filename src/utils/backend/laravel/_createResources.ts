@@ -1,8 +1,7 @@
-import fs from 'fs';
-import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { changeCase } from '@/utils/identifySchema';
+import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
 
 /* Resource Generation Rules:
@@ -26,16 +25,29 @@ import { createFile } from '@/helpers/stringHelper';
    - Ensure that generated resource files use consistent naming conventions and follow the standard resource structure.
 */
 
-// Resolve platform-specific paths
-const platform: string = process.platform;
-let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
-if (platform === 'win32') {
-  __dirname = __dirname.substring(1);
+const TEMPLATE = `<?php
+{{ownerComment}}
+
+namespace App\\Http\\Resources;
+
+use Illuminate\\Http\\Resources\\Json\\JsonResource;
+
+class {{className}}Resource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @param \\Illuminate\\Http\\Request $request
+     * @return array
+     */
+    public function toArray($request)
+    {
+        return [
+{{attributes}}
+        ];
+    }
 }
-
-// Function to get the owner comment for the resource file
-
-// Function to create a file with dynamic replacements
+`;
 
 // Function to generate attributes for the resource file
 const generateAttributes = (schemaInfo: ISchemaInfo): string => {
@@ -53,14 +65,14 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
     // Generate attributes only for pivot relationships
     relationshipAttributes = pivotRelationships.map(({ relatedTable }) => {
       const relatedClass = changeCase(relatedTable).pascalCase;
-      const relationName = changeCase(relatedTable).plural;
+      const relationName = relatedTable + 's';
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
   } else if (hasMany.length > 0 && childTables.length > 0) {
     // Generate attributes for hasMany and childTables if no pivotRelationships exist
     relationshipAttributes = hasMany.map((relatedTable) => {
       const relatedClass = changeCase(relatedTable).pascalCase;
-      const relationName = changeCase(relatedTable).plural;
+      const relationName = relatedTable + 's';
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
   }
@@ -69,46 +81,32 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
   return [...columns, ...relationshipAttributes].join('\n');
 };
 
-const createResources = (
-  schemaInfo: ISchemaInfo[],
-  framework: string,
-  outputDir: string,
-): void => {
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+const createResources = (schemaInfo: ISchemaInfo[]): IFile[] => {
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      const { tableCases } = tableInfo;
+      const className = tableCases.pascalCase;
 
-  const templatePath = path.resolve(
-    __dirname,
-    `../../../templates/backend/${framework}/resource.txt`,
-  );
-  const template = fs.existsSync(templatePath)
-    ? fs.readFileSync(templatePath, 'utf-8')
-    : null;
+      const attributes = generateAttributes(tableInfo);
 
-  if (template == null) {
-    console.error(`Template not found: ${templatePath}`);
-    return;
-  }
+      const replacements = {
+        ownerComment,
+        className,
+        attributes,
+      };
 
-  schemaInfo.forEach((tableInfo) => {
-    const {
-      tableCases: { pascalCase },
-      isPivot,
-    } = tableInfo;
+      const content = createFile(TEMPLATE, replacements);
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
-
-    const attributes = generateAttributes(tableInfo);
-
-    const content = createFile(template, {
-      ownerComment,
-      className: pascalCase,
-      attributes,
+      return {
+        type: 'file',
+        name: `${className}Resource.php`,
+        content,
+      };
     });
-
-    const outputFilePath = path.join(outputDir, `${pascalCase}Resource.php`);
-    fs.writeFileSync(outputFilePath, content);
-  });
 };
 
 export default createResources;
