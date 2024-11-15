@@ -2,6 +2,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { changeCase } from '@/utils/identifySchema';
 import { IFile } from '@/components/FileViewer';
+import { createFile } from '@/helpers/stringHelper';
 
 /* Resource Generation Rules:
 
@@ -23,6 +24,30 @@ import { IFile } from '@/components/FileViewer';
    
    - Ensure that generated resource files use consistent naming conventions and follow the standard resource structure.
 */
+
+const TEMPLATE = `<?php
+{{ownerComment}}
+
+namespace App\\Http\\Resources;
+
+use Illuminate\\Http\\Resources\\Json\\JsonResource;
+
+class {{className}}Resource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @param \\Illuminate\\Http\\Request $request
+     * @return array
+     */
+    public function toArray($request)
+    {
+        return [
+{{attributes}}
+        ];
+    }
+}
+`;
 
 // Function to generate attributes for the resource file
 const generateAttributes = (schemaInfo: ISchemaInfo): string => {
@@ -57,51 +82,31 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
 };
 
 const createResources = (schemaInfo: ISchemaInfo[]): IFile[] => {
-  const resources: IFile[] = [];
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      const { tableCases } = tableInfo;
+      const className = tableCases.pascalCase;
 
-  schemaInfo.forEach((tableInfo) => {
-    const {
-      tableCases: { pascalCase },
-      isPivot,
-    } = tableInfo;
+      const attributes = generateAttributes(tableInfo);
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+      const replacements = {
+        ownerComment,
+        className,
+        attributes,
+      };
 
-    const attributes = generateAttributes(tableInfo);
+      const content = createFile(TEMPLATE, replacements);
 
-    const template = `<?php
-${ownerComment}
-
-namespace App\\Http\\Resources;
-
-use Illuminate\\Http\\Resources\\Json\\JsonResource;
-
-class ${pascalCase}Resource extends JsonResource
-{
-    /**
-     * Transform the resource into an array.
-     *
-     * @param \\Illuminate\\Http\\Request $request
-     * @return array
-     */
-    public function toArray($request)
-    {
-        return [
-${attributes}
-        ];
-    }
-}
-`;
-
-    resources.push({
-      type: 'file',
-      name: `${pascalCase}Resource.php`,
-      content: template,
+      return {
+        type: 'file',
+        name: `${className}Resource.php`,
+        content,
+      };
     });
-  });
-
-  return resources;
 };
 
 export default createResources;

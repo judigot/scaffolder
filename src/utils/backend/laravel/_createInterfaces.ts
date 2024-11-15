@@ -42,8 +42,8 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
         ownerComment,
         className,
         tableName: table,
-        modelSpecificMethods,
         modelImports,
+        modelSpecificMethods,
       };
 
       const content = createFile(TEMPLATE, replacements);

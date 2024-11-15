@@ -62,10 +62,11 @@ class AppServiceProvider extends ServiceProvider
   }
 
   const importStatements = schemaInfo
-    .map(({ tableCases: { pascalCase }, isPivot }) => {
+    .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
-
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map(({ tableCases: { pascalCase } }) => {
       const className = pascalCase;
       return `use App\\Repositories\\${className}Repository;\nuse App\\Repositories\\${className}Interface;`;
     })
@@ -73,10 +74,11 @@ class AppServiceProvider extends ServiceProvider
     .join('\n');
 
   const bindStatements = schemaInfo
-    .map(({ tableCases: { pascalCase }, isPivot }) => {
+    .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
-
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map(({ tableCases: { pascalCase } }) => {
       const className = pascalCase;
       return `$this->app->bind(${className}Interface::class, ${className}Repository::class);`;
     })

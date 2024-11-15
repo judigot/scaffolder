@@ -1,8 +1,24 @@
 import { IFile } from '@/components/FileViewer';
 import { APP_SETTINGS, ownerComment } from '@/constants';
+import { createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { changeCase } from '@/utils/identifySchema';
+
+const TEMPLATE = `<?php
+{{ownerComment}}
+
+namespace App\\Http\\Controllers;
+
+use App\\Models\\{{className}};
+use App\\Repositories\\{{className}}Interface;
+use Illuminate\\Http\\Request;
+
+class {{className}}Controller extends BaseController
+{
+{{controllerMethods}}
+}
+`;
 
 const createControllerMethods = ({
   tableName,
@@ -37,44 +53,35 @@ const createControllers = (
   schemaInfo: ISchemaInfo[],
   // framework: keyof typeof frameworkDirectories,
 ): IFile[] => {
-  const controllers: IFile[] = [];
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      const { table, tableCases } = tableInfo;
+      const className = tableCases.pascalCase;
 
-  schemaInfo.forEach(({ table, isPivot }) => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
+      const controllerMethods = createControllerMethods({
+        tableName: table,
+        schemaInfo,
+      });
 
-    const className = schemaInfo.find((rel) => rel.table === table)?.tableCases
-      .pascalCase;
-    if (className == null) return;
+      const replacements = {
+        ownerComment,
+        className,
+        tableName: table,
+        controllerMethods,
+      };
 
-    const controllerMethods = createControllerMethods({
-      tableName: table,
-      schemaInfo,
+      const content = createFile(TEMPLATE, replacements);
+
+      return {
+        type: 'file',
+        name: `${className}Controller.php`,
+        content,
+      };
     });
-
-    const template = `<?php
-${ownerComment}
-
-namespace App\\Http\\Controllers;
-
-use App\\Models\\${className};
-use App\\Repositories\\${className}Interface;
-use Illuminate\\Http\\Request;
-
-class ${className}Controller extends BaseController
-{
-${controllerMethods}
-}
-`;
-
-    controllers.push({
-      type: 'file',
-      name: `${className}Controller.php`,
-      content: template,
-    });
-  });
-
-  return controllers;
 };
 
 export default createControllers;

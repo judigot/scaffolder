@@ -3,56 +3,61 @@ import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMetho
 import { generateModelImports } from '@/utils/common';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
+import { createFile } from '@/helpers/stringHelper';
 
-const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
-  const repositories: IFile[] = [];
-
-  schemaInfo.forEach((tableInfo) => {
-    const {
-      table,
-      tableCases: { pascalCase },
-      isPivot,
-    } = tableInfo;
-
-    // Skip generation for pivot tables if specified in settings
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
-
-    const modelSpecificMethods = generateModelSpecificMethods({
-      targetTable: table,
-      schemaInfo,
-      fileToGenerate: 'repository',
-    });
-    const modelImports = generateModelImports(tableInfo);
-
-    const template = `<?php
-${ownerComment}
+const TEMPLATE = `<?php
+{{ownerComment}}
 
 namespace App\\Repositories;
 
-use App\\Models\\${pascalCase};
-${modelImports}
+use App\\Models\\{{className}};
+{{modelImports}}
 use Illuminate\\Support\\Collection;
 use App\\Repositories\\BaseRepository;
 
-class ${pascalCase}Repository extends BaseRepository implements ${pascalCase}Interface
+class {{className}}Repository extends BaseRepository implements {{className}}Interface
 {
-    public function __construct(${pascalCase} $model)
+    public function __construct({{className}} $model)
     {
         parent::__construct($model);
     }
-${modelSpecificMethods}
+{{modelSpecificMethods}}
 }
 `;
 
-    repositories.push({
-      type: 'file',
-      name: `${pascalCase}Repository.php`,
-      content: template,
-    });
-  });
+const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      const { table, tableCases } = tableInfo;
+      const className = tableCases.pascalCase;
 
-  return repositories;
+      const modelSpecificMethods = generateModelSpecificMethods({
+        targetTable: table,
+        schemaInfo,
+        fileToGenerate: 'repository',
+      });
+      const modelImports = generateModelImports(tableInfo);
+
+      const replacements = {
+        ownerComment,
+        className,
+        tableName: table,
+        modelImports,
+        modelSpecificMethods,
+      };
+
+      const content = createFile(TEMPLATE, replacements);
+
+      return {
+        type: 'file',
+        name: `${className}Repository.php`,
+        content,
+      };
+    });
 };
 
 export default createRepositories;

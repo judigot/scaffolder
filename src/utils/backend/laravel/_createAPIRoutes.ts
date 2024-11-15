@@ -1,14 +1,20 @@
-import { convertToUrlFormat } from '@/helpers/stringHelper';
+import { convertToUrlFormat, createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 
+const TEMPLATE = `<?php
+{{ownerComment}}
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\Route;
+
+{{useStatements}}
+Route::middleware('api')->group(function () {
+{{customRoutes}}
+});
+`;
+
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
-  const routesWithComment = `<?php
-${ownerComment}
-
-use Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
-
   const useStatements = schemaInfo
     .map(
       ({ tableCases: { pascalCase } }) =>
@@ -17,24 +23,26 @@ use Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
     .join('');
 
   const customRoutes = schemaInfo
-    .map(
-      ({ table, tableCases: { plural, pascalCase }, columnsInfo, isPivot }) => {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (APP_SETTINGS.excludePivotTableFiles && isPivot) return '';
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      const { table, tableCases, columnsInfo } = tableInfo;
+      const { pascalCase, plural } = tableCases;
 
-        const routeName = convertToUrlFormat(plural);
-        const className = pascalCase;
-        const firstColumn = columnsInfo[0]?.column_name || 'id';
-        const secondColumn = columnsInfo[1]?.column_name || 'id';
+      const routeName = convertToUrlFormat(plural);
+      const className = pascalCase;
+      const firstColumn = columnsInfo[0]?.column_name || 'id';
+      const secondColumn = columnsInfo[1]?.column_name || 'id';
 
-        const modelSpecificRoutes = generateModelSpecificMethods({
-          targetTable: table,
-          schemaInfo,
-          fileToGenerate: 'routes',
-        });
+      const modelSpecificRoutes = generateModelSpecificMethods({
+        targetTable: table,
+        schemaInfo,
+        fileToGenerate: 'routes',
+      });
 
-        // Additional custom routes for each controller
-        const customRoutesForController = `
+      const customRoutesForController = `
         ${modelSpecificRoutes}
         // GET routes for retrieving data
 
@@ -135,16 +143,20 @@ use Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
         Route::post('${routeName}/group-by', [${className}Controller::class, 'groupBy']);
       `;
 
-        return `
+      return `
         // Custom routes for ${className}${customRoutesForController}
         // Resource routes for ${className}
         Route::resource('${routeName}', ${className}Controller::class);`;
-      },
-    )
+    })
     .join('\n');
 
-  const content = `${routesWithComment}\n${useStatements}\nRoute::middleware('api')->group(function () {\n${customRoutes}\n});\n`;
+  const replacements = {
+    ownerComment,
+    useStatements,
+    customRoutes,
+  };
 
-  return content;
+  return createFile(TEMPLATE, replacements);
 };
+
 export default createAPIRoutes;

@@ -112,21 +112,21 @@ export const createRelationships = (
 
 const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
-
     .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
       const {
         table,
-        tableCases: { pascalCase },
+        tableCases,
         columnsInfo,
         foreignKeys,
         hasOne,
         hasMany,
         belongsToMany,
       } = tableInfo;
+      const className = tableCases.pascalCase;
 
       const fillable = createFillable(columnsInfo, foreignKeys);
       const relationships = createRelationships(
@@ -165,7 +165,7 @@ ${modelImports}
 use Illuminate\\Database\\Eloquent\\Model;
 use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
-class ${pascalCase} extends Model
+class ${className} extends Model
 {
     use HasFactory;
 
@@ -182,7 +182,7 @@ class ${pascalCase} extends Model
 
       return {
         type: 'file',
-        name: `${pascalCase}.php`,
+        name: `${className}.php`,
         content: template,
       };
     });
