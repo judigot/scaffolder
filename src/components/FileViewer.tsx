@@ -3,6 +3,7 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
+import CopyIcon from '@mui/icons-material/ContentCopy';
 import CodeIcon from '@mui/icons-material/Code';
 import FolderIcon from '@mui/icons-material/Folder';
 import { ISchemaInfo } from '@/interfaces/interfaces';
@@ -16,6 +17,8 @@ import _createServices from '@/utils/backend/laravel/_createServices';
 import _createInterfaces from '@/utils/backend/laravel/_createInterfaces';
 import _createBaseRepository from '@/utils/backend/laravel/_createBaseRepository';
 import _createBaseInterface from '@/utils/backend/laravel/_createBaseInterface';
+import { handleCopy } from '@/helpers/stringHelper';
+import _createBaseController from '@/utils/backend/laravel/_createBaseController';
 
 const darkTheme = createTheme({
   palette: {
@@ -57,7 +60,7 @@ export default function FileViewer({
               type: 'folder',
               name: 'Controllers',
               files: [
-                _createBaseRepository(),
+                _createBaseController(),
                 ..._createControllers(schemaInfo),
               ],
             },
@@ -184,6 +187,9 @@ export default function FileViewer({
             <div>
               <div className="flex justify-between items-center mb-4">
                 <span className="">{selectedFile.name}</span>
+                <CopyIcon onClick={() => {
+                  handleCopy(selectedFile.content)
+                }} fontSize="small" className="cursor-pointer" />
                 <button
                   onClick={() => {
                     setSelectedFile(null);

@@ -1,9 +1,9 @@
 import { IFile } from '@/components/FileViewer';
+import { ownerComment } from '@/constants';
 
 const createBaseController = (): IFile => {
-  const content = `
-  <?php
-{{ownerComment}}
+  const content = `<?php
+${ownerComment}
 
 namespace App\\Http\\Controllers;
 
