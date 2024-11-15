@@ -158,21 +158,27 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
       const template = `<?php
 ${ownerComment}
+
 namespace App\\Models;
 
-use Illuminate\\Database\\Eloquent\\Model;
-
 ${modelImports}
+use Illuminate\\Database\\Eloquent\\Model;
+use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
 class ${pascalCase} extends Model
 {
+    use HasFactory;
+
+    protected $table = '${table}';
+
+    ${primaryKey}
+
     protected $fillable = [
         ${fillable}
     ];
-    ${primaryKey}
-
     ${relationships}
-}`;
+}
+`;
 
       return {
         type: 'file',
