@@ -242,8 +242,10 @@ app.post(
           }
         });
       };
-      const isBackendDirValid = fs.existsSync(backendDirPath);
-      const isFrontendDirValid = fs.existsSync(frontendDirPath);
+      const isBackendDirValid =
+        backendDir !== '' && fs.existsSync(backendDirPath);
+      const isFrontendDirValid =
+        frontendDir !== '' && fs.existsSync(frontendDirPath);
 
       if (SQLSchema != null) {
         try {
@@ -288,7 +290,9 @@ app.post(
       try {
         createFolderStructure({
           structure: folderStructure({ schemaInfo, isPreview: true }),
-          targetDirectory: backendDirPath,
+          targetDirectory: isBackendDirValid
+            ? backendDirPath
+            : path.resolve(__dirname, `../output/backend`),
         });
 
         /*=====BACKEND=====*/
