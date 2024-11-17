@@ -91,11 +91,9 @@ export function isIPostArray(data: unknown): data is IPost[] {
   return Array.isArray(data) && data.every(isIPost);
 }`;
 
-    if (typeof tsInterfaces === 'string') {
-      expect(normalizeWhitespace(tsInterfaces)).toStrictEqual(
-        normalizeWhitespace(expectedOutput),
-      );
-    }
+    expect(
+      normalizeWhitespace(Object.values(tsInterfaces).join('')),
+    ).toStrictEqual(normalizeWhitespace(expectedOutput));
   });
 
   it('should generate correct TypeScript interfaces and type guards for one-to-many relationship', () => {
@@ -176,11 +174,9 @@ export function isIPostArray(data: unknown): data is IPost[] {
   return Array.isArray(data) && data.every(isIPost);
 }`;
 
-    if (typeof tsInterfaces === 'string') {
-      expect(normalizeWhitespace(tsInterfaces)).toStrictEqual(
-        normalizeWhitespace(expectedOutput),
-      );
-    }
+    expect(
+      normalizeWhitespace(Object.values(tsInterfaces).join('')),
+    ).toStrictEqual(normalizeWhitespace(expectedOutput));
   });
 
   it('should generate correct TypeScript interfaces and type guards for POS', () => {
@@ -274,10 +270,8 @@ export function isIOrderProductArray(data: unknown): data is IOrderProduct[] {
   return Array.isArray(data) && data.every(isIOrderProduct);
 }`;
 
-    if (typeof tsInterfaces === 'string') {
-      expect(normalizeWhitespace(tsInterfaces)).toStrictEqual(
-        normalizeWhitespace(expectedOutput),
-      );
-    }
+    expect(
+      normalizeWhitespace(Object.values(tsInterfaces).join('')),
+    ).toStrictEqual(normalizeWhitespace(expectedOutput));
   });
 });
