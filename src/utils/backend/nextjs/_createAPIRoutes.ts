@@ -3,32 +3,56 @@ import { createFile } from '@/helpers/stringHelper';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 
-const TEMPLATE = `
+const ROUTE_TEMPLATE = `
 {{ownerComment}}
 
-import { NextRequest, NextResponse } from 'next/server';
-
-{{useStatements}}
+import GetHandler from './GET';
+import PostHandler from './POST';
+import PatchHandler from './PATCH';
+import DeleteHandler from './DELETE';
 
 export async function GET(req: NextRequest) {
-  // Fetch all {{pluralName}}
-  return NextResponse.json({ message: 'GET {{pluralName}}' });
+  return GetHandler(req);
 }
 
 export async function POST(req: NextRequest) {
-  // Create a new {{singularName}}
-  return NextResponse.json({ message: 'POST {{singularName}}' });
+  return PostHandler(req);
 }
 
 export async function PATCH(req: NextRequest) {
-  // Update an existing {{singularName}}
-  return NextResponse.json({ message: 'PATCH {{singularName}}' });
+  return PatchHandler(req);
 }
 
 export async function DELETE(req: NextRequest) {
-  // Delete a {{singularName}}
-  return NextResponse.json({ message: 'DELETE {{singularName}}' });
+  return DeleteHandler(req);
 }
+`;
+
+const HANDLER_TEMPLATE = `
+{{ownerComment}}
+
+import { NextRequest, NextResponse } from 'next/server';
+import { {{tableName}} } from '@prisma/client';
+import DatatypeParser from '@/utils/DataTypeParser';
+import { prisma } from '@/prisma/DatabaseClient';
+
+interface Response extends {{tableName}} {}
+
+const {{handlerName}} = async (req: NextRequest) => {
+  try {
+    const result: Response[] = await prisma.{{tableName}}.{{operation}}();
+    return NextResponse.json(DatatypeParser(result));
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({
+      error: error,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+export default {{handlerName}};
 `;
 
 const _createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
@@ -39,7 +63,8 @@ const _createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
     )
     .map((tableInfo) => {
       const {
-        tableCases: { plural, phraseCase, pascalCase },
+        table,
+        tableCases: { plural },
       } = tableInfo;
 
       return {
@@ -49,80 +74,49 @@ const _createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
           {
             type: 'file',
             name: 'route.ts',
-            content: createFile(TEMPLATE, {
+            content: createFile(ROUTE_TEMPLATE, {
               ownerComment,
-              useStatements: `// Placeholder for imports related to ${pascalCase}`,
-              pluralName: plural,
-              singularName: phraseCase,
             }),
           },
           {
             type: 'file',
             name: 'GET.ts',
-            content: createFile(
-              `
-{{ownerComment}}
-
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function GET(req: NextRequest) {
-  // Fetch all {{pluralName}}
-  return NextResponse.json({ message: 'GET {{pluralName}}' });
-}
-              `,
-              { ownerComment, pluralName: plural },
-            ),
+            content: createFile(HANDLER_TEMPLATE, {
+              ownerComment,
+              tableName: table,
+              handlerName: 'GetHandler',
+              operation: 'findMany',
+            }),
           },
           {
             type: 'file',
             name: 'POST.ts',
-            content: createFile(
-              `
-{{ownerComment}}
-
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function POST(req: NextRequest) {
-  // Create a new {{singularName}}
-  return NextResponse.json({ message: 'POST {{singularName}}' });
-}
-              `,
-              { ownerComment, singularName: phraseCase },
-            ),
+            content: createFile(HANDLER_TEMPLATE, {
+              ownerComment,
+              tableName: table,
+              handlerName: 'PostHandler',
+              operation: 'create',
+            }),
           },
           {
             type: 'file',
             name: 'PATCH.ts',
-            content: createFile(
-              `
-{{ownerComment}}
-
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function PATCH(req: NextRequest) {
-  // Update an existing {{singularName}}
-  return NextResponse.json({ message: 'PATCH {{singularName}}' });
-}
-              `,
-              { ownerComment, singularName: phraseCase },
-            ),
+            content: createFile(HANDLER_TEMPLATE, {
+              ownerComment,
+              tableName: table,
+              handlerName: 'PatchHandler',
+              operation: 'update',
+            }),
           },
           {
             type: 'file',
             name: 'DELETE.ts',
-            content: createFile(
-              `
-{{ownerComment}}
-
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function DELETE(req: NextRequest) {
-  // Delete a {{singularName}}
-  return NextResponse.json({ message: 'DELETE {{singularName}}' });
-}
-              `,
-              { ownerComment, singularName: phraseCase },
-            ),
+            content: createFile(HANDLER_TEMPLATE, {
+              ownerComment,
+              tableName: table,
+              handlerName: 'DeleteHandler',
+              operation: 'delete',
+            }),
           },
         ],
       };
