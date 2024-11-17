@@ -22,7 +22,6 @@ beforeAll(async () => {
 });
 
 describe('App Component with API Endpoint and Checkbox', () => {
-  // Test for the checkbox, button clicks, and API validation
   it('should check the checkbox, simulate button clicks, and validate the API response object with a single toStrictEqual', async () => {
     if (!backendAvailable) {
       console.error('Backend is not available');
@@ -34,18 +33,18 @@ describe('App Component with API Endpoint and Checkbox', () => {
 
     // Get the checkbox and buttons using test ids
     const oneToManyButton = screen.getByTestId('one-to-many-button');
-    const checkbox: HTMLInputElement = screen.getByTestId(
+    const includeInsertDataCheckbox: HTMLInputElement = screen.getByTestId(
       'include-insert-data-checkbox',
     );
     const generateAppButton = screen.getByTestId('generate-app-button');
 
     // Simulate checking the checkbox if it's not already checked
-    if (!checkbox.checked) {
-      fireEvent.click(checkbox);
+    if (!includeInsertDataCheckbox.checked) {
+      fireEvent.click(includeInsertDataCheckbox);
     }
 
     // Verify the checkbox is checked
-    expect(checkbox).toBeChecked();
+    expect(includeInsertDataCheckbox).toBeChecked();
 
     // Simulate clicking the buttons
     fireEvent.click(oneToManyButton);
@@ -82,7 +81,7 @@ describe('App Component with API Endpoint and Checkbox', () => {
 
           const response2 = await fetch(`${backendUrl}/api/users/1/post`);
           expect(response2.status).toBe(404);
-          
+
           const response3 = await fetch(`${backendUrl}/api/orders/1/products`);
           expect(response3.status).toBe(404);
         } else {
