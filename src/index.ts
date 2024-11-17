@@ -271,14 +271,8 @@ app.post(
                 PREPARE stmt FROM @sql;
                 EXECUTE stmt;
                 DEALLOCATE PREPARE stmt;
-              
-              
-                -- Re-enable foreign key checks
 
-                -- Re-enable foreign key checks
                 SET FOREIGN_KEY_CHECKS = 1;
-              
-                -- Execute the provided SQL schema to create new tables
                 ${SQLSchema}
                 `,
             );
