@@ -8,7 +8,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import FolderIcon from '@mui/icons-material/Folder';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { handleCopy } from '@/helpers/stringHelper';
-import { folderStructure } from '@/utils/backend/laravel/folderStructure';
+import { folderStructure } from '@/utils/backend/nextjs/folderStructure';
 
 const darkTheme = createTheme({
   palette: {
