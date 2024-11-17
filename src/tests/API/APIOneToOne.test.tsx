@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '@/App'; // Assuming your App component contains the buttons and checkbox
+import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 
 const backendUrl = 'http://127.0.0.1:8000';
 
@@ -57,15 +58,7 @@ describe('App Component with API Endpoint and Checkbox', () => {
         if (response.ok) {
           const data: unknown = await response.json();
 
-          // Verify the entire API response object with a single `toStrictEqual` using JSON.stringify
-          const expectedData = JSON.stringify({
-            post_id: 1,
-            user_id: 1,
-            title: "John's Post",
-            content: 'Lorem ipsum',
-            created_at: '2023-06-18T10:17:19.123456Z',
-            updated_at: '2024-06-18T10:17:19.123456Z',
-          });
+          const expectedData = JSON.stringify(usersPostOneToOneSchema.post[0]);
 
           expect(JSON.stringify(data)).toStrictEqual(expectedData);
 
