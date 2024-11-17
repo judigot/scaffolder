@@ -257,24 +257,24 @@ app.post(
             await executeMySQL(
               dbConnection,
               `
+                USE $DB_NAME;
+
                 SET FOREIGN_KEY_CHECKS = 0;
-                
-                -- Prepare the drop statements for all tables in the specified database
-                SET @drop := (
-                  SELECT CONCAT(
-                    'DROP TABLE IF EXISTS \`',
-                    GROUP_CONCAT(table_name SEPARATOR '\`, \`'),
-                    '\`;'
-                  )
-                  FROM information_schema.tables
-                  WHERE table_schema = '${extractDBConnectionInfo(dbConnection).dbName}'
-                );
-              
-                -- Execute the drop statements
-                PREPARE stmt FROM @drop;
+
+                SET @tables = NULL;
+                SELECT GROUP_CONCAT('\`', table_name, '\`') INTO @tables
+                FROM information_schema.tables 
+                WHERE table_schema = (SELECT DATABASE());
+
+                SET @tables = IFNULL(@tables, 'dummy');
+                SET @sql = CONCAT('DROP TABLE IF EXISTS ', @tables);
+                PREPARE stmt FROM @sql;
                 EXECUTE stmt;
                 DEALLOCATE PREPARE stmt;
               
+              
+                -- Re-enable foreign key checks
+
                 -- Re-enable foreign key checks
                 SET FOREIGN_KEY_CHECKS = 1;
               
