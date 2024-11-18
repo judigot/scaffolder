@@ -1,5 +1,6 @@
 import { IStructure } from '@/components/FileViewer';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import createControllers from '@/utils/backend/nextjs/createControllers';
 import createAPIRoutes from '@/utils/backend/nextjs/createAPIRoutes';
 import createDatabaseClient from '@/utils/backend/nextjs/createDatabaseClient';
 import createDataTypeParser from '@/utils/backend/nextjs/createDataTypeParser';
@@ -23,6 +24,17 @@ export function folderStructure({
               type: 'folder',
               name: 'api',
               files: createAPIRoutes(schemaInfo),
+            },
+            {
+              type: 'folder',
+              name: 'Http',
+              files: [
+                {
+                  type: 'folder',
+                  name: 'Controllers',
+                  files: createControllers(schemaInfo),
+                },
+              ],
             },
           ],
         },
