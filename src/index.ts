@@ -16,7 +16,7 @@ import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
 import http from 'http';
 import https from 'https';
 import createFolderStructure from '@/utils/createFolderStructure';
-import { folderStructure } from '@/utils/backend/laravel/folderStructure';
+import { folderStructure } from '@/utils/backend/nextjs/folderStructure';
 
 dotenv.config();
 

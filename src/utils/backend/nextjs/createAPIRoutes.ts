@@ -10,6 +10,7 @@ import GetHandler from './GET';
 import PostHandler from './POST';
 import PatchHandler from './PATCH';
 import DeleteHandler from './DELETE';
+import { NextRequest } from 'next/server';
 
 export async function GET(req: NextRequest) {
   return GetHandler(req);
@@ -55,7 +56,7 @@ const {{handlerName}} = async (req: NextRequest) => {
 export default {{handlerName}};
 `;
 
-const _createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
+const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
   return schemaInfo
     .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -123,4 +124,4 @@ const _createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
     });
 };
 
-export default _createAPIRoutes;
+export default createAPIRoutes;

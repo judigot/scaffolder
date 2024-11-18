@@ -1,6 +1,8 @@
 import { IStructure } from '@/components/FileViewer';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import _createAPIRoutes from '@/utils/backend/nextjs/_createAPIRoutes';
+import createAPIRoutes from '@/utils/backend/nextjs/createAPIRoutes';
+import createDatabaseClient from '@/utils/backend/nextjs/createDatabaseClient';
+import createDataTypeParser from '@/utils/backend/nextjs/createDataTypeParser';
 
 export function folderStructure({
   schemaInfo,
@@ -11,12 +13,28 @@ export function folderStructure({
   const fileStructure: IStructure = [
     {
       type: 'folder',
-      name: 'app',
+      name: 'src',
       files: [
         {
           type: 'folder',
-          name: 'api',
-          files: _createAPIRoutes(schemaInfo),
+          name: 'app',
+          files: [
+            {
+              type: 'folder',
+              name: 'api',
+              files: createAPIRoutes(schemaInfo),
+            },
+          ],
+        },
+        {
+          type: 'folder',
+          name: 'prisma',
+          files: [createDatabaseClient()],
+        },
+        {
+          type: 'folder',
+          name: 'utils',
+          files: [createDataTypeParser()],
         },
       ],
     },
