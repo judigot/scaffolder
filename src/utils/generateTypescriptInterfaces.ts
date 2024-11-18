@@ -18,7 +18,7 @@ const generateTypescriptInterfaces = ({
       .map((column) =>
         generateColumnDefinition({
           columnName: column,
-          columnType: 'ts-interfaces',
+          columnType: 'typescript',
         }),
       )
       .join('\n  ');
@@ -58,7 +58,7 @@ const generateTypescriptInterfaces = ({
             unique: false,
             foreign_key: null,
           },
-          'ts-interfaces',
+          'typescript',
         );
 
         // Create a type check for Date

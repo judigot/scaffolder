@@ -1,6 +1,7 @@
 import { format as formatSQL } from 'sql-formatter';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import {
+  determineSQLDatabaseType,
   generateColumnDefinition,
   getForeignKeyConstraints,
 } from '@/utils/common';
@@ -34,11 +35,13 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   return formatSQL(
     schemaInfo
       .map(({ table, columnsInfo }) => {
+        const dbConnection = useFormStore.getState().formData.dbConnection;
+        const dbType = determineSQLDatabaseType(dbConnection);
         const columns = columnsInfo
           .map((column) =>
             generateColumnDefinition({
               columnName: column,
-              columnType: 'sql-tables',
+              columnType: dbType,
             }),
           )
           .join(',\n  ');

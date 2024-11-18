@@ -1,8 +1,9 @@
+import { createFile } from '@/helpers/stringHelper';
 import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { changeCase } from '@/utils/identifySchema';
-import { columnMappings, typeMappings } from '@/utils/mappings';
+import { typeMappings } from '@/utils/mappings';
 
 export function getPrimaryKey(
   tableName: string,
@@ -39,10 +40,9 @@ export const formatDateForMySQL = (date: string): string => {
   const [datePart, timePart] = date.split('T');
   const [time, microseconds] = timePart.split('.');
   const formattedMicroseconds = microseconds.slice(0, 6) || '000000'; // Ensure 6 digits
-  
+
   return `${datePart} ${time}.${formattedMicroseconds.replace('Z', '')}`;
 };
-
 
 export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
   const imports = new Set<string>();
@@ -82,29 +82,23 @@ export const quoteTableName = (tableName: string): string => {
 
 export const getTypeMapping = (
   column: IColumnInfo,
-  fileType: 'sql-tables' | 'ts-interfaces',
+  columnType: DBTypes | 'typescript',
 ): string => {
-  const dbConnection = useFormStore.getState().formData.dbConnection;
-  const targetType =
-    fileType === 'sql-tables'
-      ? determineSQLDatabaseType(dbConnection)
-      : 'typescript';
-
   const { column_name, data_type, primary_key } = column;
 
   if (primary_key) {
-    return typeMappings.primaryKey[targetType];
+    return typeMappings.primaryKey[columnType];
   }
 
   if (column_name.toLowerCase().includes('password')) {
-    return typeMappings.password[targetType];
+    return typeMappings.password[columnType];
   }
 
   if (column_name.endsWith('_id')) {
-    return typeMappings.number[targetType];
+    return typeMappings.number[columnType];
   }
 
-  return typeMappings[data_type][targetType];
+  return typeMappings[data_type][columnType];
 };
 
 export const generateColumnDefinition = ({
@@ -112,41 +106,71 @@ export const generateColumnDefinition = ({
   columnType,
 }: {
   columnName: IColumnInfo;
-  columnType: 'sql-tables' | 'ts-interfaces';
+  columnType: DBTypes | 'typescript';
 }): string => {
+  const columnMappings = {
+    'sql-table': {
+      columnTemplate: '{{columnName}} {{mappedType}}',
+      unique: 'UNIQUE',
+      nullable: '',
+      notNullable: 'NOT NULL',
+    },
+    typescript: {
+      columnTemplate: '{{columnName}}: {{mappedType}}',
+      unique: '',
+      nullable: ' | null',
+      notNullable: '',
+    },
+  } as const;
+
   const quote = useFormStore.getState().quote;
   const { column_name, is_nullable, primary_key, unique } = columnName;
+  const isDBDefinition = ['postgresql', 'mysql'].includes(columnType);
+  const targetDefinition =
+    columnMappings[isDBDefinition ? 'sql-table' : 'typescript'];
   const type = getTypeMapping(columnName, columnType);
-  const language = columnMappings[columnType];
 
-  let definition = language.columnTemplate
-    .replace(
-      '$COLUMN_NAME',
-      columnType === 'ts-interfaces'
-        ? column_name
-        : `${quote}${column_name}${quote}`,
-    )
-    .replace('$MAPPED_TYPE', type);
+  // Special columns
+  // if (column_name === 'deleted_at') {
+  //   const dbConnection = useFormStore.getState().formData.dbConnection;
+  //   const targetType =
+  //     columnType === 'sql-tables'
+  //       ? determineSQLDatabaseType(dbConnection)
+  //       : 'typescript';
+  //   return createFile(language.columnTemplate, {
+  //     columnName:
+  //       columnType === 'typescript'
+  //         ? column_name
+  //         : `${quote}${column_name}${quote}`,
+  //     mappedType: typeMappings.deleted_at[targetType],
+  //   });
+  // }
 
-  const isUnique = unique && columnType === 'sql-tables';
-  const isNotNullable =
-    !primary_key && is_nullable === 'NO' && columnType === 'sql-tables';
-  const isNullable =
-    !primary_key && is_nullable === 'YES' && columnType === 'ts-interfaces';
+  let definition = createFile(targetDefinition.columnTemplate, {
+    columnName: !isDBDefinition
+      ? column_name
+      : `${quote}${column_name}${quote}`,
+    mappedType: type,
+  });
 
-  if (isUnique) {
-    definition += ` ${language.unique}`;
+  if (isDBDefinition) {
+    const isUnique = unique;
+    const isNotNullable = !primary_key && is_nullable === 'NO';
+
+    if (isUnique) {
+      definition += ` ${targetDefinition.unique}`;
+    }
+
+    if (isNotNullable) {
+      definition += ` ${targetDefinition.notNullable}`;
+    }
   }
 
-  if (isNotNullable) {
-    definition += ` ${language.notNullable}`;
-  }
-
-  if (isNullable) {
-    definition += language.nullable;
-  }
-
-  if (columnType === 'ts-interfaces') {
+  if (!isDBDefinition) {
+    const isNullable = !primary_key && is_nullable === 'YES';
+    if (isNullable) {
+      definition += targetDefinition.nullable;
+    }
     definition += ';';
   }
 

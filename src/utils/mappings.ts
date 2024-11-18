@@ -9,21 +9,6 @@ export const SQLQueries = {
   },
 } as const;
 
-export const columnMappings = {
-  'sql-tables': {
-    columnTemplate: '{{columnName}} {{mappedType}}',
-    unique: 'UNIQUE',
-    nullable: '',
-    notNullable: 'NOT NULL',
-  },
-  'ts-interfaces': {
-    columnTemplate: '{{columnName}}: {{mappedType}}',
-    unique: '',
-    nullable: ' | null',
-    notNullable: '',
-  },
-} as const;
-
 export const typeMappings: Record<
   string,
   {
