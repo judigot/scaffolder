@@ -269,26 +269,6 @@ function App() {
                 </label>
               </div>
 
-              <label htmlFor="framework" className="block text-sm font-medium">
-                Framework:
-                <select
-                  id="framework"
-                  name="framework"
-                  value={framework}
-                  onChange={handleChange}
-                  className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                >
-                  <option value={''}>Select a framework</option>
-                  {Object.entries(frameworks).map(
-                    ([key, value]: [string, string]) => (
-                      <option key={key} value={value}>
-                        {value}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </label>
-
               <div className="grid grid-cols-2 gap-4">
                 <button
                   data-testid="generate-app-button"
@@ -437,6 +417,25 @@ function App() {
 
           <div className="col-span-2 bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Files to Generate</h2>
+            <label htmlFor="framework" className="block text-sm font-medium">
+              Framework:
+              <select
+                id="framework"
+                name="framework"
+                value={framework}
+                onChange={handleChange}
+                className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+              >
+                {/* <option value={''}>Select a framework</option> */}
+                {Object.entries(frameworks).map(
+                  ([key, value]: [string, string]) => (
+                    <option key={key} value={value}>
+                      {value}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
             <FileViewer schemaInfo={getSchemaInfo()} />
           </div>
         </div>

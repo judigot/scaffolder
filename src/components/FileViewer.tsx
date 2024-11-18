@@ -8,7 +8,8 @@ import CodeIcon from '@mui/icons-material/Code';
 import FolderIcon from '@mui/icons-material/Folder';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { handleCopy } from '@/helpers/stringHelper';
-import { folderStructure } from '@/utils/backend/nextjs/folderStructure';
+import { frameworkFolderStructures } from '@/frameworks/frameworkFolderStructures';
+import { useFormStore } from '@/useFormStore';
 
 const darkTheme = createTheme({
   palette: {
@@ -35,12 +36,13 @@ export default function FileViewer({
 }: {
   schemaInfo: ISchemaInfo[];
 }) {
+  const {
+    formData: { framework },
+  } = useFormStore();
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
-  const fileStructure: IStructure = folderStructure({
-    schemaInfo,
-    isPreview: true,
-  });
+  const fileStructure: IStructure =
+    frameworkFolderStructures(schemaInfo)[framework];
 
   function LineCounter({ lines }: { lines: number }) {
     return (

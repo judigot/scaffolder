@@ -14,10 +14,8 @@ import _createServices from '@/utils/backend/laravel/_createServices';
 
 export function folderStructure({
   schemaInfo,
-  isPreview,
 }: {
   schemaInfo: ISchemaInfo[];
-  isPreview: boolean;
 }): IStructure {
   const fileStructure: IStructure = [
     {
@@ -57,7 +55,6 @@ export function folderStructure({
               name: 'AppServiceProvider.php',
               content: _createAppServiceProviderScaffolding({
                 schemaInfo,
-                recreateFile: isPreview,
               }),
             },
           ],

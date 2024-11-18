@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import { ownerComment } from '@/constants';
 
-const specialText = 'Owner: App Scaffolder';
+const specialText = ownerComment;
 
 const clearGeneratedFiles = (directory: string): void => {
   if (fs.existsSync(directory)) {

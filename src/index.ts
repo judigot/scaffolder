@@ -16,7 +16,7 @@ import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
 import http from 'http';
 import https from 'https';
 import createFolderStructure from '@/utils/createFolderStructure';
-import { folderStructure } from '@/utils/backend/nextjs/folderStructure';
+import { frameworkFolderStructures } from '@/frameworks/frameworkFolderStructures';
 
 dotenv.config();
 
@@ -195,7 +195,7 @@ app.post(
     const {
       schemaInfo,
       interfaces,
-      framework: _frameworkRaw,
+      framework: frameworkRaw,
       backendDir,
       frontendDir,
       dbConnection,
@@ -203,7 +203,7 @@ app.post(
       outputOnSingleFile,
       backendUrl,
     } = req.body;
-    // const framework = frameworkRaw.toLowerCase();
+    const framework = frameworkRaw;
     // const frameworkDir = frameworkDirectories[framework];
 
     void (async () => {
@@ -289,7 +289,7 @@ app.post(
 
       try {
         createFolderStructure({
-          structure: folderStructure({ schemaInfo, isPreview: true }),
+          structure: frameworkFolderStructures(schemaInfo)[framework],
           targetDirectory: isBackendDirValid
             ? backendDirPath
             : path.resolve(__dirname, `../output/backend`),

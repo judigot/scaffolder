@@ -9,7 +9,7 @@ import { DBTypes } from '@/interfaces/interfaces';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
-  // NEXTJS: 'Next.js',
+  NEXTJS: 'Next.js',
   // SPRING_BOOT: 'Spring Boot',
 } as const;
 

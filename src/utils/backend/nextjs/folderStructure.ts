@@ -9,7 +9,6 @@ export function folderStructure({
   schemaInfo,
 }: {
   schemaInfo: ISchemaInfo[];
-  isPreview: boolean;
 }): IStructure {
   const fileStructure: IStructure = [
     {
