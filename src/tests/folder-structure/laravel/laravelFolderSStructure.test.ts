@@ -13,7 +13,6 @@ describe('Laravel Folder Structure', () => {
     const usersPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
     const usersPostOneToOneFolderStructure = folderStructure({
       schemaInfo: usersPostOneToOneSchemaInfo,
-      isPreview: true,
     });
     expect(usersPostOneToOneFolderStructure).toStrictEqual(oneToOneExpectation);
   });
@@ -24,7 +23,6 @@ describe('Laravel Folder Structure', () => {
     );
     const usersPostOneToManyFolderStructure = folderStructure({
       schemaInfo: usersPostsOneToManySchemaInfo,
-      isPreview: true,
     });
     expect(usersPostOneToManyFolderStructure).toStrictEqual(
       oneToManyExpectation,
@@ -35,7 +33,6 @@ describe('Laravel Folder Structure', () => {
     const POSSchemaInfo = identifySchema(POSSchema);
     const usersPostOneToOneFolderStructure = folderStructure({
       schemaInfo: POSSchemaInfo,
-      isPreview: true,
     });
     expect(usersPostOneToOneFolderStructure).toStrictEqual(
       manyToManyExpectation,
