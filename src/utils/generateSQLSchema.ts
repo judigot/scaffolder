@@ -1,5 +1,5 @@
 import { format as formatSQL } from 'sql-formatter';
-import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 import {
   generateColumnDefinition,
   getForeignKeyConstraints,
@@ -9,16 +9,6 @@ import { APP_SETTINGS } from '@/constants';
 
 const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   const quote = useFormStore.getState().quote;
-
-  // Function to generate column definition and append UNIQUE to the foreign key where applicable
-  const generateColumnDefinitions = (columnInfo: IColumnInfo): string => {
-    const columnDef = generateColumnDefinition({
-      columnName: columnInfo,
-      columnType: 'sql-tables',
-    });
-
-    return columnDef;
-  };
 
   // Function to generate foreign key constraints with ON DELETE CASCADE where applicable
   const generateForeignKeyConstraint = (
@@ -45,7 +35,12 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
     schemaInfo
       .map(({ table, columnsInfo }) => {
         const columns = columnsInfo
-          .map((column) => generateColumnDefinitions(column))
+          .map((column) =>
+            generateColumnDefinition({
+              columnName: column,
+              columnType: 'sql-tables',
+            }),
+          )
           .join(',\n  ');
 
         const foreignKeyConstraints = generateForeignKeyConstraint(
