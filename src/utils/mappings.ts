@@ -11,13 +11,13 @@ export const SQLQueries = {
 
 export const columnMappings = {
   'sql-tables': {
-    columnTemplate: '$COLUMN_NAME $MAPPED_TYPE',
+    columnTemplate: '{{columnName}} {{mappedType}}',
     unique: 'UNIQUE',
     nullable: '',
     notNullable: 'NOT NULL',
   },
   'ts-interfaces': {
-    columnTemplate: '$COLUMN_NAME: $MAPPED_TYPE',
+    columnTemplate: '{{columnName}}: {{mappedType}}',
     unique: '',
     nullable: ' | null',
     notNullable: '',
@@ -57,6 +57,24 @@ export const typeMappings: Record<
     typescript: 'string',
     'postgresql-introspected': ['character', 'char'],
     'mysql-introspected': ['char(60)'],
+  },
+  deleted_at: {
+    mysql: 'TIMESTAMP(6)',
+    postgresql: 'TIMESTAMPTZ(6)',
+    typescript: 'Date',
+    'postgresql-introspected': [
+      'timestamp with time zone',
+      'timestamptz',
+      'timestamp',
+      'timestamp without time zone',
+      'date',
+      'time',
+      'timetz',
+      'time with time zone',
+      'time without time zone',
+      'interval',
+    ],
+    'mysql-introspected': ['timestamp', 'date', 'time', 'datetime', 'year'],
   },
   number: {
     mysql: 'BIGINT',
