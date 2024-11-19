@@ -308,7 +308,7 @@ const createControllers = (schemaInfo: ISchemaInfo[]): IStructure => {
         ownerComment,
         tableName: table,
         className,
-        primaryKey: getPrimaryKey(table, schemaInfo),
+        primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
       };
 
       const content = createFile(TEMPLATE, replacements);

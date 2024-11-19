@@ -161,7 +161,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
         ownerComment,
         tableName: table,
         className: pascalCase,
-        primaryKey: getPrimaryKey(table, schemaInfo),
+        primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
       };
 
       return {

@@ -5,10 +5,13 @@ import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { changeCase } from '@/utils/identifySchema';
 import { typeMappings } from '@/utils/mappings';
 
-export function getPrimaryKey(
-  tableName: string,
-  schemaInfo: ISchemaInfo[],
-): string {
+export function getPrimaryKey({
+  tableName,
+  schemaInfo,
+}: {
+  tableName: string;
+  schemaInfo: ISchemaInfo[];
+}): string {
   const tableSchema = schemaInfo.find((schema) => schema.table === tableName);
 
   if (!tableSchema) {

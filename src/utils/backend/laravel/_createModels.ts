@@ -93,8 +93,11 @@ export const createRelationships = (
         );
       }
 
-      const primaryKey = getPrimaryKey(tableName, schemaInfo);
-      const relatedTableForeignKey = getPrimaryKey(relatedTable, schemaInfo);
+      const primaryKey = getPrimaryKey({ tableName, schemaInfo });
+      const relatedTableForeignKey = getPrimaryKey({
+        tableName: relatedTable,
+        schemaInfo,
+      });
 
       return `    public function ${changeCase(relatedTable).camelCase}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${primaryKey}', '${relatedTableForeignKey}');\n    }\n`;
     })
