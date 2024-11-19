@@ -1,16 +1,16 @@
 import { IStructure } from '@/components/FileViewer';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import _createAPIRoutes from '@/utils/backend/laravel/_createAPIRoutes';
-import _createAppServiceProviderScaffolding from '@/utils/backend/laravel/_createAppServiceProviderScaffolding';
-import _createBaseController from '@/utils/backend/laravel/_createBaseController';
-import _createBaseInterface from '@/utils/backend/laravel/_createBaseInterface';
-import _createBaseRepository from '@/utils/backend/laravel/_createBaseRepository';
-import _createControllers from '@/utils/backend/laravel/_createControllers';
-import _createInterfaces from '@/utils/backend/laravel/_createInterfaces';
-import _createModels from '@/utils/backend/laravel/_createModels';
-import _createRepositories from '@/utils/backend/laravel/_createRepositories';
-import _createResources from '@/utils/backend/laravel/_createResources';
-import _createServices from '@/utils/backend/laravel/_createServices';
+import _createAPIRoutes from '@/frameworks/backend/laravel/_createAPIRoutes';
+import _createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/_createAppServiceProviderScaffolding';
+import _createBaseController from '@/frameworks/backend/laravel/_createBaseController';
+import _createBaseInterface from '@/frameworks/backend/laravel/_createBaseInterface';
+import _createBaseRepository from '@/frameworks/backend/laravel/_createBaseRepository';
+import _createControllers from '@/frameworks/backend/laravel/_createControllers';
+import _createInterfaces from '@/frameworks/backend/laravel/_createInterfaces';
+import _createModels from '@/frameworks/backend/laravel/_createModels';
+import _createRepositories from '@/frameworks/backend/laravel/_createRepositories';
+import _createResources from '@/frameworks/backend/laravel/_createResources';
+import _createServices from '@/frameworks/backend/laravel/_createServices';
 
 export function useLaravel({
   schemaInfo,

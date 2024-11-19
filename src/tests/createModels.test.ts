@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 import identifySchema from '@/utils/identifySchema';
-import { createRelationships } from '@/utils/backend/laravel/createModels';
+import { createRelationships } from '@/frameworks/backend/laravel/createModels';
 import { normalizeWhitespace } from '@/helpers/stringHelper';
 import { POSSchema } from '@/json-schemas/POSSchema';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';

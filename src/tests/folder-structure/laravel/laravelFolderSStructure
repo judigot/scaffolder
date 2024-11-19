@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
-import { folderStructure } from '@/utils/backend/laravel/folderStructure';
+import { folderStructure } from '@/frameworks/backend/laravel/folderStructure';
 import { oneToOneExpectation } from '@/tests/folder-structure/laravel/one-to-one-expectation';
 import { oneToManyExpectation } from '@/tests/folder-structure/laravel/one-to-many-expectation';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
