@@ -50,13 +50,9 @@ export function folderStructure({
           type: 'folder',
           name: 'Providers',
           files: [
-            {
-              type: 'file',
-              name: 'AppServiceProvider.php',
-              content: _createAppServiceProviderScaffolding({
-                schemaInfo,
-              }),
-            },
+            _createAppServiceProviderScaffolding({
+              schemaInfo,
+            }),
           ],
         },
         {

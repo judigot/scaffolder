@@ -1,5 +1,7 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS, ownerComment } from '@/constants';
+import { createFile } from '@/helpers/stringHelper';
+import { IFile } from '@/components/FileViewer';
 
 const updateOrCreateSection = (
   content: string,
@@ -27,35 +29,36 @@ const createAppServiceProviderScaffolding = ({
   schemaInfo,
 }: {
   schemaInfo: ISchemaInfo[];
-}): string => {
-  let content = '';
+}): IFile => {
+  let TEMPLATE = '';
 
-  content = `<?php
-  ${ownerComment}
-  
-  namespace App\\Providers;
-  
-  use Illuminate\\Support\\ServiceProvider;
-  
-  class AppServiceProvider extends ServiceProvider
-  {
-      /**
-       * Register any application services.
-       */
-      public function register(): void
-      {
-          // Bind start
-          // Bind end
-      }
-  
-      /**
-       * Bootstrap any application services.
-       */
-      public function boot(): void
-      {
-          //
-      }
-  }`;
+  TEMPLATE = `<?php
+{{ownerComment}}
+
+namespace App\\Providers;
+
+use Illuminate\\Support\\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        // Bind start
+        // Bind end
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}
+`;
 
   const importStatements = schemaInfo
     .filter(
@@ -81,42 +84,52 @@ const createAppServiceProviderScaffolding = ({
     .filter(Boolean)
     .join('\n        ');
 
-  if (!content.includes('// Import start')) {
+  if (!TEMPLATE.includes('// Import start')) {
     const importSection = `// Import start\n${importStatements}\n// Import end`;
-    const serviceProviderId = content.indexOf('class AppServiceProvider');
-    content =
-      content.slice(0, serviceProviderId) +
+    const serviceProviderId = TEMPLATE.indexOf('class AppServiceProvider');
+    TEMPLATE =
+      TEMPLATE.slice(0, serviceProviderId) +
       importSection +
       '\n\n' +
-      content.slice(serviceProviderId);
+      TEMPLATE.slice(serviceProviderId);
   } else {
-    content = updateOrCreateSection(
-      content,
+    TEMPLATE = updateOrCreateSection(
+      TEMPLATE,
       '// Import start',
       '// Import end',
       importStatements,
     );
   }
 
-  if (!content.includes('// Bind start')) {
+  if (!TEMPLATE.includes('// Bind start')) {
     const bindSection = `// Bind start\n        ${bindStatements}\n        // Bind end`;
-    const registerId = content.indexOf('register(): void');
-    const registerCloseId = content.indexOf('}', registerId);
-    content =
-      content.slice(0, registerCloseId) +
+    const registerId = TEMPLATE.indexOf('register(): void');
+    const registerCloseId = TEMPLATE.indexOf('}', registerId);
+    TEMPLATE =
+      TEMPLATE.slice(0, registerCloseId) +
       bindSection +
       '\n' +
-      content.slice(registerCloseId);
+      TEMPLATE.slice(registerCloseId);
   } else {
-    content = updateOrCreateSection(
-      content,
+    TEMPLATE = updateOrCreateSection(
+      TEMPLATE,
       '// Bind start',
       '// Bind end',
       bindStatements,
     );
   }
 
-  return content;
+  const replacements = {
+    ownerComment,
+  };
+
+  const content = createFile(TEMPLATE, replacements);
+
+  return {
+    type: 'file',
+    name: 'AppServiceProvider.php',
+    content,
+  };
 };
 
 export default createAppServiceProviderScaffolding;
