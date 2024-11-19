@@ -1,9 +1,10 @@
 import { IFile } from '@/components/FileViewer';
 import { ownerComment } from '@/constants';
+import { createFile } from '@/helpers/stringHelper';
 
 const createBaseController = (): IFile => {
-  const content = `<?php
-${ownerComment}
+  const TEMPLATE = `<?php
+{{ownerComment}}
 
 namespace App\\Http\\Controllers;
 
@@ -266,8 +267,13 @@ abstract class BaseController extends Controller
         return response()->json($items);
     }
 }
-
   `;
+
+  const replacements = {
+    ownerComment,
+  };
+
+  const content = createFile(TEMPLATE, replacements);
 
   return {
     type: 'file',

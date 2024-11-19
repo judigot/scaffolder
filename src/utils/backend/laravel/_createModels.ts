@@ -3,6 +3,7 @@ import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
 import { getPrimaryKey } from '@/utils/common';
 import { IFile } from '@/components/FileViewer';
+import { createFile } from '@/helpers/stringHelper';
 
 const fillableExemptions = ['created_at', 'updated_at'];
 
@@ -156,34 +157,46 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
         )
         .join('\n');
 
-      const template = `<?php
-${ownerComment}
+      const TEMPLATE = `<?php
+{{ownerComment}}
 
 namespace App\\Models;
 
-${modelImports}
+{{modelImports}}
 use Illuminate\\Database\\Eloquent\\Model;
 use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
-class ${className} extends Model
+class {{className}} extends Model
 {
     use HasFactory;
 
-    protected $table = '${table}';
+    protected $table = '{{tableName}}';
 
-    ${primaryKey}
+    {{primaryKey}}
 
     protected $fillable = [
-        ${fillable}
+        {{fillable}}
     ];
-    ${relationships}
+    {{relationships}}
 }
 `;
+
+      const replacements = {
+        ownerComment,
+        modelImports,
+        className,
+        tableName: table,
+        primaryKey,
+        fillable,
+        relationships,
+      };
+
+      const content = createFile(TEMPLATE, replacements);
 
       return {
         type: 'file',
         name: `${className}.php`,
-        content: template,
+        content,
       };
     });
 };

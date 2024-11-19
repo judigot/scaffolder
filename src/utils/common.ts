@@ -1,4 +1,4 @@
-import { createFile } from '@/helpers/stringHelper';
+import { replacePlaceholder } from '@/helpers/stringHelper';
 import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
@@ -137,7 +137,7 @@ export const generateColumnDefinition = ({
   //     columnType === 'sql-tables'
   //       ? determineSQLDatabaseType(dbConnection)
   //       : 'typescript';
-  //   return createFile(language.columnTemplate, {
+  //   return replacePlaceholder(language.columnTemplate, {
   //     columnName:
   //       columnType === 'typescript'
   //         ? column_name
@@ -146,7 +146,7 @@ export const generateColumnDefinition = ({
   //   });
   // }
 
-  let definition = createFile(targetDefinition.columnTemplate, {
+  let definition = replacePlaceholder(targetDefinition.columnTemplate, {
     columnName: !isDBDefinition
       ? column_name
       : `${quote}${column_name}${quote}`,

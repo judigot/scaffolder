@@ -1,9 +1,10 @@
 import { IFile } from '@/components/FileViewer';
 import { ownerComment } from '@/constants';
+import { createFile } from '@/helpers/stringHelper';
 
 const createBaseInterface = (): IFile => {
-  const content = `<?php
-${ownerComment}
+  const TEMPLATE = `<?php
+{{ownerComment}}
 
 namespace App\\Repositories;
 
@@ -47,6 +48,12 @@ interface BaseInterface
     public function groupBy(string $column): Collection;
 }
 `;
+
+  const replacements = {
+    ownerComment,
+  };
+
+  const content = createFile(TEMPLATE, replacements);
 
   return {
     type: 'file',

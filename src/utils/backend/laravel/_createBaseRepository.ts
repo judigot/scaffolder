@@ -1,9 +1,10 @@
 import { IFile } from '@/components/FileViewer';
 import { ownerComment } from '@/constants';
+import { createFile } from '@/helpers/stringHelper';
 
 const createBaseRepository = (): IFile => {
-  const content = `<?php
-${ownerComment}
+  const TEMPLATE = `<?php
+{{ownerComment}}
 
 namespace App\\Repositories;
 
@@ -194,6 +195,12 @@ abstract class BaseRepository implements BaseInterface
     }
 }
 `;
+
+  const replacements = {
+    ownerComment,
+  };
+
+  const content = createFile(TEMPLATE, replacements);
 
   return {
     type: 'file',

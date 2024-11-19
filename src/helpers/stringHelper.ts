@@ -14,6 +14,13 @@ export const handleCopy = (text: string) => {
 export const createFile = (
   template: string,
   replacements: Record<string, string>,
+): string => {
+  return replacePlaceholder(template, replacements);
+};
+
+export const replacePlaceholder = (
+  template: string,
+  replacements: Record<string, string>,
 ): string =>
   Object.entries(replacements).reduce(
     (result, [key, value]) =>
