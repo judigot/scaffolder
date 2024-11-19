@@ -7,6 +7,73 @@ import { createFile } from '@/helpers/stringHelper';
 
 const fillableExemptions = ['created_at', 'updated_at'];
 
+// Columns excluded from API GET responses to protect sensitive data or internal fields
+const hiddenFields = [
+  // Authentication Fields (users, user_accounts, customers)
+  'password', // User password (hashed or plain)
+  'hashed_password', // Alternate password column name
+  'api_token', // API authentication token
+  'auth_token', // General authentication token
+  'access_token', // OAuth or session access token
+  'refresh_token', // OAuth or session refresh token
+  'remember_token', // Persistent login token
+  'session_token', // Session-based authentication token
+
+  // Security Fields (users, user_accounts)
+  'secret_key', // User-specific secret key
+  'encryption_key', // Encryption key for secure data
+  'salt', // Password hashing salt
+  'otp', // One-time password
+  'pin', // Personal Identification Number (e.g., PIN for transactions)
+  'security_questions', // Security question/answer pairs
+
+  // Verification Tokens (users, customers)
+  'email_verification_token', // Token for email verification
+  'phone_verification_token', // Token for phone verification
+  'reset_token', // Token for password reset
+  'confirmation_token', // Token for account confirmation
+
+  // Personal Identifiers (Sensitive PII) (users, customers)
+  'ssn', // Social Security Number (e.g., US-based systems)
+  'social_security_number', // Alternate SSN field name
+  'tax_identification_number', // Tax ID (e.g., TIN)
+  'government_id', // Government-issued ID (e.g., passport number)
+  'national_id', // National identity number
+  'biometric_data', // Biometric data (e.g., fingerprints, retina scans)
+
+  // Financial Information (customers)
+  'credit_card_number', // Credit card number
+  'cvv', // Credit card CVV code
+  'bank_account_number', // Bank account number
+  'routing_number', // Bank routing number
+  'iban', // International Bank Account Number
+  'swift_code', // Bank SWIFT code
+
+  // Metadata and Logs (users, user_accounts)
+  'last_login_ip', // IP address of the last login
+  'login_attempts', // Number of login attempts
+  'failed_login_attempts', // Number of failed login attempts
+  'last_login_at', // Timestamp of the last login
+  'created_by', // User ID of who created the record
+  'updated_by', // User ID of who updated the record
+  'internal_notes', // Internal application notes (not user-facing)
+
+  // Tokens and Identifiers (users, user_accounts)
+  'uuid', // Universally Unique Identifier (if private)
+  'idempotency_key', // For preventing duplicate requests
+  'recovery_codes', // Backup codes for account recovery
+
+  // Custom Field Names for User Tables (user_accounts, customers)
+  'user_password', // Alternate field for passwords
+  'customer_secret_key', // Alternate field for secret keys
+  'account_token', // General account-related token
+  'user_reset_token', // Reset token for user account
+  'customer_last_login_ip', // Alternate field for last login IP
+
+  // Deprecated or Legacy Fields (users)
+  'legacy_password', // Old password field for migrations
+];
+
 const createFillable = (
   columnsInfo: IColumnInfo[],
   foreignKeys: string[],
@@ -140,10 +207,20 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
         belongsToMany,
         schemaInfo,
       );
+
       const primaryKey =
         columnsInfo.find((column) => column.primary_key)?.column_name !== 'id'
           ? `protected $primaryKey = '${String(columnsInfo.find((column) => column.primary_key)?.column_name)}';`
           : '';
+
+      const hiddenColumns = (() => {
+        const columns = columnsInfo
+          .filter((column) => hiddenFields.includes(column.column_name))
+          .map((column) => `'${column.column_name}'`)
+          .join(',\n');
+
+        return `protected $hidden = [${columns}];`;
+      })();
 
       const modelImports = [
         ...new Set([
@@ -178,6 +255,8 @@ class {{className}} extends Model
 
     {{primaryKey}}
 
+    {{hiddenColumns}}
+
     protected $fillable = [
         {{fillable}}
     ];
@@ -191,11 +270,12 @@ class {{className}} extends Model
         className,
         tableName: table,
         primaryKey,
+        hiddenColumns,
         fillable,
         relationships,
       };
 
-      const content = createFile({template, replacements});
+      const content = createFile({ template, replacements });
 
       return {
         type: 'file',
