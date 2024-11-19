@@ -5,7 +5,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { changeCase } from '@/utils/identifySchema';
 
-const TEMPLATE = `<?php
+const template = `<?php
 {{ownerComment}}
 
 namespace App\\Http\\Controllers;
@@ -74,7 +74,7 @@ const createControllers = (
         controllerMethods,
       };
 
-      const content = createFile(TEMPLATE, replacements);
+      const content = createFile({template, replacements});
 
       return {
         type: 'file',

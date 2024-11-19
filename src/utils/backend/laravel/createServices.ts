@@ -42,7 +42,7 @@ const createServices = (
       tableName: table,
     };
 
-    const content = createFile(template, replacements);
+    const content = createFile({template, replacements});
     const outputFilePath = path.join(outputDir, `${pascalCase}Service.php`);
     fs.writeFileSync(outputFilePath, content);
   });

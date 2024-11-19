@@ -3,7 +3,7 @@ import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 const createBaseRepository = (): IFile => {
-  const TEMPLATE = `<?php
+  const template = `<?php
 {{ownerComment}}
 
 namespace App\\Repositories;
@@ -200,7 +200,7 @@ abstract class BaseRepository implements BaseInterface
     ownerComment,
   };
 
-  const content = createFile(TEMPLATE, replacements);
+  const content = createFile({template, replacements});
 
   return {
     type: 'file',

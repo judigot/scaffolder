@@ -4,7 +4,7 @@ import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
 
-const TEMPLATE = `
+const template = `
 {{ownerComment}}
 
 import { prisma } from '@/prisma/DatabaseClient';
@@ -311,7 +311,7 @@ const createControllers = (schemaInfo: ISchemaInfo[]): IStructure => {
         primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
       };
 
-      const content = createFile(TEMPLATE, replacements);
+      const content = createFile({template, replacements});
 
       return {
         type: 'file',

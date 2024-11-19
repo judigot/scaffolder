@@ -3,7 +3,7 @@ import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 const createDataTypeParser = (): IFile => {
-  const TEMPLATE = `
+  const template = `
 {{ownerComment}}
 
 import { PrismaClient } from '@prisma/client';
@@ -63,7 +63,7 @@ process.on('SIGINT', () => {
     ownerComment,
   };
 
-  const content = createFile(TEMPLATE, replacements);
+  const content = createFile({template, replacements});
 
   return {
     type: 'file',

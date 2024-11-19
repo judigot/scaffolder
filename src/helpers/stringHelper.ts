@@ -11,10 +11,13 @@ export const handleCopy = (text: string) => {
   });
 };
 
-export const createFile = (
-  template: string,
-  replacements: Record<string, string>,
-): string => {
+export const createFile = ({
+  template,
+  replacements,
+}: {
+  template: string;
+  replacements: Record<string, string>;
+}): string => {
   return replacePlaceholder(template, replacements);
 };
 

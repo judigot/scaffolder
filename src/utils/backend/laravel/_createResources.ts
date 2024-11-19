@@ -25,7 +25,7 @@ import { createFile } from '@/helpers/stringHelper';
    - Ensure that generated resource files use consistent naming conventions and follow the standard resource structure.
 */
 
-const TEMPLATE = `<?php
+const template = `<?php
 {{ownerComment}}
 
 namespace App\\Http\\Resources;
@@ -99,7 +99,7 @@ const createResources = (schemaInfo: ISchemaInfo[]): IFile[] => {
         attributes,
       };
 
-      const content = createFile(TEMPLATE, replacements);
+      const content = createFile({template, replacements});
 
       return {
         type: 'file',

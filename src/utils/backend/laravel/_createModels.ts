@@ -160,7 +160,7 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
         )
         .join('\n');
 
-      const TEMPLATE = `<?php
+      const template = `<?php
 {{ownerComment}}
 
 namespace App\\Models;
@@ -194,7 +194,7 @@ class {{className}} extends Model
         relationships,
       };
 
-      const content = createFile(TEMPLATE, replacements);
+      const content = createFile({template, replacements});
 
       return {
         type: 'file',

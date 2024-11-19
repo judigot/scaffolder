@@ -3,7 +3,7 @@ import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
 
-const TEMPLATE = `<?php
+const template = `<?php
 {{ownerComment}}
 
 namespace App\\Services;
@@ -94,7 +94,7 @@ const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
         tableName: table,
       };
 
-      const content = createFile(TEMPLATE, replacements);
+      const content = createFile({template, replacements});
 
       return {
         type: 'file',

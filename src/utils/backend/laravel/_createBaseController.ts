@@ -3,7 +3,7 @@ import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 const createBaseController = (): IFile => {
-  const TEMPLATE = `<?php
+  const template = `<?php
 {{ownerComment}}
 
 namespace App\\Http\\Controllers;
@@ -273,7 +273,7 @@ abstract class BaseController extends Controller
     ownerComment,
   };
 
-  const content = createFile(TEMPLATE, replacements);
+  const content = createFile({template, replacements});
 
   return {
     type: 'file',

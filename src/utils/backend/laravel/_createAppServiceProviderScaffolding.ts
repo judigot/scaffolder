@@ -30,9 +30,9 @@ const createAppServiceProviderScaffolding = ({
 }: {
   schemaInfo: ISchemaInfo[];
 }): IFile => {
-  let TEMPLATE = '';
+  let template = '';
 
-  TEMPLATE = `<?php
+  template = `<?php
 {{ownerComment}}
 
 namespace App\\Providers;
@@ -84,35 +84,35 @@ class AppServiceProvider extends ServiceProvider
     .filter(Boolean)
     .join('\n        ');
 
-  if (!TEMPLATE.includes('// Import start')) {
+  if (!template.includes('// Import start')) {
     const importSection = `// Import start\n${importStatements}\n// Import end`;
-    const serviceProviderId = TEMPLATE.indexOf('class AppServiceProvider');
-    TEMPLATE =
-      TEMPLATE.slice(0, serviceProviderId) +
+    const serviceProviderId = template.indexOf('class AppServiceProvider');
+    template =
+      template.slice(0, serviceProviderId) +
       importSection +
       '\n\n' +
-      TEMPLATE.slice(serviceProviderId);
+      template.slice(serviceProviderId);
   } else {
-    TEMPLATE = updateOrCreateSection(
-      TEMPLATE,
+    template = updateOrCreateSection(
+      template,
       '// Import start',
       '// Import end',
       importStatements,
     );
   }
 
-  if (!TEMPLATE.includes('// Bind start')) {
+  if (!template.includes('// Bind start')) {
     const bindSection = `// Bind start\n        ${bindStatements}\n        // Bind end`;
-    const registerId = TEMPLATE.indexOf('register(): void');
-    const registerCloseId = TEMPLATE.indexOf('}', registerId);
-    TEMPLATE =
-      TEMPLATE.slice(0, registerCloseId) +
+    const registerId = template.indexOf('register(): void');
+    const registerCloseId = template.indexOf('}', registerId);
+    template =
+      template.slice(0, registerCloseId) +
       bindSection +
       '\n' +
-      TEMPLATE.slice(registerCloseId);
+      template.slice(registerCloseId);
   } else {
-    TEMPLATE = updateOrCreateSection(
-      TEMPLATE,
+    template = updateOrCreateSection(
+      template,
       '// Bind start',
       '// Bind end',
       bindStatements,
@@ -123,7 +123,7 @@ class AppServiceProvider extends ServiceProvider
     ownerComment,
   };
 
-  const content = createFile(TEMPLATE, replacements);
+  const content = createFile({ template, replacements });
 
   return {
     type: 'file',

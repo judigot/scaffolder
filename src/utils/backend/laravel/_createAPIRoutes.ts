@@ -3,7 +3,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 
-const TEMPLATE = `<?php
+const template = `<?php
 {{ownerComment}}
 
 use Illuminate\\Http\\Request;
@@ -157,7 +157,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
     customRoutes,
   };
 
-  return createFile(TEMPLATE, replacements);
+  return createFile({ template, replacements });
 };
 
 export default createAPIRoutes;

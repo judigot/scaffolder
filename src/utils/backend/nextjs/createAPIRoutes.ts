@@ -1,8 +1,8 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { createFile } from '@/helpers/stringHelper';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
+import { createFile } from '@/helpers/stringHelper';
 
 const ROUTE_TEMPLATE = `
 {{ownerComment}}
@@ -171,27 +171,27 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
           {
             type: 'file',
             name: 'route.ts',
-            content: createFile(ROUTE_TEMPLATE, replacements),
+            content: createFile({ template: ROUTE_TEMPLATE, replacements }),
           },
           {
             type: 'file',
             name: 'GET.ts',
-            content: createFile(GET_TEMPLATE, replacements),
+            content: createFile({ template: GET_TEMPLATE, replacements }),
           },
           {
             type: 'file',
             name: 'POST.ts',
-            content: createFile(POST_TEMPLATE, replacements),
+            content: createFile({ template: POST_TEMPLATE, replacements }),
           },
           {
             type: 'file',
             name: 'PATCH.ts',
-            content: createFile(PATCH_TEMPLATE, replacements),
+            content: createFile({ template: PATCH_TEMPLATE, replacements }),
           },
           {
             type: 'file',
             name: 'DELETE.ts',
-            content: createFile(DELETE_TEMPLATE, replacements),
+            content: createFile({ template: DELETE_TEMPLATE, replacements }),
           },
         ],
       };

@@ -5,7 +5,7 @@ import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
 
-const TEMPLATE = `<?php
+const template = `<?php
 {{ownerComment}}
 
 namespace App\\Repositories;
@@ -46,7 +46,7 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
         modelSpecificMethods,
       };
 
-      const content = createFile(TEMPLATE, replacements);
+      const content = createFile({template, replacements});
 
       return {
         type: 'file',

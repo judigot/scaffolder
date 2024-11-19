@@ -58,7 +58,7 @@ const createInterfaces = (
         modelImports,
       };
 
-      const content = createFile(template, replacements);
+      const content = createFile({template, replacements});
       const outputFilePath = path.join(outputDir, `${className}Interface.php`);
       fs.writeFileSync(outputFilePath, content);
     }

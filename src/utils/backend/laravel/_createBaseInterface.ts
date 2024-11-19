@@ -3,7 +3,7 @@ import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 const createBaseInterface = (): IFile => {
-  const TEMPLATE = `<?php
+  const template = `<?php
 {{ownerComment}}
 
 namespace App\\Repositories;
@@ -53,7 +53,7 @@ interface BaseInterface
     ownerComment,
   };
 
-  const content = createFile(TEMPLATE, replacements);
+  const content = createFile({template, replacements});
 
   return {
     type: 'file',
