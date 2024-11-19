@@ -100,10 +100,13 @@ const createResources = (
 
     const attributes = generateAttributes(tableInfo);
 
-    const content = createFile(template, {
-      ownerComment,
-      className: pascalCase,
-      attributes,
+    const content = createFile({
+      template,
+      replacements: {
+        ownerComment,
+        className: pascalCase,
+        attributes,
+      },
     });
 
     const outputFilePath = path.join(outputDir, `${pascalCase}Resource.php`);

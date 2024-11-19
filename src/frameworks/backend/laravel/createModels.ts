@@ -189,14 +189,17 @@ const createModels = (
       )
       .join('\n');
 
-    const content = createFile(template, {
-      ownerComment,
-      className: pascalCase,
-      tableName: table,
-      fillable,
-      relationships,
-      primaryKey,
-      modelImports,
+    const content = createFile({
+      template,
+      replacements: {
+        ownerComment,
+        className: pascalCase,
+        tableName: table,
+        fillable,
+        relationships,
+        primaryKey,
+        modelImports,
+      },
     });
 
     const outputFilePath = path.join(outputDir, `${pascalCase}.php`);

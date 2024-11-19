@@ -48,8 +48,8 @@ const createBaseFile = (
   );
 
   if (fs.existsSync(templatePath)) {
-    const templateContent = fs.readFileSync(templatePath, 'utf-8');
-    const content = createFile(templateContent, replacements);
+    const template = fs.readFileSync(templatePath, 'utf-8');
+    const content = createFile({ template, replacements });
     const outputFilePath = path.join(outputDir, output);
     fs.writeFileSync(outputFilePath, content, 'utf-8');
   } else {

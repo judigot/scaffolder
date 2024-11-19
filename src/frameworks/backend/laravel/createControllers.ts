@@ -71,10 +71,13 @@ const createControllers = (
       tableName: table,
       schemaInfo,
     });
-    const content = createFile(template, {
-      ownerComment,
-      className,
-      controllerMethods,
+    const content = createFile({
+      template,
+      replacements: {
+        ownerComment,
+        className,
+        controllerMethods,
+      },
     });
 
     const outputFilePath = path.join(outputDir, `${className}Controller.php`);

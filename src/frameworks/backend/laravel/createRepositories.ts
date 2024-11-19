@@ -23,11 +23,11 @@ const createRepositories = (
     __dirname,
     `../../../templates/backend/${framework}/repository.txt`,
   );
-  const repoTemplate = fs.existsSync(repoTemplatePath)
+  const template = fs.existsSync(repoTemplatePath)
     ? fs.readFileSync(repoTemplatePath, 'utf-8')
     : null;
 
-  if (repoTemplate == null) {
+  if (template == null) {
     console.error(`Template not found: ${repoTemplatePath}`);
     return;
   }
@@ -49,13 +49,16 @@ const createRepositories = (
     });
     const modelImports = generateModelImports(tableInfo);
 
-    const content = createFile(repoTemplate, {
-      ownerComment,
-      className: pascalCase,
-      modelName: pascalCase,
-      tableName: table,
-      modelSpecificMethods,
-      modelImports,
+    const content = createFile({
+      template,
+      replacements: {
+        ownerComment,
+        className: pascalCase,
+        modelName: pascalCase,
+        tableName: table,
+        modelSpecificMethods,
+        modelImports,
+      },
     });
 
     const outputFilePath = path.join(outputDir, `${pascalCase}Repository.php`);
