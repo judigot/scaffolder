@@ -1,10 +1,10 @@
 import { IStructure } from '@/components/FileViewer';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { frameworks } from '@/useFormStore';
-import { folderStructure as laravelFolderStructure } from '@/utils/backend/laravel/folderStructure';
-import { folderStructure as nextjsFolderStructure } from '@/utils/backend/nextjs/folderStructure';
+import { useLaravel as laravelFolderStructure } from '@/utils/backend/laravel/useLaravel';
+import { useNextJS as nextjsFolderStructure } from '@/utils/backend/nextjs/useNextJS';
 
-export function frameworkFolderStructures(
+export function useFolderStructures(
   schemaInfo: ISchemaInfo[],
 ): Record<string, IStructure> {
   return {

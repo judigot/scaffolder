@@ -12,7 +12,7 @@ import _createRepositories from '@/utils/backend/laravel/_createRepositories';
 import _createResources from '@/utils/backend/laravel/_createResources';
 import _createServices from '@/utils/backend/laravel/_createServices';
 
-export function folderStructure({
+export function useLaravel({
   schemaInfo,
 }: {
   schemaInfo: ISchemaInfo[];

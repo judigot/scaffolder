@@ -5,7 +5,7 @@ import createAPIRoutes from '@/utils/backend/nextjs/createAPIRoutes';
 import createDatabaseClient from '@/utils/backend/nextjs/createDatabaseClient';
 import createDataTypeParser from '@/utils/backend/nextjs/createDataTypeParser';
 
-export function folderStructure({
+export function useNextJS({
   schemaInfo,
 }: {
   schemaInfo: ISchemaInfo[];

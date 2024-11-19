@@ -8,7 +8,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import FolderIcon from '@mui/icons-material/Folder';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { handleCopy } from '@/helpers/stringHelper';
-import { frameworkFolderStructures } from '@/frameworks/frameworkFolderStructures';
+import { useFolderStructures } from '@/frameworks/useFolderStructures';
 import { useFormStore } from '@/useFormStore';
 
 const darkTheme = createTheme({
@@ -42,7 +42,7 @@ export default function FileViewer({
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
   const fileStructure: IStructure =
-    frameworkFolderStructures(schemaInfo)[framework];
+    useFolderStructures(schemaInfo)[framework];
 
   function LineCounter({ lines }: { lines: number }) {
     return (

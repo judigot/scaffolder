@@ -16,7 +16,7 @@ import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
 import http from 'http';
 import https from 'https';
 import createFolderStructure from '@/utils/createFolderStructure';
-import { frameworkFolderStructures } from '@/frameworks/frameworkFolderStructures';
+import { useFolderStructures } from '@/frameworks/useFolderStructures';
 
 dotenv.config();
 
@@ -289,7 +289,7 @@ app.post(
 
       try {
         createFolderStructure({
-          structure: frameworkFolderStructures(schemaInfo)[framework],
+          structure: useFolderStructures(schemaInfo)[framework],
           targetDirectory: isBackendDirValid
             ? backendDirPath
             : path.resolve(__dirname, `../output/backend`),
