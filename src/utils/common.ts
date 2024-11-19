@@ -149,12 +149,12 @@ export const generateColumnDefinition = ({
   //   });
   // }
 
-  let definition = replacePlaceholder(targetDefinition.columnTemplate, {
+  let definition = replacePlaceholder({template: targetDefinition.columnTemplate, replacements: {
     columnName: !isDBDefinition
       ? column_name
       : `${quote}${column_name}${quote}`,
     mappedType: type,
-  });
+  }});
 
   if (isDBDefinition) {
     const isUnique = unique;
