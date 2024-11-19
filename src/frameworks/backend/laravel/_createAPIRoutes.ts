@@ -86,11 +86,11 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
 
         // Soft delete a specific record by ID
         // Usage: http://localhost:8000/api/${routeName}/soft-delete/{id}
-        Route::get('${routeName}/soft-delete/{id}', [${className}Controller::class, 'softDelete']);
+        Route::put('${routeName}/soft-delete/{id}', [${className}Controller::class, 'softDelete']);
 
         // Restore a soft-deleted record by ID
         // Usage: http://localhost:8000/api/${routeName}/restore/{id}
-        Route::get('${routeName}/restore/{id}', [${className}Controller::class, 'restore']);
+        Route::put('${routeName}/restore/{id}', [${className}Controller::class, 'restore']);
 
         // Retrieve records including those that have been soft-deleted
         // Usage: http://localhost:8000/api/${routeName}/with-trashed
