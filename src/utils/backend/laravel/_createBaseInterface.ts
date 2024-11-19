@@ -3,7 +3,8 @@ import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 const createBaseInterface = (): IFile => {
-  const template = `<?php
+  const template = `
+<?php
 {{ownerComment}}
 
 namespace App\\Repositories;

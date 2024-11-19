@@ -160,7 +160,8 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
         )
         .join('\n');
 
-      const template = `<?php
+      const template = `
+<?php
 {{ownerComment}}
 
 namespace App\\Models;

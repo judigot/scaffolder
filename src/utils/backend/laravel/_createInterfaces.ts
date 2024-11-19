@@ -5,7 +5,8 @@ import { APP_SETTINGS, ownerComment } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
 
-const template = `<?php
+const template = `
+<?php
 {{ownerComment}}
 
 namespace App\\Repositories;

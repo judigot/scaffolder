@@ -32,7 +32,8 @@ const createAppServiceProviderScaffolding = ({
 }): IFile => {
   let template = '';
 
-  template = `<?php
+  template = `
+<?php
 {{ownerComment}}
 
 namespace App\\Providers;

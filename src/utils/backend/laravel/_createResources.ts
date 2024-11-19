@@ -25,7 +25,8 @@ import { createFile } from '@/helpers/stringHelper';
    - Ensure that generated resource files use consistent naming conventions and follow the standard resource structure.
 */
 
-const template = `<?php
+const template = `
+<?php
 {{ownerComment}}
 
 namespace App\\Http\\Resources;

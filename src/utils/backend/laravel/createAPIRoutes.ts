@@ -9,7 +9,8 @@ const createAPIRoutes = (
   schemaInfo: ISchemaInfo[],
   outputFilePath: string,
 ): void => {
-  const routesWithComment = `<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
+  const routesWithComment = `
+<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
   const useStatements = schemaInfo
     .map(

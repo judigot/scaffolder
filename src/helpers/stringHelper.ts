@@ -18,13 +18,19 @@ export const createFile = ({
   template: string;
   replacements: Record<string, string>;
 }): string => {
-  return replacePlaceholder(template, replacements);
+  return replacePlaceholder({ template, replacements })
+    .split('\n')
+    .slice(1)
+    .join('\n');
 };
 
-export const replacePlaceholder = (
-  template: string,
-  replacements: Record<string, string>,
-): string =>
+export const replacePlaceholder = ({
+  template,
+  replacements,
+}: {
+  template: string;
+  replacements: Record<string, string>;
+}): string =>
   Object.entries(replacements).reduce(
     (result, [key, value]) =>
       result.replace(new RegExp(`{{${key}}}`, 'g'), value),

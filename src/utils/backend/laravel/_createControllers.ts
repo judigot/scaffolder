@@ -5,7 +5,8 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { changeCase } from '@/utils/identifySchema';
 
-const template = `<?php
+const template = `
+<?php
 {{ownerComment}}
 
 namespace App\\Http\\Controllers;

@@ -43,7 +43,8 @@ const createAppServiceProviderScaffolding = ({
   let content = '';
 
   if (recreateFile || !fs.existsSync(outputFilePath)) {
-    content = `<?php
+    content = `
+<?php
 ${ownerComment}
 
 namespace App\\Providers;

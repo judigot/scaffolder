@@ -3,7 +3,8 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS, ownerComment } from '@/constants';
 
-const template = `<?php
+const template = `
+<?php
 {{ownerComment}}
 
 use Illuminate\\Http\\Request;
