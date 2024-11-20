@@ -1,16 +1,16 @@
 import { IStructure } from '@/components/FileViewer';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import _createAPIRoutes from '@/frameworks/backend/laravel/_createAPIRoutes';
-import _createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/_createAppServiceProviderScaffolding';
-import _createBaseController from '@/frameworks/backend/laravel/_createBaseController';
-import _createBaseInterface from '@/frameworks/backend/laravel/_createBaseInterface';
-import _createBaseRepository from '@/frameworks/backend/laravel/_createBaseRepository';
-import _createControllers from '@/frameworks/backend/laravel/_createControllers';
-import _createInterfaces from '@/frameworks/backend/laravel/_createInterfaces';
-import _createModels from '@/frameworks/backend/laravel/_createModels';
-import _createRepositories from '@/frameworks/backend/laravel/_createRepositories';
-import _createResources from '@/frameworks/backend/laravel/_createResources';
-import _createServices from '@/frameworks/backend/laravel/_createServices';
+import createAPIRoutes from '@/frameworks/backend/laravel/createAPIRoutes';
+import createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/createAppServiceProviderScaffolding';
+import createBaseController from '@/frameworks/backend/laravel/createBaseController';
+import createBaseInterface from '@/frameworks/backend/laravel/createBaseInterface';
+import createBaseRepository from '@/frameworks/backend/laravel/createBaseRepository';
+import createControllers from '@/frameworks/backend/laravel/createControllers';
+import createInterfaces from '@/frameworks/backend/laravel/createInterfaces';
+import createModels from '@/frameworks/backend/laravel/createModels';
+import createRepositories from '@/frameworks/backend/laravel/createRepositories';
+import createResources from '@/frameworks/backend/laravel/createResources';
+import createServices from '@/frameworks/backend/laravel/createServices';
 
 export function useLaravel({
   schemaInfo,
@@ -29,28 +29,25 @@ export function useLaravel({
             {
               type: 'folder',
               name: 'Controllers',
-              files: [
-                _createBaseController(),
-                ..._createControllers(schemaInfo),
-              ],
+              files: [createBaseController(), ...createControllers(schemaInfo)],
             },
             {
               type: 'folder',
               name: 'Resources',
-              files: _createResources(schemaInfo),
+              files: createResources(schemaInfo),
             },
           ],
         },
         {
           type: 'folder',
           name: 'Models',
-          files: _createModels(schemaInfo),
+          files: createModels(schemaInfo),
         },
         {
           type: 'folder',
           name: 'Providers',
           files: [
-            _createAppServiceProviderScaffolding({
+            createAppServiceProviderScaffolding({
               schemaInfo,
             }),
           ],
@@ -59,16 +56,16 @@ export function useLaravel({
           type: 'folder',
           name: 'Repositories',
           files: [
-            _createBaseInterface(),
-            _createBaseRepository(),
-            ..._createRepositories(schemaInfo),
-            ..._createInterfaces(schemaInfo),
+            createBaseInterface(),
+            createBaseRepository(),
+            ...createRepositories(schemaInfo),
+            ...createInterfaces(schemaInfo),
           ],
         },
         {
           type: 'folder',
           name: 'Services',
-          files: _createServices(schemaInfo),
+          files: createServices(schemaInfo),
         },
       ],
     },
@@ -79,7 +76,7 @@ export function useLaravel({
         {
           type: 'file',
           name: 'api.php',
-          content: _createAPIRoutes(schemaInfo),
+          content: createAPIRoutes(schemaInfo),
         },
       ],
     },
