@@ -32,7 +32,8 @@ export const createFolderStructure = ({
         structure: item.files,
         targetDirectory: folderPath,
       });
-    } else {
+    }
+    if (item.type === 'file') {
       const filePath = path.join(targetDirectory, item.name);
 
       fs.writeFileSync(filePath, item.content, 'utf-8');

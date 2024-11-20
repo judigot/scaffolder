@@ -17,15 +17,18 @@ const darkTheme = createTheme({
   },
 });
 
-export interface IFile {
-  type: 'file';
+export interface IBase {
   name: string;
+  type: 'file' | 'folder';
+}
+
+export interface IFile extends IBase {
+  type: 'file';
   content: string;
 }
 
-export interface IFolder {
+export interface IFolder extends IBase {
   type: 'folder';
-  name: string;
   files: (IFile | IFolder)[];
 }
 
@@ -41,8 +44,7 @@ export default function FileViewer({
   } = useFormStore();
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
-  const fileStructure: IStructure =
-    useFolderStructures(schemaInfo)[framework];
+  const fileStructure: IStructure = useFolderStructures(schemaInfo)[framework];
 
   function LineCounter({ lines }: { lines: number }) {
     return (
