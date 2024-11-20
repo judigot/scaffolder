@@ -19,7 +19,7 @@ export function useFrontend({
           files: [
             {
               type: 'folder',
-              name: 'api',
+              name: 'services',
               files: createAPICalls(schemaInfo),
             },
           ],

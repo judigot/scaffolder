@@ -6,7 +6,7 @@ import { createFile } from '@/helpers/stringHelper';
 
 const CREATE_TEMPLATE = `
 import { customFetch } from '../customFetch';
-import { I{{className}} } from '../../interfaces/interfaces';
+import { I{{className}} } from '../../../interfaces/I{{className}}';
 
 type IBody = Omit<I{{className}}, '$PRIMARY_KEY' | 'created_at' | 'updated_at'>;
 
@@ -14,7 +14,7 @@ export const create{{className}} = async (
   formData: IBody,
 ): Promise<IBody | undefined> => {
   const result: IBody | undefined = await customFetch.post({
-    url: '/{{tableName}}',
+    url: '/{{tableNamePlural}}',
     body: JSON.stringify(formData),
   });
   return result;
@@ -23,13 +23,13 @@ export const create{{className}} = async (
 
 const READ_TEMPLATE = `
 import { customFetch } from '../customFetch';
-import { I{{className}} } from '../../interfaces/interfaces';
+import { I{{className}} } from '../../../interfaces/I{{className}}';
 
 type IBody = I{{className}};
 
 export const read{{className}} = async (): Promise<IBody[] | null> => {
   const result: IBody[] | null = await customFetch.get({
-    url: '/{{tableName}}',
+    url: '/{{tableNamePlural}}',
   });
   return result;
 };
@@ -37,13 +37,13 @@ export const read{{className}} = async (): Promise<IBody[] | null> => {
 
 const UPDATE_TEMPLATE = `
 import { customFetch } from '../customFetch';
-import { I{{className}} } from '../../interfaces/interfaces';
+import { I{{className}} } from '../../../interfaces/I{{className}}';
 
 type IBody = I{{className}};
 
 export const update{{className}} = async (formData: IBody): Promise<IBody> => {
   const result: IBody = await customFetch.patch({
-    url: '/{{tableName}}',
+    url: '/{{tableNamePlural}}',
     body: JSON.stringify(formData),
   });
   return result;
@@ -55,7 +55,7 @@ import { customFetch } from '../customFetch';
 
 export const delete{{className}} = async (id: number): Promise<void> => {
   await customFetch.delete({
-    url: '/{{tableName}}/\${String(id)}',
+    url: '/{{tableNamePlural}}/\${String(id)}',
   });
 };
 `;
@@ -69,11 +69,12 @@ const createCRUDTemplates = (schemaInfo: ISchemaInfo[]): IStructure => {
     .map((tableInfo) => {
       const {
         table,
-        tableCases: { pascalCase },
+        tableCases: { plural, pascalCase },
       } = tableInfo;
 
       const replacements = {
         tableName: table,
+        tableNamePlural: plural,
         className: pascalCase,
         primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
       };

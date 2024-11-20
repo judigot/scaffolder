@@ -164,7 +164,7 @@ function App() {
                   Backend URL:
                   {!generationStatus.isBackendUrlValid && (
                     <i className="text-red-500">
-                      &nbsp;Invalid backend directory
+                      &nbsp;Invalid backend URL
                     </i>
                   )}
                   <input
