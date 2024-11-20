@@ -1,95 +1,110 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import fs from 'fs';
-import path from 'path';
+import { APP_SETTINGS } from '@/constants';
+import { IStructure } from '@/components/FileViewer';
+import { getPrimaryKey } from '@/utils/common';
+import { createFile } from '@/helpers/stringHelper';
 
-const platform: string = process.platform;
+const CREATE_TEMPLATE = `
+import { customFetch } from '../customFetch';
+import { I{{className}} } from '../../interfaces/interfaces';
 
-let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
+type IBody = Omit<I{{className}}, '$PRIMARY_KEY' | 'created_at' | 'updated_at'>;
 
-if (platform === 'win32') {
-  __dirname = __dirname.substring(1);
-}
-
-const createAPICalls = (
-  schemaInfo: ISchemaInfo[],
-  outputDir: string,
-  outputOnSingleFile: boolean,
-  backendUrl: string,
-): void => {
-  const templateDir = path.resolve(__dirname, '../../templates/frontend/api');
-
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  // Define paths for customFetch
-  const customFetchSourcePath = path.resolve(templateDir, 'customFetch.ts');
-  const customFetchContent = fs.existsSync(customFetchSourcePath)
-    ? fs.readFileSync(customFetchSourcePath, 'utf-8')
-    : null;
-
-  if (customFetchContent == null) {
-    console.error(`Template not found: ${customFetchSourcePath}`);
-    return;
-  }
-
-  const customFetchDestinationPath = path.join(outputDir, 'customFetch.ts');
-  const modifiedContent = customFetchContent.replace(
-    /\$BACKEND_URL/g,
-    backendUrl,
-  );
-  fs.writeFileSync(customFetchDestinationPath, modifiedContent);
-
-  const operations = ['create', 'read', 'update', 'delete'];
-  const operationTemplates: Record<string, string> = {};
-
-  // Load operation templates
-  operations.forEach((operation) => {
-    const templatePath = path.resolve(templateDir, `model/${operation}.ts`);
-    const template = fs.existsSync(templatePath)
-      ? fs.readFileSync(templatePath, 'utf-8')
-      : null;
-
-    if (template == null) {
-      console.error(`Template not found: ${templatePath}`);
-      return;
-    }
-
-    operationTemplates[operation] = template;
+export const create{{className}} = async (
+  formData: IBody,
+): Promise<IBody | undefined> => {
+  const result: IBody | undefined = await customFetch.post({
+    url: '/{{tableName}}',
+    body: JSON.stringify(formData),
   });
+  return result;
+};
+`;
 
-  schemaInfo.forEach(
-    ({ table, tableCases: { plural, pascalCase }, columnsInfo }) => {
-      const className = pascalCase;
-      const tableDir = path.join(outputDir, table);
+const READ_TEMPLATE = `
+import { customFetch } from '../customFetch';
+import { I{{className}} } from '../../interfaces/interfaces';
 
-      if (!fs.existsSync(tableDir)) {
-        fs.mkdirSync(tableDir, { recursive: true });
-      }
+type IBody = I{{className}};
 
-      operations.forEach((operation) => {
-        let apiCalls = operationTemplates[operation];
-        apiCalls = apiCalls.replace(/ModelTemplate/g, className);
-        apiCalls = apiCalls.replace(/modelTemplate/g, plural);
+export const read{{className}} = async (): Promise<IBody[] | null> => {
+  const result: IBody[] | null = await customFetch.get({
+    url: '/{{tableName}}',
+  });
+  return result;
+};
+`;
 
-        // Find the primary key column
-        const primaryKeyColumn = columnsInfo.find(
-          (column) => column.primary_key,
-        );
-        apiCalls = apiCalls.replace(
-          /\$PRIMARY_KEY/g,
-          primaryKeyColumn ? primaryKeyColumn.column_name : '',
-        );
+const UPDATE_TEMPLATE = `
+import { customFetch } from '../customFetch';
+import { I{{className}} } from '../../interfaces/interfaces';
 
-        if (!outputOnSingleFile) {
-          apiCalls = apiCalls.replace(/\/interfaces';/g, `/I${pascalCase}';`);
-        }
+type IBody = I{{className}};
 
-        const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
-        fs.writeFileSync(outputFilePath, apiCalls);
-      });
-    },
-  );
+export const update{{className}} = async (formData: IBody): Promise<IBody> => {
+  const result: IBody = await customFetch.patch({
+    url: '/{{tableName}}',
+    body: JSON.stringify(formData),
+  });
+  return result;
+};
+`;
+
+const DELETE_TEMPLATE = `
+import { customFetch } from '../customFetch';
+
+export const delete{{className}} = async (id: number): Promise<void> => {
+  await customFetch.delete({
+    url: '/{{tableName}}/\${String(id)}',
+  });
+};
+`;
+
+const createCRUDTemplates = (schemaInfo: ISchemaInfo[]): IStructure => {
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      const {
+        table,
+        tableCases: { pascalCase },
+      } = tableInfo;
+
+      const replacements = {
+        tableName: table,
+        className: pascalCase,
+        primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
+      };
+
+      return {
+        type: 'folder',
+        name: table,
+        files: [
+          {
+            type: 'file',
+            name: `create-${table}.ts`,
+            content: createFile({ template: CREATE_TEMPLATE, replacements }),
+          },
+          {
+            type: 'file',
+            name: `read-${table}.ts`,
+            content: createFile({ template: READ_TEMPLATE, replacements }),
+          },
+          {
+            type: 'file',
+            name: `update-${table}.ts`,
+            content: createFile({ template: UPDATE_TEMPLATE, replacements }),
+          },
+          {
+            type: 'file',
+            name: `delete-${table}.ts`,
+            content: createFile({ template: DELETE_TEMPLATE, replacements }),
+          },
+        ],
+      };
+    });
 };
 
-export default createAPICalls;
+export default createCRUDTemplates;

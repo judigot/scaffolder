@@ -5,10 +5,6 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import Pool from 'pg-pool';
 import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
-import clearGeneratedFiles from '@/utils/clearDirectory';
-import { frontendDirectories } from '@/constants';
-import createAPICalls from '@/frameworks/frontend/createAPICalls';
-import createTypescriptInterfaces from '@/frameworks/frontend/createTypescriptInterfaces';
 import { ISchemaInfo, isITableArray } from '@/interfaces/interfaces';
 import introspect from '@/utils/introspect';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
@@ -180,13 +176,11 @@ app.post(
       unknown,
       {
         schemaInfo: ISchemaInfo[];
-        interfaces: string;
         framework: string;
         backendDir: string;
         frontendDir: string;
         dbConnection: string;
         SQLSchema: string | null;
-        outputOnSingleFile: boolean;
         backendUrl: string;
       }
     >,
@@ -194,17 +188,13 @@ app.post(
   ) => {
     const {
       schemaInfo,
-      interfaces,
-      framework: frameworkRaw,
+      framework,
       backendDir,
       frontendDir,
       dbConnection,
       SQLSchema,
-      outputOnSingleFile,
       backendUrl,
     } = req.body;
-    const framework = frameworkRaw;
-    // const frameworkDir = frameworkDirectories[framework];
 
     void (async () => {
       const backendDirPath = path.resolve(__dirname, backendDir);
@@ -295,28 +285,12 @@ app.post(
             : path.resolve(__dirname, `../output/backend`),
         });
 
-        /*=====FRONTEND=====*/
-        const APICallsDir = isFrontendDirValid
-          ? path.resolve(frontendDirPath, frontendDirectories.apiCalls)
-          : path.resolve(
-              __dirname,
-              `../output/frontend/${frontendDirectories.apiCalls}`,
-            );
-        clearGeneratedFiles(APICallsDir);
-        createAPICalls(schemaInfo, APICallsDir, outputOnSingleFile, backendUrl);
-
-        const typescriptInterfacesDir = isFrontendDirValid
-          ? path.resolve(frontendDirPath, frontendDirectories.interface)
-          : path.resolve(
-              __dirname,
-              `../output/frontend/${frontendDirectories.interface}`,
-            );
-        clearGeneratedFiles(typescriptInterfacesDir);
-        createTypescriptInterfaces({
-          interfaces,
-          outputDir: typescriptInterfacesDir,
+        createFolderStructure({
+          structure: useFolderStructures(schemaInfo).frontend,
+          targetDirectory: isFrontendDirValid
+            ? frontendDirPath
+            : path.resolve(__dirname, `../output/frontend`),
         });
-        /*=====FRONTEND=====*/
 
         checkBackendUrlValidity(backendUrl)
           .then((isBackendUrlValid) => {

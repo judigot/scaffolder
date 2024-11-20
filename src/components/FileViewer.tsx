@@ -6,16 +6,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import CopyIcon from '@mui/icons-material/ContentCopy';
 import CodeIcon from '@mui/icons-material/Code';
 import FolderIcon from '@mui/icons-material/Folder';
-import { ISchemaInfo } from '@/interfaces/interfaces';
 import { handleCopy } from '@/helpers/stringHelper';
-import { useFolderStructures } from '@/frameworks/useFolderStructures';
-import { useFormStore } from '@/useFormStore';
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
 
 export interface IBase {
   name: string;
@@ -34,17 +25,20 @@ export interface IFolder extends IBase {
 
 export type IStructure = (IFile | IFolder)[];
 
-export default function FileViewer({
-  schemaInfo,
-}: {
-  schemaInfo: ISchemaInfo[];
-}) {
-  const {
-    formData: { framework },
-  } = useFormStore();
-  const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
-  const fileStructure: IStructure = useFolderStructures(schemaInfo)[framework];
+function FileViewer({
+  folderStructure,
+  folderColor,
+}: {
+  folderStructure: IStructure;
+  folderColor: string;
+}) {
+  const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
   function LineCounter({ lines }: { lines: number }) {
     return (
@@ -73,7 +67,10 @@ export default function FileViewer({
             itemId={itemId}
             label={
               <>
-                <FolderIcon fontSize="small" className="text-yellow-500" />
+                <FolderIcon
+                  fontSize="small"
+                  className={`text-${folderColor}-500`}
+                />
                 &nbsp;
                 {item.name}
               </>
@@ -105,10 +102,10 @@ export default function FileViewer({
 
   return (
     <ThemeProvider theme={darkTheme}>
-      <div className="grid grid-cols-3 h-screen text-white">
+      <div className="grid grid-cols-3 text-white">
         <div className="col-span-1 bg-gray-800 p-4 select-none">
           <SimpleTreeView>
-            {renderTree(fileStructure, setSelectedFile)}
+            {renderTree(folderStructure, setSelectedFile)}
           </SimpleTreeView>
         </div>
         <div className="col-span-2 bg-gray-900 p-4">
@@ -155,3 +152,5 @@ export default function FileViewer({
     </ThemeProvider>
   );
 }
+
+export default FileViewer;

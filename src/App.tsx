@@ -9,6 +9,7 @@ import { consolidateInterfaces } from '@/utils/common';
 import FileViewer from '@/components/FileViewer';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
 import { handleCopy } from '@/helpers/stringHelper';
+import { useFolderStructures } from '@/frameworks/useFolderStructures';
 
 function App() {
   const {
@@ -41,6 +42,8 @@ function App() {
     aggregateJoins,
     setTransformations,
   } = useTransformationsStore();
+
+  const schemaInfo = getSchemaInfo();
 
   const stringInterfaces = consolidateInterfaces(interfaces);
 
@@ -149,7 +152,7 @@ function App() {
                   className="block text-sm font-medium"
                 >
                   Additional Schema Settings:
-                  <AdditionalSchemaSettings schemaInfo={getSchemaInfo()} />
+                  <AdditionalSchemaSettings schemaInfo={schemaInfo} />
                 </label>
               </div>
 
@@ -282,16 +285,12 @@ function App() {
                         'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
-                        schemaInfo: getSchemaInfo(),
-                        interfaces: outputOnSingleFile
-                          ? stringInterfaces
-                          : interfaces,
+                        schemaInfo,
                         backendDir,
                         frontendDir,
                         dbConnection,
                         framework,
                         SQLSchema,
-                        outputOnSingleFile,
                         backendUrl,
                       }),
                     })
@@ -436,7 +435,29 @@ function App() {
                 )}
               </select>
             </label>
-            <FileViewer schemaInfo={getSchemaInfo()} />
+            <div className="grid grid-rows-2 h-screen gap-4">
+              {/* <div className="bg-blue-500  text-white font-bold">
+                <FileViewer
+                  folderColor={'yellow'}
+                  folderStructure={useFolderStructures(schemaInfo)[framework]}
+                />
+              </div>
+              <div className="bg-green-500 flex text-white font-bold">
+                <FileViewer
+                  folderColor={'green'}
+                  folderStructure={useFolderStructures(schemaInfo).frontend}
+                />
+              </div> */}
+
+              <FileViewer
+                folderColor={'yellow'}
+                folderStructure={useFolderStructures(schemaInfo)[framework]}
+              />
+              <FileViewer
+                folderColor={'green'}
+                folderStructure={useFolderStructures(schemaInfo).frontend}
+              />
+            </div>
           </div>
         </div>
         <br />
