@@ -6,6 +6,7 @@ import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySch
 import { POSSchema } from '@/json-schemas/POSSchema';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { DBTypes } from '@/interfaces/interfaces';
+import { SQLQueries } from '@/utils/mappings';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -60,14 +61,6 @@ const initialFormData: IFormData = {
   outputOnSingleFile: false,
 };
 
-function getQuote(dbType: DBTypes): string {
-  const quotes: Record<DBTypes, string> = {
-    postgresql: '"',
-    mysql: '`',
-  };
-  return quotes[dbType];
-}
-
 function determineSQLDatabaseType(dbConnection: string): DBTypes {
   const dbType = extractDBConnectionInfo(dbConnection).dbType;
   return dbType;
@@ -79,7 +72,7 @@ export const useFormStore = create(
       const initialDbType = determineSQLDatabaseType(
         initialFormData.dbConnection,
       );
-      const initialQuote = getQuote(initialDbType);
+      const initialQuote = SQLQueries.quote[initialDbType];
 
       return {
         formData: initialFormData,
@@ -94,7 +87,7 @@ export const useFormStore = create(
             return {
               formData: { ...state.formData, ...data },
               dbType: newDbType,
-              quote: getQuote(newDbType),
+              quote: SQLQueries.quote[newDbType],
             };
           });
         },
@@ -139,7 +132,7 @@ export const useFormStore = create(
             }
 
             const newDbType = determineSQLDatabaseType(connectionString);
-            const newQuote = getQuote(newDbType);
+            const newQuote = SQLQueries.quote[newDbType];
 
             return {
               formData: {
