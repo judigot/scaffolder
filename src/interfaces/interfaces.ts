@@ -13,8 +13,25 @@ export interface IColumnInfo {
   } | null;
 }
 
-export interface ISchemaInfo {
+export interface ITableInfo {
   table: string;
+  foreignTables: string[];
+  childTables: string[];
+  isPivot: boolean;
+  hasOne: string[];
+  hasMany: string[];
+  belongsTo: string[];
+  belongsToMany: string[];
+  pivotRelationships: {
+    relatedTable: string;
+    pivotTable: string;
+  }[];
+}
+
+export interface ISchemaInfo extends ITableInfo {
+  requiredColumns: string[];
+  columnsInfo: IColumnInfo[];
+  foreignKeys: string[];
   tableCases: {
     plural: string;
     titleCase: string;
@@ -32,20 +49,6 @@ export interface ISchemaInfo {
     kebabCasePlural: string;
     snakeCasePlural: string;
   };
-  requiredColumns: string[];
-  columnsInfo: IColumnInfo[];
-  foreignTables: string[];
-  foreignKeys: string[];
-  childTables: string[];
-  isPivot: boolean;
-  hasOne: string[];
-  hasMany: string[];
-  belongsTo: string[];
-  belongsToMany: string[];
-  pivotRelationships: {
-    relatedTable: string;
-    pivotTable: string;
-  }[];
 }
 
 export type ParsedJSONSchema = Record<string, Record<string, unknown>[]>;

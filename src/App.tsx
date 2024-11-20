@@ -10,6 +10,7 @@ import FileViewer from '@/components/FileViewer';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
 import { handleCopy } from '@/helpers/stringHelper';
 import { useFolderStructures } from '@/frameworks/useFolderStructures';
+import SchemaBuilder from '@/components/SchemaBuilder';
 
 function App() {
   const {
@@ -96,6 +97,7 @@ function App() {
           Pre-commit hook is temporarily disabled!
         </h2>
       </div>
+      <SchemaBuilder />
       <div className="p-4">
         <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
           <div className="col-span-1 bg-gray-700 p-4 shadow-md rounded-md">
@@ -139,7 +141,17 @@ function App() {
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  handleCopy(JSON.stringify(schemaInfo, null, 4));
+                  const updatedSchemaInfo = schemaInfo.map(
+                    ({
+                      requiredColumns: _1,
+                      columnsInfo: _2,
+                      foreignKeys: _3,
+                      tableCases: _4,
+                      ...newObject
+                    }) => newObject,
+                  );
+
+                  handleCopy(JSON.stringify(updatedSchemaInfo, null, 4));
                 }}
                 className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >
