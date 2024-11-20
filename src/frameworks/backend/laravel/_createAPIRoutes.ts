@@ -1,11 +1,10 @@
 import { convertToUrlFormat, createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 
 const template = `
 <?php
-{{ownerComment}}
 
 use Illuminate\\Http\\Request;
 use Illuminate\\Support\\Facades\\Route;
@@ -153,7 +152,6 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
     .join('\n');
 
   const replacements = {
-    ownerComment,
     useStatements,
     customRoutes,
   };

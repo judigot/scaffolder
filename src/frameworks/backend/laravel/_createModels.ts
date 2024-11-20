@@ -1,4 +1,4 @@
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
 import { getPrimaryKey } from '@/utils/common';
@@ -239,7 +239,6 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
       const template = `
 <?php
-{{ownerComment}}
 
 namespace App\\Models;
 
@@ -265,7 +264,6 @@ class {{className}} extends Model
 `;
 
       const replacements = {
-        ownerComment,
         modelImports,
         className,
         tableName: table,

@@ -1,4 +1,3 @@
-import { ownerComment } from '@/constants';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import fs from 'fs';
 import path from 'path';
@@ -87,7 +86,7 @@ const createAPICalls = (
         }
 
         const outputFilePath = path.join(tableDir, `${operation}-${table}.ts`);
-        fs.writeFileSync(outputFilePath, `${ownerComment}\n${apiCalls}`);
+        fs.writeFileSync(outputFilePath, apiCalls);
       });
     },
   );

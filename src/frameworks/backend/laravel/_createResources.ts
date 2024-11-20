@@ -1,5 +1,5 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { changeCase } from '@/utils/identifySchema';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
@@ -27,7 +27,6 @@ import { createFile } from '@/helpers/stringHelper';
 
 const template = `
 <?php
-{{ownerComment}}
 
 namespace App\\Http\\Resources;
 
@@ -95,12 +94,11 @@ const createResources = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const attributes = generateAttributes(tableInfo);
 
       const replacements = {
-        ownerComment,
         className,
         attributes,
       };
 
-      const content = createFile({template, replacements});
+      const content = createFile({ template, replacements });
 
       return {
         type: 'file',

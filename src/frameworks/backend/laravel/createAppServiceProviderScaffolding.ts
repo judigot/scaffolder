@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 
 const updateOrCreateSection = (
   content: string,
@@ -45,7 +45,6 @@ const createAppServiceProviderScaffolding = ({
   if (recreateFile || !fs.existsSync(outputFilePath)) {
     content = `
 <?php
-${ownerComment}
 
 namespace App\\Providers;
 

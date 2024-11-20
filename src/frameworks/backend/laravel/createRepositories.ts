@@ -3,7 +3,7 @@ import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 // Global variables
@@ -52,7 +52,6 @@ const createRepositories = (
     const content = createFile({
       template,
       replacements: {
-        ownerComment,
         className: pascalCase,
         modelName: pascalCase,
         tableName: table,

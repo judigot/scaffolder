@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
+import { APP_SETTINGS, frameworkDirectories } from '@/constants';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { changeCase } from '@/utils/identifySchema';
@@ -74,7 +74,6 @@ const createControllers = (
     const content = createFile({
       template,
       replacements: {
-        ownerComment,
         className,
         controllerMethods,
       },

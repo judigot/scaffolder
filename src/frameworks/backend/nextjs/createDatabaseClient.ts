@@ -1,11 +1,8 @@
 import { IFile } from '@/components/FileViewer';
-import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 const createDataTypeParser = (): IFile => {
   const template = `
-{{ownerComment}}
-
 import { PrismaClient } from '@prisma/client';
 
 /* Singleton instance of PrismaClient, used to manage database connections. */
@@ -59,11 +56,9 @@ process.on('SIGINT', () => {
 
 `;
 
-  const replacements = {
-    ownerComment,
-  };
+  const replacements = {};
 
-  const content = createFile({template, replacements});
+  const content = createFile({ template, replacements });
 
   return {
     type: 'file',

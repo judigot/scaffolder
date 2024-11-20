@@ -1,5 +1,5 @@
 import { IFile } from '@/components/FileViewer';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
@@ -7,7 +7,6 @@ import { changeCase } from '@/utils/identifySchema';
 
 const template = `
 <?php
-{{ownerComment}}
 
 namespace App\\Http\\Controllers;
 
@@ -69,13 +68,12 @@ const createControllers = (
       });
 
       const replacements = {
-        ownerComment,
         className,
         tableName: table,
         controllerMethods,
       };
 
-      const content = createFile({template, replacements});
+      const content = createFile({ template, replacements });
 
       return {
         type: 'file',

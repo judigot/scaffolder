@@ -1,13 +1,12 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
 
 const template = `
 <?php
-{{ownerComment}}
 
 namespace App\\Repositories;
 
@@ -40,14 +39,13 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
       });
 
       const replacements = {
-        ownerComment,
         className,
         tableName: table,
         modelImports,
         modelSpecificMethods,
       };
 
-      const content = createFile({template, replacements});
+      const content = createFile({ template, replacements });
 
       return {
         type: 'file',

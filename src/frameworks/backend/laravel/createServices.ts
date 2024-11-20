@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 // Determine the current directory based on platform
@@ -36,13 +36,12 @@ const createServices = (
     if (APP_SETTINGS.excludePivotTableFiles && isPivot) return;
 
     const replacements = {
-      ownerComment,
       className: pascalCase,
       modelName: pascalCase,
       tableName: table,
     };
 
-    const content = createFile({template, replacements});
+    const content = createFile({ template, replacements });
     const outputFilePath = path.join(outputDir, `${pascalCase}Service.php`);
     fs.writeFileSync(outputFilePath, content);
   });

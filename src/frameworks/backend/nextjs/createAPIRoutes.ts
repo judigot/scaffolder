@@ -1,12 +1,10 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
 import { createFile } from '@/helpers/stringHelper';
 
 const ROUTE_TEMPLATE = `
-{{ownerComment}}
-
 import GetHandler from './GET';
 import PostHandler from './POST';
 import PatchHandler from './PATCH';
@@ -31,8 +29,6 @@ export async function DELETE(req: NextRequest) {
 `;
 
 const GET_TEMPLATE = `
-{{ownerComment}}
-
 import { NextRequest, NextResponse } from 'next/server';
 import DatatypeParser from '@/utils/DataTypeParser';
 import { prisma } from '@/prisma/DatabaseClient';
@@ -59,8 +55,6 @@ export default GetHandler;
 `;
 
 const POST_TEMPLATE = `
-{{ownerComment}}
-
 import { NextRequest, NextResponse } from 'next/server';
 import DatatypeParser from '@/utils/DataTypeParser';
 import { prisma } from '@/prisma/DatabaseClient';
@@ -88,8 +82,6 @@ export default PostHandler;
 `;
 
 const PATCH_TEMPLATE = `
-{{ownerComment}}
-
 import { NextRequest, NextResponse } from 'next/server';
 import DatatypeParser from '@/utils/DataTypeParser';
 import { prisma } from '@/prisma/DatabaseClient';
@@ -117,8 +109,6 @@ export default PatchHandler;
 `;
 
 const DELETE_TEMPLATE = `
-{{ownerComment}}
-
 import { NextRequest, NextResponse } from 'next/server';
 import DatatypeParser from '@/utils/DataTypeParser';
 import { prisma } from '@/prisma/DatabaseClient';
@@ -158,7 +148,6 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
       } = tableInfo;
 
       const replacements = {
-        ownerComment,
         tableName: table,
         className: pascalCase,
         primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),

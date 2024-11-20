@@ -3,14 +3,14 @@ import path from 'path';
 import { convertToUrlFormat } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 
 const createAPIRoutes = (
   schemaInfo: ISchemaInfo[],
   outputFilePath: string,
 ): void => {
   const routesWithComment = `
-<?php\n${ownerComment}\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
+<?php\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n`;
 
   const useStatements = schemaInfo
     .map(

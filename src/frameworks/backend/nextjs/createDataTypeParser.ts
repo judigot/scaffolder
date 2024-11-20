@@ -1,11 +1,8 @@
 import { IFile } from '@/components/FileViewer';
-import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 const createDataTypeParser = (): IFile => {
   const template = `
-{{ownerComment}}
-
 import { Decimal } from '@prisma/client/runtime/library';
 
 // Define a type for row data
@@ -75,11 +72,9 @@ const castRowValues = (data: RowData): RowData => {
 };
 `;
 
-  const replacements = {
-    ownerComment,
-  };
+  const replacements = {};
 
-  const content = createFile({template, replacements});
+  const content = createFile({ template, replacements });
 
   return {
     type: 'file',

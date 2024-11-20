@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { ownerComment } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 // Global variables
@@ -21,7 +20,7 @@ const createBaseFile = (
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const replacements = { ownerComment };
+  const replacements = {};
 
   // Mapping file types to template and output names
   const fileConfig: Record<FileType, { template: string; output: string }> = {

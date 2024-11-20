@@ -7,7 +7,7 @@ import { normalizeWhitespace } from '@/helpers/stringHelper';
 import { POSSchema } from '@/json-schemas/POSSchema';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
-import { ownerComment } from '@/constants';
+import { watermark } from '@/constants';
 
 const loadTemplate = (framework: string) => {
   const templatePath = path.resolve(
@@ -38,7 +38,7 @@ describe('createModels', () => {
 
     const expectedUserModel = normalizeWhitespace(`
       <?php
-      ${ownerComment}
+      ${watermark}
       namespace App\\Models;
       use App\\Models\\Post;
       use Illuminate\\Database\\Eloquent\\Model;
@@ -63,7 +63,7 @@ describe('createModels', () => {
     `);
 
     const generatedUserModel = template
-      .replace('{{ownerComment}}', ownerComment)
+      .replace('{{ownerComment}}', watermark)
       .replace('{{modelImports}}', 'use App\\Models\\Post;')
       .replace('{{className}}', 'User')
       .replace('{{tableName}}', 'user')
@@ -93,7 +93,7 @@ describe('createModels', () => {
 
     const expectedUserModel = normalizeWhitespace(`
       <?php
-      ${ownerComment}
+      ${watermark}
       namespace App\\Models;
       use App\\Models\\Post;
       use Illuminate\\Database\\Eloquent\\Model;
@@ -118,7 +118,7 @@ describe('createModels', () => {
     `);
 
     const generatedUserModel = template
-      .replace('{{ownerComment}}', ownerComment)
+      .replace('{{ownerComment}}', watermark)
       .replace('{{modelImports}}', 'use App\\Models\\Post;')
       .replace('{{className}}', 'User')
       .replace('{{tableName}}', 'user')
@@ -148,7 +148,7 @@ describe('createModels', () => {
 
     const expectedPostModel = normalizeWhitespace(`
       <?php
-      ${ownerComment}
+      ${watermark}
       namespace App\\Models;
       use App\\Models\\User;
       use Illuminate\\Database\\Eloquent\\Model;
@@ -171,7 +171,7 @@ describe('createModels', () => {
     `);
 
     const generatedPostModel = template
-      .replace('{{ownerComment}}', ownerComment)
+      .replace('{{ownerComment}}', watermark)
       .replace('{{modelImports}}', 'use App\\Models\\User;')
       .replace('{{className}}', 'Post')
       .replace('{{tableName}}', 'post')
@@ -201,7 +201,7 @@ describe('createModels', () => {
 
     const expectedCustomerModel = normalizeWhitespace(`
       <?php
-      ${ownerComment}
+      ${watermark}
       namespace App\\Models;
       use App\\Models\\Order;
       use Illuminate\\Database\\Eloquent\\Model;
@@ -222,7 +222,7 @@ describe('createModels', () => {
     `);
 
     const generatedCustomerModel = template
-      .replace('{{ownerComment}}', ownerComment)
+      .replace('{{ownerComment}}', watermark)
       .replace('{{modelImports}}', 'use App\\Models\\Order;')
       .replace('{{className}}', 'Customer')
       .replace('{{tableName}}', 'customer')
@@ -249,7 +249,7 @@ describe('createModels', () => {
 
     const expectedOrderModel = normalizeWhitespace(`
       <?php
-      ${ownerComment}
+      ${watermark}
       namespace App\\Models;
       use App\\Models\\Customer;
       use App\\Models\\OrderProduct;
@@ -276,7 +276,7 @@ describe('createModels', () => {
     `);
 
     const generatedOrderModel = template
-      .replace('{{ownerComment}}', ownerComment)
+      .replace('{{ownerComment}}', watermark)
       .replace(
         '{{modelImports}}',
         'use App\\Models\\Customer;\nuse App\\Models\\OrderProduct;\nuse App\\Models\\Product;',
@@ -306,7 +306,7 @@ describe('createModels', () => {
 
     const expectedOrderProductModel = normalizeWhitespace(`
       <?php
-      ${ownerComment}
+      ${watermark}
       namespace App\\Models;
       use App\\Models\\Order;
       use App\\Models\\Product;
@@ -333,7 +333,7 @@ describe('createModels', () => {
     `);
 
     const generatedOrderProductModel = template
-      .replace('{{ownerComment}}', ownerComment)
+      .replace('{{ownerComment}}', watermark)
       .replace(
         '{{modelImports}}',
         'use App\\Models\\Order;\nuse App\\Models\\Product;',

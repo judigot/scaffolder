@@ -1,4 +1,5 @@
 import { IStructure } from '@/components/FileViewer';
+import { watermark } from '@/constants';
 import clearGeneratedFiles from '@/utils/clearDirectory';
 import fs from 'fs';
 import path from 'path';
@@ -36,7 +37,18 @@ export const createFolderStructure = ({
     if (item.type === 'file') {
       const filePath = path.join(targetDirectory, item.name);
 
-      fs.writeFileSync(filePath, item.content, 'utf-8');
+      const finalWatermark = `/* ${watermark} */`;
+      let fileContent = item.content;
+      const fileType = path.extname(item.name).slice(1);
+
+      if (fileType === 'php') {
+        fileContent = fileContent.replace('<?php', `<?php\n${finalWatermark}`); // Ensure the watermark is added immediately after the <?php tag
+      } else {
+        // For non-PHP files, prepend the watermark
+        fileContent = `${finalWatermark}\n${fileContent}`;
+      }
+
+      fs.writeFileSync(filePath, fileContent, 'utf-8');
     }
   });
 };

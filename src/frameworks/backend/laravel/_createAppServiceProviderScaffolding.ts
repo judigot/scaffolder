@@ -1,5 +1,5 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 import { IFile } from '@/components/FileViewer';
 
@@ -34,7 +34,6 @@ const createAppServiceProviderScaffolding = ({
 
   template = `
 <?php
-{{ownerComment}}
 
 namespace App\\Providers;
 
@@ -120,9 +119,7 @@ class AppServiceProvider extends ServiceProvider
     );
   }
 
-  const replacements = {
-    ownerComment,
-  };
+  const replacements = {};
 
   const content = createFile({ template, replacements });
 

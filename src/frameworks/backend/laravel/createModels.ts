@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { APP_SETTINGS, frameworkDirectories, ownerComment } from '@/constants';
+import { APP_SETTINGS, frameworkDirectories } from '@/constants';
 import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/identifySchema';
 import { createFile } from '@/helpers/stringHelper';
@@ -192,7 +192,6 @@ const createModels = (
     const content = createFile({
       template,
       replacements: {
-        ownerComment,
         className: pascalCase,
         tableName: table,
         fillable,

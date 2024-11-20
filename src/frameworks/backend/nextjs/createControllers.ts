@@ -1,12 +1,10 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { createFile } from '@/helpers/stringHelper';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
 
 const template = `
-{{ownerComment}}
-
 import { prisma } from '@/prisma/DatabaseClient';
 import { {{tableName}} } from '@prisma/client';
 
@@ -305,13 +303,12 @@ const createControllers = (schemaInfo: ISchemaInfo[]): IStructure => {
       const className = tableCases.pascalCase;
 
       const replacements = {
-        ownerComment,
         tableName: table,
         className,
         primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
       };
 
-      const content = createFile({template, replacements});
+      const content = createFile({ template, replacements });
 
       return {
         type: 'file',

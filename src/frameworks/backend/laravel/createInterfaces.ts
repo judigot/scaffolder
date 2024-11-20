@@ -3,7 +3,7 @@ import path from 'path';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { generateModelImports } from '@/utils/common';
-import { APP_SETTINGS, ownerComment } from '@/constants';
+import { APP_SETTINGS } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 
 // Global variables
@@ -46,7 +46,6 @@ const createInterfaces = (
       const modelImports = generateModelImports(tableInfo);
 
       const replacements = {
-        ownerComment,
         className,
         modelName: className,
         tableName: table,
@@ -58,7 +57,7 @@ const createInterfaces = (
         modelImports,
       };
 
-      const content = createFile({template, replacements});
+      const content = createFile({ template, replacements });
       const outputFilePath = path.join(outputDir, `${className}Interface.php`);
       fs.writeFileSync(outputFilePath, content);
     }
