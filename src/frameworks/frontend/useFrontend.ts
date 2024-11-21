@@ -2,6 +2,9 @@ import { IStructure } from '@/components/FileViewer';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import createAPICalls from '@/frameworks/frontend/createAPICalls';
 import createTypescriptInterfaces from '@/frameworks/frontend/createTypescriptInterfaces';
+import createAxiosInstance from '@/frameworks/frontend/createAxiosInstance';
+import createAxiosInterceptor from '@/frameworks/frontend/createAxiosInterceptor';
+import createAPIHooks from '@/frameworks/frontend/createAPIHooks';
 
 export function useFrontend({
   schemaInfo,
@@ -15,14 +18,17 @@ export function useFrontend({
       files: [
         {
           type: 'folder',
-          name: 'app',
+          name: 'services',
           files: [
-            {
-              type: 'folder',
-              name: 'services',
-              files: createAPICalls(schemaInfo),
-            },
+            createAxiosInstance(),
+            createAxiosInterceptor(),
+            ...createAPICalls(schemaInfo),
           ],
+        },
+        {
+          type: 'folder',
+          name: 'hooks',
+          files: [...createAPIHooks(schemaInfo)],
         },
         {
           type: 'folder',

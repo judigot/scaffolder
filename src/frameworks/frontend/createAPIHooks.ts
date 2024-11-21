@@ -4,7 +4,7 @@ import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
 import { createFile } from '@/helpers/stringHelper';
 
-const CREATE_TEMPLATE = `
+const _CREATE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
 import { I{{className}} } from '../../interfaces/I{{className}}';
 
@@ -19,16 +19,25 @@ export const create{{className}} = async (
 `;
 
 const READ_TEMPLATE = `
-import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '../../interfaces/I{{className}}';
+import {
+  UseQueryOptions,
+  UseQueryResult,
+  useQuery,
+} from '@tanstack/react-query';
+import { read{{className}} } from '@/services/{{tableName}}/read-{{tableName}}';
+import { I{{className}} } from '@/interfaces/I{{className}}';
 
-export const read{{className}} = async (): Promise<I{{className}}[]> => {
-  const response = await axiosInstance.get<I{{className}}[]>('/{{tableNamePlural}}');
-  return response.data;
-};
+export const use{{className}}Data = (
+  behavior?: Omit<UseQueryOptions<I{{className}}[], unknown>, 'queryKey' | 'queryFn'>,
+): UseQueryResult<I{{className}}[], unknown> =>
+  useQuery<I{{className}}[], unknown>({
+    queryKey: ['{{tableName}}Data'],
+    queryFn: read{{className}},
+    ...behavior,
+  });
 `;
 
-const UPDATE_TEMPLATE = `
+const _UPDATE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
 import { I{{className}} } from '../../interfaces/I{{className}}';
 
@@ -40,7 +49,7 @@ export const update{{className}} = async (formData: IBody): Promise<IBody> => {
 };
 `;
 
-const DELETE_TEMPLATE = `
+const _DELETE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
 
 export const delete{{className}} = async (id: number): Promise<void> => {
@@ -48,7 +57,7 @@ export const delete{{className}} = async (id: number): Promise<void> => {
 };
 `;
 
-const createCRUDTemplates = (schemaInfo: ISchemaInfo[]): IStructure => {
+const createAPIHooks = (schemaInfo: ISchemaInfo[]): IStructure => {
   return schemaInfo
     .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -71,29 +80,29 @@ const createCRUDTemplates = (schemaInfo: ISchemaInfo[]): IStructure => {
         type: 'folder',
         name: table,
         files: [
+          // {
+          //   type: 'file',
+          //   name: `create-${table}.ts`,
+          //   content: createFile({ template: CREATE_TEMPLATE, replacements }),
+          // },
           {
             type: 'file',
-            name: `create-${table}.ts`,
-            content: createFile({ template: CREATE_TEMPLATE, replacements }),
-          },
-          {
-            type: 'file',
-            name: `read-${table}.ts`,
+            name: `use${pascalCase}.ts`,
             content: createFile({ template: READ_TEMPLATE, replacements }),
           },
-          {
-            type: 'file',
-            name: `update-${table}.ts`,
-            content: createFile({ template: UPDATE_TEMPLATE, replacements }),
-          },
-          {
-            type: 'file',
-            name: `delete-${table}.ts`,
-            content: createFile({ template: DELETE_TEMPLATE, replacements }),
-          },
+          // {
+          //   type: 'file',
+          //   name: `update-${table}.ts`,
+          //   content: createFile({ template: UPDATE_TEMPLATE, replacements }),
+          // },
+          // {
+          //   type: 'file',
+          //   name: `delete-${table}.ts`,
+          //   content: createFile({ template: DELETE_TEMPLATE, replacements }),
+          // },
         ],
       };
     });
 };
 
-export default createCRUDTemplates;
+export default createAPIHooks;

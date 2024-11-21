@@ -15,7 +15,7 @@ const clearGeneratedFiles = (directory: string): void => {
       const hasWatermark = fileContent.includes(watermark);
 
       if (hasWatermark) {
-        fs.unlinkSync(filePath);
+        // fs.unlinkSync(filePath);
       }
       return;
     }
@@ -24,7 +24,7 @@ const clearGeneratedFiles = (directory: string): void => {
 
     const isDirectoryEmpty = fs.readdirSync(filePath).length === 0;
     if (isDirectoryEmpty) {
-      fs.rmdirSync(filePath);
+      // fs.rmdirSync(filePath);
     }
   });
 };
