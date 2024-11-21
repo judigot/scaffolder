@@ -6,6 +6,82 @@ import CustomModal from '@/components/CustomModal';
 import { useModalStore } from '@/useModalStore';
 import { manyToMany } from '@/schema-infos/manyToMany';
 
+// const renameSchemaInstances = (
+//   schemaData: ISchemaInfo[],
+//   oldName: string,
+//   newName: string,
+// ): ISchemaInfo[] => {
+//   const relationshipKeys: (keyof Pick<
+//     ISchemaInfo,
+//     | 'hasOne'
+//     | 'hasMany'
+//     | 'belongsTo'
+//     | 'belongsToMany'
+//     | 'foreignTables'
+//     | 'childTables'
+//   >)[] = [
+//     'hasOne',
+//     'hasMany',
+//     'belongsTo',
+//     'belongsToMany',
+//     'foreignTables',
+//     'childTables',
+//   ];
+
+//   return schemaData.map((schema) => {
+//     const updatedSchema = { ...schema };
+
+//     // Update relationships in specified keys
+//     relationshipKeys.forEach((key) => {
+//       updatedSchema[key] = updatedSchema[key].map((relation) =>
+//         relation === oldName ? newName : relation,
+//       );
+//     });
+
+//     // Update pivotRelationships
+//     updatedSchema.pivotRelationships = updatedSchema.pivotRelationships.map(
+//       (pivot) => ({
+//         relatedTable:
+//           pivot.relatedTable === oldName ? newName : pivot.relatedTable,
+//         pivotTable: pivot.pivotTable === oldName ? newName : pivot.pivotTable,
+//       }),
+//     );
+
+//     // Update table name
+//     if (updatedSchema.table === oldName) {
+//       updatedSchema.table = newName;
+//     }
+
+//     // Update foreign keys in columnsInfo
+//     updatedSchema.columnsInfo = updatedSchema.columnsInfo.map((column) => {
+//       if (
+//         column.foreign_key &&
+//         column.foreign_key.foreign_table_name === oldName
+//       ) {
+//         return {
+//           ...column,
+//           foreign_key: {
+//             ...column.foreign_key,
+//             foreign_table_name: newName,
+//           },
+//         };
+//       }
+//       return column;
+//     });
+
+//     // Update tableCases if they match oldName
+//     const updatedTableCases = { ...updatedSchema.tableCases };
+//     for (const [caseKey, caseValue] of Object.entries(updatedTableCases)) {
+//       if (caseValue === oldName) {
+//         updatedTableCases[caseKey as keyof ISchemaInfo['tableCases']] = newName;
+//       }
+//     }
+//     updatedSchema.tableCases = updatedTableCases;
+
+//     return updatedSchema;
+//   });
+// };
+
 function SchemaBuilder() {
   // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToOne);
   // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToMany);
