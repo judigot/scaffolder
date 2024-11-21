@@ -25,8 +25,8 @@ function SchemaBuilder() {
     if (newName != null) {
       const updatedSchema = schemaInfo.map((table) => {
         // Rename the table and update relationships
-        if (table === oldName) {
-          table = newName;
+        if (table.table === oldName) {
+          table.table = newName;
         }
 
         // Update relationships that reference the old table name
