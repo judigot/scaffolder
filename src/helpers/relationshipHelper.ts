@@ -1,11 +1,11 @@
-import { ITableInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 export const addRelationship = (
-  schemaInfo: ITableInfo[],
+  schemaInfo: ISchemaInfo[],
   tableIndex: number,
   relationshipType: 'hasOne' | 'hasMany' | 'belongsToMany',
   newTableName: string,
-): ITableInfo[] => {
+): ISchemaInfo[] => {
   const updatedSchema = [...schemaInfo];
   const sourceTable = updatedSchema[tableIndex];
 
@@ -29,14 +29,44 @@ export const addRelationship = (
       // Create a new target table if it doesn't exist
       targetTable = {
         table: newTableName,
-        foreignTables: [sourceTable.table], // Add sourceTable to foreignTables
+        columnsInfo: [
+          {
+            column_name: `${newTableName}_id`,
+            data_type: 'number',
+            is_nullable: 'NO',
+            column_default: 'AUTO_INCREMENT',
+            primary_key: true,
+            unique: false,
+            foreign_key: null,
+          },
+        ],
+        foreignTables: [sourceTable.table],
         childTables: [],
         isPivot: false,
         hasOne: [],
         hasMany: [],
-        belongsTo: [sourceTable.table], // Add sourceTable to belongsTo
+        belongsTo: [sourceTable.table],
         belongsToMany: [],
         pivotRelationships: [],
+        foreignKeys: [],
+        requiredColumns: [],
+        tableCases: {
+          plural: '',
+          titleCase: '',
+          sentenceCase: '',
+          phraseCase: '',
+          pascalCase: '',
+          camelCase: '',
+          kebabCase: '',
+          snakeCase: '',
+          titleCasePlural: '',
+          sentenceCasePlural: '',
+          phraseCasePlural: '',
+          pascalCasePlural: '',
+          camelCasePlural: '',
+          kebabCasePlural: '',
+          snakeCasePlural: '',
+        },
       };
       updatedSchema.push(targetTable);
     } else {
@@ -80,6 +110,36 @@ export const addRelationship = (
       // Create a new pivot table
       pivotTable = {
         table: pivotTableName,
+        columnsInfo: [
+          {
+            column_name: '',
+            data_type: '',
+            is_nullable: '',
+            column_default: null,
+            primary_key: false,
+            unique: false,
+            foreign_key: null,
+          },
+        ],
+        foreignKeys: [],
+        requiredColumns: [],
+        tableCases: {
+          plural: '',
+          titleCase: '',
+          sentenceCase: '',
+          phraseCase: '',
+          pascalCase: '',
+          camelCase: '',
+          kebabCase: '',
+          snakeCase: '',
+          titleCasePlural: '',
+          sentenceCasePlural: '',
+          phraseCasePlural: '',
+          pascalCasePlural: '',
+          camelCasePlural: '',
+          kebabCasePlural: '',
+          snakeCasePlural: '',
+        },
         foreignTables: [sourceTable.table, newTableName],
         childTables: [],
         isPivot: true,
@@ -101,6 +161,36 @@ export const addRelationship = (
       // Create a new target table if it doesn't exist
       updatedSchema.push({
         table: newTableName,
+        columnsInfo: [
+          {
+            column_name: '',
+            data_type: '',
+            is_nullable: '',
+            column_default: null,
+            primary_key: false,
+            unique: false,
+            foreign_key: null,
+          },
+        ],
+        foreignKeys: [],
+        requiredColumns: [],
+        tableCases: {
+          plural: '',
+          titleCase: '',
+          sentenceCase: '',
+          phraseCase: '',
+          pascalCase: '',
+          camelCase: '',
+          kebabCase: '',
+          snakeCase: '',
+          titleCasePlural: '',
+          sentenceCasePlural: '',
+          phraseCasePlural: '',
+          pascalCasePlural: '',
+          camelCasePlural: '',
+          kebabCasePlural: '',
+          snakeCasePlural: '',
+        },
         foreignTables: [],
         childTables: [pivotTableName],
         isPivot: false,
