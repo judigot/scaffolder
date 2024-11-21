@@ -87,7 +87,7 @@ function App() {
     setFormData(newFormData);
   };
 
-  const { setSQLSchemaEditable, setIsModalOpen } = useModalStore();
+  const { setIsSQLSchemaModalOpen, setSQLSchemaEditable } = useModalStore();
 
   return (
     <div className="text-white bg-black">
@@ -141,21 +141,22 @@ function App() {
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  const updatedSchemaInfo = schemaInfo.map(
-                    ({
-                      requiredColumns: _1,
-                      columnsInfo: _2,
-                      foreignKeys: _3,
-                      tableCases: _4,
-                      ...newObject
-                    }) => newObject,
-                  );
 
-                  handleCopy(JSON.stringify(updatedSchemaInfo, null, 4));
+                  /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, tableCases: _4, ...newObject }) => newObject, ), null, 4));
                 }}
                 className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >
                 Copy Schema Info
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCopy(JSON.stringify(schemaInfo, null, 4));
+                }}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+              >
+                Copy Schema Info with Columns
               </button>
 
               <textarea
@@ -492,7 +493,7 @@ function App() {
                 readOnly
                 onDoubleClick={() => {
                   setSQLSchemaEditable(SQLSchema);
-                  setIsModalOpen(true);
+                  setIsSQLSchemaModalOpen(true);
                 }}
                 rows={15}
                 className="cursor-pointer p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"

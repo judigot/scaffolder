@@ -12,7 +12,8 @@ function SQLSchemaInputModal() {
   const {
     formData: { dbConnection },
   } = useFormStore();
-  const { isModalOpen, setIsModalOpen, SQLSchemaEditable } = useModalStore();
+  const { isSQLSchemaModalOpen, setIsSQLSchemaModalOpen, SQLSchemaEditable } =
+    useModalStore();
   const { setIntrospectedSchema } = useTransformationsStore();
 
   const [formData, setFormData] = useState<IForm>({ SQLSchemaEditable: '' });
@@ -65,7 +66,7 @@ function SQLSchemaInputModal() {
           // Handle error
         });
 
-      setIsModalOpen(false);
+      setIsSQLSchemaModalOpen(false);
       setIsEdited(false);
       resetForm();
     }
@@ -73,14 +74,14 @@ function SQLSchemaInputModal() {
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget && !isEdited) {
-      setIsModalOpen(false);
+      setIsSQLSchemaModalOpen(false);
       resetForm();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape' && !isEdited) {
-      setIsModalOpen(false);
+      setIsSQLSchemaModalOpen(false);
       resetForm();
     }
   };
@@ -89,7 +90,7 @@ function SQLSchemaInputModal() {
     setIsEdited(false);
   };
 
-  if (!isModalOpen) return null;
+  if (!isSQLSchemaModalOpen) return null;
 
   return (
     <div
@@ -121,7 +122,7 @@ function SQLSchemaInputModal() {
               type="button"
               className="mt-2 px-4 py-2 bg-gray-500 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               onClick={() => {
-                setIsModalOpen(false);
+                setIsSQLSchemaModalOpen(false);
                 resetForm();
               }}
             >

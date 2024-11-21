@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ITableInfo } from '@/interfaces/interfaces';
 import { addRelationship } from '@/helpers/relationshipHelper';
 import { handleCopy } from '@/helpers/stringHelper';
+import CustomModal from '@/components/CustomModal';
+import { useModalStore } from '@/useModalStore';
 
 function SchemaBuilder() {
   const [schemaInfo, setSchemaInfo] = useState<ITableInfo[]>([
@@ -63,6 +65,8 @@ function SchemaBuilder() {
       setSchemaInfo(updatedSchema);
     }
   };
+
+  const { isTableNameModalOpen, setIsTableNameModalOpen } = useModalStore();
 
   return (
     <div className="p-4">
@@ -177,6 +181,15 @@ function SchemaBuilder() {
           ),
         )}
       </div>
+      <CustomModal
+        isOpen={isTableNameModalOpen}
+        onClose={() => {
+          setIsTableNameModalOpen(false);
+        }}
+        title={'Modal Title'}
+      >
+        <p>This modal uses a renamed state updater function.</p>
+      </CustomModal>
     </div>
   );
 }
