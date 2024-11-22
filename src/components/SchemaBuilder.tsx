@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ISchemaInfo, ITableInfo } from '@/interfaces/interfaces';
 import { addRelationship } from '@/helpers/relationshipHelper';
 import { handleCopy } from '@/helpers/stringHelper';
-import CustomModal from '@/components/CustomModal';
+import CustomModal from '@/components/Modal/base/CustomModal';
 import { useModalStore } from '@/useModalStore';
 import { manyToMany } from '@/schema-infos/manyToMany';
 

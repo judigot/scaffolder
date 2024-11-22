@@ -11,6 +11,7 @@ import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
 import { handleCopy } from '@/helpers/stringHelper';
 import { useFolderStructures } from '@/frameworks/useFolderStructures';
 import SchemaBuilder from '@/components/SchemaBuilder';
+import ModalViewer from '@/components/Modal/ModalViewer';
 
 function App() {
   const {
@@ -91,6 +92,7 @@ function App() {
 
   return (
     <div className="text-white bg-black">
+      <ModalViewer/>
       <div className="bg-gray-900 text-white p-4">
         <h1 className="text-2xl font-bold text-center">App Scaffolder</h1>
         <h2 className="text-1xl text-red-500 font-bold text-center">
