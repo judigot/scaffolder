@@ -42,14 +42,20 @@ export function summarizeArrayOfObjectValueTypes(
  * @returns A boolean indicating whether all items in the array are of the same type and structure.
  */
 export function haveSimilarObjects<T>(arr: T[]): boolean {
-  if (arr.length <= 1) return true;
+  if (arr.length <= 1) {
+    return true;
+  }
 
   const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
   const getType = (value: unknown): string => {
-    if (Array.isArray(value)) return 'array';
-    if (value instanceof Date) return 'date';
+    if (Array.isArray(value)) {
+      return 'array';
+    }
+    if (value instanceof Date) {
+      return 'date';
+    }
     return typeof value;
   };
 
@@ -57,13 +63,17 @@ export function haveSimilarObjects<T>(arr: T[]): boolean {
     const baseType = getType(base);
     const targetType = getType(target);
 
-    if (baseType !== targetType) return false;
+    if (baseType !== targetType) {
+      return false;
+    }
 
     if (baseType === 'object' && isObject(base) && isObject(target)) {
       const baseKeys = Object.keys(base);
       const targetKeys = Object.keys(target);
 
-      if (baseKeys.length !== targetKeys.length) return false;
+      if (baseKeys.length !== targetKeys.length) {
+        return false;
+      }
 
       return baseKeys.every(
         (key) => key in target && compareStructure(base[key], target[key]),
@@ -71,7 +81,9 @@ export function haveSimilarObjects<T>(arr: T[]): boolean {
     }
 
     if (baseType === 'array' && Array.isArray(base) && Array.isArray(target)) {
-      if (base.length !== target.length) return false;
+      if (base.length !== target.length) {
+        return false;
+      }
 
       return base.every((item, index) => compareStructure(item, target[index]));
     }
@@ -85,7 +97,9 @@ export function haveSimilarObjects<T>(arr: T[]): boolean {
   return arr.every((item) => {
     const itemType = getType(item);
 
-    if (itemType !== firstType) return false;
+    if (itemType !== firstType) {
+      return false;
+    }
 
     if (firstType === 'object' && isObject(firstObj) && isObject(item)) {
       return compareStructure(firstObj, item);

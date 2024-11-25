@@ -40,7 +40,9 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
 
     for (const relationship of schemaInfo) {
       const { table, foreignTables, foreignKeys } = relationship;
-      if (foreignTables.length === 0) continue;
+      if (foreignTables.length === 0) {
+        continue;
+      }
 
       // Generate single joins
       foreignTables.forEach((foreignTable, index) => {
@@ -52,7 +54,9 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
           sortedTables,
           addedJoins,
         );
-        if (joinQuery != null) joinQueries.push(joinQuery);
+        if (joinQuery != null) {
+          joinQueries.push(joinQuery);
+        }
       });
 
       // Generate multiple joins
@@ -63,7 +67,9 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
           foreignKeys,
           addedJoins,
         );
-        if (joinQuery != null) joinQueries.push(joinQuery);
+        if (joinQuery != null) {
+          joinQueries.push(joinQuery);
+        }
       }
     }
 
@@ -80,7 +86,9 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
     const key = `${table}-${foreignTable}`;
     const reverseKey = `${foreignTable}-${table}`;
 
-    if (addedJoins.has(key) || addedJoins.has(reverseKey)) return null;
+    if (addedJoins.has(key) || addedJoins.has(reverseKey)) {
+      return null;
+    }
 
     const baseTable =
       sortedTables.indexOf(table) < sortedTables.indexOf(foreignTable)
@@ -120,7 +128,9 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
       }
     });
 
-    if (joins.length === 0) return null;
+    if (joins.length === 0) {
+      return null;
+    }
 
     const tablePrimaryKey = getPrimaryKey({ tableName: table, schemaInfo });
 

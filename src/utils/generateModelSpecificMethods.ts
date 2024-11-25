@@ -13,7 +13,9 @@ export const generateModelSpecificMethods = ({
 }): string => {
   // Retrieve the schema information for the target table
   const tableInfo = schemaInfo.find((table) => table.table === targetTable);
-  if (!tableInfo) return '';
+  if (!tableInfo) {
+    return '';
+  }
 
   const {
     table,
@@ -113,7 +115,9 @@ export const generateModelSpecificMethods = ({
 
       const methodName = `get${relatedClass}${!isHasOne ? 's' : ''}`;
 
-      if (generatedMethods.has(methodName)) return;
+      if (generatedMethods.has(methodName)) {
+        return;
+      }
       generatedMethods.add(methodName);
 
       const returnType = isController
@@ -198,7 +202,9 @@ export const generateModelSpecificMethods = ({
         const description = `Find ${className} by ${foreignKey}.`;
         const methodName = `findBy${changeCase(foreignKey).pascalCase}`;
 
-        if (generatedMethods.has(methodName)) return;
+        if (generatedMethods.has(methodName)) {
+          return;
+        }
         generatedMethods.add(methodName);
 
         const returnType = `?${className}`;
@@ -253,7 +259,9 @@ export const generateModelSpecificMethods = ({
           }`,
         );
 
-        if (generatedRoutes.has(route)) return;
+        if (generatedRoutes.has(route)) {
+          return;
+        }
         generatedRoutes.add(route);
 
         methods += `Route::get('${route}', [${className}Controller::class, 'get${

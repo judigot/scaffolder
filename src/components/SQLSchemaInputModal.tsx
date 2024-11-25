@@ -90,7 +90,9 @@ function SQLSchemaInputModal() {
     setIsEdited(false);
   };
 
-  if (!isSQLSchemaModalOpen) return null;
+  if (!isSQLSchemaModalOpen) {
+    return null;
+  }
 
   return (
     <div

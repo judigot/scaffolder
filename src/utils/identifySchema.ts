@@ -79,7 +79,9 @@ const populateFieldInfo = (
       fields[key].types.add(
         value === null ? 'null' : identifyTSPrimitiveType(value),
       );
-      if (value === null) fields[key].nullable = true;
+      if (value === null) {
+        fields[key].nullable = true;
+      }
     });
   });
 
@@ -261,11 +263,15 @@ export const sortTablesBasedOnHierarchy = (
   const visited = new Set<string>();
 
   const visit = (table: ISchemaInfo) => {
-    if (visited.has(table.table)) return;
+    if (visited.has(table.table)) {
+      return;
+    }
     visited.add(table.table);
     table.childTables.forEach((childTable) => {
       const childRelationship = schemaInfo.find((r) => r.table === childTable);
-      if (childRelationship) visit(childRelationship);
+      if (childRelationship) {
+        visit(childRelationship);
+      }
     });
     sorted.push(table);
   };

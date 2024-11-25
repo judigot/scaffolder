@@ -16,7 +16,9 @@ describe('generateModelSpecificMethods', () => {
   describe('POS', () => {
     it('should generate correct methods for repository', () => {
       const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
-      if (!orderSchema) throw new Error("Schema for 'order' not found");
+      if (!orderSchema) {
+        throw new Error("Schema for 'order' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: orderSchema.table,
@@ -84,7 +86,9 @@ describe('generateModelSpecificMethods', () => {
 
     it('should generate correct methods for controllerMethod', () => {
       const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
-      if (!orderSchema) throw new Error("Schema for 'order' not found");
+      if (!orderSchema) {
+        throw new Error("Schema for 'order' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: orderSchema.table,
@@ -117,7 +121,9 @@ describe('generateModelSpecificMethods', () => {
 
     it('should generate correct routes', () => {
       const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
-      if (!orderSchema) throw new Error("Schema for 'order' not found");
+      if (!orderSchema) {
+        throw new Error("Schema for 'order' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: orderSchema.table,
@@ -140,7 +146,9 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const userSchema = userPostsOneToManySchemaInfo.find(
         (info) => info.table === 'user',
       );
-      if (!userSchema) throw new Error("Schema for 'user' not found");
+      if (!userSchema) {
+        throw new Error("Schema for 'user' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: userSchema.table,
@@ -174,7 +182,9 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const postSchema = userPostsOneToManySchemaInfo.find(
         (info) => info.table === 'post',
       );
-      if (!postSchema) throw new Error("Schema for 'post' not found");
+      if (!postSchema) {
+        throw new Error("Schema for 'post' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: postSchema.table,
@@ -201,7 +211,9 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const userSchema = userPostsOneToManySchemaInfo.find(
         (info) => info.table === 'user',
       );
-      if (!userSchema) throw new Error("Schema for 'user' not found");
+      if (!userSchema) {
+        throw new Error("Schema for 'user' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: userSchema.table,
@@ -237,7 +249,9 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       const userSchema = userPostsOneToManySchemaInfo.find(
         (info) => info.table === 'user',
       );
-      if (!userSchema) throw new Error("Schema for 'user' not found");
+      if (!userSchema) {
+        throw new Error("Schema for 'user' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: userSchema.table,
@@ -260,7 +274,9 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
       const userSchema = userPostOneToOneSchemaInfo.find(
         (info) => info.table === 'user',
       );
-      if (!userSchema) throw new Error("Schema for 'user' not found");
+      if (!userSchema) {
+        throw new Error("Schema for 'user' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: userSchema.table,
@@ -288,7 +304,9 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
       const postSchema = userPostOneToOneSchemaInfo.find(
         (info) => info.table === 'post',
       );
-      if (!postSchema) throw new Error("Schema for 'post' not found");
+      if (!postSchema) {
+        throw new Error("Schema for 'post' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: postSchema.table,
@@ -315,7 +333,9 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
       const userSchema = userPostOneToOneSchemaInfo.find(
         (info) => info.table === 'user',
       );
-      if (!userSchema) throw new Error("Schema for 'user' not found");
+      if (!userSchema) {
+        throw new Error("Schema for 'user' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: userSchema.table,
@@ -348,7 +368,9 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
       const userSchema = userPostOneToOneSchemaInfo.find(
         (info) => info.table === 'user',
       );
-      if (!userSchema) throw new Error("Schema for 'user' not found");
+      if (!userSchema) {
+        throw new Error("Schema for 'user' not found");
+      }
 
       const methods = generateModelSpecificMethods({
         targetTable: userSchema.table,

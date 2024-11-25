@@ -4,7 +4,9 @@ import fs from 'fs';
 import path from 'path';
 
 const clearGeneratedFiles = (directory: string): void => {
-  if (!fs.existsSync(directory)) return;
+  if (!fs.existsSync(directory)) {
+    return;
+  }
 
   fs.readdirSync(directory).forEach((file) => {
     const filePath = path.join(directory, file);
