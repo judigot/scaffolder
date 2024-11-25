@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { ISchemaInfo, ITableInfo } from '@/interfaces/interfaces';
 import { addRelationship } from '@/helpers/relationshipHelper';
 import { handleCopy } from '@/helpers/stringHelper';
-import CustomModal from '@/components/Modal/base/CustomModal';
-import { useModalStore } from '@/useModalStore';
+import { useModalStore } from '@/components/Modal/base/modalStore';
 import { manyToMany } from '@/schema-infos/manyToMany';
 
 // const renameSchemaInstances = (
@@ -160,14 +159,19 @@ function SchemaBuilder() {
     }
   };
 
-  const handleRemoveRelationship = (tableIndex: number) => {
+  const { promptModal } = useModalStore();
+
+  const handleRemoveRelationship = async (tableIndex: number) => {
     const sourceTable = schemaInfo[tableIndex];
 
-    // eslint-disable-next-line no-alert
-    const confirmation = window.confirm(
-      `Are you sure you want to remove the table "${sourceTable.table}" and its pivot child tables? This action cannot be undone.`,
-    );
-    if (!confirmation) {
+    const result = await promptModal({
+      title: `Remove "${sourceTable.table}" table?`,
+      description: `Are you sure you want to remove "${sourceTable.table}" table and its dependent tables?`,
+      trueText: 'Yes',
+      falseText: 'No',
+    });
+
+    if (!result) {
       return;
     }
 
@@ -232,8 +236,6 @@ function SchemaBuilder() {
     setSchemaInfo(updatedSchema);
   };
 
-  const { isTableNameModalOpen, setIsTableNameModalOpen } = useModalStore();
-
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Schema Builder</h1>
@@ -288,7 +290,9 @@ function SchemaBuilder() {
                     </button>
                     <button
                       onClick={() => {
-                        handleRemoveRelationship(index);
+                        void (async () => {
+                          await handleRemoveRelationship(index);
+                        })();
                       }}
                       className="text-blue-500 underline"
                     >
@@ -441,15 +445,6 @@ function SchemaBuilder() {
           );
         })}
       </div>
-      <CustomModal
-        isOpen={isTableNameModalOpen}
-        onClose={() => {
-          setIsTableNameModalOpen(false);
-        }}
-        title="Modal Title"
-      >
-        <p>This modal uses a renamed state updater function.</p>
-      </CustomModal>
     </div>
   );
 }

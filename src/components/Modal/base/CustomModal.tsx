@@ -22,19 +22,29 @@ const CustomModal: React.FC<ICustomModalProps> = ({
     : document.createElement('div');
 
   useEffect(() => {
-    if (!modalRoot) return;
+    if (!modalRoot) {
+      return;
+    }
 
-    if (!useStaticPortal) document.body.appendChild(modalRoot);
+    if (!useStaticPortal) {
+      document.body.appendChild(modalRoot);
+    }
 
     modal.current?.focus();
 
     return () => {
-      if (!useStaticPortal) document.body.removeChild(modalRoot);
+      if (!useStaticPortal) {
+        document.body.removeChild(modalRoot);
+      }
     };
   }, [modalRoot, useStaticPortal, onClose]);
 
-  if (!modalRoot) return null;
-  if (!isOpen) return null;
+  if (!modalRoot) {
+    return null;
+  }
+  if (!isOpen) {
+    return null;
+  }
 
   return createPortal(
     <div
@@ -71,7 +81,6 @@ const CustomModal: React.FC<ICustomModalProps> = ({
           </button>
         </div>
         <div className="mt-4 text-gray-600">{children}</div>
-        <div className="mt-6 flex justify-end"></div> {/* For buttons */}
       </div>
     </div>,
     modalRoot,

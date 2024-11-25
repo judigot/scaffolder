@@ -14,6 +14,7 @@ interface IModalState {
   openRandomModal: (props: { title: string; content: React.ReactNode }) => void;
   promptModal: (props: {
     title: string;
+    description?: string;
     trueText: string;
     falseText: string;
   }) => Promise<boolean>;
@@ -47,7 +48,7 @@ export const useModalStore = create<IModalState>((set) => ({
       ],
     }));
   },
-  promptModal: ({ title, trueText, falseText }) => {
+  promptModal: ({ title, description, trueText, falseText }) => {
     const id: string = Math.random().toString(36).substring(2, 10);
 
     // Return a promise to resolve user interaction
@@ -60,7 +61,8 @@ export const useModalStore = create<IModalState>((set) => ({
             title,
             content: (
               <div>
-                <div className="mt-6 flex justify-end">
+                {description != null && <p>{description}</p>}
+                <div className="flex justify-end">
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
