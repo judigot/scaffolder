@@ -65,22 +65,24 @@ const CustomModal: React.FC<ICustomModalProps> = ({
           return;
         }}
         tabIndex={-1} // -1 means it cannot be tabbed
-        className="relative bg-white shadow-lg rounded-lg w-[90%] sm:w-[500px] p-6 animate-scale-up cursor-auto"
+        className="relative bg-white dark:bg-gray-800 shadow-lg rounded-lg w-[90%] sm:w-[500px] p-6 animate-scale-up cursor-auto"
         onClick={(e) => {
           e.stopPropagation(); // Prevent clicking from triggering background onClick
         }}
       >
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
+            {title}
+          </h2>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-gray-500 hover:text-gray-800 focus:outline-none transition-colors duration-200 select-none"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none transition-colors duration-200 select-none"
           >
             ❌
           </button>
         </div>
-        <div className="mt-4 text-gray-600">{children}</div>
+        <div className="mt-4 text-gray-600 dark:text-gray-300">{children}</div>
       </div>
     </div>,
     modalRoot,

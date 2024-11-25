@@ -1,3 +1,4 @@
+import EditValueModal from '@/components/EditNameForm';
 import { create } from 'zustand';
 
 type ModalIDs = string;
@@ -18,6 +19,7 @@ interface IModalState {
     trueText: string;
     falseText: string;
   }) => Promise<boolean>;
+  editValue: (props: { title: string; oldValue: string }) => Promise<string>;
   closeModal: (id: ModalIDs) => void;
 }
 
@@ -97,6 +99,22 @@ export const useModalStore = create<IModalState>((set) => ({
                 </div>
               </div>
             ),
+          },
+        ],
+      }));
+    });
+  },
+  editValue: ({ title, oldValue }: { title: string; oldValue: string }) => {
+    const id: string = Math.random().toString(36).substring(2, 10);
+  
+    return new Promise<string>((resolve) => {
+      set((state) => ({
+        modals: [
+          ...state.modals,
+          {
+            id,
+            title,
+            content: <EditValueModal id={id} oldValue={oldValue} resolve={resolve} />,
           },
         ],
       }));

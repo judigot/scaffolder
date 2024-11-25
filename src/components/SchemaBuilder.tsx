@@ -86,15 +86,17 @@ function SchemaBuilder() {
   // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToMany);
   const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(manyToMany);
 
-  const renameTable = (index: number) => {
-    const oldName = schemaInfo[index].table;
-    // eslint-disable-next-line no-alert
-    const newName = prompt('Enter new table name:', oldName);
+  const { promptModal, editValue } = useModalStore();
 
-    if (newName != null) {
+  const renameTable = async (index: number) => {
+    const oldValue = schemaInfo[index].table;
+
+    const newName = await editValue({ title: 'Edit table name', oldValue });
+
+    if (newName) {
       const updatedSchema = schemaInfo.map((table) => {
         /* Rename the table itself */
-        if (table.table === oldName) {
+        if (table.table === oldValue) {
           table.table = newName;
         }
 
@@ -120,7 +122,7 @@ function SchemaBuilder() {
         relationshipKeys.forEach((relation) => {
           if (Array.isArray(table[relation])) {
             table[relation] = table[relation].map((rel) =>
-              rel === oldName ? newName : rel,
+              rel === oldValue ? newName : rel,
             );
           }
         });
@@ -128,8 +130,8 @@ function SchemaBuilder() {
         /* Update pivotRelationships referencing the old table name */
         table.pivotRelationships = table.pivotRelationships.map((rel) => ({
           relatedTable:
-            rel.relatedTable === oldName ? newName : rel.relatedTable,
-          pivotTable: rel.pivotTable === oldName ? newName : rel.pivotTable,
+            rel.relatedTable === oldValue ? newName : rel.relatedTable,
+          pivotTable: rel.pivotTable === oldValue ? newName : rel.pivotTable,
         }));
 
         return table;
@@ -139,16 +141,16 @@ function SchemaBuilder() {
     }
   };
 
-  const handleAddRelationship = (
+  const handleAddRelationship = async (
     tableIndex: number,
     relationshipType: 'hasOne' | 'hasMany' | 'belongsToMany',
   ) => {
-    // eslint-disable-next-line no-alert
-    const newRelationshipName = prompt(
-      `Enter ${relationshipType} relationship name:`,
-    );
+    const newRelationshipName = await editValue({
+      title: 'Enter new table name',
+      oldValue: '',
+    });
 
-    if (newRelationshipName != null) {
+    if (newRelationshipName) {
       const updatedSchema = addRelationship(
         schemaInfo,
         tableIndex,
@@ -158,8 +160,6 @@ function SchemaBuilder() {
       setSchemaInfo(updatedSchema);
     }
   };
-
-  const { promptModal } = useModalStore();
 
   const handleRemoveRelationship = async (tableIndex: number) => {
     const sourceTable = schemaInfo[tableIndex];
@@ -282,7 +282,9 @@ function SchemaBuilder() {
                   <div className="flex space-x-3">
                     <button
                       onClick={() => {
-                        renameTable(index);
+                        void (async () => {
+                          await renameTable(index);
+                        })();
                       }}
                       className="text-blue-500 underline"
                     >
@@ -392,7 +394,9 @@ function SchemaBuilder() {
                   <div className="flex flex-wrap gap-2 mt-4">
                     <button
                       onClick={() => {
-                        handleAddRelationship(index, 'hasOne');
+                        void (async () => {
+                          await handleAddRelationship(index, 'hasOne');
+                        })();
                       }}
                       className="px-3 py-1 bg-blue-500 text-white rounded"
                     >
@@ -400,7 +404,9 @@ function SchemaBuilder() {
                     </button>
                     <button
                       onClick={() => {
-                        handleAddRelationship(index, 'hasMany');
+                        void (async () => {
+                          await handleAddRelationship(index, 'hasMany');
+                        })();
                       }}
                       className="px-3 py-1 bg-green-500 text-white rounded"
                     >
@@ -408,7 +414,9 @@ function SchemaBuilder() {
                     </button>
                     <button
                       onClick={() => {
-                        handleAddRelationship(index, 'belongsToMany');
+                        void (async () => {
+                          await handleAddRelationship(index, 'belongsToMany');
+                        })();
                       }}
                       className="px-3 py-1 bg-purple-500 text-white rounded"
                     >
