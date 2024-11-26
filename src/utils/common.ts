@@ -5,6 +5,27 @@ import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { changeCase } from '@/utils/identifySchema';
 import { typeMappings } from '@/utils/mappings';
 
+export const getColumnDefaultDisplay = ({
+  isPrimaryKey,
+  isNullable,
+  columnDefault,
+}: {
+  isPrimaryKey: boolean;
+  isNullable: string;
+  columnDefault: string | null;
+}): string => {
+  if (columnDefault !== null) {
+    if (isPrimaryKey) {
+      return columnDefault;
+    }
+
+    return `'${columnDefault}'`;
+  }
+  return isNullable === 'YES'
+    ? String(columnDefault).toUpperCase()
+    : '';
+};
+
 export function getPrimaryKey({
   tableName,
   schemaInfo,
@@ -149,12 +170,15 @@ export const generateColumnDefinition = ({
   //   });
   // }
 
-  let definition = replacePlaceholder({template: targetDefinition.columnTemplate, replacements: {
-    columnName: !isDBDefinition
-      ? column_name
-      : `${quote}${column_name}${quote}`,
-    mappedType: type,
-  }});
+  let definition = replacePlaceholder({
+    template: targetDefinition.columnTemplate,
+    replacements: {
+      columnName: !isDBDefinition
+        ? column_name
+        : `${quote}${column_name}${quote}`,
+      mappedType: type,
+    },
+  });
 
   if (isDBDefinition) {
     const isUnique = unique;

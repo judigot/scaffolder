@@ -4,7 +4,8 @@ import { addRelationship } from '@/helpers/relationshipHelper';
 import { handleCopy } from '@/helpers/stringHelper';
 import { useModalStore } from '@/components/Modal/base/modalStore';
 import EditIcon from '@mui/icons-material/Edit';
-import { manyToMany } from '@/schema-infos';
+import { oneToOne } from '@/schema-infos';
+import { getColumnDefaultDisplay } from '@/utils/common';
 
 // const renameSchemaInstances = (
 //   schemaData: ISchemaInfo[],
@@ -74,9 +75,9 @@ import { manyToMany } from '@/schema-infos';
 // };
 
 function SchemaBuilder() {
-  // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToOne);
+  const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToOne);
   // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToMany);
-  const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(manyToMany);
+  // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(manyToMany);
 
   const { promptModal, editValue } = useModalStore();
 
@@ -322,33 +323,39 @@ function SchemaBuilder() {
                     </tr>
                   </thead>
                   <tbody>
-                    {columnsInfo.map((column) => (
-                      <tr key={column.column_name}>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {column.column_name}
-                        </td>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {column.data_type}
-                        </td>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {column.is_nullable}
-                        </td>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {column.column_default ?? 'None'}
-                        </td>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {column.primary_key ? 'Yes' : 'No'}
-                        </td>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {column.unique ? 'Yes' : 'No'}
-                        </td>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {column.foreign_key
-                            ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
-                            : 'None'}
-                        </td>
-                      </tr>
-                    ))}
+                    {columnsInfo.map((column) => {
+                      return (
+                        <tr key={column.column_name}>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {column.column_name}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {column.data_type}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {column.is_nullable}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {getColumnDefaultDisplay({
+                              isPrimaryKey: column.primary_key,
+                              isNullable: column.is_nullable,
+                              columnDefault: column.column_default,
+                            })}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {column.primary_key ? 'Yes' : 'No'}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {column.unique ? 'Yes' : 'No'}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {column.foreign_key
+                              ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
+                              : 'None'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
 
