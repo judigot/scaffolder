@@ -3,7 +3,7 @@ import { APP_SETTINGS } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { changeCase } from '@/utils/identifySchema';
+import { changeCase } from '@/utils/common';
 
 const template = `
 <?php

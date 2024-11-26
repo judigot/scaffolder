@@ -2,8 +2,41 @@ import { replacePlaceholder } from '@/helpers/stringHelper';
 import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
-import { changeCase } from '@/utils/identifySchema';
 import { typeMappings } from '@/utils/mappings';
+import pluralize from 'pluralize';
+
+export function changeCase(input: string) {
+  const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
+  const allWordsExceptLast = words.slice(0, -1);
+  const lastWord = words[words.length - 1];
+  const tableNamePlural = [...allWordsExceptLast, pluralize(lastWord)];
+
+  const capitalize = (str: string) =>
+    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  const joinWords = (arr: string[], separator: string) =>
+    arr.join(separator).toLowerCase();
+  const titleCase = (arr: string[]) => arr.map(capitalize).join(' ');
+
+  return {
+    plural: pluralize(input),
+    titleCase: titleCase(words),
+    sentenceCase: capitalize(joinWords(words, ' ')),
+    phraseCase: joinWords(words, ' '),
+    pascalCase: words.map(capitalize).join(''),
+    camelCase: words[0].toLowerCase() + words.slice(1).map(capitalize).join(''),
+    kebabCase: joinWords(words, '-'),
+    snakeCase: joinWords(words, '_'),
+    titleCasePlural: titleCase(tableNamePlural),
+    sentenceCasePlural: capitalize(joinWords(tableNamePlural, ' ')),
+    phraseCasePlural: joinWords(tableNamePlural, ' '),
+    pascalCasePlural: tableNamePlural.map(capitalize).join(''),
+    camelCasePlural:
+      tableNamePlural[0].toLowerCase() +
+      tableNamePlural.slice(1).map(capitalize).join(''),
+    kebabCasePlural: joinWords(tableNamePlural, '-'),
+    snakeCasePlural: joinWords(tableNamePlural, '_'),
+  };
+}
 
 export const getColumnDefaultDisplay = ({
   isPrimaryKey,
@@ -21,9 +54,7 @@ export const getColumnDefaultDisplay = ({
 
     return `'${columnDefault}'`;
   }
-  return isNullable === 'YES'
-    ? String(columnDefault).toUpperCase()
-    : '';
+  return isNullable === 'YES' ? String(columnDefault).toUpperCase() : '';
 };
 
 export function getPrimaryKey({

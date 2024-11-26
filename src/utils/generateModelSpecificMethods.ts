@@ -1,6 +1,7 @@
 import { convertToUrlFormat } from '@/helpers/stringHelper';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
-import { changeCase } from '@/utils/identifySchema';
+import { changeCase } from '@/utils/common';
+
 
 export const generateModelSpecificMethods = ({
   targetTable,

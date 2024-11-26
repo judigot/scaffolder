@@ -3,7 +3,7 @@ import { createFile } from '@/helpers/stringHelper';
 import { APP_SETTINGS } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
-import { changeCase } from '@/utils/identifySchema';
+import { changeCase } from '@/utils/common';
 
 const template = `
 import { prisma } from '@/prisma/DatabaseClient';

@@ -3,7 +3,7 @@ import { APP_SETTINGS } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
 import { createFile } from '@/helpers/stringHelper';
-import { changeCase } from '@/utils/identifySchema';
+import { changeCase } from '@/utils/common';
 
 const ROUTE_TEMPLATE = `
 import GetHandler from './GET';

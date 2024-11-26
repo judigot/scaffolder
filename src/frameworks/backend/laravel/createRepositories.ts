@@ -4,7 +4,7 @@ import { generateModelImports } from '@/utils/common';
 import { APP_SETTINGS } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
-import { changeCase } from '@/utils/identifySchema';
+import { changeCase } from '@/utils/common';
 
 const template = `
 <?php
