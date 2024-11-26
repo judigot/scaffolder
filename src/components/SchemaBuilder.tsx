@@ -4,6 +4,7 @@ import { addRelationship } from '@/helpers/relationshipHelper';
 import { handleCopy } from '@/helpers/stringHelper';
 import { useModalStore } from '@/components/Modal/base/modalStore';
 import { manyToMany } from '@/schema-infos/manyToMany';
+import EditIcon from '@mui/icons-material/Edit';
 
 // const renameSchemaInstances = (
 //   schemaData: ISchemaInfo[],
@@ -277,19 +278,21 @@ function SchemaBuilder() {
           return (
             <div key={table} className="p-4 border rounded">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">{table}</h2>
+                <h2 className="text-xl font-semibold">
+                  {table}
+                  &nbsp;
+                  <EditIcon
+                    onClick={() => {
+                      void (async () => {
+                        await renameTable(index);
+                      })();
+                    }}
+                    fontSize="small"
+                    className={`text-white-500 cursor-pointer`}
+                  />
+                </h2>
                 {!isPivot && (
                   <div className="flex space-x-3">
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          await renameTable(index);
-                        })();
-                      }}
-                      className="text-blue-500 underline"
-                    >
-                      Rename Table
-                    </button>
                     <button
                       onClick={() => {
                         void (async () => {

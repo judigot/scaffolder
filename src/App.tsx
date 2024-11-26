@@ -173,7 +173,7 @@ function App() {
 
               <div>
                 <label
-                  htmlFor="framework"
+                  htmlFor="additionalSchemaSettings"
                   className="block text-sm font-medium"
                 >
                   Additional Schema Settings:
