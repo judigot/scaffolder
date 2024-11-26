@@ -88,8 +88,9 @@ const createResources = (schemaInfo: ISchemaInfo[]): IFile[] => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { tableCases } = tableInfo;
-      const className = tableCases.pascalCase;
+      const { table } = tableInfo;
+      const { pascalCase } = changeCase(table);
+      const className = pascalCase;
 
       const attributes = generateAttributes(tableInfo);
 

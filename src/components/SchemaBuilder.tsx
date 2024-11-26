@@ -69,15 +69,6 @@ import EditIcon from '@mui/icons-material/Edit';
 //       return column;
 //     });
 
-//     // Update tableCases if they match oldName
-//     const updatedTableCases = { ...updatedSchema.tableCases };
-//     for (const [caseKey, caseValue] of Object.entries(updatedTableCases)) {
-//       if (caseValue === oldName) {
-//         updatedTableCases[caseKey as keyof ISchemaInfo['tableCases']] = newName;
-//       }
-//     }
-//     updatedSchema.tableCases = updatedTableCases;
-
 //     return updatedSchema;
 //   });
 // };
@@ -243,7 +234,7 @@ function SchemaBuilder() {
       <button
         onClick={(e) => {
           e.preventDefault();
-          /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, tableCases: _4, ...newObject }) => newObject, ), null, 4));
+          /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
         }}
         className="px-3 py-1 bg-indigo-500 text-white rounded"
       >

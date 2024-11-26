@@ -58,9 +58,9 @@ const createControllers = (
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
-    .map((tableInfo) => {
-      const { table, tableCases } = tableInfo;
-      const className = tableCases.pascalCase;
+    .map(({ table }) => {
+      const { pascalCase } = changeCase(table);
+      const className = pascalCase;
 
       const controllerMethods = createControllerMethods({
         tableName: table,

@@ -4,6 +4,7 @@ import { generateModelImports } from '@/utils/common';
 import { APP_SETTINGS } from '@/constants';
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
+import { changeCase } from '@/utils/identifySchema';
 
 const template = `
 <?php
@@ -28,8 +29,9 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table, tableCases } = tableInfo;
-      const className = tableCases.pascalCase;
+      const { table } = tableInfo;
+      const { pascalCase } = changeCase(table);
+      const className = pascalCase;
 
       const modelImports = generateModelImports(tableInfo);
       const modelSpecificMethods = generateModelSpecificMethods({

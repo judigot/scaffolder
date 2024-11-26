@@ -3,6 +3,7 @@ import { createFile } from '@/helpers/stringHelper';
 import { APP_SETTINGS } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
+import { changeCase } from '@/utils/identifySchema';
 
 const template = `
 import { prisma } from '@/prisma/DatabaseClient';
@@ -299,8 +300,9 @@ const createControllers = (schemaInfo: ISchemaInfo[]): IStructure => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table, tableCases } = tableInfo;
-      const className = tableCases.pascalCase;
+      const { table } = tableInfo;
+      const { pascalCase } = changeCase(table);
+      const className = pascalCase;
 
       const replacements = {
         tableName: table,

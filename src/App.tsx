@@ -144,7 +144,7 @@ function App() {
                 onClick={(e) => {
                   e.preventDefault();
 
-                  /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, tableCases: _4, ...newObject }) => newObject, ), null, 4));
+                  /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
                 }}
                 className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >

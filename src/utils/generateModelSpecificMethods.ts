@@ -17,16 +17,10 @@ export const generateModelSpecificMethods = ({
     return '';
   }
 
-  const {
-    table,
-    tableCases,
-    pivotRelationships,
-    columnsInfo,
-    hasOne,
-    hasMany,
-  } = tableInfo;
+  const { table, pivotRelationships, columnsInfo, hasOne, hasMany } = tableInfo;
+  const { plural, pascalCase } = changeCase(table);
 
-  const className = changeCase(table).pascalCase;
+  const className = pascalCase;
 
   const hasPivotRelationships = pivotRelationships.length > 0;
   const hasOneRelationship = hasOne.length > 0;
@@ -84,14 +78,6 @@ export const generateModelSpecificMethods = ({
   let methods = '';
   const generatedMethods = new Set<string>();
 
-  // Function to get the plural form of a table name
-  const getTablePlural = ({ tableName }: { tableName: string }): string => {
-    const relatedSchema = schemaInfo.find(
-      (schema) => schema.table === tableName,
-    );
-    return relatedSchema ? relatedSchema.tableCases.plural : tableName;
-  };
-
   // Function to generate methods for different types of relationships
   const generateRelationshipMethods = ({
     relatedTables,
@@ -105,8 +91,9 @@ export const generateModelSpecificMethods = ({
     isHasOne?: boolean;
   }) => {
     relatedTables.forEach((relatedTable) => {
+      const { plural } = changeCase(relatedTable);
       const relatedClass = changeCase(relatedTable).pascalCase;
-      const relatedTablePlural = getTablePlural({ tableName: relatedTable });
+      const relatedTablePlural = plural;
       const relatedTableName = isHasOne ? relatedTable : relatedTablePlural;
 
       const description = `${descriptionPrefix} ${relatedClass}${
@@ -251,12 +238,9 @@ export const generateModelSpecificMethods = ({
 
     const generateRoutes = (relatedTables: string[], isHasOne: boolean) => {
       relatedTables.forEach((relatedTable) => {
+        const { plural: relatedTablePlural } = changeCase(relatedTable);
         const route = convertToUrlFormat(
-          `${tableCases.plural}/{id}/${
-            isHasOne
-              ? relatedTable
-              : getTablePlural({ tableName: relatedTable })
-          }`,
+          `${plural}/{id}/${isHasOne ? relatedTable : relatedTablePlural}`,
         );
 
         if (generatedRoutes.has(route)) {

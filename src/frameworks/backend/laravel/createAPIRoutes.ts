@@ -2,6 +2,7 @@ import { convertToUrlFormat, createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS } from '@/constants';
+import { changeCase } from '@/utils/identifySchema';
 
 const template = `
 <?php
@@ -18,8 +19,8 @@ Route::middleware('api')->group(function () {
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
   const useStatements = schemaInfo
     .map(
-      ({ tableCases: { pascalCase } }) =>
-        `use App\\Http\\Controllers\\${pascalCase}Controller;\n`,
+      ({ table }) =>
+        `use App\\Http\\Controllers\\${changeCase(table).pascalCase}Controller;\n`,
     )
     .join('');
 
@@ -29,8 +30,8 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table, tableCases, columnsInfo } = tableInfo;
-      const { pascalCase, plural } = tableCases;
+      const { table, columnsInfo } = tableInfo;
+      const { pascalCase, plural } = changeCase(table);
 
       const routeName = convertToUrlFormat(plural);
       const className = pascalCase;

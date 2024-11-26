@@ -3,6 +3,7 @@ import { APP_SETTINGS } from '@/constants';
 import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
 import { createFile } from '@/helpers/stringHelper';
+import { changeCase } from '@/utils/identifySchema';
 
 const ROUTE_TEMPLATE = `
 import GetHandler from './GET';
@@ -142,14 +143,13 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const {
-        table,
-        tableCases: { plural, pascalCase },
-      } = tableInfo;
+      const { table } = tableInfo;
+      const { plural, pascalCase } = changeCase(table);
+      const className = pascalCase;
 
       const replacements = {
         tableName: table,
-        className: pascalCase,
+        className,
         primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
       };
 

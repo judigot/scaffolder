@@ -439,13 +439,6 @@ export function changeCase(input: string) {
   };
 }
 
-function addTableNameCases(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
-  return schemaInfo.map((info) => {
-    info.tableCases = changeCase(info.table);
-    return info;
-  });
-}
-
 export function addSchemaInfo(
   schemaInfo: ISchemaInfo[],
   data: ParsedJSONSchema | null = null,
@@ -462,7 +455,6 @@ export function addSchemaInfo(
   schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
   schemaInfo = identifyPivotTables(schemaInfo);
   schemaInfo = addParentRelationships(schemaInfo);
-  schemaInfo = addTableNameCases(schemaInfo);
 
   if (!isIntrospection) {
     schemaInfo = determineUniqueForeignKeys(schemaInfo);
@@ -492,23 +484,6 @@ function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
 
     return {
       table,
-      tableCases: {
-        plural: '',
-        titleCase: '',
-        sentenceCase: '',
-        phraseCase: '',
-        pascalCase: '',
-        camelCase: '',
-        kebabCase: '',
-        snakeCase: '',
-        titleCasePlural: '',
-        sentenceCasePlural: '',
-        phraseCasePlural: '',
-        pascalCasePlural: '',
-        camelCasePlural: '',
-        kebabCasePlural: '',
-        snakeCasePlural: '',
-      },
       requiredColumns,
       columnsInfo,
       foreignTables,

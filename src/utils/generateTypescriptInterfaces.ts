@@ -1,5 +1,6 @@
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 import { generateColumnDefinition, getTypeMapping } from '@/utils/common';
+import { changeCase } from '@/utils/identifySchema';
 
 const generateTypescriptInterfaces = ({
   schemaInfo,
@@ -93,13 +94,14 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
 
   const filesContent: Record<string, string> = {};
 
-  schemaInfo.forEach(
-    ({ tableCases: { pascalCase }, columnsInfo }) =>
-      (filesContent[`I${pascalCase}`] = generateInterfaceContent(
-        pascalCase,
-        columnsInfo,
-      )),
-  );
+  schemaInfo.forEach(({ table, columnsInfo }) => {
+    const { pascalCase } = changeCase(table);
+    const className = pascalCase;
+    return (filesContent[`I${className}`] = generateInterfaceContent(
+      className,
+      columnsInfo,
+    ));
+  });
 
   return filesContent;
 };

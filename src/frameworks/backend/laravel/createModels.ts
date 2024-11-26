@@ -190,14 +190,14 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
     .map((tableInfo) => {
       const {
         table,
-        tableCases,
         columnsInfo,
         foreignKeys,
         hasOne,
         hasMany,
         belongsToMany,
       } = tableInfo;
-      const className = tableCases.pascalCase;
+      const { pascalCase } = changeCase(table);
+      const className = pascalCase;
 
       const fillable = createFillable(columnsInfo, foreignKeys);
       const relationships = createRelationships(

@@ -2,6 +2,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { APP_SETTINGS } from '@/constants';
 import { createFile } from '@/helpers/stringHelper';
 import { IFile } from '@/components/FileViewer';
+import { changeCase } from '@/utils/identifySchema';
 
 const updateOrCreateSection = (
   content: string,
@@ -65,7 +66,8 @@ class AppServiceProvider extends ServiceProvider
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
-    .map(({ tableCases: { pascalCase } }) => {
+    .map(({ table }) => {
+      const { pascalCase } = changeCase(table);
       const className = pascalCase;
       return `use App\\Repositories\\${className}Repository;\nuse App\\Repositories\\${className}Interface;`;
     })
@@ -77,7 +79,8 @@ class AppServiceProvider extends ServiceProvider
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
-    .map(({ tableCases: { pascalCase } }) => {
+    .map(({ table }) => {
+      const { pascalCase } = changeCase(table);
       const className = pascalCase;
       return `$this->app->bind(${className}Interface::class, ${className}Repository::class);`;
     })

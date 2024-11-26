@@ -3,23 +3,6 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 export const oneToMany: ISchemaInfo[] = [
   {
     table: 'user',
-    tableCases: {
-      plural: 'users',
-      titleCase: 'User',
-      sentenceCase: 'User',
-      phraseCase: 'user',
-      pascalCase: 'User',
-      camelCase: 'user',
-      kebabCase: 'user',
-      snakeCase: 'user',
-      titleCasePlural: 'Users',
-      sentenceCasePlural: 'Users',
-      phraseCasePlural: 'users',
-      pascalCasePlural: 'Users',
-      camelCasePlural: 'users',
-      kebabCasePlural: 'users',
-      snakeCasePlural: 'users',
-    },
     requiredColumns: [
       'user_id',
       'first_name',
@@ -116,23 +99,6 @@ export const oneToMany: ISchemaInfo[] = [
   },
   {
     table: 'post',
-    tableCases: {
-      plural: 'posts',
-      titleCase: 'Post',
-      sentenceCase: 'Post',
-      phraseCase: 'post',
-      pascalCase: 'Post',
-      camelCase: 'post',
-      kebabCase: 'post',
-      snakeCase: 'post',
-      titleCasePlural: 'Posts',
-      sentenceCasePlural: 'Posts',
-      phraseCasePlural: 'posts',
-      pascalCasePlural: 'Posts',
-      camelCasePlural: 'posts',
-      kebabCasePlural: 'posts',
-      snakeCasePlural: 'posts',
-    },
     requiredColumns: [
       'post_id',
       'user_id',

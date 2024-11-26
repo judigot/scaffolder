@@ -457,23 +457,6 @@ describe('convertIntrospectedStructure', () => {
     expect(schemaInfo).toStrictEqual([
       {
         table: 'user',
-        tableCases: {
-          plural: 'users',
-          titleCase: 'User',
-          sentenceCase: 'User',
-          phraseCase: 'user',
-          pascalCase: 'User',
-          camelCase: 'user',
-          kebabCase: 'user',
-          snakeCase: 'user',
-          titleCasePlural: 'Users',
-          sentenceCasePlural: 'Users',
-          phraseCasePlural: 'users',
-          pascalCasePlural: 'Users',
-          camelCasePlural: 'users',
-          kebabCasePlural: 'users',
-          snakeCasePlural: 'users',
-        },
         requiredColumns: [
           'user_id',
           'first_name',
@@ -570,23 +553,6 @@ describe('convertIntrospectedStructure', () => {
       },
       {
         table: 'post',
-        tableCases: {
-          plural: 'posts',
-          titleCase: 'Post',
-          sentenceCase: 'Post',
-          phraseCase: 'post',
-          pascalCase: 'Post',
-          camelCase: 'post',
-          kebabCase: 'post',
-          snakeCase: 'post',
-          titleCasePlural: 'Posts',
-          sentenceCasePlural: 'Posts',
-          phraseCasePlural: 'posts',
-          pascalCasePlural: 'Posts',
-          camelCasePlural: 'posts',
-          kebabCasePlural: 'posts',
-          snakeCasePlural: 'posts',
-        },
         requiredColumns: [
           'post_id',
           'user_id',
@@ -672,23 +638,6 @@ describe('convertIntrospectedStructure', () => {
     expect(schemaInfo).toStrictEqual([
       {
         table: 'user',
-        tableCases: {
-          plural: 'users',
-          titleCase: 'User',
-          sentenceCase: 'User',
-          phraseCase: 'user',
-          pascalCase: 'User',
-          camelCase: 'user',
-          kebabCase: 'user',
-          snakeCase: 'user',
-          titleCasePlural: 'Users',
-          sentenceCasePlural: 'Users',
-          phraseCasePlural: 'users',
-          pascalCasePlural: 'Users',
-          camelCasePlural: 'users',
-          kebabCasePlural: 'users',
-          snakeCasePlural: 'users',
-        },
         requiredColumns: [
           'user_id',
           'first_name',
@@ -785,23 +734,6 @@ describe('convertIntrospectedStructure', () => {
       },
       {
         table: 'post',
-        tableCases: {
-          plural: 'posts',
-          titleCase: 'Post',
-          sentenceCase: 'Post',
-          phraseCase: 'post',
-          pascalCase: 'Post',
-          camelCase: 'post',
-          kebabCase: 'post',
-          snakeCase: 'post',
-          titleCasePlural: 'Posts',
-          sentenceCasePlural: 'Posts',
-          phraseCasePlural: 'posts',
-          pascalCasePlural: 'Posts',
-          camelCasePlural: 'posts',
-          kebabCasePlural: 'posts',
-          snakeCasePlural: 'posts',
-        },
         requiredColumns: [
           'post_id',
           'user_id',
@@ -887,23 +819,6 @@ describe('convertIntrospectedStructure', () => {
     expect(schemaInfo).toStrictEqual([
       {
         table: 'product',
-        tableCases: {
-          plural: 'products',
-          titleCase: 'Product',
-          sentenceCase: 'Product',
-          phraseCase: 'product',
-          pascalCase: 'Product',
-          camelCase: 'product',
-          kebabCase: 'product',
-          snakeCase: 'product',
-          titleCasePlural: 'Products',
-          sentenceCasePlural: 'Products',
-          phraseCasePlural: 'products',
-          pascalCasePlural: 'Products',
-          camelCasePlural: 'products',
-          kebabCasePlural: 'products',
-          snakeCasePlural: 'products',
-        },
         requiredColumns: ['product_id', 'product_name'],
         columnsInfo: [
           {
@@ -942,23 +857,6 @@ describe('convertIntrospectedStructure', () => {
       },
       {
         table: 'customer',
-        tableCases: {
-          plural: 'customers',
-          titleCase: 'Customer',
-          sentenceCase: 'Customer',
-          phraseCase: 'customer',
-          pascalCase: 'Customer',
-          camelCase: 'customer',
-          kebabCase: 'customer',
-          snakeCase: 'customer',
-          titleCasePlural: 'Customers',
-          sentenceCasePlural: 'Customers',
-          phraseCasePlural: 'customers',
-          pascalCasePlural: 'Customers',
-          camelCasePlural: 'customers',
-          kebabCasePlural: 'customers',
-          snakeCasePlural: 'customers',
-        },
         requiredColumns: ['customer_id', 'name'],
         columnsInfo: [
           {
@@ -992,23 +890,6 @@ describe('convertIntrospectedStructure', () => {
       },
       {
         table: 'order',
-        tableCases: {
-          plural: 'orders',
-          titleCase: 'Order',
-          sentenceCase: 'Order',
-          phraseCase: 'order',
-          pascalCase: 'Order',
-          camelCase: 'order',
-          kebabCase: 'order',
-          snakeCase: 'order',
-          titleCasePlural: 'Orders',
-          sentenceCasePlural: 'Orders',
-          phraseCasePlural: 'orders',
-          pascalCasePlural: 'Orders',
-          camelCasePlural: 'orders',
-          kebabCasePlural: 'orders',
-          snakeCasePlural: 'orders',
-        },
         requiredColumns: ['order_id', 'customer_id'],
         columnsInfo: [
           {
@@ -1050,23 +931,6 @@ describe('convertIntrospectedStructure', () => {
       },
       {
         table: 'order_product',
-        tableCases: {
-          plural: 'order_products',
-          titleCase: 'Order Product',
-          sentenceCase: 'Order product',
-          phraseCase: 'order product',
-          pascalCase: 'OrderProduct',
-          camelCase: 'orderProduct',
-          kebabCase: 'order-product',
-          snakeCase: 'order_product',
-          titleCasePlural: 'Order Products',
-          sentenceCasePlural: 'Order products',
-          phraseCasePlural: 'order products',
-          pascalCasePlural: 'OrderProducts',
-          camelCasePlural: 'orderProducts',
-          kebabCasePlural: 'order-products',
-          snakeCasePlural: 'order_products',
-        },
         requiredColumns: ['order_product_id', 'order_id', 'product_id'],
         columnsInfo: [
           {

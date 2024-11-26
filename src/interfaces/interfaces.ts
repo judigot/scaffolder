@@ -32,23 +32,6 @@ export interface ISchemaInfo extends ITableInfo {
   requiredColumns: string[];
   columnsInfo: IColumnInfo[];
   foreignKeys: string[];
-  tableCases: {
-    plural: string;
-    titleCase: string;
-    sentenceCase: string;
-    phraseCase: string;
-    pascalCase: string;
-    camelCase: string;
-    kebabCase: string;
-    snakeCase: string;
-    titleCasePlural: string;
-    sentenceCasePlural: string;
-    phraseCasePlural: string;
-    pascalCasePlural: string;
-    camelCasePlural: string;
-    kebabCasePlural: string;
-    snakeCasePlural: string;
-  };
 }
 
 export type ParsedJSONSchema = Record<string, Record<string, unknown>[]>;
