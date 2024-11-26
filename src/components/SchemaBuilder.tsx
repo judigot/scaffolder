@@ -353,7 +353,7 @@ function SchemaBuilder() {
                         </td>
                         <td className="border border-gray-300 px-2 py-1">
                           {column.foreign_key
-                            ? `${column.foreign_key.foreign_table_name} (${column.foreign_key.foreign_column_name})`
+                            ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
                             : 'None'}
                         </td>
                       </tr>
