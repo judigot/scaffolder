@@ -92,16 +92,19 @@ function App() {
 
   return (
     <div className="text-white bg-black">
-      <ModalViewer/>
+      <ModalViewer />
       <div className="bg-gray-900 text-white p-4">
         <h1 className="text-2xl font-bold text-center">App Scaffolder</h1>
         <h2 className="text-1xl text-red-500 font-bold text-center">
           Pre-commit hook is temporarily disabled!
         </h2>
       </div>
-      <SchemaBuilder />
+
       <div className="p-4">
         <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
+          <div className='col-span-3 bg-gray-800 p-4 shadow-md rounded-md'>
+            <SchemaBuilder />
+          </div>
           <div className="col-span-1 bg-gray-700 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
             <form className="space-y-4">

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ISchemaInfo, ITableInfo } from '@/interfaces/interfaces';
 import { addRelationship } from '@/helpers/relationshipHelper';
-import { handleCopy } from '@/helpers/stringHelper';
 import { useModalStore } from '@/components/Modal/base/modalStore';
 import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import { oneToOne } from '@/schema-infos';
 import { getColumnDefaultDisplay } from '@/utils/common';
 
@@ -231,230 +232,333 @@ function SchemaBuilder() {
     setSchemaInfo(updatedSchema);
   };
 
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Schema Builder</h1>
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
-        }}
-        className="px-3 py-1 bg-indigo-500 text-white rounded"
-      >
-        Copy Schema Info
-      </button>
-      <br />
-      <br />
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          handleCopy(JSON.stringify(schemaInfo, null, 4));
-        }}
-        className="px-3 py-1 bg-indigo-500 text-white rounded"
-      >
-        Copy Schema Info with Columns
-      </button>
-      <div className="space-y-8 mt-6">
-        {schemaInfo.map((tableInfo, index) => {
-          const {
-            table,
-            foreignTables,
-            childTables,
-            hasOne,
-            hasMany,
-            belongsTo,
-            belongsToMany,
-            isPivot,
-            pivotRelationships,
-            columnsInfo,
-          } = tableInfo;
+  const [selectedTableIndex, setSelectedTableIndex] = useState<number | null>(
+    0,
+  );
 
-          return (
-            <div key={table} className="p-4 border rounded">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">
-                  {table}
-                  &nbsp;
-                  <EditIcon
-                    onClick={() => {
-                      void (async () => {
-                        await renameTable(index);
-                      })();
-                    }}
-                    fontSize="small"
-                    className={`text-white-500 cursor-pointer`}
-                  />
-                </h2>
-                {!isPivot && (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          await handleRemoveRelationship(index);
-                        })();
+  const pivotTables = schemaInfo.filter((table) => table.isPivot);
+
+  return (
+    <div className="p-4 bg-gray-800 text-white">
+      <div className="flex">
+        <div className="w-1/4 p-4 border-r border-gray-700">
+          <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
+          <ul className="space-y-2">
+            {schemaInfo
+              .filter((table) => !table.isPivot)
+              .map((tableInfo) => {
+                const { table } = tableInfo;
+
+                return (
+                  <li key={table}>
+                    <div
+                      role="button"
+                      onKeyDown={() => {
+                        return;
                       }}
-                      className="text-blue-500 underline"
+                      tabIndex={-1} // -1 means it cannot be tabbed
+                      className="cursor-pointer hover:text-indigo-400"
+                      onClick={() => {
+                        const pivotTableIndex = schemaInfo.findIndex(
+                          ({ table: currentTable }) => {
+                            return currentTable === table;
+                          },
+                        );
+                        setSelectedTableIndex(pivotTableIndex);
+                      }} // Set the selected table index on click
                     >
-                      Remove Table
-                    </button>
-                  </div>
+                      {table}
+                    </div>
+                  </li>
+                );
+              })}
+          </ul>
+
+          {pivotTables.length > 0 && (
+            <>
+              <br />
+              <br />
+              <h2 className="text-xl font-semibold mb-4">Pivot Tables</h2>
+              <ul className="space-y-2">
+                {schemaInfo
+                  .filter((table) => table.isPivot)
+                  .map((tableInfo) => {
+                    const { table } = tableInfo;
+
+                    return (
+                      <li key={table}>
+                        <div
+                          role="button"
+                          onKeyDown={() => {
+                            return;
+                          }}
+                          tabIndex={-1} // -1 means it cannot be tabbed
+                          className="cursor-pointer hover:text-indigo-400"
+                          onClick={() => {
+                            const pivotTableIndex = schemaInfo.findIndex(
+                              ({ table: currentTable }) => {
+                                return currentTable === table;
+                              },
+                            );
+                            setSelectedTableIndex(pivotTableIndex);
+                          }}
+                        >
+                          {table}
+                        </div>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </>
+          )}
+        </div>
+
+        <div className="w-3/4 p-4">
+          {selectedTableIndex !== null &&
+            Boolean(schemaInfo[selectedTableIndex]) && (
+              <div key={schemaInfo[selectedTableIndex].table}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">
+                    {schemaInfo[selectedTableIndex].table}
+                    {!schemaInfo[selectedTableIndex].isPivot && (
+                      <>
+                        &nbsp;
+                        <EditIcon
+                          onClick={() => {
+                            void (async () => {
+                              await renameTable(selectedTableIndex);
+                            })();
+                          }}
+                          fontSize="small"
+                          className={`text-white-500 cursor-pointer`}
+                        />
+                        &nbsp;
+                        <CloseIcon
+                          onClick={() => {
+                            void (async () => {
+                              await handleRemoveRelationship(
+                                selectedTableIndex,
+                              );
+                            })();
+                          }}
+                          fontSize="medium"
+                          className={`text-white-500 cursor-pointer`}
+                        />
+                      </>
+                    )}
+                  </h2>
+                </div>
+
+                {!schemaInfo[selectedTableIndex].isPivot && (
+                  <>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <button
+                        onClick={() => {
+                          void (async () => {
+                            await handleAddRelationship(
+                              selectedTableIndex,
+                              'hasOne',
+                            );
+                          })();
+                        }}
+                        className="px-3 py-1 bg-blue-500 text-black font-bold rounded"
+                      >
+                        Add One-to-One
+                      </button>
+                      <button
+                        onClick={() => {
+                          void (async () => {
+                            await handleAddRelationship(
+                              selectedTableIndex,
+                              'hasMany',
+                            );
+                          })();
+                        }}
+                        className="px-3 py-1 bg-green-500 text-black font-bold rounded"
+                      >
+                        Add One-to-Many
+                      </button>
+                      <button
+                        onClick={() => {
+                          void (async () => {
+                            await handleAddRelationship(
+                              selectedTableIndex,
+                              'belongsToMany',
+                            );
+                          })();
+                        }}
+                        className="px-3 py-1 bg-purple-500 text-black font-bold rounded"
+                      >
+                        Add Many-to-Many
+                      </button>
+                      <button className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
+                        Add Self-Referencing Relationship
+                      </button>
+                      <button className="px-3 py-1 bg-red-500 text-black font-bold rounded">
+                        Add Polymorphic Relationship
+                      </button>
+                      <button className="px-3 py-1 bg-indigo-500 text-black font-bold rounded">
+                        Add Parent-Child Relationship
+                      </button>
+                      <button className="px-3 py-1 bg-teal-500 text-black font-bold rounded">
+                        Add Inverse Relationship
+                      </button>
+                      <button className="px-3 py-1 bg-orange-500 text-black font-bold rounded">
+                        Add Cascade Relationship
+                      </button>
+                      <button className="px-3 py-1 bg-pink-500 text-black font-bold rounded">
+                        Add Composite Relationship
+                      </button>
+                      <button className="px-3 py-1 bg-gray-500 text-black font-bold rounded">
+                        Add Conditional Relationship
+                      </button>
+                      <button className="px-3 py-1 bg-lime-500 text-black font-bold rounded">
+                        Add Optional Relationship
+                      </button>
+                    </div>
+                    <br />
+                  </>
                 )}
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Columns</h3>
-                <table className="w-full text-left border-collapse border border-gray-300">
-                  <thead>
-                    <tr>
-                      <th className="border border-gray-300 px-2 py-1">Name</th>
-                      <th className="border border-gray-300 px-2 py-1">Type</th>
-                      <th className="border border-gray-300 px-2 py-1">
-                        Nullable
-                      </th>
-                      <th className="border border-gray-300 px-2 py-1">
-                        Default
-                      </th>
-                      <th className="border border-gray-300 px-2 py-1">
-                        Primary
-                      </th>
-                      <th className="border border-gray-300 px-2 py-1">
-                        Unique
-                      </th>
-                      <th className="border border-gray-300 px-2 py-1">
-                        Foreign Key
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {columnsInfo.map((column) => {
-                      return (
-                        <tr key={column.column_name}>
-                          <td className="border border-gray-300 px-2 py-1">
-                            {column.column_name}
-                          </td>
-                          <td className="border border-gray-300 px-2 py-1">
-                            {column.data_type}
-                          </td>
-                          <td className="border border-gray-300 px-2 py-1">
-                            {column.is_nullable}
-                          </td>
-                          <td className="border border-gray-300 px-2 py-1">
-                            {getColumnDefaultDisplay({
-                              isPrimaryKey: column.primary_key,
-                              isNullable: column.is_nullable,
-                              columnDefault: column.column_default,
-                            })}
-                          </td>
-                          <td className="border border-gray-300 px-2 py-1">
-                            {column.primary_key ? 'Yes' : 'No'}
-                          </td>
-                          <td className="border border-gray-300 px-2 py-1">
-                            {column.unique ? 'Yes' : 'No'}
-                          </td>
-                          <td className="border border-gray-300 px-2 py-1">
-                            {column.foreign_key
-                              ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
-                              : 'None'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
 
                 <h3 className="font-semibold mt-4 mb-2">Relationships</h3>
                 <ul className="space-y-1">
-                  {foreignTables.length > 0 && (
-                    <li>Foreign Tables: {foreignTables.join(', ')}</li>
+                  {schemaInfo[selectedTableIndex].foreignTables.length > 0 && (
+                    <li>
+                      Foreign Tables:{' '}
+                      {schemaInfo[selectedTableIndex].foreignTables.join(', ')}
+                    </li>
                   )}
-                  {childTables.length > 0 && (
-                    <li>Child Tables: {childTables.join(', ')}</li>
+                  {schemaInfo[selectedTableIndex].childTables.length > 0 && (
+                    <li>
+                      Child Tables:{' '}
+                      {schemaInfo[selectedTableIndex].childTables.join(', ')}
+                    </li>
                   )}
-                  {hasOne.length > 0 && <li>Has One: {hasOne.join(', ')}</li>}
-                  {hasMany.length > 0 && (
-                    <li>Has Many: {hasMany.join(', ')}</li>
+                  {schemaInfo[selectedTableIndex].hasOne.length > 0 && (
+                    <li>
+                      Has One:{' '}
+                      {schemaInfo[selectedTableIndex].hasOne.join(', ')}
+                    </li>
                   )}
-                  {belongsTo.length > 0 && (
-                    <li>Belongs To: {belongsTo.join(', ')}</li>
+                  {schemaInfo[selectedTableIndex].hasMany.length > 0 && (
+                    <li>
+                      Has Many:{' '}
+                      {schemaInfo[selectedTableIndex].hasMany.join(', ')}
+                    </li>
                   )}
-                  {belongsToMany.length > 0 && (
-                    <li>Belongs To Many: {belongsToMany.join(', ')}</li>
+                  {schemaInfo[selectedTableIndex].belongsTo.length > 0 && (
+                    <li>
+                      Belongs To:{' '}
+                      {schemaInfo[selectedTableIndex].belongsTo.join(', ')}
+                    </li>
                   )}
-                  {pivotRelationships.length > 0 && (
+                  {schemaInfo[selectedTableIndex].belongsToMany.length > 0 && (
+                    <li>
+                      Belongs To Many:{' '}
+                      {schemaInfo[selectedTableIndex].belongsToMany.join(', ')}
+                    </li>
+                  )}
+                  {schemaInfo[selectedTableIndex].pivotRelationships.length >
+                    0 && (
                     <li>
                       Pivot Relationships:
                       <ul className="pl-4 list-disc">
-                        {pivotRelationships.map((rel, idx) => (
-                          <li key={idx}>
-                            Related Table: <strong>{rel.relatedTable}</strong>,
-                            Pivot Table: <strong>{rel.pivotTable}</strong>
-                          </li>
-                        ))}
+                        {schemaInfo[selectedTableIndex].pivotRelationships.map(
+                          (rel, idx) => (
+                            <li key={idx}>
+                              Related Table: <strong>{rel.relatedTable}</strong>
+                              , Pivot Table: <strong>{rel.pivotTable}</strong>
+                            </li>
+                          ),
+                        )}
                       </ul>
                     </li>
                   )}
                 </ul>
-                {!isPivot && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          await handleAddRelationship(index, 'hasOne');
-                        })();
-                      }}
-                      className="px-3 py-1 bg-blue-500 text-white rounded"
-                    >
-                      Add One-to-One
-                    </button>
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          await handleAddRelationship(index, 'hasMany');
-                        })();
-                      }}
-                      className="px-3 py-1 bg-green-500 text-white rounded"
-                    >
-                      Add One-to-Many
-                    </button>
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          await handleAddRelationship(index, 'belongsToMany');
-                        })();
-                      }}
-                      className="px-3 py-1 bg-purple-500 text-white rounded"
-                    >
-                      Add Many-to-Many
-                    </button>
-                    <button className="px-3 py-1 bg-yellow-500 text-white rounded">
-                      Add Self-Referencing Relationship
-                    </button>
-                    <button className="px-3 py-1 bg-red-500 text-white rounded">
-                      Add Polymorphic Relationship
-                    </button>
-                    <button className="px-3 py-1 bg-indigo-500 text-white rounded">
-                      Add Parent-Child Relationship
-                    </button>
-                    <button className="px-3 py-1 bg-teal-500 text-white rounded">
-                      Add Inverse Relationship
-                    </button>
-                    <button className="px-3 py-1 bg-orange-500 text-white rounded">
-                      Add Cascade Relationship
-                    </button>
-                    <button className="px-3 py-1 bg-pink-500 text-white rounded">
-                      Add Composite Relationship
-                    </button>
-                    <button className="px-3 py-1 bg-gray-500 text-white rounded">
-                      Add Conditional Relationship
-                    </button>
-                    <button className="px-3 py-1 bg-lime-500 text-white rounded">
-                      Add Optional Relationship
-                    </button>
-                  </div>
+                {!schemaInfo[selectedTableIndex].isPivot && (
+                  <>
+                    <br />
+                    <h3 className="font-semibold mb-2 inline-block">Columns</h3>
+                    <div className="inline-block">
+                      <AddIcon
+                        onClick={() => {
+                          void (async () => {
+                            // await handleRemoveRelationship(
+                            //   selectedTableIndex,
+                            // );
+                          })();
+                        }}
+                        fontSize="medium"
+                        className={`text-white-500 cursor-pointer`}
+                      />
+                    </div>
+                    <table className="w-full text-left border-collapse border border-gray-600">
+                      <thead>
+                        <tr>
+                          <th className="border border-gray-600 px-2 py-1">
+                            Name
+                          </th>
+                          <th className="border border-gray-600 px-2 py-1">
+                            Type
+                          </th>
+                          <th className="border border-gray-600 px-2 py-1">
+                            Nullable
+                          </th>
+                          <th className="border border-gray-600 px-2 py-1">
+                            Default
+                          </th>
+                          <th className="border border-gray-600 px-2 py-1">
+                            Primary
+                          </th>
+                          <th className="border border-gray-600 px-2 py-1">
+                            Unique
+                          </th>
+                          <th className="border border-gray-600 px-2 py-1">
+                            Foreign Key
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {schemaInfo[selectedTableIndex].columnsInfo.map(
+                          (column) => (
+                            <tr key={column.column_name}>
+                              <td className="border border-gray-600 px-2 py-1">
+                                {column.column_name}
+                              </td>
+                              <td className="border border-gray-600 px-2 py-1">
+                                {column.data_type}
+                              </td>
+                              <td className="border border-gray-600 px-2 py-1">
+                                {column.is_nullable}
+                              </td>
+                              <td className="border border-gray-600 px-2 py-1">
+                                {getColumnDefaultDisplay({
+                                  isPrimaryKey: column.primary_key,
+                                  isNullable: column.is_nullable,
+                                  columnDefault: column.column_default,
+                                })}
+                              </td>
+                              <td className="border border-gray-600 px-2 py-1">
+                                {column.primary_key ? 'Yes' : 'No'}
+                              </td>
+                              <td className="border border-gray-600 px-2 py-1">
+                                {column.unique ? 'Yes' : 'No'}
+                              </td>
+                              <td className="border border-gray-600 px-2 py-1">
+                                {column.foreign_key
+                                  ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
+                                  : 'None'}
+                              </td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </>
                 )}
               </div>
-            </div>
-          );
-        })}
+            )}
+        </div>
       </div>
     </div>
   );
