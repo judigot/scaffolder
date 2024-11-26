@@ -86,52 +86,54 @@ function SchemaBuilder() {
 
     const newName = await editValue({ title: 'Edit table name', oldValue });
 
-    if (newName) {
-      const updatedSchema = schemaInfo.map((table) => {
-        /* Rename the table itself */
-        if (table.table === oldValue) {
-          table.table = newName;
+    if (!newName) {
+      return;
+    }
+
+    const updatedSchema = schemaInfo.map((table) => {
+      /* Rename the table itself */
+      if (table.table === oldValue) {
+        table.table = newName;
+      }
+
+      /* Define the relationship keys */
+      const relationshipKeys: (keyof Pick<
+        ITableInfo,
+        | 'hasOne'
+        | 'hasMany'
+        | 'belongsTo'
+        | 'belongsToMany'
+        | 'foreignTables'
+        | 'childTables'
+      >)[] = [
+        'hasOne',
+        'hasMany',
+        'belongsTo',
+        'belongsToMany',
+        'foreignTables',
+        'childTables',
+      ];
+
+      /* Update relationships referencing the old table name */
+      relationshipKeys.forEach((relation) => {
+        if (Array.isArray(table[relation])) {
+          table[relation] = table[relation].map((rel) =>
+            rel === oldValue ? newName : rel,
+          );
         }
-
-        /* Define the relationship keys */
-        const relationshipKeys: (keyof Pick<
-          ITableInfo,
-          | 'hasOne'
-          | 'hasMany'
-          | 'belongsTo'
-          | 'belongsToMany'
-          | 'foreignTables'
-          | 'childTables'
-        >)[] = [
-          'hasOne',
-          'hasMany',
-          'belongsTo',
-          'belongsToMany',
-          'foreignTables',
-          'childTables',
-        ];
-
-        /* Update relationships referencing the old table name */
-        relationshipKeys.forEach((relation) => {
-          if (Array.isArray(table[relation])) {
-            table[relation] = table[relation].map((rel) =>
-              rel === oldValue ? newName : rel,
-            );
-          }
-        });
-
-        /* Update pivotRelationships referencing the old table name */
-        table.pivotRelationships = table.pivotRelationships.map((rel) => ({
-          relatedTable:
-            rel.relatedTable === oldValue ? newName : rel.relatedTable,
-          pivotTable: rel.pivotTable === oldValue ? newName : rel.pivotTable,
-        }));
-
-        return table;
       });
 
-      setSchemaInfo(updatedSchema);
-    }
+      /* Update pivotRelationships referencing the old table name */
+      table.pivotRelationships = table.pivotRelationships.map((rel) => ({
+        relatedTable:
+          rel.relatedTable === oldValue ? newName : rel.relatedTable,
+        pivotTable: rel.pivotTable === oldValue ? newName : rel.pivotTable,
+      }));
+
+      return table;
+    });
+
+    setSchemaInfo(updatedSchema);
   };
 
   const handleAddRelationship = async (
