@@ -89,8 +89,8 @@
     "foreignKeys": [],
     "isPivot": false,
     "childTables": ["post"],
-    "hasOne": ["post"],
-    "hasMany": [],
+    "hasOne": [],
+    "hasMany": ["post"],
     "belongsTo": [],
     "belongsToMany": [],
     "pivotRelationships": []
@@ -120,7 +120,7 @@
         "is_nullable": "NO",
         "column_default": null,
         "primary_key": false,
-        "unique": true,
+        "unique": false,
         "foreign_key": {
           "foreign_table_name": "user",
           "foreign_column_name": "user_id"
