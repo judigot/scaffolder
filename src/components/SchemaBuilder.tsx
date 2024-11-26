@@ -3,8 +3,8 @@ import { ISchemaInfo, ITableInfo } from '@/interfaces/interfaces';
 import { addRelationship } from '@/helpers/relationshipHelper';
 import { handleCopy } from '@/helpers/stringHelper';
 import { useModalStore } from '@/components/Modal/base/modalStore';
-import { manyToMany } from '@/schema-infos/manyToMany';
 import EditIcon from '@mui/icons-material/Edit';
+import { manyToMany } from '@/schema-infos';
 
 // const renameSchemaInstances = (
 //   schemaData: ISchemaInfo[],
