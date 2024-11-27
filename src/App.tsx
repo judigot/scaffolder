@@ -12,6 +12,7 @@ import { handleCopy } from '@/helpers/stringHelper';
 import { useFolderStructures } from '@/frameworks/useFolderStructures';
 import SchemaBuilder from '@/components/SchemaBuilder';
 import ModalViewer from '@/components/Modal/ModalViewer';
+import { CREATION_MODES } from '@/constants';
 
 function App() {
   const {
@@ -98,50 +99,75 @@ function App() {
         <h2 className="text-1xl text-red-500 font-bold text-center">
           Pre-commit hook is temporarily disabled!
         </h2>
+        <div className="text-center">
+          <div className="m-4">
+            <button
+              data-testid="one-to-one-button"
+              type="button"
+              onClick={() => {
+                setOneToOne();
+              }}
+              className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+            >
+              One to One
+            </button>
+            &nbsp; &nbsp;
+            <button
+              data-testid="one-to-many-button"
+              type="button"
+              onClick={() => {
+                setOneToMany();
+              }}
+              className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+            >
+              One to Many
+            </button>
+            &nbsp; &nbsp;
+            <button
+              data-testid="many-to-many-button"
+              type="button"
+              onClick={() => {
+                setManyToMany();
+              }}
+              className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+            >
+              Many to Many
+            </button>
+          </div>
+          <select
+            value={''}
+            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+              const isValueInObject = <T extends object>(
+                obj: T,
+                value: unknown,
+              ): value is T[keyof T] => {
+                return Object.values(obj).includes(value);
+              };
+
+              const selected = event.target.value;
+              if (isValueInObject(CREATION_MODES, selected)) {
+                // setCreationMode(selected);
+              }
+            }}
+            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 border-2 rounded-md p-2 focus:outline-none"
+          >
+            {Object.entries(CREATION_MODES).map(([key, value]) => (
+              <option key={key} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="p-4">
         <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
-          <div className='col-span-3 bg-gray-800 p-4 shadow-md rounded-md'>
+          <div className="col-span-3 bg-gray-800 p-4 shadow-md rounded-md">
             <SchemaBuilder />
           </div>
           <div className="col-span-1 bg-gray-700 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
             <form className="space-y-4">
-              <div className="float-right pb-3">
-                <button
-                  data-testid="one-to-one-button"
-                  type="button"
-                  onClick={() => {
-                    setOneToOne();
-                  }}
-                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                >
-                  One to One
-                </button>
-                &nbsp; &nbsp;
-                <button
-                  data-testid="one-to-many-button"
-                  type="button"
-                  onClick={() => {
-                    setOneToMany();
-                  }}
-                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                >
-                  One to Many
-                </button>
-                &nbsp; &nbsp;
-                <button
-                  data-testid="many-to-many-button"
-                  type="button"
-                  onClick={() => {
-                    setManyToMany();
-                  }}
-                  className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                >
-                  Many to Many
-                </button>
-              </div>
 
               <button
                 onClick={(e) => {
