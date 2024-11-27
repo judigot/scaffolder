@@ -7,6 +7,7 @@ import { POSSchema } from '@/json-schemas/POSSchema';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { DBTypes } from '@/interfaces/interfaces';
 import { SQLQueries } from '@/utils/mappings';
+import { CREATION_MODES } from '@/constants';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -31,6 +32,10 @@ interface IFormStore {
   formData: IFormData;
   dbType: DBTypes | undefined;
   quote: string;
+  creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES];
+  setCreationMode: (
+    creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES],
+  ) => void;
   setFormData: (data: Partial<IFormData>) => void;
   setOneToOne: () => void;
   setOneToMany: () => void;
@@ -78,6 +83,10 @@ export const useFormStore = create(
         formData: initialFormData,
         dbType: initialDbType,
         quote: initialQuote,
+        creationMode: CREATION_MODES.JSON_SCHEMA,
+        setCreationMode: (creationMode) => {
+          set({ creationMode });
+        },
         setFormData: (data) => {
           set((state) => {
             const newDbConnection =

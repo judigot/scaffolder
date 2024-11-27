@@ -4,7 +4,6 @@ import { useTransformationsStore } from '@/useTransformationsStore';
 
 import { useModalStore } from '@/useModalStore';
 
-import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
 import { consolidateInterfaces } from '@/utils/common';
 import FileViewer from '@/components/FileViewer';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
@@ -13,6 +12,7 @@ import { useFolderStructures } from '@/frameworks/useFolderStructures';
 import SchemaBuilder from '@/components/SchemaBuilder';
 import ModalViewer from '@/components/Modal/ModalViewer';
 import { CREATION_MODES } from '@/constants';
+import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
 
 function App() {
   const {
@@ -32,6 +32,8 @@ function App() {
       includeTypeGuards,
       outputOnSingleFile,
     },
+    creationMode,
+    setCreationMode,
     setFormData,
   } = useFormStore();
 
@@ -135,7 +137,7 @@ function App() {
             </button>
           </div>
           <select
-            value={''}
+            value={creationMode}
             onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
               const isValueInObject = <T extends object>(
                 obj: T,
@@ -146,7 +148,7 @@ function App() {
 
               const selected = event.target.value;
               if (isValueInObject(CREATION_MODES, selected)) {
-                // setCreationMode(selected);
+                setCreationMode(selected);
               }
             }}
             className="dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 border-2 rounded-md p-2 focus:outline-none"
@@ -157,316 +159,323 @@ function App() {
               </option>
             ))}
           </select>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              data-testid="generate-app-button"
+              type="button"
+              onClick={() => {
+                setIsLoading(true);
+                fetch(`http://localhost:5000/scaffoldProject`, {
+                  method: 'POST',
+                  headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    schemaInfo,
+                    backendDir,
+                    frontendDir,
+                    dbConnection,
+                    framework,
+                    SQLSchema,
+                    backendUrl,
+                  }),
+                })
+                  .then((response) => response.json())
+                  .then((result: typeof generationStatus) => {
+                    // Success
+                    setGenerationStatus(result);
+                  })
+                  .catch((error: unknown) => {
+                    // Failure
+                    if (typeof error === `string`) {
+                      throw Error(`There was an error: error`);
+                    }
+                    if (error instanceof Error) {
+                      throw Error(`There was an error: ${error.message}`);
+                    }
+                  })
+                  .finally(() => {
+                    setIsLoading(false);
+                  });
+              }}
+              className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+              {isLoading && 'Generating...'}
+              {!isLoading && 'Generate App From JSON Schema'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                fetch(`http://localhost:5000/introspect`, {
+                  // *GET, POST, PATCH, PUT, DELETE
+                  method: 'POST',
+                  headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                  // For POST, PATCH, and PUT requests
+                  body: JSON.stringify({ dbConnection }),
+                })
+                  .then((response) => response.json())
+                  .then((schemaInfo: ISchemaInfo[]) => {
+                    /* prettier-ignore */ (() => { const QuickLog = schemaInfo; const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv(QuickLog)); })();
+
+                    if (isISchemaInfoArray(schemaInfo)) {
+                      // const mockData = generateMockData({
+                      //   mockDataRows: 5,
+                      //   schemaInfo,
+                      // });
+                      // const newFormData = {
+                      //   ...useFormStore.getState().formData,
+                      //   schemaInput: JSON.stringify(mockData, null, 4),
+                      // };
+                      // setFormData(newFormData);
+                      setTransformations(schemaInfo);
+
+                      setIsLoading(true);
+                      fetch(`http://localhost:5000/scaffoldProject`, {
+                        method: 'POST',
+                        headers: {
+                          Accept: 'application/json',
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          schemaInfo,
+                          interfaces: outputOnSingleFile
+                            ? stringInterfaces
+                            : interfaces,
+                          backendDir,
+                          frontendDir,
+                          dbConnection,
+                          framework,
+                          SQLSchema: null, // Null since we already have an existing schema
+                          outputOnSingleFile,
+                          backendUrl,
+                        }),
+                      })
+                        .then((response) => response.json())
+                        .then((result: typeof generationStatus) => {
+                          // Success
+                          setGenerationStatus(result);
+                        })
+                        .catch((error: unknown) => {
+                          // Failure
+                          if (typeof error === `string`) {
+                            throw Error(`There was an error: error`);
+                          }
+                          if (error instanceof Error) {
+                            throw Error(`There was an error: ${error.message}`);
+                          }
+                        })
+                        .finally(() => {
+                          setIsLoading(false);
+                        });
+
+                      setGenerationStatus({
+                        ...generationStatus,
+                        ...{
+                          isDBConnectionValid: true,
+                        },
+                      });
+                    }
+                  })
+                  .catch((error: unknown) => {
+                    /* prettier-ignore */ (() => { const QuickLog = error; const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv(QuickLog)); })();
+                    // Failure
+                    setGenerationStatus({
+                      ...generationStatus,
+                      ...{
+                        isDBConnectionValid: false,
+                      },
+                    });
+                  });
+              }}
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+              Generate App From Existing Database
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="p-4">
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
-          <div className="col-span-3 bg-gray-800 p-4 shadow-md rounded-md">
-            <SchemaBuilder />
-          </div>
-          <div className="col-span-1 bg-gray-700 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
-            <form className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+          {/* {creationMode === CREATION_MODES.SCHEMA_BUILDER && (
+            <div className="col-span-3 bg-gray-800 p-4 shadow-md rounded-md">
+              <SchemaBuilder />
+            </div>
+          )} */}
+          <div className="bg-gray-700 p-4 shadow-md rounded-md">
+            {creationMode === CREATION_MODES.SCHEMA_BUILDER && (
+              <SchemaBuilder />
+            )}
+            {creationMode === CREATION_MODES.JSON_SCHEMA && (
+              <>
+                <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
+                <form className="space-y-4">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
 
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
+                      /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
+                    }}
+                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  >
+                    Copy Schema Info
+                  </button>
 
-                  /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
-                }}
-                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                Copy Schema Info
-              </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleCopy(JSON.stringify(schemaInfo, null, 4));
+                    }}
+                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                  >
+                    Copy Schema Info with Columns
+                  </button>
 
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleCopy(JSON.stringify(schemaInfo, null, 4));
-                }}
-                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                Copy Schema Info with Columns
-              </button>
-
-              <textarea
-                data-testid="schema-input"
-                id="schemaInput"
-                name="schemaInput"
-                value={schemaInput}
-                onChange={handleChange}
-                rows={10}
-                className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              />
-
-              <div>
-                <label
-                  htmlFor="additionalSchemaSettings"
-                  className="block text-sm font-medium"
-                >
-                  Additional Schema Settings:
-                  <AdditionalSchemaSettings schemaInfo={schemaInfo} />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <label
-                  htmlFor="backendUrl"
-                  className="block text-sm font-medium"
-                >
-                  Backend URL:
-                  {!generationStatus.isBackendUrlValid && (
-                    <i className="text-red-500">&nbsp;Invalid backend URL</i>
-                  )}
-                  <input
-                    type="text"
-                    id="backendUrl"
-                    name="backendUrl"
-                    value={backendUrl}
+                  <textarea
+                    data-testid="schema-input"
+                    id="schemaInput"
+                    name="schemaInput"
+                    value={schemaInput}
                     onChange={handleChange}
-                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                      generationStatus.isBackendUrlValid
-                        ? 'border-gray-700 focus:border-indigo-500'
-                        : 'border-red-500 focus:border-red-500'
-                    }`}
+                    rows={10}
+                    className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                   />
-                </label>
-                <label
-                  htmlFor="backendDir"
-                  className="block text-sm font-medium"
-                >
-                  Backend Directory:
-                  {!generationStatus.isBackendDirValid && (
-                    <i className="text-red-500">
-                      &nbsp;Invalid backend directory
-                    </i>
-                  )}
-                  <input
-                    type="text"
-                    id="backendDir"
-                    name="backendDir"
-                    value={backendDir}
-                    onChange={handleChange}
-                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                      generationStatus.isBackendDirValid
-                        ? 'border-gray-700 focus:border-indigo-500'
-                        : 'border-red-500 focus:border-red-500'
-                    }`}
-                  />
-                </label>
-                <label
-                  htmlFor="frontendDir"
-                  className="block text-sm font-medium"
-                >
-                  Frontend Directory:
-                  {!generationStatus.isFrontendDirValid && (
-                    <i className="text-red-500">
-                      &nbsp;Invalid frontend directory
-                    </i>
-                  )}
-                  <input
-                    type="text"
-                    id="frontendDir"
-                    name="frontendDir"
-                    value={frontendDir}
-                    onChange={handleChange}
-                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                      generationStatus.isFrontendDirValid
-                        ? 'border-gray-700 focus:border-indigo-500'
-                        : 'border-red-500 focus:border-red-500'
-                    }`}
-                  />
-                </label>
-                <label
-                  htmlFor="dbConnection"
-                  className="block text-sm font-medium"
-                >
-                  Database Connection:
-                  {!generationStatus.isDBConnectionValid && (
-                    <i className="text-red-500">
-                      &nbsp;Invalid connection string
-                    </i>
-                  )}
-                  <div className="float-right pb-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDBType('postgresql');
-                      }}
-                      className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+
+                  <div>
+                    <label
+                      htmlFor="additionalSchemaSettings"
+                      className="block text-sm font-medium"
                     >
-                      PostgreSQL
-                    </button>
-                    &nbsp; &nbsp;
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDBType('mysql');
-                      }}
-                      className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                    >
-                      MySQL
-                    </button>
+                      Additional Schema Settings:
+                      <AdditionalSchemaSettings schemaInfo={schemaInfo} />
+                    </label>
                   </div>
-                  <input
-                    type="text"
-                    id="dbConnection"
-                    name="dbConnection"
-                    value={dbConnection}
-                    onChange={handleChange}
-                    className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                      generationStatus.isDBConnectionValid
-                        ? 'border-gray-700 focus:border-indigo-500'
-                        : 'border-red-500 focus:border-red-500'
-                    }`}
-                  />
-                </label>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  data-testid="generate-app-button"
-                  type="button"
-                  onClick={() => {
-                    setIsLoading(true);
-                    fetch(`http://localhost:5000/scaffoldProject`, {
-                      method: 'POST',
-                      headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        schemaInfo,
-                        backendDir,
-                        frontendDir,
-                        dbConnection,
-                        framework,
-                        SQLSchema,
-                        backendUrl,
-                      }),
-                    })
-                      .then((response) => response.json())
-                      .then((result: typeof generationStatus) => {
-                        // Success
-                        setGenerationStatus(result);
-                      })
-                      .catch((error: unknown) => {
-                        // Failure
-                        if (typeof error === `string`) {
-                          throw Error(`There was an error: error`);
-                        }
-                        if (error instanceof Error) {
-                          throw Error(`There was an error: ${error.message}`);
-                        }
-                      })
-                      .finally(() => {
-                        setIsLoading(false);
-                      });
-                  }}
-                  className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                >
-                  {isLoading && 'Generating...'}
-                  {!isLoading && 'Generate App From JSON Schema'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    fetch(`http://localhost:5000/introspect`, {
-                      // *GET, POST, PATCH, PUT, DELETE
-                      method: 'POST',
-                      headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                      },
-                      // For POST, PATCH, and PUT requests
-                      body: JSON.stringify({ dbConnection }),
-                    })
-                      .then((response) => response.json())
-                      .then((schemaInfo: ISchemaInfo[]) => {
-                        /* prettier-ignore */ (() => { const QuickLog = schemaInfo; const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv(QuickLog)); })();
-
-                        if (isISchemaInfoArray(schemaInfo)) {
-                          // const mockData = generateMockData({
-                          //   mockDataRows: 5,
-                          //   schemaInfo,
-                          // });
-                          // const newFormData = {
-                          //   ...useFormStore.getState().formData,
-                          //   schemaInput: JSON.stringify(mockData, null, 4),
-                          // };
-                          // setFormData(newFormData);
-                          setTransformations(schemaInfo);
-
-                          setIsLoading(true);
-                          fetch(`http://localhost:5000/scaffoldProject`, {
-                            method: 'POST',
-                            headers: {
-                              Accept: 'application/json',
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              schemaInfo,
-                              interfaces: outputOnSingleFile
-                                ? stringInterfaces
-                                : interfaces,
-                              backendDir,
-                              frontendDir,
-                              dbConnection,
-                              framework,
-                              SQLSchema: null, // Null since we already have an existing schema
-                              outputOnSingleFile,
-                              backendUrl,
-                            }),
-                          })
-                            .then((response) => response.json())
-                            .then((result: typeof generationStatus) => {
-                              // Success
-                              setGenerationStatus(result);
-                            })
-                            .catch((error: unknown) => {
-                              // Failure
-                              if (typeof error === `string`) {
-                                throw Error(`There was an error: error`);
-                              }
-                              if (error instanceof Error) {
-                                throw Error(
-                                  `There was an error: ${error.message}`,
-                                );
-                              }
-                            })
-                            .finally(() => {
-                              setIsLoading(false);
-                            });
-
-                          setGenerationStatus({
-                            ...generationStatus,
-                            ...{
-                              isDBConnectionValid: true,
-                            },
-                          });
-                        }
-                      })
-                      .catch((error: unknown) => {
-                        /* prettier-ignore */ (() => { const QuickLog = error; const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv(QuickLog)); })();
-                        // Failure
-                        setGenerationStatus({
-                          ...generationStatus,
-                          ...{
-                            isDBConnectionValid: false,
-                          },
-                        });
-                      });
-                  }}
-                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                >
-                  Generate App From Existing Database
-                </button>
-              </div>
-            </form>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label
+                      htmlFor="backendUrl"
+                      className="block text-sm font-medium"
+                    >
+                      Backend URL:
+                      {!generationStatus.isBackendUrlValid && (
+                        <i className="text-red-500">
+                          &nbsp;Invalid backend URL
+                        </i>
+                      )}
+                      <input
+                        type="text"
+                        id="backendUrl"
+                        name="backendUrl"
+                        value={backendUrl}
+                        onChange={handleChange}
+                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                          generationStatus.isBackendUrlValid
+                            ? 'border-gray-700 focus:border-indigo-500'
+                            : 'border-red-500 focus:border-red-500'
+                        }`}
+                      />
+                    </label>
+                    <label
+                      htmlFor="backendDir"
+                      className="block text-sm font-medium"
+                    >
+                      Backend Directory:
+                      {!generationStatus.isBackendDirValid && (
+                        <i className="text-red-500">
+                          &nbsp;Invalid backend directory
+                        </i>
+                      )}
+                      <input
+                        type="text"
+                        id="backendDir"
+                        name="backendDir"
+                        value={backendDir}
+                        onChange={handleChange}
+                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                          generationStatus.isBackendDirValid
+                            ? 'border-gray-700 focus:border-indigo-500'
+                            : 'border-red-500 focus:border-red-500'
+                        }`}
+                      />
+                    </label>
+                    <label
+                      htmlFor="frontendDir"
+                      className="block text-sm font-medium"
+                    >
+                      Frontend Directory:
+                      {!generationStatus.isFrontendDirValid && (
+                        <i className="text-red-500">
+                          &nbsp;Invalid frontend directory
+                        </i>
+                      )}
+                      <input
+                        type="text"
+                        id="frontendDir"
+                        name="frontendDir"
+                        value={frontendDir}
+                        onChange={handleChange}
+                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                          generationStatus.isFrontendDirValid
+                            ? 'border-gray-700 focus:border-indigo-500'
+                            : 'border-red-500 focus:border-red-500'
+                        }`}
+                      />
+                    </label>
+                    <label
+                      htmlFor="dbConnection"
+                      className="block text-sm font-medium"
+                    >
+                      Database Connection:
+                      {!generationStatus.isDBConnectionValid && (
+                        <i className="text-red-500">
+                          &nbsp;Invalid connection string
+                        </i>
+                      )}
+                      <div className="float-right pb-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDBType('postgresql');
+                          }}
+                          className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                        >
+                          PostgreSQL
+                        </button>
+                        &nbsp; &nbsp;
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDBType('mysql');
+                          }}
+                          className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                        >
+                          MySQL
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        id="dbConnection"
+                        name="dbConnection"
+                        value={dbConnection}
+                        onChange={handleChange}
+                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                          generationStatus.isDBConnectionValid
+                            ? 'border-gray-700 focus:border-indigo-500'
+                            : 'border-red-500 focus:border-red-500'
+                        }`}
+                      />
+                    </label>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
 
-          <div className="col-span-2 bg-gray-800 p-4 shadow-md rounded-md">
+          <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Files to Generate</h2>
             <label htmlFor="framework" className="block text-sm font-medium">
               Framework:
