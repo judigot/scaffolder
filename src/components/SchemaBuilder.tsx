@@ -239,9 +239,9 @@ function SchemaBuilder() {
   const pivotTables = schemaInfo.filter((table) => table.isPivot);
 
   return (
-    <div className="p-4 bg-gray-800 text-white">
+    <div className="text-white">
       <div className="flex">
-        <div className="w-1/4 p-4 border-r border-gray-700">
+        <div className="w-1/4 border-r border-gray-600">
           <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
           <ul className="space-y-2">
             {schemaInfo
