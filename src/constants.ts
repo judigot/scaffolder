@@ -1,9 +1,9 @@
 export const watermark = 'Owner: App Scaffolder';
 
 export const CREATION_MODES = {
-  JSON_SCHEMA: 'JSON_SCHEMA',
-  SCHEMA_BUILDER: 'SCHEMA_BUILDER',
-  INTROSPECTOR: 'INTROSPECTOR',
+  JSON_SCHEMA: 'JSON Schema',
+  SCHEMA_BUILDER: 'Schema Builder',
+  INTROSPECTOR: 'Introspector',
 } as const;
 
 export const APP_SETTINGS = {
