@@ -1,7 +1,5 @@
-import { convertToUrlFormat } from '@/helpers/stringHelper';
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/common';
-
 
 export const generateModelSpecificMethods = ({
   targetTable,
@@ -239,14 +237,17 @@ export const generateModelSpecificMethods = ({
 
     const generateRoutes = (relatedTables: string[], isHasOne: boolean) => {
       relatedTables.forEach((relatedTable) => {
-        const { plural: relatedTablePlural } = changeCase(relatedTable);
-        const route = convertToUrlFormat(
-          `${plural}/{id}/${isHasOne ? relatedTable : relatedTablePlural}`,
-        );
+        const {
+          kebabCase: relatedTableRaw,
+          kebabCasePlural: relatedTablePlural,
+        } = changeCase(relatedTable);
+
+        const route = `${plural}/{id}/${isHasOne ? relatedTableRaw : relatedTablePlural}`;
 
         if (generatedRoutes.has(route)) {
           return;
         }
+
         generatedRoutes.add(route);
 
         methods += `Route::get('${route}', [${className}Controller::class, 'get${

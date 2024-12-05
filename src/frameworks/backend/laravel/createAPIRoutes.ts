@@ -1,4 +1,4 @@
-import { convertToUrlFormat, createFile } from '@/helpers/stringHelper';
+import { createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { APP_SETTINGS } from '@/constants';
@@ -31,9 +31,9 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
     )
     .map((tableInfo) => {
       const { table, columnsInfo } = tableInfo;
-      const { pascalCase, plural } = changeCase(table);
+      const { pascalCase, kebabCasePlural } = changeCase(table);
 
-      const routeName = convertToUrlFormat(plural);
+      const routeName = kebabCasePlural;
       const className = pascalCase;
       const firstColumn = columnsInfo[0]?.column_name || 'id';
       const secondColumn = columnsInfo[1]?.column_name || 'id';
