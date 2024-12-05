@@ -10,6 +10,10 @@ export function changeCase(input: string) {
   const allWordsExceptLast = words.slice(0, -1);
   const lastWord = words[words.length - 1];
   const tableNamePlural = [...allWordsExceptLast, pluralize(lastWord)];
+  const tableNameSingular = [
+    ...allWordsExceptLast,
+    pluralize.singular(lastWord),
+  ];
 
   const capitalize = (str: string) =>
     str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -19,6 +23,7 @@ export function changeCase(input: string) {
 
   return {
     plural: pluralize(input),
+    singular: pluralize.singular(input),
     titleCase: titleCase(words),
     sentenceCase: capitalize(joinWords(words, ' ')),
     phraseCase: joinWords(words, ' '),
@@ -35,6 +40,15 @@ export function changeCase(input: string) {
       tableNamePlural.slice(1).map(capitalize).join(''),
     kebabCasePlural: joinWords(tableNamePlural, '-'),
     snakeCasePlural: joinWords(tableNamePlural, '_'),
+    titleCaseSingular: titleCase(tableNameSingular),
+    sentenceCaseSingular: capitalize(joinWords(tableNameSingular, ' ')),
+    phraseCaseSingular: joinWords(tableNameSingular, ' '),
+    pascalCaseSingular: tableNameSingular.map(capitalize).join(''),
+    camelCaseSingular:
+      tableNameSingular[0].toLowerCase() +
+      tableNameSingular.slice(1).map(capitalize).join(''),
+    kebabCaseSingular: joinWords(tableNameSingular, '-'),
+    snakeCaseSingular: joinWords(tableNameSingular, '_'),
   };
 }
 
