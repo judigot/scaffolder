@@ -10,7 +10,6 @@ import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import JSON5 from 'json5';
 import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
 import generateSQLSchema from '@/utils/generateSQLSchema';
-import identifySchema from '@/utils/identifySchema';
 
 interface IStore {
   interfaces: Record<string, string>;
@@ -48,7 +47,8 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
   SQLInsertQueriesFromMockData: '',
   aggregateJoins: [],
   getSchemaInfo: () => {
-    return identifySchema(get().getParsedSchemaInput());
+    // const creationMode = useFormStore.getState().creationMode;
+    return useFormStore.getState().schemaInfo;
   },
   setIntrospectedSchema: (schemaInfo) => {
     if (schemaInfo.length === 0) {

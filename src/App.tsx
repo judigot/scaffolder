@@ -69,6 +69,7 @@ function App() {
   useEffect(() => {
     setTransformations();
   }, [
+    schemaInfo,
     schemaInput,
     dbConnection,
     includeInsertData,

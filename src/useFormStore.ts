@@ -1,13 +1,19 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-
+import JSON5 from 'json5';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
-import { DBTypes } from '@/interfaces/interfaces';
+import {
+  DBTypes,
+  ISchemaInfo,
+  ParsedJSONSchema,
+} from '@/interfaces/interfaces';
 import { SQLQueries } from '@/utils/mappings';
 import { CREATION_MODES } from '@/constants';
+import { manyToMany, oneToMany, oneToOne } from '@/schema-infos';
+import identifySchema from '@/utils/identifySchema';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -30,9 +36,11 @@ export interface IFormData {
 
 interface IFormStore {
   formData: IFormData;
+  schemaInfo: ISchemaInfo[];
   dbType: DBTypes | undefined;
   quote: string;
   creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES];
+  setSchemaInfo: (schemaInfo: ISchemaInfo[]) => void;
   setCreationMode: (
     creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES],
   ) => void;
@@ -73,7 +81,7 @@ function determineSQLDatabaseType(dbConnection: string): DBTypes {
 
 export const useFormStore = create(
   persist<IFormStore>(
-    (set) => {
+    (set, get) => {
       const initialDbType = determineSQLDatabaseType(
         initialFormData.dbConnection,
       );
@@ -81,9 +89,13 @@ export const useFormStore = create(
 
       return {
         formData: initialFormData,
+        schemaInfo: manyToMany,
         dbType: initialDbType,
         quote: initialQuote,
         creationMode: CREATION_MODES.JSON_SCHEMA,
+        setSchemaInfo: (schemaInfo) => {
+          set({ schemaInfo });
+        },
         setCreationMode: (creationMode) => {
           set({ creationMode });
         },
@@ -99,27 +111,81 @@ export const useFormStore = create(
               quote: SQLQueries.quote[newDbType],
             };
           });
+
+          const { schemaInput } = get().formData;
+            try {
+              const result: ParsedJSONSchema = JSON5.parse(schemaInput);
+              set({ schemaInfo: identifySchema(result) });
+              // return result;
+            } catch {
+              // return {};
+            }
         },
         setOneToOne: () => {
-          set((state) => ({
-            formData: {
-              ...state.formData,
-              schemaInput: usersPostOneToOneInput,
-            },
-          }));
+          if (get().creationMode === CREATION_MODES.JSON_SCHEMA) {
+            set((state) => ({
+              formData: {
+                ...state.formData,
+                schemaInput: usersPostOneToOneInput,
+              },
+            }));
+            const { schemaInput } = get().formData;
+            try {
+              const result: ParsedJSONSchema = JSON5.parse(schemaInput);
+              set({ schemaInfo: identifySchema(result) });
+              // return result;
+            } catch {
+              // return {};
+            }
+          }
+
+          if (get().creationMode === CREATION_MODES.SCHEMA_BUILDER) {
+            set({ schemaInfo: oneToOne });
+          }
         },
         setOneToMany: () => {
-          set((state) => ({
-            formData: {
-              ...state.formData,
-              schemaInput: usersPostOneToManyInput,
-            },
-          }));
+          if (get().creationMode === CREATION_MODES.JSON_SCHEMA) {
+            set((state) => ({
+              formData: {
+                ...state.formData,
+                schemaInput: usersPostOneToManyInput,
+              },
+            }));
+            const { schemaInput } = get().formData;
+            try {
+              const result: ParsedJSONSchema = JSON5.parse(schemaInput);
+              set({ schemaInfo: identifySchema(result) });
+              // return result;
+            } catch {
+              // return {};
+            }
+          }
+
+          if (get().creationMode === CREATION_MODES.SCHEMA_BUILDER) {
+            set({ schemaInfo: oneToMany });
+          }
         },
         setManyToMany: () => {
-          set((state) => ({
-            formData: { ...state.formData, schemaInput: POSSchemaInput },
-          }));
+          if (get().creationMode === CREATION_MODES.JSON_SCHEMA) {
+            set((state) => ({
+              formData: {
+                ...state.formData,
+                schemaInput: POSSchemaInput,
+              },
+            }));
+            const { schemaInput } = get().formData;
+            try {
+              const result: ParsedJSONSchema = JSON5.parse(schemaInput);
+              set({ schemaInfo: identifySchema(result) });
+              // return result;
+            } catch {
+              // return {};
+            }
+          }
+
+          if (get().creationMode === CREATION_MODES.SCHEMA_BUILDER) {
+            set({ schemaInfo: manyToMany });
+          }
         },
         setDBType: (dbType) => {
           set((state) => {

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ISchemaInfo, ITableInfo } from '@/interfaces/interfaces';
+import { ITableInfo } from '@/interfaces/interfaces';
 import { addRelationship } from '@/helpers/relationshipHelper';
 import { useModalStore } from '@/components/Modal/base/modalStore';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
-import { oneToOne } from '@/schema-infos';
 import { getColumnDefaultDisplay } from '@/utils/common';
+import { useFormStore } from '@/useFormStore';
 
 // const renameSchemaInstances = (
 //   schemaData: ISchemaInfo[],
@@ -76,9 +76,7 @@ import { getColumnDefaultDisplay } from '@/utils/common';
 // };
 
 function SchemaBuilder() {
-  const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToOne);
-  // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(oneToMany);
-  // const [schemaInfo, setSchemaInfo] = useState<ISchemaInfo[]>(manyToMany);
+  const { schemaInfo, setSchemaInfo } = useFormStore.getState();
 
   const { promptModal, editValue } = useModalStore();
 
