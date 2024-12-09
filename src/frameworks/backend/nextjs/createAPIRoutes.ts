@@ -59,10 +59,10 @@ const POST_TEMPLATE = `
 import { NextRequest, NextResponse } from 'next/server';
 import DatatypeParser from '@/utils/DataTypeParser';
 import { prisma } from '@/prisma/DatabaseClient';
-import { {{tableName}} } from '@prisma/client';
 import { {{className}} } from '@/app/Http/Controllers/{{className}}Controller';
+import { Prisma } from '@prisma/client';
 
-type Body = Omit<{{tableName}}, '{{tableName}}_id'>
+type Body = Prisma.{{tableName}}CreateInput
 
 const PostHandler = async (req: NextRequest) => {
   try {
