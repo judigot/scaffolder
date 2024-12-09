@@ -1,5 +1,7 @@
 export type DBTypes = 'postgresql' | 'mysql';
 
+export type IJSONSchema = Record<string, Record<string, unknown>[]>;
+
 export interface IColumnInfo {
   column_name: string;
   data_type: string;
