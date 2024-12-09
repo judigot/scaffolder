@@ -13,7 +13,7 @@ import SchemaBuilder from '@/components/SchemaBuilder';
 import ModalViewer from '@/components/Modal/ModalViewer';
 import { CREATION_MODES } from '@/constants';
 import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
-import JSONSchemaEditor from '@/components/json-schema-editor';
+import JSONSchemaEditor from '@/components/JSONSchemaEditor';
 
 function App() {
   const {

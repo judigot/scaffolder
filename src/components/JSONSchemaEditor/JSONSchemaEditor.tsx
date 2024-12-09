@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import JSON5 from 'json5';
-import { useWordEditor } from '@/components/json-schema-editor/hooks/useWordEditor';
+import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor';
 import { IJSONSchema } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 
