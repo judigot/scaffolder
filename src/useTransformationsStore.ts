@@ -7,7 +7,6 @@ import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import { useFormStore } from './useFormStore';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
-import JSON5 from 'json5';
 import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
 import generateSQLSchema from '@/utils/generateSQLSchema';
 
@@ -33,7 +32,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
   getParsedSchemaInput: () => {
     const { schemaInput } = useFormStore.getState().formData;
     try {
-      const result: ParsedJSONSchema = JSON5.parse(schemaInput);
+      const result: ParsedJSONSchema = schemaInput;
       return result;
     } catch {
       return {};
@@ -72,7 +71,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       useFormStore.setState((state) => ({
         formData: {
           ...state.formData,
-          schemaInput: JSON.stringify(parsedSchema, null, 2),
+          schemaInput: parsedSchema,
         },
       }));
     } catch {
