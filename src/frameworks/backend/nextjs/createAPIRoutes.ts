@@ -66,7 +66,7 @@ type Body = Omit<{{tableName}}, '{{tableName}}_id'>
 
 const PostHandler = async (req: NextRequest) => {
   try {
-    const body = await req.json() as Body;
+    const body: Body = await req.json();
     const result = await {{className}}.store(body);
     return NextResponse.json(DatatypeParser(result));
   } catch (error) {
@@ -93,7 +93,7 @@ type Body = Omit<{{tableName}}, '{{tableName}}_id'>
 
 const PatchHandler = async (req: NextRequest) => {
   try {
-    const body = await req.json() as Body;
+    const body: Body = await req.json();
     const result = await {{className}}.patch(body);
     return NextResponse.json(DatatypeParser(result));
   } catch (error) {
@@ -120,7 +120,7 @@ type Body = Omit<{{tableName}}, '{{tableName}}_id'>
 
 const DeletHandler = async (req: NextRequest) => {
   try {
-    const body = await req.json() as Body;
+    const body: Body = await req.json();
     const result = await {{className}}.destroy(body);
     return NextResponse.json(DatatypeParser(result));
   } catch (error) {
