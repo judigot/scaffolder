@@ -5,7 +5,15 @@ import { IStructure } from '@/components/FileViewer';
 import { getPrimaryKey } from '@/utils/common';
 import { changeCase } from '@/utils/common';
 
-const template = `
+const createControllers = (schemaInfo: ISchemaInfo[]): IStructure => {
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      let template = `
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/prisma/DatabaseClient';
 import { {{tableName}} } from '@prisma/client';
 
@@ -29,7 +37,7 @@ export const {{className}} = {
   /**
    * Create a new {{tableName}} (CREATE).
    */
-  async store(data: Omit<{{tableName}}, '{{primaryKey}}'>) {
+  async store(data: Prisma.{{tableName}}CreateInput) {
     return prisma.{{tableName}}.create({
       data,
     });
@@ -139,26 +147,6 @@ export const {{className}} = {
   },
 
   /**
-   * Soft delete a {{tableName}}.
-   */
-  async softDelete({{primaryKey}}: number) {
-    return prisma.{{tableName}}.update({
-      where: { {{primaryKey}} },
-      data: { deleted_at: new Date() },
-    });
-  },
-
-  /**
-   * Restore a soft-deleted {{tableName}}.
-   */
-  async restore({{primaryKey}}: number) {
-    return prisma.{{tableName}}.update({
-      where: { {{primaryKey}} },
-      data: { deleted_at: null },
-    });
-  },
-
-  /**
    * Batch update {{tableName}}s.
    */
   async batchUpdate(criteria: Partial<{{tableName}}>, data: Partial<{{tableName}}>) {
@@ -206,7 +194,7 @@ export const {{className}} = {
     const existing = await prisma.{{tableName}}.findFirst({
       where: attributes,
     });
-    return existing || { ...attributes, ...values };
+    return existing ?? { ...attributes, ...values };
   },
 
   /**
@@ -215,7 +203,7 @@ export const {{className}} = {
   async random(count: number) {
     return prisma.{{tableName}}.findMany({
       take: count,
-      orderBy: { id: 'asc' },
+      orderBy: { {{primaryKey}}: 'asc' },
     });
   },
 
@@ -238,18 +226,18 @@ export const {{className}} = {
   },
 
   /**
-   * Find many {{tableName}}s by IDs.
+   * Find Many {{tableName}}s by IDs.
    */
   async findMany(ids: number[]) {
     return prisma.{{tableName}}.findMany({
-      where: { id: { in: ids } },
+      where: { {{primaryKey}}: { in: ids } },
     });
   },
 
   /**
    * Filter {{tableName}}s using \`whereIn\`.
    */
-  async whereIn(column: keyof {{tableName}}, values: any[]) {
+  async whereIn(column: keyof {{tableName}}, values: unknown[]) {
     return prisma.{{tableName}}.findMany({
       where: { [column]: { in: values } },
     });
@@ -258,7 +246,7 @@ export const {{className}} = {
   /**
    * Filter {{tableName}}s using \`whereNotIn\`.
    */
-  async whereNotIn(column: keyof {{tableName}}, values: any[]) {
+  async whereNotIn(column: keyof {{tableName}}, values: unknown[]) {
     return prisma.{{tableName}}.findMany({
       where: { [column]: { notIn: values } },
     });
@@ -267,7 +255,7 @@ export const {{className}} = {
   /**
    * Filter {{tableName}}s using \`whereBetween\`.
    */
-  async whereBetween(column: keyof {{tableName}}, range: [any, any]) {
+  async whereBetween(column: keyof {{tableName}}, range: [unknown, unknown]) {
     return prisma.{{tableName}}.findMany({
       where: { [column]: { gte: range[0], lte: range[1] } },
     });
@@ -289,28 +277,60 @@ export const {{className}} = {
     return prisma.{{tableName}}.groupBy({
       by: [column],
     });
-  },
+  },{{softDeleteFunctions}}
 };
 `;
 
-const createControllers = (schemaInfo: ISchemaInfo[]): IStructure => {
-  return schemaInfo
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
-    )
-    .map((tableInfo) => {
-      const { table } = tableInfo;
+      const softDeleteFunctionsTemplate = `
+
+  /**
+   * Soft delete a {{tableName}}.
+   */
+  async softDelete({{primaryKey}}: number) {
+    return prisma.{{tableName}}.update({
+      where: { {{primaryKey}} },
+      data: { deleted_at: new Date() },
+    });
+  },
+
+  /**
+   * Restore a soft-deleted {{tableName}}.
+   */
+  async restore({{primaryKey}}: number) {
+    return prisma.{{tableName}}.update({
+      where: { {{primaryKey}} },
+      data: { deleted_at: undefined },
+    });
+  },`;
+      const { table, columnsInfo } = tableInfo;
       const { pascalCase } = changeCase(table);
       const className = pascalCase;
 
-      const replacements = {
+      const hasDeletedAt = columnsInfo.filter(
+        (columnInfo) =>
+          columnInfo.column_name.toLowerCase() === 'deleted_at' ||
+          columnInfo.column_name.toLowerCase() === 'deletedat',
+      );
+
+      if (hasDeletedAt.length) {
+        template = template.replace(
+          '{{softDeleteFunctions}}',
+          softDeleteFunctionsTemplate,
+        );
+      } else {
+        template = template.replace('{{softDeleteFunctions}}', '');
+      }
+
+      const replacements: Record<string, string> = {
         tableName: table,
         className,
         primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
       };
 
-      const content = createFile({ template, replacements });
+      const content = createFile({
+        template,
+        replacements,
+      });
 
       return {
         type: 'file',
