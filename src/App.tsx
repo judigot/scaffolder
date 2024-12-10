@@ -22,7 +22,6 @@ function App() {
     setManyToMany,
     setDBType,
     formData: {
-      schemaInput,
       backendUrl,
       backendDir,
       frontendDir,
@@ -71,11 +70,7 @@ function App() {
     setTransformations();
   }, [
     schemaInfo,
-    schemaInput,
-    dbConnection,
-    includeInsertData,
-    insertOption,
-    includeTypeGuards,
+    dbConnection, // Change quotes on database type change
     setTransformations,
   ]);
 

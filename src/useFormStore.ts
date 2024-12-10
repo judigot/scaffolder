@@ -100,7 +100,13 @@ export const useFormStore = create(
           });
 
           const { schemaInput } = get().formData;
-          set({ schemaInfo: identifySchema(schemaInput) });
+          const oldSchemaInfo = get().schemaInfo;
+          const newSchemaInfo = identifySchema(schemaInput);
+
+          // Prevent unnecessary transformations when schemaInfo is unchanged
+          if (JSON.stringify(oldSchemaInfo) !== JSON.stringify(newSchemaInfo)) {
+            set({ schemaInfo: newSchemaInfo });
+          }
         },
         setOneToOne: () => {
           set((state) => ({
