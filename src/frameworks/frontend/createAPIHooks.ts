@@ -9,7 +9,7 @@ const _CREATE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
 import { I{{className}} } from '../../interfaces/I{{className}}';
 
-type IBody = Omit<I{{className}}, '$PRIMARY_KEY' | 'created_at' | 'updated_at'>;
+type IBody = Omit<I{{className}}, '{{primaryKey}}' | 'created_at' | 'updated_at'>;
 
 export const create{{className}} = async (
   formData: IBody,
