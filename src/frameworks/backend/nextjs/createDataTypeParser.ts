@@ -6,10 +6,7 @@ const createDataTypeParser = (): IFile => {
 import { Decimal } from '@prisma/client/runtime/library';
 
 // Define a type for row data
-type RowData = {
-  // [key: string]: undefined | null | string | number | bigint | Decimal | Date | RowData[];
-  [key: string]: unknown;
-};
+type RowData = Record<string, unknown>;
 
 export default function DatatypeParser<T extends RowData | RowData[]>(
   result: T,
@@ -35,36 +32,34 @@ export default function DatatypeParser<T extends RowData | RowData[]>(
 const castRowValues = (data: RowData): RowData => {
   const rows: RowData = {};
 
-  if (data) {
-    for (const [key, value] of Object.entries(data)) {
-      switch (typeof value) {
-        case 'bigint':
-          rows[key] = Number(value);
-          break;
-        case 'object':
-          if (value instanceof Decimal) {
-            rows[key] = parseFloat(String(value));
-          }
+  for (const [key, value] of Object.entries(data)) {
+    switch (typeof value) {
+      case 'bigint':
+        rows[key] = Number(value);
+        break;
+      case 'object':
+        if (value instanceof Decimal) {
+          rows[key] = parseFloat(String(value));
+        }
 
-          // Array
-          if (
-            value instanceof Array &&
-            Array.isArray(value) &&
-            value.constructor.name === 'Array'
-          ) {
-            // Recurse if row is an array
-            rows[key] = DatatypeParser(value);
-          }
+        // Array
+        if (
+          value instanceof Array &&
+          Array.isArray(value) &&
+          value.constructor.name === 'Array'
+        ) {
+          // Recurse if row is an array
+          rows[key] = DatatypeParser(value);
+        }
 
-          // Date/Datetime
-          if (value instanceof Date) {
-            rows[key] = new Date(value);
-          }
-          break;
-        default:
-          rows[key] = value;
-          break;
-      }
+        // Date/Datetime
+        if (value instanceof Date) {
+          rows[key] = new Date(value);
+        }
+        break;
+      default:
+        rows[key] = value;
+        break;
     }
   }
 
