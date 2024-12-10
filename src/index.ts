@@ -13,6 +13,7 @@ import http from 'http';
 import https from 'https';
 import createFolderStructure from '@/utils/createFolderStructure';
 import { useFolderStructures } from '@/frameworks/useFolderStructures';
+import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects';
 
 dotenv.config();
 
@@ -278,19 +279,35 @@ app.post(
       }
 
       try {
-        createFolderStructure({
-          structure: useFolderStructures(schemaInfo)[framework],
-          targetDirectory: isBackendDirValid
-            ? backendDirPath
-            : path.resolve(__dirname, `../output/backend`),
-        });
+        if (
+          isBackendDirValid &&
+          isFrontendDirValid &&
+          backendDirPath === frontendDirPath
+        ) {
+          const combinedFolderStructure = mergeArrayOfObjects(
+            useFolderStructures(schemaInfo)[framework],
+            useFolderStructures(schemaInfo).frontend,
+            'name',
+          );
+          createFolderStructure({
+            structure: combinedFolderStructure,
+            targetDirectory: backendDirPath,
+          });
+        } else {
+          createFolderStructure({
+            structure: useFolderStructures(schemaInfo)[framework],
+            targetDirectory: isBackendDirValid
+              ? backendDirPath
+              : path.resolve(__dirname, `../output/backend`),
+          });
 
-        createFolderStructure({
-          structure: useFolderStructures(schemaInfo).frontend,
-          targetDirectory: isFrontendDirValid
-            ? frontendDirPath
-            : path.resolve(__dirname, `../output/frontend`),
-        });
+          createFolderStructure({
+            structure: useFolderStructures(schemaInfo).frontend,
+            targetDirectory: isFrontendDirValid
+              ? frontendDirPath
+              : path.resolve(__dirname, `../output/frontend`),
+          });
+        }
 
         checkBackendUrlValidity(backendUrl)
           .then((isBackendUrlValid) => {
