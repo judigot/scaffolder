@@ -42,7 +42,7 @@ const App: React.FC = () => {
 
   const handleAddTable = () => {
     if (newTableName) {
-      const newTableId = `id`;
+      const newTableId = `${newTableName}_id`;
 
       // Check if newTableId already exists in the schema
       const doesTableIdExist = Object.values(schema).some((rows) =>
@@ -121,7 +121,7 @@ const App: React.FC = () => {
 
       Object.keys(schema).forEach((table) => {
         newSchema[table] = schema[table].map((row, index) => {
-          const primaryKey = `id`;
+          const primaryKey = `${table}_id`;
           const newRow: IPrimaryKey = { [primaryKey]: index + 1 }; // Primary key as the first property
 
           // Add remaining properties
@@ -151,8 +151,8 @@ const App: React.FC = () => {
 
       if (isTableNameEdited) {
         const newSchema: IJSONSchema = {};
-        const previousWordId = `id`;
-        const newWordId = `id`;
+        const previousWordId = `${previousWord}_id`;
+        const newWordId = `${newWord}_id`;
 
         // Store foreign key values for later update
         const foreignKeyValues: Record<string, Record<string, unknown>> = {};
