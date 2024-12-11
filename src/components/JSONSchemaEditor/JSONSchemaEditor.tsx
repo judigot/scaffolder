@@ -114,24 +114,32 @@ const App: React.FC = () => {
 
     type IPrimaryKey = Record<string, unknown>;
 
-    const ensurePrimaryKey = (
+    const addPrimaryKeys = (
       schema: Record<string, IPrimaryKey[]>,
     ): Record<string, IPrimaryKey[]> => {
       const newSchema: Record<string, IPrimaryKey[]> = {};
 
       Object.keys(schema).forEach((table) => {
         newSchema[table] = schema[table].map((row, index) => {
-          const primaryKey = `${table}_id`;
-          const newRow: IPrimaryKey = { [primaryKey]: index + 1 }; // Primary key as the first property
+          const validPKFormats: string[] = [`${table}_id`, 'id'];
+          const firstKey = Object.keys(row)[0];
+          const isFirstKeyValidPKFormat = validPKFormats.includes(firstKey);
+          if (!isFirstKeyValidPKFormat) {
+            const primaryKey = `${table}_id`;
+            const newRow: IPrimaryKey = { [primaryKey]: index + 1 }; // Primary key as the first property
 
-          // Add remaining properties
-          Object.keys(row).forEach((key) => {
-            if (key !== primaryKey) {
-              newRow[key] = row[key];
-            }
-          });
+            // Add remaining properties
+            Object.keys(row).forEach((key) => {
+              if (key !== primaryKey) {
+                newRow[key] = row[key];
+              }
+            });
 
-          return newRow;
+            return newRow;
+          }
+
+          // Return unchanged first key since it's valid
+          return row;
         });
       });
 
@@ -143,57 +151,63 @@ const App: React.FC = () => {
     cursorPositionRef.current = e.target.selectionStart;
     const oldSchema: IJSONSchema = JSON5.parse(schemaStringBeforeEditing);
 
+    let updatedSchema: IJSONSchema | undefined = undefined;
+
     try {
-      const updatedSchema: IJSONSchema = JSON5.parse(newSchemaString);
-
-      const isTableNameEdited =
-        previousWord in oldSchema && !(previousWord in updatedSchema);
-
-      if (isTableNameEdited) {
-        const newSchema: IJSONSchema = {};
-        const previousWordId = `${previousWord}_id`;
-        const newWordId = `${newWord}_id`;
-
-        // Store foreign key values for later update
-        const foreignKeyValues: Record<string, Record<string, unknown>> = {};
-
-        // Collect foreign key values and prepare the new schema
-        for (const [tableName, rows] of Object.entries(oldSchema)) {
-          if (tableName === previousWord) {
-            newSchema[newWord] = rows.map((item) => {
-              const newItem = renameProperty(item, previousWordId, newWordId);
-              return newItem;
-            });
-          } else {
-            newSchema[tableName] = rows.map((item, index) => {
-              if (previousWordId in item) {
-                foreignKeyValues[tableName] = {};
-                foreignKeyValues[tableName][index] = item[previousWordId];
-              }
-              return { ...item };
-            });
-          }
-        }
-
-        // Update foreign key values in the new schema
-        for (const [tableName, rows] of Object.entries(newSchema)) {
-          newSchema[tableName] = rows.map((item) => {
-            return renameProperty(item, previousWordId, newWordId);
-          });
-        }
-
-        // Ensure the old table is removed from the schema
-        const updatedSchemaWithoutOldTable = Object.fromEntries(
-          Object.entries(newSchema).filter(([key]) => key !== previousWord),
-        );
-        setSchema(updatedSchemaWithoutOldTable);
-      } else {
-        setSchema(ensurePrimaryKey(updatedSchema));
-      }
-
+      updatedSchema = JSON5.parse(newSchemaString);
       setIsValidJson(true);
     } catch {
+      updatedSchema = oldSchema;
       setIsValidJson(false);
+    }
+
+    if (updatedSchema === undefined) {
+      return;
+    }
+
+    const isTableNameEdited =
+      previousWord in oldSchema && !(previousWord in updatedSchema);
+
+    if (isTableNameEdited) {
+      const newSchema: IJSONSchema = {};
+      const previousWordId = `${previousWord}_id`;
+      const newWordId = `${newWord}_id`;
+
+      // Store foreign key values for later update
+      const foreignKeyValues: Record<string, Record<string, unknown>> = {};
+
+      // Collect foreign key values and prepare the new schema
+      for (const [tableName, rows] of Object.entries(oldSchema)) {
+        if (tableName === previousWord) {
+          newSchema[newWord] = rows.map((item) => {
+            const newItem = renameProperty(item, previousWordId, newWordId);
+            return newItem;
+          });
+        } else {
+          newSchema[tableName] = rows.map((item, index) => {
+            if (previousWordId in item) {
+              foreignKeyValues[tableName] = {};
+              foreignKeyValues[tableName][index] = item[previousWordId];
+            }
+            return { ...item };
+          });
+        }
+      }
+
+      // Update foreign key values in the new schema
+      for (const [tableName, rows] of Object.entries(newSchema)) {
+        newSchema[tableName] = rows.map((item) => {
+          return renameProperty(item, previousWordId, newWordId);
+        });
+      }
+
+      // Ensure the old table is removed from the schema
+      const updatedSchemaWithoutOldTable = Object.fromEntries(
+        Object.entries(newSchema).filter(([key]) => key !== previousWord),
+      );
+      setSchema(updatedSchemaWithoutOldTable);
+    } else {
+      setSchema(addPrimaryKeys(updatedSchema));
     }
   };
 
