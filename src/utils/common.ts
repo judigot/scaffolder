@@ -254,16 +254,18 @@ export const getForeignKeyConstraints = (
   schemaInfo: ISchemaInfo[],
 ): string[] => {
   const quote = useFormStore.getState().quote;
-  const tableRelationships =
-    schemaInfo.find((rel) => rel.table === tableName) ?? null;
+  const tableInfo = schemaInfo.find((rel) => rel.table === tableName) ?? null;
 
-  if (tableRelationships?.foreignKeys) {
-    return tableRelationships.foreignKeys.map((key) => {
+  if (tableInfo?.foreignKeys) {
+    return tableInfo.foreignKeys.map((key) => {
       const referencedTable =
-        tableRelationships.foreignTables.find((table) =>
-          key.startsWith(table),
-        ) ?? key.slice(0, -3);
-      return `CONSTRAINT ${quote}FK_${tableName}_${key}${quote} FOREIGN KEY (${quote}${key}${quote}) REFERENCES ${quoteTableName(referencedTable)}(${quote}${key}${quote})`;
+        tableInfo.foreignTables.find((table) => key.startsWith(table)) ??
+        key.slice(0, -3);
+      const primaryKeyColumn = getPrimaryKey({
+        tableName: referencedTable,
+        schemaInfo,
+      });
+      return `CONSTRAINT ${quote}FK_${tableName}_${key}${quote} FOREIGN KEY (${quote}${key}${quote}) REFERENCES ${quoteTableName(referencedTable)}(${quote}${primaryKeyColumn}${quote})`;
     });
   } else {
     return [];

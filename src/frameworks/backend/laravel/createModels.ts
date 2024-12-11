@@ -208,10 +208,10 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
         schemaInfo,
       );
 
-      const primaryKey =
-        columnsInfo.find((column) => column.primary_key)?.column_name !== 'id'
-          ? `protected $primaryKey = '${String(columnsInfo.find((column) => column.primary_key)?.column_name)}';`
-          : '';
+      const primaryKeyColumn = columnsInfo.find(
+        (column) => column.primary_key,
+      )?.column_name;
+      const primaryKey = `protected $primaryKey = '${String(primaryKeyColumn)}';`;
 
       const hiddenColumns = (() => {
         const columns = columnsInfo
