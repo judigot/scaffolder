@@ -2,14 +2,14 @@ import { create } from 'zustand';
 import { format as formatSQL } from 'sql-formatter';
 import generateMockData from './utils/generateMockData';
 import generateSQLInserts from './utils/generateSQLInserts';
-import generateSQLJoins from '@/utils/generateSQLJoins';
+import generateSQLHasOneJoins from '@/utils/generateSQLHasOneJoins';
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import { useFormStore } from './useFormStore';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
 import generateSQLSchema from '@/utils/generateSQLSchema';
-import generateChildTableJoinQueries from '@/utils/generateSQLDirectJoins';
+import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins';
 
 interface IStore {
   interfaces: Record<string, string>;
@@ -191,7 +191,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
 
     let directJoins: string[] = [];
     try {
-      directJoins = generateChildTableJoinQueries(schemaInfo);
+      directJoins = generateSQLDirectJoins(schemaInfo);
       set({ directJoins });
     } catch {
       set({ directJoins: [errorMessage] });
@@ -199,7 +199,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
 
     let oneToOneJoins: string[] = [];
     try {
-      oneToOneJoins = generateSQLJoins(schemaInfo);
+      oneToOneJoins = generateSQLHasOneJoins(schemaInfo);
       set({ oneToOneJoins });
     } catch {
       set({ oneToOneJoins: [errorMessage] });

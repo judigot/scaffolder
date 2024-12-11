@@ -2,7 +2,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
 import { changeCase, getPrimaryKey } from '@/utils/common';
 
-function generateChildTableJoinQueries(schemaInfo: ISchemaInfo[]): string[] {
+function generateSQLDirectJoins(schemaInfo: ISchemaInfo[]): string[] {
   const quote = useFormStore.getState().quote;
 
   const joinQueries = schemaInfo
@@ -28,4 +28,4 @@ function generateChildTableJoinQueries(schemaInfo: ISchemaInfo[]): string[] {
   return joinQueries;
 }
 
-export default generateChildTableJoinQueries;
+export default generateSQLDirectJoins;
