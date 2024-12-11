@@ -170,7 +170,7 @@ app.post(
 );
 
 app.post(
-  '/scaffoldProject',
+  '/scaffold',
   (
     req: Request<
       unknown,

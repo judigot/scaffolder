@@ -161,7 +161,7 @@ function App() {
               type="button"
               onClick={() => {
                 setIsLoading(true);
-                fetch(`http://localhost:5000/scaffoldProject`, {
+                fetch(`http://localhost:5000/scaffold`, {
                   method: 'POST',
                   headers: {
                     Accept: 'application/json',
@@ -230,7 +230,7 @@ function App() {
                       setTransformations(schemaInfo);
 
                       setIsLoading(true);
-                      fetch(`http://localhost:5000/scaffoldProject`, {
+                      fetch(`http://localhost:5000/scaffold`, {
                         method: 'POST',
                         headers: {
                           Accept: 'application/json',
