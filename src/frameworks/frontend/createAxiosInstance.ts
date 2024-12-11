@@ -1,11 +1,13 @@
 import { IFile } from '@/components/FileViewer';
 import { createFile } from '@/helpers/stringHelper';
+import { useFormStore } from '@/useFormStore';
 
 const createBaseController = (): IFile => {
+  const backendUrl = useFormStore.getState().formData.backendUrl;
   const template = `
 import axios from 'axios';
 
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+const BASE_API_URL = '{{backendUrl}}';
 
 const axiosInstance = axios.create({
   baseURL: BASE_API_URL,
@@ -17,7 +19,9 @@ const axiosInstance = axios.create({
 export default axiosInstance;
 `;
 
-  const replacements = {};
+  const replacements = {
+    backendUrl
+  };
 
   const content = createFile({ template, replacements });
 

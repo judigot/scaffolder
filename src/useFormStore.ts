@@ -48,7 +48,7 @@ interface IFormStore {
 
 const initialFormData: IFormData = {
   schemaInput: usersPostOneToOneSchema,
-  backendUrl: 'http://localhost:3000/api/v1',
+  backendUrl: 'http://localhost:8000/api',
   backendDir: 'C:/Users/Jude/Desktop/laravel',
   // backendDir: 'C:/Users/Username/Desktop/app/backend',
   frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',
