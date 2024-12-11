@@ -297,6 +297,18 @@ function App() {
       <div className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
           <button
+            title={JSON.stringify(
+              schemaInfo.map(
+                ({
+                  requiredColumns: _1,
+                  columnsInfo: _2,
+                  foreignKeys: _3,
+                  ...newObject
+                }) => newObject,
+              ),
+              null,
+              4,
+            )}
             onClick={(e) => {
               e.preventDefault();
 
@@ -308,6 +320,7 @@ function App() {
           </button>
 
           <button
+            title={JSON.stringify(schemaInfo, null, 4)}
             onClick={(e) => {
               e.preventDefault();
               handleCopy(JSON.stringify(schemaInfo, null, 4));

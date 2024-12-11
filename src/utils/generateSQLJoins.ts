@@ -1,6 +1,6 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
-import { getPrimaryKey } from '@/utils/common';
+import { changeCase, getPrimaryKey } from '@/utils/common';
 
 function generateSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
   const quote = useFormStore.getState().quote;
@@ -29,7 +29,9 @@ function generateSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
               `SELECT * FROM ${quote}${table}${quote} ${joinClause};`,
               `SELECT * FROM ${quote}${foreignTable}${quote} ${symmetricalJoinClause};`,
             ]
-          : [`SELECT * FROM ${quote}${table}${quote} ${joinClause};`];
+          : [
+              `/* ${changeCase(foreignTable).sentenceCasePlural} and their ${changeCase(table).singular} */\nSELECT * FROM ${quote}${table}${quote} ${joinClause};`,
+            ];
       });
 
       return joinClauses.flat();

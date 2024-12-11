@@ -103,7 +103,12 @@ function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
       schemaInfo,
     });
 
-    return `SELECT ${quote}${baseTable}${quote}.*, json_agg(${quote}${joinTable}${quote}.*) AS ${joinTable}_data FROM ${quote}${baseTable}${quote} LEFT JOIN ${quote}${joinTable}${quote} ON ${quote}${baseTable}${quote}.${quote}${foreignKey}${quote} = ${quote}${joinTable}${quote}.${quote}${foreignKey}${quote} GROUP BY ${quote}${baseTable}${quote}.${quote}${baseTablePrimaryKey}${quote};`;
+    const foreignTablePrimaryKey = getPrimaryKey({
+      tableName: joinTable,
+      schemaInfo,
+    });
+
+    return `SELECT ${quote}${baseTable}${quote}.*, json_agg(${quote}${joinTable}${quote}.*) AS ${joinTable}_data FROM ${quote}${baseTable}${quote} LEFT JOIN ${quote}${joinTable}${quote} ON ${quote}${baseTable}${quote}.${quote}${foreignKey}${quote} = ${quote}${joinTable}${quote}.${quote}${foreignTablePrimaryKey}${quote} GROUP BY ${quote}${baseTable}${quote}.${quote}${baseTablePrimaryKey}${quote};`;
   }
 
   function generateMultipleJoinQuery(
