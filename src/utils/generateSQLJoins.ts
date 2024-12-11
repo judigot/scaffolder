@@ -1,17 +1,27 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
+import { getPrimaryKey } from '@/utils/common';
 
 function generateSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
   const quote = useFormStore.getState().quote;
 
-  const allowSymmetricalJoins = true;
+  const allowSymmetricalJoins = false;
 
   const joinQueries = schemaInfo
     .filter(({ foreignTables }) => foreignTables.length > 0)
     .flatMap(({ table, foreignTables, foreignKeys }) => {
       const joinClauses = foreignTables.map((foreignTable, index) => {
-        const joinClause = `JOIN ${quote}${foreignTable}${quote} ON ${quote}${table}${quote}.${foreignKeys[index]} = ${quote}${foreignTable}${quote}.${foreignKeys[index]}`;
-        const symmetricalJoinClause = `JOIN ${quote}${table}${quote} ON ${quote}${foreignTable}${quote}.${foreignKeys[index]} = ${quote}${table}${quote}.${foreignKeys[index]}`;
+        const primaryKey = getPrimaryKey({
+          tableName: table,
+          schemaInfo,
+        });
+        const foreignTablePrimaryKey = getPrimaryKey({
+          tableName: foreignTable,
+          schemaInfo,
+        });
+        const foreignKey = foreignKeys[index];
+        const joinClause = `JOIN ${quote}${foreignTable}${quote} ON ${quote}${table}${quote}.${primaryKey} = ${quote}${foreignTable}${quote}.${foreignTablePrimaryKey}`;
+        const symmetricalJoinClause = `JOIN ${quote}${table}${quote} ON ${quote}${foreignTable}${quote}.${foreignTablePrimaryKey} = ${quote}${table}${quote}.${foreignKey}`;
 
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         return allowSymmetricalJoins
