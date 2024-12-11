@@ -14,7 +14,17 @@ function generateHasManySQLJoins(schemaInfo: ISchemaInfo[]): string[] {
           tableName: table,
           schemaInfo,
         });
-        const childForeignKey = `${table}_id`; // Assume child table foreign key format
+        const childForeignKey = schemaInfo
+          .find(({ table }) => table === childTable)
+          ?.columnsInfo.find(
+            (col) => col.foreign_key?.foreign_table_name === table,
+          )?.column_name;
+
+        if (childForeignKey == null) {
+          throw new Error(
+            `Foreign key not found for table ${childTable} referencing ${table}`,
+          );
+        }
 
         // Construct the aggregate JOIN query for parent tables
         const joinClause = `LEFT JOIN ${quote}${childTable}${quote} ON ${quote}${table}${quote}.${parentPrimaryKey} = ${quote}${childTable}${quote}.${childForeignKey}`;
