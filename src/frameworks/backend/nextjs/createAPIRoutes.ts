@@ -89,7 +89,7 @@ import { prisma } from '@/prisma/DatabaseClient';
 import { {{tableName}} } from '@prisma/client';
 import { {{className}} } from '@/app/Http/Controllers/{{className}}Controller';
 
-type Body = Omit<{{tableName}}, '{{tableName}}_id'>
+type Body = Omit<{{tableName}}, '{{primaryKey}}'>
 
 const PatchHandler = async (req: NextRequest) => {
   try {
@@ -116,7 +116,7 @@ import { prisma } from '@/prisma/DatabaseClient';
 import { {{tableName}} } from '@prisma/client';
 import { {{className}} } from '@/app/Http/Controllers/{{className}}Controller';
 
-type Body = Omit<{{tableName}}, '{{tableName}}_id'>
+type Body = Omit<{{tableName}}, '{{primaryKey}}'>
 
 const DeletHandler = async (req: NextRequest) => {
   try {
