@@ -21,21 +21,23 @@ function App() {
     setOneToMany,
     setManyToMany,
     setDBType,
-    formData: {
-      backendUrl,
-      backendDir,
-      frontendDir,
-      dbConnection,
-      framework,
-      includeInsertData,
-      insertOption,
-      includeTypeGuards,
-      outputOnSingleFile,
-    },
+    formData,
     creationMode,
     setCreationMode,
     setFormData,
   } = useFormStore();
+
+  const {
+    backendUrl,
+    backendDir,
+    frontendDir,
+    dbConnection,
+    framework,
+    includeInsertData,
+    insertOption,
+    includeTypeGuards,
+    outputOnSingleFile,
+  } = formData;
 
   const {
     getSchemaInfo,
@@ -68,11 +70,7 @@ function App() {
 
   useEffect(() => {
     setTransformations();
-  }, [
-    schemaInfo,
-    dbConnection, // Change quotes on database type change
-    setTransformations,
-  ]);
+  }, [formData, setTransformations]);
 
   const handleChange = (
     e: React.ChangeEvent<
