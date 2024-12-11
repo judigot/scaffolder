@@ -45,7 +45,8 @@ function App() {
     SQLSchema,
     mockData,
     deleteTablesQueries,
-    joins,
+    directJoins,
+    oneToOneJoins,
     aggregateJoins,
     setTransformations,
   } = useTransformationsStore();
@@ -628,43 +629,79 @@ function App() {
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
-            <h2 className="text-xl font-bold mb-2">Join Queries</h2>
-            <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
-              {joins.map((value, i) => (
-                <div key={i}>
-                  <p className="whitespace-pre-wrap">{value}</p>
-                  <br />
+            {directJoins.length > 0 && (
+              <>
+                <h2 className="text-xl font-bold mb-2">
+                  Direct Join Queries (One-to-One)
+                </h2>
+                <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
+                  {directJoins.map((value, i) => (
+                    <div key={i}>
+                      <p className="whitespace-pre-wrap">{value}</p>
+                      <br />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <button
-              onClick={() => {
-                handleCopy(joins.join('\n'));
-              }}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            >
-              Copy Join Queries
-            </button>
-            <br />
-            <br />
-            <h2 className="text-xl font-bold mb-2">Aggregate Join Queries</h2>
-            <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
-              {aggregateJoins.map((value, i) => (
-                <div key={i}>
-                  <p className="whitespace-pre-wrap">{value}</p>
-                  <br />
+                <button
+                  onClick={() => {
+                    handleCopy(directJoins.join('\n'));
+                  }}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                >
+                  Copy Join Queries
+                </button>
+                <br />
+                <br />
+              </>
+            )}
+            {oneToOneJoins.length > 0 && (
+              <>
+                <h2 className="text-xl font-bold mb-2">
+                  One-to-One Join Queries (One-to-One)
+                </h2>
+                <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
+                  {oneToOneJoins.map((value, i) => (
+                    <div key={i}>
+                      <p className="whitespace-pre-wrap">{value}</p>
+                      <br />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <button
-              onClick={() => {
-                handleCopy(aggregateJoins.join('\n'));
-              }}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-            >
-              Copy Join Queries
-            </button>
-            <br />
+                <button
+                  onClick={() => {
+                    handleCopy(oneToOneJoins.join('\n'));
+                  }}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                >
+                  Copy Join Queries
+                </button>
+                <br />
+                <br />
+              </>
+            )}
+            {aggregateJoins.length > 0 && (
+              <>
+                <h2 className="text-xl font-bold mb-2">
+                  Aggregate Join Queries (One-to-Many and Many-to-Many)
+                </h2>
+                <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
+                  {aggregateJoins.map((value, i) => (
+                    <div key={i}>
+                      <p className="whitespace-pre-wrap">{value}</p>
+                      <br />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    handleCopy(aggregateJoins.join('\n'));
+                  }}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                >
+                  Copy Join Queries
+                </button>
+              </>
+            )}
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">

@@ -9,16 +9,18 @@ import { useFormStore } from './useFormStore';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
 import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
 import generateSQLSchema from '@/utils/generateSQLSchema';
+import generateChildTableJoinQueries from '@/utils/generateSQLDirectJoins';
 
 interface IStore {
   interfaces: Record<string, string>;
   getParsedSchemaInput: () => ParsedJSONSchema;
   SQLSchema: string;
   deleteTablesQueries: string[];
-  joins: string[];
   mockData: ParsedJSONSchema;
   SQLInsertQueries: string;
   SQLInsertQueriesFromMockData: string;
+  directJoins: string[];
+  oneToOneJoins: string[];
   aggregateJoins: string[];
   getSchemaInfo: () => ISchemaInfo[];
   setIntrospectedSchema: (schemaInfo: ISchemaInfo[]) => void;
@@ -40,10 +42,11 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
   },
   SQLSchema: '',
   deleteTablesQueries: [],
-  joins: [],
   mockData: {},
   SQLInsertQueries: '',
   SQLInsertQueriesFromMockData: '',
+  directJoins: [],
+  oneToOneJoins: [],
   aggregateJoins: [],
   getSchemaInfo: () => {
     // const creationMode = useFormStore.getState().creationMode;
@@ -55,7 +58,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
         interfaces: {},
         SQLSchema: '',
         deleteTablesQueries: [],
-        joins: [],
+        oneToOneJoins: [],
         mockData: {},
         SQLInsertQueries: '',
         SQLInsertQueriesFromMockData: '',
@@ -79,7 +82,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
         interfaces: { errorMessage },
         SQLSchema: errorMessage,
         deleteTablesQueries: [errorMessage],
-        joins: [errorMessage],
+        oneToOneJoins: [errorMessage],
         mockData: {},
         SQLInsertQueries: errorMessage,
         SQLInsertQueriesFromMockData: errorMessage,
@@ -98,7 +101,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
         interfaces: {},
         SQLSchema: '',
         deleteTablesQueries: [],
-        joins: [],
+        oneToOneJoins: [],
         mockData: {},
         SQLInsertQueries: '',
         SQLInsertQueriesFromMockData: '',
@@ -186,12 +189,20 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
       set({ SQLSchema: errorMessage });
     }
 
-    let joins: string[] = [];
+    let directJoins: string[] = [];
     try {
-      joins = generateSQLJoins(schemaInfo);
-      set({ joins });
+      directJoins = generateChildTableJoinQueries(schemaInfo);
+      set({ directJoins });
     } catch {
-      set({ joins: [errorMessage] });
+      set({ directJoins: [errorMessage] });
+    }
+
+    let oneToOneJoins: string[] = [];
+    try {
+      oneToOneJoins = generateSQLJoins(schemaInfo);
+      set({ oneToOneJoins });
+    } catch {
+      set({ oneToOneJoins: [errorMessage] });
     }
 
     let aggregateJoins: string[] = [];

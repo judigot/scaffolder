@@ -1,152 +1,31 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { useFormStore } from '@/useFormStore';
-import { getPrimaryKey } from '@/utils/common';
+import { changeCase, getPrimaryKey } from '@/utils/common';
 
-function generateSQLAggregateJoins(schemaInfo: ISchemaInfo[]): string[] {
+function generateHasManySQLJoins(schemaInfo: ISchemaInfo[]): string[] {
   const quote = useFormStore.getState().quote;
-  const joinQueries = generateSQLJoins(schemaInfo);
 
-  function sortTablesByHierarchy(schemaInfo: ISchemaInfo[]): string[] {
-    const tableReferenceCount: Record<string, number> = {};
-    const junctionTables: string[] = [];
+  const joinQueries = schemaInfo
+    .filter(({ hasMany }) => hasMany.length > 0) // Focus only on tables with hasMany relationships
+    .flatMap(({ table, hasMany }) => {
+      return hasMany.map((childTable) => {
+        // Retrieve primary keys for parent table and foreign key in child table
+        const parentPrimaryKey = getPrimaryKey({
+          tableName: table,
+          schemaInfo,
+        });
+        const childForeignKey = `${table}_id`; // Assume child table foreign key format
 
-    schemaInfo.forEach(({ table, foreignTables }) => {
-      if (foreignTables.length > 1) {
-        junctionTables.push(table);
-      }
-      foreignTables.forEach((foreignTable) => {
-        if (!tableReferenceCount[foreignTable]) {
-          tableReferenceCount[foreignTable] = 0;
-        }
-        tableReferenceCount[foreignTable]++;
+        // Construct the aggregate JOIN query for parent tables
+        const joinClause = `LEFT JOIN ${quote}${childTable}${quote} ON ${quote}${table}${quote}.${parentPrimaryKey} = ${quote}${childTable}${quote}.${childForeignKey}`;
+        const selectColumns = `${quote}${table}${quote}.*, COALESCE(json_agg(${quote}${childTable}${quote}.*) FILTER (WHERE ${quote}${childTable}${quote}.${childForeignKey} IS NOT NULL), '[]') AS ${changeCase(childTable).snakeCasePlural}`;
+        const groupBy = `GROUP BY ${quote}${table}${quote}.${parentPrimaryKey}`;
+
+        return `/* ${changeCase(table).sentenceCase} and its aggregated ${changeCase(childTable).plural} */\nSELECT ${selectColumns} FROM ${quote}${table}${quote} ${joinClause} ${groupBy};`;
       });
     });
-
-    const sortedTables = Object.keys(tableReferenceCount).sort(
-      (a, b) => tableReferenceCount[b] - tableReferenceCount[a],
-    );
-
-    const nonJunctionTables = sortedTables.filter(
-      (table) => !junctionTables.includes(table),
-    );
-
-    return [...nonJunctionTables, ...junctionTables];
-  }
-
-  function generateSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
-    const sortedTables = sortTablesByHierarchy(schemaInfo);
-    const joinQueries: string[] = [];
-    const addedJoins = new Set<string>();
-
-    for (const relationship of schemaInfo) {
-      const { table, foreignTables, foreignKeys } = relationship;
-      if (foreignTables.length === 0) {
-        continue;
-      }
-
-      // Generate single joins
-      foreignTables.forEach((foreignTable, index) => {
-        const foreignKey = foreignKeys[index];
-        const joinQuery = generateJoinQuery(
-          table,
-          foreignTable,
-          foreignKey,
-          sortedTables,
-          addedJoins,
-        );
-        if (joinQuery != null) {
-          joinQueries.push(joinQuery);
-        }
-      });
-
-      // Generate multiple joins
-      if (foreignTables.length > 1) {
-        const joinQuery = generateMultipleJoinQuery(
-          table,
-          foreignTables,
-          foreignKeys,
-          addedJoins,
-        );
-        if (joinQuery != null) {
-          joinQueries.push(joinQuery);
-        }
-      }
-    }
-
-    return joinQueries;
-  }
-
-  function generateJoinQuery(
-    table: string,
-    foreignTable: string,
-    foreignKey: string,
-    sortedTables: string[],
-    addedJoins: Set<string>,
-  ): string | null {
-    const key = `${table}-${foreignTable}`;
-    const reverseKey = `${foreignTable}-${table}`;
-
-    if (addedJoins.has(key) || addedJoins.has(reverseKey)) {
-      return null;
-    }
-
-    const baseTable =
-      sortedTables.indexOf(table) < sortedTables.indexOf(foreignTable)
-        ? table
-        : foreignTable;
-    const joinTable = baseTable === table ? foreignTable : table;
-
-    addedJoins.add(key);
-
-    const baseTablePrimaryKey = getPrimaryKey({
-      tableName: baseTable,
-      schemaInfo,
-    });
-
-    const foreignTablePrimaryKey = getPrimaryKey({
-      tableName: joinTable,
-      schemaInfo,
-    });
-
-    return `SELECT ${quote}${baseTable}${quote}.*, json_agg(${quote}${joinTable}${quote}.*) AS ${joinTable}_data FROM ${quote}${baseTable}${quote} LEFT JOIN ${quote}${joinTable}${quote} ON ${quote}${baseTable}${quote}.${quote}${foreignKey}${quote} = ${quote}${joinTable}${quote}.${quote}${foreignTablePrimaryKey}${quote} GROUP BY ${quote}${baseTable}${quote}.${quote}${baseTablePrimaryKey}${quote};`;
-  }
-
-  function generateMultipleJoinQuery(
-    table: string,
-    foreignTables: string[],
-    foreignKeys: string[],
-    addedJoins: Set<string>,
-  ): string | null {
-    const joins: string[] = [];
-    const baseTable = table;
-
-    foreignTables.forEach((foreignTable, index) => {
-      const foreignKey = foreignKeys[index];
-      const key = `${table}-${foreignTable}`;
-      const reverseKey = `${foreignTable}-${table}`;
-
-      if (!addedJoins.has(key) && !addedJoins.has(reverseKey)) {
-        addedJoins.add(key);
-        joins.push(
-          `LEFT JOIN ${quote}${foreignTable}${quote} ON ${quote}${baseTable}${quote}.${quote}${foreignKey}${quote} = ${quote}${foreignTable}${quote}.${quote}${foreignKey}${quote}`,
-        );
-      }
-    });
-
-    if (joins.length === 0) {
-      return null;
-    }
-
-    const tablePrimaryKey = getPrimaryKey({ tableName: table, schemaInfo });
-
-    return `SELECT ${quote}${baseTable}${quote}.*, ${foreignTables
-      .map((ft) => `json_agg(${quote}${ft}${quote}.*) AS ${ft}_data`)
-      .join(', ')} FROM ${quote}${baseTable}${quote} ${joins.join(
-      ' ',
-    )} GROUP BY ${quote}${baseTable}${quote}.${quote}${tablePrimaryKey}${quote};`;
-  }
 
   return joinQueries;
 }
 
-export default generateSQLAggregateJoins;
+export default generateHasManySQLJoins;
