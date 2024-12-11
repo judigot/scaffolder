@@ -100,7 +100,9 @@ const determinePrimaryKeyField = (
   tableName: string,
   firstKey: string,
 ): string => {
-  return firstKey.includes('id') ? firstKey : `${tableName}_id`;
+  return [`${tableName}_id`, 'id'].includes(firstKey)
+    ? firstKey
+    : `${tableName}_id`;
 };
 
 // Function to detect one-to-many relationships
