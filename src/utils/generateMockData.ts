@@ -134,11 +134,11 @@ const generateMockData = ({
           if (columnName.includes('username')) {
             if (firstName && lastName) {
               mockRecord[rawColumnName] = faker.internet
-                .userName({ firstName, lastName })
+                .username({ firstName, lastName })
                 .toLowerCase();
             } else {
               mockRecord[rawColumnName] = faker.internet
-                .userName()
+                .username()
                 .toLowerCase();
             }
             return;

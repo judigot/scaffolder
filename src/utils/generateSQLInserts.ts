@@ -23,6 +23,10 @@ const generateSQLInserts = (data: ParsedJSONSchema): string => {
           return 'NULL'; // Directly handle null values
         }
 
+        if (typeof value === 'number') {
+          return value; // Return value as is if it doesn't meet any of the above conditions
+        }
+
         if (typeof value === 'string') {
           // Check if the string is a valid date
           const isValidDate = dayjs(value).isValid();
@@ -64,8 +68,6 @@ const generateSQLInserts = (data: ParsedJSONSchema): string => {
 
           return `'${formattedDate}'`; // Fallback for other databases
         }
-
-        return value; // Return value as is if it doesn't meet any of the above conditions
       });
 
       return `(${mappedValues.join(', ')})`;
