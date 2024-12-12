@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { executePostgreSQL, executeMySQL } from '..';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
+import { executeMySQL } from '@/utils/executeMySQL';
+import { executePostgreSQL } from '@/utils/executePostgreSQL';
 
 const platform: string = process.platform;
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));

@@ -3,8 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import Pool from 'pg-pool';
-import mysql, { RowDataPacket, FieldPacket } from 'mysql2/promise';
 import { ISchemaInfo, isITableArray } from '@/interfaces/interfaces';
 import introspect from '@/utils/introspect';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
@@ -14,6 +12,8 @@ import https from 'https';
 import createFolderStructure from '@/utils/createFolderStructure';
 import { useFolderStructures } from '@/frameworks/useFolderStructures';
 import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects';
+import { executePostgreSQL } from '@/utils/executePostgreSQL';
+import { executeMySQL } from '@/utils/executeMySQL';
 
 dotenv.config();
 
@@ -34,63 +34,6 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(publicDirectory));
 
-export const executePostgreSQL = async (
-  connectionString: string,
-  query: string,
-): Promise<unknown> => {
-  const pool = new Pool({ connectionString });
-
-  try {
-    const client = await pool.connect();
-    try {
-      const { rows }: { rows: Record<string, unknown>[] } =
-        await client.query(query);
-      return rows;
-    } finally {
-      client.release();
-    }
-  } catch (err) {
-    console.error('PostgreSQL introspection error:', err);
-    throw new Error('Internal Server Error');
-  }
-};
-
-export const executeMySQL = async (
-  connectionString: string,
-  queryTemplate: string,
-): Promise<Record<string, unknown>[]> => {
-  const match = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/.exec(
-    connectionString,
-  );
-  if (!match) {
-    throw new Error('Invalid MySQL connection string');
-  }
-
-  const [, user, password, host, port, database] = match;
-  const query = queryTemplate.replace('$DB_NAME', database);
-
-  try {
-    const connection = await mysql.createConnection({
-      host,
-      port: parseInt(port, 10),
-      user,
-      password,
-      database,
-      multipleStatements: true,
-    });
-    try {
-      const [rows]: [RowDataPacket[], FieldPacket[]] =
-        await connection.query(query);
-      return rows;
-    } finally {
-      await connection.end();
-    }
-  } catch (err) {
-    console.error('MySQL introspection error:', err);
-    throw new Error('Internal Server Error');
-  }
-};
-
 // Define routes
 app.get('/', (_req, res) => {
   const isDevelopment: boolean = String(process.env.NODE_ENV) === 'development';
@@ -102,10 +45,6 @@ app.get('/', (_req, res) => {
 
   res.sendFile(publicDirectory);
 });
-
-app.get('/api', (_req: Request, res: Response) =>
-  res.json({ message: path.join(publicDirectory, 'index.html') }),
-);
 
 app.post(
   '/executeCustomSchema',
