@@ -7,7 +7,7 @@ import jsxA11Y from 'eslint-plugin-jsx-a11y';
 import noTypeAssertion from 'eslint-plugin-no-type-assertion';
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
-import { dirname } from 'path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
