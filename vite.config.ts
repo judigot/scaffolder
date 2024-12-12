@@ -7,10 +7,6 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 export default defineConfig({
   /* <newBuildOutput> */ build: { outDir: 'dist' },
-  /* </newBuildOutput> */ /* <testConfig> */ test: {
-    globals: true,
-    environment: 'jsdom',
-  },
   /* </testConfig> */ /*<alias>*/ resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
