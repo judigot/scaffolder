@@ -3,14 +3,13 @@ import { ISchemaInfo } from '@/interfaces/interfaces';
 import createAPIRoutes from '@/frameworks/backend/laravel/createAPIRoutes';
 import createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/createAppServiceProviderScaffolding';
 import createBaseController from '@/frameworks/backend/laravel/createBaseController';
-import createBaseInterface from '@/frameworks/backend/laravel/createBaseInterface';
-import createBaseRepository from '@/frameworks/backend/laravel/createBaseRepository';
 import createControllers from '@/frameworks/backend/laravel/createControllers';
 import createInterfaces from '@/frameworks/backend/laravel/createInterfaces';
 import createModels from '@/frameworks/backend/laravel/createModels';
 import createRepositories from '@/frameworks/backend/laravel/createRepositories';
 import createResources from '@/frameworks/backend/laravel/createResources';
 import createServices from '@/frameworks/backend/laravel/createServices';
+import createBaseInterfaceAndRepository from '@/frameworks/backend/laravel/createBaseInterfaceAndRepository';
 
 export function useLaravel({
   schemaInfo,
@@ -56,8 +55,8 @@ export function useLaravel({
           type: 'folder',
           name: 'Repositories',
           files: [
-            createBaseInterface(),
-            createBaseRepository(),
+            createBaseInterfaceAndRepository('interface'),
+            createBaseInterfaceAndRepository('repository'),
             ...createRepositories(schemaInfo),
             ...createInterfaces(schemaInfo),
           ],
