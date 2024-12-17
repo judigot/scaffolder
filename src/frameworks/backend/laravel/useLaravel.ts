@@ -2,14 +2,13 @@ import { IStructure } from '@/components/FileViewer';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import createAPIRoutes from '@/frameworks/backend/laravel/createAPIRoutes';
 import createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/createAppServiceProviderScaffolding';
-import createBaseController from '@/frameworks/backend/laravel/createBaseController';
 import createControllers from '@/frameworks/backend/laravel/createControllers';
 import createInterfaces from '@/frameworks/backend/laravel/createInterfaces';
 import createModels from '@/frameworks/backend/laravel/createModels';
 import createRepositories from '@/frameworks/backend/laravel/createRepositories';
 import createResources from '@/frameworks/backend/laravel/createResources';
 import createServices from '@/frameworks/backend/laravel/createServices';
-import createBaseInterfaceAndRepository from '@/frameworks/backend/laravel/createBaseInterfaceAndRepository';
+import createBaseFiles from '@/frameworks/backend/laravel/createBaseFiles';
 
 export function useLaravel({
   schemaInfo,
@@ -28,7 +27,9 @@ export function useLaravel({
             {
               type: 'folder',
               name: 'Controllers',
-              files: [createBaseController(), ...createControllers(schemaInfo)],
+              files: [
+                createBaseFiles('controller'),
+                ...createControllers(schemaInfo)],
             },
             {
               type: 'folder',
@@ -55,8 +56,8 @@ export function useLaravel({
           type: 'folder',
           name: 'Repositories',
           files: [
-            createBaseInterfaceAndRepository('interface'),
-            createBaseInterfaceAndRepository('repository'),
+            createBaseFiles('interface'),
+            createBaseFiles('repository'),
             ...createRepositories(schemaInfo),
             ...createInterfaces(schemaInfo),
           ],

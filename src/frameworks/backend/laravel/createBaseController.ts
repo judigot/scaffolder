@@ -14,6 +14,7 @@ abstract class BaseController extends Controller
 {
     protected $repository;
 
+    // CRUD Operations
     public function index()
     {
         $items = $this->repository->getAll();
@@ -23,10 +24,7 @@ abstract class BaseController extends Controller
     public function show($id)
     {
         $item = $this->repository->findById($id);
-        if ($item) {
-            return response()->json($item);
-        }
-        return response()->json(['message' => 'Resource not found'], 404);
+        return $item ? response()->json($item) : response()->json(['message' => 'Resource not found'], 404);
     }
 
     public function store(Request $request)
@@ -38,29 +36,21 @@ abstract class BaseController extends Controller
     public function update(Request $request, $id)
     {
         $updated = $this->repository->update($id, $request->all());
-        if ($updated) {
-            return response()->json(['message' => 'Resource updated']);
-        }
-        return response()->json(['message' => 'Resource not found'], 404);
+        return $updated ? response()->json(['message' => 'Resource updated']) : response()->json(['message' => 'Resource not found'], 404);
     }
 
     public function destroy($id)
     {
         $deleted = $this->repository->delete($id);
-        if ($deleted) {
-            return response()->json(['message' => 'Resource deleted']);
-        }
-        return response()->json(['message' => 'Resource not found'], 404);
+        return $deleted ? response()->json(['message' => 'Resource deleted']) : response()->json(['message' => 'Resource not found'], 404);
     }
 
+    // Query and Search
     public function findByAttributes(Request $request)
     {
         $attributes = $request->all();
         $item = $this->repository->findByAttributes($attributes);
-        if ($item) {
-            return response()->json($item);
-        }
-        return response()->json(['message' => 'Resource not found'], 404);
+        return $item ? response()->json($item) : response()->json(['message' => 'Resource not found'], 404);
     }
 
     public function paginate(Request $request)
@@ -86,17 +76,55 @@ abstract class BaseController extends Controller
         return response()->json(['count' => $count]);
     }
 
-    public function getWithRelations(Request $request)
+    public function exists(Request $request)
     {
-        $relations = $request->input('relations', []);
-        $items = $this->repository->getWithRelations($relations);
+        $criteria = $request->all();
+        $exists = $this->repository->exists($criteria);
+        return response()->json(['exists' => $exists]);
+    }
+
+    // Soft Deletes and Restoration
+    public function softDelete($id)
+    {
+        $softDeleted = $this->repository->softDelete($id);
+        return $softDeleted
+            ? response()->json(['message' => 'Resource soft-deleted'])
+            : response()->json(['message' => 'Resource not found'], 404);
+    }
+
+    public function restore($id)
+    {
+        $restored = $this->repository->restore($id);
+        return $restored
+            ? response()->json(['message' => 'Resource restored'])
+            : response()->json(['message' => 'Resource not found'], 404);
+    }
+
+    public function withTrashed()
+    {
+        $items = $this->repository->withTrashed();
         return response()->json($items);
     }
 
-    public function findOrFail($id)
+    public function onlyTrashed()
     {
-        $item = $this->repository->findOrFail($id);
-        return response()->json($item);
+        $items = $this->repository->onlyTrashed();
+        return response()->json($items);
+    }
+
+    public function withoutTrashed()
+    {
+        $items = $this->repository->withoutTrashed();
+        return response()->json($items);
+    }
+
+    // Bulk Operations
+    public function batchUpdate(Request $request)
+    {
+        $criteria = $request->input('criteria', []);
+        $data = $request->input('data', []);
+        $updated = $this->repository->batchUpdate($criteria, $data);
+        return response()->json(['updated' => $updated]);
     }
 
     public function updateOrCreate(Request $request)
@@ -107,37 +135,62 @@ abstract class BaseController extends Controller
         return response()->json($item);
     }
 
-    public function softDelete($id)
+    // Retrieval and Sorting
+    public function findOrFail($id)
     {
-        $softDeleted = $this->repository->softDelete($id);
-        if ($softDeleted) {
-            return response()->json(['message' => 'Resource soft-deleted']);
-        }
-        return response()->json(['message' => 'Resource not found'], 404);
+        $item = $this->repository->findOrFail($id);
+        return response()->json($item);
     }
 
-    public function restore($id)
+    public function findMany(Request $request)
     {
-        $restored = $this->repository->restore($id);
-        if ($restored) {
-            return response()->json(['message' => 'Resource restored']);
-        }
-        return response()->json(['message' => 'Resource not found'], 404);
+        $ids = $request->input('ids', []);
+        $items = $this->repository->findMany($ids);
+        return response()->json($items);
     }
 
-    public function batchUpdate(Request $request)
+    public function random(Request $request)
     {
-        $criteria = $request->input('criteria', []);
-        $data = $request->input('data', []);
-        $updated = $this->repository->batchUpdate($criteria, $data);
-        return response()->json(['updated' => $updated]);
+        $count = $request->input('count', 1);
+        $items = $this->repository->random($count);
+        return response()->json($items);
     }
 
-    public function exists(Request $request)
+    public function latest(Request $request)
     {
-        $criteria = $request->all();
-        $exists = $this->repository->exists($criteria);
-        return response()->json(['exists' => $exists]);
+        $column = $request->input('column', 'created_at');
+        $item = $this->repository->latest($column);
+        return response()->json($item);
+    }
+
+    public function oldest(Request $request)
+    {
+        $column = $request->input('column', 'created_at');
+        $item = $this->repository->oldest($column);
+        return response()->json($item);
+    }
+
+    public function orderBy(Request $request)
+    {
+        $column = $request->input('column');
+        $direction = $request->input('direction', 'asc');
+        $items = $this->repository->orderBy($column, $direction);
+        return response()->json($items);
+    }
+
+    public function groupBy(Request $request)
+    {
+        $column = $request->input('column');
+        $items = $this->repository->groupBy($column);
+        return response()->json($items);
+    }
+
+    // Advanced Operations
+    public function getWithRelations(Request $request)
+    {
+        $relations = $request->input('relations', []);
+        $items = $this->repository->getWithRelations($relations);
+        return response()->json($items);
     }
 
     public function pluck(Request $request)
@@ -181,34 +234,6 @@ abstract class BaseController extends Controller
         $this->repository->each($callback);
     }
 
-    public function random(Request $request)
-    {
-        $count = $request->input('count', 1);
-        $items = $this->repository->random($count);
-        return response()->json($items);
-    }
-
-    public function latest(Request $request)
-    {
-        $column = $request->input('column', 'created_at');
-        $item = $this->repository->latest($column);
-        return response()->json($item);
-    }
-
-    public function oldest(Request $request)
-    {
-        $column = $request->input('column', 'created_at');
-        $item = $this->repository->oldest($column);
-        return response()->json($item);
-    }
-
-    public function findMany(Request $request)
-    {
-        $ids = $request->input('ids', []);
-        $items = $this->repository->findMany($ids);
-        return response()->json($items);
-    }
-
     public function whereIn(Request $request)
     {
         $column = $request->input('column');
@@ -232,41 +257,8 @@ abstract class BaseController extends Controller
         $items = $this->repository->whereBetween($column, $range);
         return response()->json($items);
     }
-
-    public function withTrashed()
-    {
-        $items = $this->repository->withTrashed();
-        return response()->json($items);
-    }
-
-    public function onlyTrashed()
-    {
-        $items = $this->repository->onlyTrashed();
-        return response()->json($items);
-    }
-
-    public function withoutTrashed()
-    {
-        $items = $this->repository->withoutTrashed();
-        return response()->json($items);
-    }
-
-    public function orderBy(Request $request)
-    {
-        $column = $request->input('column');
-        $direction = $request->input('direction', 'asc');
-        $items = $this->repository->orderBy($column, $direction);
-        return response()->json($items);
-    }
-
-    public function groupBy(Request $request)
-    {
-        $column = $request->input('column');
-        $items = $this->repository->groupBy($column);
-        return response()->json($items);
-    }
 }
-  `;
+`;
 
   const replacements = {};
 
