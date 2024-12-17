@@ -104,9 +104,19 @@ function FileViewer({
     <ThemeProvider theme={darkTheme}>
       <div className="grid grid-cols-3 text-white">
         <div className="col-span-1 bg-gray-800 p-4 select-none">
-          <SimpleTreeView>
-            {renderTree(folderStructure, setSelectedFile)}
-          </SimpleTreeView>
+          <div>
+            <button
+              onClick={() => {
+                handleCopy(JSON.stringify(folderStructure, null, 4));
+              }}
+              className="h-max w-max bg-in mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+              Copy Folder Structure
+            </button>
+            <SimpleTreeView>
+              {renderTree(folderStructure, setSelectedFile)}
+            </SimpleTreeView>
+          </div>
         </div>
         <div className="col-span-2 bg-gray-900 p-4">
           {selectedFile && (
