@@ -29,7 +29,8 @@ export function useLaravel({
               name: 'Controllers',
               files: [
                 createBaseFiles('controller'),
-                ...createControllers(schemaInfo)],
+                ...createControllers(schemaInfo),
+              ],
             },
             {
               type: 'folder',
@@ -65,7 +66,7 @@ export function useLaravel({
         {
           type: 'folder',
           name: 'Services',
-          files: createServices(schemaInfo),
+          files: [createBaseFiles('service'), ...createServices(schemaInfo)],
         },
       ],
     },

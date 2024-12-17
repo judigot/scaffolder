@@ -12,6 +12,8 @@ interface IGroup {
   methods: {
     repositoryMethod: string;
     repositoryContent: string;
+    serviceMethod: string;
+    serviceContent: string;
     controllerMethod: string;
     controllerContent: string;
   }[];
@@ -27,7 +29,7 @@ const methodsAndContent: IGroup[] = [
 ];
 
 const createBaseFiles = (
-  type: 'interface' | 'repository' | 'controller',
+  type: 'interface' | 'repository' | 'service' | 'controller',
 ): IFile => {
   const methods = methodsAndContent
     .map(({ group, methods }) => {
@@ -37,6 +39,8 @@ const createBaseFiles = (
           ({
             repositoryMethod,
             repositoryContent,
+            serviceMethod,
+            serviceContent,
             controllerMethod,
             controllerContent,
           }) => {
@@ -55,6 +59,20 @@ const createBaseFiles = (
                   : `// TODO: Implement ${methodName}`;
                 return `
     public function ${repositoryMethod}
+    {
+${content}
+    }`;
+              }
+              case 'service': {
+                const content = serviceContent
+                  ? serviceContent
+                      .trim()
+                      .split('\n')
+                      .map((line) => `        ${line.trim()}`)
+                      .join('\n')
+                  : `        // TODO: Implement ${serviceMethod}`;
+                return `
+    public function ${serviceMethod}
     {
 ${content}
     }`;
@@ -78,7 +96,7 @@ ${content}
             }
           },
         )
-        .join('\n'); // Add spacing between methods
+        .join('\n');
       return groupHeader + '\n' + groupMethods;
     })
     .join('\n');
@@ -119,7 +137,28 @@ abstract class BaseRepository implements BaseInterface
 ${methods}
 }
 `
-        : `
+        : type === 'service'
+          ? `
+<?php
+
+namespace App\\Services;
+
+use App\\Repositories\\BaseRepository;
+use Illuminate\\Support\\Collection;
+use Illuminate\\Database\\Eloquent\\Model;
+
+abstract class BaseService
+{
+    protected BaseRepository $repository;
+
+    public function __construct(BaseRepository $repository)
+    {
+        $this->repository = $repository;
+    }
+${methods}
+}
+`
+          : `
 <?php
 
 namespace App\\Http\\Controllers;
@@ -129,7 +168,12 @@ use Illuminate\\Routing\\Controller;
 
 abstract class BaseController extends Controller
 {
-    protected $repository;
+    protected $service;
+
+    public function __construct($service)
+    {
+        $this->service = $service;
+    }
 ${methods}
 }
 `;
@@ -143,7 +187,9 @@ ${methods}
         ? 'BaseInterface.php'
         : type === 'repository'
           ? 'BaseRepository.php'
-          : 'BaseController.php',
+          : type === 'service'
+            ? 'BaseService.php'
+            : 'BaseController.php',
     content,
   };
 };

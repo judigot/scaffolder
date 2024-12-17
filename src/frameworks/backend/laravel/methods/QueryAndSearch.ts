@@ -4,20 +4,28 @@ export default {
     {
       repositoryMethod: 'findByAttributes(array $attributes): ?Model',
       repositoryContent: 'return $this->model->where($attributes)->first();',
+      serviceMethod: 'findByAttributes(array $attributes): ?Model',
+      serviceContent: `
+      return $this->repository->findByAttributes($attributes);
+      `,
       controllerMethod: 'findByAttributes(Request $request)',
       controllerContent: `
       $attributes = $request->all();
-      $item = $this->repository->findByAttributes($attributes);
+      $item = $this->service->findByAttributes($attributes);
       return $item ? response()->json($item) : response()->json(['message' => 'Resource not found'], 404);
       `,
     },
     {
       repositoryMethod: 'paginate(int $perPage = 15)',
       repositoryContent: 'return $this->model->paginate($perPage);',
+      serviceMethod: 'paginate(int $perPage = 15)',
+      serviceContent: `
+      return $this->repository->paginate($perPage);
+      `,
       controllerMethod: 'paginate(Request $request)',
       controllerContent: `
       $perPage = $request->input('per_page', 15);
-      $items = $this->repository->paginate($perPage);
+      $items = $this->service->paginate($perPage);
       return response()->json($items);
       `,
     },
@@ -26,37 +34,49 @@ export default {
         'search(string $query, array $fields, int $perPage = 15)',
       repositoryContent: `
       return $this->model->where(function ($q) use ($query, $fields) {
-        foreach ($fields as $field) {
-          $q->orWhere($field, 'LIKE', "%$query%");
+          foreach ($fields as $field) {
+              $q->orWhere($field, 'LIKE', "%$query%");
           }
-          })->paginate($perPage);
-          `,
+      })->paginate($perPage);
+      `,
+      serviceMethod: 'search(string $query, array $fields, int $perPage = 15)',
+      serviceContent: `
+      return $this->repository->search($query, $fields, $perPage);
+      `,
       controllerMethod: 'search(Request $request)',
       controllerContent: `
       $query = $request->input('query');
       $fields = $request->input('fields', []);
       $perPage = $request->input('per_page', 15);
-      $results = $this->repository->search($query, $fields, $perPage);
+      $results = $this->service->search($query, $fields, $perPage);
       return response()->json($results);
       `,
     },
     {
       repositoryMethod: 'count(array $criteria = []): int',
       repositoryContent: 'return $this->model->where($criteria)->count();',
+      serviceMethod: 'count(array $criteria = []): int',
+      serviceContent: `
+      return $this->repository->count($criteria);
+      `,
       controllerMethod: 'count(Request $request)',
       controllerContent: `
       $criteria = $request->all();
-      $count = $this->repository->count($criteria);
+      $count = $this->service->count($criteria);
       return response()->json(['count' => $count]);
       `,
     },
     {
       repositoryMethod: 'exists(array $criteria): bool',
       repositoryContent: 'return $this->model->where($criteria)->exists();',
+      serviceMethod: 'exists(array $criteria): bool',
+      serviceContent: `
+      return $this->repository->exists($criteria);
+      `,
       controllerMethod: 'exists(Request $request)',
       controllerContent: `
       $criteria = $request->all();
-      $exists = $this->repository->exists($criteria);
+      $exists = $this->service->exists($criteria);
       return response()->json(['exists' => $exists]);
       `,
     },
