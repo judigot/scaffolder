@@ -1,12 +1,4 @@
-import oneToOneSchemaInfo from './oneToOne.json';
-import oneToManySchemaInfo from './oneToMany.json';
-import manyToManySchemaInfo from './manyToMany.json';
-import userRolesSchemaInfo from './userRoles.json';
-
-export const oneToOne = oneToOneSchemaInfo;
-
-export const oneToMany = oneToManySchemaInfo;
-
-export const manyToMany = manyToManySchemaInfo;
-
-export const userRoles = userRolesSchemaInfo;
+export { default as oneToOne } from './oneToOne.json';
+export { default as oneToMany } from './oneToMany.json';
+export { default as manyToMany } from './manyToMany.json';
+export { default as userRoles } from './userRoles.json';

@@ -1,13 +1,15 @@
 import { IFile } from '@/components/FileViewer';
-import AdvancedOperations from '@/frameworks/backend/laravel/methods/AdvancedOperations';
-import BulkOperations from '@/frameworks/backend/laravel/methods/BulkOperations';
-import CRUDOperations from '@/frameworks/backend/laravel/methods/CRUDOperations';
-import QueryAndSearch from '@/frameworks/backend/laravel/methods/QueryAndSearch';
-import RetrievalAndSorting from '@/frameworks/backend/laravel/methods/RetrievalAndSorting';
-import SoftDeletesAndRestoration from '@/frameworks/backend/laravel/methods/SoftDeletesAndRestoration';
+import {
+  AdvancedOperations,
+  BulkOperations,
+  CRUDOperations,
+  QueryAndSearch,
+  RetrievalAndSorting,
+  SoftDeletesAndRestoration,
+} from '@/frameworks/backend/laravel/base-methods';
 import { createFile } from '@/helpers/stringHelper';
 
-interface IGroup {
+export interface IGroup {
   group: string;
   methods: {
     repositoryMethod: string;
