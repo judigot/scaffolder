@@ -10,9 +10,9 @@ import { createFile } from '@/helpers/stringHelper';
 interface IGroup {
   group: string;
   methods: {
-    controllerMethod: string;
     repositoryMethod: string;
     repositoryContent: string;
+    controllerMethod: string;
     controllerContent: string;
   }[];
 }
@@ -37,8 +37,8 @@ const createBaseFiles = (
           ({
             repositoryMethod,
             repositoryContent,
-            controllerContent,
             controllerMethod,
+            controllerContent,
           }) => {
             switch (type) {
               case 'interface': {
