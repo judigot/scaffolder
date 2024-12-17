@@ -20,6 +20,7 @@ abstract class BaseRepository implements BaseInterface
         $this->model = $model;
     }
 
+    // CRUD Operations
     public function getAll(): Collection
     {
         return $this->model->all();
@@ -47,6 +48,7 @@ abstract class BaseRepository implements BaseInterface
         return $record ? $record->delete() : false;
     }
 
+    // Query and Search
     public function findByAttributes(array $attributes): ?Model
     {
         return $this->model->where($attributes)->first();
@@ -71,21 +73,18 @@ abstract class BaseRepository implements BaseInterface
         return $this->model->where($criteria)->count();
     }
 
+    public function exists(array $criteria): bool
+    {
+        return $this->model->where($criteria)->exists();
+    }
+
+    // Relationships
     public function getWithRelations(array $relations): Collection
     {
         return $this->model->with($relations)->get();
     }
 
-    public function findOrFail(int $id): Model
-    {
-        return $this->model->findOrFail($id);
-    }
-
-    public function updateOrCreate(array $attributes, array $values = []): Model
-    {
-        return $this->model->updateOrCreate($attributes, $values);
-    }
-
+    // Soft Deletes and Restoration
     public function softDelete(int $id): bool
     {
         $record = $this->model->find($id);
@@ -98,16 +97,69 @@ abstract class BaseRepository implements BaseInterface
         return $record ? $record->restore() : false;
     }
 
+    public function withTrashed(): Collection
+    {
+        return $this->model->withTrashed()->get();
+    }
+
+    public function onlyTrashed(): Collection
+    {
+        return $this->model->onlyTrashed()->get();
+    }
+
+    public function withoutTrashed(): Collection
+    {
+        return $this->model->withoutTrashed()->get();
+    }
+
+    // Bulk Operations
     public function batchUpdate(array $criteria, array $data): bool
     {
         return $this->model->where($criteria)->update($data) > 0;
     }
 
-    public function exists(array $criteria): bool
+    public function updateOrCreate(array $attributes, array $values = []): Model
     {
-        return $this->model->where($criteria)->exists();
+        return $this->model->updateOrCreate($attributes, $values);
     }
 
+    // Retrieval and Sorting
+    public function findOrFail(int $id): Model
+    {
+        return $this->model->findOrFail($id);
+    }
+
+    public function findMany(array $ids): Collection
+    {
+        return $this->model->findMany($ids);
+    }
+
+    public function random(int $count = 1): Collection
+    {
+        return $this->model->inRandomOrder()->limit($count)->get();
+    }
+
+    public function latest(string $column = 'created_at'): ?Model
+    {
+        return $this->model->latest($column)->first();
+    }
+
+    public function oldest(string $column = 'created_at'): ?Model
+    {
+        return $this->model->oldest($column)->first();
+    }
+
+    public function orderBy(string $column, string $direction = 'asc'): Collection
+    {
+        return $this->model->orderBy($column, $direction)->get();
+    }
+
+    public function groupBy(string $column): Collection
+    {
+        return $this->model->groupBy($column)->get();
+    }
+
+    // Advanced Operations
     public function pluck(string $column, string $key = null): Collection
     {
         return $this->model->pluck($column, $key);
@@ -133,26 +185,6 @@ abstract class BaseRepository implements BaseInterface
         return $this->model->each($callback);
     }
 
-    public function random(int $count = 1): Collection
-    {
-        return $this->model->inRandomOrder()->limit($count)->get();
-    }
-
-    public function latest(string $column = 'created_at'): ?Model
-    {
-        return $this->model->latest($column)->first();
-    }
-
-    public function oldest(string $column = 'created_at'): ?Model
-    {
-        return $this->model->oldest($column)->first();
-    }
-
-    public function findMany(array $ids): Collection
-    {
-        return $this->model->findMany($ids);
-    }
-
     public function whereIn(string $column, array $values): Collection
     {
         return $this->model->whereIn($column, $values)->get();
@@ -167,33 +199,8 @@ abstract class BaseRepository implements BaseInterface
     {
         return $this->model->whereBetween($column, $range)->get();
     }
-
-    public function withTrashed(): Collection
-    {
-        return $this->model->withTrashed()->get();
-    }
-
-    public function onlyTrashed(): Collection
-    {
-        return $this->model->onlyTrashed()->get();
-    }
-
-    public function withoutTrashed(): Collection
-    {
-        return $this->model->withoutTrashed()->get();
-    }
-
-    public function orderBy(string $column, string $direction = 'asc'): Collection
-    {
-        return $this->model->orderBy($column, $direction)->get();
-    }
-
-    public function groupBy(string $column): Collection
-    {
-        return $this->model->groupBy($column)->get();
-    }
 }
-`;
+    `;
 
   const replacements = {};
 
