@@ -12,6 +12,7 @@ namespace App\\Http\\Controllers;
 
 use App\\Models\\{{className}};
 use App\\Repositories\\{{className}}Interface;
+use App\\Services\\{{className}}Service;
 use Illuminate\\Http\\Request;
 
 class {{className}}Controller extends BaseController
@@ -30,6 +31,7 @@ const createControllerMethods = ({
   const model = changeCase(tableName).pascalCase;
   const modelLowercase = model.toLowerCase();
   const repositoryVariable = `${modelLowercase}Repository`;
+  const serviceVariable = `${modelLowercase}Service`;
 
   const modelSpecificMethods = generateModelSpecificMethods({
     targetTable: tableName,
@@ -39,20 +41,18 @@ const createControllerMethods = ({
 
   return `
       protected $repository;
-  
-      public function __construct(${model}Interface $${repositoryVariable})
+
+      public function __construct(${model}Interface $${repositoryVariable}, ${model}Service $${serviceVariable})
       {
-          $this->repository = $${repositoryVariable};
+          parent::__construct($${serviceVariable}); // Pass the service to BaseController
+          $this->repository = $${repositoryVariable}; // Initialize the repository
       }
 
       ${modelSpecificMethods}
     `;
 };
 
-const createControllers = (
-  schemaInfo: ISchemaInfo[],
-  // framework: keyof typeof frameworkDirectories,
-): IFile[] => {
+const createControllers = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
