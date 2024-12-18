@@ -17,6 +17,13 @@ use Illuminate\\Http\\Request;
 
 class {{className}}Controller extends BaseController
 {
+    protected $repository;
+
+    public function __construct({{className}}Interface \${{tableName}}Repository, {{className}}Service \${{tableName}}Service)
+    {
+        parent::__construct(\${{tableName}}Service);
+        $this->repository = \${{tableName}}Repository;
+    }
 {{controllerMethods}}
 }
 `;
@@ -28,28 +35,13 @@ const createControllerMethods = ({
   tableName: string;
   schemaInfo: ISchemaInfo[];
 }): string => {
-  const model = changeCase(tableName).pascalCase;
-  const modelLowercase = model.toLowerCase();
-  const repositoryVariable = `${modelLowercase}Repository`;
-  const serviceVariable = `${modelLowercase}Service`;
-
   const modelSpecificMethods = generateModelSpecificMethods({
     targetTable: tableName,
     schemaInfo,
     fileToGenerate: 'controllerMethod',
   });
 
-  return `
-      protected $repository;
-
-      public function __construct(${model}Interface $${repositoryVariable}, ${model}Service $${serviceVariable})
-      {
-          parent::__construct($${serviceVariable});
-          $this->repository = $${repositoryVariable};
-      }
-
-      ${modelSpecificMethods}
-    `;
+  return modelSpecificMethods;
 };
 
 const createControllers = (schemaInfo: ISchemaInfo[]): IFile[] => {

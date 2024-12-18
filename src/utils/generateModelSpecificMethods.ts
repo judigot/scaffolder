@@ -59,19 +59,18 @@ export const generateModelSpecificMethods = ({
 
     const returnTypeDeclaration = returnType != null ? `: ${returnType}` : '';
 
-    const methodBody = fileToGenerate === 'interface' ? ';' : `{\n${body}\n}`;
+    const methodBody = fileToGenerate === 'interface' ? ';' : `\n    {\n${body}\n    }`;
 
     const returnTypeComment = returnType != null ? `@return ${returnType}` : '';
 
     return `
-      /**
-       * ${description}
-       *
-       * @param int $${paramName}
-       * ${returnTypeComment}
-       */
-      public function ${methodName}${params}${returnTypeDeclaration}${methodBody}
-    `;
+    /**
+     * ${description}
+     *
+     * @param int $${paramName}
+     * ${returnTypeComment}
+     */
+    public function ${methodName}${params}${returnTypeDeclaration}${methodBody}`;
   };
 
   let methods = '';
@@ -116,31 +115,29 @@ export const generateModelSpecificMethods = ({
       if (isController) {
         if (!isHasOne) {
           methodBody += `
-            // Extract optional URL parameters
-            $column = $request->input('column', null); // Default to null if no column is provided
-            $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided
-          `;
+        // Extract optional URL parameters
+        $column = $request->input('column', null); // Default to null if no column is provided
+        $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided`;
         }
         methodBody += `
-          // Fetch the ${relatedTableName} from the repository
-          $${relatedTableName} = $this->repository->get${relatedClass}${
+        // Fetch the ${relatedTableName} from the repository
+        $${relatedTableName} = $this->repository->get${relatedClass}${
             !isHasOne ? 's' : ''
           }($${primaryKey}${!isHasOne ? ', $column, $direction' : ''});
-          return response()->json($${relatedTableName});
-        `;
+        return response()->json($${relatedTableName});`;
       } else {
         if (isHasOne) {
-          methodBody = `return $this->model->find($${primaryKey})?->${relatedTableName};`;
+          methodBody = `        return $this->model->find($${primaryKey})?->${relatedTableName};`;
         } else {
           const modelVar = changeCase(relatedTable).camelCase;
           methodBody = `
-            $${modelVar}Model = new ${relatedClass}();
-            $query = $this->model->find($${primaryKey})?->${
+        $${modelVar}Model = new ${relatedClass}();
+        $query = $this->model->find($${primaryKey})?->${
               changeCase(relatedTableName).camelCase
             }();
-            $column = $column ?? $${modelVar}Model->getKeyName();
-            $query->orderBy($column, $direction);
-            return $query ? $query->get() : null;
+        $column = $column ?? $${modelVar}Model->getKeyName();
+        $query->orderBy($column, $direction);
+        return $query ? $query->get() : null;
           `;
         }
       }
