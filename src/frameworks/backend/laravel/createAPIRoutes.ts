@@ -1,4 +1,4 @@
-import { APP_SETTINGS } from '@/constants';
+import { IFile } from '@/components/FileViewer';
 import {
   CRUDOperations,
   QueryAndSearch,
@@ -7,9 +7,8 @@ import {
   RetrievalAndSorting,
   AdvancedOperations,
 } from '@/frameworks/backend/laravel/base-methods';
-import { createFile, replacePlaceholder } from '@/helpers/stringHelper';
+import { createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { TableReplacements } from '@/interfaces/placeholders';
 import { changeCase } from '@/utils/common';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 
@@ -19,7 +18,6 @@ const template = `
 use Illuminate\\Http\\Request;
 use Illuminate\\Support\\Facades\\Route;
 
-{{useStatements}}
 Route::middleware('api')->group(function () {
 {{customRoutes}}
 });
@@ -34,72 +32,74 @@ const methodsAndContent = [
   { ...AdvancedOperations },
 ];
 
-const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
-  const useStatements = schemaInfo
-    .map(
-      ({ table }) =>
-        `use App\\Http\\Controllers\\${changeCase(table).pascalCase}Controller;\n`,
-    )
-    .join('');
+const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
+  const routeFiles: IFile[] = schemaInfo.map((tableInfo) => {
+    const { table } = tableInfo;
+    const { pascalCase, kebabCasePlural } = changeCase(table);
 
-  const customRoutes = schemaInfo
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
-    )
-    .map((tableInfo) => {
-      const { table } = tableInfo;
-      const { pascalCase, kebabCasePlural } = changeCase(table);
+    // Generate model-specific routes
+    const modelSpecificRoutes = generateModelSpecificMethods({
+      targetTable: table,
+      schemaInfo,
+      fileToGenerate: 'routes',
+    });
 
-      // Generate model-specific routes
-      const modelSpecificRoutes = generateModelSpecificMethods({
-        targetTable: table,
-        schemaInfo,
-        fileToGenerate: 'routes',
-      });
+    // Generate additional method-based routes
+    const methodRoutes = methodsAndContent
+      .filter((group) => group.group !== 'CRUD Operations') // Skip CRUD Operations
+      .map((group) =>
+        group.methods
+          .map(({ route }) =>
+            route
+              .replace(/{{tableNameKebabCasePlural}}/g, kebabCasePlural)
+              .replace(/{{tableNamePascalCase}}/g, pascalCase),
+          )
+          .join('\n'),
+      )
+      .join('\n');
 
-      const methodRoutes = methodsAndContent
-        .filter((group) => group.group !== 'CRUD Operations') // Skip CRUD Operations as they are covered by apiResource
-        .map((group) =>
-          group.methods
-            .map(({ route }) =>
-              route
-                .replace(/{{tableNameKebabCasePlural}}/g, kebabCasePlural)
-                .replace(/{{tableNamePascalCase}}/g, pascalCase),
-            )
-            .join('\n'),
-        )
-        .join('\n');
+    // Combine custom routes and resource route
+    const customRoutesForController = `
+      ${modelSpecificRoutes}
+      ${methodRoutes}
+    `;
 
-      const customRoutesForController = `
-        ${modelSpecificRoutes}
-        ${methodRoutes}
-      `;
+    const routeFileContent = `
+<?php
 
-      const tablePlaceholders: TableReplacements = {
-        tableNamePascalCase: pascalCase,
-        tableNameKebabCasePlural: kebabCasePlural,
-      };
+use Illuminate\\Support\\Facades\\Route;
+use App\\Http\\Controllers\\${pascalCase}Controller;
 
-      return replacePlaceholder({
-        replacements: { ...tablePlaceholders },
-        template: `
-          // Custom routes for {{tableNamePascalCase}}
-          ${customRoutesForController}
-          // Resource routes for {{tableNamePascalCase}}
-          Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
-        `,
-      });
-    })
-    .filter(Boolean)
+// Custom routes for ${pascalCase}
+${customRoutesForController}
+// Resource routes for ${pascalCase}
+Route::apiResource('${kebabCasePlural}', ${pascalCase}Controller::class);
+`;
+
+    return {
+      type: 'file',
+      name: `${kebabCasePlural}.php`,
+      content: routeFileContent,
+    };
+  });
+
+  // Create main `api.php` file to include all route files
+  const customRoutes = routeFiles
+    .map(({ name }) => `    require __DIR__ . '/${name}';`)
     .join('\n');
 
   const replacements = {
-    useStatements,
     customRoutes,
   };
 
-  return createFile({ template, replacements });
+  return [
+    {
+      type: 'file',
+      name: 'api.php',
+      content: createFile({ template, replacements }),
+    },
+    ...routeFiles, // Add individual route files for each table
+  ];
 };
 
 export default createAPIRoutes;

@@ -73,13 +73,7 @@ export function useLaravel({
     {
       type: 'folder',
       name: 'routes',
-      files: [
-        {
-          type: 'file',
-          name: 'api.php',
-          content: createAPIRoutes(schemaInfo),
-        },
-      ],
+      files: [...createAPIRoutes(schemaInfo)],
     },
   ];
 
