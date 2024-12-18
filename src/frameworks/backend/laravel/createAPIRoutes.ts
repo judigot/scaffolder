@@ -11,6 +11,7 @@ import { createFile, replacePlaceholder } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { TableReplacements } from '@/interfaces/placeholders';
 import { changeCase } from '@/utils/common';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 
 const template = `
 <?php
@@ -46,8 +47,16 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
     )
-    .map(({ table }) => {
+    .map((tableInfo) => {
+      const { table } = tableInfo;
       const { pascalCase, kebabCasePlural } = changeCase(table);
+
+      // Generate model-specific routes
+      const modelSpecificRoutes = generateModelSpecificMethods({
+        targetTable: table,
+        schemaInfo,
+        fileToGenerate: 'routes',
+      });
 
       const methodRoutes = methodsAndContent
         .filter((group) => group.group !== 'CRUD Operations') // Skip CRUD Operations as they are covered by apiResource
@@ -63,6 +72,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
         .join('\n');
 
       const customRoutesForController = `
+        ${modelSpecificRoutes}
         ${methodRoutes}
       `;
 
