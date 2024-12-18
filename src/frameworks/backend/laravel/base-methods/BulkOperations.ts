@@ -2,6 +2,7 @@ export default {
   group: 'Bulk Operations',
   methods: [
     {
+      route: "",
       repositoryMethod: 'batchUpdate(array $criteria, array $data): bool',
       repositoryContent: `
       return $this->model->where($criteria)->update($data) > 0;
@@ -19,6 +20,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod:
         'updateOrCreate(array $attributes, array $values = []): Model',
       repositoryContent: `

@@ -2,6 +2,7 @@ export default {
   group: 'Soft Deletes and Restoration',
   methods: [
     {
+      route: '',
       repositoryMethod: 'softDelete(int $id): bool',
       repositoryContent: `
       $record = $this->model->find($id);
@@ -20,6 +21,7 @@ export default {
       `,
     },
     {
+      route: '',
       repositoryMethod: 'restore(int $id): bool',
       repositoryContent: `
       $record = $this->model->onlyTrashed()->find($id);
@@ -38,6 +40,7 @@ export default {
       `,
     },
     {
+      route: '',
       repositoryMethod: 'withTrashed(): Collection',
       repositoryContent: 'return $this->model->withTrashed()->get();',
       serviceMethod: 'withTrashed(): Collection',
@@ -51,6 +54,7 @@ export default {
       `,
     },
     {
+      route: '',
       repositoryMethod: 'onlyTrashed(): Collection',
       repositoryContent: 'return $this->model->onlyTrashed()->get();',
       serviceMethod: 'onlyTrashed(): Collection',
@@ -64,6 +68,7 @@ export default {
       `,
     },
     {
+      route: '',
       repositoryMethod: 'withoutTrashed(): Collection',
       repositoryContent: 'return $this->model->withoutTrashed()->get();',
       serviceMethod: 'withoutTrashed(): Collection',

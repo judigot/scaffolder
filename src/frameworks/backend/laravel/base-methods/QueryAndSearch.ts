@@ -2,6 +2,7 @@ export default {
   group: 'Query and Search',
   methods: [
     {
+      route: "",
       repositoryMethod: 'findByAttributes(array $attributes): ?Model',
       repositoryContent: 'return $this->model->where($attributes)->first();',
       serviceMethod: 'findByAttributes(array $attributes): ?Model',
@@ -16,6 +17,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'paginate(int $perPage = 15)',
       repositoryContent: 'return $this->model->paginate($perPage);',
       serviceMethod: 'paginate(int $perPage = 15)',
@@ -30,6 +32,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod:
         'search(string $query, array $fields, int $perPage = 15)',
       repositoryContent: `
@@ -53,6 +56,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'count(array $criteria = []): int',
       repositoryContent: 'return $this->model->where($criteria)->count();',
       serviceMethod: 'count(array $criteria = []): int',
@@ -67,6 +71,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'exists(array $criteria): bool',
       repositoryContent: 'return $this->model->where($criteria)->exists();',
       serviceMethod: 'exists(array $criteria): bool',

@@ -2,6 +2,7 @@ export default {
   group: 'Retrieval and Sorting',
   methods: [
     {
+      route: "",
       repositoryMethod: 'findOrFail(int $id): Model',
       repositoryContent: 'return $this->model->findOrFail($id);',
       serviceMethod: 'findOrFail(int $id): Model',
@@ -15,6 +16,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'findMany(array $ids): Collection',
       repositoryContent: 'return $this->model->findMany($ids);',
       serviceMethod: 'findMany(array $ids): Collection',
@@ -29,6 +31,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'random(int $count = 1): Collection',
       repositoryContent:
         'return $this->model->inRandomOrder()->limit($count)->get();',
@@ -44,6 +47,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: "latest(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->latest($column)->first();',
       serviceMethod: "latest(string $column = 'created_at'): ?Model",
@@ -58,6 +62,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: "oldest(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->oldest($column)->first();',
       serviceMethod: "oldest(string $column = 'created_at'): ?Model",
@@ -72,6 +77,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod:
         "orderBy(string $column, string $direction = 'asc'): Collection",
       repositoryContent:
@@ -89,6 +95,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'groupBy(string $column): Collection',
       repositoryContent: 'return $this->model->groupBy($column)->get();',
       serviceMethod: 'groupBy(string $column): Collection',

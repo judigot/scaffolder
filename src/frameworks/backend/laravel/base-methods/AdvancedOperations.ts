@@ -2,6 +2,7 @@ export default {
   group: 'Advanced Operations',
   methods: [
     {
+      route: "",
       repositoryMethod: 'getWithRelations(array $relations): Collection',
       repositoryContent: 'return $this->model->with($relations)->get();',
       serviceMethod: 'getWithRelations(array $relations): Collection',
@@ -16,6 +17,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'pluck(string $column, string $key = null): Collection',
       repositoryContent: 'return $this->model->pluck($column, $key);',
       serviceMethod: 'pluck(string $column, string $key = null): Collection',
@@ -31,6 +33,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'firstOrCreate(array $attributes, array $values = []): Model',
       repositoryContent: 'return $this->model->firstOrCreate($attributes, $values);',
       serviceMethod: 'firstOrCreate(array $attributes, array $values = []): Model',
@@ -46,6 +49,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'firstOrNew(array $attributes, array $values = []): Model',
       repositoryContent: 'return $this->model->firstOrNew($attributes, $values);',
       serviceMethod: 'firstOrNew(array $attributes, array $values = []): Model',
@@ -61,6 +65,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'chunk(int $size, callable $callback): bool',
       repositoryContent: 'return $this->model->chunk($size, $callback);',
       serviceMethod: 'chunk(int $size, callable $callback): bool',
@@ -77,6 +82,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'each(callable $callback): bool',
       repositoryContent: 'return $this->model->each($callback);',
       serviceMethod: 'each(callable $callback): bool',
@@ -92,6 +98,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'whereIn(string $column, array $values): Collection',
       repositoryContent: 'return $this->model->whereIn($column, $values)->get();',
       serviceMethod: 'whereIn(string $column, array $values): Collection',
@@ -107,6 +114,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'whereNotIn(string $column, array $values): Collection',
       repositoryContent: 'return $this->model->whereNotIn($column, $values)->get();',
       serviceMethod: 'whereNotIn(string $column, array $values): Collection',
@@ -122,6 +130,7 @@ export default {
       `,
     },
     {
+      route: "",
       repositoryMethod: 'whereBetween(string $column, array $range): Collection',
       repositoryContent: 'return $this->model->whereBetween($column, $range)->get();',
       serviceMethod: 'whereBetween(string $column, array $range): Collection',
