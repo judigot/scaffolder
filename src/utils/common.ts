@@ -21,6 +21,7 @@ export function changeCase(input: string) {
     arr.join(separator).toLowerCase();
   const titleCase = (arr: string[]) => arr.map(capitalize).join(' ');
 
+  /* prettier-ignore */
   return {
     plural: pluralize(input),
     singular: pluralize.singular(input),
@@ -35,18 +36,14 @@ export function changeCase(input: string) {
     sentenceCasePlural: capitalize(joinWords(tableNamePlural, ' ')),
     phraseCasePlural: joinWords(tableNamePlural, ' '),
     pascalCasePlural: tableNamePlural.map(capitalize).join(''),
-    camelCasePlural:
-      tableNamePlural[0].toLowerCase() +
-      tableNamePlural.slice(1).map(capitalize).join(''),
+    camelCasePlural: tableNamePlural[0].toLowerCase() + tableNamePlural.slice(1).map(capitalize).join(''),
     kebabCasePlural: joinWords(tableNamePlural, '-'),
     snakeCasePlural: joinWords(tableNamePlural, '_'),
     titleCaseSingular: titleCase(tableNameSingular),
     sentenceCaseSingular: capitalize(joinWords(tableNameSingular, ' ')),
     phraseCaseSingular: joinWords(tableNameSingular, ' '),
     pascalCaseSingular: tableNameSingular.map(capitalize).join(''),
-    camelCaseSingular:
-      tableNameSingular[0].toLowerCase() +
-      tableNameSingular.slice(1).map(capitalize).join(''),
+    camelCaseSingular: tableNameSingular[0].toLowerCase() + tableNameSingular.slice(1).map(capitalize).join(''),
     kebabCaseSingular: joinWords(tableNameSingular, '-'),
     snakeCaseSingular: joinWords(tableNameSingular, '_'),
   };
