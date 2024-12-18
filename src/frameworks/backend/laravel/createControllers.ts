@@ -44,8 +44,8 @@ const createControllerMethods = ({
 
       public function __construct(${model}Interface $${repositoryVariable}, ${model}Service $${serviceVariable})
       {
-          parent::__construct($${serviceVariable}); // Pass the service to BaseController
-          $this->repository = $${repositoryVariable}; // Initialize the repository
+          parent::__construct($${serviceVariable});
+          $this->repository = $${repositoryVariable};
       }
 
       ${modelSpecificMethods}
