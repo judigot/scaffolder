@@ -148,7 +148,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
       return `
         // Custom routes for ${className}${customRoutesForController}
         // Resource routes for ${className}
-        Route::resource('${routeName}', ${className}Controller::class);`;
+        Route::apiResource('${routeName}', ${className}Controller::class);`;
     })
     .join('\n');
 
