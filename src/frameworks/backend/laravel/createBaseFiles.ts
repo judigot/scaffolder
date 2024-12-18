@@ -12,6 +12,7 @@ import { createFile } from '@/helpers/stringHelper';
 export interface IGroup {
   group: string;
   methods: {
+    route: string;
     repositoryMethod: string;
     repositoryContent: string;
     serviceMethod: string;
