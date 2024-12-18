@@ -22,15 +22,13 @@ export interface IGroup {
   }[];
 }
 
-const methodsAndContent: IGroup[] = [
-  {
-    ...CRUDOperations,
-    ...QueryAndSearch,
-    ...SoftDeletesAndRestoration,
-    ...BulkOperations,
-    ...RetrievalAndSorting,
-    ...AdvancedOperations,
-  },
+const methodsAndContent = [
+  { ...CRUDOperations },
+  { ...QueryAndSearch },
+  { ...SoftDeletesAndRestoration },
+  { ...BulkOperations },
+  { ...RetrievalAndSorting },
+  { ...AdvancedOperations },
 ];
 
 const createBaseFiles = (

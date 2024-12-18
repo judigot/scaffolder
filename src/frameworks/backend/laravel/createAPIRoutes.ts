@@ -1,9 +1,16 @@
+import { APP_SETTINGS } from '@/constants';
+import {
+  CRUDOperations,
+  QueryAndSearch,
+  SoftDeletesAndRestoration,
+  BulkOperations,
+  RetrievalAndSorting,
+  AdvancedOperations,
+} from '@/frameworks/backend/laravel/base-methods';
 import { createFile, replacePlaceholder } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { APP_SETTINGS } from '@/constants';
-import { changeCase } from '@/utils/common';
 import { TableReplacements } from '@/interfaces/placeholders';
+import { changeCase } from '@/utils/common';
 
 const template = `
 <?php
@@ -17,6 +24,15 @@ Route::middleware('api')->group(function () {
 });
 `;
 
+const methodsAndContent = [
+  { ...CRUDOperations },
+  { ...QueryAndSearch },
+  { ...SoftDeletesAndRestoration },
+  { ...BulkOperations },
+  { ...RetrievalAndSorting },
+  { ...AdvancedOperations },
+];
+
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
   const useStatements = schemaInfo
     .map(
@@ -28,135 +44,44 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
   const customRoutes = schemaInfo
     .filter(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
     )
-    .map((tableInfo) => {
-      const { table, columnsInfo } = tableInfo;
+    .map(({ table }) => {
       const { pascalCase, kebabCasePlural } = changeCase(table);
 
-      const firstColumn = columnsInfo[0]?.column_name || 'id';
-      const secondColumn = columnsInfo[1]?.column_name || 'id';
-
-      const modelSpecificRoutes = generateModelSpecificMethods({
-        targetTable: table,
-        schemaInfo,
-        fileToGenerate: 'routes',
-      });
+      const methodRoutes = methodsAndContent
+        .filter((group) => group.group !== 'CRUD Operations') // Skip CRUD Operations as they are covered by apiResource
+        .map((group) =>
+          group.methods
+            .map(({ route }) =>
+              route
+                .replace(/{{tableNameKebabCasePlural}}/g, kebabCasePlural)
+                .replace(/{{tableNamePascalCase}}/g, pascalCase),
+            )
+            .join('\n'),
+        )
+        .join('\n');
 
       const customRoutesForController = `
-        ${modelSpecificRoutes}
-        // GET routes for retrieving data
-
-        // Find records by specific attributes
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/find-by-attributes?${firstColumn}=value&${secondColumn}=value
-        Route::get('{{tableNameKebabCase}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, 'findByAttributes']);
-
-        // Order records by specified criteria
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/order-by?column=${firstColumn}&direction=asc
-        Route::get('{{tableNameKebabCase}}/order-by', [{{tableNamePascalCase}}Controller::class, 'orderBy']);
-
-        // Paginate records
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/paginate?page=1&per_page=10
-        Route::get('{{tableNameKebabCase}}/paginate', [{{tableNamePascalCase}}Controller::class, 'paginate']);
-
-        // Search for records based on certain criteria
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/search?query=searchTerm
-        Route::get('{{tableNameKebabCase}}/search', [{{tableNamePascalCase}}Controller::class, 'search']);
-
-        // Count the total number of records
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/count
-        Route::get('{{tableNameKebabCase}}/count', [{{tableNamePascalCase}}Controller::class, 'count']);
-
-        // Retrieve records with related models
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/with-relations?relations=relationName
-        Route::get('{{tableNameKebabCase}}/with-relations', [{{tableNamePascalCase}}Controller::class, 'getWithRelations']);
-
-        // Get the latest records based on a timestamp
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/latest
-        Route::get('{{tableNameKebabCase}}/latest', [{{tableNamePascalCase}}Controller::class, 'latest']);
-
-        // Get the oldest records based on a timestamp
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/oldest
-        Route::get('{{tableNameKebabCase}}/oldest', [{{tableNamePascalCase}}Controller::class, 'oldest']);
-
-        // Get a random set of records
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/random
-        Route::get('{{tableNameKebabCase}}/random', [{{tableNamePascalCase}}Controller::class, 'random']);
-
-        // Soft delete a specific record by ID
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/soft-delete/{id}
-        Route::put('{{tableNameKebabCase}}/soft-delete/{id}', [{{tableNamePascalCase}}Controller::class, 'softDelete']);
-
-        // Restore a soft-deleted record by ID
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/restore/{id}
-        Route::put('{{tableNameKebabCase}}/restore/{id}', [{{tableNamePascalCase}}Controller::class, 'restore']);
-
-        // Retrieve records including those that have been soft-deleted
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/with-trashed
-        Route::get('{{tableNameKebabCase}}/with-trashed', [{{tableNamePascalCase}}Controller::class, 'withTrashed']);
-
-        // Retrieve only soft-deleted records
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/only-trashed
-        Route::get('{{tableNameKebabCase}}/only-trashed', [{{tableNamePascalCase}}Controller::class, 'onlyTrashed']);
-
-        // Retrieve records excluding those that have been soft-deleted
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/without-trashed
-        Route::get('{{tableNameKebabCase}}/without-trashed', [{{tableNamePascalCase}}Controller::class, 'withoutTrashed']);
-
-        // POST routes for creating or updating data
-
-        // Create or update a record
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/update-or-create
-        Route::post('{{tableNameKebabCase}}/update-or-create', [{{tableNamePascalCase}}Controller::class, 'updateOrCreate']);
-
-        // Batch update multiple records
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/batch-update
-        Route::post('{{tableNameKebabCase}}/batch-update', [{{tableNamePascalCase}}Controller::class, 'batchUpdate']);
-
-        // Find the first record that matches criteria or create a new one
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/first-or-create
-        Route::post('{{tableNameKebabCase}}/first-or-create', [{{tableNamePascalCase}}Controller::class, 'firstOrCreate']);
-
-        // Find the first record that matches criteria or return a new instance
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/first-or-new
-        Route::post('{{tableNameKebabCase}}/first-or-new', [{{tableNamePascalCase}}Controller::class, 'firstOrNew']);
-
-        // POST routes for specific queries that might involve complex filtering or ordering
-
-        // Retrieve a list of specific column values
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/pluck
-        Route::post('{{tableNameKebabCase}}/pluck', [{{tableNamePascalCase}}Controller::class, 'pluck']);
-
-        // Filter records based on a set of values
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/where-in
-        Route::post('{{tableNameKebabCase}}/where-in', [{{tableNamePascalCase}}Controller::class, 'whereIn']);
-
-        // Filter records excluding a set of values
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/where-not-in
-        Route::post('{{tableNameKebabCase}}/where-not-in', [{{tableNamePascalCase}}Controller::class, 'whereNotIn']);
-
-        // Filter records between two values
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/where-between
-        Route::post('{{tableNameKebabCase}}/where-between', [{{tableNamePascalCase}}Controller::class, 'whereBetween']);
-
-        // Group records by specified criteria
-        // Usage: http://localhost:8000/api/{{tableNameKebabCase}}/group-by
-        Route::post('{{tableNameKebabCase}}/group-by', [{{tableNamePascalCase}}Controller::class, 'groupBy']);
+        ${methodRoutes}
       `;
 
       const tablePlaceholders: TableReplacements = {
         tableNamePascalCase: pascalCase,
-        tableNameKebabCase: kebabCasePlural,
+        tableNameKebabCasePlural: kebabCasePlural,
       };
 
       return replacePlaceholder({
-        replacements: tablePlaceholders,
+        replacements: { ...tablePlaceholders },
         template: `
-        // Custom routes for {{tableNamePascalCase}}${customRoutesForController}
-        // Resource routes for {{tableNamePascalCase}}
-        Route::apiResource('{{tableNameKebabCase}}', {{tableNamePascalCase}}Controller::class);`,
+          // Custom routes for {{tableNamePascalCase}}
+          ${customRoutesForController}
+          // Resource routes for {{tableNamePascalCase}}
+          Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
+        `,
       });
     })
+    .filter(Boolean)
     .join('\n');
 
   const replacements = {

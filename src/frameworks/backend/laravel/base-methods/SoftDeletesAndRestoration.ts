@@ -2,7 +2,8 @@ export default {
   group: 'Soft Deletes and Restoration',
   methods: [
     {
-      route: '',
+      route: `// Soft delete a specific record by ID
+        Route::delete('{{tableNameKebabCasePlural}}/{id}/soft-delete', [{{tableNamePascalCase}}Controller::class, 'softDelete']);`,
       repositoryMethod: 'softDelete(int $id): bool',
       repositoryContent: `
       $record = $this->model->find($id);
@@ -21,7 +22,8 @@ export default {
       `,
     },
     {
-      route: '',
+      route: `// Restore a soft-deleted record by ID
+        Route::put('{{tableNameKebabCasePlural}}/{id}/restore', [{{tableNamePascalCase}}Controller::class, 'restore']);`,
       repositoryMethod: 'restore(int $id): bool',
       repositoryContent: `
       $record = $this->model->onlyTrashed()->find($id);
@@ -40,7 +42,8 @@ export default {
       `,
     },
     {
-      route: '',
+      route: `// Retrieve all records including soft-deleted ones
+        Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCase}}Controller::class, 'withTrashed']);`,
       repositoryMethod: 'withTrashed(): Collection',
       repositoryContent: 'return $this->model->withTrashed()->get();',
       serviceMethod: 'withTrashed(): Collection',
@@ -54,7 +57,8 @@ export default {
       `,
     },
     {
-      route: '',
+      route: `// Retrieve only soft-deleted records
+        Route::get('{{tableNameKebabCasePlural}}/only-trashed', [{{tableNamePascalCase}}Controller::class, 'onlyTrashed']);`,
       repositoryMethod: 'onlyTrashed(): Collection',
       repositoryContent: 'return $this->model->onlyTrashed()->get();',
       serviceMethod: 'onlyTrashed(): Collection',
@@ -68,7 +72,8 @@ export default {
       `,
     },
     {
-      route: '',
+      route: `// Retrieve records excluding soft-deleted ones
+        Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCase}}Controller::class, 'withoutTrashed']);`,
       repositoryMethod: 'withoutTrashed(): Collection',
       repositoryContent: 'return $this->model->withoutTrashed()->get();',
       serviceMethod: 'withoutTrashed(): Collection',

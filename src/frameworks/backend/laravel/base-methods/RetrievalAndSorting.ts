@@ -2,7 +2,8 @@ export default {
   group: 'Retrieval and Sorting',
   methods: [
     {
-      route: "",
+      route: `// Find a record or throw an exception if not found
+        Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'findOrFail']);`,
       repositoryMethod: 'findOrFail(int $id): Model',
       repositoryContent: 'return $this->model->findOrFail($id);',
       serviceMethod: 'findOrFail(int $id): Model',
@@ -16,7 +17,8 @@ export default {
       `,
     },
     {
-      route: "",
+      route: `// Find multiple records by their IDs
+        Route::post('{{tableNameKebabCasePlural}}/find-many', [{{tableNamePascalCase}}Controller::class, 'findMany']);`,
       repositoryMethod: 'findMany(array $ids): Collection',
       repositoryContent: 'return $this->model->findMany($ids);',
       serviceMethod: 'findMany(array $ids): Collection',
@@ -31,10 +33,10 @@ export default {
       `,
     },
     {
-      route: "",
+      route: `// Retrieve random records
+        Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, 'random']);`,
       repositoryMethod: 'random(int $count = 1): Collection',
-      repositoryContent:
-        'return $this->model->inRandomOrder()->limit($count)->get();',
+      repositoryContent: 'return $this->model->inRandomOrder()->limit($count)->get();',
       serviceMethod: 'random(int $count = 1): Collection',
       serviceContent: `
       return $this->repository->random($count);
@@ -47,7 +49,8 @@ export default {
       `,
     },
     {
-      route: "",
+      route: `// Retrieve the latest record based on a column
+        Route::get('{{tableNameKebabCasePlural}}/latest', [{{tableNamePascalCase}}Controller::class, 'latest']);`,
       repositoryMethod: "latest(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->latest($column)->first();',
       serviceMethod: "latest(string $column = 'created_at'): ?Model",
@@ -62,7 +65,8 @@ export default {
       `,
     },
     {
-      route: "",
+      route: `// Retrieve the oldest record based on a column
+        Route::get('{{tableNameKebabCasePlural}}/oldest', [{{tableNamePascalCase}}Controller::class, 'oldest']);`,
       repositoryMethod: "oldest(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->oldest($column)->first();',
       serviceMethod: "oldest(string $column = 'created_at'): ?Model",
@@ -77,11 +81,10 @@ export default {
       `,
     },
     {
-      route: "",
-      repositoryMethod:
-        "orderBy(string $column, string $direction = 'asc'): Collection",
-      repositoryContent:
-        'return $this->model->orderBy($column, $direction)->get();',
+      route: `// Order records by a specific column and direction
+        Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, 'orderBy']);`,
+      repositoryMethod: "orderBy(string $column, string $direction = 'asc'): Collection",
+      repositoryContent: 'return $this->model->orderBy($column, $direction)->get();',
       serviceMethod: "orderBy(string $column, string $direction = 'asc'): Collection",
       serviceContent: `
       return $this->repository->orderBy($column, $direction);
@@ -95,7 +98,8 @@ export default {
       `,
     },
     {
-      route: "",
+      route: `// Group records by a specific column
+        Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCase}}Controller::class, 'groupBy']);`,
       repositoryMethod: 'groupBy(string $column): Collection',
       repositoryContent: 'return $this->model->groupBy($column)->get();',
       serviceMethod: 'groupBy(string $column): Collection',

@@ -3,7 +3,7 @@ export default {
   methods: [
     {
       route: `// Get all records
-        Route::get('{{snakeCasePlural}}', [{{className}}Controller::class, 'index']);`,
+        Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'index']);`,
       repositoryMethod: 'getAll(): Collection',
       repositoryContent: 'return $this->model->all();',
       serviceMethod: 'getAll()',
@@ -18,7 +18,7 @@ export default {
     },
     {
       route: `// Find a specific record by ID
-        Route::get('{{snakeCasePlural}}/{id}', [{{className}}Controller::class, 'show']);`,
+        Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'show']);`,
       repositoryMethod: 'findById(int $id): ?Model',
       repositoryContent: 'return $this->model->find($id);',
       serviceMethod: 'findById($id)',
@@ -33,7 +33,7 @@ export default {
     },
     {
       route: `// Create a new record
-        Route::post('{{snakeCasePlural}}', [{{className}}Controller::class, 'store']);`,
+        Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'store']);`,
       repositoryMethod: 'create(array $data): Model',
       repositoryContent: 'return $this->model->create($data);',
       serviceMethod: 'create(array $data)',
@@ -48,7 +48,7 @@ export default {
     },
     {
       route: `// Update a specific record by ID
-        Route::put('{{snakeCasePlural}}/{id}', [{{className}}Controller::class, 'update']);`,
+        Route::put('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'update']);`,
       repositoryMethod: 'update(int $id, array $data): bool',
       repositoryContent: `
         $record = $this->model->find($id);
@@ -66,7 +66,7 @@ export default {
     },
     {
       route: `// Delete a specific record by ID
-        Route::delete('{{snakeCasePlural}}/{id}', [{{className}}Controller::class, 'destroy']);`,
+        Route::delete('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'destroy']);`,
       repositoryMethod: 'delete(int $id): bool',
       repositoryContent: `
         $record = $this->model->find($id);
