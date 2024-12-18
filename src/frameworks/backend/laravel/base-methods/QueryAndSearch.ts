@@ -3,7 +3,7 @@ export default {
   methods: [
     {
       route: `// Find a record by specific attributes
-        Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, 'findByAttributes']);`,
+        Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, 'findByAttributes'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');`,
       repositoryMethod: 'findByAttributes(array $attributes): ?Model',
       repositoryContent: 'return $this->model->where($attributes)->first();',
       serviceMethod: 'findByAttributes(array $attributes): ?Model',
@@ -19,7 +19,7 @@ export default {
     },
     {
       route: `// Paginate records
-        Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, 'paginate']);`,
+        Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, 'paginate'])->name('{{tableNameKebabCasePlural}}.paginate');`,
       repositoryMethod: 'paginate(int $perPage = 15)',
       repositoryContent: 'return $this->model->paginate($perPage);',
       serviceMethod: 'paginate(int $perPage = 15)',
@@ -35,7 +35,7 @@ export default {
     },
     {
       route: `// Search records
-        Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, 'search']);`,
+        Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, 'search'])->name('{{tableNameKebabCasePlural}}.search');`,
       repositoryMethod: 'search(string $query, array $fields, int $perPage = 15)',
       repositoryContent: `
       return $this->model->where(function ($q) use ($query, $fields) {
@@ -59,7 +59,7 @@ export default {
     },
     {
       route: `// Count records by criteria
-        Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, 'count']);`,
+        Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, 'count'])->name('{{tableNameKebabCasePlural}}.count');`,
       repositoryMethod: 'count(array $criteria = []): int',
       repositoryContent: 'return $this->model->where($criteria)->count();',
       serviceMethod: 'count(array $criteria = []): int',
@@ -75,7 +75,7 @@ export default {
     },
     {
       route: `// Check if a record exists
-        Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, 'exists']);`,
+        Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, 'exists'])->name('{{tableNameKebabCasePlural}}.exists');`,
       repositoryMethod: 'exists(array $criteria): bool',
       repositoryContent: 'return $this->model->where($criteria)->exists();',
       serviceMethod: 'exists(array $criteria): bool',

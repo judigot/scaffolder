@@ -3,7 +3,7 @@ export default {
   methods: [
     {
       route: `// Batch update multiple records
-        Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCase}}Controller::class, 'batchUpdate']);`,
+        Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCase}}Controller::class, 'batchUpdate'])->name('{{tableNameKebabCasePlural}}.batch-update');`,
       repositoryMethod: 'batchUpdate(array $criteria, array $data): bool',
       repositoryContent: `
       return $this->model->where($criteria)->update($data) > 0;
@@ -22,7 +22,7 @@ export default {
     },
     {
       route: `// Create or update a record
-        Route::post('{{tableNameKebabCasePlural}}/update-or-create', [{{tableNamePascalCase}}Controller::class, 'updateOrCreate']);`,
+        Route::post('{{tableNameKebabCasePlural}}/update-or-create', [{{tableNamePascalCase}}Controller::class, 'updateOrCreate'])->name('{{tableNameKebabCasePlural}}.update-or-create');`,
       repositoryMethod:
         'updateOrCreate(array $attributes, array $values = []): Model',
       repositoryContent: `
