@@ -1,11 +1,12 @@
 import { replacePlaceholder } from '@/helpers/stringHelper';
 import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
+import { TableCaseFormatsObject } from '@/interfaces/placeholders';
 import { useFormStore } from '@/useFormStore';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { typeMappings } from '@/utils/mappings';
 import pluralize from 'pluralize';
 
-export function changeCase(input: string) {
+export function changeCase(input: string): TableCaseFormatsObject {
   const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
   const allWordsExceptLast = words.slice(0, -1);
   const lastWord = words[words.length - 1];
