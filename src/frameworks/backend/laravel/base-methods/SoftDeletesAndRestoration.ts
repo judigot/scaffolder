@@ -15,8 +15,8 @@ export default {
       controllerContent: `
       $softDeleted = $this->service->softDelete($id);
       return $softDeleted
-          ? response()->json(['message' => 'Resource soft-deleted'])
-          : response()->json(['message' => 'Resource not found'], 404);
+            ? response()->json(['message' => 'Resource soft-deleted'])
+            : response()->json(['message' => 'Resource not found'], 404);
       `,
     },
     {
@@ -33,8 +33,8 @@ export default {
       controllerContent: `
       $restored = $this->service->restore($id);
       return $restored
-          ? response()->json(['message' => 'Resource restored'])
-          : response()->json(['message' => 'Resource not found'], 404);
+            ? response()->json(['message' => 'Resource restored'])
+            : response()->json(['message' => 'Resource not found'], 404);
       `,
     },
     {
