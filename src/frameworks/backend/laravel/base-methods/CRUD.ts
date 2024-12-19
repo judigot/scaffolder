@@ -4,6 +4,7 @@ const structure: IRepositoryStructure = {
   group: 'CRUD',
   methods: [
     {
+      methodName: 'getAll',
       route: `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'index'])->name('{{tableNameKebabCasePlural}}.index');`,
       description: 'Get all records',
       repositoryMethod: 'getAll(): Collection',
@@ -19,6 +20,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'findById',
       route: `Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'show'])->name('{{tableNameKebabCasePlural}}.show');`,
       description: 'Find a specific record by ID',
       repositoryMethod: 'findById(int $id): ?Model',
@@ -34,6 +36,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'create',
       route: `Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');`,
       description: 'Create a new record',
       repositoryMethod: 'create(array $data): Model',
@@ -49,6 +52,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'update',
       route: `Route::put('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'update'])->name('{{tableNameKebabCasePlural}}.update');`,
       description: 'Update a specific record by ID',
       repositoryMethod: 'update(int $id, array $data): bool',
@@ -67,6 +71,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'delete',
       route: `Route::delete('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'destroy'])->name('{{tableNameKebabCasePlural}}.destroy');`,
       description: 'Delete a specific record by ID',
       repositoryMethod: 'delete(int $id): bool',

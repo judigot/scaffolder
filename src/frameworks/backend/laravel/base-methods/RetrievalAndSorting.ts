@@ -3,23 +3,25 @@ import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
 const structure: IRepositoryStructure = {
   group: 'Retrieval and Sorting',
   methods: [
-    // Commented since Route::apiResource already handles findOrFail
-    // {
-    //   route: `Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'findOrFail'])->name('{{tableNameKebabCasePlural}}.find-or-fail');`,
-    //   description: 'Find a record or throw an exception if not found',
-    //   repositoryMethod: 'findOrFail(int $id): Model',
-    //   repositoryContent: 'return $this->model->findOrFail($id);',
-    //   serviceMethod: 'findOrFail(int $id): Model',
-    //   serviceContent: `
-    //   return $this->repository->findOrFail($id);
-    //   `,
-    //   controllerMethod: 'findOrFail($id)',
-    //   controllerContent: `
-    //   $item = $this->service->findOrFail($id);
-    //   return response()->json($item);
-    //   `,
-    // },
+    // Can be commented since Route::apiResource already handles findOrFail
     {
+      methodName: 'findOrFail',
+      route: `Route::get('{{tableNameKebabCasePlural}}/{id}/find-or-fail', [{{tableNamePascalCase}}Controller::class, 'findOrFail'])->name('{{tableNameKebabCasePlural}}.find-or-fail');`,
+      description: 'Find a record or throw an exception if not found',
+      repositoryMethod: 'findOrFail(int $id): Model',
+      repositoryContent: 'return $this->model->findOrFail($id);',
+      serviceMethod: 'findOrFail(int $id): Model',
+      serviceContent: `
+      return $this->repository->findOrFail($id);
+      `,
+      controllerMethod: 'findOrFail($id)',
+      controllerContent: `
+      $item = $this->service->findOrFail($id);
+      return response()->json($item);
+      `,
+    },
+    {
+      methodName: 'findMany',
       route: `Route::post('{{tableNameKebabCasePlural}}/find-many', [{{tableNamePascalCase}}Controller::class, 'findMany'])->name('{{tableNameKebabCasePlural}}.find-many');`,
       description: 'Find multiple records by their IDs',
       repositoryMethod: 'findMany(array $ids): Collection',
@@ -36,6 +38,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'random',
       route: `Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, 'random'])->name('{{tableNameKebabCasePlural}}.random');`,
       description: 'Retrieve random records',
       repositoryMethod: 'random(int $count = 1): Collection',
@@ -53,6 +56,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'latest',
       route: `Route::get('{{tableNameKebabCasePlural}}/latest', [{{tableNamePascalCase}}Controller::class, 'latest'])->name('{{tableNameKebabCasePlural}}.latest');`,
       description: 'Retrieve the latest record based on a column',
       repositoryMethod: "latest(string $column = 'created_at'): ?Model",
@@ -69,6 +73,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'oldest',
       route: `Route::get('{{tableNameKebabCasePlural}}/oldest', [{{tableNamePascalCase}}Controller::class, 'oldest'])->name('{{tableNameKebabCasePlural}}.oldest');`,
       description: 'Retrieve the oldest record based on a column',
       repositoryMethod: "oldest(string $column = 'created_at'): ?Model",
@@ -85,6 +90,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'orderBy',
       route: `Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, 'orderBy'])->name('{{tableNameKebabCasePlural}}.order-by');`,
       description: 'Order records by a specific column and direction',
       repositoryMethod:
@@ -105,6 +111,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'groupBy',
       route: `Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCase}}Controller::class, 'groupBy'])->name('{{tableNameKebabCasePlural}}.group-by');`,
       description: 'Group records by a specific column',
       repositoryMethod: 'groupBy(string $column): Collection',

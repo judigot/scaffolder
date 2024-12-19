@@ -4,6 +4,7 @@ const structure: IRepositoryStructure = {
   group: 'Query and Search',
   methods: [
     {
+      methodName: 'findByAttributes',
       route: `Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, 'findByAttributes'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');`,
       description: 'Find a record by specific attributes',
       repositoryMethod: 'findByAttributes(array $attributes): ?Model',
@@ -20,6 +21,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'paginate',
       route: `Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, 'paginate'])->name('{{tableNameKebabCasePlural}}.paginate');`,
       description: 'Paginate records',
       repositoryMethod: 'paginate(int $perPage = 15)',
@@ -36,6 +38,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'search',
       route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, 'search'])->name('{{tableNameKebabCasePlural}}.search');`,
       description: 'Search records',
       repositoryMethod:
@@ -61,6 +64,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'count',
       route: `Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, 'count'])->name('{{tableNameKebabCasePlural}}.count');`,
       description: 'Count records by criteria',
       repositoryMethod: 'count(array $criteria = []): int',
@@ -77,6 +81,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'exists',
       route: `Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, 'exists'])->name('{{tableNameKebabCasePlural}}.exists');`,
       description: 'Check if a record exists',
       repositoryMethod: 'exists(array $criteria): bool',

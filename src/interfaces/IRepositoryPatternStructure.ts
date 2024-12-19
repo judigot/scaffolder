@@ -9,6 +9,7 @@ type MethodGroups =
 export interface IRepositoryStructure {
   group: MethodGroups;
   methods: {
+    methodName: string;
     route: string;
     description: string;
     repositoryMethod: string;

@@ -4,6 +4,7 @@ const structure: IRepositoryStructure = {
   group: 'Soft Deletes and Restoration',
   methods: [
     {
+      methodName: 'softDelete',
       route: `Route::delete('{{tableNameKebabCasePlural}}/{id}/soft-delete', [{{tableNamePascalCase}}Controller::class, 'softDelete'])->name('{{tableNameKebabCasePlural}}.soft-delete');`,
       description: 'Soft delete a specific record by ID',
       repositoryMethod: 'softDelete(int $id): bool',
@@ -24,6 +25,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'restore',
       route: `Route::put('{{tableNameKebabCasePlural}}/{id}/restore', [{{tableNamePascalCase}}Controller::class, 'restore'])->name('{{tableNameKebabCasePlural}}.restore');`,
       description: 'Restore a soft-deleted record by ID',
       repositoryMethod: 'restore(int $id): bool',
@@ -44,6 +46,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'withTrashed',
       route: `Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCase}}Controller::class, 'withTrashed'])->name('{{tableNameKebabCasePlural}}.with-trashed');`,
       description: 'Retrieve all records including soft-deleted ones',
       repositoryMethod: 'withTrashed(): Collection',
@@ -59,6 +62,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'onlyTrashed',
       route: `Route::get('{{tableNameKebabCasePlural}}/only-trashed', [{{tableNamePascalCase}}Controller::class, 'onlyTrashed'])->name('{{tableNameKebabCasePlural}}.only-trashed');`,
       description: 'Retrieve only soft-deleted records',
       repositoryMethod: 'onlyTrashed(): Collection',
@@ -74,6 +78,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'withoutTrashed',
       route: `Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCase}}Controller::class, 'withoutTrashed'])->name('{{tableNameKebabCasePlural}}.without-trashed');`,
       description: 'Retrieve records excluding soft-deleted ones',
       repositoryMethod: 'withoutTrashed(): Collection',

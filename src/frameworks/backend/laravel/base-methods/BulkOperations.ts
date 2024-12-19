@@ -4,6 +4,7 @@ const structure: IRepositoryStructure = {
   group: 'Bulk Operations',
   methods: [
     {
+      methodName: 'batchUpdate',
       route: `Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCase}}Controller::class, 'batchUpdate'])->name('{{tableNameKebabCasePlural}}.batch-update');`,
       description: 'Batch update multiple records',
       repositoryMethod: 'batchUpdate(array $criteria, array $data): bool',
@@ -23,6 +24,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'updateOrCreate',
       route: `Route::post('{{tableNameKebabCasePlural}}/update-or-create', [{{tableNamePascalCase}}Controller::class, 'updateOrCreate'])->name('{{tableNameKebabCasePlural}}.update-or-create');`,
       description: 'Create or update a record',
       repositoryMethod:

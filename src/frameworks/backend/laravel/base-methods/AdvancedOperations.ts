@@ -4,6 +4,7 @@ const structure: IRepositoryStructure = {
   group: 'Advanced Operations',
   methods: [
     {
+      methodName: 'getWithRelations',
       route: `Route::get('{{tableNameKebabCasePlural}}/with-relations', [{{tableNamePascalCase}}Controller::class, 'getWithRelations'])->name('{{tableNameKebabCasePlural}}.with-relations');`,
       description: 'Retrieve related models',
       repositoryMethod: 'getWithRelations(array $relations): Collection',
@@ -20,6 +21,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'pluck',
       route: `Route::get('{{tableNameKebabCasePlural}}/pluck', [{{tableNamePascalCase}}Controller::class, 'pluck'])->name('{{tableNameKebabCasePlural}}.pluck');`,
       description: 'Retrieve a list of specific column values',
       repositoryMethod: 'pluck(string $column, string $key = null): Collection',
@@ -37,6 +39,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'firstOrCreate',
       route: `Route::post('{{tableNameKebabCasePlural}}/first-or-create', [{{tableNamePascalCase}}Controller::class, 'firstOrCreate'])->name('{{tableNameKebabCasePlural}}.first-or-create');`,
       description: 'Find or create a record',
       repositoryMethod:
@@ -57,6 +60,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'firstOrNew',
       route: `Route::post('{{tableNameKebabCasePlural}}/first-or-new', [{{tableNamePascalCase}}Controller::class, 'firstOrNew'])->name('{{tableNameKebabCasePlural}}.first-or-new');`,
       description: 'Find or return a new record instance',
       repositoryMethod:
@@ -76,6 +80,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'chunk',
       route: `Route::post('{{tableNameKebabCasePlural}}/chunk', [{{tableNamePascalCase}}Controller::class, 'chunk'])->name('{{tableNameKebabCasePlural}}.chunk');`,
       description: 'Chunk records for processing',
       repositoryMethod: 'chunk(int $size, callable $callback): bool',
@@ -94,6 +99,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'each',
       route: `Route::post('{{tableNameKebabCasePlural}}/each', [{{tableNamePascalCase}}Controller::class, 'each'])->name('{{tableNameKebabCasePlural}}.each');`,
       description: 'Process each record individually',
       repositoryMethod: 'each(callable $callback): bool',
@@ -111,6 +117,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'whereIn',
       route: `Route::post('{{tableNameKebabCasePlural}}/where-in', [{{tableNamePascalCase}}Controller::class, 'whereIn'])->name('{{tableNameKebabCasePlural}}.where-in');`,
       description: 'Filter records based on a set of values',
       repositoryMethod: 'whereIn(string $column, array $values): Collection',
@@ -129,6 +136,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'whereNotIn',
       route: `Route::post('{{tableNameKebabCasePlural}}/where-not-in', [{{tableNamePascalCase}}Controller::class, 'whereNotIn'])->name('{{tableNameKebabCasePlural}}.where-not-in');`,
       description: 'Filter records excluding a set of values',
       repositoryMethod: 'whereNotIn(string $column, array $values): Collection',
@@ -147,6 +155,7 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
+      methodName: 'whereBetween',
       route: `Route::post('{{tableNameKebabCasePlural}}/where-between', [{{tableNamePascalCase}}Controller::class, 'whereBetween'])->name('{{tableNameKebabCasePlural}}.where-between');`,
       description: 'Filter records between two values',
       repositoryMethod:
