@@ -1,10 +1,12 @@
 import identifySchema from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
-import { POSSchema } from '@/json-schemas/POSSchema';
-import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
-import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { normalizeWhitespace } from '@/helpers/stringHelper';
 import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins';
+import {
+  usersPostOneToOneSchema,
+  usersPostsOneToManySchema,
+  POSSchema,
+} from '@/json-schemas';
 
 describe('generateSQLDirectJoins', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);

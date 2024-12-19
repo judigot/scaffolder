@@ -3,10 +3,12 @@ import { describe, it, expect } from 'vitest';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import generateSQLSchema from '@/utils/generateSQLSchema';
 import { format as formatSQL } from 'sql-formatter';
-import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
-import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
-import { POSSchema } from '@/json-schemas/POSSchema';
 import { APP_SETTINGS } from '@/constants';
+import {
+  usersPostOneToOneSchema,
+  usersPostsOneToManySchema,
+  POSSchema,
+} from '@/json-schemas';
 
 describe('generateSQLSchema', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);

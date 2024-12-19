@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 import { normalizeWhitespace } from '@/helpers/stringHelper';
-import { POSSchema } from '@/json-schemas/POSSchema';
-import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
-import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
+import {
+  usersPostsOneToManySchema,
+  POSSchema,
+  usersPostOneToOneSchema,
+} from '@/json-schemas';
 
 describe('generateModelSpecificMethods', () => {
   const userPostsOneToManySchemaInfo = identifySchema(
@@ -35,8 +37,7 @@ describe('generateModelSpecificMethods', () => {
      * @param int $order_id
      * @return ?Collection
      */
-    public function getProducts(int $order_id, ?string $column = null, string $direction = 'asc'): ?Collection{
-
+    public function getProducts(int $order_id, ?string $column = null, string $direction = 'asc'): ?Collection {
         $productModel = new Product();
         $query = $this->model->find($order_id)?->products();
         $column = $column ?? $productModel->getKeyName();
@@ -71,7 +72,7 @@ describe('generateModelSpecificMethods', () => {
      * @return ?OrderProduct
      */
     public function findByOrderId(int $order_id, ?string $column = null, string $direction = 'asc'): ?OrderProduct;
-  
+
     /**
      * Find OrderProduct by product_id.
      *
@@ -107,8 +108,7 @@ describe('generateModelSpecificMethods', () => {
      * @param int $order_id
      * 
      */
-    public function getProducts(Request $request, int $order_id){
-
+    public function getProducts(Request $request, int $order_id) {
       // Extract optional URL parameters
       $column = $request->input('column', null); // Default to null if no column is provided
       $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided
@@ -169,14 +169,12 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
      * @param int $user_id
      * @return ?Collection
      */
-    public function getPosts(int $user_id, ?string $column = null, string $direction = 'asc'): ?Collection{
-        
+    public function getPosts(int $user_id, ?string $column = null, string $direction = 'asc'): ?Collection {
       $postModel = new Post();
       $query = $this->model->find($user_id)?->posts();
       $column = $column ?? $postModel->getKeyName();
       $query->orderBy($column, $direction);
       return $query ? $query->get() : null;
-      
     }`;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -234,8 +232,7 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
      * @param int $user_id
      * 
      */
-    public function getPosts(Request $request, int $user_id){
-        
+    public function getPosts(Request $request, int $user_id) {
       // Extract optional URL parameters
       $column = $request->input('column', null); // Default to null if no column is provided
       $direction = $request->input('direction', 'asc'); // Default to 'asc' if no direction is provided
@@ -243,7 +240,6 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
       // Fetch the posts from the repository
       $posts = $this->repository->getPosts($user_id, $column, $direction);
       return response()->json($posts);
-    
     }`;
 
       expect(normalizeWhitespace(methods)).toContain(
@@ -297,7 +293,7 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
        * @param int $user_id
        * @return ?Post
        */
-      public function getPost(int $user_id, ?string $column = null, string $direction = 'asc'): ?Post{
+      public function getPost(int $user_id, ?string $column = null, string $direction = 'asc'): ?Post {
         return $this->model->find($user_id)?->post;
       }`);
 
@@ -356,12 +352,10 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
        * @param int $user_id
        * 
        */
-      public function getPost(Request $request, int $user_id){
-          
+      public function getPost(Request $request, int $user_id) {
         // Fetch the post from the repository
         $post = $this->repository->getPost($user_id);
         return response()->json($post);
-      
       }
       `);
 

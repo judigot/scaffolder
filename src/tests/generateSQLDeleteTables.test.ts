@@ -1,9 +1,11 @@
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
 import identifySchema from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
-import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
-import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
-import { POSSchema } from '@/json-schemas/POSSchema';
+import {
+  usersPostOneToOneSchema,
+  usersPostsOneToManySchema,
+  POSSchema,
+} from '@/json-schemas';
 
 describe('generateSQLDeleteTables', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);

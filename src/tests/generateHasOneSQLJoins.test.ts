@@ -1,8 +1,8 @@
 import generateHasOneSQLJoins from '@/utils/generateSQLHasOneJoins';
 import identifySchema from '@/utils/identifySchema';
 import { describe, it, expect } from 'vitest';
-import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { normalizeWhitespace } from '@/helpers/stringHelper';
+import { usersPostOneToOneSchema } from '@/json-schemas';
 
 describe('generateHasOneSQLJoins', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);

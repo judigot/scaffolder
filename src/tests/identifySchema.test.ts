@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema';
-import { POSSchema } from '@/json-schemas/POSSchema';
-import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
-import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import {
+  usersPostOneToOneSchema,
+  usersPostsOneToManySchema,
+  POSSchema,
+} from '@/json-schemas';
 
 describe('identifySchema', () => {
   it('should correctly identify the full structure for usersPostOneToOneSchema', () => {
