@@ -56,39 +56,39 @@ const createCRUDTemplates = (schemaInfo: ISchemaInfo[]): IStructure => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table } = tableInfo;
-      const { plural, pascalCase } = changeCase(table);
+      const { tableName } = tableInfo;
+      const { plural, pascalCase } = changeCase(tableName);
       const className = pascalCase;
 
       const replacements = {
-        tableName: table,
+        tableName,
         tableNamePlural: plural,
         className,
-        primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
+        primaryKey: getPrimaryKey({ tableName, schemaInfo }),
       };
 
       return {
         type: 'folder',
-        name: table,
+        name: tableName,
         files: [
           {
             type: 'file',
-            name: `create-${table}.ts`,
+            name: `create-${tableName}.ts`,
             content: createFile({ template: CREATE_TEMPLATE, replacements }),
           },
           {
             type: 'file',
-            name: `read-${table}.ts`,
+            name: `read-${tableName}.ts`,
             content: createFile({ template: READ_TEMPLATE, replacements }),
           },
           {
             type: 'file',
-            name: `update-${table}.ts`,
+            name: `update-${tableName}.ts`,
             content: createFile({ template: UPDATE_TEMPLATE, replacements }),
           },
           {
             type: 'file',
-            name: `delete-${table}.ts`,
+            name: `delete-${tableName}.ts`,
             content: createFile({ template: DELETE_TEMPLATE, replacements }),
           },
         ],

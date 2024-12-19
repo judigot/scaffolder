@@ -19,12 +19,12 @@ Route::middleware('api')->group(function () {
 
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
   const routeFiles: IFile[] = schemaInfo.map((tableInfo) => {
-    const { table } = tableInfo;
-    const { pascalCase, kebabCasePlural } = changeCase(table);
+    const { tableName } = tableInfo;
+    const { pascalCase, kebabCasePlural } = changeCase(tableName);
 
     // Generate model-specific routes
     const modelSpecificRoutes = generateModelSpecificMethods({
-      targetTable: table,
+      targetTable: tableName,
       schemaInfo,
       fileToGenerate: 'routes',
     });

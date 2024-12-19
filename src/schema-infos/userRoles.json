@@ -1,6 +1,6 @@
 [
   {
-    "table": "users",
+    "tableName": "users",
     "requiredColumns": ["id", "name", "email", "password"],
     "columnsInfo": [
       {
@@ -101,7 +101,7 @@
     ]
   },
   {
-    "table": "user_types",
+    "tableName": "user_types",
     "requiredColumns": ["id", "name"],
     "columnsInfo": [
       {
@@ -166,7 +166,7 @@
     ]
   },
   {
-    "table": "user_user_type",
+    "tableName": "user_user_type",
     "requiredColumns": ["id", "user_id", "user_type_id"],
     "columnsInfo": [
       {

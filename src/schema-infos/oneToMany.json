@@ -1,6 +1,6 @@
 [
   {
-    "table": "user",
+    "tableName": "user",
     "requiredColumns": [
       "user_id",
       "first_name",
@@ -96,7 +96,7 @@
     "pivotRelationships": []
   },
   {
-    "table": "post",
+    "tableName": "post",
     "requiredColumns": [
       "post_id",
       "user_id",

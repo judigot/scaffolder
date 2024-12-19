@@ -23,11 +23,11 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
       (acc, schema) => ({
         inputValues: {
           ...acc.inputValues,
-          [schema.table]: '', // Initialize input values for each table
+          [schema.tableName]: '', // Initialize input values for each table
         },
         addedValues: {
           ...acc.addedValues,
-          [schema.table]: [], // Initialize added values for each table
+          [schema.tableName]: [], // Initialize added values for each table
         },
       }),
       { inputValues: {}, addedValues: {} },
@@ -96,23 +96,23 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
         </thead>
         <tbody>
           {schemaInfo.map((schema) => (
-            <tr key={schema.table} className="hover:bg-gray-700">
+            <tr key={schema.tableName} className="hover:bg-gray-700">
               <td className="border-b border-gray-600 px-4 py-2 text-gray-300">
-                {schema.table}
+                {schema.tableName}
               </td>
               <td className="border-b border-gray-600 px-4 py-2">
                 <div className="relative">
                   <TagInput
-                    id={`tag-input-${schema.table}`}
+                    id={`tag-input-${schema.tableName}`}
                     required={true}
                     placeholder="Add a composite unique field"
-                    inputValue={formData.inputValues[schema.table] ?? ''} // Use specific input value
+                    inputValue={formData.inputValues[schema.tableName] ?? ''} // Use specific input value
                     onInputChange={(e) => {
-                      handleTagInputChange(schema.table, e);
+                      handleTagInputChange(schema.tableName, e);
                     }} // Handle change for specific table
-                    addedValues={formData.addedValues[schema.table] ?? []} // Use specific added values
+                    addedValues={formData.addedValues[schema.tableName] ?? []} // Use specific added values
                     onAddValue={(newTags) => {
-                      handleAddTags(schema.table, newTags);
+                      handleAddTags(schema.tableName, newTags);
                     }} // Handle adding tags for specific table
                     suggestions={getSuggestions(schema)}
                     showSuggestionsOnFocus={true}

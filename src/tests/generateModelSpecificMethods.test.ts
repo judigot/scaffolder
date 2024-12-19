@@ -15,13 +15,15 @@ describe('generateModelSpecificMethods', () => {
 
   describe('POS', () => {
     it('should generate correct methods for repository', () => {
-      const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
+      const orderSchema = POSSchemaInfo.find(
+        (info) => info.tableName === 'order',
+      );
       if (!orderSchema) {
         throw new Error("Schema for 'order' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: orderSchema.table,
+        targetTable: orderSchema.tableName,
         schemaInfo: POSSchemaInfo,
         fileToGenerate: 'repository',
       });
@@ -49,14 +51,14 @@ describe('generateModelSpecificMethods', () => {
 
     it('should generate correct methods for interface', () => {
       const orderProductSchema = POSSchemaInfo.find(
-        (info) => info.table === 'order_product',
+        (info) => info.tableName === 'order_product',
       );
       if (!orderProductSchema) {
         throw new Error("Schema for 'order_product' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: orderProductSchema.table,
+        targetTable: orderProductSchema.tableName,
         schemaInfo: POSSchemaInfo,
         fileToGenerate: 'interface',
       });
@@ -85,13 +87,15 @@ describe('generateModelSpecificMethods', () => {
     });
 
     it('should generate correct methods for controllerMethod', () => {
-      const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
+      const orderSchema = POSSchemaInfo.find(
+        (info) => info.tableName === 'order',
+      );
       if (!orderSchema) {
         throw new Error("Schema for 'order' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: orderSchema.table,
+        targetTable: orderSchema.tableName,
         schemaInfo: POSSchemaInfo,
         fileToGenerate: 'controllerMethod',
       });
@@ -120,13 +124,15 @@ describe('generateModelSpecificMethods', () => {
     });
 
     it('should generate correct routes', () => {
-      const orderSchema = POSSchemaInfo.find((info) => info.table === 'order');
+      const orderSchema = POSSchemaInfo.find(
+        (info) => info.tableName === 'order',
+      );
       if (!orderSchema) {
         throw new Error("Schema for 'order' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: orderSchema.table,
+        targetTable: orderSchema.tableName,
         schemaInfo: POSSchemaInfo,
         fileToGenerate: 'routes',
       });
@@ -144,14 +150,14 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
   describe('User Posts', () => {
     it('should generate correct methods for repository', () => {
       const userSchema = userPostsOneToManySchemaInfo.find(
-        (info) => info.table === 'user',
+        (info) => info.tableName === 'user',
       );
       if (!userSchema) {
         throw new Error("Schema for 'user' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: userSchema.table,
+        targetTable: userSchema.tableName,
         schemaInfo: userPostsOneToManySchemaInfo,
         fileToGenerate: 'repository',
       });
@@ -180,14 +186,14 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
 
     it('should generate correct methods for interface', () => {
       const postSchema = userPostsOneToManySchemaInfo.find(
-        (info) => info.table === 'post',
+        (info) => info.tableName === 'post',
       );
       if (!postSchema) {
         throw new Error("Schema for 'post' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: postSchema.table,
+        targetTable: postSchema.tableName,
         schemaInfo: userPostsOneToManySchemaInfo,
         fileToGenerate: 'interface',
       });
@@ -209,14 +215,14 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
 
     it('should generate correct methods for controllerMethod', () => {
       const userSchema = userPostsOneToManySchemaInfo.find(
-        (info) => info.table === 'user',
+        (info) => info.tableName === 'user',
       );
       if (!userSchema) {
         throw new Error("Schema for 'user' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: userSchema.table,
+        targetTable: userSchema.tableName,
         schemaInfo: userPostsOneToManySchemaInfo,
         fileToGenerate: 'controllerMethod',
       });
@@ -247,14 +253,14 @@ Route::get('orders/{id}/products', [OrderController::class, 'getProducts']);
 
     it('should generate correct routes', () => {
       const userSchema = userPostsOneToManySchemaInfo.find(
-        (info) => info.table === 'user',
+        (info) => info.tableName === 'user',
       );
       if (!userSchema) {
         throw new Error("Schema for 'user' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: userSchema.table,
+        targetTable: userSchema.tableName,
         schemaInfo: userPostsOneToManySchemaInfo,
         fileToGenerate: 'routes',
       });
@@ -272,14 +278,14 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
   describe('User Post One-to-One', () => {
     it('should generate correct methods for repository', () => {
       const userSchema = userPostOneToOneSchemaInfo.find(
-        (info) => info.table === 'user',
+        (info) => info.tableName === 'user',
       );
       if (!userSchema) {
         throw new Error("Schema for 'user' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: userSchema.table,
+        targetTable: userSchema.tableName,
         schemaInfo: userPostOneToOneSchemaInfo,
         fileToGenerate: 'repository',
       });
@@ -302,14 +308,14 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
 
     it('should generate correct methods for interface', () => {
       const postSchema = userPostOneToOneSchemaInfo.find(
-        (info) => info.table === 'post',
+        (info) => info.tableName === 'post',
       );
       if (!postSchema) {
         throw new Error("Schema for 'post' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: postSchema.table,
+        targetTable: postSchema.tableName,
         schemaInfo: userPostOneToOneSchemaInfo,
         fileToGenerate: 'interface',
       });
@@ -331,14 +337,14 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
 
     it('should generate correct methods for controllerMethod', () => {
       const userSchema = userPostOneToOneSchemaInfo.find(
-        (info) => info.table === 'user',
+        (info) => info.tableName === 'user',
       );
       if (!userSchema) {
         throw new Error("Schema for 'user' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: userSchema.table,
+        targetTable: userSchema.tableName,
         schemaInfo: userPostOneToOneSchemaInfo,
         fileToGenerate: 'controllerMethod',
       });
@@ -366,14 +372,14 @@ Route::get('users/{id}/posts', [UserController::class, 'getPosts']);
 
     it('should generate correct routes', () => {
       const userSchema = userPostOneToOneSchemaInfo.find(
-        (info) => info.table === 'user',
+        (info) => info.tableName === 'user',
       );
       if (!userSchema) {
         throw new Error("Schema for 'user' not found");
       }
 
       const methods = generateModelSpecificMethods({
-        targetTable: userSchema.table,
+        targetTable: userSchema.tableName,
         schemaInfo: userPostOneToOneSchemaInfo,
         fileToGenerate: 'routes',
       });

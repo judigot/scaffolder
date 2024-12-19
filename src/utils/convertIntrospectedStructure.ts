@@ -87,7 +87,7 @@ export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
   const foreignKeys = getForeignKeys(columnsInfo);
 
   return {
-    table: tableName,
+    tableName,
     requiredColumns,
     columnsInfo,
     foreignTables,
@@ -108,7 +108,7 @@ export const populateChildTables = (
   tableMap.forEach((table) => {
     table.foreignTables.forEach((foreignTable) => {
       if (tableMap.has(foreignTable)) {
-        tableMap.get(foreignTable)?.childTables.push(table.table);
+        tableMap.get(foreignTable)?.childTables.push(table.tableName);
       }
     });
   });

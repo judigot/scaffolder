@@ -7,10 +7,10 @@ function generateSQLDirectJoins(schemaInfo: ISchemaInfo[]): string[] {
 
   const joinQueries = schemaInfo
     .filter(({ childTables }) => childTables.length > 0) // Focus only on tables with childTables relationships
-    .flatMap(({ table, childTables }) => {
+    .flatMap(({ tableName, childTables }) => {
       return childTables.map((childTable) => {
         const parentPrimaryKey = getPrimaryKey({
-          tableName: table,
+          tableName,
           schemaInfo,
         });
         const childForeignKey = getPrimaryKey({
@@ -19,9 +19,9 @@ function generateSQLDirectJoins(schemaInfo: ISchemaInfo[]): string[] {
         }); // Child foreign key references the parent's primary key
 
         // Construct the JOIN clause
-        const joinClause = `INNER JOIN ${quote}${childTable}${quote} ON ${quote}${childTable}${quote}.${childForeignKey} = ${quote}${table}${quote}.${parentPrimaryKey}`;
+        const joinClause = `INNER JOIN ${quote}${childTable}${quote} ON ${quote}${childTable}${quote}.${childForeignKey} = ${quote}${tableName}${quote}.${parentPrimaryKey}`;
 
-        return `/* ${changeCase(table).sentenceCase} and its ${changeCase(childTable).plural} */\nSELECT ${quote}${table}${quote}.*, ${quote}${childTable}${quote}.* FROM ${quote}${table}${quote} ${joinClause};`;
+        return `/* ${changeCase(tableName).sentenceCase} and its ${changeCase(childTable).plural} */\nSELECT ${quote}${tableName}${quote}.*, ${quote}${childTable}${quote}.* FROM ${quote}${tableName}${quote} ${joinClause};`;
       });
     });
 

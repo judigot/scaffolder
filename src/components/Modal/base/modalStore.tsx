@@ -106,7 +106,7 @@ export const useModalStore = create<IModalState>((set) => ({
   },
   editValue: ({ title, oldValue }: { title: string; oldValue: string }) => {
     const id: string = Math.random().toString(36).substring(2, 10);
-  
+
     return new Promise<string>((resolve) => {
       set((state) => ({
         modals: [
@@ -114,7 +114,9 @@ export const useModalStore = create<IModalState>((set) => ({
           {
             id,
             title,
-            content: <EditValueModal id={id} oldValue={oldValue} resolve={resolve} />,
+            content: (
+              <EditValueModal id={id} oldValue={oldValue} resolve={resolve} />
+            ),
           },
         ],
       }));

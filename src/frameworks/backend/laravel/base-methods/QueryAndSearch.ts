@@ -38,7 +38,8 @@ const structure: IRepositoryStructure = {
     {
       route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, 'search'])->name('{{tableNameKebabCasePlural}}.search');`,
       description: 'Search records',
-      repositoryMethod: 'search(string $query, array $fields, int $perPage = 15)',
+      repositoryMethod:
+        'search(string $query, array $fields, int $perPage = 15)',
       repositoryContent: `
       return $this->model->where(function ($q) use ($query, $fields) {
           foreach ($fields as $field) {

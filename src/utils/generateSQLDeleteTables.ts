@@ -4,7 +4,9 @@ import { useFormStore } from '@/useFormStore';
 function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
   const foreignKeys = schemaInfo.reduce<Record<string, string[]>>(
     (acc, table) => {
-      acc[table.table] = table.foreignKeys.map((fk) => fk.replace('_id', ''));
+      acc[table.tableName] = table.foreignKeys.map((fk) =>
+        fk.replace('_id', ''),
+      );
       return acc;
     },
     {},
@@ -23,7 +25,7 @@ function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
       }
     };
     schemaInfo.forEach((table) => {
-      visit(table.table);
+      visit(table.tableName);
     });
     return order.reverse();
   };

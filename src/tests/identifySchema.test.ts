@@ -3,14 +3,15 @@ import identifySchema from '@/utils/identifySchema';
 import { POSSchema } from '@/json-schemas/POSSchema';
 import { usersPostOneToOneSchema } from '@/json-schemas/usersPostOneToOneSchema';
 import { usersPostsOneToManySchema } from '@/json-schemas/usersPostsOneToManySchema';
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
 describe('identifySchema', () => {
   it('should correctly identify the full structure for usersPostOneToOneSchema', () => {
     const schemaInfo = identifySchema(usersPostOneToOneSchema);
 
-    expect(schemaInfo).toStrictEqual([
+    const referenceSchema: ISchemaInfo[] = [
       {
-        table: 'user',
+        tableName: 'user',
         requiredColumns: [
           'user_id',
           'first_name',
@@ -106,7 +107,7 @@ describe('identifySchema', () => {
         pivotRelationships: [],
       },
       {
-        table: 'post',
+        tableName: 'post',
         requiredColumns: [
           'post_id',
           'user_id',
@@ -183,7 +184,9 @@ describe('identifySchema', () => {
         belongsToMany: [],
         pivotRelationships: [],
       },
-    ]);
+    ];
+
+    expect(schemaInfo).toStrictEqual(referenceSchema);
   });
 
   it('should correctly identify the full structure for usersPostsOneToManySchema', () => {
@@ -191,7 +194,7 @@ describe('identifySchema', () => {
 
     expect(schemaInfo).toStrictEqual([
       {
-        table: 'user',
+        tableName: 'user',
         requiredColumns: [
           'user_id',
           'first_name',
@@ -287,7 +290,7 @@ describe('identifySchema', () => {
         pivotRelationships: [],
       },
       {
-        table: 'post',
+        tableName: 'post',
         requiredColumns: [
           'post_id',
           'user_id',
@@ -372,7 +375,7 @@ describe('identifySchema', () => {
 
     expect(schemaInfo).toStrictEqual([
       {
-        table: 'product',
+        tableName: 'product',
         requiredColumns: ['product_id', 'product_name'],
         columnsInfo: [
           {
@@ -410,7 +413,7 @@ describe('identifySchema', () => {
         ],
       },
       {
-        table: 'customer',
+        tableName: 'customer',
         requiredColumns: ['customer_id', 'name'],
         columnsInfo: [
           {
@@ -443,7 +446,7 @@ describe('identifySchema', () => {
         pivotRelationships: [],
       },
       {
-        table: 'order',
+        tableName: 'order',
         requiredColumns: ['order_id', 'customer_id'],
         columnsInfo: [
           {
@@ -484,7 +487,7 @@ describe('identifySchema', () => {
         ],
       },
       {
-        table: 'order_product',
+        tableName: 'order_product',
         requiredColumns: ['order_product_id', 'order_id', 'product_id'],
         columnsInfo: [
           {

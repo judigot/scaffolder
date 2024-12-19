@@ -143,14 +143,14 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table } = tableInfo;
-      const { plural, pascalCase } = changeCase(table);
+      const { tableName } = tableInfo;
+      const { plural, pascalCase } = changeCase(tableName);
       const className = pascalCase;
 
       const replacements = {
-        tableName: table,
+        tableName,
         className,
-        primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
+        primaryKey: getPrimaryKey({ tableName, schemaInfo }),
       };
 
       return {

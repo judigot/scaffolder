@@ -20,8 +20,8 @@ Route::middleware('api')->group(function () {
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
   const useStatements = schemaInfo
     .map(
-      ({ table }) =>
-        `use App\\Http\\Controllers\\${changeCase(table).pascalCase}Controller;\n`,
+      ({ tableName }) =>
+        `use App\\Http\\Controllers\\${changeCase(tableName).pascalCase}Controller;\n`,
     )
     .join('');
 
@@ -31,14 +31,14 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): string => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table, columnsInfo } = tableInfo;
-      const { pascalCase, kebabCasePlural } = changeCase(table);
+      const { tableName, columnsInfo } = tableInfo;
+      const { pascalCase, kebabCasePlural } = changeCase(tableName);
 
       const firstColumn = columnsInfo[0]?.column_name || 'id';
       const secondColumn = columnsInfo[1]?.column_name || 'id';
 
       const modelSpecificRoutes = generateModelSpecificMethods({
-        targetTable: table,
+        targetTable: tableName,
         schemaInfo,
         fileToGenerate: 'routes',
       });

@@ -20,7 +20,9 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (APP_SETTINGS.onDeleteCascade) {
         const relatedTable = /REFERENCES\s+"(\w+)"/.exec(constraint)?.[1];
-        const parentTable = schemaInfo.find((t) => t.table === relatedTable);
+        const parentTable = schemaInfo.find(
+          (t) => t.tableName === relatedTable,
+        );
         const hasOneRelationship = parentTable?.hasOne.includes(table) ?? false;
 
         if (hasOneRelationship) {
@@ -34,7 +36,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
 
   return formatSQL(
     schemaInfo
-      .map(({ table, columnsInfo }) => {
+      .map(({ tableName, columnsInfo }) => {
         const dbConnection = useFormStore.getState().formData.dbConnection;
         const dbType = determineSQLDatabaseType(dbConnection);
         const columns = columnsInfo
@@ -47,7 +49,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
           .join(',\n  ');
 
         const foreignKeyConstraints = generateForeignKeyConstraint(
-          table,
+          tableName,
           schemaInfo,
         ).join(',\n  ');
 
@@ -55,7 +57,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
           .filter(Boolean)
           .join(',\n  ');
 
-        return `CREATE TABLE ${quote}${table}${quote} (\n  ${allColumnsAndKeys}\n);`;
+        return `CREATE TABLE ${quote}${tableName}${quote} (\n  ${allColumnsAndKeys}\n);`;
       })
       .join('\n'),
   );

@@ -20,7 +20,7 @@ export default axiosInstance;
 `;
 
   const replacements = {
-    backendUrl
+    backendUrl,
   };
 
   const content = createFile({ template, replacements });

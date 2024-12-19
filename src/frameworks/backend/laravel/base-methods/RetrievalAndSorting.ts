@@ -39,7 +39,8 @@ const structure: IRepositoryStructure = {
       route: `Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, 'random'])->name('{{tableNameKebabCasePlural}}.random');`,
       description: 'Retrieve random records',
       repositoryMethod: 'random(int $count = 1): Collection',
-      repositoryContent: 'return $this->model->inRandomOrder()->limit($count)->get();',
+      repositoryContent:
+        'return $this->model->inRandomOrder()->limit($count)->get();',
       serviceMethod: 'random(int $count = 1): Collection',
       serviceContent: `
       return $this->repository->random($count);
@@ -86,9 +87,12 @@ const structure: IRepositoryStructure = {
     {
       route: `Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, 'orderBy'])->name('{{tableNameKebabCasePlural}}.order-by');`,
       description: 'Order records by a specific column and direction',
-      repositoryMethod: "orderBy(string $column, string $direction = 'asc'): Collection",
-      repositoryContent: 'return $this->model->orderBy($column, $direction)->get();',
-      serviceMethod: "orderBy(string $column, string $direction = 'asc'): Collection",
+      repositoryMethod:
+        "orderBy(string $column, string $direction = 'asc'): Collection",
+      repositoryContent:
+        'return $this->model->orderBy($column, $direction)->get();',
+      serviceMethod:
+        "orderBy(string $column, string $direction = 'asc'): Collection",
       serviceContent: `
       return $this->repository->orderBy($column, $direction);
       `,

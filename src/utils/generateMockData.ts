@@ -22,27 +22,27 @@ const topologicalSort = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
   const temp = new Set<string>();
 
   const visit = (table: ISchemaInfo) => {
-    if (temp.has(table.table)) {
+    if (temp.has(table.tableName)) {
       throw new Error('Cyclic dependency detected');
     }
-    if (!visited.has(table.table)) {
-      temp.add(table.table);
+    if (!visited.has(table.tableName)) {
+      temp.add(table.tableName);
       table.childTables.forEach((childTable) => {
         const childRelationship = schemaInfo.find(
-          (r) => r.table === childTable,
+          (r) => r.tableName === childTable,
         );
         if (childRelationship) {
           visit(childRelationship);
         }
       });
-      temp.delete(table.table);
-      visited.add(table.table);
+      temp.delete(table.tableName);
+      visited.add(table.tableName);
       sorted.push(table);
     }
   };
 
   schemaInfo.forEach((table) => {
-    if (!visited.has(table.table)) {
+    if (!visited.has(table.tableName)) {
       visit(table);
     }
   });
@@ -60,7 +60,7 @@ const generateMockData = ({
   const generatedData: ParsedJSONSchema = {};
   const sortedRelationships = topologicalSort(schemaInfo);
 
-  sortedRelationships.forEach(({ table, columnsInfo }) => {
+  sortedRelationships.forEach(({ tableName, columnsInfo }) => {
     const fieldInfo: Record<string, IFieldInfo> = {};
 
     columnsInfo.forEach((column) => {
@@ -224,13 +224,13 @@ const generateMockData = ({
       mockRecords.push(mockRecord);
     }
 
-    generatedData[table] = mockRecords;
+    generatedData[tableName] = mockRecords;
   });
 
   // Return the object sorted based on hierarchy
   const sortedData: ParsedJSONSchema = {};
-  sortedRelationships.forEach(({ table }) => {
-    sortedData[table] = generatedData[table];
+  sortedRelationships.forEach(({ tableName }) => {
+    sortedData[tableName] = generatedData[tableName];
   });
 
   return sortedData;

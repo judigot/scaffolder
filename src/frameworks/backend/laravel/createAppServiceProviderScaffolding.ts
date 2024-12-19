@@ -66,8 +66,8 @@ class AppServiceProvider extends ServiceProvider
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
-    .map(({ table }) => {
-      const { pascalCase } = changeCase(table);
+    .map(({ tableName }) => {
+      const { pascalCase } = changeCase(tableName);
       const className = pascalCase;
       return `use App\\Repositories\\${className}Repository;\nuse App\\Repositories\\${className}Interface;`;
     })
@@ -79,8 +79,8 @@ class AppServiceProvider extends ServiceProvider
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
-    .map(({ table }) => {
-      const { pascalCase } = changeCase(table);
+    .map(({ tableName }) => {
+      const { pascalCase } = changeCase(tableName);
       const className = pascalCase;
       return `$this->app->bind(${className}Interface::class, ${className}Repository::class);`;
     })

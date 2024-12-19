@@ -97,8 +97,8 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
 
   const filesContent: Record<string, string> = {};
 
-  schemaInfo.forEach(({ table, columnsInfo }) => {
-    const { pascalCase } = changeCase(table);
+  schemaInfo.forEach(({ tableName, columnsInfo }) => {
+    const { pascalCase } = changeCase(tableName);
     const className = pascalCase;
     return (filesContent[`I${className}`] = generateInterfaceContent(
       className,

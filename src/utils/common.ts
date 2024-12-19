@@ -76,7 +76,9 @@ export function getPrimaryKey({
   tableName: string;
   schemaInfo: ISchemaInfo[];
 }): string {
-  const tableSchema = schemaInfo.find((schema) => schema.table === tableName);
+  const tableSchema = schemaInfo.find(
+    (schema) => schema.tableName === tableName,
+  );
 
   if (!tableSchema) {
     throw new Error(`Table "${tableName}" not found in schema information.`);
@@ -252,7 +254,8 @@ export const getForeignKeyConstraints = (
   schemaInfo: ISchemaInfo[],
 ): string[] => {
   const quote = useFormStore.getState().quote;
-  const tableInfo = schemaInfo.find((rel) => rel.table === tableName) ?? null;
+  const tableInfo =
+    schemaInfo.find((rel) => rel.tableName === tableName) ?? null;
 
   if (tableInfo?.foreignKeys) {
     return tableInfo.foreignKeys.map((key) => {

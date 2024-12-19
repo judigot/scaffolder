@@ -102,7 +102,7 @@ export const createRelationships = (
   schemaInfo: ISchemaInfo[],
 ): string => {
   const parentPrimaryKey = schemaInfo
-    .find((table) => table.table === tableName)
+    .find((table) => table.tableName === tableName)
     ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
   const belongsToRelations = foreignKeys
@@ -113,10 +113,10 @@ export const createRelationships = (
     .join('\n');
 
   const hasManyRelations = schemaInfo
-    .find((table) => table.table === tableName)
+    .find((table) => table.tableName === tableName)
     ?.hasMany.filter((relatedTable) => {
       const relatedTableInfo = schemaInfo.find(
-        (table) => table.table === relatedTable,
+        (table) => table.tableName === relatedTable,
       );
       return (
         (relatedTableInfo?.pivotRelationships.some(
@@ -128,7 +128,7 @@ export const createRelationships = (
     })
     .map((relatedTable) => {
       const childPrimaryKey = schemaInfo
-        .find((table) => table.table === relatedTable)
+        .find((table) => table.tableName === relatedTable)
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
       if (childPrimaryKey != null && parentPrimaryKey != null) {
@@ -152,7 +152,7 @@ export const createRelationships = (
         (table) =>
           table.foreignTables.includes(relatedTable) &&
           table.foreignTables.includes(tableName),
-      )?.table;
+      )?.tableName;
 
       if (junctionTable == null) {
         throw new Error(
@@ -189,19 +189,19 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
     )
     .map((tableInfo) => {
       const {
-        table,
+        tableName,
         columnsInfo,
         foreignKeys,
         hasOne,
         hasMany,
         belongsToMany,
       } = tableInfo;
-      const { pascalCase } = changeCase(table);
+      const { pascalCase } = changeCase(tableName);
       const className = pascalCase;
 
       const fillable = createFillable(columnsInfo, foreignKeys);
       const relationships = createRelationships(
-        table,
+        tableName,
         foreignKeys,
         hasOne,
         belongsToMany,
@@ -266,7 +266,7 @@ class {{className}} extends Model
       const replacements = {
         modelImports,
         className,
-        tableName: table,
+        tableName,
         primaryKey,
         hiddenColumns,
         fillable,

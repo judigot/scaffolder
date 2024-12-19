@@ -21,7 +21,6 @@ class {{className}}Service extends BaseService
 }
 `;
 
-
 const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
@@ -29,13 +28,13 @@ const createServices = (schemaInfo: ISchemaInfo[]): IFile[] => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table } = tableInfo;
-      const { pascalCase } = changeCase(table);
+      const { tableName } = tableInfo;
+      const { pascalCase } = changeCase(tableName);
       const className = pascalCase;
 
       const replacements = {
         className,
-        tableName: table,
+        tableName,
       };
 
       const content = createFile({ template, replacements });

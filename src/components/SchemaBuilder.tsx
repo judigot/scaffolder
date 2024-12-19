@@ -50,8 +50,8 @@ import { useFormStore } from '@/useFormStore';
 //     );
 
 //     // Update table name
-//     if (updatedSchema.table === oldName) {
-//       updatedSchema.table = newName;
+//     if (updatedSchema.tableName === oldName) {
+//       updatedSchema.tableName = newName;
 //     }
 
 //     // Update foreign keys in columnsInfo
@@ -81,7 +81,7 @@ function SchemaBuilder() {
   const { promptModal, editValue } = useModalStore();
 
   const renameTable = async (index: number) => {
-    const oldValue = schemaInfo[index].table;
+    const oldValue = schemaInfo[index].tableName;
 
     const newName = await editValue({ title: 'Edit table name', oldValue });
 
@@ -91,8 +91,8 @@ function SchemaBuilder() {
 
     const updatedSchema = schemaInfo.map((table) => {
       /* Rename the table itself */
-      if (table.table === oldValue) {
-        table.table = newName;
+      if (table.tableName === oldValue) {
+        table.tableName = newName;
       }
 
       /* Define the relationship keys */
@@ -159,8 +159,8 @@ function SchemaBuilder() {
     const sourceTable = schemaInfo[tableIndex];
 
     const result = await promptModal({
-      title: `Remove "${sourceTable.table}" table?`,
-      description: `Are you sure you want to remove "${sourceTable.table}" table and its dependent tables?`,
+      title: `Remove "${sourceTable.tableName}" table?`,
+      description: `Are you sure you want to remove "${sourceTable.tableName}" table and its dependent tables?`,
       trueText: 'Yes',
       falseText: 'No',
     });
@@ -194,19 +194,19 @@ function SchemaBuilder() {
 
     /* Gather all tables to remove: source table + pivot child tables + pivot tables in pivotRelationships */
     const tablesToRemove = [
-      sourceTable.table,
+      sourceTable.tableName,
       ...schemaInfo
         .filter(
           (table) =>
-            sourceTable.childTables.includes(table.table) && table.isPivot,
+            sourceTable.childTables.includes(table.tableName) && table.isPivot,
         )
-        .map((table) => table.table),
+        .map((table) => table.tableName),
       ...pivotTablesFromRelationships,
     ];
 
     /* Remove these tables and clean references */
     const updatedSchema = schemaInfo
-      .filter((table) => !tablesToRemove.includes(table.table))
+      .filter((table) => !tablesToRemove.includes(table.tableName))
       .map((table) => {
         relationshipKeys.forEach((relation) => {
           const currentRelations = table[relation];
@@ -245,10 +245,10 @@ function SchemaBuilder() {
             {schemaInfo
               .filter((table) => !table.isPivot)
               .map((tableInfo) => {
-                const { table } = tableInfo;
+                const { tableName } = tableInfo;
 
                 return (
-                  <li key={table}>
+                  <li key={tableName}>
                     <div
                       role="button"
                       onKeyDown={() => {
@@ -258,14 +258,14 @@ function SchemaBuilder() {
                       className="cursor-pointer hover:text-indigo-400"
                       onClick={() => {
                         const pivotTableIndex = schemaInfo.findIndex(
-                          ({ table: currentTable }) => {
-                            return currentTable === table;
+                          ({ tableName: currentTable }) => {
+                            return currentTable === tableName;
                           },
                         );
                         setSelectedTableIndex(pivotTableIndex);
                       }} // Set the selected table index on click
                     >
-                      {table}
+                      {tableName}
                     </div>
                   </li>
                 );
@@ -281,10 +281,10 @@ function SchemaBuilder() {
                 {schemaInfo
                   .filter((table) => table.isPivot)
                   .map((tableInfo) => {
-                    const { table } = tableInfo;
+                    const { tableName } = tableInfo;
 
                     return (
-                      <li key={table}>
+                      <li key={tableName}>
                         <div
                           role="button"
                           onKeyDown={() => {
@@ -294,14 +294,14 @@ function SchemaBuilder() {
                           className="cursor-pointer hover:text-indigo-400"
                           onClick={() => {
                             const pivotTableIndex = schemaInfo.findIndex(
-                              ({ table: currentTable }) => {
-                                return currentTable === table;
+                              ({ tableName: currentTable }) => {
+                                return currentTable === tableName;
                               },
                             );
                             setSelectedTableIndex(pivotTableIndex);
                           }}
                         >
-                          {table}
+                          {tableName}
                         </div>
                       </li>
                     );
@@ -314,10 +314,10 @@ function SchemaBuilder() {
         <div className="w-3/4 p-4">
           {selectedTableIndex !== null &&
             Boolean(schemaInfo[selectedTableIndex]) && (
-              <div key={schemaInfo[selectedTableIndex].table}>
+              <div key={schemaInfo[selectedTableIndex].tableName}>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold">
-                    {schemaInfo[selectedTableIndex].table}
+                    {schemaInfo[selectedTableIndex].tableName}
                     {!schemaInfo[selectedTableIndex].isPivot && (
                       <>
                         &nbsp;

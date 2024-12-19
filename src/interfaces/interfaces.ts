@@ -16,7 +16,7 @@ export interface IColumnInfo {
 }
 
 export interface ITableInfo {
-  table: string;
+  tableName: string;
   foreignTables: string[];
   childTables: string[];
   isPivot: boolean;
@@ -49,7 +49,7 @@ export const isISchemaInfo = (data: unknown): data is ISchemaInfo => {
   return (
     typeof data === 'object' &&
     data !== null &&
-    'table' in data &&
+    'tableName' in data &&
     'requiredColumns' in data &&
     'columnsInfo' in data &&
     'foreignTables' in data &&

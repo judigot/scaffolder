@@ -6,20 +6,21 @@ export const generateModelSpecificMethods = ({
   schemaInfo,
   fileToGenerate,
 }: {
-  targetTable: ISchemaInfo['table'];
+  targetTable: ISchemaInfo['tableName'];
   schemaInfo: ISchemaInfo[];
   fileToGenerate: 'interface' | 'repository' | 'controllerMethod' | 'routes';
 }): string => {
   // Retrieve the schema information for the target table
-  const tableInfo = schemaInfo.find((table) => table.table === targetTable);
+  const tableInfo = schemaInfo.find((table) => table.tableName === targetTable);
   if (!tableInfo) {
     throw new Error(
       `Table information for '${targetTable}' not found in the provided schema.`,
     );
   }
 
-  const { table, pivotRelationships, columnsInfo, hasOne, hasMany } = tableInfo;
-  const { plural, pascalCase } = changeCase(table);
+  const { tableName, pivotRelationships, columnsInfo, hasOne, hasMany } =
+    tableInfo;
+  const { plural, pascalCase } = changeCase(tableName);
 
   const className = pascalCase;
 

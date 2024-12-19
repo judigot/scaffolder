@@ -136,10 +136,10 @@ export const isJunctionTable = (
 
     // Find the parent tables based on foreign keys
     const parentTable1 = schemaInfo.find(
-      (rel) => rel.table === firstKey.foreign_key?.foreign_table_name,
+      (rel) => rel.tableName === firstKey.foreign_key?.foreign_table_name,
     );
     const parentTable2 = schemaInfo.find(
-      (rel) => rel.table === secondKey.foreign_key?.foreign_table_name,
+      (rel) => rel.tableName === secondKey.foreign_key?.foreign_table_name,
     );
 
     // Check if the table has no child tables
@@ -148,8 +148,10 @@ export const isJunctionTable = (
     // Ensure both parent tables are defined before checking name combination
     if (parentTable1 && parentTable2) {
       const isNameCombination =
-        relationship.table === `${parentTable1.table}_${parentTable2.table}` ||
-        relationship.table === `${parentTable2.table}_${parentTable1.table}`;
+        relationship.tableName ===
+          `${parentTable1.tableName}_${parentTable2.tableName}` ||
+        relationship.tableName ===
+          `${parentTable2.tableName}_${parentTable1.tableName}`;
 
       // Return true if the table name matches the combination rule and has no child tables
       return hasNoChildTables && isNameCombination;
@@ -181,44 +183,46 @@ export const addAssociations = (
 
     if (foreignKeys.length === 2) {
       const table1 = tempSchemaInfo.find(
-        (rel) => rel.table === foreignKeys[0].foreign_key?.foreign_table_name,
+        (rel) =>
+          rel.tableName === foreignKeys[0].foreign_key?.foreign_table_name,
       );
       const table2 = tempSchemaInfo.find(
-        (rel) => rel.table === foreignKeys[1].foreign_key?.foreign_table_name,
+        (rel) =>
+          rel.tableName === foreignKeys[1].foreign_key?.foreign_table_name,
       );
 
       if (table1 && table2) {
         table1.belongsToMany = Array.from(
-          new Set([...table1.belongsToMany, table2.table]),
+          new Set([...table1.belongsToMany, table2.tableName]),
         );
         table2.belongsToMany = Array.from(
-          new Set([...table2.belongsToMany, table1.table]),
+          new Set([...table2.belongsToMany, table1.tableName]),
         );
       }
     }
   };
 
   tempSchemaInfo.forEach((relationship) => {
-    const rows = data ? data[relationship.table] : [];
+    const rows = data ? data[relationship.tableName] : [];
 
     relationship.columnsInfo.forEach((column) => {
       if (column.foreign_key) {
         const parentTable = tempSchemaInfo.find(
-          (rel) => rel.table === column.foreign_key?.foreign_table_name,
+          (rel) => rel.tableName === column.foreign_key?.foreign_table_name,
         );
         if (parentTable) {
           relationship.belongsTo = Array.from(
-            new Set([...relationship.belongsTo, parentTable.table]),
+            new Set([...relationship.belongsTo, parentTable.tableName]),
           );
 
           if (!isIntrospection) {
             if (detectOneToManyRelationship(rows, column.column_name)) {
               parentTable.hasMany = Array.from(
-                new Set([...parentTable.hasMany, relationship.table]),
+                new Set([...parentTable.hasMany, relationship.tableName]),
               );
             } else if (!isJunctionTable(relationship, schemaInfo)) {
               parentTable.hasOne = Array.from(
-                new Set([...parentTable.hasOne, relationship.table]),
+                new Set([...parentTable.hasOne, relationship.tableName]),
               );
             }
           } else {
@@ -231,11 +235,11 @@ export const addAssociations = (
             if (foreignTable) {
               if (!column.unique) {
                 foreignTable.hasMany = Array.from(
-                  new Set([...foreignTable.hasMany, relationship.table]),
+                  new Set([...foreignTable.hasMany, relationship.tableName]),
                 );
               } else if (!isJunctionTable(relationship, schemaInfo)) {
                 foreignTable.hasOne = Array.from(
-                  new Set([...foreignTable.hasOne, relationship.table]),
+                  new Set([...foreignTable.hasOne, relationship.tableName]),
                 );
               }
             }
@@ -264,12 +268,14 @@ export const sortTablesBasedOnHierarchy = (
   const visited = new Set<string>();
 
   const visit = (table: ISchemaInfo) => {
-    if (visited.has(table.table)) {
+    if (visited.has(table.tableName)) {
       return;
     }
-    visited.add(table.table);
+    visited.add(table.tableName);
     table.childTables.forEach((childTable) => {
-      const childRelationship = schemaInfo.find((r) => r.table === childTable);
+      const childRelationship = schemaInfo.find(
+        (r) => r.tableName === childTable,
+      );
       if (childRelationship) {
         visit(childRelationship);
       }
@@ -288,7 +294,8 @@ export const sortTablesBasedOnHierarchy = (
 export const isAlreadySorted = (schemaInfo: ISchemaInfo[]): boolean => {
   return schemaInfo.every((relationship, i) =>
     relationship.childTables.every(
-      (childTable) => schemaInfo.findIndex((r) => r.table === childTable) > i,
+      (childTable) =>
+        schemaInfo.findIndex((r) => r.tableName === childTable) > i,
     ),
   );
 };
@@ -297,12 +304,12 @@ export const isAlreadySorted = (schemaInfo: ISchemaInfo[]): boolean => {
 const createColumnsInfo = ({
   fields,
   rows,
-  table,
+  tableName,
   primaryKeyField,
 }: {
   fields: Record<string, IFieldInfo>;
   rows: Record<string, unknown>[];
-  table: string;
+  tableName: string;
   primaryKeyField: string;
 }): IColumnInfo[] => {
   return Object.keys(fields).map((key) => {
@@ -314,7 +321,7 @@ const createColumnsInfo = ({
     const isPrimaryKey = key === primaryKeyField;
     const isUnique = UNIQUE_COLUMN_NAMES.includes(key) && !isPrimaryKey;
     const foreignKey =
-      key.endsWith('_id') && key !== `${table}_id`
+      key.endsWith('_id') && key !== `${tableName}_id`
         ? {
             foreign_table_name: key.replace('_id', ''),
             foreign_column_name: key,
@@ -341,10 +348,10 @@ export function linkChildTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo.map((relationship) => {
     relationship.foreignTables.map((foreignTable) => {
       const foreignRelationship = schemaInfo.find(
-        (r) => r.table === foreignTable,
+        (r) => r.tableName === foreignTable,
       );
       if (foreignRelationship) {
-        foreignRelationship.childTables.push(relationship.table);
+        foreignRelationship.childTables.push(relationship.tableName);
       }
     });
     return relationship;
@@ -358,7 +365,7 @@ export function addParentRelationships(
     // Iterate over the parent tables in 'belongsTo' to set their pivot relationships
     info.belongsTo.forEach((parentTable) => {
       const parentTableInfo = schemaInfo.find(
-        (schema) => schema.table === parentTable,
+        (schema) => schema.tableName === parentTable,
       );
 
       if (parentTableInfo) {
@@ -370,7 +377,7 @@ export function addParentRelationships(
         if (partnerTable != null) {
           parentTableInfo.pivotRelationships.push({
             relatedTable: partnerTable,
-            pivotTable: info.table,
+            pivotTable: info.tableName,
           });
         }
       }
@@ -388,12 +395,14 @@ export const determineUniqueForeignKeys = (
       if (column.foreign_key) {
         // Find the parent table that this foreign key references
         const parentTable = schemaInfo.find(
-          (rel) => rel.table === column.foreign_key?.foreign_table_name,
+          (rel) => rel.tableName === column.foreign_key?.foreign_table_name,
         );
 
         if (parentTable) {
           // Check if the parent table has a `hasOne` relationship with the current table
-          const isOneToOne = parentTable.hasOne.includes(relationship.table);
+          const isOneToOne = parentTable.hasOne.includes(
+            relationship.tableName,
+          );
 
           // If the relationship is one-to-one, mark the foreign key as unique
           if (isOneToOne) {
@@ -431,18 +440,18 @@ export function addSchemaInfo(
 }
 
 function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
-  let schemaInfo: ISchemaInfo[] = Object.keys(data).map((table) => {
-    const rows = data[table];
+  let schemaInfo: ISchemaInfo[] = Object.keys(data).map((tableName) => {
+    const rows = data[tableName];
     const fields = populateFieldInfo(rows);
     const primaryKeyField = determinePrimaryKeyField(
-      table,
+      tableName,
       Object.keys(rows[0])[0],
     );
 
     const columnsInfo = createColumnsInfo({
       fields,
       rows,
-      table,
+      tableName,
       primaryKeyField,
     });
 
@@ -451,7 +460,7 @@ function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
     const foreignKeys = getForeignKeys(columnsInfo);
 
     return {
-      table,
+      tableName,
       requiredColumns,
       columnsInfo,
       foreignTables,

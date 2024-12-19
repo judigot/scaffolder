@@ -7,11 +7,11 @@ function generateHasOneSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
 
   const joinQueries = schemaInfo
     .filter(({ hasOne }) => hasOne.length > 0) // Focus only on tables with hasOne relationships
-    .flatMap(({ table, hasOne }) => {
+    .flatMap(({ tableName, hasOne }) => {
       return hasOne.map((childTable) => {
         // Retrieve primary keys for both parent and child tables
         const parentPrimaryKey = getPrimaryKey({
-          tableName: table,
+          tableName,
           schemaInfo,
         });
         const childPrimaryKey = getPrimaryKey({
@@ -20,9 +20,9 @@ function generateHasOneSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
         });
 
         // Construct the JOIN clause
-        const joinClause = `LEFT JOIN ${quote}${childTable}${quote} ON ${quote}${table}${quote}.${parentPrimaryKey} = ${quote}${childTable}${quote}.${childPrimaryKey}`;
+        const joinClause = `LEFT JOIN ${quote}${childTable}${quote} ON ${quote}${tableName}${quote}.${parentPrimaryKey} = ${quote}${childTable}${quote}.${childPrimaryKey}`;
 
-        return `/* ${changeCase(table).sentenceCase} and its ${changeCase(childTable).singular} */\nSELECT * FROM ${quote}${table}${quote} ${joinClause};`;
+        return `/* ${changeCase(tableName).sentenceCase} and its ${changeCase(childTable).singular} */\nSELECT * FROM ${quote}${tableName}${quote} ${joinClause};`;
       });
     });
 

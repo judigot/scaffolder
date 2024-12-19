@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
-import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces';
+import { IIntrospectedSchemaInfo, ISchemaInfo } from '@/interfaces/interfaces';
 
 describe('convertIntrospectedStructure', () => {
   const usersPostOneToOneSchema: IIntrospectedSchemaInfo[] = [
@@ -454,9 +454,9 @@ describe('convertIntrospectedStructure', () => {
   it('should correctly convert and identify the full structure for usersPostOneToOneSchema (PostgreSQL)', () => {
     const schemaInfo = convertIntrospectedStructure(usersPostOneToOneSchema);
 
-    expect(schemaInfo).toStrictEqual([
+    const referenceSchema: ISchemaInfo[] = [
       {
-        table: 'user',
+        tableName: 'user',
         requiredColumns: [
           'user_id',
           'first_name',
@@ -552,7 +552,7 @@ describe('convertIntrospectedStructure', () => {
         pivotRelationships: [],
       },
       {
-        table: 'post',
+        tableName: 'post',
         requiredColumns: [
           'post_id',
           'user_id',
@@ -629,15 +629,17 @@ describe('convertIntrospectedStructure', () => {
         belongsToMany: [],
         pivotRelationships: [],
       },
-    ]);
+    ];
+
+    expect(schemaInfo).toStrictEqual(referenceSchema);
   });
 
   it('should correctly convert and identify the full structure for usersPostsOneToManySchema (PostgreSQL)', () => {
     const schemaInfo = convertIntrospectedStructure(usersPostsOneToManySchema);
 
-    expect(schemaInfo).toStrictEqual([
+    const referenceSchema: ISchemaInfo[] = [
       {
-        table: 'user',
+        tableName: 'user',
         requiredColumns: [
           'user_id',
           'first_name',
@@ -733,7 +735,7 @@ describe('convertIntrospectedStructure', () => {
         pivotRelationships: [],
       },
       {
-        table: 'post',
+        tableName: 'post',
         requiredColumns: [
           'post_id',
           'user_id',
@@ -810,15 +812,17 @@ describe('convertIntrospectedStructure', () => {
         belongsToMany: [],
         pivotRelationships: [],
       },
-    ]);
+    ];
+
+    expect(schemaInfo).toStrictEqual(referenceSchema);
   });
 
   it('should correctly convert and identify the full structure for POSSchema (PostgreSQL)', () => {
     const schemaInfo = convertIntrospectedStructure(POSSchema);
 
-    expect(schemaInfo).toStrictEqual([
+    const referenceSchema: ISchemaInfo[] = [
       {
-        table: 'product',
+        tableName: 'product',
         requiredColumns: ['product_id', 'product_name'],
         columnsInfo: [
           {
@@ -856,7 +860,7 @@ describe('convertIntrospectedStructure', () => {
         ],
       },
       {
-        table: 'customer',
+        tableName: 'customer',
         requiredColumns: ['customer_id', 'name'],
         columnsInfo: [
           {
@@ -889,7 +893,7 @@ describe('convertIntrospectedStructure', () => {
         pivotRelationships: [],
       },
       {
-        table: 'order',
+        tableName: 'order',
         requiredColumns: ['order_id', 'customer_id'],
         columnsInfo: [
           {
@@ -930,7 +934,7 @@ describe('convertIntrospectedStructure', () => {
         ],
       },
       {
-        table: 'order_product',
+        tableName: 'order_product',
         requiredColumns: ['order_product_id', 'order_id', 'product_id'],
         columnsInfo: [
           {
@@ -977,6 +981,8 @@ describe('convertIntrospectedStructure', () => {
         belongsToMany: [],
         pivotRelationships: [],
       },
-    ]);
+    ];
+
+    expect(schemaInfo).toStrictEqual(referenceSchema);
   });
 });

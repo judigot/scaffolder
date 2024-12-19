@@ -302,8 +302,8 @@ export const {{className}} = {
       data: { deleted_at: undefined },
     });
   },`;
-      const { table, columnsInfo } = tableInfo;
-      const { pascalCase } = changeCase(table);
+      const { tableName, columnsInfo } = tableInfo;
+      const { pascalCase } = changeCase(tableName);
       const className = pascalCase;
 
       const hasDeletedAt = columnsInfo.filter(
@@ -322,9 +322,9 @@ export const {{className}} = {
       }
 
       const replacements: Record<string, string> = {
-        tableName: table,
+        tableName,
         className,
-        primaryKey: getPrimaryKey({ tableName: table, schemaInfo }),
+        primaryKey: getPrimaryKey({ tableName, schemaInfo }),
       };
 
       const content = createFile({

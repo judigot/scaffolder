@@ -1,10 +1,7 @@
 [
   {
-    "table": "product",
-    "requiredColumns": [
-      "product_id",
-      "product_name"
-    ],
+    "tableName": "product",
+    "requiredColumns": ["product_id", "product_name"],
     "columnsInfo": [
       {
         "column_name": "product_id",
@@ -28,17 +25,11 @@
     "foreignTables": [],
     "foreignKeys": [],
     "isPivot": false,
-    "childTables": [
-      "order_product"
-    ],
+    "childTables": ["order_product"],
     "hasOne": [],
-    "hasMany": [
-      "order_product"
-    ],
+    "hasMany": ["order_product"],
     "belongsTo": [],
-    "belongsToMany": [
-      "order"
-    ],
+    "belongsToMany": ["order"],
     "pivotRelationships": [
       {
         "relatedTable": "order",
@@ -47,11 +38,8 @@
     ]
   },
   {
-    "table": "customer",
-    "requiredColumns": [
-      "customer_id",
-      "name"
-    ],
+    "tableName": "customer",
+    "requiredColumns": ["customer_id", "name"],
     "columnsInfo": [
       {
         "column_name": "customer_id",
@@ -75,23 +63,16 @@
     "foreignTables": [],
     "foreignKeys": [],
     "isPivot": false,
-    "childTables": [
-      "order"
-    ],
+    "childTables": ["order"],
     "hasOne": [],
-    "hasMany": [
-      "order"
-    ],
+    "hasMany": ["order"],
     "belongsTo": [],
     "belongsToMany": [],
     "pivotRelationships": []
   },
   {
-    "table": "order",
-    "requiredColumns": [
-      "order_id",
-      "customer_id"
-    ],
+    "tableName": "order",
+    "requiredColumns": ["order_id", "customer_id"],
     "columnsInfo": [
       {
         "column_name": "order_id",
@@ -115,26 +96,14 @@
         }
       }
     ],
-    "foreignTables": [
-      "customer"
-    ],
-    "foreignKeys": [
-      "customer_id"
-    ],
+    "foreignTables": ["customer"],
+    "foreignKeys": ["customer_id"],
     "isPivot": false,
-    "childTables": [
-      "order_product"
-    ],
+    "childTables": ["order_product"],
     "hasOne": [],
-    "hasMany": [
-      "order_product"
-    ],
-    "belongsTo": [
-      "customer"
-    ],
-    "belongsToMany": [
-      "product"
-    ],
+    "hasMany": ["order_product"],
+    "belongsTo": ["customer"],
+    "belongsToMany": ["product"],
     "pivotRelationships": [
       {
         "relatedTable": "product",
@@ -143,12 +112,8 @@
     ]
   },
   {
-    "table": "order_product",
-    "requiredColumns": [
-      "order_product_id",
-      "order_id",
-      "product_id"
-    ],
+    "tableName": "order_product",
+    "requiredColumns": ["order_product_id", "order_id", "product_id"],
     "columnsInfo": [
       {
         "column_name": "order_product_id",
@@ -184,22 +149,13 @@
         }
       }
     ],
-    "foreignTables": [
-      "order",
-      "product"
-    ],
-    "foreignKeys": [
-      "order_id",
-      "product_id"
-    ],
+    "foreignTables": ["order", "product"],
+    "foreignKeys": ["order_id", "product_id"],
     "isPivot": true,
     "childTables": [],
     "hasOne": [],
     "hasMany": [],
-    "belongsTo": [
-      "order",
-      "product"
-    ],
+    "belongsTo": ["order", "product"],
     "belongsToMany": [],
     "pivotRelationships": []
   }

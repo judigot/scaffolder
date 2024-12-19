@@ -29,20 +29,20 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {
-      const { table } = tableInfo;
-      const { pascalCase } = changeCase(table);
+      const { tableName } = tableInfo;
+      const { pascalCase } = changeCase(tableName);
       const className = pascalCase;
 
       const modelImports = generateModelImports(tableInfo);
       const modelSpecificMethods = generateModelSpecificMethods({
-        targetTable: table,
+        targetTable: tableName,
         schemaInfo,
         fileToGenerate: 'interface',
       });
 
       const replacements = {
         className,
-        tableName: table,
+        tableName,
         modelImports,
         modelSpecificMethods,
       };

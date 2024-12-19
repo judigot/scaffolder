@@ -22,13 +22,13 @@ export const addRelationship = (
 
     // Check if the target table exists
     let targetTable = updatedSchema.find(
-      (table) => table.table === newTableName,
+      (table) => table.tableName === newTableName,
     );
 
     if (!targetTable) {
       // Create a new target table if it doesn't exist
       targetTable = {
-        table: newTableName,
+        tableName: newTableName,
         columnsInfo: [
           {
             column_name: `${newTableName}_id`,
@@ -40,12 +40,12 @@ export const addRelationship = (
             foreign_key: null,
           },
         ],
-        foreignTables: [sourceTable.table],
+        foreignTables: [sourceTable.tableName],
         childTables: [],
         isPivot: false,
         hasOne: [],
         hasMany: [],
-        belongsTo: [sourceTable.table],
+        belongsTo: [sourceTable.tableName],
         belongsToMany: [],
         pivotRelationships: [],
         foreignKeys: [],
@@ -54,18 +54,18 @@ export const addRelationship = (
       updatedSchema.push(targetTable);
     } else {
       // Update the existing target table
-      if (!targetTable.foreignTables.includes(sourceTable.table)) {
-        targetTable.foreignTables.push(sourceTable.table);
+      if (!targetTable.foreignTables.includes(sourceTable.tableName)) {
+        targetTable.foreignTables.push(sourceTable.tableName);
       }
-      if (!targetTable.belongsTo.includes(sourceTable.table)) {
-        targetTable.belongsTo.push(sourceTable.table);
+      if (!targetTable.belongsTo.includes(sourceTable.tableName)) {
+        targetTable.belongsTo.push(sourceTable.tableName);
       }
     }
   }
 
   if (relationshipType === 'belongsToMany') {
     // Many-to-many relationships require a pivot table
-    const pivotTableName = `${sourceTable.table}_${newTableName}`;
+    const pivotTableName = `${sourceTable.tableName}_${newTableName}`;
 
     // Add to source table's belongsToMany
     if (!sourceTable.belongsToMany.includes(newTableName)) {
@@ -86,13 +86,13 @@ export const addRelationship = (
 
     // Check if the pivot table exists
     let pivotTable = updatedSchema.find(
-      (table) => table.table === pivotTableName,
+      (table) => table.tableName === pivotTableName,
     );
 
     if (!pivotTable) {
       // Create a new pivot table
       pivotTable = {
-        table: pivotTableName,
+        tableName: pivotTableName,
         columnsInfo: [
           {
             column_name: '',
@@ -106,12 +106,12 @@ export const addRelationship = (
         ],
         foreignKeys: [],
         requiredColumns: [],
-        foreignTables: [sourceTable.table, newTableName],
+        foreignTables: [sourceTable.tableName, newTableName],
         childTables: [],
         isPivot: true,
         hasOne: [],
         hasMany: [],
-        belongsTo: [sourceTable.table, newTableName],
+        belongsTo: [sourceTable.tableName, newTableName],
         belongsToMany: [],
         pivotRelationships: [],
       };
@@ -120,13 +120,13 @@ export const addRelationship = (
 
     // Add to target table's belongsToMany
     const targetTable = updatedSchema.find(
-      (table) => table.table === newTableName,
+      (table) => table.tableName === newTableName,
     );
 
     if (!targetTable) {
       // Create a new target table if it doesn't exist
       updatedSchema.push({
-        table: newTableName,
+        tableName: newTableName,
         columnsInfo: [
           {
             column_name: '',
@@ -146,13 +146,13 @@ export const addRelationship = (
         hasOne: [],
         hasMany: [],
         belongsTo: [],
-        belongsToMany: [sourceTable.table],
+        belongsToMany: [sourceTable.tableName],
         pivotRelationships: [],
       });
     } else {
       // Update the existing target table
-      if (!targetTable.belongsToMany.includes(sourceTable.table)) {
-        targetTable.belongsToMany.push(sourceTable.table);
+      if (!targetTable.belongsToMany.includes(sourceTable.tableName)) {
+        targetTable.belongsToMany.push(sourceTable.tableName);
       }
 
       if (!targetTable.childTables.includes(pivotTableName)) {
