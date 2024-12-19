@@ -1,9 +1,11 @@
-export default {
+import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
+
+const structure: IRepositoryStructure = {
   group: 'Advanced Operations',
   methods: [
     {
-      route: `// Retrieve related models
-        Route::get('{{tableNameKebabCasePlural}}/with-relations', [{{tableNamePascalCase}}Controller::class, 'getWithRelations'])->name('{{tableNameKebabCasePlural}}.with-relations');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/with-relations', [{{tableNamePascalCase}}Controller::class, 'getWithRelations'])->name('{{tableNameKebabCasePlural}}.with-relations');`,
+      description: 'Retrieve related models',
       repositoryMethod: 'getWithRelations(array $relations): Collection',
       repositoryContent: 'return $this->model->with($relations)->get();',
       serviceMethod: 'getWithRelations(array $relations): Collection',
@@ -18,8 +20,8 @@ export default {
       `,
     },
     {
-      route: `// Retrieve a list of specific column values
-        Route::get('{{tableNameKebabCasePlural}}/pluck', [{{tableNamePascalCase}}Controller::class, 'pluck'])->name('{{tableNameKebabCasePlural}}.pluck');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/pluck', [{{tableNamePascalCase}}Controller::class, 'pluck'])->name('{{tableNameKebabCasePlural}}.pluck');`,
+      description: 'Retrieve a list of specific column values',
       repositoryMethod: 'pluck(string $column, string $key = null): Collection',
       repositoryContent: 'return $this->model->pluck($column, $key);',
       serviceMethod: 'pluck(string $column, string $key = null): Collection',
@@ -35,11 +37,14 @@ export default {
       `,
     },
     {
-      route: `// Find or create a record
-        Route::post('{{tableNameKebabCasePlural}}/first-or-create', [{{tableNamePascalCase}}Controller::class, 'firstOrCreate'])->name('{{tableNameKebabCasePlural}}.first-or-create');`,
-      repositoryMethod: 'firstOrCreate(array $attributes, array $values = []): Model',
-      repositoryContent: 'return $this->model->firstOrCreate($attributes, $values);',
-      serviceMethod: 'firstOrCreate(array $attributes, array $values = []): Model',
+      route: `Route::post('{{tableNameKebabCasePlural}}/first-or-create', [{{tableNamePascalCase}}Controller::class, 'firstOrCreate'])->name('{{tableNameKebabCasePlural}}.first-or-create');`,
+      description: 'Find or create a record',
+      repositoryMethod:
+        'firstOrCreate(array $attributes, array $values = []): Model',
+      repositoryContent:
+        'return $this->model->firstOrCreate($attributes, $values);',
+      serviceMethod:
+        'firstOrCreate(array $attributes, array $values = []): Model',
       serviceContent: `
         return $this->repository->firstOrCreate($attributes, $values);
       `,
@@ -52,10 +57,12 @@ export default {
       `,
     },
     {
-      route: `// Find or return a new record instance
-        Route::post('{{tableNameKebabCasePlural}}/first-or-new', [{{tableNamePascalCase}}Controller::class, 'firstOrNew'])->name('{{tableNameKebabCasePlural}}.first-or-new');`,
-      repositoryMethod: 'firstOrNew(array $attributes, array $values = []): Model',
-      repositoryContent: 'return $this->model->firstOrNew($attributes, $values);',
+      route: `Route::post('{{tableNameKebabCasePlural}}/first-or-new', [{{tableNamePascalCase}}Controller::class, 'firstOrNew'])->name('{{tableNameKebabCasePlural}}.first-or-new');`,
+      description: 'Find or return a new record instance',
+      repositoryMethod:
+        'firstOrNew(array $attributes, array $values = []): Model',
+      repositoryContent:
+        'return $this->model->firstOrNew($attributes, $values);',
       serviceMethod: 'firstOrNew(array $attributes, array $values = []): Model',
       serviceContent: `
         return $this->repository->firstOrNew($attributes, $values);
@@ -69,8 +76,8 @@ export default {
       `,
     },
     {
-      route: `// Chunk records for processing
-        Route::post('{{tableNameKebabCasePlural}}/chunk', [{{tableNamePascalCase}}Controller::class, 'chunk'])->name('{{tableNameKebabCasePlural}}.chunk');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/chunk', [{{tableNamePascalCase}}Controller::class, 'chunk'])->name('{{tableNameKebabCasePlural}}.chunk');`,
+      description: 'Chunk records for processing',
       repositoryMethod: 'chunk(int $size, callable $callback): bool',
       repositoryContent: 'return $this->model->chunk($size, $callback);',
       serviceMethod: 'chunk(int $size, callable $callback): bool',
@@ -87,8 +94,8 @@ export default {
       `,
     },
     {
-      route: `// Process each record individually
-        Route::post('{{tableNameKebabCasePlural}}/each', [{{tableNamePascalCase}}Controller::class, 'each'])->name('{{tableNameKebabCasePlural}}.each');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/each', [{{tableNamePascalCase}}Controller::class, 'each'])->name('{{tableNameKebabCasePlural}}.each');`,
+      description: 'Process each record individually',
       repositoryMethod: 'each(callable $callback): bool',
       repositoryContent: 'return $this->model->each($callback);',
       serviceMethod: 'each(callable $callback): bool',
@@ -104,10 +111,11 @@ export default {
       `,
     },
     {
-      route: `// Filter records based on a set of values
-        Route::post('{{tableNameKebabCasePlural}}/where-in', [{{tableNamePascalCase}}Controller::class, 'whereIn'])->name('{{tableNameKebabCasePlural}}.where-in');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/where-in', [{{tableNamePascalCase}}Controller::class, 'whereIn'])->name('{{tableNameKebabCasePlural}}.where-in');`,
+      description: 'Filter records based on a set of values',
       repositoryMethod: 'whereIn(string $column, array $values): Collection',
-      repositoryContent: 'return $this->model->whereIn($column, $values)->get();',
+      repositoryContent:
+        'return $this->model->whereIn($column, $values)->get();',
       serviceMethod: 'whereIn(string $column, array $values): Collection',
       serviceContent: `
         return $this->repository->whereIn($column, $values);
@@ -121,10 +129,11 @@ export default {
       `,
     },
     {
-      route: `// Filter records excluding a set of values
-        Route::post('{{tableNameKebabCasePlural}}/where-not-in', [{{tableNamePascalCase}}Controller::class, 'whereNotIn'])->name('{{tableNameKebabCasePlural}}.where-not-in');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/where-not-in', [{{tableNamePascalCase}}Controller::class, 'whereNotIn'])->name('{{tableNameKebabCasePlural}}.where-not-in');`,
+      description: 'Filter records excluding a set of values',
       repositoryMethod: 'whereNotIn(string $column, array $values): Collection',
-      repositoryContent: 'return $this->model->whereNotIn($column, $values)->get();',
+      repositoryContent:
+        'return $this->model->whereNotIn($column, $values)->get();',
       serviceMethod: 'whereNotIn(string $column, array $values): Collection',
       serviceContent: `
         return $this->repository->whereNotIn($column, $values);
@@ -138,10 +147,12 @@ export default {
       `,
     },
     {
-      route: `// Filter records between two values
-        Route::post('{{tableNameKebabCasePlural}}/where-between', [{{tableNamePascalCase}}Controller::class, 'whereBetween'])->name('{{tableNameKebabCasePlural}}.where-between');`,
-      repositoryMethod: 'whereBetween(string $column, array $range): Collection',
-      repositoryContent: 'return $this->model->whereBetween($column, $range)->get();',
+      route: `Route::post('{{tableNameKebabCasePlural}}/where-between', [{{tableNamePascalCase}}Controller::class, 'whereBetween'])->name('{{tableNameKebabCasePlural}}.where-between');`,
+      description: 'Filter records between two values',
+      repositoryMethod:
+        'whereBetween(string $column, array $range): Collection',
+      repositoryContent:
+        'return $this->model->whereBetween($column, $range)->get();',
       serviceMethod: 'whereBetween(string $column, array $range): Collection',
       serviceContent: `
         return $this->repository->whereBetween($column, $range);
@@ -156,3 +167,5 @@ export default {
     },
   ],
 };
+
+export default structure;

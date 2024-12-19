@@ -1,7 +1,8 @@
 import { IFile } from '@/components/FileViewer';
 import baseMethods from '@/frameworks/backend/laravel/base-methods';
-import { createFile } from '@/helpers/stringHelper';
+import { createFile, replacePlaceholder } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
+import { TableReplacements } from '@/interfaces/placeholders';
 import { changeCase } from '@/utils/common';
 import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
 
@@ -30,40 +31,56 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
     // Generate additional method-based routes
     const methodRoutes = baseMethods
-      .filter((group) => group.group !== 'CRUD Operations') // Skip CRUD Operations
-      .map((group) =>
-        group.methods
-          .map(({ route }) =>
-            route
-              .replace(/{{tableNameKebabCasePlural}}/g, kebabCasePlural)
-              .replace(/{{tableNamePascalCase}}/g, pascalCase),
-          )
-          .join('\n'),
+      .filter((group) => group.group !== 'CRUD') // Skip CRUD
+      .map(
+        ({ group, methods }) =>
+          `/* ${group.toUpperCase()} */\n${methods
+            .map(({ route, description }) =>
+              `// ${description}\n${route}`
+                .replace(/{{tableNameKebabCasePlural}}/g, kebabCasePlural)
+                .replace(/{{tableNamePascalCase}}/g, pascalCase),
+            )
+            .join('\n')}`,
       )
-      .join('\n');
+      .join('\n\n');
 
-    // Combine custom routes and resource route
-    const customRoutesForController = `
-      ${modelSpecificRoutes}
-      ${methodRoutes}
-    `;
+    const customRoutesForController = methodRoutes;
 
     const routeFileContent = `
-<?php
+  <?php
 
-use Illuminate\\Support\\Facades\\Route;
-use App\\Http\\Controllers\\${pascalCase}Controller;
+  use Illuminate\\Support\\Facades\\Route;
+  use App\\Http\\Controllers\\{{tableNamePascalCase}}Controller;
 
-// Custom routes for ${pascalCase}
-${customRoutesForController}
-// Resource routes for ${pascalCase}
-Route::apiResource('${kebabCasePlural}', ${pascalCase}Controller::class);
-`;
+  // Custom routes for {{tableNamePascalCase}}
+
+  {{modelSpecificRoutes}}
+
+  // Base routes
+
+  {{customRoutesForController}}
+
+  // Resource routes for {{tableNamePascalCase}}
+  Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
+  `;
+
+    const customPlaceholders = {
+      modelSpecificRoutes,
+      customRoutesForController,
+    };
+
+    const tablePlaceholders: TableReplacements = {
+      tableNamePascalCase: pascalCase,
+      tableNameKebabCasePlural: kebabCasePlural,
+    };
 
     return {
       type: 'file',
       name: `${kebabCasePlural}.php`,
-      content: routeFileContent,
+      content: replacePlaceholder({
+        template: routeFileContent,
+        replacements: { ...tablePlaceholders, ...customPlaceholders },
+      }),
     };
   });
 

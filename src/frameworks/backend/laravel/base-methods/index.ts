@@ -1,13 +1,13 @@
-import { IRepositoryPatternStructure } from '@/interfaces/IRepositoryPatternStructure';
+import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
 import AdvancedOperations from './AdvancedOperations';
 import BulkOperations from './BulkOperations';
-import CRUDOperations from './CRUDOperations';
+import CRUD from './CRUD';
 import QueryAndSearch from './QueryAndSearch';
 import RetrievalAndSorting from './RetrievalAndSorting';
 import SoftDeletesAndRestoration from './SoftDeletesAndRestoration';
 
-const baseMethods: IRepositoryPatternStructure[] = [
-  { ...CRUDOperations },
+const baseMethods: IRepositoryStructure[] = [
+  { ...CRUD },
   { ...QueryAndSearch },
   { ...SoftDeletesAndRestoration },
   { ...BulkOperations },

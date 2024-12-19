@@ -13,7 +13,9 @@ export const generateModelSpecificMethods = ({
   // Retrieve the schema information for the target table
   const tableInfo = schemaInfo.find((table) => table.table === targetTable);
   if (!tableInfo) {
-    return '';
+    throw new Error(
+      `Table information for '${targetTable}' not found in the provided schema.`,
+    );
   }
 
   const { table, pivotRelationships, columnsInfo, hasOne, hasMany } = tableInfo;
@@ -59,7 +61,8 @@ export const generateModelSpecificMethods = ({
 
     const returnTypeDeclaration = returnType != null ? `: ${returnType}` : '';
 
-    const methodBody = fileToGenerate === 'interface' ? ';' : `\n    {\n${body}\n    }`;
+    const methodBody =
+      fileToGenerate === 'interface' ? ';' : `\n    {\n${body}\n    }`;
 
     const returnTypeComment = returnType != null ? `@return ${returnType}` : '';
 
@@ -73,7 +76,7 @@ export const generateModelSpecificMethods = ({
     public function ${methodName}${params}${returnTypeDeclaration}${methodBody}`;
   };
 
-  let methods = '';
+  const methods: string[] = [];
   const generatedMethods = new Set<string>();
 
   // Function to generate methods for different types of relationships
@@ -122,8 +125,8 @@ export const generateModelSpecificMethods = ({
         methodBody += `
         // Fetch the ${relatedTableName} from the repository
         $${relatedTableName} = $this->repository->get${relatedClass}${
-            !isHasOne ? 's' : ''
-          }($${primaryKey}${!isHasOne ? ', $column, $direction' : ''});
+          !isHasOne ? 's' : ''
+        }($${primaryKey}${!isHasOne ? ', $column, $direction' : ''});
         return response()->json($${relatedTableName});`;
       } else {
         if (isHasOne) {
@@ -133,8 +136,8 @@ export const generateModelSpecificMethods = ({
           methodBody = `
         $${modelVar}Model = new ${relatedClass}();
         $query = $this->model->find($${primaryKey})?->${
-              changeCase(relatedTableName).camelCase
-            }();
+          changeCase(relatedTableName).camelCase
+        }();
         $column = $column ?? $${modelVar}Model->getKeyName();
         $query->orderBy($column, $direction);
         return $query ? $query->get() : null;
@@ -142,14 +145,16 @@ export const generateModelSpecificMethods = ({
         }
       }
 
-      methods += generateMethod({
-        description,
-        returnType,
-        methodName,
-        body: methodBody,
-        paramName: primaryKey,
-        isController,
-      });
+      methods.push(
+        generateMethod({
+          description,
+          returnType,
+          methodName,
+          body: methodBody,
+          paramName: primaryKey,
+          isController,
+        }),
+      );
     });
   };
 
@@ -193,13 +198,15 @@ export const generateModelSpecificMethods = ({
         const returnType = `?${className}`;
         const body = `return $this->model->where('${foreignKey}', $${foreignKey})->first();`;
 
-        methods += generateMethod({
-          description,
-          returnType,
-          methodName,
-          body,
-          paramName: foreignKey,
-        });
+        methods.push(
+          generateMethod({
+            description,
+            returnType,
+            methodName,
+            body,
+            paramName: foreignKey,
+          }),
+        );
       }
     });
   }
@@ -247,9 +254,11 @@ export const generateModelSpecificMethods = ({
 
         generatedRoutes.add(route);
 
-        methods += `Route::get('${route}', [${className}Controller::class, 'get${
-          changeCase(relatedTable).pascalCase
-        }${!isHasOne ? 's' : ''}']);\n        `;
+        methods.push(
+          `Route::get('${route}', [${className}Controller::class, 'get${
+            changeCase(relatedTable).pascalCase
+          }${!isHasOne ? 's' : ''}']);`,
+        );
       });
     };
 
@@ -265,5 +274,5 @@ export const generateModelSpecificMethods = ({
     }
   }
 
-  return methods;
+  return methods.join('\n        ');
 };

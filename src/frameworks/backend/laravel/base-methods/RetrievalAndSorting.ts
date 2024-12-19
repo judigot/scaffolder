@@ -1,10 +1,12 @@
-export default {
+import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
+
+const structure: IRepositoryStructure = {
   group: 'Retrieval and Sorting',
   methods: [
-    // Commented sice Route::apiResource already handles findOrFail
+    // Commented since Route::apiResource already handles findOrFail
     // {
-    //   route: `// Find a record or throw an exception if not found
-    //     Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'findOrFail'])->name('{{tableNameKebabCasePlural}}.find-or-fail');`,
+    //   route: `Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'findOrFail'])->name('{{tableNameKebabCasePlural}}.find-or-fail');`,
+    //   description: 'Find a record or throw an exception if not found',
     //   repositoryMethod: 'findOrFail(int $id): Model',
     //   repositoryContent: 'return $this->model->findOrFail($id);',
     //   serviceMethod: 'findOrFail(int $id): Model',
@@ -18,8 +20,8 @@ export default {
     //   `,
     // },
     {
-      route: `// Find multiple records by their IDs
-        Route::post('{{tableNameKebabCasePlural}}/find-many', [{{tableNamePascalCase}}Controller::class, 'findMany'])->name('{{tableNameKebabCasePlural}}.find-many');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/find-many', [{{tableNamePascalCase}}Controller::class, 'findMany'])->name('{{tableNameKebabCasePlural}}.find-many');`,
+      description: 'Find multiple records by their IDs',
       repositoryMethod: 'findMany(array $ids): Collection',
       repositoryContent: 'return $this->model->findMany($ids);',
       serviceMethod: 'findMany(array $ids): Collection',
@@ -34,8 +36,8 @@ export default {
       `,
     },
     {
-      route: `// Retrieve random records
-        Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, 'random'])->name('{{tableNameKebabCasePlural}}.random');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, 'random'])->name('{{tableNameKebabCasePlural}}.random');`,
+      description: 'Retrieve random records',
       repositoryMethod: 'random(int $count = 1): Collection',
       repositoryContent: 'return $this->model->inRandomOrder()->limit($count)->get();',
       serviceMethod: 'random(int $count = 1): Collection',
@@ -50,8 +52,8 @@ export default {
       `,
     },
     {
-      route: `// Retrieve the latest record based on a column
-        Route::get('{{tableNameKebabCasePlural}}/latest', [{{tableNamePascalCase}}Controller::class, 'latest'])->name('{{tableNameKebabCasePlural}}.latest');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/latest', [{{tableNamePascalCase}}Controller::class, 'latest'])->name('{{tableNameKebabCasePlural}}.latest');`,
+      description: 'Retrieve the latest record based on a column',
       repositoryMethod: "latest(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->latest($column)->first();',
       serviceMethod: "latest(string $column = 'created_at'): ?Model",
@@ -66,8 +68,8 @@ export default {
       `,
     },
     {
-      route: `// Retrieve the oldest record based on a column
-        Route::get('{{tableNameKebabCasePlural}}/oldest', [{{tableNamePascalCase}}Controller::class, 'oldest'])->name('{{tableNameKebabCasePlural}}.oldest');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/oldest', [{{tableNamePascalCase}}Controller::class, 'oldest'])->name('{{tableNameKebabCasePlural}}.oldest');`,
+      description: 'Retrieve the oldest record based on a column',
       repositoryMethod: "oldest(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->oldest($column)->first();',
       serviceMethod: "oldest(string $column = 'created_at'): ?Model",
@@ -82,8 +84,8 @@ export default {
       `,
     },
     {
-      route: `// Order records by a specific column and direction
-        Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, 'orderBy'])->name('{{tableNameKebabCasePlural}}.order-by');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, 'orderBy'])->name('{{tableNameKebabCasePlural}}.order-by');`,
+      description: 'Order records by a specific column and direction',
       repositoryMethod: "orderBy(string $column, string $direction = 'asc'): Collection",
       repositoryContent: 'return $this->model->orderBy($column, $direction)->get();',
       serviceMethod: "orderBy(string $column, string $direction = 'asc'): Collection",
@@ -99,8 +101,8 @@ export default {
       `,
     },
     {
-      route: `// Group records by a specific column
-        Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCase}}Controller::class, 'groupBy'])->name('{{tableNameKebabCasePlural}}.group-by');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCase}}Controller::class, 'groupBy'])->name('{{tableNameKebabCasePlural}}.group-by');`,
+      description: 'Group records by a specific column',
       repositoryMethod: 'groupBy(string $column): Collection',
       repositoryContent: 'return $this->model->groupBy($column)->get();',
       serviceMethod: 'groupBy(string $column): Collection',
@@ -116,3 +118,5 @@ export default {
     },
   ],
 };
+
+export default structure;

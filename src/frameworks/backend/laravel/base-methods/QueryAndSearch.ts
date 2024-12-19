@@ -1,9 +1,11 @@
-export default {
+import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
+
+const structure: IRepositoryStructure = {
   group: 'Query and Search',
   methods: [
     {
-      route: `// Find a record by specific attributes
-        Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, 'findByAttributes'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, 'findByAttributes'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');`,
+      description: 'Find a record by specific attributes',
       repositoryMethod: 'findByAttributes(array $attributes): ?Model',
       repositoryContent: 'return $this->model->where($attributes)->first();',
       serviceMethod: 'findByAttributes(array $attributes): ?Model',
@@ -18,8 +20,8 @@ export default {
       `,
     },
     {
-      route: `// Paginate records
-        Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, 'paginate'])->name('{{tableNameKebabCasePlural}}.paginate');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, 'paginate'])->name('{{tableNameKebabCasePlural}}.paginate');`,
+      description: 'Paginate records',
       repositoryMethod: 'paginate(int $perPage = 15)',
       repositoryContent: 'return $this->model->paginate($perPage);',
       serviceMethod: 'paginate(int $perPage = 15)',
@@ -34,8 +36,8 @@ export default {
       `,
     },
     {
-      route: `// Search records
-        Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, 'search'])->name('{{tableNameKebabCasePlural}}.search');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, 'search'])->name('{{tableNameKebabCasePlural}}.search');`,
+      description: 'Search records',
       repositoryMethod: 'search(string $query, array $fields, int $perPage = 15)',
       repositoryContent: `
       return $this->model->where(function ($q) use ($query, $fields) {
@@ -58,8 +60,8 @@ export default {
       `,
     },
     {
-      route: `// Count records by criteria
-        Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, 'count'])->name('{{tableNameKebabCasePlural}}.count');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, 'count'])->name('{{tableNameKebabCasePlural}}.count');`,
+      description: 'Count records by criteria',
       repositoryMethod: 'count(array $criteria = []): int',
       repositoryContent: 'return $this->model->where($criteria)->count();',
       serviceMethod: 'count(array $criteria = []): int',
@@ -74,8 +76,8 @@ export default {
       `,
     },
     {
-      route: `// Check if a record exists
-        Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, 'exists'])->name('{{tableNameKebabCasePlural}}.exists');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, 'exists'])->name('{{tableNameKebabCasePlural}}.exists');`,
+      description: 'Check if a record exists',
       repositoryMethod: 'exists(array $criteria): bool',
       repositoryContent: 'return $this->model->where($criteria)->exists();',
       serviceMethod: 'exists(array $criteria): bool',
@@ -91,3 +93,5 @@ export default {
     },
   ],
 };
+
+export default structure;

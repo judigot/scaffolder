@@ -1,9 +1,11 @@
-export default {
+import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
+
+const structure: IRepositoryStructure = {
   group: 'Bulk Operations',
   methods: [
     {
-      route: `// Batch update multiple records
-        Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCase}}Controller::class, 'batchUpdate'])->name('{{tableNameKebabCasePlural}}.batch-update');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCase}}Controller::class, 'batchUpdate'])->name('{{tableNameKebabCasePlural}}.batch-update');`,
+      description: 'Batch update multiple records',
       repositoryMethod: 'batchUpdate(array $criteria, array $data): bool',
       repositoryContent: `
       return $this->model->where($criteria)->update($data) > 0;
@@ -21,8 +23,8 @@ export default {
       `,
     },
     {
-      route: `// Create or update a record
-        Route::post('{{tableNameKebabCasePlural}}/update-or-create', [{{tableNamePascalCase}}Controller::class, 'updateOrCreate'])->name('{{tableNameKebabCasePlural}}.update-or-create');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/update-or-create', [{{tableNamePascalCase}}Controller::class, 'updateOrCreate'])->name('{{tableNameKebabCasePlural}}.update-or-create');`,
+      description: 'Create or update a record',
       repositoryMethod:
         'updateOrCreate(array $attributes, array $values = []): Model',
       repositoryContent: `
@@ -43,3 +45,5 @@ export default {
     },
   ],
 };
+
+export default structure;
