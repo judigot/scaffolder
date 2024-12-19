@@ -1,12 +1,5 @@
 import { IFile } from '@/components/FileViewer';
-import {
-  CRUDOperations,
-  QueryAndSearch,
-  SoftDeletesAndRestoration,
-  BulkOperations,
-  RetrievalAndSorting,
-  AdvancedOperations,
-} from '@/frameworks/backend/laravel/base-methods';
+import baseMethods from '@/frameworks/backend/laravel/base-methods';
 import { createFile } from '@/helpers/stringHelper';
 import { ISchemaInfo } from '@/interfaces/interfaces';
 import { changeCase } from '@/utils/common';
@@ -23,15 +16,6 @@ Route::middleware('api')->group(function () {
 });
 `;
 
-const methodsAndContent = [
-  { ...CRUDOperations },
-  { ...QueryAndSearch },
-  { ...SoftDeletesAndRestoration },
-  { ...BulkOperations },
-  { ...RetrievalAndSorting },
-  { ...AdvancedOperations },
-];
-
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
   const routeFiles: IFile[] = schemaInfo.map((tableInfo) => {
     const { table } = tableInfo;
@@ -45,7 +29,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
     });
 
     // Generate additional method-based routes
-    const methodRoutes = methodsAndContent
+    const methodRoutes = baseMethods
       .filter((group) => group.group !== 'CRUD Operations') // Skip CRUD Operations
       .map((group) =>
         group.methods

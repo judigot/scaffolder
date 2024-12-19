@@ -1,40 +1,11 @@
 import { IFile } from '@/components/FileViewer';
-import {
-  AdvancedOperations,
-  BulkOperations,
-  CRUDOperations,
-  QueryAndSearch,
-  RetrievalAndSorting,
-  SoftDeletesAndRestoration,
-} from '@/frameworks/backend/laravel/base-methods';
+import baseMethods from '@/frameworks/backend/laravel/base-methods';
 import { createFile } from '@/helpers/stringHelper';
-
-export interface IGroup {
-  group: string;
-  methods: {
-    route: string;
-    repositoryMethod: string;
-    repositoryContent: string;
-    serviceMethod: string;
-    serviceContent: string;
-    controllerMethod: string;
-    controllerContent: string;
-  }[];
-}
-
-const methodsAndContent = [
-  { ...CRUDOperations },
-  { ...QueryAndSearch },
-  { ...SoftDeletesAndRestoration },
-  { ...BulkOperations },
-  { ...RetrievalAndSorting },
-  { ...AdvancedOperations },
-];
 
 const createBaseFiles = (
   type: 'interface' | 'repository' | 'service' | 'controller',
 ): IFile => {
-  const methods = methodsAndContent
+  const methods = baseMethods
     .map(({ group, methods }) => {
       const groupHeader = `\n    // ${group}`;
       const groupMethods = methods
