@@ -1,8 +1,7 @@
-import React from 'react';
-import ModalProvider from "@/components/Modal/base/ModalProvider.tsx";
-import { useModalStore } from "@/components/Modal/base/modalStore.tsx";
+import ModalProvider from '@/components/Modal/base/ModalProvider.tsx';
+import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 
-const App: React.FC = () => {
+function ModalViewer() {
   const { promptModal } = useModalStore();
 
   const handleOpenModal = async () => {
@@ -33,6 +32,6 @@ const App: React.FC = () => {
       <ModalProvider />
     </div>
   );
-};
+}
 
-export default App;
+export default ModalViewer;

@@ -2,7 +2,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { useModalStore } from '@/useModalStore.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
-import React, { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
 interface IForm {
   SQLSchemaEditable: string;
