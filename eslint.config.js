@@ -26,6 +26,7 @@ export default [
     ignores: [
       '**/dist',
       '**/eslint.config.js', // Comment out for Next.js to prevent "The Next.js plugin was not detected in your ESLint configuration" error
+      '**/vite.config.ts',
       '**/vitest.config.ts',
       '**/tailwind.config.js',
       '**/postcss.config.js',
