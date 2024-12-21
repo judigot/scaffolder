@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
 // https://vitejs.dev/config/
 import path from 'node:path';
 export default defineConfig({
