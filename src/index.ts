@@ -14,6 +14,7 @@ import { useFolderStructures } from '@/frameworks/useFolderStructures';
 import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects';
 import { executePostgreSQL } from '@/utils/executePostgreSQL';
 import { executeMySQL } from '@/utils/executeMySQL';
+import process from "node:process";
 
 dotenv.config();
 

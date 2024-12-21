@@ -33,12 +33,7 @@ export const useTransformationsStore = create<IStore>((set, get) => ({
   interfaces: {},
   getParsedSchemaInput: () => {
     const { schemaInput } = useFormStore.getState().formData;
-    try {
-      const result: ParsedJSONSchema = schemaInput;
-      return result;
-    } catch {
-      return {};
-    }
+    return schemaInput;
   },
   SQLSchema: '',
   deleteTablesQueries: [],

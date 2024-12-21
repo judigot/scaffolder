@@ -3,6 +3,7 @@ import path from 'path';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
 import { executeMySQL } from '@/utils/executeMySQL';
 import { executePostgreSQL } from '@/utils/executePostgreSQL';
+import process from "node:process";
 
 const platform: string = process.platform;
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
