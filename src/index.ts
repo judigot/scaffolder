@@ -301,32 +301,33 @@ app.post(
 
 app.post(
   '/introspect',
-  (req: Request<unknown, unknown, { dbConnection: string }>, res: Response) => {
+  async (
+    req: Request<unknown, unknown, { dbConnection: string }>,
+    res: Response,
+  ): Promise<void> => {
     const { dbConnection } = req.body;
     if (!dbConnection) {
-      return res
-        .status(400)
-        .json({ error: 'Database connection string is required' });
+      res.status(400).json({ error: 'Database connection string is required' });
+      return;
     }
-    void (async () => {
-      try {
-        const introspectionResult = await introspect(dbConnection);
 
-        const debugIntrospection = !true;
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (debugIntrospection) {
-          res.status(200).json(introspectionResult);
-          return;
-        }
+    try {
+      const introspectionResult = await introspect(dbConnection);
 
-        if (isITableArray(introspectionResult)) {
-          const schemaInfo = convertIntrospectedStructure(introspectionResult);
-          res.status(200).json(schemaInfo);
-        }
-      } catch (error: unknown) {
-        res.status(500).json({ error });
+      const debugIntrospection = !true;
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (debugIntrospection) {
+        res.status(200).json(introspectionResult);
+        return;
       }
-    })();
+
+      if (isITableArray(introspectionResult)) {
+        const schemaInfo = convertIntrospectedStructure(introspectionResult);
+        res.status(200).json(schemaInfo);
+      }
+    } catch (error: unknown) {
+      res.status(500).json({ error });
+    }
   },
 );
 
