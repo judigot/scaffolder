@@ -1,14 +1,14 @@
-import { IStructure } from '@/components/FileViewer';
-import { watermark } from '@/constants';
-import fs from 'fs';
-import path from 'path';
+import { IStructure } from '@/components/FileViewer.tsx';
+import { watermark } from '@/constants.ts';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const clearGeneratedFiles = (directory: string): void => {
   if (!fs.existsSync(directory)) {
     return;
   }
 
-  fs.readdirSync(directory).forEach((file) => {
+  fs.readdirSync(directory).forEach((file: string) => {
     const filePath = path.join(directory, file);
     const isFile = fs.lstatSync(filePath).isFile();
 

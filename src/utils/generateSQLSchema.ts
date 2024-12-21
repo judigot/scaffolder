@@ -1,12 +1,12 @@
 import { format as formatSQL } from 'sql-formatter';
-import { ISchemaInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
   determineSQLDatabaseType,
   generateColumnDefinition,
   getForeignKeyConstraints,
-} from '@/utils/common';
-import { useFormStore } from '@/useFormStore';
-import { APP_SETTINGS } from '@/constants';
+} from '@/utils/common.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { APP_SETTINGS } from '@/constants.ts';
 
 const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   const quote = useFormStore.getState().quote;

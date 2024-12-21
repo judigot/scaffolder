@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure';
-import { IIntrospectedSchemaInfo, ISchemaInfo } from '@/interfaces/interfaces';
+import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
+import { IIntrospectedSchemaInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 describe('convertIntrospectedStructure', () => {
   const usersPostOneToOneSchema: IIntrospectedSchemaInfo[] = [

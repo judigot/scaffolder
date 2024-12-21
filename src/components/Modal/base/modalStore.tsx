@@ -1,4 +1,4 @@
-import EditValueModal from '@/components/EditNameForm';
+import EditValueModal from '@/components/EditNameForm.tsx';
 import { create } from 'zustand';
 
 type ModalIDs = string;

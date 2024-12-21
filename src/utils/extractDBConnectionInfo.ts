@@ -1,4 +1,4 @@
-import { DBTypes } from '@/interfaces/interfaces';
+import { DBTypes } from '@/interfaces/interfaces.ts';
 
 interface IDBConnectionInfo {
   dbType: DBTypes;

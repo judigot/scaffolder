@@ -1,10 +1,10 @@
-import { IFile } from '@/components/FileViewer';
-import baseMethods from '@/frameworks/backend/laravel/base-methods';
-import { createFile, replacePlaceholder } from '@/helpers/stringHelper';
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import { TableReplacements } from '@/interfaces/placeholders';
-import { changeCase } from '@/utils/common';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
+import { IFile } from '@/components/FileViewer.tsx';
+import baseMethods from '@/frameworks/backend/laravel/base-methods/index.ts';
+import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { TableReplacements } from '@/interfaces/placeholders.ts';
+import { changeCase } from '@/utils/common.ts';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
 
 const template = `
 <?php

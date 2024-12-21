@@ -3,9 +3,9 @@ import {
   ISchemaInfo,
   isITable,
   IIntrospectedSchemaInfo,
-} from '@/interfaces/interfaces';
-import { addSchemaInfo } from '@/utils/identifySchema';
-import { typeMappings } from '@/utils/mappings';
+} from '@/interfaces/interfaces.ts';
+import { addSchemaInfo } from '@/utils/identifySchema.ts';
+import { typeMappings } from '@/utils/mappings.ts';
 
 export const getTypeScriptType = (dataType: string): string => {
   // Normalize the data type to lowercase

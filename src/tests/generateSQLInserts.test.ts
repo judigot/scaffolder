@@ -1,10 +1,10 @@
-import generateSQLInserts from '@/utils/generateSQLInserts';
+import generateSQLInserts from '@/utils/generateSQLInserts.ts';
 import { describe, it, expect } from 'vitest';
 import {
   POSSchema,
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,
-} from '@/json-schemas';
+} from '@/json-schemas/index.ts';
 
 describe('generateSQLInserts', () => {
   it('should generate correct SQL INSERT statements for POS schema', () => {

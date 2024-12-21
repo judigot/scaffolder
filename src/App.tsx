@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react';
-import { frameworks, useFormStore } from '@/useFormStore';
-import { useTransformationsStore } from '@/useTransformationsStore';
+import React, { useState, useEffect } from 'React';
+import { frameworks, useFormStore } from '@/useFormStore.ts';
+import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
-import { useModalStore } from '@/useModalStore';
+import { useModalStore } from '@/useModalStore.ts';
 
-import { consolidateInterfaces } from '@/utils/common';
-import FileViewer from '@/components/FileViewer';
-import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings';
-import { handleCopy } from '@/helpers/stringHelper';
-import { useFolderStructures } from '@/frameworks/useFolderStructures';
-import SchemaBuilder from '@/components/SchemaBuilder';
-import ModalViewer from '@/components/Modal/ModalViewer';
-import { CREATION_MODES } from '@/constants';
-import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces';
-import JSONSchemaEditor from '@/components/JSONSchemaEditor';
+import { consolidateInterfaces } from '@/utils/common.ts';
+import FileViewer from '@/components/FileViewer.tsx';
+import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings.tsx';
+import { handleCopy } from '@/helpers/stringHelper.ts';
+import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
+import SchemaBuilder from '@/components/SchemaBuilder.tsx';
+import ModalViewer from '@/components/Modal/ModalViewer.tsx';
+import { CREATION_MODES } from '@/constants.ts';
+import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces.ts';
+import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 
 function App() {
   const {

@@ -1,6 +1,6 @@
 import React from 'react';
-import ModalProvider from './base/ModalProvider';
-import { useModalStore } from './base/modalStore';
+import ModalProvider from "@/components/Modal/base/ModalProvider.tsx";
+import { useModalStore } from "@/components/Modal/base/modalStore.tsx";
 
 const App: React.FC = () => {
   const { promptModal } = useModalStore();

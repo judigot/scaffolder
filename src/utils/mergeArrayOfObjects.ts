@@ -1,4 +1,4 @@
-import { IStructure, IBase, IFile, IFolder } from '@/components/FileViewer';
+import { IStructure, IBase, IFile, IFolder } from "@/components/FileViewer.tsx";
 
 export function mergeArrayOfObjects(
   structure1: IStructure,

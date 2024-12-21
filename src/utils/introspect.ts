@@ -1,8 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
-import { executeMySQL } from '@/utils/executeMySQL';
-import { executePostgreSQL } from '@/utils/executePostgreSQL';
+import fs from "node:fs";
+import path from 'node:path';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { executeMySQL } from '@/utils/executeMySQL.ts';
+import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import process from "node:process";
 
 const platform: string = process.platform;

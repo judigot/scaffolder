@@ -1,4 +1,4 @@
-import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
+import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   group: 'Retrieval and Sorting',

@@ -1,5 +1,5 @@
-import { typeMappings } from '@/utils/mappings';
-import identifyTSPrimitiveType from './identifyTSPrimitiveType';
+import { typeMappings } from '@/utils/mappings.ts';
+import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
 
 interface IConversionParams {
   value: unknown;

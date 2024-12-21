@@ -1,4 +1,4 @@
-import identifyTSPrimitiveType from './identifyTSPrimitiveType';
+import identifyTSPrimitiveType from "@/utils/identifyTSPrimitiveType.ts";
 
 /**
  * Summarizes the value types of keys in an array of objects.

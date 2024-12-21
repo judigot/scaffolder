@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import identifySchema from '@/utils/identifySchema';
-import { ISchemaInfo } from '@/interfaces/interfaces';
+import identifySchema from '@/utils/identifySchema.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,
   POSSchema,
-} from '@/json-schemas';
+} from '@/json-schemas/index.ts';
 
 describe('identifySchema', () => {
   it('should correctly identify the full structure for usersPostOneToOneSchema', () => {

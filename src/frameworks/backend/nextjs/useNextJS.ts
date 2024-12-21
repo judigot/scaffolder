@@ -1,9 +1,9 @@
-import { IStructure } from '@/components/FileViewer';
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import createControllers from '@/frameworks/backend/nextjs/createControllers';
-import createAPIRoutes from '@/frameworks/backend/nextjs/createAPIRoutes';
-import createDatabaseClient from '@/frameworks/backend/nextjs/createDatabaseClient';
-import createDataTypeParser from '@/frameworks/backend/nextjs/createDataTypeParser';
+import { IStructure } from '@/components/FileViewer.tsx';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import createControllers from '@/frameworks/backend/nextjs/createControllers.ts';
+import createAPIRoutes from '@/frameworks/backend/nextjs/createAPIRoutes.ts';
+import createDatabaseClient from '@/frameworks/backend/nextjs/createDatabaseClient.ts';
+import createDataTypeParser from '@/frameworks/backend/nextjs/createDataTypeParser.ts';
 
 export function useNextJS({
   schemaInfo,

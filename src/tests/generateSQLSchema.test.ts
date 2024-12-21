@@ -1,14 +1,14 @@
-import identifySchema from '@/utils/identifySchema';
+import identifySchema from '@/utils/identifySchema.ts';
 import { describe, it, expect } from 'vitest';
-import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
-import generateSQLSchema from '@/utils/generateSQLSchema';
+import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables.ts';
+import generateSQLSchema from '@/utils/generateSQLSchema.ts';
 import { format as formatSQL } from 'sql-formatter';
-import { APP_SETTINGS } from '@/constants';
+import { APP_SETTINGS } from '@/constants.ts';
 import {
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,
   POSSchema,
-} from '@/json-schemas';
+} from '@/json-schemas/index.ts';
 
 describe('generateSQLSchema', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);

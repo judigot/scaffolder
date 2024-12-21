@@ -1,5 +1,5 @@
-import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
-import { useFormStore } from '@/useFormStore';
+import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import { useFormStore } from '@/useFormStore.ts';
 import { faker } from '@faker-js/faker';
 
 interface IFieldInfo {

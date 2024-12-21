@@ -1,4 +1,4 @@
-export { default as oneToOne } from './oneToOne';
-export { default as oneToMany } from './oneToMany';
-export { default as manyToMany } from './manyToMany';
-export { default as userRoles } from './userRoles';
+export { default as oneToOne } from './oneToOne.ts';
+export { default as oneToMany } from './oneToMany.ts';
+export { default as manyToMany } from './manyToMany.ts';
+export { default as userRoles } from './userRoles.ts';

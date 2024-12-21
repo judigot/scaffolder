@@ -6,7 +6,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import CopyIcon from '@mui/icons-material/ContentCopy';
 import CodeIcon from '@mui/icons-material/Code';
 import FolderIcon from '@mui/icons-material/Folder';
-import { handleCopy } from '@/helpers/stringHelper';
+import { handleCopy } from '@/helpers/stringHelper.ts';
 
 export interface IBase {
   name: string;

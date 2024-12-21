@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react-swc';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 // https://vitejs.dev/config/
-import path from 'path';
+import path from 'node:path';
 export default defineConfig({
   /* <newBuildOutput> */ build: { outDir: 'dist' },
   /* </testConfig> */ /*<alias>*/ resolve: {

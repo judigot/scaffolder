@@ -1,5 +1,5 @@
-import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces';
-import { changeCase } from '@/utils/common';
+import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import { changeCase } from '@/utils/common.ts';
 
 export const generateModelSpecificMethods = ({
   targetTable,

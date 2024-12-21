@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '@/interfaces/interfaces';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 export default [
   {

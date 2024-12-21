@@ -1,9 +1,9 @@
-import { createFile, replacePlaceholder } from '@/helpers/stringHelper';
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { APP_SETTINGS } from '@/constants';
-import { changeCase } from '@/utils/common';
-import { TableReplacements } from '@/interfaces/placeholders';
+import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
+import { APP_SETTINGS } from '@/constants.ts';
+import { changeCase } from '@/utils/common.ts';
+import { TableReplacements } from '@/interfaces/placeholders.ts';
 
 const template = `
 <?php

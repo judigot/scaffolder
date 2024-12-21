@@ -1,9 +1,9 @@
-import { replacePlaceholder } from '@/helpers/stringHelper';
-import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
-import { TableCaseFormatsObject } from '@/interfaces/placeholders';
-import { useFormStore } from '@/useFormStore';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
-import { typeMappings } from '@/utils/mappings';
+import { replacePlaceholder } from '@/helpers/stringHelper.ts';
+import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { typeMappings } from '@/utils/mappings.ts';
 import pluralize from 'pluralize';
 
 export function changeCase(input: string): TableCaseFormatsObject {

@@ -1,5 +1,5 @@
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import TagInput from '@/components/TagInput';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import TagInput from "@/components/TagInput.tsx";
 import { useState, useEffect } from 'react';
 
 interface IProps {

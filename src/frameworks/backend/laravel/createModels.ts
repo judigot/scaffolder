@@ -1,9 +1,9 @@
-import { APP_SETTINGS } from '@/constants';
-import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces';
-import { changeCase } from '@/utils/common';
-import { getPrimaryKey } from '@/utils/common';
-import { IFile } from '@/components/FileViewer';
-import { createFile } from '@/helpers/stringHelper';
+import { APP_SETTINGS } from '@/constants.ts';
+import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { changeCase } from '@/utils/common.ts';
+import { getPrimaryKey } from '@/utils/common.ts';
+import { IFile } from '@/components/FileViewer.tsx';
+import { createFile } from '@/helpers/stringHelper.ts';
 
 const fillableExemptions = ['created_at', 'updated_at'];
 

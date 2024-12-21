@@ -1,16 +1,16 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo';
-import { DBTypes, IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces';
-import { SQLQueries } from '@/utils/mappings';
-import { CREATION_MODES } from '@/constants';
-import { manyToMany, oneToMany, oneToOne } from '@/schema-infos';
-import identifySchema from '@/utils/identifySchema';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { DBTypes, IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { SQLQueries } from '@/utils/mappings.ts';
+import { CREATION_MODES } from '@/constants.ts';
+import { manyToMany, oneToMany, oneToOne } from '@/schema-infos/index.ts';
+import identifySchema from '@/utils/identifySchema.ts';
 import {
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,
   POSSchema,
-} from '@/json-schemas';
+} from '@/json-schemas/index.ts';
 
 export const frameworks = {
   LARAVEL: 'Laravel',

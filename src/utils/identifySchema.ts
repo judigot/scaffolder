@@ -2,14 +2,14 @@ import {
   IColumnInfo,
   ISchemaInfo,
   ParsedJSONSchema,
-} from '@/interfaces/interfaces';
-import convertType from './convertType';
-import identifyTSPrimitiveType from './identifyTSPrimitiveType';
+} from '@/interfaces/interfaces.ts';
+import convertType from "@/utils/convertType.ts";
+import identifyTSPrimitiveType from "@/utils/identifyTSPrimitiveType.ts";
 import {
   getForeignKeys,
   getForeignTables,
   getRequiredColumns,
-} from '@/utils/convertIntrospectedStructure';
+} from '@/utils/convertIntrospectedStructure.ts';
 
 /* Relationship Rules:
 

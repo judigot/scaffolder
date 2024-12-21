@@ -1,8 +1,8 @@
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS } from '@/constants';
-import { IFile } from '@/components/FileViewer';
-import { createFile } from '@/helpers/stringHelper';
-import { changeCase } from '@/utils/common';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { APP_SETTINGS } from '@/constants.ts';
+import { IFile } from '@/components/FileViewer.tsx';
+import { createFile } from '@/helpers/stringHelper.ts';
+import { changeCase } from '@/utils/common.ts';
 
 const template = `
 <?php

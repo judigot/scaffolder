@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType';
+import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
 
 describe('identifyTSPrimitiveType', () => {
   it('should return "number" for integers', () => {

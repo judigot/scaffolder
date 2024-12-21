@@ -1,8 +1,8 @@
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import { APP_SETTINGS } from '@/constants';
-import { changeCase } from '@/utils/common';
-import { IFile } from '@/components/FileViewer';
-import { createFile } from '@/helpers/stringHelper';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { APP_SETTINGS } from '@/constants.ts';
+import { changeCase } from '@/utils/common.ts';
+import { IFile } from '@/components/FileViewer.tsx';
+import { createFile } from '@/helpers/stringHelper.ts';
 
 /* Resource Generation Rules:
 

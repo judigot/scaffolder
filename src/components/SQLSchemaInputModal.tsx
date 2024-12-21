@@ -1,7 +1,7 @@
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import { useFormStore } from '@/useFormStore';
-import { useModalStore } from '@/useModalStore';
-import useTransformationsStore from '@/useTransformationsStore';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { useModalStore } from '@/useModalStore.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
 import React, { FormEvent, useEffect, useState } from 'react';
 
 interface IForm {

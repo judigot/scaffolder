@@ -1,5 +1,5 @@
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import { useFormStore } from '@/useFormStore';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { useFormStore } from '@/useFormStore.ts';
 
 function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
   const foreignKeys = schemaInfo.reduce<Record<string, string[]>>(

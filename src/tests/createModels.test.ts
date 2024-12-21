@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import identifySchema from '@/utils/identifySchema';
-import { createRelationships } from '@/frameworks/backend/laravel/createModels';
-import { normalizeWhitespace } from '@/helpers/stringHelper';
-import { watermark } from '@/constants';
+import identifySchema from '@/utils/identifySchema.ts';
+import { createRelationships } from '@/frameworks/backend/laravel/createModels.ts';
+import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
+import { watermark } from '@/constants.ts';
 import {
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,
   POSSchema,
-} from '@/json-schemas';
+} from '@/json-schemas/index.ts';
 
 const template = `
     <?php

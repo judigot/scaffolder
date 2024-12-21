@@ -1,8 +1,8 @@
-import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
-import identifySchema from '@/utils/identifySchema';
+import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins.ts';
+import identifySchema from '@/utils/identifySchema.ts';
 import { describe, it, expect } from 'vitest';
-import { normalizeWhitespace } from '@/helpers/stringHelper';
-import { POSSchema, usersPostsOneToManySchema } from '@/json-schemas';
+import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
+import { POSSchema, usersPostsOneToManySchema } from '@/json-schemas/index.ts';
 
 describe('generateSQLAggregateJoins', () => {
   const POSSchemaInfo = identifySchema(POSSchema);

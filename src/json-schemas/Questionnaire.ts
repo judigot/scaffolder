@@ -1,4 +1,4 @@
-import { IJSONSchema } from '../interfaces/interfaces';
+import { IJSONSchema } from '@/interfaces/interfaces.ts';
 
 export default {
   question_type: [

@@ -1,14 +1,14 @@
-import { IStructure } from '@/components/FileViewer';
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import createAPIRoutes from '@/frameworks/backend/laravel/createAPIRoutes';
-import createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/createAppServiceProviderScaffolding';
-import createControllers from '@/frameworks/backend/laravel/createControllers';
-import createInterfaces from '@/frameworks/backend/laravel/createInterfaces';
-import createModels from '@/frameworks/backend/laravel/createModels';
-import createRepositories from '@/frameworks/backend/laravel/createRepositories';
-import createResources from '@/frameworks/backend/laravel/createResources';
-import createServices from '@/frameworks/backend/laravel/createServices';
-import createBaseFiles from '@/frameworks/backend/laravel/createBaseFiles';
+import { IStructure } from '@/components/FileViewer.tsx';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import createAPIRoutes from '@/frameworks/backend/laravel/createAPIRoutes.ts';
+import createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/createAppServiceProviderScaffolding.ts';
+import createControllers from '@/frameworks/backend/laravel/createControllers.ts';
+import createInterfaces from '@/frameworks/backend/laravel/createInterfaces.ts';
+import createModels from '@/frameworks/backend/laravel/createModels.ts';
+import createRepositories from '@/frameworks/backend/laravel/createRepositories.ts';
+import createResources from '@/frameworks/backend/laravel/createResources.ts';
+import createServices from '@/frameworks/backend/laravel/createServices.ts';
+import createBaseFiles from '@/frameworks/backend/laravel/createBaseFiles.ts';
 
 export function useLaravel({
   schemaInfo,

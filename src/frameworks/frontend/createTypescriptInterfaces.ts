@@ -1,6 +1,6 @@
-import { IStructure } from '@/components/FileViewer';
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
+import { IStructure } from '@/components/FileViewer.tsx';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces.ts';
 
 const createTypescriptInterfaces = (schemaInfo: ISchemaInfo[]): IStructure => {
   const interfaces = generateTypescriptInterfaces({

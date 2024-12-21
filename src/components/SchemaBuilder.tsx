@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ITableInfo } from '@/interfaces/interfaces';
-import { addRelationship } from '@/helpers/relationshipHelper';
-import { useModalStore } from '@/components/Modal/base/modalStore';
+import { ITableInfo } from '@/interfaces/interfaces.ts';
+import { addRelationship } from '@/helpers/relationshipHelper.ts';
+import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
-import { getColumnDefaultDisplay } from '@/utils/common';
-import { useFormStore } from '@/useFormStore';
+import { getColumnDefaultDisplay } from '@/utils/common.ts';
+import { useFormStore } from '@/useFormStore.ts';
 
 // const renameSchemaInstances = (
 //   schemaData: ISchemaInfo[],

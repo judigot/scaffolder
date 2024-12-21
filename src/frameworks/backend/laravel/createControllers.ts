@@ -1,9 +1,9 @@
-import { IFile } from '@/components/FileViewer';
-import { APP_SETTINGS } from '@/constants';
-import { createFile } from '@/helpers/stringHelper';
-import { ISchemaInfo } from '@/interfaces/interfaces';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { changeCase } from '@/utils/common';
+import { IFile } from '@/components/FileViewer.tsx';
+import { APP_SETTINGS } from '@/constants.ts';
+import { createFile } from '@/helpers/stringHelper.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
+import { changeCase } from '@/utils/common.ts';
 
 const template = `
 <?php

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import identifySchema from '@/utils/identifySchema';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods';
-import { normalizeWhitespace } from '@/helpers/stringHelper';
+import identifySchema from '@/utils/identifySchema.ts';
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
+import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 import {
   usersPostsOneToManySchema,
   POSSchema,
   usersPostOneToOneSchema,
-} from '@/json-schemas';
+} from '@/json-schemas/index.ts';
 
 describe('generateModelSpecificMethods', () => {
   const userPostsOneToManySchemaInfo = identifySchema(

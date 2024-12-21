@@ -1,4 +1,4 @@
-import { watermark } from '@/constants';
+import { watermark } from '@/constants.ts';
 
 export const oneToManyExpectation = [
   {

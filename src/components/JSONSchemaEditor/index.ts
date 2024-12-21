@@ -1,1 +1,1 @@
-export { default } from './JSONSchemaEditor';
+export { default } from './JSONSchemaEditor.tsx';

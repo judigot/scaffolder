@@ -1,6 +1,6 @@
-import { useModalStore } from './base/modalStore';
+import { useModalStore } from "./base/modalStore.tsx";
 
-import SecondModal from './SecondModal';
+import SecondModal from "@/components/Modal/SecondModal.tsx";
 
 function FirstModal({ data }: { data: { message: string } }) {
   const { openModal } = useModalStore();

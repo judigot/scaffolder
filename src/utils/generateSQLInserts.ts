@@ -1,6 +1,6 @@
-import { ParsedJSONSchema } from '@/interfaces/interfaces';
-import { useFormStore } from '@/useFormStore';
-import { formatDateForMySQL } from '@/utils/common';
+import { ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { formatDateForMySQL } from '@/utils/common.ts';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 

@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 import { format as formatSQL } from 'sql-formatter';
-import generateMockData from './utils/generateMockData';
-import generateSQLInserts from './utils/generateSQLInserts';
-import generateSQLHasOneJoins from '@/utils/generateSQLHasOneJoins';
-import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins';
-import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables';
-import { useFormStore } from './useFormStore';
-import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
-import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces';
-import generateSQLSchema from '@/utils/generateSQLSchema';
-import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins';
+import generateMockData from '@/utils/generateMockData.ts';
+import generateSQLInserts from '@/utils/generateSQLInserts.ts';
+import generateSQLHasOneJoins from "@/utils/generateSQLHasOneJoins.ts";
+import generateSQLAggregateJoins from "@/utils/generateSQLAggregateJoins.ts";
+import generateSQLDeleteTables from "@/utils/generateSQLDeleteTables.ts";
+import { useFormStore } from "@/useFormStore.ts";
+import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces.ts';
+import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import generateSQLSchema from '@/utils/generateSQLSchema.ts';
+import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
 
 interface IStore {
   interfaces: Record<string, string>;

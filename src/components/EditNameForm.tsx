@@ -1,4 +1,4 @@
-import { useModalStore } from './Modal/base/modalStore';
+import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import { useState, useRef, useEffect } from 'react';
 
 function EditValueModal({

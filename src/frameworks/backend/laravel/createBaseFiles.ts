@@ -1,6 +1,6 @@
-import { IFile } from '@/components/FileViewer';
-import baseMethods from '@/frameworks/backend/laravel/base-methods';
-import { createFile } from '@/helpers/stringHelper';
+import { IFile } from '@/components/FileViewer.tsx';
+import baseMethods from '@/frameworks/backend/laravel/base-methods/index.ts';
+import { createFile } from '@/helpers/stringHelper.ts';
 
 const createBaseFiles = (
   type: 'interface' | 'repository' | 'service' | 'controller',

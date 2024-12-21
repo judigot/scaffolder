@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import identifySchema from '@/utils/identifySchema';
-import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces';
-import { normalizeWhitespace } from '@/helpers/stringHelper';
+import identifySchema from '@/utils/identifySchema.ts';
+import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces.ts';
+import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 import {
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,
   POSSchema,
-} from '@/json-schemas';
+} from '@/json-schemas/index.ts';
 
 describe('generateTypescriptInterfaces', () => {
   const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
