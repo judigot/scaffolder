@@ -2613,6 +2613,8 @@
         "npm:esbuild-register@^3.6.0",
         "npm:esbuild@0.24",
         "npm:eslint-config-prettier@^9.1.0",
+        "npm:eslint-import-resolver-typescript@^3.7.0",
+        "npm:eslint-plugin-import@^2.31.0",
         "npm:eslint-plugin-jsx-a11y@^6.10.2",
         "npm:eslint-plugin-no-type-assertion@^1.3.0",
         "npm:eslint-plugin-prettier@^5.2.1",

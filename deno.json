@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["deno.ns", "dom"],
+    "jsx": "react-jsx",
     "strict": true
   },
   "imports": {
