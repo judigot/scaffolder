@@ -90,6 +90,6 @@ const structure: IRepositoryStructure = {
       `,
     },
   ],
-};
+} satisfies IRepositoryStructure;
 
 export default structure;

@@ -1,6 +1,6 @@
 import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
 
-const structure: IRepositoryStructure = {
+export default {
   group: 'Advanced Operations',
   methods: [
     {
@@ -175,6 +175,4 @@ const structure: IRepositoryStructure = {
       `,
     },
   ],
-};
-
-export default structure;
+} satisfies IRepositoryStructure;

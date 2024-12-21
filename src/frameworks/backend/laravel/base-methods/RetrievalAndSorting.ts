@@ -1,6 +1,6 @@
 import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
 
-const structure: IRepositoryStructure = {
+export default {
   group: 'Retrieval and Sorting',
   methods: [
     // Can be commented since Route::apiResource already handles findOrFail
@@ -128,6 +128,4 @@ const structure: IRepositoryStructure = {
       `,
     },
   ],
-};
-
-export default structure;
+} satisfies IRepositoryStructure;

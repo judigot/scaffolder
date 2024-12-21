@@ -1,6 +1,6 @@
 import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure';
 
-const structure: IRepositoryStructure = {
+export default {
   group: 'Soft Deletes and Restoration',
   methods: [
     {
@@ -94,6 +94,4 @@ const structure: IRepositoryStructure = {
       `,
     },
   ],
-};
-
-export default structure;
+} satisfies IRepositoryStructure;
