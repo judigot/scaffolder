@@ -1,4 +1,6 @@
-export const QuestionnaireSchema = {
+import { IJSONSchema } from '../interfaces/interfaces';
+
+export default {
   question_type: [
     {
       question_type_id: 1,
@@ -356,4 +358,4 @@ export const QuestionnaireSchema = {
       open_ended_answer_id: null,
     },
   ],
-};
+} satisfies IJSONSchema;

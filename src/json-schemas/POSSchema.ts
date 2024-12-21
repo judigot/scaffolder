@@ -1,4 +1,6 @@
-export const POSSchema = {
+import { IJSONSchema } from '../interfaces/interfaces';
+
+export default {
   product: [
     {
       product_id: 1,
@@ -50,4 +52,4 @@ export const POSSchema = {
       product_id: 2,
     },
   ],
-};
+} satisfies IJSONSchema;

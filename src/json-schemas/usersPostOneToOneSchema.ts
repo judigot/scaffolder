@@ -1,4 +1,6 @@
-export const usersPostOneToOneSchema = {
+import { IJSONSchema } from '../interfaces/interfaces';
+
+export default {
   user: [
     {
       user_id: 1,
@@ -39,4 +41,4 @@ export const usersPostOneToOneSchema = {
       updated_at: '2024-06-18T10:17:19.123456Z',
     },
   ],
-};
+} satisfies IJSONSchema;
