@@ -1,6 +1,6 @@
-import { ISchemaInfo } from "@/interfaces/interfaces";
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
-export const manyToMany: ISchemaInfo[] = [
+export default [
   {
     tableName: 'product',
     requiredColumns: ['product_id', 'product_name'],
@@ -161,4 +161,4 @@ export const manyToMany: ISchemaInfo[] = [
     belongsToMany: [],
     pivotRelationships: [],
   },
-];
+] satisfies ISchemaInfo[];

@@ -1,6 +1,6 @@
-import { ISchemaInfo } from "@/interfaces/interfaces";
+import { ISchemaInfo } from '@/interfaces/interfaces';
 
-export const oneToOne: ISchemaInfo[] = [
+export default [
   {
     tableName: 'user',
     requiredColumns: [
@@ -175,4 +175,4 @@ export const oneToOne: ISchemaInfo[] = [
     belongsToMany: [],
     pivotRelationships: [],
   },
-];
+] satisfies ISchemaInfo[];

@@ -1,6 +1,6 @@
 import { ISchemaInfo } from '@/interfaces/interfaces';
 
-export const userRoles: ISchemaInfo[] = [
+export default [
   {
     tableName: 'users',
     requiredColumns: ['id', 'name', 'email', 'password'],
@@ -242,4 +242,4 @@ export const userRoles: ISchemaInfo[] = [
     belongsToMany: [],
     pivotRelationships: [],
   },
-];
+] satisfies ISchemaInfo[];
