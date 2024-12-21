@@ -5,7 +5,7 @@ import createAPIRoutes from '@/frameworks/backend/nextjs/createAPIRoutes.ts';
 import createDatabaseClient from '@/frameworks/backend/nextjs/createDatabaseClient.ts';
 import createDataTypeParser from '@/frameworks/backend/nextjs/createDataTypeParser.ts';
 
-export function useNextJS({
+export function getNextJSStructure({
   schemaInfo,
 }: {
   schemaInfo: ISchemaInfo[];
@@ -53,3 +53,6 @@ export function useNextJS({
 
   return fileStructure;
 }
+
+// Keep the old name for backward compatibility
+export const useNextJS = getNextJSStructure;

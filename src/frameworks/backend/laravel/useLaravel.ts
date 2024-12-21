@@ -10,7 +10,7 @@ import createResources from '@/frameworks/backend/laravel/createResources.ts';
 import createServices from '@/frameworks/backend/laravel/createServices.ts';
 import createBaseFiles from '@/frameworks/backend/laravel/createBaseFiles.ts';
 
-export function useLaravel({
+export function getLaravelStructure({
   schemaInfo,
 }: {
   schemaInfo: ISchemaInfo[];
@@ -79,3 +79,6 @@ export function useLaravel({
 
   return fileStructure;
 }
+
+// Keep the old name for backward compatibility
+export const useLaravel = getLaravelStructure;
