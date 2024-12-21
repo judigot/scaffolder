@@ -35,14 +35,14 @@ export function useLaravel({
             {
               type: 'folder',
               name: 'Resources',
-              files: createResources(schemaInfo),
+              files: [...createResources(schemaInfo)],
             },
           ],
         },
         {
           type: 'folder',
           name: 'Models',
-          files: createModels(schemaInfo),
+          files: [...createModels(schemaInfo)],
         },
         {
           type: 'folder',
