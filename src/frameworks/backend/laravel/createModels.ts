@@ -3,7 +3,8 @@ import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
 import { IFile } from '@/components/FileViewer.tsx';
-import { createFile } from '@/helpers/stringHelper.ts';
+import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
+import modelStructure from '@/frameworks/backend/laravel/_modelStructure.ts';
 
 const fillableExemptions = ['created_at', 'updated_at'];
 
@@ -108,9 +109,17 @@ export const createRelationships = (
   const belongsToRelations = foreignKeys
     .map((foreignKey) => {
       const relationshipName = foreignKey.replace('_id', '');
-      return `    public function ${changeCase(relationshipName).camelCase}()\n    {\n        return $this->belongsTo(${changeCase(relationshipName).pascalCase}::class, '${foreignKey}');\n    }\n`;
+      const relatedModel = changeCase(relationshipName).pascalCase;
+      return replacePlaceholder({
+        template: modelStructure.belongsTo,
+        replacements: {
+          relationshipName: changeCase(relationshipName).camelCase,
+          relatedModel,
+          foreignKey,
+        },
+      });
     })
-    .join('\n');
+    .join('\n\n');
 
   const hasManyRelations = schemaInfo
     .find((table) => table.tableName === tableName)
@@ -132,31 +141,43 @@ export const createRelationships = (
         ?.columnsInfo.find((column) => column.primary_key)?.column_name;
 
       if (childPrimaryKey != null && parentPrimaryKey != null) {
-        return `    public function ${changeCase(relatedTable).camelCase}s()\n    {\n        return $this->hasMany(${changeCase(relatedTable).pascalCase}::class, '${parentPrimaryKey}');\n    }\n`;
+        return replacePlaceholder({
+          template: modelStructure.hasMany,
+          replacements: {
+            relationshipName: changeCase(relatedTable).camelCase,
+            relatedModel: changeCase(relatedTable).pascalCase,
+            foreignKey: parentPrimaryKey,
+          },
+        });
       }
       return '';
     })
-    .join('\n');
+    .join('\n\n');
 
   const hasOneRelations = hasOne
     .map((relatedTable) => {
-      const relatedTableClass = changeCase(relatedTable).pascalCase;
-      return `    public function ${changeCase(relatedTable).camelCase}()\n    {\n        return $this->hasOne(${relatedTableClass}::class, '${String(parentPrimaryKey)}');\n    }\n`;
+      return replacePlaceholder({
+        template: modelStructure.hasOne,
+        replacements: {
+          relationshipName: changeCase(relatedTable).camelCase,
+          relatedModel: changeCase(relatedTable).pascalCase,
+          foreignKey: String(parentPrimaryKey),
+        },
+      });
     })
-    .join('\n');
+    .join('\n\n');
 
   const belongsToManyRelations = belongsToMany
     .map((relatedTable) => {
-      const relatedTableClass = changeCase(relatedTable).pascalCase;
-      const junctionTable = schemaInfo.find(
+      const pivotTable = schemaInfo.find(
         (table) =>
           table.foreignTables.includes(relatedTable) &&
           table.foreignTables.includes(tableName),
       )?.tableName;
 
-      if (junctionTable == null) {
+      if (pivotTable == null) {
         throw new Error(
-          `Junction table not found for ${tableName} and ${relatedTable}`,
+          `Pivot table not found for ${tableName} and ${relatedTable}`,
         );
       }
 
@@ -166,9 +187,18 @@ export const createRelationships = (
         schemaInfo,
       });
 
-      return `    public function ${changeCase(relatedTable).camelCase}s()\n    {\n        return $this->belongsToMany(${relatedTableClass}::class, '${junctionTable}', '${primaryKey}', '${relatedTableForeignKey}');\n    }\n`;
+      return replacePlaceholder({
+        template: modelStructure.belongsToMany,
+        replacements: {
+          relationshipName: changeCase(relatedTable).camelCase,
+          relatedModel: changeCase(relatedTable).pascalCase,
+          pivotTable,
+          primaryKey,
+          relatedTableForeignKey,
+        },
+      });
     })
-    .join('\n');
+    .join('\n\n');
 
   return [
     belongsToRelations,
@@ -183,10 +213,13 @@ export const createRelationships = (
 
 const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
-    .filter(
+    .filter(({ isPivot }) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
-    )
+      if (!APP_SETTINGS.excludePivotTableFiles) {
+        return true;
+      }
+      return !isPivot;
+    })
     .map((tableInfo) => {
       const {
         tableName,
@@ -237,43 +270,18 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
         )
         .join('\n');
 
-      const template = `
-<?php
-
-namespace App\\Models;
-
-{{modelImports}}
-use Illuminate\\Database\\Eloquent\\Model;
-use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
-
-class {{className}} extends Model
-{
-    use HasFactory;
-
-    protected $table = '{{tableName}}';
-
-    {{primaryKey}}
-
-    {{hiddenColumns}}
-
-    protected $fillable = [
-        {{fillable}}
-    ];
-    {{relationships}}
-}
-`;
-
-      const replacements = {
-        modelImports,
-        className,
-        tableName,
-        primaryKey,
-        hiddenColumns,
-        fillable,
-        relationships,
-      };
-
-      const content = createFile({ template, replacements });
+      const content = createFile({
+        template: modelStructure.modelTemplate,
+        replacements: {
+          modelImports,
+          className,
+          tableName,
+          primaryKey,
+          hiddenColumns,
+          fillable,
+          relationships,
+        },
+      });
 
       return {
         type: 'file',
