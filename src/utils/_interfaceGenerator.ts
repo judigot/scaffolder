@@ -1,5 +1,5 @@
 import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
-
+import { typeMappings } from '@/utils/mappings.ts';
 /**
  * Summarizes the value types of keys in an array of objects.
  *
@@ -124,12 +124,19 @@ export function haveSimilarObjects<T>(arr: T[]): boolean {
  * @param indentLevel - The level of indentation for nested objects.
  * @returns A string representing the TypeScript interface with nested types.
  */
-export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
-  data: Record<string, unknown> | Record<string, unknown>[],
-  interfaceName = 'IRootInterface',
+export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+  data,
+  interfaceName,
   isChildObject = false,
   indentLevel = 1,
-): string {
+  isDateStringFormat = false,
+}: {
+  data: Record<string, unknown> | Record<string, unknown>[];
+  interfaceName: string;
+  isChildObject?: boolean;
+  indentLevel?: number;
+  isDateStringFormat?: boolean;
+}): string {
   const isArrayOfObjectsSimilarType =
     Array.isArray(data) && haveSimilarObjects(data);
   const isObject = (value: unknown): value is Record<string, unknown> => {
@@ -193,8 +200,12 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
           return `${indent}${key}${isOptional}: null;`;
         }
 
-        if (value instanceof Date || isISODateString(value)) {
+        if (value instanceof Date) {
           return `${indent}${key}${isOptional}: Date;`;
+        }
+
+        if (typeof value === 'string' && isISODateString(value)) {
+          return `${indent}${key}${isOptional}: ${isDateStringFormat ? 'Date' : 'string'};`;
         }
 
         if (Array.isArray(value)) {
@@ -202,28 +213,38 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
             return `${indent}${key}${isOptional}: unknown[];`;
           }
           const arrayContent =
-            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
-              value,
-              key,
-              true,
-              indentLevel + 1,
-            );
+            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+              data: value,
+              interfaceName: key,
+              isChildObject: true,
+              indentLevel: indentLevel + 1,
+              isDateStringFormat,
+            });
           return `${indent}${key}${isOptional}: ${arrayContent}[];`;
         }
 
         if (isObject(value)) {
           const nestedContent =
-            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
-              value,
-              key,
-              true,
-              indentLevel + 1,
-            );
+            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+              data: value,
+              interfaceName: key,
+              isChildObject: true,
+              indentLevel: indentLevel + 1,
+              isDateStringFormat,
+            });
           return `${indent}${key}${isOptional}: ${nestedContent};`;
         }
 
         const valueType = identifyTSPrimitiveType(value);
-        return `${indent}${key}${isOptional}: ${valueType};`;
+        const isValidMapping = (
+          type: string,
+        ): type is keyof typeof typeMappings => {
+          return Object.prototype.hasOwnProperty.call(typeMappings, type);
+        };
+        const mappedType = isValidMapping(valueType)
+          ? typeMappings[valueType].typescript
+          : valueType;
+        return `${indent}${key}${isOptional}: ${mappedType};`;
       })
       .join('\n');
   };
@@ -247,10 +268,13 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
                 const nestedObj = getObjectFromArray(data, key);
                 if (nestedObj) {
                   return generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
-                    nestedObj,
-                    key,
-                    true,
-                    indentLevel + 1,
+                    {
+                      data: nestedObj,
+                      interfaceName: key,
+                      isChildObject: true,
+                      indentLevel: indentLevel + 1,
+                      isDateStringFormat,
+                    },
                   );
                 }
                 return 'Record<string, unknown>';
@@ -268,7 +292,7 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
 
   return isChildObject
     ? interfaceContent
-    : `interface ${interfaceName} ${interfaceContent}`;
+    : `export interface ${interfaceName} ${interfaceContent}`;
 }
 
 const objectVariable = {
@@ -369,8 +393,9 @@ interface IObjectVariable {
 
 // eslint-disable-next-line no-console
 console.log(
-  generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
-    objectVariable,
-    'IObjectVariable',
-  ),
+  generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+    interfaceName: 'IObjectVariable',
+    data: objectVariable,
+    isDateStringFormat: false,
+  }),
 );
