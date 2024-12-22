@@ -1,59 +1,11 @@
-// Type mappings for generating TypeScript types
-const typeMappings = {
-  primaryKey: {
-    typescript: 'number',
-  },
-  password: {
-    typescript: 'string',
-  },
-  number: {
-    typescript: 'number',
-  },
-  float: {
-    typescript: 'number',
-  },
-  string: {
-    typescript: 'string',
-  },
-  boolean: {
-    typescript: 'boolean',
-  },
-  Date: {
-    typescript: 'string', // Treat dates as strings for this example
-  },
-} as const;
-
+import { generateInterface } from '@/utils/_interfaceGenerator.ts';
 export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
   interfaceName,
   data,
-  typeMappings,
-  isDateStringFormat,
+  isDateStringFormat = false,
 }: {
   interfaceName: string;
-  data: unknown;
-  typeMappings: {
-    primaryKey: {
-      typescript: 'number';
-    };
-    password: {
-      typescript: 'string';
-    };
-    number: {
-      typescript: 'number';
-    };
-    float: {
-      typescript: 'number';
-    };
-    string: {
-      typescript: 'string';
-    };
-    boolean: {
-      typescript: 'boolean';
-    };
-    Date: {
-      typescript: 'Date';
-    };
-  };
+  data: Record<string, unknown> | Record<string, unknown>[];
   isDateStringFormat: boolean;
 }): string => {
   /*
@@ -186,56 +138,182 @@ export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
     }));
   }
 
-  /**
-   * Checks if an array consists of similar objects, meaning all objects in the
-   * array must have the same keys. If any element in the array is not an object,
-   * or if the objects have different keys, the function returns false.
-   * Returns true for empty arrays or arrays with a single object.
-   *
-   * @param arr - The array to check.
-   * @returns A boolean indicating whether all objects in the array have similar keys.
-   */
-  function haveSimilarObjects<T>(arr: T[]): boolean {
-    if (arr.length === 0 || arr.length === 1) {
-      return true;
-    }
-
-    if (typeof arr[0] !== 'object' || arr[0] === null) {
-      return false;
-    }
-
-    const firstKeys = Object.keys(arr[0]);
-
-    return arr.every((obj) => {
-      if (typeof obj !== 'object' || obj === null) {
-        return false;
-      }
-
-      const keys = Object.keys(obj);
-      return (
-        keys.length === firstKeys.length &&
-        keys.every((key) => firstKeys.includes(key))
-      );
-    });
-  }
-
   return `
-  export interface I${interfaceName} {
-    ${(() => {
-      return hierarchy
-        .map(populateInterfaceProperties) // Use the helper function for consistency
-        .join('\n    '); // Join the elements with a newline and indentation
-    })()}
-  }
+${generateInterface({ interfaceName, data, isDateStringFormat })}
 
-  export function isI${interfaceName}(data: unknown): data is I${interfaceName} {
-    if (Array.isArray(data)) {
-      return data.every(isI${interfaceName});
-    }
+export function isI${interfaceName}(data: unknown): data is I${interfaceName} {
+  if (Array.isArray(data)) {
+    return data.every(isI${interfaceName});
   }
+}
 
-  export function isI${interfaceName}Array(data: unknown): data is I${interfaceName}[] {
-    return Array.isArray(data) && data.every(isI${interfaceName});
-  }
-  `;
+export function isI${interfaceName}Array(data: unknown): data is I${interfaceName}[] {
+  return Array.isArray(data) && data.every(isI${interfaceName});
+}
+`;
 };
+
+const objectVariable = {
+  key: null,
+  key1: 1,
+  key2: '2023-06-18T18:17:19.000000Z',
+  key3: new Date(),
+  user: {
+    id: 1,
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    isActive: true,
+    createdAt: '2023-10-01T14:48:00.000Z',
+    posts: [
+      {
+        id: 101,
+        title: 'My First Post',
+        content: 'This is the content of my first post.',
+        tags: ['typescript', 'javascript'],
+        createdAt: '2023-10-02T10:15:00.000Z',
+        comments: [
+          {
+            id: 201,
+            text: 'Great post!',
+            author: 'Jane Smith',
+            createdAt: '2023-10-03T11:30:00.000Z',
+          },
+          {
+            id: 202,
+            text: 'Thanks for sharing!',
+            author: 'Bob Johnson',
+            createdAt: '2023-10-04T09:45:00.000Z',
+          },
+        ],
+      },
+      {
+        id: 102,
+        title: 'Another Post',
+        content: 'Here is some more content for another post.',
+        tags: ['coding', 'react'],
+        createdAt: '2023-10-05T12:20:00.000Z',
+        comments: [],
+      },
+    ],
+  },
+  prop: {
+    child1: 2,
+    child2: {
+      child1: 2,
+      child2: new Date(),
+    },
+  },
+  prop1: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: 1,
+      child3: false,
+    },
+    {
+      child1: 2,
+      child2: 1,
+      child3: 'false',
+    },
+  ],
+  prop2: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: new Date(),
+    },
+  ],
+  prop3: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: {
+        prop1: [
+          {
+            child1: 1,
+            child2: 1,
+          },
+          {
+            child1: 2,
+            child2: 1,
+          },
+        ],
+      },
+    },
+  ],
+};
+
+/*
+Result should be:
+export interface IObjectVariable {
+  key: null;
+  key1: number;
+  key2: string;
+  key3: Date;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    isActive: boolean;
+    createdAt: string;
+    posts: {
+      id: number;
+      title: string;
+      content: string;
+      tags: string[];
+      createdAt: string;
+      comments: {
+        id: number;
+        text: string;
+        author: string;
+        createdAt: string;
+      }[];
+    }[];
+  };
+  prop: {
+    child1: number;
+    child2: {
+      child1: number;
+      child2: Date;
+    };
+  };
+  prop1: {
+    child1: number;
+    child2: number;
+    child3: boolean | string;
+  }[];
+  prop2: {
+    child1: number;
+    child2: number | Date;
+  }[];
+  prop3: {
+    child1: number;
+    child2:
+      | number
+      | {
+          prop1: {
+            child1: number;
+            child2: number;
+          }[];
+        };
+  }[];
+}
+*/
+
+// eslint-disable-next-line no-console
+console.log(
+  generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+    interfaceName: 'IObjectVariable',
+    data: objectVariable,
+    isDateStringFormat: false,
+  }),
+);

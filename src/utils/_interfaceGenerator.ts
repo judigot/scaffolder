@@ -139,8 +139,9 @@ export function generateInterface({
 }): string {
   const isArrayOfObjectsSimilarType =
     Array.isArray(data) && haveSimilarObjects(data);
+
   const isObject = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    return typeof value === 'object' && !Array.isArray(value);
   };
 
   const indent = '    '.repeat(indentLevel);
@@ -189,9 +190,107 @@ export function generateInterface({
   };
 
   const generateInterfaceContent = (
-    obj: Record<string, unknown>,
+    obj: Record<string, unknown> | Record<string, unknown>[],
     optionalKeys?: Set<string>,
   ): string => {
+    const getArrayElementType = (arr: unknown[]): string => {
+      if (arr.length === 0) {
+        return 'unknown';
+      }
+
+      // If all elements are primitives, return their union type
+      const allPrimitives = arr.every(
+        (item) =>
+          item === null ||
+          typeof item === 'string' ||
+          typeof item === 'number' ||
+          typeof item === 'boolean' ||
+          item instanceof Date,
+      );
+
+      if (allPrimitives) {
+        const types = new Set(
+          arr.map((item) => {
+            if (item === null) {
+              return 'null';
+            }
+            if (item instanceof Date) {
+              return 'Date';
+            }
+            return typeof item;
+          }),
+        );
+        if (types.size === 1) {
+          return Array.from(types)[0];
+        }
+        return Array.from(types).join(' | ');
+      }
+
+      // If all elements are arrays, handle nested arrays
+      if (arr.every((item) => Array.isArray(item))) {
+        const nestedArrays = arr.filter((item): item is unknown[] =>
+          Array.isArray(item),
+        );
+        const flattenedType = getArrayElementType(nestedArrays.flat());
+        return `${flattenedType}[]`;
+      }
+
+      // If some elements are objects, generate interface for them
+      const objects = arr.filter(isObject);
+      if (objects.length > 0) {
+        const objectType = generateInterface({
+          data: objects,
+          interfaceName: 'item',
+          isChildObject: true,
+          indentLevel: indentLevel + 1,
+          isDateStringFormat,
+        });
+
+        // If there are only objects, return just the object type
+        if (objects.length === arr.length) {
+          return objectType;
+        }
+
+        // Otherwise, include other types in the union
+        const otherTypes = arr
+          .filter((item) => !isObject(item))
+          .map((item): string => {
+            if (item === null) {
+              return 'null';
+            }
+            if (item instanceof Date) {
+              return 'Date';
+            }
+            if (Array.isArray(item)) {
+              const elementType = getArrayElementType(item);
+              return `${elementType}[]`;
+            }
+            return typeof item;
+          });
+
+        const uniqueTypes = new Set([objectType, ...otherTypes]);
+        return Array.from(uniqueTypes).join(' | ');
+      }
+
+      // Handle mixed types including arrays
+      const types = new Set(
+        arr.map((item): string => {
+          if (item === null) {
+            return 'null';
+          }
+          if (item instanceof Date) {
+            return 'Date';
+          }
+          if (Array.isArray(item)) {
+            const elementType = getArrayElementType(item);
+            return `${elementType}[]`;
+          }
+          return typeof item;
+        }),
+      );
+      return Array.from(types).join(' | ');
+    };
+
     return Object.entries(obj)
       .map(([key, value]) => {
         const isOptional = optionalKeys?.has(key) === true ? '?' : '';
@@ -209,17 +308,8 @@ export function generateInterface({
         }
 
         if (Array.isArray(value)) {
-          if (value.length === 0) {
-            return `${indent}${key}${isOptional}: unknown[];`;
-          }
-          const arrayContent = generateInterface({
-            data: value,
-            interfaceName: key,
-            isChildObject: true,
-            indentLevel: indentLevel + 1,
-            isDateStringFormat,
-          });
-          return `${indent}${key}${isOptional}: ${arrayContent}[];`;
+          const elementType = getArrayElementType(value);
+          return `${indent}${key}${isOptional}: ${elementType}[];`;
         }
 
         if (isObject(value)) {
@@ -250,13 +340,13 @@ export function generateInterface({
   let interfaceContent = '';
 
   if (Array.isArray(data)) {
-    if (isArrayOfObjectsSimilarType && data.length > 0) {
+    if (isArrayOfObjectsSimilarType) {
       const firstItem = data[0];
       if (isObject(firstItem)) {
         const optionalKeys = findOptionalKeys(data.filter(isObject));
         interfaceContent = `{\n${generateInterfaceContent(firstItem, optionalKeys)}\n${indent.slice(4)}}`;
       }
-    } else if (data.length > 0) {
+    } else {
       const typeSummary = summarizeArrayOfObjectValueTypes(data);
       interfaceContent = `{\n${typeSummary
         .map(({ key, value_types }) => {
@@ -282,7 +372,9 @@ export function generateInterface({
         })
         .join('\n')}\n${indent.slice(4)}}`;
     }
-  } else if (isObject(data)) {
+  }
+
+  if (isObject(data)) {
     interfaceContent = `{\n${generateInterfaceContent(data)}\n${indent.slice(4)}}`;
   }
 

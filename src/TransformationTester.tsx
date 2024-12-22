@@ -1,4 +1,4 @@
-import { generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects } from '@/utils/_interfaceGenerator.ts';
+import { generateInterface } from '@/utils/_interfaceGenerator.ts';
 import { useEffect, useState } from 'react';
 
 function App() {
@@ -145,7 +145,7 @@ function App() {
     };
 
     setJSONSchemaTransformation(
-      generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+      generateInterface({
         interfaceName: 'JSONSchema',
         typeMappings,
         data: jsonSchema,
@@ -154,7 +154,7 @@ function App() {
     );
 
     setArrayOfObjectsTransformation(
-      generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+      generateInterface({
         interfaceName: 'arrayOfObjects',
         typeMappings,
         data: arrayOfObjectsVariable,
@@ -163,7 +163,7 @@ function App() {
     );
 
     setObjectTransformation(
-      generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+      generateInterface({
         interfaceName: 'Object',
         typeMappings,
         data: objectVariable,
@@ -172,7 +172,7 @@ function App() {
     );
 
     setSampleData(
-      generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+      generateInterface({
         interfaceName: 'UserPost',
         typeMappings,
         data: sampleData,
