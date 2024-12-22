@@ -124,7 +124,7 @@ export function haveSimilarObjects<T>(arr: T[]): boolean {
  * @param indentLevel - The level of indentation for nested objects.
  * @returns A string representing the TypeScript interface with nested types.
  */
-export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+export function generateInterface({
   data,
   interfaceName,
   isChildObject = false,
@@ -212,26 +212,24 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
           if (value.length === 0) {
             return `${indent}${key}${isOptional}: unknown[];`;
           }
-          const arrayContent =
-            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
-              data: value,
-              interfaceName: key,
-              isChildObject: true,
-              indentLevel: indentLevel + 1,
-              isDateStringFormat,
-            });
+          const arrayContent = generateInterface({
+            data: value,
+            interfaceName: key,
+            isChildObject: true,
+            indentLevel: indentLevel + 1,
+            isDateStringFormat,
+          });
           return `${indent}${key}${isOptional}: ${arrayContent}[];`;
         }
 
         if (isObject(value)) {
-          const nestedContent =
-            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
-              data: value,
-              interfaceName: key,
-              isChildObject: true,
-              indentLevel: indentLevel + 1,
-              isDateStringFormat,
-            });
+          const nestedContent = generateInterface({
+            data: value,
+            interfaceName: key,
+            isChildObject: true,
+            indentLevel: indentLevel + 1,
+            isDateStringFormat,
+          });
           return `${indent}${key}${isOptional}: ${nestedContent};`;
         }
 
@@ -267,15 +265,13 @@ export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
               if (t === 'object') {
                 const nestedObj = getObjectFromArray(data, key);
                 if (nestedObj) {
-                  return generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
-                    {
-                      data: nestedObj,
-                      interfaceName: key,
-                      isChildObject: true,
-                      indentLevel: indentLevel + 1,
-                      isDateStringFormat,
-                    },
-                  );
+                  return generateInterface({
+                    data: nestedObj,
+                    interfaceName: key,
+                    isChildObject: true,
+                    indentLevel: indentLevel + 1,
+                    isDateStringFormat,
+                  });
                 }
                 return 'Record<string, unknown>';
               }
@@ -300,6 +296,44 @@ const objectVariable = {
   key1: 1,
   key2: '2023-06-18T18:17:19.000000Z',
   key3: new Date(),
+  user: {
+    id: 1,
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    isActive: true,
+    createdAt: '2023-10-01T14:48:00.000Z',
+    posts: [
+      {
+        id: 101,
+        title: 'My First Post',
+        content: 'This is the content of my first post.',
+        tags: ['typescript', 'javascript'],
+        createdAt: '2023-10-02T10:15:00.000Z',
+        comments: [
+          {
+            id: 201,
+            text: 'Great post!',
+            author: 'Jane Smith',
+            createdAt: '2023-10-03T11:30:00.000Z',
+          },
+          {
+            id: 202,
+            text: 'Thanks for sharing!',
+            author: 'Bob Johnson',
+            createdAt: '2023-10-04T09:45:00.000Z',
+          },
+        ],
+      },
+      {
+        id: 102,
+        title: 'Another Post',
+        content: 'Here is some more content for another post.',
+        tags: ['coding', 'react'],
+        createdAt: '2023-10-05T12:20:00.000Z',
+        comments: [],
+      },
+    ],
+  },
   prop: {
     child1: 2,
     child2: {
@@ -358,42 +392,64 @@ const objectVariable = {
 
 /*
 Result should be:
-interface IObjectVariable {
-    key: null;
-    key1: number;
-    key2: string;
-    key3: Date;
-    prop: {
-        child1: number;
-        child2: {
-            child1: number;
-            child2: Date;
-        };
+export interface IObjectVariable {
+  key: null;
+  key1: number;
+  key2: string;
+  key3: Date;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    isActive: boolean;
+    createdAt: string;
+    posts: {
+      id: number;
+      title: string;
+      content: string;
+      tags: string[];
+      createdAt: string;
+      comments: {
+        id: number;
+        text: string;
+        author: string;
+        createdAt: string;
+      }[];
+    }[];
+  };
+  prop: {
+    child1: number;
+    child2: {
+      child1: number;
+      child2: Date;
     };
-    prop1: {
-        child1: number;
-        child2: number;
-        child3?: boolean | string;
-    }[];
-    prop2: {
-        child1: number;
-        child2: number | Date;
-    }[];
-    prop3: {
-        child1: number;
-        child2: number | {
-            prop1: {
-                child1: number;
-                child2: number;
-            }[];
+  };
+  prop1: {
+    child1: number;
+    child2: number;
+    child3: boolean | string;
+  }[];
+  prop2: {
+    child1: number;
+    child2: number | Date;
+  }[];
+  prop3: {
+    child1: number;
+    child2:
+      | number
+      | {
+          prop1: {
+            child1: number;
+            child2: number;
+          }[];
         };
-    }[];
+  }[];
 }
 */
 
 // eslint-disable-next-line no-console
 console.log(
-  generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+  generateInterface({
     interfaceName: 'IObjectVariable',
     data: objectVariable,
     isDateStringFormat: false,
