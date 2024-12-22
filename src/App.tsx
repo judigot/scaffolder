@@ -10,7 +10,6 @@ import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings.tsx'
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
-import ModalViewer from '@/components/Modal/ModalViewer.tsx';
 import { CREATION_MODES } from '@/constants.ts';
 import { ISchemaInfo, isISchemaInfoArray } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
@@ -91,7 +90,6 @@ function App() {
 
   return (
     <div className="text-white bg-black">
-      <ModalViewer />
       <div className="bg-gray-900 text-white p-4">
         <h1 className="text-2xl font-bold text-center">App Scaffolder</h1>
         <h2 className="text-1xl text-red-500 font-bold text-center">
