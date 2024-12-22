@@ -1,4 +1,4 @@
-import identifyTSPrimitiveType from "@/utils/identifyTSPrimitiveType.ts";
+import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
 
 /**
  * Summarizes the value types of keys in an array of objects.
@@ -257,11 +257,36 @@ const objectVariable = {
 
 /*
 Result should be:
-interface IData {
-  prop1: {
-    child1: number;
-    child2: number | string;
-  }[];
+interface IObjectVariable {
+    key: null;
+    key1: number;
+    key2: string;
+    key3: Date;
+    prop: {
+        child1: number;
+        child2: {
+            child1: number;
+            child2: Date;
+        };
+    };
+    prop1: {
+        child1: number;
+        child2: number;
+        child3?: boolean | string;
+    }[];
+    prop2: {
+        child1: number;
+        child2: number | Date;
+    }[];
+    prop3: {
+        child1: number;
+        child2: number | {
+            prop1: {
+                child1: number;
+                child2: number;
+            }[];
+        };
+    }[];
 }
 */
 
