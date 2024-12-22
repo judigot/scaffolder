@@ -109,15 +109,6 @@ export function haveSimilarObjects<T>(arr: T[]): boolean {
   });
 }
 
-/*
-Prompt:
-You can add code, but should not remove code. keep all the variables and parameters intact.
-Only modify generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects. Keep the other functions intact.
-Never remove this:
-const isArrayOfObjectsSimilarType =
-    Array.isArray(dataArray) && haveSimilarObjects(dataArray);
-*/
-
 /**
  * Generates a TypeScript interface from an object or array of objects with nested types.
  * Use isArrayOfObjectsSimilarType to use the shorthand { key: string | number }[] rather than { key: string } | { key: number }
@@ -130,68 +121,154 @@ const isArrayOfObjectsSimilarType =
  * @param data - The object or array of objects to generate the interface from.
  * @param interfaceName - The name of the root interface.
  * @param isChildObject - Indicates whether the current level is a nested object.
+ * @param indentLevel - The level of indentation for nested objects.
  * @returns A string representing the TypeScript interface with nested types.
  */
 export function generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
   data: Record<string, unknown> | Record<string, unknown>[],
   interfaceName = 'IRootInterface',
   isChildObject = false,
+  indentLevel = 1,
 ): string {
+  const isArrayOfObjectsSimilarType =
+    Array.isArray(data) && haveSimilarObjects(data);
   const isObject = (value: unknown): value is Record<string, unknown> => {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   };
 
-  const generateInterfaceContent = (obj: Record<string, unknown>): string => {
-    return (
-      Object.entries(obj)
-        .map(([key, value]) => {
-          const valueType =
-            value === null ? 'null' : identifyTSPrimitiveType(value);
+  const indent = '    '.repeat(indentLevel);
 
-          if (value instanceof Date) {
-            return `${key}: Date;`;
+  const isISODateString = (value: unknown): value is string => {
+    if (typeof value !== 'string') {
+      return false;
+    }
+    const isoDatePattern =
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})?$/;
+    return isoDatePattern.test(value);
+  };
+
+  const getObjectFromArray = (
+    arr: Record<string, unknown>[],
+    key: string,
+  ): Record<string, unknown> | null => {
+    const found = arr.find((item) => {
+      const val = item[key];
+      return isObject(val);
+    });
+
+    if (!found || !isObject(found[key])) {
+      return null;
+    }
+
+    return found[key];
+  };
+
+  const findOptionalKeys = (
+    objects: Record<string, unknown>[],
+  ): Set<string> => {
+    const allKeys = new Set<string>();
+    const requiredKeys = new Set<string>();
+
+    objects.forEach((obj) => {
+      Object.keys(obj).forEach((key) => {
+        allKeys.add(key);
+        if (obj[key] !== undefined) {
+          requiredKeys.add(key);
+        }
+      });
+    });
+
+    return new Set([...allKeys].filter((key) => !requiredKeys.has(key)));
+  };
+
+  const generateInterfaceContent = (
+    obj: Record<string, unknown>,
+    optionalKeys?: Set<string>,
+  ): string => {
+    return Object.entries(obj)
+      .map(([key, value]) => {
+        const isOptional = optionalKeys?.has(key) === true ? '?' : '';
+
+        if (value === null) {
+          return `${indent}${key}${isOptional}: null;`;
+        }
+
+        if (value instanceof Date || isISODateString(value)) {
+          return `${indent}${key}${isOptional}: Date;`;
+        }
+
+        if (Array.isArray(value)) {
+          if (value.length === 0) {
+            return `${indent}${key}${isOptional}: unknown[];`;
           }
+          const arrayContent =
+            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
+              value,
+              key,
+              true,
+              indentLevel + 1,
+            );
+          return `${indent}${key}${isOptional}: ${arrayContent}[];`;
+        }
 
-          if (typeof value !== 'string') {
-            if (Array.isArray(value)) {
-              return `\n  ${key}: {${generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(value, key, true)}}[];`; /* Array of similar objects */
-            } else if (isObject(value)) {
-              return `\n  ${key}: {${generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(value, key, true)}};`; /* Recursion for nested objects */
-            }
-          }
+        if (isObject(value)) {
+          const nestedContent =
+            generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
+              value,
+              key,
+              true,
+              indentLevel + 1,
+            );
+          return `${indent}${key}${isOptional}: ${nestedContent};`;
+        }
 
-          return `\n  ${key}: ${valueType};`;
-        })
-        .join('  ') + '\n'
-    );
+        const valueType = identifyTSPrimitiveType(value);
+        return `${indent}${key}${isOptional}: ${valueType};`;
+      })
+      .join('\n');
   };
 
   let interfaceContent = '';
 
   if (Array.isArray(data)) {
-    if (haveSimilarObjects(data)) {
-      interfaceContent =
-        generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
-          data[0],
-          '',
-          true,
-        );
-    } else {
+    if (isArrayOfObjectsSimilarType && data.length > 0) {
+      const firstItem = data[0];
+      if (isObject(firstItem)) {
+        const optionalKeys = findOptionalKeys(data.filter(isObject));
+        interfaceContent = `{\n${generateInterfaceContent(firstItem, optionalKeys)}\n${indent.slice(4)}}`;
+      }
+    } else if (data.length > 0) {
       const typeSummary = summarizeArrayOfObjectValueTypes(data);
-      interfaceContent = typeSummary
+      interfaceContent = `{\n${typeSummary
         .map(({ key, value_types }) => {
-          const typeUnion = value_types.join(' | ');
-          return `${key}: ${typeUnion};`;
+          const types = value_types
+            .map((t) => {
+              if (t === 'object') {
+                const nestedObj = getObjectFromArray(data, key);
+                if (nestedObj) {
+                  return generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
+                    nestedObj,
+                    key,
+                    true,
+                    indentLevel + 1,
+                  );
+                }
+                return 'Record<string, unknown>';
+              }
+              return t;
+            })
+            .join(' | ');
+          return `${indent}${key}: ${types};`;
         })
-        .join('\n  ');
+        .join('\n')}\n${indent.slice(4)}}`;
     }
   } else if (isObject(data)) {
-    interfaceContent = generateInterfaceContent(data);
+    interfaceContent = `{\n${generateInterfaceContent(data)}\n${indent.slice(4)}}`;
   }
 
   return isChildObject
-    ? `  ${interfaceContent}`
-    : `interface ${interfaceName} {  ${interfaceContent}}`;
+    ? interfaceContent
+    : `interface ${interfaceName} ${interfaceContent}`;
 }
 
 const objectVariable = {
@@ -291,4 +368,9 @@ interface IObjectVariable {
 */
 
 // eslint-disable-next-line no-console
-/*prettier-ignore*/ (($= generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(objectVariable, "IData"))=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();
+console.log(
+  generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects(
+    objectVariable,
+    'IObjectVariable',
+  ),
+);
