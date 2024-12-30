@@ -1,19 +1,35 @@
 import { replacePlaceholder } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
 import hasOneStructure from '@/frameworks/backend/laravel/relationship-methods/hasOneStructure.ts';
-import { ITableInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 function generateDomainCode({
-  tableInfo: { hasOne, hasMany, pivotRelationships },
+  schemaInfo,
+  tableName,
   placeholders,
   codeToGenerate,
 }: {
-  tableInfo: ITableInfo;
+  schemaInfo: ISchemaInfo[];
+  tableName: ISchemaInfo['tableName'];
   placeholders: Record<string, string>;
   codeToGenerate: keyof IMethods;
 }): string {
-  const template = `// ${hasOneStructure.description}\n${hasOneStructure[codeToGenerate]}`;
+  const tableInfo = schemaInfo.find((table) => table.tableName === tableName);
+
+  if (!tableInfo) {
+    throw new Error(`Table "${tableName}" not found in schema information.`);
+  }
+  const primaryKey = tableInfo.columnsInfo.find(
+    (column) => column.primary_key,
+  )?.column_name;
+
+  if (primaryKey == null) {
+    throw new Error(`Primary key not found for table "${tableName}".`);
+  }
+
+  const { hasOne, hasMany, pivotRelationships } = tableInfo;
+  const template = hasOneStructure[codeToGenerate];
 
   const generateRouteFromTable = (
     relatedTable: string,
@@ -30,6 +46,7 @@ function generateDomainCode({
       ...placeholders,
       relatedTableNameKebabCase,
       relatedTableNamePascal,
+      primaryKey,
     };
 
     return replacePlaceholder({

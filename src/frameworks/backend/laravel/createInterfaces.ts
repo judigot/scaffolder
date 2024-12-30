@@ -1,10 +1,14 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
 import { generateModelImports } from '@/utils/common.ts';
 import { APP_SETTINGS } from '@/constants.ts';
 import { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
+
+import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
+
+// import { generateModelSpecificMethods } from "@/utils/generateModelSpecificMethods.ts";
+// import generateDomainCode from "@/utils/generateDomainCode.ts";
 
 const template = `
 <?php
@@ -12,11 +16,11 @@ const template = `
 namespace App\\Repositories;
 
 {{modelImports}}
-use App\\Models\\{{className}};
+use App\\Models\\{{tableNamePascalCase}};
 use Illuminate\\Support\\Collection;
 use App\\Repositories\\BaseInterface;
 
-interface {{className}}Interface extends BaseInterface
+interface {{tableNamePascalCase}}Interface extends BaseInterface
 {
 {{modelSpecificMethods}}
 }
@@ -30,18 +34,28 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
     )
     .map((tableInfo) => {
       const { tableName } = tableInfo;
-      const { pascalCase } = changeCase(tableName);
-      const className = pascalCase;
+      const { pascalCase: tableNamePascalCase } = changeCase(tableName);
 
       const modelImports = generateModelImports(tableInfo);
+
       const modelSpecificMethods = generateModelSpecificMethods({
         targetTable: tableName,
         schemaInfo,
         fileToGenerate: 'interface',
       });
 
+      // const modelSpecificMethods = generateDomainCode({
+      //   schemaInfo,
+      //   tableName,
+      //   placeholders: {
+      //     tableName,
+      //     tableNamePascalCase,
+      //   },
+      //   codeToGenerate: 'repositoryMethod',
+      // });
+
       const replacements = {
-        className,
+        tableNamePascalCase,
         tableName,
         modelImports,
         modelSpecificMethods,
@@ -51,7 +65,7 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
       return {
         type: 'file',
-        name: `${className}Interface.php`,
+        name: `${tableNamePascalCase}Interface.php`,
         content,
       };
     });
