@@ -28,6 +28,13 @@ export interface IRepositoryStructure {
   methods: IMethods[];
 }
 
-export interface IRelationshipStructure extends IMethods {
-  group: MethodGroups | RelationshipMethodGroups;
+export interface IRelationshipStructure
+  extends IMethods,
+    Omit<IRepositoryStructure, 'methods'> {
+  childRepositoryMethod: string;
+  childRepositoryContent: string;
+  childServiceMethod: string;
+  childServiceContent: string;
+  childControllerMethod: string;
+  childControllerContent: string;
 }

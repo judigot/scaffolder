@@ -17,4 +17,11 @@ export default {
   controllerMethod: 'get{{relatedTableNamePascal}}(Request $request, int $id)',
   controllerContent:
     '// Fetch the {{relatedTableName}} from the repository\n${{relatedTableName}} = $this->repository->get{{relatedTableNamePascal}}($id);\nreturn response()->json(${{relatedTableName}});',
+
+  childRepositoryMethod: '',
+  childRepositoryContent: '',
+  childServiceMethod: '',
+  childServiceContent: '',
+  childControllerMethod: '',
+  childControllerContent: '',
 } satisfies IRelationshipStructure;

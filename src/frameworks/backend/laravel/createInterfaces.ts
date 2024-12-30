@@ -11,8 +11,8 @@ const template = `
 
 namespace App\\Repositories;
 
-use App\\Models\\{{className}};
 {{modelImports}}
+use App\\Models\\{{className}};
 use Illuminate\\Support\\Collection;
 use App\\Repositories\\BaseInterface;
 
