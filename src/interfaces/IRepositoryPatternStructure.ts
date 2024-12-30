@@ -11,7 +11,7 @@ type RelationshipMethodGroups =
   | 'One-to-Many Relationship'
   | 'Many-to-Many Relationship';
 
-interface IMethods {
+export interface IMethods {
   methodName: string;
   route: string;
   description: string;
@@ -26,4 +26,8 @@ interface IMethods {
 export interface IRepositoryStructure {
   group: MethodGroups | RelationshipMethodGroups;
   methods: IMethods[];
+}
+
+export interface IRelationshipStructure extends IMethods {
+  group: MethodGroups | RelationshipMethodGroups;
 }

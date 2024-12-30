@@ -4,7 +4,7 @@ import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { TableReplacements } from '@/interfaces/placeholders.ts';
 import { changeCase } from '@/utils/common.ts';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
+import generateDomainCode from '@/utils/generateDomainCode.ts';
 
 const template = `
 <?php
@@ -20,14 +20,10 @@ Route::middleware('api')->group(function () {
 const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
   const routeFiles: IFile[] = schemaInfo.map((tableInfo) => {
     const { tableName } = tableInfo;
-    const { pascalCase, kebabCasePlural } = changeCase(tableName);
-
-    // Generate model-specific routes
-    const modelSpecificRoutes = generateModelSpecificMethods({
-      targetTable: tableName,
-      schemaInfo,
-      fileToGenerate: 'routes',
-    });
+    const {
+      pascalCase: tableNamePascalCase,
+      kebabCasePlural: tableNameKebabCasePlural,
+    } = changeCase(tableName);
 
     // Generate additional method-based routes
     const methodRoutes = baseMethods
@@ -37,14 +33,22 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
           `/* ${group.toUpperCase()} */\n${methods
             .map(({ route, description }) =>
               `// ${description}\n${route}`
-                .replace(/{{tableNameKebabCasePlural}}/g, kebabCasePlural)
-                .replace(/{{tableNamePascalCase}}/g, pascalCase),
+                .replace(
+                  /{{tableNameKebabCasePlural}}/g,
+                  tableNameKebabCasePlural,
+                )
+                .replace(/{{tableNamePascalCase}}/g, tableNamePascalCase),
             )
             .join('\n')}`,
       )
       .join('\n\n');
 
-    const customRoutesForController = methodRoutes;
+    const baseRoutesForController = methodRoutes;
+
+    const tablePlaceholders: TableReplacements = {
+      tableNamePascalCase,
+      tableNameKebabCasePlural,
+    };
 
     const routeFileContent = `
   <?php
@@ -58,33 +62,30 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
   // Base routes
 
-  {{customRoutesForController}}
+  {{baseRoutesForController}}
 
   // Resource routes for {{tableNamePascalCase}}
   Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
   `;
 
-    const customPlaceholders = {
-      modelSpecificRoutes,
-      customRoutesForController,
-    };
-
-    const tablePlaceholders: TableReplacements = {
-      tableNamePascalCase: pascalCase,
-      tableNameKebabCasePlural: kebabCasePlural,
-    };
-
     return {
       type: 'file',
-      name: `${kebabCasePlural}.php`,
+      name: `${tableNameKebabCasePlural}.php`,
       content: replacePlaceholder({
         template: routeFileContent,
-        replacements: { ...tablePlaceholders, ...customPlaceholders },
+        replacements: {
+          ...tablePlaceholders,
+          baseRoutesForController,
+          modelSpecificRoutes: generateDomainCode({
+            codeToGenerate: 'route',
+            tableInfo,
+            placeholders: tablePlaceholders,
+          }),
+        },
       }),
     };
   });
 
-  // Create main `api.php` file to include all route files
   const customRoutes = routeFiles
     .map(({ name }) => `    require __DIR__ . '/${name}';`)
     .join('\n');
