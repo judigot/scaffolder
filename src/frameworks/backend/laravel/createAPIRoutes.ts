@@ -80,7 +80,6 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
             codeToGenerate: 'route',
             schemaInfo,
             tableName,
-            placeholders: tablePlaceholders,
           }),
         },
       }),
