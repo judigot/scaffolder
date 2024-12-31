@@ -1,10 +1,10 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { generateModelSpecificMethods } from '@/utils/generateModelSpecificMethods.ts';
 import { generateModelImports } from '@/utils/common.ts';
 import { APP_SETTINGS } from '@/constants.ts';
 import { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
+import generateDomainCode from '@/utils/generateDomainCode.ts';
 
 const template = `
 <?php
@@ -37,11 +37,51 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const { pascalCase } = changeCase(tableName);
       const className = pascalCase;
 
-      const modelSpecificMethods = generateModelSpecificMethods({
-        targetTable: tableName,
-        schemaInfo,
-        fileToGenerate: 'repository',
+      // Generate methods and contents for each relationship
+      const { hasOne, hasMany, pivotRelationships, belongsTo } = tableInfo;
+      const allMethods: string[] = [];
+
+      // Helper function to generate paired method and content
+      const generatePairedCode = (
+        table: string,
+        type: 'oneToOne' | 'oneToMany' | 'manyToMany' | 'belongsTo',
+      ) => {
+        const method = generateDomainCode({
+          schemaInfo,
+          tableName,
+          codeToGenerate: 'repositoryMethod',
+          relationshipType: type,
+          relatedTable: table,
+        });
+
+        const content = generateDomainCode({
+          schemaInfo,
+          tableName,
+          codeToGenerate: 'repositoryContent',
+          relationshipType: type,
+          relatedTable: table,
+        });
+
+        if (method && content) {
+          allMethods.push(`${method}${content}`);
+        }
+      };
+
+      // Generate for each relationship type
+      belongsTo.forEach((table) => {
+        generatePairedCode(table, 'belongsTo');
       });
+      hasOne.forEach((table) => {
+        generatePairedCode(table, 'oneToOne');
+      });
+      hasMany.forEach((table) => {
+        generatePairedCode(table, 'oneToMany');
+      });
+      pivotRelationships.forEach(({ relatedTable }) => {
+        generatePairedCode(relatedTable, 'manyToMany');
+      });
+
+      const modelSpecificMethods = allMethods.join('\n\n');
       const modelImports = generateModelImports(tableInfo);
 
       const replacements = {
