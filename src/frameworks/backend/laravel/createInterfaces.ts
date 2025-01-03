@@ -45,11 +45,7 @@ const createInterfaceMethods = ({
       relatedTable: table,
     });
 
-    if (method) {
-      // Remove the function body and add semicolon for interface
-      const interfaceMethod = method.replace(/\s*\{[\s\S]*\}\s*$/, ';').trim();
-      allMethods.push(`    ${interfaceMethod};`);
-    }
+    allMethods.push(`    ${method};`);
   };
 
   // Generate for each relationship type

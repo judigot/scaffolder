@@ -102,7 +102,7 @@ function generateDomainCode({
 
         return templateVal;
       })
-      .join('');
+      .join(codeToGenerate === 'repositoryMethod' ? ';\n\n' : '');
 
     const {
       singular: tableNameSingular,
