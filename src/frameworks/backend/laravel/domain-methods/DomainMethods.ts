@@ -1,8 +1,5 @@
 // deno-lint-ignore-file
-import {
-  IMethods,
-  IRelationshipStructure,
-} from '@/interfaces/IRepositoryPatternStructure.ts';
+import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 interface IDomainStatus {
@@ -144,46 +141,3 @@ export const domainStructure = ({
     return '';
   },
 });
-
-export default {
-  group: 'One-to-One Relationship',
-  methodName: 'get{{relatedTableNamePascal}}',
-  route:
-    "Route::get('{{tableNameKebabCasePlural}}/{id}/{{relatedTableNameKebabCase}}', [{{tableNamePascalCase}}Controller::class, 'get{{relatedTableNamePascal}}'])->name('{{tableNameKebabCasePlural}}.{{relatedTableNameKebabCase}}');",
-  description:
-    'Get the related {{relatedTableNamePascal}} related to the given {{tableNamePascalCase}}.',
-  repositoryMethod: `
-/**
-  * Get the related {{relatedTableNamePascal}}.
-  *
-  * @param int \${{primaryKey}}
-  * @return ?{{relatedTableNamePascal}}
- */
-public function get{{relatedTableNamePascal}}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ?{{relatedTableNamePascal}};
-`,
-  repositoryContent:
-    'return $this->model->find(${{primaryKey}})?->{{relatedTableName}};',
-  serviceMethod:
-    "get{{relatedTableNamePascal}}(int $id, ?string $column = null, string $direction = 'asc'): ?{{relatedTableNamePascal}}",
-  serviceContent:
-    'return $this->repository->get{{relatedTableNamePascal}}($id, $column, $direction);',
-  controllerMethod: 'get{{relatedTableNamePascal}}(Request $request, int $id)',
-  controllerContent: `// Fetch the {{relatedTableName}} from the repository
-\${{relatedTableName}} = $this->repository->get{{relatedTableNamePascal}}($id, $request->query('column'), $request->query('direction', 'asc'));
-return response()->json(\${{relatedTableName}});`,
-
-  childRepositoryMethod:
-    'findBy{{tableNamePascalCase}}Id(int ${{primaryKey}}): ?{{relatedTableNamePascal}}',
-  childRepositoryContent:
-    "return $this->model->where('{{primaryKey}}', ${{primaryKey}})->first();",
-  childServiceMethod:
-    'findBy{{tableNamePascalCase}}Id(int ${{primaryKey}}): ?{{relatedTableNamePascal}}',
-  childServiceContent:
-    'return $this->repository->findBy{{tableNamePascalCase}}Id(${{primaryKey}});',
-  childControllerMethod:
-    'findBy{{tableNamePascalCase}}Id(Request $request, int ${{primaryKey}})',
-  childControllerContent: `// Find the {{relatedTableName}} by {{primaryKey}}
-\${{relatedTableName}} = $this->repository->findBy{{tableNamePascalCase}}Id(\${{primaryKey}});
-return response()->json(\${{relatedTableName}});
-`,
-} satisfies IRelationshipStructure;
