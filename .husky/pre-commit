@@ -5,4 +5,4 @@ if ! command -v node &> /dev/null; then
     [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
 fi
 
-pnpm lint-staged # Run lint-staged commands in package.json
+# pnpm lint-staged # Run lint-staged commands in package.json

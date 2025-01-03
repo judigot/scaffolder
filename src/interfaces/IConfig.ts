@@ -351,6 +351,7 @@ export interface IConfig {
     defaultLanguage: Language;
     supportedLanguages: Language[];
     timezone: string;
+    startWeekOnMonday: boolean;
     logging: ILogging;
   };
   users: {

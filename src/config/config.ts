@@ -19,6 +19,7 @@ export default {
       'russian',
     ],
     timezone: 'Asia/Manila',
+    startWeekOnMonday: false,
     logging: {
       level: 'debug',
       logToFile: false,
