@@ -4,36 +4,36 @@ export default {
   group: 'Domain Relations',
   methods: [
     {
-      methodName: (status) => {
-        if (status.belongsTo) {
-          return 'findBy{{relatedTableNamePascal}}Id';
+      methodName: ({ hasOne, hasMany, pivotRelationships, belongsTo }) => {
+        if (hasOne) {
+          return 'get{{relatedTableNamePascal}}';
         }
-        if (status.hasMany || status.pivotRelationships) {
+        if (hasMany || pivotRelationships) {
           return 'get{{relatedTableNamePascalPlural}}';
         }
-        if (status.hasOne) {
-          return 'get{{relatedTableNamePascal}}';
+        if (belongsTo) {
+          return 'findBy{{relatedTableNamePascal}}Id';
         }
         return '';
       },
-      route: (status) => {
-        const suffix = status.hasOne
+      route: ({ hasOne, belongsTo }) => {
+        const suffix = hasOne
           ? '{{relatedTableNameKebabCase}}'
           : '{{relatedTableNameKebabCasePlural}}';
-        return `Route::get('{{tableNameKebabCasePlural}}/{id}/${suffix}', [{{tableNamePascalCase}}Controller::class, '${status.belongsTo ? 'findBy{{relatedTableNamePascal}}Id' : status.hasOne ? 'get{{relatedTableNamePascal}}' : 'get{{relatedTableNamePascalPlural}}'}'])->name('{{tableNameKebabCasePlural}}.${suffix}');`;
+        return `Route::get('{{tableNameKebabCasePlural}}/{id}/${suffix}', [{{tableNamePascalCase}}Controller::class, '${belongsTo ? 'findBy{{relatedTableNamePascal}}Id' : hasOne ? 'get{{relatedTableNamePascal}}' : 'get{{relatedTableNamePascalPlural}}'}'])->name('{{tableNameKebabCasePlural}}.${suffix}');`;
       },
-      description: (status) => {
-        if (status.belongsTo) {
+      description: ({ hasOne, belongsTo }) => {
+        if (belongsTo) {
           return 'Find {{tableNamePascalCase}} by {{relatedTableName}}_id.';
         }
-        return `Get the related ${status.hasOne ? '{{relatedTableNamePascal}}' : '{{relatedTableNamePascalPlural}}'} related to the given {{tableNamePascalCase}}.`;
+        return `Get the related ${hasOne ? '{{relatedTableNamePascal}}' : '{{relatedTableNamePascalPlural}}'} related to the given {{tableNamePascalCase}}.`;
       },
-      repositoryMethod: (status) => {
-        const returnType = status.hasOne
+      repositoryMethod: ({ hasOne, belongsTo }) => {
+        const returnType = hasOne
           ? '?{{relatedTableNamePascal}}'
           : '?Collection';
 
-        if (status.belongsTo) {
+        if (belongsTo) {
           return `
       /**
        * Find {{tableNamePascalCase}} by {{relatedTableName}}_id.
@@ -46,29 +46,34 @@ export default {
 
         return `
       /**
-       * Get the related ${status.hasOne ? '{{relatedTableNamePascal}}' : '{{relatedTableNamePascalPlural}}'}.
+       * Get the related ${hasOne ? '{{relatedTableNamePascal}}' : '{{relatedTableNamePascalPlural}}'}.
        *
        * @param int \${{primaryKey}}
        * @return ${returnType}
        */
-      public function ${status.hasOne ? 'get{{relatedTableNamePascal}}' : 'get{{relatedTableNamePascalPlural}}'}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ${returnType}`;
+      public function ${hasOne ? 'get{{relatedTableNamePascal}}' : 'get{{relatedTableNamePascalPlural}}'}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ${returnType}`;
       },
-      repositoryContent: (status) => {
-        if (status.belongsTo) {
+      repositoryContent: ({
+        hasOne,
+        hasMany,
+        pivotRelationships,
+        belongsTo,
+      }) => {
+        if (belongsTo) {
           return `
       {
           return $this->model->where('{{relatedTableName}}_id', \${{primaryKey}})->first();
       }`;
         }
 
-        if (status.hasOne) {
+        if (hasOne) {
           return `
       {
           return $this->model->find(\${{primaryKey}})?->{{relatedTableName}};
       }`;
         }
 
-        if (status.hasMany || status.pivotRelationships) {
+        if (hasMany || pivotRelationships) {
           return `
       {
           \${{relatedTableName}}Model = new {{relatedTableNamePascal}}();
@@ -87,32 +92,42 @@ export default {
       serviceContent: () => {
         return '';
       },
-      controllerMethod: (status) => {
-        if (status.belongsTo) {
+      controllerMethod: ({
+        hasOne,
+        hasMany,
+        pivotRelationships,
+        belongsTo,
+      }) => {
+        if (belongsTo) {
           return 'findBy{{relatedTableNamePascal}}Id(Request $request, int $id)';
         }
-        if (status.hasMany || status.pivotRelationships) {
+        if (hasMany || pivotRelationships) {
           return 'get{{relatedTableNamePascalPlural}}(Request $request, int $id)';
         }
-        if (status.hasOne) {
+        if (hasOne) {
           return 'get{{relatedTableNamePascal}}(Request $request, int $id)';
         }
         return '';
       },
-      controllerContent: (status) => {
-        if (status.belongsTo) {
+      controllerContent: ({
+        hasOne,
+        hasMany,
+        pivotRelationships,
+        belongsTo,
+      }) => {
+        if (belongsTo) {
           return `
           // Find \${{tableNameSingular}} by \${{relatedTableName}}_id
           \${{tableNameSingular}} = $this->repository->findBy{{relatedTableNamePascal}}Id($id, $request->query('column'), $request->query('direction', 'asc'));
           return response()->json(\${{tableNameSingular}});`;
         }
-        if (status.hasMany || status.pivotRelationships) {
+        if (hasMany || pivotRelationships) {
           return `
           // Fetch the \${{relatedTableNamePlural}} from the repository
           \${{relatedTableNamePlural}} = $this->repository->get{{relatedTableNamePascalPlural}}($id, $request->query('column'), $request->query('direction', 'asc'));
           return response()->json(\${{relatedTableNamePlural}});`;
         }
-        if (status.hasOne) {
+        if (hasOne) {
           return `
           // Fetch the \${{relatedTableName}} from the repository
           \${{relatedTableName}} = $this->repository->get{{relatedTableNamePascal}}($id, $request->query('column'), $request->query('direction', 'asc'));
