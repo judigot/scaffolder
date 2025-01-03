@@ -175,14 +175,14 @@ function generateDomainCode({
 
   // Generate methods for each relationship type
   const allMethods: string[] = [
-    // belongsTo relationships
-    ...belongsTo.map((table) => generateCodeFromTable(table, 'belongsTo')),
-
     // hasOne relationships
     ...hasOne.map((table) => generateCodeFromTable(table, 'oneToOne')),
 
     // hasMany relationships
     ...hasMany.map((table) => generateCodeFromTable(table, 'oneToMany')),
+
+    // belongsTo relationships
+    ...belongsTo.map((table) => generateCodeFromTable(table, 'belongsTo')),
 
     // pivotRelationships (many-to-many)
     ...pivotRelationships.map(({ relatedTable }) =>
