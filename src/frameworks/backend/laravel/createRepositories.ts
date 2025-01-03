@@ -5,6 +5,7 @@ import { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
 import generateDomainCode from '@/utils/generateDomainCode.ts';
+import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
 
 const template = `
 <?php
@@ -44,7 +45,7 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
       // Helper function to generate paired method and content
       const generateRepositoryCode = (
         table: string,
-        type: 'oneToOne' | 'oneToMany' | 'manyToMany' | 'belongsTo',
+        type: RelationshipTypes,
       ) => {
         const method = generateDomainCode({
           schemaInfo,

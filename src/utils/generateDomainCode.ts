@@ -1,49 +1,10 @@
 import { replacePlaceholder } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
-import { domainStructure } from '../frameworks/backend/laravel/domain-methods/DomainMethods.ts';
+import { domainStructure } from '@/frameworks/backend/laravel/domain-methods/DomainMethods.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { TableReplacements } from '@/interfaces/placeholders.ts';
-
-function determineRelationshipType({
-  relationshipType,
-  tableInfo,
-  relatedTable,
-}: {
-  relationshipType:
-    | 'oneToOne'
-    | 'oneToMany'
-    | 'manyToMany'
-    | 'belongsTo'
-    | 'pivotRelationship';
-  tableInfo: ISchemaInfo;
-  relatedTable: string;
-}): {
-  belongsTo: boolean;
-  hasOne: boolean;
-  hasMany: boolean;
-  pivotRelationships: boolean;
-  isOneToOne: boolean;
-  isOneToMany: boolean;
-  isManyToMany: boolean;
-} {
-  const hasOne = tableInfo.hasOne.includes(relatedTable);
-  const hasMany = tableInfo.hasMany.includes(relatedTable);
-  const belongsTo = tableInfo.belongsTo.includes(relatedTable);
-  const isPivotRelationship = tableInfo.pivotRelationships.some(
-    (rel) => rel.relatedTable === relatedTable,
-  );
-
-  return {
-    belongsTo,
-    hasOne,
-    hasMany,
-    pivotRelationships: isPivotRelationship,
-    isOneToOne: relationshipType === 'oneToOne',
-    isOneToMany: relationshipType === 'oneToMany',
-    isManyToMany: relationshipType === 'manyToMany',
-  };
-}
+import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
 
 function generateDomainCode({
   schemaInfo,
@@ -55,9 +16,45 @@ function generateDomainCode({
   schemaInfo: ISchemaInfo[];
   tableName: ISchemaInfo['tableName'];
   codeToGenerate: keyof IMethods;
-  relationshipType?: 'oneToOne' | 'oneToMany' | 'manyToMany' | 'belongsTo';
+  relationshipType?: RelationshipTypes;
   relatedTable?: string;
 }): string {
+  const determineRelationshipType = ({
+    relationshipType,
+    tableInfo,
+    relatedTable,
+  }: {
+    relationshipType: RelationshipTypes;
+    tableInfo: ISchemaInfo;
+    relatedTable: string;
+  }): {
+    belongsTo: boolean;
+    hasOne: boolean;
+    hasMany: boolean;
+    pivotRelationships: boolean;
+    isOneToOne: boolean;
+    isOneToMany: boolean;
+    isManyToMany: boolean;
+    isBelongsTo: boolean;
+  } => {
+    const hasOne = tableInfo.hasOne.includes(relatedTable);
+    const hasMany = tableInfo.hasMany.includes(relatedTable);
+    const belongsTo = tableInfo.belongsTo.includes(relatedTable);
+    const isPivotRelationship = tableInfo.pivotRelationships.some(
+      (rel) => rel.relatedTable === relatedTable,
+    );
+
+    return {
+      belongsTo,
+      hasOne,
+      hasMany,
+      pivotRelationships: isPivotRelationship,
+      isOneToOne: relationshipType === 'oneToOne',
+      isOneToMany: relationshipType === 'oneToMany',
+      isManyToMany: relationshipType === 'manyToMany',
+      isBelongsTo: relationshipType === 'belongsTo',
+    };
+  };
   const tableInfo = schemaInfo.find((table) => table.tableName === tableName);
 
   if (!tableInfo) {
@@ -78,12 +75,7 @@ function generateDomainCode({
 
   const generateCodeFromTable = (
     relatedTable: string,
-    relationshipType:
-      | 'oneToOne'
-      | 'oneToMany'
-      | 'manyToMany'
-      | 'belongsTo'
-      | 'pivotRelationship',
+    relationshipType: RelationshipTypes,
   ): string => {
     const pivotTableName = tableInfo.pivotRelationships.find(
       (rel) => rel.relatedTable === relatedTable,
