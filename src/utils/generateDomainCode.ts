@@ -102,7 +102,7 @@ function generateDomainCode({
 
         return templateVal;
       })
-      .join('\n');
+      .join('');
 
     const {
       singular: tableNameSingular,
