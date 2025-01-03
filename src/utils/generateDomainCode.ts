@@ -102,6 +102,7 @@ function generateDomainCode({
           });
 
     const {
+      singular: tableNameSingular,
       pascalCase: tableNamePascalCase,
       kebabCase: tableNameKebab,
       kebabCasePlural: tableNameKebabCasePlural,
@@ -124,6 +125,7 @@ function generateDomainCode({
         : { pascalCase: '', kebabCase: '' };
 
     const placeholders: TableReplacements = {
+      tableNameSingular,
       tableNamePascalCase,
       tableNameKebabCase: tableNameKebab,
       tableNameKebabCasePlural,
