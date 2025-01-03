@@ -1,29 +1,6 @@
-// deno-lint-ignore-file
-import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { IDomainStructure } from '@/interfaces/IDomainStructure.ts';
 
-interface IDomainStatus {
-  isOneToOne: boolean;
-  isOneToMany: boolean;
-  isManyToMany: boolean;
-  belongsTo: boolean;
-  hasOne: boolean;
-  hasMany: boolean;
-  pivotRelationships: boolean;
-  isPivot: boolean;
-}
-
-type IDomainStructure = {
-  [key in keyof IMethods]: string | ((status: IDomainStatus) => string);
-};
-
-export const domainStructure = ({
-  _tableInfo,
-  _schemaInfo,
-}: {
-  _tableInfo: ISchemaInfo;
-  _schemaInfo: ISchemaInfo[];
-}): IDomainStructure => ({
+export const domainStructure = (): IDomainStructure => ({
   methodName: (status) => {
     if (status.belongsTo) {
       return 'findBy{{relatedTableNamePascal}}Id';
