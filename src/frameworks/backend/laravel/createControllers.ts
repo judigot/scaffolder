@@ -44,10 +44,7 @@ const createControllerMethods = ({
   const allMethods: string[] = [];
 
   // Helper function to generate paired method and content
-  const generateControllerCode = (
-    table: string,
-    type: RelationshipTypes,
-  ) => {
+  const generateControllerCode = (table: string, type: RelationshipTypes) => {
     const method = generateDomainCode({
       schemaInfo,
       tableName,
