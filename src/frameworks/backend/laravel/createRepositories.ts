@@ -42,7 +42,7 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const allMethods: string[] = [];
 
       // Helper function to generate paired method and content
-      const generatePairedCode = (
+      const generateRepositoryCode = (
         table: string,
         type: 'oneToOne' | 'oneToMany' | 'manyToMany' | 'belongsTo',
       ) => {
@@ -69,16 +69,16 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
       // Generate for each relationship type
       belongsTo.forEach((table) => {
-        generatePairedCode(table, 'belongsTo');
+        generateRepositoryCode(table, 'belongsTo');
       });
       hasOne.forEach((table) => {
-        generatePairedCode(table, 'oneToOne');
+        generateRepositoryCode(table, 'oneToOne');
       });
       hasMany.forEach((table) => {
-        generatePairedCode(table, 'oneToMany');
+        generateRepositoryCode(table, 'oneToMany');
       });
       pivotRelationships.forEach(({ relatedTable }) => {
-        generatePairedCode(relatedTable, 'manyToMany');
+        generateRepositoryCode(relatedTable, 'manyToMany');
       });
 
       const modelSpecificMethods = allMethods.join('\n\n');
