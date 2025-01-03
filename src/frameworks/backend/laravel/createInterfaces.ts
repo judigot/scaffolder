@@ -45,7 +45,7 @@ const createInterfaceMethods = ({
       relatedTable: table,
     });
 
-    allMethods.push(`    ${method};`);
+    allMethods.push(`    ${method}`);
   };
 
   // Generate for each relationship type
@@ -65,7 +65,7 @@ const createInterfaceMethods = ({
     generateInterfaceCode(relatedTable, 'manyToMany');
   });
 
-  return allMethods.join('\n\n');
+  return allMethods.join('');
 };
 
 const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {

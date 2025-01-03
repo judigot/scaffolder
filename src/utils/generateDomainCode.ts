@@ -89,7 +89,7 @@ function generateDomainCode({
       relatedTable,
     });
 
-    const template = rawMethods
+    let template = rawMethods
       .map((method) => {
         const templateVal = method[codeToGenerate];
 
@@ -102,7 +102,11 @@ function generateDomainCode({
 
         return templateVal;
       })
-      .join(codeToGenerate === 'repositoryMethod' ? ';\n\n' : '');
+      .join(codeToGenerate === 'repositoryMethod' ? ';\n' : '');
+
+    if (codeToGenerate === 'repositoryMethod') {
+      template = `${template};`;
+    }
 
     const {
       singular: tableNameSingular,
