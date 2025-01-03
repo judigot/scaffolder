@@ -68,15 +68,18 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
       };
 
       // Generate for each relationship type
-      belongsTo.forEach((table) => {
-        generateRepositoryCode(table, 'belongsTo');
-      });
       hasOne.forEach((table) => {
         generateRepositoryCode(table, 'oneToOne');
       });
+
       hasMany.forEach((table) => {
         generateRepositoryCode(table, 'oneToMany');
       });
+
+      belongsTo.forEach((table) => {
+        generateRepositoryCode(table, 'belongsTo');
+      });
+
       pivotRelationships.forEach(({ relatedTable }) => {
         generateRepositoryCode(relatedTable, 'manyToMany');
       });
