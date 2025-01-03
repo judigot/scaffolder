@@ -1,7 +1,7 @@
 import { IDomainStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
-  group: 'Domain Relations',
+  group: 'CRUD',
   methods: [
     {
       methodName: ({ hasOne, hasMany, pivotRelationships, belongsTo }) => {
