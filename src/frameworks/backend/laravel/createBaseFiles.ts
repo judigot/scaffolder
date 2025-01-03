@@ -23,14 +23,13 @@ const createBaseFiles = (
                 return `    public function ${repositoryMethod};`;
               }
               case 'repository': {
-                const methodName = repositoryMethod.split('(')[0];
                 const content = repositoryContent
                   ? repositoryContent
                       .trim()
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
                       .join('\n')
-                  : `// TODO: Implement ${methodName}`;
+                  : `        return $this->model;`;
                 return `
     public function ${repositoryMethod}
     {
@@ -44,7 +43,7 @@ ${content}
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
                       .join('\n')
-                  : `        // TODO: Implement ${serviceMethod}`;
+                  : `        return $this->repository->${repositoryMethod.split('(')[0]}();`;
                 return `
     public function ${serviceMethod}
     {
@@ -58,7 +57,7 @@ ${content}
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
                       .join('\n')
-                  : `        // TODO: Implement ${controllerMethod}`;
+                  : `        return $this->service->${serviceMethod.split('(')[0]}();`;
                 return `
     public function ${controllerMethod}
     {
