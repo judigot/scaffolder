@@ -1,3 +1,5 @@
+import { IDomainStatus } from '@/interfaces/IDomainStatus.ts';
+
 type MethodGroups =
   | 'CRUD'
   | 'Query and Search'
@@ -10,6 +12,8 @@ type RelationshipMethodGroups =
   | 'One-to-One Relationship'
   | 'One-to-Many Relationship'
   | 'Many-to-Many Relationship';
+
+type DomainMethodGroups = 'Domain Relations';
 
 export interface IMethods {
   methodName: string;
@@ -24,17 +28,13 @@ export interface IMethods {
 }
 
 export interface IRepositoryStructure {
-  group: MethodGroups | RelationshipMethodGroups;
+  group: MethodGroups | RelationshipMethodGroups | DomainMethodGroups;
   methods: IMethods[];
 }
 
-export interface IRelationshipStructure
-  extends IMethods,
-    Omit<IRepositoryStructure, 'methods'> {
-  childRepositoryMethod: string;
-  childRepositoryContent: string;
-  childServiceMethod: string;
-  childServiceContent: string;
-  childControllerMethod: string;
-  childControllerContent: string;
+export interface IDomainStructure {
+  group: MethodGroups | RelationshipMethodGroups | DomainMethodGroups;
+  methods: {
+    [key in keyof IMethods]: string | ((status: IDomainStatus) => string);
+  }[];
 }

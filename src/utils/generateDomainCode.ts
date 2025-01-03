@@ -1,6 +1,6 @@
 import { replacePlaceholder } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
-import { domainStructure } from '@/frameworks/backend/laravel/domain-methods/DomainMethods.ts';
+import domainStructure from '@/frameworks/backend/laravel/domain-methods/DomainMethods.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { TableReplacements } from '@/interfaces/placeholders.ts';
@@ -81,11 +81,7 @@ function generateDomainCode({
       (rel) => rel.relatedTable === relatedTable,
     )?.pivotTable;
 
-    const structure = domainStructure({
-      _tableInfo: tableInfo,
-      _schemaInfo: schemaInfo,
-    });
-    const templateValue = structure[codeToGenerate];
+    const rawMethods = domainStructure.methods;
 
     const status = determineRelationshipType({
       relationshipType,
@@ -93,13 +89,20 @@ function generateDomainCode({
       relatedTable,
     });
 
-    const template =
-      typeof templateValue === 'string'
-        ? templateValue
-        : templateValue({
+    const template = rawMethods
+      .map((method) => {
+        const templateVal = method[codeToGenerate];
+
+        if (typeof templateVal === 'function') {
+          return templateVal({
             ...status,
             isPivot,
           });
+        }
+
+        return templateVal;
+      })
+      .join('\n');
 
     const {
       singular: tableNameSingular,

@@ -31,14 +31,20 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
       .map(
         ({ group, methods }) =>
           `/* ${group.toUpperCase()} */\n${methods
-            .map(({ route, description }) =>
-              `// ${description}\n${route}`
-                .replace(
-                  /{{tableNameKebabCasePlural}}/g,
-                  tableNameKebabCasePlural,
-                )
-                .replace(/{{tableNamePascalCase}}/g, tableNamePascalCase),
-            )
+            .map(({ route, description }) => {
+              if (
+                typeof route === 'string' &&
+                typeof description === 'string'
+              ) {
+                return `// ${description}\n${route}`
+                  .replace(
+                    /{{tableNameKebabCasePlural}}/g,
+                    tableNameKebabCasePlural,
+                  )
+                  .replace(/{{tableNamePascalCase}}/g, tableNamePascalCase);
+              }
+              return '';
+            })
             .join('\n')}`,
       )
       .join('\n\n');
