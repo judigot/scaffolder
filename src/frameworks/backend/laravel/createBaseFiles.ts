@@ -153,16 +153,24 @@ ${methods}
 
   const content = createFile({ template, replacements: {} });
 
+  let fileName: string;
+
+  if (type === 'interface') {
+    fileName = 'BaseInterface.php';
+  }
+  if (type === 'repository') {
+    fileName = 'BaseRepository.php';
+  }
+  if (type === 'controller') {
+    fileName = 'BaseController.php';
+  }
+  if (type === 'service') {
+    fileName = 'BaseService.php';
+  }
+
   return {
     type: 'file',
-    name:
-      type === 'interface'
-        ? 'BaseInterface.php'
-        : type === 'repository'
-          ? 'BaseRepository.php'
-          : type === 'service'
-            ? 'BaseService.php'
-            : 'BaseController.php',
+    name: fileName,
     content,
   };
 };
