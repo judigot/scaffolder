@@ -289,45 +289,46 @@ function App() {
             >
               Generate App From Existing Database
             </button>
+
+            <button
+              title={JSON.stringify(
+                schemaInfo.map(
+                  ({
+                    requiredColumns: _1,
+                    columnsInfo: _2,
+                    foreignKeys: _3,
+                    ...newObject
+                  }) => newObject,
+                ),
+                null,
+                4,
+              )}
+              onClick={(e) => {
+                e.preventDefault();
+
+                /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
+              }}
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+              Copy Schema Info
+            </button>
+
+            <button
+              title={JSON.stringify(schemaInfo, null, 4)}
+              onClick={(e) => {
+                e.preventDefault();
+                handleCopy(JSON.stringify(schemaInfo, null, 4));
+              }}
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+              Copy Schema Info with Columns
+            </button>
           </div>
         </div>
       </div>
 
       <div className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-          <button
-            title={JSON.stringify(
-              schemaInfo.map(
-                ({
-                  requiredColumns: _1,
-                  columnsInfo: _2,
-                  foreignKeys: _3,
-                  ...newObject
-                }) => newObject,
-              ),
-              null,
-              4,
-            )}
-            onClick={(e) => {
-              e.preventDefault();
-
-              /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
-            }}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          >
-            Copy Schema Info
-          </button>
-
-          <button
-            title={JSON.stringify(schemaInfo, null, 4)}
-            onClick={(e) => {
-              e.preventDefault();
-              handleCopy(JSON.stringify(schemaInfo, null, 4));
-            }}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          >
-            Copy Schema Info with Columns
-          </button>
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
             {creationMode === CREATION_MODES.SCHEMA_BUILDER && (
               <SchemaBuilder />
