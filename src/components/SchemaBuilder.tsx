@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { ITableInfo } from '@/interfaces/interfaces.ts';
 import { addRelationship } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
-import EditIcon from '@mui/icons-material/Edit';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
+import {
+  Edit as EditIcon,
+  Add as AddIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
@@ -419,60 +421,124 @@ function SchemaBuilder() {
                 )}
 
                 <h3 className="font-semibold mt-4 mb-2">Relationships</h3>
-                <ul className="space-y-1">
-                  {schemaInfo[selectedTableIndex].foreignTables.length > 0 && (
-                    <li>
-                      Foreign Tables:{' '}
-                      {schemaInfo[selectedTableIndex].foreignTables.join(', ')}
-                    </li>
-                  )}
-                  {schemaInfo[selectedTableIndex].childTables.length > 0 && (
-                    <li>
-                      Child Tables:{' '}
-                      {schemaInfo[selectedTableIndex].childTables.join(', ')}
-                    </li>
-                  )}
+                <div className="space-y-4">
+                  {/* One-to-One Relationships */}
                   {schemaInfo[selectedTableIndex].hasOne.length > 0 && (
-                    <li>
-                      Has One:{' '}
-                      {schemaInfo[selectedTableIndex].hasOne.join(', ')}
-                    </li>
-                  )}
-                  {schemaInfo[selectedTableIndex].hasMany.length > 0 && (
-                    <li>
-                      Has Many:{' '}
-                      {schemaInfo[selectedTableIndex].hasMany.join(', ')}
-                    </li>
-                  )}
-                  {schemaInfo[selectedTableIndex].belongsTo.length > 0 && (
-                    <li>
-                      Belongs To:{' '}
-                      {schemaInfo[selectedTableIndex].belongsTo.join(', ')}
-                    </li>
-                  )}
-                  {schemaInfo[selectedTableIndex].belongsToMany.length > 0 && (
-                    <li>
-                      Belongs To Many:{' '}
-                      {schemaInfo[selectedTableIndex].belongsToMany.join(', ')}
-                    </li>
-                  )}
-                  {schemaInfo[selectedTableIndex].pivotRelationships.length >
-                    0 && (
-                    <li>
-                      Pivot Relationships:
-                      <ul className="pl-4 list-disc">
-                        {schemaInfo[selectedTableIndex].pivotRelationships.map(
-                          (rel, idx) => (
-                            <li key={idx}>
-                              Related Table: <strong>{rel.relatedTable}</strong>
-                              , Pivot Table: <strong>{rel.pivotTable}</strong>
+                    <div className="bg-blue-500/10 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-400 mb-2">
+                        One-to-One Relationships
+                      </h4>
+                      <ul className="space-y-2">
+                        {schemaInfo[selectedTableIndex].hasOne.map((table) => (
+                          <li key={table} className="flex items-center">
+                            <span className="text-blue-300">Has One:</span>
+                            <span className="ml-2 font-medium">{table}</span>
+                          </li>
+                        ))}
+                        {schemaInfo[selectedTableIndex].belongsTo.map(
+                          (table) => (
+                            <li key={table} className="flex items-center">
+                              <span className="text-blue-300">Belongs To:</span>
+                              <span className="ml-2 font-medium">{table}</span>
                             </li>
                           ),
                         )}
                       </ul>
-                    </li>
+                    </div>
                   )}
-                </ul>
+
+                  {/* One-to-Many Relationships */}
+                  {schemaInfo[selectedTableIndex].hasMany.length > 0 && (
+                    <div className="bg-green-500/10 p-4 rounded-lg">
+                      <h4 className="font-semibold text-green-400 mb-2">
+                        One-to-Many Relationships
+                      </h4>
+                      <ul className="space-y-2">
+                        {schemaInfo[selectedTableIndex].hasMany.map((table) => (
+                          <li key={table} className="flex items-center">
+                            <span className="text-green-300">Has Many:</span>
+                            <span className="ml-2 font-medium">{table}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Many-to-Many Relationships */}
+                  {(schemaInfo[selectedTableIndex].belongsToMany.length > 0 ||
+                    schemaInfo[selectedTableIndex].pivotRelationships.length >
+                      0) && (
+                    <div className="bg-purple-500/10 p-4 rounded-lg">
+                      <h4 className="font-semibold text-purple-400 mb-2">
+                        Many-to-Many Relationships
+                      </h4>
+                      <ul className="space-y-2">
+                        {schemaInfo[selectedTableIndex].belongsToMany.map(
+                          (table) => (
+                            <li key={table} className="flex items-center">
+                              <span className="text-purple-300">
+                                Belongs To Many:
+                              </span>
+                              <span className="ml-2 font-medium">{table}</span>
+                            </li>
+                          ),
+                        )}
+                        {schemaInfo[selectedTableIndex].pivotRelationships.map(
+                          (rel, idx) => (
+                            <li key={idx} className="flex items-center">
+                              <span className="text-purple-300">
+                                Through Pivot:
+                              </span>
+                              <span className="ml-2 font-medium">
+                                {rel.relatedTable}
+                                <span className="text-purple-300 mx-2">
+                                  via
+                                </span>
+                                {rel.pivotTable}
+                              </span>
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Table References */}
+                  {(schemaInfo[selectedTableIndex].foreignTables.length > 0 ||
+                    schemaInfo[selectedTableIndex].childTables.length > 0) && (
+                    <div className="bg-gray-500/10 p-4 rounded-lg">
+                      <h4 className="font-semibold text-gray-400 mb-2">
+                        Table References
+                      </h4>
+                      <ul className="space-y-2">
+                        {schemaInfo[selectedTableIndex].foreignTables.length >
+                          0 && (
+                          <li className="flex items-center">
+                            <span className="text-gray-300">
+                              Foreign Tables:
+                            </span>
+                            <span className="ml-2 font-medium">
+                              {schemaInfo[
+                                selectedTableIndex
+                              ].foreignTables.join(', ')}
+                            </span>
+                          </li>
+                        )}
+                        {schemaInfo[selectedTableIndex].childTables.length >
+                          0 && (
+                          <li className="flex items-center">
+                            <span className="text-gray-300">Child Tables:</span>
+                            <span className="ml-2 font-medium">
+                              {schemaInfo[selectedTableIndex].childTables.join(
+                                ', ',
+                              )}
+                            </span>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
                 {!schemaInfo[selectedTableIndex].isPivot && (
                   <>
                     <br />
