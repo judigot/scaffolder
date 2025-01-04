@@ -36,6 +36,7 @@ function generateDomainCode({
     isOneToMany: boolean;
     isManyToMany: boolean;
     isBelongsTo: boolean;
+    isPivot: boolean;
   } => {
     const hasOne = tableInfo.hasOne.includes(relatedTable);
     const hasMany = tableInfo.hasMany.includes(relatedTable);
@@ -53,6 +54,7 @@ function generateDomainCode({
       isOneToMany: relationshipType === 'oneToMany',
       isManyToMany: relationshipType === 'manyToMany',
       isBelongsTo: relationshipType === 'belongsTo',
+      isPivot: isPivotRelationship,
     };
   };
   const primaryKey = tableInfo.columnsInfo.find(
@@ -139,15 +141,39 @@ function generateDomainCode({
     let template = rawMethods
       .map((method) => {
         const templateVal = method[codeToGenerate];
+        const methodNameVal = method.methodName(status);
+        const repositoryMethodVal =
+          typeof method.repositoryMethod === 'function'
+            ? method.repositoryMethod(status)
+            : '';
+
+        let tempTemplate = '';
 
         if (typeof templateVal === 'function') {
-          return templateVal({
+          tempTemplate = templateVal({
             ...status,
             isPivot,
           });
         }
 
-        return templateVal;
+        if (typeof templateVal === 'string') {
+          tempTemplate = templateVal;
+        }
+
+        return replacePlaceholder({
+          template: tempTemplate,
+          replacements: {
+            methodName: methodNameVal,
+            repositoryMethod: (() => {
+              return replacePlaceholder({
+                template: repositoryMethodVal,
+                replacements: {
+                  methodName: methodNameVal,
+                },
+              });
+            })(),
+          },
+        });
       })
       .join(codeToGenerate === 'repositoryMethod' ? ';\n' : '');
 

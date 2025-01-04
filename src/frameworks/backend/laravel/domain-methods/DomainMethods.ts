@@ -16,11 +16,11 @@ export default {
         }
         return '';
       },
-      route: ({ hasOne, belongsTo }) => {
+      route: ({ hasOne }) => {
         const suffix = hasOne
           ? '{{relatedTableNameKebabCase}}'
           : '{{relatedTableNameKebabCasePlural}}';
-        return `Route::get('{{tableNameKebabCasePlural}}/{id}/${suffix}', [{{tableNamePascalCase}}Controller::class, '${belongsTo ? 'findBy{{relatedTableNamePascal}}Id' : hasOne ? 'get{{relatedTableNamePascal}}' : 'get{{relatedTableNamePascalPlural}}'}'])->name('{{tableNameKebabCasePlural}}.${suffix}');`;
+        return `Route::get('{{tableNameKebabCasePlural}}/{id}/${suffix}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.${suffix}');`;
       },
       description: ({ hasOne, belongsTo }) => {
         if (belongsTo) {
@@ -41,7 +41,7 @@ export default {
        * @param int \${{relatedTableName}}_id
        * @return ?{{tableNamePascalCase}}
        */
-      public function findBy{{relatedTableNamePascal}}Id(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ?{{tableNamePascalCase}}`;
+      public function {{methodName}}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ?{{tableNamePascalCase}}`;
         }
 
         return `
@@ -51,7 +51,7 @@ export default {
        * @param int \${{primaryKey}}
        * @return ${returnType}
        */
-      public function ${hasOne ? 'get{{relatedTableNamePascal}}' : 'get{{relatedTableNamePascalPlural}}'}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ${returnType}`;
+      public function {{methodName}}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ${returnType}`;
       },
       repositoryContent: ({
         hasOne,
@@ -59,28 +59,29 @@ export default {
         pivotRelationships,
         belongsTo,
       }) => {
-        if (belongsTo) {
-          return `
-      {
-          return $this->model->where('{{relatedTableName}}_id', \${{primaryKey}})->first();
-      }`;
-        }
-
         if (hasOne) {
           return `
+      {{repositoryMethod}}
       {
           return $this->model->find(\${{primaryKey}})?->{{relatedTableName}};
       }`;
         }
-
         if (hasMany || pivotRelationships) {
           return `
+      {{repositoryMethod}}
       {
           \${{relatedTableName}}Model = new {{relatedTableNamePascal}}();
           $query = $this->model->find(\${{primaryKey}})?->{{relatedTableNamePlural}}();
           $column = $column ?? \${{relatedTableName}}Model->getKeyName();
           $query->orderBy($column, $direction);
           return $query ? $query->get() : null;
+      }`;
+        }
+        if (belongsTo) {
+          return `
+      {{repositoryMethod}}
+      {
+          return $this->model->where('{{relatedTableName}}_id', \${{primaryKey}})->first();
       }`;
         }
 
@@ -92,46 +93,30 @@ export default {
       serviceContent: () => {
         return '';
       },
-      controllerMethod: ({
-        hasOne,
-        hasMany,
-        pivotRelationships,
-        belongsTo,
-      }) => {
-        if (belongsTo) {
-          return 'findBy{{relatedTableNamePascal}}Id(Request $request, int $id)';
-        }
-        if (hasMany || pivotRelationships) {
-          return 'get{{relatedTableNamePascalPlural}}(Request $request, int $id)';
-        }
-        if (hasOne) {
-          return 'get{{relatedTableNamePascal}}(Request $request, int $id)';
-        }
-        return '';
-      },
+      controllerMethod: '{{methodName}}(Request $request, int $id)',
       controllerContent: ({
         hasOne,
         hasMany,
         pivotRelationships,
         belongsTo,
       }) => {
-        if (belongsTo) {
+        if (hasOne) {
           return `
-          // Find \${{tableNameSingular}} by \${{relatedTableName}}_id
-          \${{tableNameSingular}} = $this->repository->findBy{{relatedTableNamePascal}}Id($id, $request->query('column'), $request->query('direction', 'asc'));
-          return response()->json(\${{tableNameSingular}});`;
+          // Fetch the \${{relatedTableName}} from the repository
+          \${{relatedTableName}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
+          return response()->json(\${{relatedTableName}});`;
         }
         if (hasMany || pivotRelationships) {
           return `
           // Fetch the \${{relatedTableNamePlural}} from the repository
-          \${{relatedTableNamePlural}} = $this->repository->get{{relatedTableNamePascalPlural}}($id, $request->query('column'), $request->query('direction', 'asc'));
+          \${{relatedTableNamePlural}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
           return response()->json(\${{relatedTableNamePlural}});`;
         }
-        if (hasOne) {
+        if (belongsTo) {
           return `
-          // Fetch the \${{relatedTableName}} from the repository
-          \${{relatedTableName}} = $this->repository->get{{relatedTableNamePascal}}($id, $request->query('column'), $request->query('direction', 'asc'));
-          return response()->json(\${{relatedTableName}});`;
+          // Find \${{tableNameSingular}} by \${{relatedTableName}}_id
+          \${{tableNameSingular}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
+          return response()->json(\${{tableNameSingular}});`;
         }
         return '';
       },
@@ -161,11 +146,11 @@ export default {
     //   repositoryContent: () => `
     //   {
     //       $query = $this->model->query();
-          
+
     //       if ($includeRelated) {
     //           $query->with('{{relatedTableNamePlural}}');
     //       }
-          
+
     //       $column = $column ?? $this->model->getKeyName();
     //       return $query->orderBy($column, $direction)->get();
     //   }`,
