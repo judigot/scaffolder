@@ -48,7 +48,7 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
         type: RelationshipTypes,
       ) => {
         const method = generateDomainCode({
-          schemaInfo,
+          tableInfo,
           tableName,
           codeToGenerate: 'repositoryMethod',
           relationshipType: type,
@@ -56,7 +56,7 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
         });
 
         const content = generateDomainCode({
-          schemaInfo,
+          tableInfo,
           tableName,
           codeToGenerate: 'repositoryContent',
           relationshipType: type,

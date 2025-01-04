@@ -4,7 +4,6 @@ import { APP_SETTINGS } from '@/constants.ts';
 import { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
-import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
 import generateDomainCode from '@/utils/generateDomainCode.ts';
 
 const template = `
@@ -23,51 +22,6 @@ interface {{tableNamePascalCase}}Interface extends BaseInterface
 }
 `;
 
-const createInterfaceMethods = ({
-  tableName,
-  schemaInfo,
-  tableInfo,
-}: {
-  tableName: string;
-  schemaInfo: ISchemaInfo[];
-  tableInfo: ISchemaInfo;
-}): string => {
-  const { hasOne, hasMany, pivotRelationships, belongsTo } = tableInfo;
-  const allMethods: string[] = [];
-
-  // Helper function to generate interface methods
-  const generateInterfaceCode = (table: string, type: RelationshipTypes) => {
-    const method = generateDomainCode({
-      schemaInfo,
-      tableName,
-      codeToGenerate: 'repositoryMethod',
-      relationshipType: type,
-      relatedTable: table,
-    });
-
-    allMethods.push(`    ${method}`);
-  };
-
-  // Generate for each relationship type
-  hasOne.forEach((table) => {
-    generateInterfaceCode(table, 'oneToOne');
-  });
-
-  hasMany.forEach((table) => {
-    generateInterfaceCode(table, 'oneToMany');
-  });
-
-  belongsTo.forEach((table) => {
-    generateInterfaceCode(table, 'belongsTo');
-  });
-
-  pivotRelationships.forEach(({ relatedTable }) => {
-    generateInterfaceCode(relatedTable, 'manyToMany');
-  });
-
-  return allMethods.join('');
-};
-
 const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
@@ -79,10 +33,11 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const { pascalCase: tableNamePascalCase } = changeCase(tableName);
 
       const modelImports = generateModelImports(tableInfo);
-      const modelSpecificMethods = createInterfaceMethods({
-        tableName,
-        schemaInfo,
+
+      const modelSpecificMethods = generateDomainCode({
         tableInfo,
+        tableName,
+        codeToGenerate: 'repositoryMethod',
       });
 
       const replacements = {

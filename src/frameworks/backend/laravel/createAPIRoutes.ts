@@ -84,7 +84,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
           baseRoutesForController,
           modelSpecificRoutes: generateDomainCode({
             codeToGenerate: 'route',
-            schemaInfo,
+            tableInfo,
             tableName,
           }),
         },

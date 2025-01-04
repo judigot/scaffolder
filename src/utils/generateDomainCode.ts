@@ -7,13 +7,13 @@ import { TableReplacements } from '@/interfaces/placeholders.ts';
 import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
 
 function generateDomainCode({
-  schemaInfo,
+  tableInfo,
   tableName,
   codeToGenerate,
   relationshipType,
   relatedTable,
 }: {
-  schemaInfo: ISchemaInfo[];
+  tableInfo: ISchemaInfo;
   tableName: ISchemaInfo['tableName'];
   codeToGenerate: keyof IMethods;
   relationshipType?: RelationshipTypes;
@@ -55,11 +55,6 @@ function generateDomainCode({
       isBelongsTo: relationshipType === 'belongsTo',
     };
   };
-  const tableInfo = schemaInfo.find((table) => table.tableName === tableName);
-
-  if (!tableInfo) {
-    throw new Error(`Table "${tableName}" not found in schema information.`);
-  }
   const primaryKey = tableInfo.columnsInfo.find(
     (column) => column.primary_key,
   )?.column_name;
@@ -68,7 +63,14 @@ function generateDomainCode({
     throw new Error(`Primary key not found for table "${tableName}".`);
   }
 
-  const { hasOne, hasMany, pivotRelationships, isPivot, belongsTo } = tableInfo;
+  const {
+    hasOne,
+    hasMany,
+    pivotRelationships,
+    isPivot,
+    belongsTo,
+    belongsToMany,
+  } = tableInfo;
 
   // Track generated methods to prevent duplicates
   const generatedMethods = new Set<string>();
@@ -88,25 +90,6 @@ function generateDomainCode({
       tableInfo,
       relatedTable,
     });
-
-    let template = rawMethods
-      .map((method) => {
-        const templateVal = method[codeToGenerate];
-
-        if (typeof templateVal === 'function') {
-          return templateVal({
-            ...status,
-            isPivot,
-          });
-        }
-
-        return templateVal;
-      })
-      .join(codeToGenerate === 'repositoryMethod' ? ';\n' : '');
-
-    if (codeToGenerate === 'repositoryMethod') {
-      template = `${template};`;
-    }
 
     const {
       singular: tableNameSingular,
@@ -153,6 +136,25 @@ function generateDomainCode({
       }),
     };
 
+    let template = rawMethods
+      .map((method) => {
+        const templateVal = method[codeToGenerate];
+
+        if (typeof templateVal === 'function') {
+          return templateVal({
+            ...status,
+            isPivot,
+          });
+        }
+
+        return templateVal;
+      })
+      .join(codeToGenerate === 'repositoryMethod' ? ';\n' : '');
+
+    if (codeToGenerate === 'repositoryMethod') {
+      template = `${template};`;
+    }
+
     const result = replacePlaceholder({
       template,
       replacements: { ...placeholders, ...updatedPlaceholders },
@@ -182,16 +184,16 @@ function generateDomainCode({
 
   // Generate methods for each relationship type
   const allMethods: string[] = [
-    // hasOne relationships
     ...hasOne.map((table) => generateCodeFromTable(table, 'oneToOne')),
 
-    // hasMany relationships
     ...hasMany.map((table) => generateCodeFromTable(table, 'oneToMany')),
 
-    // belongsTo relationships
     ...belongsTo.map((table) => generateCodeFromTable(table, 'belongsTo')),
 
-    // pivotRelationships (many-to-many)
+    ...belongsToMany.map((table) =>
+      generateCodeFromTable(table, 'belongsToMany'),
+    ),
+
     ...pivotRelationships.map(({ relatedTable }) =>
       generateCodeFromTable(relatedTable, 'manyToMany'),
     ),

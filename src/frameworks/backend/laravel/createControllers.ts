@@ -33,7 +33,6 @@ class {{tableNamePascalCase}}Controller extends BaseController
 
 const createControllerMethods = ({
   tableName,
-  schemaInfo,
   tableInfo,
 }: {
   tableName: string;
@@ -46,7 +45,7 @@ const createControllerMethods = ({
   // Helper function to generate paired method and content
   const generateControllerCode = (table: string, type: RelationshipTypes) => {
     const method = generateDomainCode({
-      schemaInfo,
+      tableInfo,
       tableName,
       codeToGenerate: 'controllerMethod',
       relationshipType: type,
@@ -54,7 +53,7 @@ const createControllerMethods = ({
     });
 
     const content = generateDomainCode({
-      schemaInfo,
+      tableInfo,
       tableName,
       codeToGenerate: 'controllerContent',
       relationshipType: type,
