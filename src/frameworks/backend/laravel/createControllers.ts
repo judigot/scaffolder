@@ -41,6 +41,7 @@ const createControllers = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const { pascalCase: tableNamePascalCase } = changeCase(tableName);
 
       const controllerMethods = generateDomainCode({
+        schemaInfo,
         tableInfo,
         tableName,
         codeToGenerate: 'controllerContent',

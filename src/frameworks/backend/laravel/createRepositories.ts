@@ -39,6 +39,7 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const modelImports = generateModelImports(tableInfo);
 
       const modelSpecificMethods = generateDomainCode({
+        schemaInfo,
         tableInfo,
         tableName,
         codeToGenerate: 'repositoryContent',

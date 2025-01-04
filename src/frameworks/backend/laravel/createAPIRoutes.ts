@@ -75,6 +75,7 @@ Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Contro
   `;
 
     const modelSpecificRoutes = generateDomainCode({
+      schemaInfo,
       codeToGenerate: 'route',
       tableInfo,
       tableName,
