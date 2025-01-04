@@ -1,10 +1,12 @@
 export interface IDomainStatus {
-  isOneToOne: boolean;
-  isOneToMany: boolean;
-  isManyToMany: boolean;
   belongsTo: boolean;
   hasOne: boolean;
   hasMany: boolean;
   pivotRelationships: boolean;
+  isOneToOne: boolean;
+  isOneToMany: boolean;
+  isManyToMany: boolean;
+  isBelongsTo: boolean;
+  isBelongsToMany: boolean;
   isPivot: boolean;
 }
