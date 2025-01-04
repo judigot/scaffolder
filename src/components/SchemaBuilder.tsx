@@ -84,17 +84,41 @@ function SchemaBuilder() {
 
   const renameTable = async (index: number) => {
     const oldValue = schemaInfo[index].tableName;
-
     const newName = await editValue({ title: 'Edit table name', oldValue });
 
     if (!newName) {
       return;
     }
 
+    /* Helper to generate pivot table name */
+    const generatePivotTableName = (table1: string, table2: string): string => {
+      if (!table1 || !table2) {
+        return '';
+      } // Guard against undefined
+      const names = [table1, table2].sort();
+      return `${names[0]}_${names[1]}`;
+    };
+
     const updatedSchema = schemaInfo.map((table) => {
+      const updatedTable = { ...table };
+
       /* Rename the table itself */
-      if (table.tableName === oldValue) {
-        table.tableName = newName;
+      if (updatedTable.tableName === oldValue) {
+        updatedTable.tableName = newName;
+      }
+
+      /* If this is a pivot table that contains the old name, rename it */
+      if (updatedTable.isPivot && updatedTable.tableName.includes(oldValue)) {
+        const relatedTables = updatedTable.foreignTables
+          .filter(Boolean) // Remove any undefined/null values
+          .map((tableName) => (tableName === oldValue ? newName : tableName));
+
+        if (relatedTables.length === 2) {
+          updatedTable.tableName = generatePivotTableName(
+            relatedTables[0],
+            relatedTables[1],
+          );
+        }
       }
 
       /* Define the relationship keys */
@@ -117,21 +141,57 @@ function SchemaBuilder() {
 
       /* Update relationships referencing the old table name */
       relationshipKeys.forEach((relation) => {
-        if (Array.isArray(table[relation])) {
-          table[relation] = table[relation].map((rel) =>
-            rel === oldValue ? newName : rel,
-          );
+        if (Array.isArray(updatedTable[relation])) {
+          updatedTable[relation] = updatedTable[relation]
+            .filter(Boolean) // Remove any undefined values
+            .map((rel) => {
+              /* If this is a pivot table reference, update it */
+              if (rel.includes(oldValue)) {
+                const parts = rel.split('_').filter(Boolean); // Remove empty parts
+                const updatedParts = parts.map((part) =>
+                  part === oldValue ? newName : part,
+                );
+                if (updatedParts.length === 2) {
+                  return generatePivotTableName(
+                    updatedParts[0],
+                    updatedParts[1],
+                  );
+                }
+              }
+              return rel === oldValue ? newName : rel;
+            });
         }
       });
 
       /* Update pivotRelationships referencing the old table name */
-      table.pivotRelationships = table.pivotRelationships.map((rel) => ({
-        relatedTable:
-          rel.relatedTable === oldValue ? newName : rel.relatedTable,
-        pivotTable: rel.pivotTable === oldValue ? newName : rel.pivotTable,
-      }));
+      updatedTable.pivotRelationships = updatedTable.pivotRelationships
+        .filter((rel) => rel.relatedTable && rel.pivotTable) // Filter out invalid relationships
+        .map((rel) => ({
+          relatedTable:
+            rel.relatedTable === oldValue ? newName : rel.relatedTable,
+          pivotTable: rel.pivotTable.includes(oldValue)
+            ? generatePivotTableName(
+                rel.relatedTable === oldValue ? newName : rel.relatedTable,
+                updatedTable.tableName,
+              )
+            : rel.pivotTable,
+        }));
 
-      return table;
+      /* Update foreign keys in columnsInfo */
+      updatedTable.columnsInfo = updatedTable.columnsInfo.map((column) => {
+        if (column.foreign_key?.foreign_table_name === oldValue) {
+          return {
+            ...column,
+            foreign_key: {
+              ...column.foreign_key,
+              foreign_table_name: newName,
+            },
+          };
+        }
+        return column;
+      });
+
+      return updatedTable;
     });
 
     setSchemaInfo(updatedSchema);
