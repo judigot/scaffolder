@@ -93,7 +93,8 @@ export default {
       serviceContent: () => {
         return '';
       },
-      controllerMethod: '{{methodName}}(Request $request, int $id)',
+      controllerMethod:
+        'public function {{methodName}}(Request $request, int $id)',
       controllerContent: ({
         hasOne,
         hasMany,
@@ -102,21 +103,30 @@ export default {
       }) => {
         if (hasOne) {
           return `
+      {{controllerMethod}}
+      {
           // Fetch the \${{relatedTableName}} from the repository
           \${{relatedTableName}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
-          return response()->json(\${{relatedTableName}});`;
+          return response()->json(\${{relatedTableName}});
+      }`;
         }
         if (hasMany || pivotRelationships) {
           return `
+      {{controllerMethod}}
+      {
           // Fetch the \${{relatedTableNamePlural}} from the repository
           \${{relatedTableNamePlural}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
-          return response()->json(\${{relatedTableNamePlural}});`;
+          return response()->json(\${{relatedTableNamePlural}});
+      }`;
         }
         if (belongsTo) {
           return `
+      {{controllerMethod}}
+      {
           // Find \${{tableNameSingular}} by \${{relatedTableName}}_id
           \${{tableNameSingular}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
-          return response()->json(\${{tableNameSingular}});`;
+          return response()->json(\${{tableNameSingular}});
+      }`;
         }
         return '';
       },

@@ -146,6 +146,7 @@ function generateDomainCode({
           typeof method.repositoryMethod === 'function'
             ? method.repositoryMethod(status)
             : '';
+        const controllerMethodName = method.controllerMethod;
 
         let tempTemplate = '';
 
@@ -164,6 +165,14 @@ function generateDomainCode({
           template: tempTemplate,
           replacements: {
             methodName: repositoryMethodName,
+            controllerMethod: (() => {
+              return replacePlaceholder({
+                template: controllerMethodName,
+                replacements: {
+                  methodName: repositoryMethodName,
+                },
+              });
+            })(),
             repositoryMethod: (() => {
               return replacePlaceholder({
                 template: repositoryMethodVal,

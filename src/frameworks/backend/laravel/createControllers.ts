@@ -3,7 +3,6 @@ import { APP_SETTINGS } from '@/constants.ts';
 import { createFile } from '@/helpers/stringHelper.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
-import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
 import generateDomainCode from '@/utils/generateDomainCode.ts';
 
 const template = `
@@ -31,60 +30,6 @@ class {{tableNamePascalCase}}Controller extends BaseController
 }
 `;
 
-const createControllerMethods = ({
-  tableName,
-  tableInfo,
-}: {
-  tableName: string;
-  schemaInfo: ISchemaInfo[];
-  tableInfo: ISchemaInfo;
-}): string => {
-  const { hasOne, hasMany, pivotRelationships, belongsTo } = tableInfo;
-  const allMethods: string[] = [];
-
-  // Helper function to generate paired method and content
-  const generateControllerCode = (table: string, type: RelationshipTypes) => {
-    const method = generateDomainCode({
-      tableInfo,
-      tableName,
-      codeToGenerate: 'controllerMethod',
-      relationshipType: type,
-      relatedTable: table,
-    });
-
-    const content = generateDomainCode({
-      tableInfo,
-      tableName,
-      codeToGenerate: 'controllerContent',
-      relationshipType: type,
-      relatedTable: table,
-    });
-
-    if (method && content) {
-      allMethods.push(`    public function ${method}\n    {${content}\n    }`);
-    }
-  };
-
-  // Generate for each relationship type
-  hasOne.forEach((table) => {
-    generateControllerCode(table, 'oneToOne');
-  });
-
-  hasMany.forEach((table) => {
-    generateControllerCode(table, 'oneToMany');
-  });
-
-  belongsTo.forEach((table) => {
-    generateControllerCode(table, 'belongsTo');
-  });
-
-  pivotRelationships.forEach(({ relatedTable }) => {
-    generateControllerCode(relatedTable, 'manyToMany');
-  });
-
-  return allMethods.join('\n\n');
-};
-
 const createControllers = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
@@ -95,10 +40,10 @@ const createControllers = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const { tableName } = tableInfo;
       const { pascalCase: tableNamePascalCase } = changeCase(tableName);
 
-      const controllerMethods = createControllerMethods({
-        tableName,
-        schemaInfo,
+      const controllerMethods = generateDomainCode({
         tableInfo,
+        tableName,
+        codeToGenerate: 'controllerContent',
       });
 
       const replacements = {
