@@ -3,7 +3,6 @@ Method	Endpoint	Purpose
 GET	/users/{userId}/posts	Get all posts created by a specific user (joined with post).
 GET	/users/{userId}/posts/count	Get the count of posts created by a specific user (involves posts).
 GET	/users/{userId}/latestPost	Get the latest post created by a specific user (joined with post).
-GET	/users/{userId}/mostLikedPost	Get the most liked post of a specific user (joined with post, if a "likes" field exists).
 GET	/users/withPosts	Get all users who have created at least one post (joined with post).
 GET	/users/withoutPosts	Get all users who haven’t created any posts (left join to detect users without posts).
 POST	/users/{userId}/posts	Create a new post for a specific user (validate that the user exists).
