@@ -141,12 +141,18 @@ function generateDomainCode({
     let template = rawMethods
       .map((method) => {
         const templateVal = method[codeToGenerate];
+
         const repositoryMethodName = method.methodName(status);
-        const repositoryMethodVal =
+
+        const repositoryMethod =
           typeof method.repositoryMethod === 'function'
             ? method.repositoryMethod(status)
-            : '';
-        const controllerMethodName = method.controllerMethod;
+            : method.repositoryMethod;
+
+        const controllerMethodName =
+          typeof method.controllerMethod === 'function'
+            ? method.controllerMethod(status)
+            : method.controllerMethod;
 
         let tempTemplate = '';
 
@@ -161,7 +167,7 @@ function generateDomainCode({
           tempTemplate = templateVal;
         }
 
-        return replacePlaceholder({
+        const finalTemplate = replacePlaceholder({
           template: tempTemplate,
           replacements: {
             methodName: repositoryMethodName,
@@ -175,7 +181,7 @@ function generateDomainCode({
             })(),
             repositoryMethod: (() => {
               return replacePlaceholder({
-                template: repositoryMethodVal,
+                template: repositoryMethod,
                 replacements: {
                   methodName: repositoryMethodName,
                 },
@@ -183,6 +189,12 @@ function generateDomainCode({
             })(),
           },
         });
+
+        if (finalTemplate !== '') {
+          return finalTemplate;
+        }
+
+        return '';
       })
       .join(codeToGenerate === 'repositoryMethod' ? ';\n' : '');
 

@@ -93,8 +93,9 @@ export default {
       serviceContent: () => {
         return '';
       },
-      controllerMethod:
-        'public function {{methodName}}(Request $request, int $id)',
+      controllerMethod: (_status) => {
+        return 'public function {{methodName}}(Request $request, int $id)';
+      },
       controllerContent: ({
         hasOne,
         hasMany,
@@ -132,50 +133,82 @@ export default {
       },
     },
     // {
-    //   methodName: ({ hasMany }) => {
-    //     if (hasMany) {
+    //   methodName: ({ hasMany, pivotRelationships }) => {
+    //     if (hasMany || pivotRelationships) {
     //       return 'getAllWithRelated{{relatedTableNamePascalPlural}}';
     //     }
     //     return '';
     //   },
-    //   route: () => {
-    //     return `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'getAllWithRelated{{relatedTableNamePascalPlural}}'])->name('{{tableNameKebabCasePlural}}.getAllWithRelated');`;
+    //   route: ({ hasMany, pivotRelationships }) => {
+    //     if (hasMany || pivotRelationships) {
+    //       return `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'getAllWithRelated{{relatedTableNamePascalPlural}}'])->name('{{tableNameKebabCasePlural}}.getAllWithRelated');`;
+    //     }
+    //     return '';
     //   },
-    //   description: () =>
-    //     'Get all {{tableNamePascalCase}} records with optional related {{relatedTableNamePascalPlural}}.',
-    //   repositoryMethod: () => `
-    //   /**
-    //    * Get all records with optional related data.
-    //    *
-    //    * @param bool $includeRelated
-    //    * @param string|null $column
-    //    * @param string $direction
-    //    * @return Collection
-    //    */
-    //   public function getAllWithRelated{{relatedTableNamePascalPlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection`,
-    //   repositoryContent: () => `
-    //   {
-    //       $query = $this->model->query();
+    //   description: ({ hasMany, pivotRelationships }) => {
+    //     if (hasMany || pivotRelationships) {
+    //       return 'Get all {{tableNamePascalCase}} records with optional related {{relatedTableNamePascalPlural}}.';
+    //     }
+    //     return '';
+    //   },
+    //   repositoryMethod: ({ hasMany, pivotRelationships }) => {
+    //     if (hasMany || pivotRelationships) {
+    //       return `
+    // /**
+    //  * Get all records with optional related data.
+    //  *
+    //  * @param bool $includeRelated
+    //  * @param string|null $column
+    //  * @param string $direction
+    //  * @return Collection
+    //  */
+    // public function getAllWithRelated{{relatedTableNamePascalPlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection`;
+    //     }
+    //     return '';
+    //   },
+    //   repositoryContent: ({ hasMany, pivotRelationships }) => {
+    //     if (hasMany || pivotRelationships) {
+    //       return `
+    // {
+    //     $query = $this->model->query();
 
-    //       if ($includeRelated) {
-    //           $query->with('{{relatedTableNamePlural}}');
-    //       }
+    //     if ($includeRelated) {
+    //         $query->with('{{relatedTableNamePlural}}');
+    //     }
 
-    //       $column = $column ?? $this->model->getKeyName();
-    //       return $query->orderBy($column, $direction)->get();
-    //   }`,
-    //   controllerMethod: () =>
-    //     'getAllWithRelated{{relatedTableNamePascalPlural}}(Request $request)',
-    //   controllerContent: () => `
-    //       $includeRelated = filter_var($request->query('include{{relatedTableNamePascalPlural}}', false), FILTER_VALIDATE_BOOLEAN);
-    //       $records = $this->repository->getAllWithRelated{{relatedTableNamePascalPlural}}(
-    //           $includeRelated,
-    //           $request->query('column'),
-    //           $request->query('direction', 'asc')
-    //       );
-    //       return response()->json($records);`,
-    //   serviceMethod: () => '',
-    //   serviceContent: () => '',
+    //     $column = $column ?? $this->model->getKeyName();
+    //     return $query->orderBy($column, $direction)->get();
+    // }`;
+    //     }
+    //     return '';
+    //   },
+    //   serviceMethod: () => {
+    //     return '';
+    //   },
+    //   serviceContent: () => {
+    //     return '';
+    //   },
+    //   controllerMethod: ({ hasMany, pivotRelationships }) => {
+    //     if (hasMany || pivotRelationships) {
+    //       return 'getAllWithRelated{{relatedTableNamePascalPlural}}(Request $request)';
+    //     }
+    //     return '';
+    //   },
+    //   controllerContent: ({ hasMany, pivotRelationships }) => {
+    //     if (hasMany || pivotRelationships) {
+    //       return `
+    // {
+    //     $includeRelated = filter_var($request->query('include{{relatedTableNamePascalPlural}}', false), FILTER_VALIDATE_BOOLEAN);
+    //     $records = $this->repository->getAllWithRelated{{relatedTableNamePascalPlural}}(
+    //         $includeRelated,
+    //         $request->query('column'),
+    //         $request->query('direction', 'asc')
+    //     );
+    //     return response()->json($records);
+    // }`;
+    //     }
+    //     return '';
+    //   },
     // },
   ],
 } satisfies IDomainStructure;
