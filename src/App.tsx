@@ -90,7 +90,7 @@ function App() {
 
   return (
     <div className="text-white bg-black">
-      <div className="bg-gray-900 text-white p-4">
+      <nav className="bg-gray-900 text-white p-4 sticky top-0 z-50">
         <h1 className="text-2xl font-bold text-center">App Scaffolder</h1>
         <h2 className="text-1xl text-red-500 font-bold text-center">
           Pre-commit hook is temporarily disabled!
@@ -329,7 +329,7 @@ function App() {
             </button>
           </div>
         </div>
-      </div>
+      </nav>
 
       <div className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
