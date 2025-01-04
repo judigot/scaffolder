@@ -240,8 +240,8 @@ function SchemaBuilder() {
 
   return (
     <div className="text-white">
-      <div className="flex">
-        <div className="w-1/4 border-r border-gray-600">
+      <div className="flex flex-col md:flex-row">
+        <div className="border-b border-gray-600 pr-4 w-full md:w-auto">
           <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
           <ul className="space-y-2">
             {schemaInfo
@@ -313,7 +313,7 @@ function SchemaBuilder() {
           )}
         </div>
 
-        <div className="w-3/4 p-4">
+        <div className="w-full p-4 sm:w-full md:w-full lg:w-full">
           {selectedTableIndex !== null &&
             Boolean(schemaInfo[selectedTableIndex]) && (
               <div key={schemaInfo[selectedTableIndex].tableName}>
@@ -556,68 +556,70 @@ function SchemaBuilder() {
                         className={`text-white-500 cursor-pointer`}
                       />
                     </div>
-                    <table className="w-full text-left border-collapse border border-gray-600">
-                      <thead>
-                        <tr>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Name
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Type
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Nullable
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Default
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Primary
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Unique
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Foreign Key
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {schemaInfo[selectedTableIndex].columnsInfo.map(
-                          (column) => (
-                            <tr key={column.column_name}>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.column_name}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.data_type}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.is_nullable}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {getColumnDefaultDisplay({
-                                  isPrimaryKey: column.primary_key,
-                                  isNullable: column.is_nullable,
-                                  columnDefault: column.column_default,
-                                })}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.primary_key ? 'Yes' : 'No'}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.unique ? 'Yes' : 'No'}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.foreign_key
-                                  ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
-                                  : 'None'}
-                              </td>
-                            </tr>
-                          ),
-                        )}
-                      </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left border-collapse border border-gray-600">
+                        <thead>
+                          <tr>
+                            <th className="border border-gray-600 px-2 py-1">
+                              Name
+                            </th>
+                            <th className="border border-gray-600 px-2 py-1">
+                              Type
+                            </th>
+                            <th className="border border-gray-600 px-2 py-1">
+                              Nullable
+                            </th>
+                            <th className="border border-gray-600 px-2 py-1">
+                              Default
+                            </th>
+                            <th className="border border-gray-600 px-2 py-1">
+                              Primary
+                            </th>
+                            <th className="border border-gray-600 px-2 py-1">
+                              Unique
+                            </th>
+                            <th className="border border-gray-600 px-2 py-1">
+                              Foreign Key
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {schemaInfo[selectedTableIndex].columnsInfo.map(
+                            (column) => (
+                              <tr key={column.column_name}>
+                                <td className="border border-gray-600 px-2 py-1">
+                                  {column.column_name}
+                                </td>
+                                <td className="border border-gray-600 px-2 py-1">
+                                  {column.data_type}
+                                </td>
+                                <td className="border border-gray-600 px-2 py-1">
+                                  {column.is_nullable}
+                                </td>
+                                <td className="border border-gray-600 px-2 py-1">
+                                  {getColumnDefaultDisplay({
+                                    isPrimaryKey: column.primary_key,
+                                    isNullable: column.is_nullable,
+                                    columnDefault: column.column_default,
+                                  })}
+                                </td>
+                                <td className="border border-gray-600 px-2 py-1">
+                                  {column.primary_key ? 'Yes' : 'No'}
+                                </td>
+                                <td className="border border-gray-600 px-2 py-1">
+                                  {column.unique ? 'Yes' : 'No'}
+                                </td>
+                                <td className="border border-gray-600 px-2 py-1">
+                                  {column.foreign_key
+                                    ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
+                                    : 'None'}
+                                </td>
+                              </tr>
+                            ),
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </>
                 )}
               </div>

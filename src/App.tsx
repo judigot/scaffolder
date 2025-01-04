@@ -96,36 +96,34 @@ function App() {
           Pre-commit hook is temporarily disabled!
         </h2>
         <div className="text-center">
-          <div className="m-4">
+          <div className="m-4 flex flex-col sm:flex-row sm:justify-center">
             <button
               data-testid="one-to-one-button"
               type="button"
               onClick={() => {
                 setOneToOne();
               }}
-              className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+              className="mb-2 sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
             >
               One to One
             </button>
-            &nbsp; &nbsp;
             <button
               data-testid="one-to-many-button"
               type="button"
               onClick={() => {
                 setOneToMany();
               }}
-              className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+              className="mb-2 sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
             >
               One to Many
             </button>
-            &nbsp; &nbsp;
             <button
               data-testid="many-to-many-button"
               type="button"
               onClick={() => {
                 setManyToMany();
               }}
-              className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+              className="mb-2 sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
             >
               Many to Many
             </button>
@@ -153,7 +151,7 @@ function App() {
               </option>
             ))}
           </select>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               data-testid="generate-app-button"
               type="button"
@@ -332,7 +330,7 @@ function App() {
       </nav>
 
       <div className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
             {creationMode === CREATION_MODES.SCHEMA_BUILDER && (
               <SchemaBuilder />
@@ -363,7 +361,7 @@ function App() {
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label
                       htmlFor="backendUrl"
                       className="block text-sm font-medium"
@@ -443,23 +441,22 @@ function App() {
                           &nbsp;Invalid connection string
                         </i>
                       )}
-                      <div className="float-right pb-3">
+                      <div className="flex flex-col sm:flex-row sm:justify-between pb-3">
                         <button
                           type="button"
                           onClick={() => {
                             setDBType('postgresql');
                           }}
-                          className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                          className="mb-2 sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
                         >
                           PostgreSQL
                         </button>
-                        &nbsp; &nbsp;
                         <button
                           type="button"
                           onClick={() => {
                             setDBType('mysql');
                           }}
-                          className="px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                          className="mb-2 sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
                         >
                           MySQL
                         </button>
@@ -530,7 +527,7 @@ function App() {
           </div>
         </div>
         <br />
-        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <div>
               <h2 className="text-xl font-bold mb-2">Create Tables</h2>

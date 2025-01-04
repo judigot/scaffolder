@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CloseIcon from '@mui/icons-material/Close';
-import CopyIcon from '@mui/icons-material/ContentCopy';
-import CodeIcon from '@mui/icons-material/Code';
-import FolderIcon from '@mui/icons-material/Folder';
+import {
+  Close as CloseIcon,
+  ContentCopy as CopyIcon,
+  Code as CodeIcon,
+  Folder as FolderIcon,
+} from '@mui/icons-material';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 
 export interface IBase {
@@ -102,7 +104,7 @@ function FileViewer({
 
   return (
     <ThemeProvider theme={darkTheme}>
-      <div className="grid grid-cols-3 text-white">
+      <div className="grid grid-cols-1 md:grid-cols-3 text-white">
         <div className="col-span-1 bg-gray-800 p-4 select-none">
           <div>
             <button
@@ -118,10 +120,10 @@ function FileViewer({
             </SimpleTreeView>
           </div>
         </div>
-        <div className="col-span-2 bg-gray-900 p-4">
+        <div className="col-span-1 md:col-span-2 bg-gray-900 p-4 overflow-x-auto">
           {selectedFile && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
+            <div className="overflow-x-auto">
+              <div className="flex justify-between items-center mb-4 relative bg-gray-900">
                 <span className="">{selectedFile.name}</span>
                 <CopyIcon
                   onClick={() => {
