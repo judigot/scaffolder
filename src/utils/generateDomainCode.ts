@@ -5,6 +5,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { TableReplacements } from '@/interfaces/placeholders.ts';
 import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
+import { IDomainStatus } from '@/interfaces/IDomainStatus.ts';
 
 interface IGeneratedMethod {
   methodName: string;
@@ -14,19 +15,17 @@ interface IGeneratedMethod {
 }
 
 function generateDomainCode({
-  _schemaInfo,
+  schemaInfo,
   tableInfo,
   tableName,
   codeToGenerate,
   relationshipType,
-  relatedTable,
 }: {
   schemaInfo: ISchemaInfo[];
   tableInfo: ISchemaInfo;
   tableName: ISchemaInfo['tableName'];
   codeToGenerate: keyof IMethods;
   relationshipType?: RelationshipTypes;
-  relatedTable?: string;
 }): string[] {
   const determineRelationshipType = ({
     relationshipType,
@@ -36,22 +35,7 @@ function generateDomainCode({
     relationshipType: RelationshipTypes;
     tableInfo: ISchemaInfo;
     relatedTable: string;
-  }): {
-    belongsTo: boolean;
-    hasOne: boolean;
-    hasMany: boolean;
-    pivotRelationships: boolean;
-    isOneToOne: boolean;
-    isOneToMany: boolean;
-    isManyToMany: boolean;
-    isBelongsTo: boolean;
-    isPivot: boolean;
-  } => {
-    // One to one relationship schemaInfo = [ { tableName: 'user', requiredColumns: [ 'user_id', 'first_name', 'last_name', 'email', 'username', 'password', 'created_at', 'updated_at', ], columnsInfo: [ { column_name: 'user_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'first_name', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'last_name', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'email', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: true, foreign_key: null, }, { column_name: 'username', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: true, foreign_key: null, }, { column_name: 'password', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'created_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'updated_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, ], foreignTables: [], foreignKeys: [], isPivot: false, childTables: ['post'], hasOne: ['post'], hasMany: [], belongsTo: [], belongsToMany: [], pivotRelationships: [], }, { tableName: 'post', requiredColumns: [ 'post_id', 'user_id', 'title', 'created_at', 'updated_at', ], columnsInfo: [ { column_name: 'post_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'user_id', data_type: 'number', is_nullable: 'NO', column_default: null, primary_key: false, unique: true, foreign_key: { foreign_table_name: 'user', foreign_column_name: 'user_id', }, }, { column_name: 'title', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'content', data_type: 'string', is_nullable: 'YES', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'created_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'updated_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, ], foreignTables: ['user'], foreignKeys: ['user_id'], isPivot: false, childTables: [], hasOne: [], hasMany: [], belongsTo: ['user'], belongsToMany: [], pivotRelationships: [], }, ]
-    // 
-    
-    // One to many relationship schemaInfo = [ { tableName: 'user', requiredColumns: [ 'user_id', 'first_name', 'last_name', 'email', 'username', 'password', 'created_at', 'updated_at', ], columnsInfo: [ { column_name: 'user_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'first_name', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'last_name', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'email', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: true, foreign_key: null, }, { column_name: 'username', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: true, foreign_key: null, }, { column_name: 'password', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'created_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'updated_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, ], foreignTables: [], foreignKeys: [], isPivot: false, childTables: ['post'], hasOne: [], hasMany: ['post'], belongsTo: [], belongsToMany: [], pivotRelationships: [], }, { tableName: 'post', requiredColumns: [ 'post_id', 'user_id', 'title', 'created_at', 'updated_at', ], columnsInfo: [ { column_name: 'post_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'user_id', data_type: 'number', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: { foreign_table_name: 'user', foreign_column_name: 'user_id', }, }, { column_name: 'title', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'content', data_type: 'string', is_nullable: 'YES', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'created_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, { column_name: 'updated_at', data_type: 'Date', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, ], foreignTables: ['user'], foreignKeys: ['user_id'], isPivot: false, childTables: [], hasOne: [], hasMany: [], belongsTo: ['user'], belongsToMany: [], pivotRelationships: [], }, ]
-    // Many to many relationship schemaInfo = [ { tableName: 'product', requiredColumns: ['product_id', 'product_name'], columnsInfo: [ { column_name: 'product_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'product_name', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, ], foreignTables: [], foreignKeys: [], isPivot: false, childTables: ['order_product'], hasOne: [], hasMany: ['order_product'], belongsTo: [], belongsToMany: ['order'], pivotRelationships: [ { relatedTable: 'order', pivotTable: 'order_product', }, ], }, { tableName: 'customer', requiredColumns: ['customer_id', 'name'], columnsInfo: [ { column_name: 'customer_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'name', data_type: 'string', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: null, }, ], foreignTables: [], foreignKeys: [], isPivot: false, childTables: ['order'], hasOne: [], hasMany: ['order'], belongsTo: [], belongsToMany: [], pivotRelationships: [], }, { tableName: 'order', requiredColumns: ['order_id', 'customer_id'], columnsInfo: [ { column_name: 'order_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'customer_id', data_type: 'number', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: { foreign_table_name: 'customer', foreign_column_name: 'customer_id', }, }, ], foreignTables: ['customer'], foreignKeys: ['customer_id'], isPivot: false, childTables: ['order_product'], hasOne: [], hasMany: ['order_product'], belongsTo: ['customer'], belongsToMany: ['product'], pivotRelationships: [ { relatedTable: 'product', pivotTable: 'order_product', }, ], }, { tableName: 'order_product', requiredColumns: ['order_product_id', 'order_id', 'product_id'], columnsInfo: [ { column_name: 'order_product_id', data_type: 'number', is_nullable: 'NO', column_default: 'AUTO_INCREMENT', primary_key: true, unique: false, foreign_key: null, }, { column_name: 'order_id', data_type: 'number', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: { foreign_table_name: 'order', foreign_column_name: 'order_id', }, }, { column_name: 'product_id', data_type: 'number', is_nullable: 'NO', column_default: null, primary_key: false, unique: false, foreign_key: { foreign_table_name: 'product', foreign_column_name: 'product_id', }, }, ], foreignTables: ['order', 'product'], foreignKeys: ['order_id', 'product_id'], isPivot: true, childTables: [], hasOne: [], hasMany: [], belongsTo: ['order', 'product'], belongsToMany: [], pivotRelationships: [], }, ]
+  }): IDomainStatus => {
     const hasOne = tableInfo.hasOne.includes(relatedTable);
     const hasMany = tableInfo.hasMany.includes(relatedTable);
     const belongsTo = tableInfo.belongsTo.includes(relatedTable);
@@ -59,15 +43,29 @@ function generateDomainCode({
       (rel) => rel.relatedTable === relatedTable,
     );
 
+    // Find the related table's schema info
+    const relatedTableInfo = schemaInfo.find(
+      (table) => table.tableName === relatedTable,
+    );
+
+    // Check if the current table exists in the related table's relationships
+    const isInRelatedTableHasOne = relatedTableInfo?.hasOne.includes(tableName) ?? false;
+    const isInRelatedTableHasMany = relatedTableInfo?.hasMany.includes(tableName) ?? false;
+    const isInRelatedTableBelongsTo = relatedTableInfo?.belongsTo.includes(tableName) ?? false;
+    const isInRelatedTablePivot = relatedTableInfo?.pivotRelationships.some(
+      (rel) => rel.relatedTable === tableName,
+    ) ?? false;
+
     return {
       belongsTo,
       hasOne,
       hasMany,
       pivotRelationships: isPivotRelationship,
-      isOneToOne: relationshipType === 'oneToOne',
-      isOneToMany: relationshipType === 'oneToMany',
-      isManyToMany: relationshipType === 'manyToMany',
+      isOneToOne: hasOne || isInRelatedTableHasOne || (relationshipType === 'oneToOne' && (belongsTo || isInRelatedTableBelongsTo)),
+      isOneToMany: (hasMany && isInRelatedTableBelongsTo) || (belongsTo && isInRelatedTableHasMany),
+      isManyToMany: (isPivotRelationship && isInRelatedTablePivot),
       isBelongsTo: relationshipType === 'belongsTo',
+      isBelongsToMany: relationshipType === 'belongsToMany',
       isPivot: isPivotRelationship,
     };
   };
@@ -243,16 +241,11 @@ function generateDomainCode({
   ];
 
   // If specific relationship is requested, filter for that
-  if (
-    relationshipType != null &&
-    relatedTable != null &&
-    relatedTable.length > 0
-  ) {
+  if (relationshipType != null) {
     return allMethods
       .filter(
         (method) =>
-          method.relationshipType === relationshipType &&
-          method.relatedTable === relatedTable,
+          method.relationshipType === relationshipType,
       )
       .map((method) => method.code);
   }

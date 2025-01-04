@@ -16,10 +16,13 @@ export default {
         }
         return '';
       },
-      route: ({ hasOne }) => {
-        const suffix = hasOne
-          ? '{{relatedTableNameKebabCase}}'
-          : '{{relatedTableNameKebabCasePlural}}';
+      route: ({ isOneToOne }) => {
+        let suffix = '{{relatedTableNameKebabCasePlural}}';
+
+        if (isOneToOne) {
+          suffix = '{{relatedTableNameKebabCase}}';
+        }
+
         return `Route::get('{{tableNameKebabCasePlural}}/{id}/${suffix}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.${suffix}');`;
       },
       description: ({ hasOne, belongsTo }) => {
