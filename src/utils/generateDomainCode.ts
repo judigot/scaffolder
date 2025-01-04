@@ -141,7 +141,7 @@ function generateDomainCode({
     let template = rawMethods
       .map((method) => {
         const templateVal = method[codeToGenerate];
-        const methodNameVal = method.methodName(status);
+        const repositoryMethodName = method.methodName(status);
         const repositoryMethodVal =
           typeof method.repositoryMethod === 'function'
             ? method.repositoryMethod(status)
@@ -163,12 +163,12 @@ function generateDomainCode({
         return replacePlaceholder({
           template: tempTemplate,
           replacements: {
-            methodName: methodNameVal,
+            methodName: repositoryMethodName,
             repositoryMethod: (() => {
               return replacePlaceholder({
                 template: repositoryMethodVal,
                 replacements: {
-                  methodName: methodNameVal,
+                  methodName: repositoryMethodName,
                 },
               });
             })(),
