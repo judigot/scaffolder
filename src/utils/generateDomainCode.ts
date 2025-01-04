@@ -6,6 +6,13 @@ import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { TableReplacements } from '@/interfaces/placeholders.ts';
 import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
 
+interface IGeneratedMethod {
+  methodName: string;
+  code: string;
+  relationshipType: RelationshipTypes;
+  relatedTable: string;
+}
+
 function generateDomainCode({
   tableInfo,
   tableName,
@@ -18,7 +25,7 @@ function generateDomainCode({
   codeToGenerate: keyof IMethods;
   relationshipType?: RelationshipTypes;
   relatedTable?: string;
-}): string {
+}): string[] {
   const determineRelationshipType = ({
     relationshipType,
     tableInfo,
@@ -57,6 +64,7 @@ function generateDomainCode({
       isPivot: isPivotRelationship,
     };
   };
+
   const primaryKey = tableInfo.columnsInfo.find(
     (column) => column.primary_key,
   )?.column_name;
@@ -80,7 +88,7 @@ function generateDomainCode({
   const generateCodeFromTable = (
     relatedTable: string,
     relationshipType: RelationshipTypes,
-  ): string => {
+  ): IGeneratedMethod[] => {
     const pivotTableName = tableInfo.pivotRelationships.find(
       (rel) => rel.relatedTable === relatedTable,
     )?.pivotTable;
@@ -138,10 +146,9 @@ function generateDomainCode({
       }),
     };
 
-    let template = rawMethods
-      .map((method) => {
+    return rawMethods
+      .map((method): IGeneratedMethod | null => {
         const templateVal = method[codeToGenerate];
-
         const repositoryMethodName = method.methodName(status);
 
         const repositoryMethod =
@@ -167,86 +174,80 @@ function generateDomainCode({
           tempTemplate = templateVal;
         }
 
+        if (tempTemplate === '') {
+          return null;
+        }
+
         const finalTemplate = replacePlaceholder({
           template: tempTemplate,
           replacements: {
             methodName: repositoryMethodName,
-            controllerMethod: (() => {
-              return replacePlaceholder({
-                template: controllerMethodName,
-                replacements: {
-                  methodName: repositoryMethodName,
-                },
-              });
-            })(),
-            repositoryMethod: (() => {
-              return replacePlaceholder({
-                template: repositoryMethod,
-                replacements: {
-                  methodName: repositoryMethodName,
-                },
-              });
-            })(),
+            controllerMethod: replacePlaceholder({
+              template: controllerMethodName,
+              replacements: {
+                methodName: repositoryMethodName,
+              },
+            }),
+            repositoryMethod: replacePlaceholder({
+              template: repositoryMethod,
+              replacements: {
+                methodName: repositoryMethodName,
+              },
+            }),
           },
         });
 
-        if (finalTemplate !== '') {
-          return finalTemplate;
+        const result = replacePlaceholder({
+          template: finalTemplate,
+          replacements: { ...placeholders, ...updatedPlaceholders },
+        });
+
+        // Extract method name from the result to track duplicates
+        const methodNameMatch = /public function (\w+)/.exec(result);
+        if (methodNameMatch?.[1] != null && methodNameMatch[1].length > 0) {
+          const methodName = methodNameMatch[1];
+          if (generatedMethods.has(methodName)) {
+            return null;
+          }
+          generatedMethods.add(methodName);
         }
 
-        return '';
+        return {
+          methodName: repositoryMethodName,
+          code: result,
+          relationshipType,
+          relatedTable,
+        };
       })
-      .join(codeToGenerate === 'repositoryMethod' ? ';\n' : '');
-
-    if (codeToGenerate === 'repositoryMethod') {
-      template = `${template};`;
-    }
-
-    const result = replacePlaceholder({
-      template,
-      replacements: { ...placeholders, ...updatedPlaceholders },
-    });
-
-    // Extract method name from the result to track duplicates
-    const methodNameMatch = /public function (\w+)/.exec(result);
-    if (methodNameMatch?.[1] != null && methodNameMatch[1].length > 0) {
-      const methodName = methodNameMatch[1];
-      if (generatedMethods.has(methodName)) {
-        return ''; // Skip duplicate method
-      }
-      generatedMethods.add(methodName);
-    }
-
-    return result;
+      .filter((method): method is IGeneratedMethod => method !== null);
   };
 
-  // If relationshipType and relatedTable are provided, generate for specific relationship
-  if (
-    relationshipType != null &&
-    relatedTable != null &&
-    relatedTable.length > 0
-  ) {
-    return generateCodeFromTable(relatedTable, relationshipType);
-  }
-
-  // Generate methods for each relationship type
-  const allMethods: string[] = [
-    ...hasOne.map((table) => generateCodeFromTable(table, 'oneToOne')),
-
-    ...hasMany.map((table) => generateCodeFromTable(table, 'oneToMany')),
-
-    ...belongsTo.map((table) => generateCodeFromTable(table, 'belongsTo')),
-
-    ...belongsToMany.map((table) =>
+  // Generate all methods
+  const allMethods = [
+    ...hasOne.flatMap((table) => generateCodeFromTable(table, 'oneToOne')),
+    ...hasMany.flatMap((table) => generateCodeFromTable(table, 'oneToMany')),
+    ...belongsTo.flatMap((table) => generateCodeFromTable(table, 'belongsTo')),
+    ...belongsToMany.flatMap((table) =>
       generateCodeFromTable(table, 'belongsToMany'),
     ),
-
-    ...pivotRelationships.map(({ relatedTable }) =>
+    ...pivotRelationships.flatMap(({ relatedTable }) =>
       generateCodeFromTable(relatedTable, 'manyToMany'),
     ),
   ];
 
-  return allMethods.filter(Boolean).join('\n');
+  // If specific relationship is requested, filter for that
+  if (relationshipType != null && relatedTable != null && relatedTable.length > 0) {
+    return allMethods
+      .filter(
+        (method) =>
+          method.relationshipType === relationshipType &&
+          method.relatedTable === relatedTable,
+      )
+      .map((method) => method.code);
+  }
+
+  // Return all methods sorted by relationship type
+  return allMethods.map((method) => method.code);
 }
 
 export default generateDomainCode;

@@ -44,7 +44,7 @@ const createControllers = (schemaInfo: ISchemaInfo[]): IFile[] => {
         tableInfo,
         tableName,
         codeToGenerate: 'controllerContent',
-      });
+      }).join('\n');
 
       const replacements = {
         tableNamePascalCase,

@@ -42,7 +42,7 @@ const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
         tableInfo,
         tableName,
         codeToGenerate: 'repositoryContent',
-      });
+      }).join('\n');
 
       const replacements = {
         tableNamePascalCase,

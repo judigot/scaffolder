@@ -38,7 +38,7 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
         tableInfo,
         tableName,
         codeToGenerate: 'repositoryMethod',
-      });
+      }).join(';\n') + ';';
 
       const replacements = {
         tableNamePascalCase,
