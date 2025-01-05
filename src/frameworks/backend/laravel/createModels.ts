@@ -233,7 +233,7 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const className = pascalCase;
 
       const fillable = createFillable(columnsInfo, foreignKeys);
-      const relationships = createRelationships(
+      const domainMethods = createRelationships(
         tableName,
         foreignKeys,
         hasOne,
@@ -279,7 +279,7 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
           primaryKey,
           hiddenColumns,
           fillable,
-          relationships,
+          domainMethods,
         },
       });
 

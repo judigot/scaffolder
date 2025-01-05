@@ -22,7 +22,7 @@ class {{className}} extends Model
         {{fillable}}
     ];
 
-    {{relationships}}
+    {{domainMethods}}
 }`,
   hasOne: `public function {{relationshipName}}()
     {
