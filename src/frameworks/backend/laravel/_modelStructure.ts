@@ -24,22 +24,6 @@ class {{className}} extends Model
 
     {{domainMethods}}
 }`,
-  hasOne: `public function {{relationshipName}}()
-    {
-        return $this->hasOne({{relatedModel}}::class, '{{foreignKey}}');
-    }`,
-  hasMany: `public function {{relationshipName}}s()
-    {
-        return $this->hasMany({{relatedModel}}::class, '{{foreignKey}}');
-    }`,
-  belongsTo: `public function {{relationshipName}}()
-    {
-        return $this->belongsTo({{relatedModel}}::class, '{{foreignKey}}');
-    }`,
-  belongsToMany: `public function {{relationshipName}}s()
-    {
-        return $this->belongsToMany({{relatedModel}}::class, '{{pivotTable}}', '{{primaryKey}}', '{{relatedTableForeignKey}}');
-    }`,
 
   // New
   timestamps: `protected $timestamps = {{useTimestamps}};

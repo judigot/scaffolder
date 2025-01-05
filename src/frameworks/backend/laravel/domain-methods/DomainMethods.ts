@@ -45,28 +45,28 @@ export default {
           return `
       public function {{modelMethod}}()
       {
-          return $this->hasOne({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+          return $this->hasOne({{relatedTableNamePascal}}::class, '{{relatedTableForeignKey}}');
       }`;
         }
         if (hasMany) {
           return `
       public function {{modelMethod}}()
       {
-          return $this->hasMany({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+          return $this->hasMany({{relatedTableNamePascal}}::class, '{{relatedTableForeignKey}}');
       }`;
         }
         if (pivotRelationships) {
           return `
       public function {{modelMethod}}()
       {
-          return $this->belongsToMany({{relatedTableNamePascalCase}}::class, '{{pivotTable}}', '{{primaryKey}}', '{{relatedTableForeignKey}}');
+          return $this->belongsToMany({{relatedTableNamePascal}}::class, '{{pivotTableName}}', '{{primaryKey}}', '{{relatedTableForeignKey}}');
       }`;
         }
         if (belongsTo) {
           return `
       public function {{modelMethod}}()
       {
-          return $this->belongsTo({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+          return $this->belongsTo({{relatedTableNamePascal}}::class, '{{relatedTableForeignKey}}');
       }`;
         }
         return '';
@@ -208,14 +208,14 @@ export default {
           return `
       public function {{modelMethod}}()
       {
-          return $this->hasMany({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+          return $this->hasMany({{relatedTableNamePascal}}::class, '{{relatedTableForeignKey}}');
       }`;
         }
         if (pivotRelationships) {
           return `
       public function {{modelMethod}}()
       {
-          return $this->belongsToMany({{relatedTableNamePascalCase}}::class, '{{pivotTable}}', '{{primaryKey}}', '{{relatedTableForeignKey}}');
+          return $this->belongsToMany({{relatedTableNamePascal}}::class, '{{pivotTableName}}', '{{primaryKey}}', '{{relatedTableForeignKey}}');
       }`;
         }
         return '';
