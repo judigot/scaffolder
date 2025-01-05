@@ -19,6 +19,8 @@ export interface IMethods {
   methodName: string;
   route: string;
   description: string;
+  modelMethod?: string;
+  modelContent?: string;
   repositoryMethod: string;
   repositoryContent: string;
   serviceMethod: string;

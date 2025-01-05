@@ -1,19 +1,12 @@
 import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { getPrimaryKey } from '@/utils/common.ts';
+// import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 // New API for getLaravelStructure
-export default ({
-  tableInfo,
-  schemaInfo,
-}: {
-  tableInfo: ISchemaInfo;
-  schemaInfo: ISchemaInfo[];
-}) =>
+export default () =>
   [
     {
       type: 'folder',
-      name: 'app',
+      name: 'Models',
       files: [
         {
           type: 'file',
@@ -41,20 +34,24 @@ class {{className}} extends Model
         {{fillable}}
     ];
 
-    {{relationships}}
+    {{domainMethods}}
 }
 `,
-          subContent: [
-            {
-              primaryKey: getPrimaryKey({
-                tableName: tableInfo.tableName,
-                schemaInfo,
-              }),
-              relationships: schemaInfo
-                .map((schema) => JSON.stringify(schema, null, 4))
-                .join(),
+          replacements: {
+            primaryKey: `protected $primaryKey = '{{getPrimaryKey()}}';`,
+            hiddenColumns: `protected $hidden = [{{getHiddenColumns()}}];`,
+            fillable: `protected $fillable = [{{getRequiredColumns()}}];`,
+            domainMethods: `{{getModelDomainMethods()}}`,
+            modelImports: () => {
+              return {
+                hasOne: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+                hasMany: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+                belongsTo: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+                belongsToMany: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+                pivotRelationships: `{{loop("use App\\Models\\{{pivotTableNamePascalCase}}")}}`,
+              };
             },
-          ],
+          },
         },
       ],
     },

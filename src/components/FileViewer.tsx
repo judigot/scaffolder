@@ -19,7 +19,10 @@ export interface IBase {
 export interface IFile extends IBase {
   type: 'file';
   content: string;
-  replacements?: Record<string, string | (() => string)>;
+  replacements?: Record<
+    string,
+    string | (() => string | Record<string, string>)
+  >;
 }
 
 export interface IFolder extends IBase {

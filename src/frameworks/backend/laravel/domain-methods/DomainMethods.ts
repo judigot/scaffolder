@@ -31,6 +31,46 @@ export default {
         }
         return `Get the related ${hasOne ? '{{relatedTableNamePascal}}' : '{{relatedTableNamePascalPlural}}'} related to the given {{tableNamePascalCase}}.`;
       },
+      modelMethod: ({ hasOne, hasMany, pivotRelationships, belongsTo }) => {
+        if (hasOne || belongsTo) {
+          return '{{relatedTableName}}';
+        }
+        if (hasMany || pivotRelationships) {
+          return '{{relatedTableNamePlural}}';
+        }
+        return '';
+      },
+      modelContent: ({ hasOne, hasMany, pivotRelationships, belongsTo }) => {
+        if (hasOne) {
+          return `
+      public function {{modelMethod}}()
+      {
+          return $this->hasOne({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+      }`;
+        }
+        if (hasMany) {
+          return `
+      public function {{modelMethod}}()
+      {
+          return $this->hasMany({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+      }`;
+        }
+        if (pivotRelationships) {
+          return `
+      public function {{modelMethod}}()
+      {
+          return $this->belongsToMany({{relatedTableNamePascalCase}}::class, '{{pivotTable}}', '{{primaryKey}}', '{{relatedTableForeignKey}}');
+      }`;
+        }
+        if (belongsTo) {
+          return `
+      public function {{modelMethod}}()
+      {
+          return $this->belongsTo({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+      }`;
+        }
+        return '';
+      },
       repositoryMethod: ({ hasOne, belongsTo }) => {
         const returnType = hasOne
           ? '?{{relatedTableNamePascal}}'
@@ -151,6 +191,32 @@ export default {
       description: ({ hasMany, pivotRelationships }) => {
         if (hasMany || pivotRelationships) {
           return 'Get all {{tableNamePascalCase}} records with optional related {{relatedTableNamePascalPlural}}.';
+        }
+        return '';
+      },
+      modelMethod: ({ hasOne, hasMany, pivotRelationships, belongsTo }) => {
+        if (hasOne || belongsTo) {
+          return '{{relatedTableName}}';
+        }
+        if (hasMany || pivotRelationships) {
+          return '{{relatedTableNamePlural}}';
+        }
+        return '';
+      },
+      modelContent: ({ hasMany, pivotRelationships }) => {
+        if (hasMany) {
+          return `
+      public function {{modelMethod}}()
+      {
+          return $this->hasMany({{relatedTableNamePascalCase}}::class, '{{foreignKey}}');
+      }`;
+        }
+        if (pivotRelationships) {
+          return `
+      public function {{modelMethod}}()
+      {
+          return $this->belongsToMany({{relatedTableNamePascalCase}}::class, '{{pivotTable}}', '{{primaryKey}}', '{{relatedTableForeignKey}}');
+      }`;
         }
         return '';
       },
