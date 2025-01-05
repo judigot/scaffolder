@@ -19,7 +19,7 @@ export interface IBase {
 export interface IFile extends IBase {
   type: 'file';
   content: string;
-  subContent?: Record<string, string | (() => string)>  [];
+  subContent?: Record<string, string | (() => string)>[];
 }
 
 export interface IFolder extends IBase {
