@@ -12,12 +12,14 @@ import { handleCopy } from '@/helpers/stringHelper.ts';
 
 export interface IBase {
   name: string;
+  path?: string;
   type: 'file' | 'folder';
 }
 
 export interface IFile extends IBase {
   type: 'file';
   content: string;
+  subContent?: Record<string, string | (() => string)>  [];
 }
 
 export interface IFolder extends IBase {
