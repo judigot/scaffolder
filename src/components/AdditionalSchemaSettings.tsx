@@ -80,55 +80,57 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
 
   return (
     <div className="bg-gray-800 p-4 rounded-md flex flex-col items-center">
-      <table className="min-w-full border border-gray-300 bg-gray-900 overflow-visible text-center relative">
-        <thead className="bg-gray-700">
-          <tr>
-            <th className="border-b border-gray-600 px-4 py-2 text-gray-200">
-              Table Name
-            </th>
-            <th className="border-b border-gray-600 px-4 py-2 text-gray-200">
-              Composite Unique
-            </th>
-            <th className="border-b border-gray-600 px-4 py-2 text-gray-200">
-              Searchable
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {schemaInfo.map((schema) => (
-            <tr key={schema.tableName} className="hover:bg-gray-700">
-              <td className="border-b border-gray-600 px-4 py-2 text-gray-300">
-                {schema.tableName}
-              </td>
-              <td className="border-b border-gray-600 px-4 py-2">
-                <div className="relative">
-                  <TagInput
-                    id={`tag-input-${schema.tableName}`}
-                    required={true}
-                    placeholder="Add a composite unique field"
-                    inputValue={formData.inputValues[schema.tableName] ?? ''} // Use specific input value
-                    onInputChange={(e) => {
-                      handleTagInputChange(schema.tableName, e);
-                    }} // Handle change for specific table
-                    addedValues={formData.addedValues[schema.tableName] ?? []} // Use specific added values
-                    onAddValue={(newTags) => {
-                      handleAddTags(schema.tableName, newTags);
-                    }} // Handle adding tags for specific table
-                    suggestions={getSuggestions(schema)}
-                    showSuggestionsOnFocus={true}
-                  />
-                </div>
-              </td>
-              <td className="border-b border-gray-600 px-4 py-2">
-                <input
-                  type="checkbox"
-                  className="form-checkbox h-4 w-4 text-indigo-600"
-                />
-              </td>
+      <div className="overflow-x-auto w-full">
+        <table className="min-w-full border border-gray-300 bg-gray-900 text-center">
+          <thead className="bg-gray-700">
+            <tr>
+              <th className="border-b border-gray-600 px-4 py-2 text-gray-200">
+                Table Name
+              </th>
+              <th className="border-b border-gray-600 px-4 py-2 text-gray-200">
+                Composite Unique
+              </th>
+              <th className="border-b border-gray-600 px-4 py-2 text-gray-200">
+                Searchable
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {schemaInfo.map((schema) => (
+              <tr key={schema.tableName} className="hover:bg-gray-700">
+                <td className="border-b border-gray-600 px-4 py-2 text-gray-300">
+                  {schema.tableName}
+                </td>
+                <td className="border-b border-gray-600 px-4 py-2">
+                  <div className="relative">
+                    <TagInput
+                      id={`tag-input-${schema.tableName}`}
+                      required={true}
+                      placeholder="Add a composite unique field"
+                      inputValue={formData.inputValues[schema.tableName] ?? ''} // Use specific input value
+                      onInputChange={(e) => {
+                        handleTagInputChange(schema.tableName, e);
+                      }} // Handle change for specific table
+                      addedValues={formData.addedValues[schema.tableName] ?? []} // Use specific added values
+                      onAddValue={(newTags) => {
+                        handleAddTags(schema.tableName, newTags);
+                      }} // Handle adding tags for specific table
+                      suggestions={getSuggestions(schema)}
+                      showSuggestionsOnFocus={true}
+                    />
+                  </div>
+                </td>
+                <td className="border-b border-gray-600 px-4 py-2">
+                  <input
+                    type="checkbox"
+                    className="form-checkbox h-4 w-4 text-indigo-600"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {/* <pre className="mt-4 text-sm text-gray-400">
         {JSON.stringify(formData, null, 4)}
       </pre> */}

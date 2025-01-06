@@ -6,6 +6,7 @@ import {
   Edit as EditIcon,
   Add as AddIcon,
   Close as CloseIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { useFormStore } from '@/useFormStore.ts';
@@ -308,6 +309,8 @@ function SchemaBuilder() {
   );
 
   const pivotTables = schemaInfo.filter((table) => table.isPivot);
+
+  const [isAddColumnFormVisible, setIsAddColumnFormVisible] = useState(false);
 
   return (
     <div className="text-white">
@@ -613,29 +616,147 @@ function SchemaBuilder() {
                 {!schemaInfo[selectedTableIndex].isPivot && (
                   <>
                     <br />
-                    <h3 className="font-semibold mb-2 inline-block">Columns</h3>
-                    <div className="inline-block">
-                      <AddIcon
-                        onClick={() => {
-                          void (async () => {
-                            // await handleRemoveRelationship(
-                            //   selectedTableIndex,
-                            // );
-                          })();
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold mb-2 inline-block">
+                        Columns
+                      </h3>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setIsAddColumnFormVisible((prev) => !prev);
+                          }
                         }}
-                        fontSize="medium"
-                        className={`text-white-500 cursor-pointer`}
-                      />
+                        className="cursor-pointer"
+                      >
+                        {isAddColumnFormVisible ? (
+                          <SaveIcon
+                            fontSize="medium"
+                            className="text-white-500"
+                          />
+                        ) : (
+                          <AddIcon
+                            fontSize="medium"
+                            className="text-white-500"
+                            onClick={() => {
+                              setIsAddColumnFormVisible(true);
+                            }}
+                          />
+                        )}
+                      </div>
+                      {isAddColumnFormVisible && (
+                        <CloseIcon
+                          fontSize="medium"
+                          className="text-white-500"
+                          onClick={() => {
+                            setIsAddColumnFormVisible(false);
+                          }}
+                        />
+                      )}
                     </div>
+
+                    {isAddColumnFormVisible && (
+                      <>
+                        <br />
+                        <form className="mb-2 bg-gray-800 rounded shadow overflow-x-auto">
+                          <div className="flex items-center border-b border-gray-600 p-2">
+                            <input
+                              id="columnName"
+                              type="text"
+                              placeholder="Column Name"
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
+                              required
+                            />
+                            <select
+                              id="dataType"
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
+                              required
+                            >
+                              <option value="">Select</option>
+                              <option value="string">String</option>
+                              <option value="number">Number</option>
+                              <option value="Date">Date</option>
+                              <option value="boolean">Boolean</option>
+                            </select>
+                            <select
+                              id="foreignKey"
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
+                              required
+                            >
+                              <option value="">Select Foreign Key</option>
+                              {schemaInfo.flatMap((table) =>
+                                table.columnsInfo
+                                  .filter(
+                                    (column) =>
+                                      column.primary_key &&
+                                      column.column_name !==
+                                        schemaInfo[
+                                          selectedTableIndex
+                                        ]?.columnsInfo.find(
+                                          (col) => col.primary_key,
+                                        )?.column_name,
+                                  )
+                                  .map((column) => (
+                                    <option
+                                      key={column.column_name}
+                                      value={column.column_name}
+                                    >
+                                      {column.column_name}
+                                    </option>
+                                  )),
+                              )}
+                            </select>
+                            <input
+                              id="default"
+                              type="text"
+                              placeholder="Default"
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
+                            />
+                            <div className="flex items-center ml-auto">
+                              <input
+                                id="nullable"
+                                type="checkbox"
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Nullable
+                              </span>
+                            </div>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                id="primary"
+                                type="checkbox"
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Primary
+                              </span>
+                            </div>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                id="unique"
+                                type="checkbox"
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Unique
+                              </span>
+                            </div>
+                          </div>
+                        </form>
+                      </>
+                    )}
+
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-left border-collapse border border-gray-600">
                         <thead>
                           <tr>
                             <th className="border border-gray-600 px-2 py-1">
-                              Name
+                              Column Name
                             </th>
                             <th className="border border-gray-600 px-2 py-1">
-                              Type
+                              Data Type
                             </th>
                             <th className="border border-gray-600 px-2 py-1">
                               Nullable
