@@ -196,7 +196,8 @@ function App() {
               {isLoading && 'Generating...'}
               {!isLoading && (
                 <>
-                  Generate <strong>{framework}</strong> App From JSON Schema
+                  Generate <strong>{framework}</strong> App
+                  <span className="text-2xl">🪄</span>
                 </>
               )}
             </button>
