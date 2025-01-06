@@ -5,20 +5,20 @@ export default {
   methods: [
     {
       methodName: 'softDelete',
-      route: `Route::delete('{{tableNameKebabCasePlural}}/{id}/soft-delete', [{{tableNamePascalCase}}Controller::class, 'softDelete'])->name('{{tableNameKebabCasePlural}}.soft-delete');`,
+      route: `Route::delete('{{tableNameKebabCasePlural}}/{id}/soft-delete', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.soft-delete');`,
       description: 'Soft delete a specific record by ID',
-      repositoryMethod: 'softDelete(int $id): bool',
+      repositoryMethod: '{{methodName}}(int $id): bool',
       repositoryContent: `
       $record = $this->model->find($id);
       return $record ? $record->delete() : false;
       `,
-      serviceMethod: 'softDelete(int $id): bool',
+      serviceMethod: '{{methodName}}(int $id): bool',
       serviceContent: `
-      return $this->repository->softDelete($id);
+      return $this->repository->{{methodName}}($id);
       `,
-      controllerMethod: 'softDelete($id)',
+      controllerMethod: '{{methodName}}($id)',
       controllerContent: `
-      $softDeleted = $this->service->softDelete($id);
+      $softDeleted = $this->service->{{methodName}}($id);
       return $softDeleted
             ? response()->json(['message' => 'Resource soft-deleted'])
             : response()->json(['message' => 'Resource not found'], 404);
@@ -26,20 +26,20 @@ export default {
     },
     {
       methodName: 'restore',
-      route: `Route::put('{{tableNameKebabCasePlural}}/{id}/restore', [{{tableNamePascalCase}}Controller::class, 'restore'])->name('{{tableNameKebabCasePlural}}.restore');`,
+      route: `Route::put('{{tableNameKebabCasePlural}}/{id}/restore', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.restore');`,
       description: 'Restore a soft-deleted record by ID',
-      repositoryMethod: 'restore(int $id): bool',
+      repositoryMethod: '{{methodName}}(int $id): bool',
       repositoryContent: `
       $record = $this->model->onlyTrashed()->find($id);
       return $record ? $record->restore() : false;
       `,
-      serviceMethod: 'restore(int $id): bool',
+      serviceMethod: '{{methodName}}(int $id): bool',
       serviceContent: `
-      return $this->repository->restore($id);
+      return $this->repository->{{methodName}}($id);
       `,
-      controllerMethod: 'restore($id)',
+      controllerMethod: '{{methodName}}($id)',
       controllerContent: `
-      $restored = $this->service->restore($id);
+      $restored = $this->service->{{methodName}}($id);
       return $restored
             ? response()->json(['message' => 'Resource restored'])
             : response()->json(['message' => 'Resource not found'], 404);
@@ -47,49 +47,49 @@ export default {
     },
     {
       methodName: 'withTrashed',
-      route: `Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCase}}Controller::class, 'withTrashed'])->name('{{tableNameKebabCasePlural}}.with-trashed');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-trashed');`,
       description: 'Retrieve all records including soft-deleted ones',
-      repositoryMethod: 'withTrashed(): Collection',
+      repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->withTrashed()->get();',
-      serviceMethod: 'withTrashed(): Collection',
+      serviceMethod: '{{methodName}}(): Collection',
       serviceContent: `
-      return $this->repository->withTrashed();
+      return $this->repository->{{methodName}}();
       `,
-      controllerMethod: 'withTrashed()',
+      controllerMethod: '{{methodName}}()',
       controllerContent: `
-      $items = $this->service->withTrashed();
+      $items = $this->service->{{methodName}}();
       return response()->json($items);
       `,
     },
     {
       methodName: 'onlyTrashed',
-      route: `Route::get('{{tableNameKebabCasePlural}}/only-trashed', [{{tableNamePascalCase}}Controller::class, 'onlyTrashed'])->name('{{tableNameKebabCasePlural}}.only-trashed');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/only-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.only-trashed');`,
       description: 'Retrieve only soft-deleted records',
-      repositoryMethod: 'onlyTrashed(): Collection',
+      repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->onlyTrashed()->get();',
-      serviceMethod: 'onlyTrashed(): Collection',
+      serviceMethod: '{{methodName}}(): Collection',
       serviceContent: `
-      return $this->repository->onlyTrashed();
+      return $this->repository->{{methodName}}();
       `,
-      controllerMethod: 'onlyTrashed()',
+      controllerMethod: '{{methodName}}()',
       controllerContent: `
-      $items = $this->service->onlyTrashed();
+      $items = $this->service->{{methodName}}();
       return response()->json($items);
       `,
     },
     {
       methodName: 'withoutTrashed',
-      route: `Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCase}}Controller::class, 'withoutTrashed'])->name('{{tableNameKebabCasePlural}}.without-trashed');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.without-trashed');`,
       description: 'Retrieve records excluding soft-deleted ones',
-      repositoryMethod: 'withoutTrashed(): Collection',
+      repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->withoutTrashed()->get();',
-      serviceMethod: 'withoutTrashed(): Collection',
+      serviceMethod: '{{methodName}}(): Collection',
       serviceContent: `
-      return $this->repository->withoutTrashed();
+      return $this->repository->{{methodName}}();
       `,
-      controllerMethod: 'withoutTrashed()',
+      controllerMethod: '{{methodName}}()',
       controllerContent: `
-      $items = $this->service->withoutTrashed();
+      $items = $this->service->{{methodName}}();
       return response()->json($items);
       `,
     },

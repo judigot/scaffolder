@@ -6,124 +6,124 @@ export default {
     // Can be commented since Route::apiResource already handles findOrFail
     {
       methodName: 'findOrFail',
-      route: `Route::get('{{tableNameKebabCasePlural}}/{id}/find-or-fail', [{{tableNamePascalCase}}Controller::class, 'findOrFail'])->name('{{tableNameKebabCasePlural}}.find-or-fail');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/{id}/find-or-fail', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.find-or-fail');`,
       description: 'Find a record or throw an exception if not found',
-      repositoryMethod: 'findOrFail(int $id): Model',
+      repositoryMethod: '{{methodName}}(int $id): Model',
       repositoryContent: 'return $this->model->findOrFail($id);',
-      serviceMethod: 'findOrFail(int $id): Model',
+      serviceMethod: '{{methodName}}(int $id): Model',
       serviceContent: `
-      return $this->repository->findOrFail($id);
+      return $this->repository->{{methodName}}($id);
       `,
-      controllerMethod: 'findOrFail($id)',
+      controllerMethod: '{{methodName}}($id)',
       controllerContent: `
-      $item = $this->service->findOrFail($id);
+      $item = $this->service->{{methodName}}($id);
       return response()->json($item);
       `,
     },
     {
       methodName: 'findMany',
-      route: `Route::post('{{tableNameKebabCasePlural}}/find-many', [{{tableNamePascalCase}}Controller::class, 'findMany'])->name('{{tableNameKebabCasePlural}}.find-many');`,
+      route: `Route::post('{{tableNameKebabCasePlural}}/find-many', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.find-many');`,
       description: 'Find multiple records by their IDs',
-      repositoryMethod: 'findMany(array $ids): Collection',
+      repositoryMethod: '{{methodName}}(array $ids): Collection',
       repositoryContent: 'return $this->model->findMany($ids);',
-      serviceMethod: 'findMany(array $ids): Collection',
+      serviceMethod: '{{methodName}}(array $ids): Collection',
       serviceContent: `
-      return $this->repository->findMany($ids);
+      return $this->repository->{{methodName}}($ids);
       `,
-      controllerMethod: 'findMany(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
       $ids = $request->input('ids', []);
-      $items = $this->service->findMany($ids);
+      $items = $this->service->{{methodName}}($ids);
       return response()->json($items);
       `,
     },
     {
       methodName: 'random',
-      route: `Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, 'random'])->name('{{tableNameKebabCasePlural}}.random');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.random');`,
       description: 'Retrieve random records',
-      repositoryMethod: 'random(int $count = 1): Collection',
+      repositoryMethod: '{{methodName}}(int $count = 1): Collection',
       repositoryContent:
         'return $this->model->inRandomOrder()->limit($count)->get();',
-      serviceMethod: 'random(int $count = 1): Collection',
+      serviceMethod: '{{methodName}}(int $count = 1): Collection',
       serviceContent: `
-      return $this->repository->random($count);
+      return $this->repository->{{methodName}}($count);
       `,
-      controllerMethod: 'random(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
       $count = $request->input('count', 1);
-      $items = $this->service->random($count);
+      $items = $this->service->{{methodName}}($count);
       return response()->json($items);
       `,
     },
     {
       methodName: 'latest',
-      route: `Route::get('{{tableNameKebabCasePlural}}/latest', [{{tableNamePascalCase}}Controller::class, 'latest'])->name('{{tableNameKebabCasePlural}}.latest');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/latest', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.latest');`,
       description: 'Retrieve the latest record based on a column',
-      repositoryMethod: "latest(string $column = 'created_at'): ?Model",
+      repositoryMethod: "{{methodName}}(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->latest($column)->first();',
-      serviceMethod: "latest(string $column = 'created_at'): ?Model",
+      serviceMethod: "{{methodName}}(string $column = 'created_at'): ?Model",
       serviceContent: `
-      return $this->repository->latest($column);
+      return $this->repository->{{methodName}}($column);
       `,
-      controllerMethod: 'latest(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
       $column = $request->input('column', 'created_at');
-      $item = $this->service->latest($column);
+      $item = $this->service->{{methodName}}($column);
       return response()->json($item);
       `,
     },
     {
       methodName: 'oldest',
-      route: `Route::get('{{tableNameKebabCasePlural}}/oldest', [{{tableNamePascalCase}}Controller::class, 'oldest'])->name('{{tableNameKebabCasePlural}}.oldest');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/oldest', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.oldest');`,
       description: 'Retrieve the oldest record based on a column',
-      repositoryMethod: "oldest(string $column = 'created_at'): ?Model",
+      repositoryMethod: "{{methodName}}(string $column = 'created_at'): ?Model",
       repositoryContent: 'return $this->model->oldest($column)->first();',
-      serviceMethod: "oldest(string $column = 'created_at'): ?Model",
+      serviceMethod: "{{methodName}}(string $column = 'created_at'): ?Model",
       serviceContent: `
-      return $this->repository->oldest($column);
+      return $this->repository->{{methodName}}($column);
       `,
-      controllerMethod: 'oldest(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
       $column = $request->input('column', 'created_at');
-      $item = $this->service->oldest($column);
+      $item = $this->service->{{methodName}}($column);
       return response()->json($item);
       `,
     },
     {
       methodName: 'orderBy',
-      route: `Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, 'orderBy'])->name('{{tableNameKebabCasePlural}}.order-by');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.order-by');`,
       description: 'Order records by a specific column and direction',
       repositoryMethod:
-        "orderBy(string $column, string $direction = 'asc'): Collection",
+        "{{methodName}}(string $column, string $direction = 'asc'): Collection",
       repositoryContent:
         'return $this->model->orderBy($column, $direction)->get();',
       serviceMethod:
-        "orderBy(string $column, string $direction = 'asc'): Collection",
+        "{{methodName}}(string $column, string $direction = 'asc'): Collection",
       serviceContent: `
-      return $this->repository->orderBy($column, $direction);
+      return $this->repository->{{methodName}}($column, $direction);
       `,
-      controllerMethod: 'orderBy(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
       $column = $request->input('column');
       $direction = $request->input('direction', 'asc');
-      $items = $this->service->orderBy($column, $direction);
+      $items = $this->service->{{methodName}}($column, $direction);
       return response()->json($items);
       `,
     },
     {
       methodName: 'groupBy',
-      route: `Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCase}}Controller::class, 'groupBy'])->name('{{tableNameKebabCasePlural}}.group-by');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.group-by');`,
       description: 'Group records by a specific column',
-      repositoryMethod: 'groupBy(string $column): Collection',
+      repositoryMethod: '{{methodName}}(string $column): Collection',
       repositoryContent: 'return $this->model->groupBy($column)->get();',
-      serviceMethod: 'groupBy(string $column): Collection',
+      serviceMethod: '{{methodName}}(string $column): Collection',
       serviceContent: `
-      return $this->repository->groupBy($column);
+      return $this->repository->{{methodName}}($column);
       `,
-      controllerMethod: 'groupBy(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
       $column = $request->input('column');
-      $items = $this->service->groupBy($column);
+      $items = $this->service->{{methodName}}($column);
       return response()->json($items);
       `,
     },

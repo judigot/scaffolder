@@ -5,18 +5,18 @@ export default {
   methods: [
     {
       methodName: 'getWithRelations',
-      route: `Route::get('{{tableNameKebabCasePlural}}/with-relations', [{{tableNamePascalCase}}Controller::class, 'getWithRelations'])->name('{{tableNameKebabCasePlural}}.with-relations');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/with-relations', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-relations');`,
       description: 'Retrieve related models',
-      repositoryMethod: 'getWithRelations(array $relations): Collection',
+      repositoryMethod: '{{methodName}}(array $relations): Collection',
       repositoryContent: 'return $this->model->with($relations)->get();',
-      serviceMethod: 'getWithRelations(array $relations): Collection',
+      serviceMethod: '{{methodName}}(array $relations): Collection',
       serviceContent: `
-        return $this->repository->getWithRelations($relations);
+        return $this->repository->{{methodName}}($relations);
       `,
-      controllerMethod: 'getWithRelations(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
         $relations = $request->input('relations', []);
-        $items = $this->service->getWithRelations($relations);
+        $items = $this->service->{{methodName}}($relations);
         return response()->json($items);
       `,
     },

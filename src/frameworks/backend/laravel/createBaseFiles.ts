@@ -1,6 +1,6 @@
 import { IFile } from '@/components/FileViewer.tsx';
 import baseMethods from '@/frameworks/backend/laravel/base-methods/index.ts';
-import { createFile } from '@/helpers/stringHelper.ts';
+import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
 
 const createBaseFiles = (
   type: 'interface' | 'repository' | 'service' | 'controller',
@@ -11,6 +11,7 @@ const createBaseFiles = (
       const groupMethods = methods
         .map(
           ({
+            methodName,
             repositoryMethod,
             repositoryContent,
             serviceMethod,
@@ -18,48 +19,50 @@ const createBaseFiles = (
             controllerMethod,
             controllerContent,
           }) => {
+            const replacements = { methodName };
+
             switch (type) {
               case 'interface': {
-                return `    public function ${repositoryMethod};`;
+                return `    public function ${replacePlaceholder({ template: repositoryMethod, replacements })};`;
               }
               case 'repository': {
                 const content = repositoryContent
-                  ? repositoryContent
+                  ? replacePlaceholder({ template: repositoryContent, replacements })
                       .trim()
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
                       .join('\n')
                   : `        return $this->model;`;
                 return `
-    public function ${repositoryMethod}
+    public function ${replacePlaceholder({ template: repositoryMethod, replacements })}
     {
 ${content}
     }`;
               }
               case 'service': {
                 const content = serviceContent
-                  ? serviceContent
+                  ? replacePlaceholder({ template: serviceContent, replacements })
                       .trim()
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
                       .join('\n')
-                  : `        return $this->repository->${repositoryMethod.split('(')[0]}();`;
+                  : `        return $this->repository->${methodName}();`;
                 return `
-    public function ${serviceMethod}
+    public function ${replacePlaceholder({ template: serviceMethod, replacements })}
     {
 ${content}
     }`;
               }
               case 'controller': {
                 const content = controllerContent
-                  ? controllerContent
+                  ? replacePlaceholder({ template: controllerContent, replacements })
                       .trim()
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
                       .join('\n')
-                  : `        return $this->service->${serviceMethod.split('(')[0]}();`;
+                  : `        return $this->service->${methodName}();`;
                 return `
-    public function ${controllerMethod}
+    public function ${replacePlaceholder({ template: controllerMethod, replacements })}
     {
 ${content}
     }`;
@@ -153,20 +156,13 @@ ${methods}
 
   const content = createFile({ template, replacements: {} });
 
-  let fileName: string;
-
-  if (type === 'interface') {
-    fileName = 'BaseInterface.php';
-  }
-  if (type === 'repository') {
-    fileName = 'BaseRepository.php';
-  }
-  if (type === 'controller') {
-    fileName = 'BaseController.php';
-  }
-  if (type === 'service') {
-    fileName = 'BaseService.php';
-  }
+  const fileName = type === 'interface' 
+    ? 'BaseInterface.php'
+    : type === 'repository'
+    ? 'BaseRepository.php'
+    : type === 'controller'
+    ? 'BaseController.php'
+    : 'BaseService.php';
 
   return {
     type: 'file',

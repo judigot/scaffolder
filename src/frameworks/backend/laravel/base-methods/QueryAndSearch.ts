@@ -5,96 +5,95 @@ export default {
   methods: [
     {
       methodName: 'findByAttributes',
-      route: `Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, 'findByAttributes'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');`,
       description: 'Find a record by specific attributes',
-      repositoryMethod: 'findByAttributes(array $attributes): ?Model',
+      repositoryMethod: '{{methodName}}(array $attributes): ?Model',
       repositoryContent: 'return $this->model->where($attributes)->first();',
-      serviceMethod: 'findByAttributes(array $attributes): ?Model',
+      serviceMethod: '{{methodName}}(array $attributes): ?Model',
       serviceContent: `
-      return $this->repository->findByAttributes($attributes);
+      return $this->repository->{{methodName}}($attributes);
       `,
-      controllerMethod: 'findByAttributes(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
       $attributes = $request->all();
-      $item = $this->service->findByAttributes($attributes);
+      $item = $this->service->{{methodName}}($attributes);
       return $item ? response()->json($item) : response()->json(['message' => 'Resource not found'], 404);
       `,
     },
     {
       methodName: 'paginate',
-      route: `Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, 'paginate'])->name('{{tableNameKebabCasePlural}}.paginate');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.paginate');`,
       description: 'Paginate records',
-      repositoryMethod: 'paginate(int $perPage = 15)',
+      repositoryMethod: '{{methodName}}(int $perPage = 15)',
       repositoryContent: 'return $this->model->paginate($perPage);',
-      serviceMethod: 'paginate(int $perPage = 15)',
+      serviceMethod: '{{methodName}}(int $perPage = 15)',
       serviceContent: `
-      return $this->repository->paginate($perPage);
+        return $this->repository->{{methodName}}($perPage);
       `,
-      controllerMethod: 'paginate(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
-      $perPage = $request->input('per_page', 15);
-      $items = $this->service->paginate($perPage);
-      return response()->json($items);
+        $perPage = $request->input('per_page', 15);
+        $items = $this->service->{{methodName}}($perPage);
+        return response()->json($items);
       `,
     },
     {
       methodName: 'search',
-      route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, 'search'])->name('{{tableNameKebabCasePlural}}.search');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.search');`,
       description: 'Search records',
-      repositoryMethod:
-        'search(string $query, array $fields, int $perPage = 15)',
+      repositoryMethod: '{{methodName}}(string $query, array $fields, int $perPage = 15)',
       repositoryContent: `
-      return $this->model->where(function ($q) use ($query, $fields) {
-          foreach ($fields as $field) {
-              $q->orWhere($field, 'LIKE', "%$query%");
-          }
-      })->paginate($perPage);
+        return $this->model->where(function ($q) use ($query, $fields) {
+            foreach ($fields as $field) {
+                $q->orWhere($field, 'LIKE', "%$query%");
+            }
+        })->paginate($perPage);
       `,
-      serviceMethod: 'search(string $query, array $fields, int $perPage = 15)',
+      serviceMethod: '{{methodName}}(string $query, array $fields, int $perPage = 15)',
       serviceContent: `
-      return $this->repository->search($query, $fields, $perPage);
+        return $this->repository->{{methodName}}($query, $fields, $perPage);
       `,
-      controllerMethod: 'search(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
-      $query = $request->input('query');
-      $fields = $request->input('fields', []);
-      $perPage = $request->input('per_page', 15);
-      $results = $this->service->search($query, $fields, $perPage);
-      return response()->json($results);
+        $query = $request->input('query');
+        $fields = $request->input('fields', []);
+        $perPage = $request->input('per_page', 15);
+        $results = $this->service->{{methodName}}($query, $fields, $perPage);
+        return response()->json($results);
       `,
     },
     {
       methodName: 'count',
-      route: `Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, 'count'])->name('{{tableNameKebabCasePlural}}.count');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.count');`,
       description: 'Count records by criteria',
-      repositoryMethod: 'count(array $criteria = []): int',
+      repositoryMethod: '{{methodName}}(array $criteria = []): int',
       repositoryContent: 'return $this->model->where($criteria)->count();',
-      serviceMethod: 'count(array $criteria = []): int',
+      serviceMethod: '{{methodName}}(array $criteria = []): int',
       serviceContent: `
-      return $this->repository->count($criteria);
+        return $this->repository->{{methodName}}($criteria);
       `,
-      controllerMethod: 'count(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
-      $criteria = $request->all();
-      $count = $this->service->count($criteria);
-      return response()->json(['count' => $count]);
+        $criteria = $request->all();
+        $count = $this->service->{{methodName}}($criteria);
+        return response()->json(['count' => $count]);
       `,
     },
     {
       methodName: 'exists',
-      route: `Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, 'exists'])->name('{{tableNameKebabCasePlural}}.exists');`,
+      route: `Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.exists');`,
       description: 'Check if a record exists',
-      repositoryMethod: 'exists(array $criteria): bool',
+      repositoryMethod: '{{methodName}}(array $criteria): bool',
       repositoryContent: 'return $this->model->where($criteria)->exists();',
-      serviceMethod: 'exists(array $criteria): bool',
+      serviceMethod: '{{methodName}}(array $criteria): bool',
       serviceContent: `
-      return $this->repository->exists($criteria);
+        return $this->repository->{{methodName}}($criteria);
       `,
-      controllerMethod: 'exists(Request $request)',
+      controllerMethod: '{{methodName}}(Request $request)',
       controllerContent: `
-      $criteria = $request->all();
-      $exists = $this->service->exists($criteria);
-      return response()->json(['exists' => $exists]);
+        $criteria = $request->all();
+        $exists = $this->service->{{methodName}}($criteria);
+        return response()->json(['exists' => $exists]);
       `,
     },
   ],
