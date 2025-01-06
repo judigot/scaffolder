@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ITableInfo } from '@/interfaces/interfaces.ts';
+import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 import { addRelationship } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import {
@@ -10,78 +10,38 @@ import {
 } from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { useFormStore } from '@/useFormStore.ts';
+import { getPrimaryKey } from '@/utils/common.ts';
+import { changeCase } from '@/utils/common.ts';
 
-// const renameSchemaInstances = (
-//   schemaData: ISchemaInfo[],
-//   oldName: string,
-//   newName: string,
-// ): ISchemaInfo[] => {
-//   const relationshipKeys: (keyof Pick<
-//     ISchemaInfo,
-//     | 'hasOne'
-//     | 'hasMany'
-//     | 'belongsTo'
-//     | 'belongsToMany'
-//     | 'foreignTables'
-//     | 'childTables'
-//   >)[] = [
-//     'hasOne',
-//     'hasMany',
-//     'belongsTo',
-//     'belongsToMany',
-//     'foreignTables',
-//     'childTables',
-//   ];
-
-//   return schemaData.map((schema) => {
-//     const updatedSchema = { ...schema };
-
-//     // Update relationships in specified keys
-//     relationshipKeys.forEach((key) => {
-//       updatedSchema[key] = updatedSchema[key].map((relation) =>
-//         relation === oldName ? newName : relation,
-//       );
-//     });
-
-//     // Update pivotRelationships
-//     updatedSchema.pivotRelationships = updatedSchema.pivotRelationships.map(
-//       (pivot) => ({
-//         relatedTable:
-//           pivot.relatedTable === oldName ? newName : pivot.relatedTable,
-//         pivotTable: pivot.pivotTable === oldName ? newName : pivot.pivotTable,
-//       }),
-//     );
-
-//     // Update table name
-//     if (updatedSchema.tableName === oldName) {
-//       updatedSchema.tableName = newName;
-//     }
-
-//     // Update foreign keys in columnsInfo
-//     updatedSchema.columnsInfo = updatedSchema.columnsInfo.map((column) => {
-//       if (
-//         column.foreign_key &&
-//         column.foreign_key.foreign_table_name === oldName
-//       ) {
-//         return {
-//           ...column,
-//           foreign_key: {
-//             ...column.foreign_key,
-//             foreign_table_name: newName,
-//           },
-//         };
-//       }
-//       return column;
-//     });
-
-//     return updatedSchema;
-//   });
-// };
+interface INewColumnFormData {
+  columnName: string;
+  dataType: string;
+  isNullable: boolean;
+  defaultValue: string;
+  isPrimary: boolean;
+  isUnique: boolean;
+  foreignKey: {
+    tableName: string;
+    columnName: string;
+    relationType: 'oneToOne' | 'oneToMany';
+  } | null;
+}
 
 function SchemaBuilder() {
   const { schemaInfo, setSchemaInfo } = useFormStore.getState();
 
   const { promptModal, editValue } = useModalStore();
+
+  const [newColumnFormData, setNewColumnFormData] =
+    useState<INewColumnFormData>({
+      columnName: '',
+      dataType: '',
+      isNullable: false,
+      defaultValue: "",
+      isPrimary: false,
+      isUnique: false,
+      foreignKey: null,
+    });
 
   const renameTable = async (index: number) => {
     const oldValue = schemaInfo[index].tableName;
@@ -311,6 +271,175 @@ function SchemaBuilder() {
   const pivotTables = schemaInfo.filter((table) => table.isPivot);
 
   const [isAddColumnFormVisible, setIsAddColumnFormVisible] = useState(false);
+
+  const [selectedParentTable, setSelectedParentTable] = useState<string>('');
+
+  const addNewColumnToTable = (columnData: INewColumnFormData): void => {
+    if (selectedTableIndex === null) {
+      return;
+    }
+    const updatedSchema = [...schemaInfo];
+    const table = updatedSchema[selectedTableIndex];
+
+    // Create the new column
+    const newColumn: IColumnInfo = {
+      column_name: columnData.columnName,
+      data_type: columnData.dataType,
+      is_nullable: columnData.isNullable ? 'YES' : 'NO',
+      column_default:
+        columnData.defaultValue === '' ? null : columnData.defaultValue,
+      primary_key: columnData.isPrimary,
+      unique: columnData.isUnique,
+      foreign_key: columnData.foreignKey
+        ? {
+            foreign_table_name: columnData.foreignKey.tableName,
+            foreign_column_name: columnData.foreignKey.columnName,
+          }
+        : null,
+    };
+
+    // Add the column to the table
+    table.columnsInfo.push(newColumn);
+
+    // If this is a foreign key, update relationships
+    if (columnData.foreignKey) {
+      const parentTableIndex = updatedSchema.findIndex(
+        (t) => t.tableName === columnData.foreignKey?.tableName,
+      );
+
+      if (parentTableIndex !== -1) {
+        if (columnData.foreignKey.relationType === 'oneToOne') {
+          if (
+            !updatedSchema[parentTableIndex].hasOne.includes(table.tableName)
+          ) {
+            updatedSchema[parentTableIndex].hasOne.push(table.tableName);
+          }
+          if (!table.belongsTo.includes(columnData.foreignKey.tableName)) {
+            table.belongsTo.push(columnData.foreignKey.tableName);
+          }
+        } else {
+          if (
+            !updatedSchema[parentTableIndex].hasMany.includes(table.tableName)
+          ) {
+            updatedSchema[parentTableIndex].hasMany.push(table.tableName);
+          }
+          if (!table.belongsTo.includes(columnData.foreignKey.tableName)) {
+            table.belongsTo.push(columnData.foreignKey.tableName);
+          }
+        }
+
+        if (!table.foreignTables.includes(columnData.foreignKey.tableName)) {
+          table.foreignTables.push(columnData.foreignKey.tableName);
+        }
+        if (
+          !updatedSchema[parentTableIndex].childTables.includes(table.tableName)
+        ) {
+          updatedSchema[parentTableIndex].childTables.push(table.tableName);
+        }
+      }
+    }
+
+    setSchemaInfo(updatedSchema);
+    setIsAddColumnFormVisible(false);
+    // Reset form
+    setNewColumnFormData({
+      columnName: '',
+      dataType: '',
+      isNullable: false,
+      defaultValue: '',
+      isPrimary: false,
+      isUnique: false,
+      foreignKey: null,
+    });
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ): void => {
+    const { name, value, type } = e.target;
+    const checked = e.target instanceof HTMLInputElement && e.target.checked;
+
+    setNewColumnFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleForeignKeyChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ): void => {
+    const { value } = e.target;
+    try {
+      setNewColumnFormData((prev) => ({
+        ...prev,
+        foreignKey: value
+          ? {
+              tableName: value,
+              columnName: getPrimaryKey({
+                tableName: value,
+                schemaInfo,
+              }),
+              relationType: prev.foreignKey?.relationType ?? 'oneToOne',
+            }
+          : null,
+      }));
+      setSelectedParentTable(value);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error setting foreign key:', error.message);
+      }
+    }
+  };
+
+  const handleRelationTypeChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ): void => {
+    const { value } = e.target;
+    if (value === 'oneToOne' || value === 'oneToMany') {
+      setNewColumnFormData((prev) => ({
+        ...prev,
+        foreignKey: prev.foreignKey
+          ? {
+              ...prev.foreignKey,
+              relationType: value,
+            }
+          : null,
+      }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+    addNewColumnToTable(newColumnFormData);
+  };
+
+  const getAvailableForeignTables = (currentTable: ITableInfo): string[] => {
+    const existingForeignTables = new Set([
+      ...currentTable.belongsTo,
+      ...currentTable.belongsToMany,
+      ...currentTable.foreignTables,
+    ]);
+
+    return schemaInfo
+      .filter(
+        (table) =>
+          table.tableName !== currentTable.tableName && // Exclude self-reference
+          !existingForeignTables.has(table.tableName) && // Exclude existing foreign tables
+          !table.isPivot, // Exclude pivot tables
+      )
+      .map((table) => table.tableName);
+  };
+
+  const isFormValid = (): boolean => {
+    return Boolean(
+      newColumnFormData.columnName.trim() &&
+        newColumnFormData.dataType &&
+        (!newColumnFormData.foreignKey ||
+          newColumnFormData.foreignKey.relationType),
+    );
+  };
 
   return (
     <div className="text-white">
@@ -659,64 +788,100 @@ function SchemaBuilder() {
                     {isAddColumnFormVisible && (
                       <>
                         <br />
-                        <form className="mb-2 bg-gray-800 rounded shadow overflow-x-auto">
+                        <form
+                          className="mb-2 bg-gray-800 rounded shadow overflow-x-auto"
+                          onSubmit={handleSubmit}
+                        >
                           <div className="flex items-center border-b border-gray-600 p-2">
                             <input
-                              id="columnName"
+                              name="columnName"
                               type="text"
+                              value={newColumnFormData.columnName}
+                              onChange={handleInputChange}
                               placeholder="Column Name"
-                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
+                              className={`border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1`}
                               required
                             />
                             <select
-                              id="dataType"
+                              name="dataType"
+                              value={newColumnFormData.dataType}
+                              onChange={handleInputChange}
                               className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
                               required
                             >
-                              <option value="">Select</option>
+                              <option value="">Select Type</option>
                               <option value="string">String</option>
                               <option value="number">Number</option>
                               <option value="Date">Date</option>
                               <option value="boolean">Boolean</option>
                             </select>
                             <select
-                              id="foreignKey"
+                              name="foreignKey"
+                              value={
+                                newColumnFormData.foreignKey?.tableName ?? ''
+                              }
+                              onChange={handleForeignKeyChange}
                               className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
-                              required
                             >
-                              <option value="">Select Foreign Key</option>
-                              {schemaInfo.flatMap((table) =>
-                                table.columnsInfo
-                                  .filter(
-                                    (column) =>
-                                      column.primary_key &&
-                                      column.column_name !==
-                                        schemaInfo[
-                                          selectedTableIndex
-                                        ]?.columnsInfo.find(
-                                          (col) => col.primary_key,
-                                        )?.column_name,
-                                  )
-                                  .map((column) => (
-                                    <option
-                                      key={column.column_name}
-                                      value={column.column_name}
-                                    >
-                                      {column.column_name}
-                                    </option>
-                                  )),
-                              )}
+                              <option value="">Foreign Key</option>
+                              {selectedTableIndex &&
+                                getAvailableForeignTables(
+                                  schemaInfo[selectedTableIndex],
+                                ).map((tableName) => (
+                                  <option key={tableName} value={tableName}>
+                                    {tableName}
+                                  </option>
+                                ))}
                             </select>
+                            {newColumnFormData.foreignKey && (
+                              <select
+                                name="relationType"
+                                value={
+                                  newColumnFormData.foreignKey.relationType
+                                }
+                                onChange={handleRelationTypeChange}
+                                className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[150px] mr-1"
+                                required
+                              >
+                                <option value="">Select Relationship</option>
+                                <option value="oneToOne">
+                                  One-to-One (
+                                  {changeCase(selectedParentTable).pascalCase}{' '}
+                                  can only have one{' '}
+                                  {
+                                    changeCase(
+                                      schemaInfo[selectedTableIndex]?.tableName,
+                                    ).singular
+                                  }
+                                  )
+                                </option>
+                                <option value="oneToMany">
+                                  One-to-Many (
+                                  {changeCase(selectedParentTable).pascalCase}{' '}
+                                  can have many{' '}
+                                  {
+                                    changeCase(
+                                      schemaInfo[selectedTableIndex]?.tableName,
+                                    ).plural
+                                  }
+                                  )
+                                </option>
+                              </select>
+                            )}
                             <input
-                              id="default"
+                              name="defaultValue"
                               type="text"
+                              value={newColumnFormData.defaultValue}
+                              onChange={handleInputChange}
                               placeholder="Default"
                               className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
                             />
                             <div className="flex items-center ml-auto">
                               <input
-                                id="nullable"
+                                name="isNullable"
                                 type="checkbox"
+                                checked={newColumnFormData.isNullable}
+                                onChange={handleInputChange}
                                 className="mr-1 text-indigo-500"
                               />
                               <span className="text-gray-300 text-sm">
@@ -725,8 +890,10 @@ function SchemaBuilder() {
                             </div>
                             <div className="flex items-center ml-auto">
                               <input
-                                id="primary"
+                                name="isPrimary"
                                 type="checkbox"
+                                checked={newColumnFormData.isPrimary}
+                                onChange={handleInputChange}
                                 className="mr-1 text-indigo-500"
                               />
                               <span className="text-gray-300 text-sm">
@@ -735,14 +902,32 @@ function SchemaBuilder() {
                             </div>
                             <div className="flex items-center ml-auto">
                               <input
-                                id="unique"
+                                name="isUnique"
                                 type="checkbox"
+                                checked={newColumnFormData.isUnique}
+                                onChange={handleInputChange}
                                 className="mr-1 text-indigo-500"
                               />
                               <span className="text-gray-300 text-sm">
                                 Unique
                               </span>
                             </div>
+                            <button
+                              type="submit"
+                              disabled={!isFormValid()}
+                              className={`ml-2 px-3 py-1 font-bold rounded transition-colors duration-200 ${
+                                isFormValid()
+                                  ? 'bg-green-500 hover:bg-green-600 text-black'
+                                  : 'bg-gray-500 cursor-not-allowed text-gray-300'
+                              }`}
+                              title={
+                                !isFormValid()
+                                  ? 'Please fill in required fields (Column Name and Data Type)'
+                                  : 'Add column'
+                              }
+                            >
+                              Add
+                            </button>
                           </div>
                         </form>
                       </>
