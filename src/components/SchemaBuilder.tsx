@@ -191,6 +191,17 @@ function SchemaBuilder() {
         return column;
       });
 
+      /* Rename primary key if it's not 'id' */
+      updatedTable.columnsInfo = updatedTable.columnsInfo.map((column) => {
+        if (column.primary_key && column.column_name !== 'id') {
+          return {
+            ...column,
+            column_name: `${newName}_id`,
+          };
+        }
+        return column;
+      });
+
       return updatedTable;
     });
 
