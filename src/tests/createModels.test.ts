@@ -42,7 +42,7 @@ describe('createModels', () => {
   );
   const POSSchemaInfo = identifySchema(POSSchema);
 
-  it('should generate correct relationships for User model with one-to-one Post using model.txt template', () => {
+  it('should generate correct relationships for User model with one-to-one Post', () => {
     const userTableInfo = userPostOneToOneSchemaInfo.find(
       (table) => table.tableName === 'user',
     );
@@ -102,7 +102,7 @@ class User extends Model
     );
   });
 
-  it('should generate correct relationships for User model using model.txt template', () => {
+  it('should generate correct relationships for User model', () => {
     const userTableInfo = userPostsOneToManySchemaInfo.find(
       (table) => table.tableName === 'user',
     );
@@ -162,7 +162,7 @@ class User extends Model
     );
   });
 
-  it('should generate correct relationships for Post model using model.txt template', () => {
+  it('should generate correct relationships for Post model', () => {
     const postTableInfo = userPostsOneToManySchemaInfo.find(
       (table) => table.tableName === 'post',
     );
@@ -227,7 +227,7 @@ class Post extends Model
     );
   });
 
-  it('should generate correct relationships for Customer model using model.txt template', () => {
+  it('should generate correct relationships for Customer model', () => {
     const customerTableInfo = POSSchemaInfo.find(
       (table) => table.tableName === 'customer',
     );
@@ -280,7 +280,7 @@ class Customer extends Model
     );
   });
 
-  it('should generate correct relationships for Order model using model.txt template', () => {
+  it('should generate correct relationships for Order model', () => {
     const orderTableInfo = POSSchemaInfo.find(
       (table) => table.tableName === 'order',
     );
@@ -346,7 +346,7 @@ class Order extends Model
     );
   });
 
-  it('should generate correct relationships for OrderProduct model using model.txt template', () => {
+  it('should generate correct relationships for OrderProduct model', () => {
     const orderProductTableInfo = POSSchemaInfo.find(
       (table) => table.tableName === 'order_product',
     );
