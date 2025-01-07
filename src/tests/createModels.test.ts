@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema.ts';
-import { createRelationships } from '@/frameworks/backend/laravel/createModels.ts';
+import generateDomainCode from '@/utils/generateDomainCode.ts';
 import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 import { watermark } from '@/constants.ts';
 import {
@@ -43,13 +43,20 @@ describe('createModels', () => {
   const POSSchemaInfo = identifySchema(POSSchema);
 
   it('should generate correct relationships for User model with one-to-one Post using model.txt template', () => {
-    const userRelationships = createRelationships(
-      'user',
-      [],
-      ['post'],
-      [],
-      userPostOneToOneSchemaInfo,
+    const userTableInfo = userPostOneToOneSchemaInfo.find(
+      (table) => table.tableName === 'user',
     );
+
+    if (userTableInfo == null) {
+      throw new Error('User table not found in schema');
+    }
+
+    const userRelationships = generateDomainCode({
+      schemaInfo: userPostOneToOneSchemaInfo,
+      tableInfo: userTableInfo,
+      tableName: 'user',
+      codeToGenerate: 'modelContent',
+    });
 
     const expectedUserModel = normalizeWhitespace(`
       <?php
@@ -88,7 +95,7 @@ class User extends Model
         '{{fillable}}',
         "'first_name',\n        'last_name',\n        'email',\n        'username',\n        'password'",
       )
-      .replace('{{relationships}}', userRelationships);
+      .replace('{{relationships}}', userRelationships.join('\n'));
 
     expect(normalizeWhitespace(generatedUserModel)).toEqual(
       normalizeWhitespace(expectedUserModel),
@@ -96,13 +103,20 @@ class User extends Model
   });
 
   it('should generate correct relationships for User model using model.txt template', () => {
-    const userRelationships = createRelationships(
-      'user',
-      [],
-      [],
-      [],
-      userPostsOneToManySchemaInfo,
+    const userTableInfo = userPostsOneToManySchemaInfo.find(
+      (table) => table.tableName === 'user',
     );
+
+    if (userTableInfo == null) {
+      throw new Error('User table not found in schema');
+    }
+
+    const userRelationships = generateDomainCode({
+      schemaInfo: userPostsOneToManySchemaInfo,
+      tableInfo: userTableInfo,
+      tableName: 'user',
+      codeToGenerate: 'modelContent',
+    });
 
     const expectedUserModel = normalizeWhitespace(`
       <?php
@@ -141,7 +155,7 @@ class User extends Model
         '{{fillable}}',
         "'first_name',\n        'last_name',\n        'email',\n        'username',\n        'password'",
       )
-      .replace('{{relationships}}', userRelationships);
+      .replace('{{relationships}}', userRelationships.join('\n'));
 
     expect(normalizeWhitespace(generatedUserModel)).toEqual(
       normalizeWhitespace(expectedUserModel),
@@ -149,13 +163,20 @@ class User extends Model
   });
 
   it('should generate correct relationships for Post model using model.txt template', () => {
-    const postRelationships = createRelationships(
-      'post',
-      ['user_id'],
-      [],
-      [],
-      userPostsOneToManySchemaInfo,
+    const postTableInfo = userPostsOneToManySchemaInfo.find(
+      (table) => table.tableName === 'post',
     );
+
+    if (postTableInfo == null) {
+      throw new Error('Post table not found in schema');
+    }
+
+    const postRelationships = generateDomainCode({
+      schemaInfo: userPostsOneToManySchemaInfo,
+      tableInfo: postTableInfo,
+      tableName: 'post',
+      codeToGenerate: 'modelContent',
+    });
 
     const expectedPostModel = normalizeWhitespace(`
       <?php
@@ -199,7 +220,7 @@ class Post extends Model
         '{{fillable}}',
         "'user_id',\n        'title',\n        'content'",
       )
-      .replace('{{relationships}}', postRelationships);
+      .replace('{{relationships}}', postRelationships.join('\n'));
 
     expect(normalizeWhitespace(generatedPostModel)).toEqual(
       normalizeWhitespace(expectedPostModel),
@@ -207,13 +228,20 @@ class Post extends Model
   });
 
   it('should generate correct relationships for Customer model using model.txt template', () => {
-    const customerRelationships = createRelationships(
-      'customer',
-      [],
-      [],
-      [],
-      POSSchemaInfo,
+    const customerTableInfo = POSSchemaInfo.find(
+      (table) => table.tableName === 'customer',
     );
+
+    if (customerTableInfo == null) {
+      throw new Error('Customer table not found in schema');
+    }
+
+    const customerRelationships = generateDomainCode({
+      schemaInfo: POSSchemaInfo,
+      tableInfo: customerTableInfo,
+      tableName: 'customer',
+      codeToGenerate: 'modelContent',
+    });
 
     const expectedCustomerModel = normalizeWhitespace(`
       <?php
@@ -245,7 +273,7 @@ class Customer extends Model
       .replace('{{primaryKey}}', "protected $primaryKey = 'customer_id';")
       .replace('{{hiddenColumns}}', 'protected $hidden = [];')
       .replace('{{fillable}}', "'name'")
-      .replace('{{relationships}}', customerRelationships);
+      .replace('{{relationships}}', customerRelationships.join('\n'));
 
     expect(normalizeWhitespace(generatedCustomerModel)).toEqual(
       normalizeWhitespace(expectedCustomerModel),
@@ -253,13 +281,20 @@ class Customer extends Model
   });
 
   it('should generate correct relationships for Order model using model.txt template', () => {
-    const orderRelationships = createRelationships(
-      'order',
-      ['customer_id'],
-      [],
-      ['product'],
-      POSSchemaInfo,
+    const orderTableInfo = POSSchemaInfo.find(
+      (table) => table.tableName === 'order',
     );
+
+    if (orderTableInfo == null) {
+      throw new Error('Order table not found in schema');
+    }
+
+    const orderRelationships = generateDomainCode({
+      schemaInfo: POSSchemaInfo,
+      tableInfo: orderTableInfo,
+      tableName: 'order',
+      codeToGenerate: 'modelContent',
+    });
 
     const expectedOrderModel = normalizeWhitespace(`
       <?php
@@ -278,6 +313,10 @@ class Order extends Model
     protected $fillable = [
         'customer_id'
     ];
+    public function order_products()
+    {
+        return $this->hasMany(OrderProduct::class, 'order_id');
+    }
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id');
@@ -300,7 +339,7 @@ class Order extends Model
       .replace('{{primaryKey}}', "protected $primaryKey = 'order_id';")
       .replace('{{hiddenColumns}}', 'protected $hidden = [];')
       .replace('{{fillable}}', "'customer_id'")
-      .replace('{{relationships}}', orderRelationships);
+      .replace('{{relationships}}', orderRelationships.join('\n'));
 
     expect(normalizeWhitespace(generatedOrderModel)).toEqual(
       normalizeWhitespace(expectedOrderModel),
@@ -308,13 +347,20 @@ class Order extends Model
   });
 
   it('should generate correct relationships for OrderProduct model using model.txt template', () => {
-    const orderProductRelationships = createRelationships(
-      'order_product',
-      ['order_id', 'product_id'],
-      [],
-      [],
-      POSSchemaInfo,
+    const orderProductTableInfo = POSSchemaInfo.find(
+      (table) => table.tableName === 'order_product',
     );
+
+    if (orderProductTableInfo == null) {
+      throw new Error('OrderProduct table not found in schema');
+    }
+
+    const orderProductRelationships = generateDomainCode({
+      schemaInfo: POSSchemaInfo,
+      tableInfo: orderProductTableInfo,
+      tableName: 'order_product',
+      codeToGenerate: 'modelContent',
+    });
 
     const expectedOrderProductModel = normalizeWhitespace(`
 <?php
@@ -355,7 +401,7 @@ class OrderProduct extends Model
       .replace('{{primaryKey}}', "protected $primaryKey = 'order_product_id';")
       .replace('{{hiddenColumns}}', 'protected $hidden = [];')
       .replace('{{fillable}}', "'order_id',\n        'product_id'")
-      .replace('{{relationships}}', orderProductRelationships);
+      .replace('{{relationships}}', orderProductRelationships.join('\n'));
 
     expect(normalizeWhitespace(generatedOrderProductModel)).toEqual(
       normalizeWhitespace(expectedOrderProductModel),

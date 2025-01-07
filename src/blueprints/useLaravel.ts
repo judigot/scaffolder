@@ -1,8 +1,7 @@
 import { IStructure } from '@/components/FileViewer.tsx';
 // import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
-// New API for getLaravelStructure
-export default () =>
+export const laravelStructure = () =>
   [
     {
       type: 'folder',

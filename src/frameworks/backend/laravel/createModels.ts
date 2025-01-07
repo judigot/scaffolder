@@ -128,11 +128,7 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
           className,
           tableName,
           primaryKey,
-          hiddenColumns: hiddenColumns
-            ? `protected $hidden = [
-        ${hiddenColumns}
-    ];`
-            : '',
+          hiddenColumns: hiddenColumns ? hiddenColumns : '',
           fillable: createFillable(tableInfo),
           domainMethods: domainMethods ? `\n    ${domainMethods}\n` : '',
         },

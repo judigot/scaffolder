@@ -45,14 +45,14 @@ export default {
           return `
       public function {{modelMethod}}()
       {
-          return $this->hasOne({{relatedTableNamePascal}}::class, '{{relatedTableForeignKey}}');
+          return $this->hasOne({{relatedTableNamePascal}}::class, '{{primaryKey}}');
       }`;
         }
         if (hasMany) {
           return `
       public function {{modelMethod}}()
       {
-          return $this->hasMany({{relatedTableNamePascal}}::class, '{{relatedTableForeignKey}}');
+          return $this->hasMany({{relatedTableNamePascal}}::class, '{{primaryKey}}');
       }`;
         }
         if (pivotRelationships) {

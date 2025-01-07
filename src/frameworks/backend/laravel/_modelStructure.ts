@@ -16,7 +16,7 @@ class {{className}} extends Model
 
     {{primaryKey}}
 
-    {{hiddenColumns}}
+    protected $hidden = [{{hiddenColumns}}];
 
     protected $fillable = [
         {{fillable}}
