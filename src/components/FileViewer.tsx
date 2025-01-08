@@ -159,7 +159,7 @@ function FileViewer({
                       lines={selectedFile.content.split('\n').length}
                     />
                   </div>
-                  <pre className="pr-80 pb-80 whitespace-pre-nowrap leading-6 bg-gray-800">
+                  <pre className="pr-80 pb-80 whitespace-pre-nowrap leading-6 bg-gray-900">
                     <code>{selectedFile.content}</code>
                   </pre>
                 </div>
