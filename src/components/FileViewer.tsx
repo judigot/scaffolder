@@ -120,9 +120,11 @@ function FileViewer({
             >
               Copy Folder Structure
             </button>
-            <SimpleTreeView>
-              {renderTree(folderStructure, setSelectedFile)}
-            </SimpleTreeView>
+            <div className="overflow-y-auto max-h-96">
+              <SimpleTreeView>
+                {renderTree(folderStructure, setSelectedFile)}
+              </SimpleTreeView>
+            </div>
           </div>
         </div>
         <div className="col-span-1 md:col-span-2 bg-gray-900 p-4 overflow-x-auto">
