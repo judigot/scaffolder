@@ -10,4 +10,5 @@ const userRelationships = generateDomainCode({
   codeToGenerate: 'modelContent',
 });
 
+// eslint-disable-next-line no-console
 /*prettier-ignore*/ (($= userRelationships)=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();
