@@ -9,6 +9,8 @@ import {
   Folder as FolderIcon,
 } from '@mui/icons-material';
 import { handleCopy } from '@/helpers/stringHelper.ts';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus as highlightStyle } from 'react-syntax-highlighter/dist/esm/styles/prism/index.js';
 
 export interface IBase {
   name: string;
@@ -132,7 +134,7 @@ function FileViewer({
             <div className="bg-gray-900">
               <div className="sticky left-0 top-0 z-20 bg-gray-800 flex justify-between items-center p-2">
                 <span>
-                  {selectedFile.name}{' '}
+                  {selectedFile.name}&nbsp;
                   <button
                     onClick={() => {
                       setSelectedFile(null);
@@ -152,23 +154,39 @@ function FileViewer({
                   <CopyIcon fontSize="small" />
                 </button>
               </div>
-              <div className="overflow-auto">
+              <div>
                 <div className="relative grid grid-cols-[auto_1fr]">
                   <div className="sticky left-0 bg-gray-800 z-10">
                     <LineCounter
                       lines={selectedFile.content.split('\n').length}
                     />
                   </div>
-                  <pre className="pr-80 pb-80 whitespace-pre-nowrap leading-6 bg-gray-900">
-                    <code>{selectedFile.content}</code>
-                  </pre>
+                  <SyntaxHighlighter
+                    language={(() => {
+                      const fileExtension: string | undefined =
+                        selectedFile.name.split('.').pop();
+                      if (fileExtension == undefined) {
+                        return 'typescript';
+                      }
+                      const languageMap: Record<string, string> = {
+                        ts: 'typescript',
+                        js: 'javascript',
+                        php: 'php',
+                        css: 'css',
+                        sass: 'sass',
+                        java: 'java',
+                        sql: 'sql',
+                      };
+                      return languageMap[fileExtension] || 'javascript';
+                    })()}
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    style={highlightStyle}
+                  >
+                    {selectedFile.content}
+                  </SyntaxHighlighter>
                 </div>
               </div>
             </div>
-          )}
-
-          {!selectedFile && (
-            <div className="text-gray-400 text-center">No file selected</div>
           )}
         </div>
       </div>
