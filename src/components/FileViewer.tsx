@@ -120,17 +120,17 @@ function FileViewer({
             >
               Copy Folder Structure
             </button>
-            <div className="overflow-y-auto max-h-96">
+            <div className="overflow-auto max-h-96">
               <SimpleTreeView>
                 {renderTree(folderStructure, setSelectedFile)}
               </SimpleTreeView>
             </div>
           </div>
         </div>
-        <div className="col-span-1 md:col-span-2 bg-gray-900 p-4 overflow-x-auto">
+        <div className="col-span-1 md:col-span-2 bg-gray-900 overflow-x-auto">
           {selectedFile && (
-            <div className="overflow-x-auto">
-              <div className="flex justify-between items-center mb-4 relative bg-gray-900">
+            <div className="overflow-x-auto bg-gray-800 p-4 border-l-2 border-gray-700">
+              <div className="flex justify-between items-center mb-4 relative">
                 <span className="">{selectedFile.name}</span>
                 <CopyIcon
                   onClick={() => {
@@ -148,17 +148,11 @@ function FileViewer({
                   <CloseIcon fontSize="small" />
                 </button>
               </div>
-              <div className="relative grid grid-cols-[auto_1fr]">
-                {
-                  <>
-                    <LineCounter
-                      lines={selectedFile.content.split('\n').length}
-                    />
-                    <pre className="whitespace-pre-wrap px-4 rounded leading-6">
-                      <code>{selectedFile.content}</code>
-                    </pre>
-                  </>
-                }
+              <div className="relative grid grid-cols-[auto_1fr] overflow-x-auto">
+                <LineCounter lines={selectedFile.content.split('\n').length} />
+                <pre className="whitespace-pre-nowrap px-2 rounded-lg bg-gray-900 text-gray-200 leading-6">
+                  <code>{selectedFile.content}</code>
+                </pre>
               </div>
             </div>
           )}

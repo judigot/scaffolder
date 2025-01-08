@@ -58,8 +58,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
       tableNameKebabCasePlural,
     };
 
-    const routeFileContent = `
-<?php
+    const routeFileContent = `<?php
 
 use Illuminate\\Support\\Facades\\Route;
 use App\\Http\\Controllers\\{{tableNamePascalCase}}Controller;
