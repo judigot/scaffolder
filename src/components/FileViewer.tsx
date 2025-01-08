@@ -127,32 +127,42 @@ function FileViewer({
             </div>
           </div>
         </div>
-        <div className="col-span-1 md:col-span-2 bg-gray-900 overflow-x-auto">
+        <div className="col-span-1 md:col-span-2 overflow-auto">
           {selectedFile && (
-            <div className="overflow-x-auto bg-gray-800 p-4 border-l-2 border-gray-700">
-              <div className="flex justify-between items-center mb-4 relative">
-                <span className="">{selectedFile.name}</span>
-                <CopyIcon
+            <div className="bg-gray-900">
+              <div className="sticky left-0 top-0 z-20 bg-gray-800 flex justify-between items-center p-2">
+                <span>
+                  {selectedFile.name}{' '}
+                  <button
+                    onClick={() => {
+                      setSelectedFile(null);
+                    }}
+                    className="hover:bg-gray-700 text-white px-2 py-1 rounded"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </button>
+                </span>
+                <button
                   onClick={() => {
                     handleCopy(selectedFile.content);
                   }}
-                  fontSize="small"
-                  className="cursor-pointer"
-                />
-                <button
-                  onClick={() => {
-                    setSelectedFile(null);
-                  }}
                   className="hover:bg-gray-700 text-white px-2 py-1 rounded"
                 >
-                  <CloseIcon fontSize="small" />
+                  Copy &nbsp;
+                  <CopyIcon fontSize="small" />
                 </button>
               </div>
-              <div className="relative grid grid-cols-[auto_1fr] overflow-x-auto">
-                <LineCounter lines={selectedFile.content.split('\n').length} />
-                <pre className="whitespace-pre-nowrap px-2 rounded-lg bg-gray-900 text-gray-200 leading-6">
-                  <code>{selectedFile.content}</code>
-                </pre>
+              <div className="overflow-auto">
+                <div className="relative grid grid-cols-[auto_1fr]">
+                  <div className="sticky left-0 bg-gray-800 z-10">
+                    <LineCounter
+                      lines={selectedFile.content.split('\n').length}
+                    />
+                  </div>
+                  <pre className="pr-80 pb-80 whitespace-pre-nowrap leading-6 bg-gray-800">
+                    <code>{selectedFile.content}</code>
+                  </pre>
+                </div>
               </div>
             </div>
           )}
