@@ -92,7 +92,7 @@ function App() {
     <div className="text-white bg-black">
       <nav className="bg-gray-900 text-white p-4 sticky top-0 z-50">
         <h1 className="text-2xl font-bold text-center">App Generator</h1>
-<br />
+        <br />
         <div className="text-center">
           <h1 className="text-1xl font-bold text-center">Example Schemas:</h1>
 
