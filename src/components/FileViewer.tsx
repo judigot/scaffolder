@@ -146,67 +146,70 @@ function FileViewer({
         <div className="col-span-1 md:col-span-2">
           {selectedFile && (
             <div className="bg-gray-900">
-              <div className="sticky left-0 top-0 z-20 bg-gray-800 flex justify-between items-center p-2">
-                <span>
-                  {selectedFile.name}&nbsp;
+              <div className="mt-2 sticky left-0 top-0 z-20 bg-gray-800 grid grid-cols-[auto_auto] items-center m-0">
+                <div>
+                  <div className="bg-[#1f1f1f] w-max p-2 rounded-t-md">
+                    <span>{selectedFile.name}&nbsp;</span>
+                    <button
+                      onClick={() => {
+                        setSelectedFile(null);
+                      }}
+                      className="hover:bg-gray-700 text-white px-2 py-1 rounded"
+                    >
+                      <CloseIcon fontSize="small" />
+                    </button>
+                  </div>
+                </div>
+                <div>
                   <button
                     onClick={() => {
-                      setSelectedFile(null);
+                      handleCopy(selectedFile.content);
                     }}
-                    className="hover:bg-gray-700 text-white px-2 py-1 rounded"
+                    className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right"
                   >
-                    <CloseIcon fontSize="small" />
+                    Copy &nbsp;
+                    <CopyIcon fontSize="small" />
                   </button>
-                </span>
-                <button
-                  onClick={() => {
-                    handleCopy(selectedFile.content);
-                  }}
-                  className="hover:bg-gray-700 text-white px-2 py-1 rounded"
-                >
-                  Copy &nbsp;
-                  <CopyIcon fontSize="small" />
-                </button>
+                </div>
               </div>
-              <div>
-                <SyntaxHighlighter
-                  showLineNumbers={true}
-                  customStyle={{
-                    backgroundColor: '#1f1f1f',
-                    margin: '0',
-                    height: '420px',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#888 #444',
-                  }}
-                  lineNumberStyle={{
-                    color: '#888',
-                  }}
-                  language={(() => {
-                    const fileExtension: string | undefined = selectedFile.name
-                      .split('.')
-                      .pop();
-                    if (fileExtension == undefined) {
-                      return 'plaintext';
-                    }
-                    const languageMap: Record<string, string> = {
-                      ts: 'typescript',
-                      js: 'typescript',
-                      php: 'php',
-                      css: 'css',
-                      sass: 'sass',
-                      java: 'java',
-                      sql: 'sql',
-                      txt: 'plaintext',
-                      jsx: 'jsx',
-                      tsx: 'tsx',
-                    };
-                    return languageMap[fileExtension];
-                  })()}
-                  style={highlightStyle}
-                >
-                  {selectedFile.content}
-                </SyntaxHighlighter>
-              </div>
+              <SyntaxHighlighter
+                showLineNumbers={true}
+                customStyle={{
+                  cursor: 'text',
+                  backgroundColor: '#1f1f1f',
+                  margin: '0',
+                  height: '420px',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#888 #444',
+                }}
+                lineNumberStyle={{
+                  color: '#888',
+                }}
+                language={(() => {
+                  const fileExtension: string | undefined = selectedFile.name
+                    .split('.')
+                    .pop();
+                  if (fileExtension == undefined) {
+                    return 'plaintext';
+                  }
+                  const languageMap: Record<string, string> = {
+                    ts: 'typescript',
+                    js: 'typescript',
+                    php: 'php',
+                    css: 'css',
+                    sass: 'sass',
+                    java: 'java',
+                    sql: 'sql',
+                    txt: 'plaintext',
+                    jsx: 'jsx',
+                    tsx: 'tsx',
+                  };
+                  return languageMap[fileExtension];
+                })()}
+                style={highlightStyle}
+              >
+                {selectedFile.content}
+              </SyntaxHighlighter>
             </div>
           )}
         </div>
