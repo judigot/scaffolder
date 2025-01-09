@@ -49,19 +49,19 @@ function FileViewer({
 }) {
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
-  function LineCounter({ lines }: { lines: number }) {
-    return (
-      <div
-        // 3.8px is the invisible top border that perfectly aligns the line numbers with the code
-        className="border-t-[3.8px] border-transparent mt-4 pr-4 text-gray-500 text-right select-none text-[13px] leading-[1.5] tab-[4] font-mono"
-        aria-hidden="true"
-      >
-        {Array.from({ length: lines }, (_, index) => (
-          <pre key={index}>{index + 1}</pre>
-        ))}
-      </div>
-    );
-  }
+  // function LineCounter({ lines }: { lines: number }) {
+  //   return (
+  //     <div
+  //       // 3.8px is the invisible top border that perfectly aligns the line numbers with the code
+  //       className="border-t-[3.8px] border-transparent mt-4 pr-4 text-gray-500 text-right select-none text-[13px] leading-[1.5] tab-[4] font-mono"
+  //       aria-hidden="true"
+  //     >
+  //       {Array.from({ length: lines }, (_, index) => (
+  //         <pre key={index}>{index + 1}</pre>
+  //       ))}
+  //     </div>
+  //   );
+  // }
 
   function renderTree(
     items: IStructure,
@@ -123,6 +123,8 @@ function FileViewer({
             >
               Copy Folder Structure
             </button>
+            <br />
+            <br />
             <div className="overflow-auto max-h-96">
               <SimpleTreeView>
                 {renderTree(folderStructure, setSelectedFile)}
@@ -130,7 +132,7 @@ function FileViewer({
             </div>
           </div>
         </div>
-        <div className="col-span-1 md:col-span-2 overflow-auto">
+        <div className="col-span-1 md:col-span-2">
           {selectedFile && (
             <div className="bg-gray-900">
               <div className="sticky left-0 top-0 z-20 bg-gray-800 flex justify-between items-center p-2">
@@ -156,36 +158,50 @@ function FileViewer({
                 </button>
               </div>
               <div>
-                <div className="relative grid grid-cols-[auto_1fr]">
-                  <div className="sticky left-0 bg-gray-800 z-10">
+                <SyntaxHighlighter
+                  showLineNumbers={true}
+                  customStyle={{
+                    backgroundColor: '#1f1f1f',
+                    margin: '0',
+                    height: '420px',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#888 #444',
+                  }}
+                  lineNumberStyle={{
+                    color: '#888',
+                  }}
+                  language={(() => {
+                    const fileExtension: string | undefined = selectedFile.name
+                      .split('.')
+                      .pop();
+                    if (fileExtension == undefined) {
+                      return 'plaintext';
+                    }
+                    const languageMap: Record<string, string> = {
+                      ts: 'typescript',
+                      js: 'typescript',
+                      php: 'php',
+                      css: 'css',
+                      sass: 'sass',
+                      java: 'java',
+                      sql: 'sql',
+                      txt: 'plaintext',
+                      jsx: 'jsx',
+                      tsx: 'tsx',
+                    };
+                    return languageMap[fileExtension];
+                  })()}
+                  style={highlightStyle}
+                >
+                  {selectedFile.content}
+                </SyntaxHighlighter>
+                {/* <div className="relative grid grid-cols-[auto_1fr]">
+                  <div className="sticky left-0 bg-gray-800 z-10 hidden">
                     <LineCounter
                       lines={selectedFile.content.split('\n').length}
                     />
                   </div>
-                  <SyntaxHighlighter
-                    language={(() => {
-                      const fileExtension: string | undefined =
-                        selectedFile.name.split('.').pop();
-                      if (fileExtension == undefined) {
-                        return 'typescript';
-                      }
-                      const languageMap: Record<string, string> = {
-                        ts: 'typescript',
-                        js: 'javascript',
-                        php: 'php',
-                        css: 'css',
-                        sass: 'sass',
-                        java: 'java',
-                        sql: 'sql',
-                      };
-                      return languageMap[fileExtension] || 'javascript';
-                    })()}
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    style={highlightStyle}
-                  >
-                    {selectedFile.content}
-                  </SyntaxHighlighter>
-                </div>
+                </div> */}
               </div>
             </div>
           )}

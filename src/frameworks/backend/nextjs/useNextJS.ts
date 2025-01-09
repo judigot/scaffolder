@@ -22,7 +22,7 @@ export function getNextJSStructure({
             {
               type: 'folder',
               name: 'api',
-              files: createAPIRoutes(schemaInfo),
+              children: createAPIRoutes(schemaInfo),
             },
             {
               type: 'folder',
@@ -31,7 +31,7 @@ export function getNextJSStructure({
                 {
                   type: 'folder',
                   name: 'Controllers',
-                  files: createControllers(schemaInfo),
+                  children: createControllers(schemaInfo),
                 },
               ],
             },
