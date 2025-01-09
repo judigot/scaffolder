@@ -70,7 +70,7 @@ const createCRUDTemplates = (schemaInfo: ISchemaInfo[]): IStructure => {
       return {
         type: 'folder',
         name: tableName,
-        files: [
+        children: [
           {
             type: 'file',
             name: `create-${tableName}.ts`,

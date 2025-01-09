@@ -79,7 +79,7 @@ const createAPIHooks = (schemaInfo: ISchemaInfo[]): IStructure => {
       return {
         type: 'folder',
         name: tableName,
-        files: [
+        children: [
           // {
           //   type: 'file',
           //   name: `create-${table}.ts`,

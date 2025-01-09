@@ -6,7 +6,7 @@ export const laravelStructure = () =>
     {
       type: 'folder',
       name: 'Models',
-      files: [
+      children: [
         {
           type: 'file',
           name: '{{tableName}}-{{relatedTableName}}-{{pivotTableName}}.ts',

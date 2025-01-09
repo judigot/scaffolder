@@ -29,7 +29,7 @@ export interface IFile extends IBase {
 
 export interface IFolder extends IBase {
   type: 'folder';
-  files: (IFile | IFolder)[];
+  children: (IFile | IFolder)[];
 }
 
 export type IStructure = (IFile | IFolder)[];
@@ -86,7 +86,7 @@ function FileViewer({
               </>
             }
           >
-            {renderTree(item.files, onSelectFile, itemId)}
+            {renderTree(item.children, onSelectFile, itemId)}
           </TreeItem>
         );
       } else {

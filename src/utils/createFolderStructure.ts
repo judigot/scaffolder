@@ -57,7 +57,7 @@ export const createFolderStructure = ({
       }
 
       createFolderStructure({
-        structure: item.files,
+        structure: item.children,
         targetDirectory: folderPath,
       });
     }

@@ -156,7 +156,7 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IStructure => {
       return {
         type: 'folder',
         name: plural,
-        files: [
+        children: [
           {
             type: 'file',
             name: 'route.ts',

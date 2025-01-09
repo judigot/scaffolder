@@ -14,11 +14,11 @@ export function getNextJSStructure({
     {
       type: 'folder',
       name: 'src',
-      files: [
+      children: [
         {
           type: 'folder',
           name: 'app',
-          files: [
+          children: [
             {
               type: 'folder',
               name: 'api',
@@ -27,7 +27,7 @@ export function getNextJSStructure({
             {
               type: 'folder',
               name: 'Http',
-              files: [
+              children: [
                 {
                   type: 'folder',
                   name: 'Controllers',
@@ -40,12 +40,12 @@ export function getNextJSStructure({
         {
           type: 'folder',
           name: 'prisma',
-          files: [createDatabaseClient()],
+          children: [createDatabaseClient()],
         },
         {
           type: 'folder',
           name: 'utils',
-          files: [createDataTypeParser()],
+          children: [createDataTypeParser()],
         },
       ],
     },

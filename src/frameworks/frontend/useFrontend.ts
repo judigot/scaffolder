@@ -15,11 +15,11 @@ export function useFrontend({
     {
       type: 'folder',
       name: 'src',
-      files: [
+      children: [
         {
           type: 'folder',
           name: 'services',
-          files: [
+          children: [
             createAxiosInstance(),
             createAxiosInterceptor(),
             ...createAPICalls(schemaInfo),
@@ -28,12 +28,12 @@ export function useFrontend({
         {
           type: 'folder',
           name: 'hooks',
-          files: [...createAPIHooks(schemaInfo)],
+          children: [...createAPIHooks(schemaInfo)],
         },
         {
           type: 'folder',
           name: 'interfaces',
-          files: [...createTypescriptInterfaces(schemaInfo)],
+          children: [...createTypescriptInterfaces(schemaInfo)],
         },
       ],
     },

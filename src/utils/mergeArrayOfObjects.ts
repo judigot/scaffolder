@@ -21,7 +21,7 @@ export function mergeArrayOfObjects(
   ): IFile | IFolder {
     if (target.type === 'folder' && source.type === 'folder') {
       // Merge files array recursively for folders
-      target.files = mergeArrayOfObjects(target.files, source.files, groupBy);
+      target.children = mergeArrayOfObjects(target.children, source.children, groupBy);
     } else if (target.type === 'file' && source.type === 'file') {
       // For files, source overwrites target
       target.content = source.content;

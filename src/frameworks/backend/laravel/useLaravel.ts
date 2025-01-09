@@ -19,15 +19,15 @@ export function getLaravelStructure({
     {
       type: 'folder',
       name: 'app',
-      files: [
+      children: [
         {
           type: 'folder',
           name: 'Http',
-          files: [
+          children: [
             {
               type: 'folder',
               name: 'Controllers',
-              files: [
+              children: [
                 createBaseFiles('controller'),
                 ...createControllers(schemaInfo),
               ],
@@ -35,19 +35,19 @@ export function getLaravelStructure({
             {
               type: 'folder',
               name: 'Resources',
-              files: [...createResources(schemaInfo)],
+              children: [...createResources(schemaInfo)],
             },
           ],
         },
         {
           type: 'folder',
           name: 'Models',
-          files: [...createModels(schemaInfo)],
+          children: [...createModels(schemaInfo)],
         },
         {
           type: 'folder',
           name: 'Providers',
-          files: [
+          children: [
             createAppServiceProviderScaffolding({
               schemaInfo,
             }),
@@ -56,7 +56,7 @@ export function getLaravelStructure({
         {
           type: 'folder',
           name: 'Repositories',
-          files: [
+          children: [
             createBaseFiles('interface'),
             createBaseFiles('repository'),
             ...createRepositories(schemaInfo),
@@ -66,14 +66,14 @@ export function getLaravelStructure({
         {
           type: 'folder',
           name: 'Services',
-          files: [createBaseFiles('service'), ...createServices(schemaInfo)],
+          children: [createBaseFiles('service'), ...createServices(schemaInfo)],
         },
       ],
     },
     {
       type: 'folder',
       name: 'routes',
-      files: [...createAPIRoutes(schemaInfo)],
+      children: [...createAPIRoutes(schemaInfo)],
     },
   ];
 
