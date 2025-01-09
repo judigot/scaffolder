@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -49,19 +49,30 @@ function FileViewer({
 }) {
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
-  // function LineCounter({ lines }: { lines: number }) {
-  //   return (
-  //     <div
-  //       // 3.8px is the invisible top border that perfectly aligns the line numbers with the code
-  //       className="border-t-[3.8px] border-transparent mt-4 pr-4 text-gray-500 text-right select-none text-[13px] leading-[1.5] tab-[4] font-mono"
-  //       aria-hidden="true"
-  //     >
-  //       {Array.from({ length: lines }, (_, index) => (
-  //         <pre key={index}>{index + 1}</pre>
-  //       ))}
-  //     </div>
-  //   );
-  // }
+  useEffect(() => {
+    if (selectedFile) {
+      const findFile = (items: IStructure): IFile | null => {
+        for (const item of items) {
+          if (item.type === 'file' && item.name === selectedFile.name) {
+            return item;
+          } else if (item.type === 'folder') {
+            const found = findFile(item.children);
+            if (found) {
+              return found;
+            }
+          }
+        }
+        return null;
+      };
+
+      const newSelectedFile = findFile(folderStructure);
+      if (newSelectedFile) {
+        setSelectedFile(newSelectedFile);
+      } else {
+        setSelectedFile(null);
+      }
+    }
+  }, [folderStructure, selectedFile]);
 
   function renderTree(
     items: IStructure,
@@ -195,13 +206,6 @@ function FileViewer({
                 >
                   {selectedFile.content}
                 </SyntaxHighlighter>
-                {/* <div className="relative grid grid-cols-[auto_1fr]">
-                  <div className="sticky left-0 bg-gray-800 z-10 hidden">
-                    <LineCounter
-                      lines={selectedFile.content.split('\n').length}
-                    />
-                  </div>
-                </div> */}
               </div>
             </div>
           )}
