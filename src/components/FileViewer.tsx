@@ -52,7 +52,8 @@ function FileViewer({
   function LineCounter({ lines }: { lines: number }) {
     return (
       <div
-        className="pr-4 text-gray-500 text-right select-none"
+        // 3.8px is the invisible top border that perfectly aligns the line numbers with the code
+        className="border-t-[3.8px] border-transparent mt-4 pr-4 text-gray-500 text-right select-none text-[13px] leading-[1.5] tab-[4] font-mono"
         aria-hidden="true"
       >
         {Array.from({ length: lines }, (_, index) => (
