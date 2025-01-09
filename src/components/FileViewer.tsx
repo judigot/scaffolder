@@ -10,7 +10,7 @@ import {
 } from '@mui/icons-material';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus as highlightStyle } from 'react-syntax-highlighter/dist/esm/styles/prism/index.js';
+import { vscDarkPlus as highlightStyle } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export interface IBase {
   name: string;
