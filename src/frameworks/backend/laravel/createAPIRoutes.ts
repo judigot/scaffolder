@@ -73,7 +73,7 @@ use App\\Http\\Controllers\\{{tableNamePascalCase}}Controller;
 
 // Resource routes for {{tableNamePascalCase}}
 Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
-  `;
+`;
 
     const modelSpecificRoutes = generateDomainCode({
       schemaInfo,
