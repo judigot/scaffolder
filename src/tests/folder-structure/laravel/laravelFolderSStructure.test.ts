@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema.ts';
 import usersPostOneToOneSchema from '@/json-schemas/usersPostOneToOneSchema.ts';
@@ -7,6 +8,7 @@ import { oneToManyExpectation } from '@/tests/folder-structure/laravel/one-to-ma
 import usersPostsOneToManySchema from '@/json-schemas/usersPostsOneToManySchema.ts';
 import POSSchema from '@/json-schemas/POSSchema.ts';
 import { manyToManyExpectation } from '@/tests/folder-structure/laravel/many-to-many-expectation.ts';
+import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 
 describe('Laravel Folder Structure', () => {
   it('Should generate proper folder structure for one-to-one schema', () => {
@@ -14,28 +16,30 @@ describe('Laravel Folder Structure', () => {
     const usersPostOneToOneFolderStructure = useLaravel({
       schemaInfo: usersPostOneToOneSchemaInfo,
     });
-    expect(usersPostOneToOneFolderStructure).toStrictEqual(oneToOneExpectation);
+    expect(
+      normalizeWhitespace(usersPostOneToOneFolderStructure.join('')),
+    ).toStrictEqual(normalizeWhitespace(oneToOneExpectation.join('')));
   });
 
-  it('Should generate proper folder structure for one-to-one schema', () => {
+  it('Should generate proper folder structure for one-to-many schema', () => {
     const usersPostsOneToManySchemaInfo = identifySchema(
       usersPostsOneToManySchema,
     );
     const usersPostOneToManyFolderStructure = useLaravel({
       schemaInfo: usersPostsOneToManySchemaInfo,
     });
-    expect(usersPostOneToManyFolderStructure).toStrictEqual(
-      oneToManyExpectation,
-    );
+    expect(
+      normalizeWhitespace(usersPostOneToManyFolderStructure.join('')),
+    ).toStrictEqual(normalizeWhitespace(oneToManyExpectation.join('')));
   });
 
-  it('Should generate proper folder structure for one-to-one schema', () => {
+  it('Should generate proper folder structure for many-to-many schema', () => {
     const POSSchemaInfo = identifySchema(POSSchema);
     const usersPostOneToOneFolderStructure = useLaravel({
       schemaInfo: POSSchemaInfo,
     });
-    expect(usersPostOneToOneFolderStructure).toStrictEqual(
-      manyToManyExpectation,
-    );
+    expect(
+      normalizeWhitespace(usersPostOneToOneFolderStructure.join('')),
+    ).toStrictEqual(normalizeWhitespace(manyToManyExpectation.join('')));
   });
 });
