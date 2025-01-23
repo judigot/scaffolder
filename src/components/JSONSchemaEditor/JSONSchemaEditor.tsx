@@ -4,6 +4,7 @@ import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor
 import { IJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import TableAdder from '@/components/TableAdder.tsx';
+import { getPrimaryKey } from '@/utils/common.ts';
 
 function JSONSchemaEditor() {
   const {
@@ -130,8 +131,30 @@ function JSONSchemaEditor() {
 
     if (isTableNameEdited) {
       const newSchema: IJSONSchema = {};
-      const previousWordId = `${previousWord}_id`;
-      const newWordId = `${newWord}_id`;
+      const { schemaInfo } = useFormStore.getState();
+      let previousTablePrimaryKey = `${previousWord}_id`;
+      let newTablePrimaryKey = `${newWord}_id`;
+
+      const findPrimaryKey = (tableName: string): string | null => {
+        try {
+          return getPrimaryKey({
+            tableName,
+            schemaInfo,
+          });
+        } catch {
+          return null;
+        }
+      };
+
+      const previousPK = findPrimaryKey(previousWord);
+      const newPK = findPrimaryKey(newWord);
+
+      if (previousPK !== null) {
+        previousTablePrimaryKey = previousPK;
+      }
+      if (newPK !== null) {
+        newTablePrimaryKey = newPK;
+      }
 
       // Store foreign key values for later update
       const foreignKeyValues: Record<string, Record<string, unknown>> = {};
@@ -140,14 +163,14 @@ function JSONSchemaEditor() {
       for (const [tableName, rows] of Object.entries(oldSchema)) {
         if (tableName === previousWord) {
           newSchema[newWord] = rows.map((item) => {
-            const newItem = renameProperty(item, previousWordId, newWordId);
+            const newItem = renameProperty(item, previousTablePrimaryKey, newTablePrimaryKey);
             return newItem;
           });
         } else {
           newSchema[tableName] = rows.map((item, index) => {
-            if (previousWordId in item) {
+            if (previousTablePrimaryKey in item) {
               foreignKeyValues[tableName] = {};
-              foreignKeyValues[tableName][index] = item[previousWordId];
+              foreignKeyValues[tableName][index] = item[previousTablePrimaryKey];
             }
             return { ...item };
           });
@@ -157,7 +180,7 @@ function JSONSchemaEditor() {
       // Update foreign key values in the new schema
       for (const [tableName, rows] of Object.entries(newSchema)) {
         newSchema[tableName] = rows.map((item) => {
-          return renameProperty(item, previousWordId, newWordId);
+          return renameProperty(item, previousTablePrimaryKey, newTablePrimaryKey);
         });
       }
 
