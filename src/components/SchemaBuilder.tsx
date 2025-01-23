@@ -446,9 +446,9 @@ function SchemaBuilder() {
 
   return (
     <div className="text-white">
+      <TableAdder />
       <div className="flex flex-col md:flex-row">
         <div className="pr-4 w-full md:w-auto">
-          <TableAdder />
           <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
           <ul className="space-y-2">
             {schemaInfo

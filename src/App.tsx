@@ -334,7 +334,10 @@ function App() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
             {creationMode === CREATION_MODES.SCHEMA_BUILDER && (
-              <SchemaBuilder />
+              <>
+                <h2 className="text-xl font-bold mb-2">Schema Builder</h2>
+                <SchemaBuilder />
+              </>
             )}
             {creationMode === CREATION_MODES.JSON_SCHEMA && (
               <>
