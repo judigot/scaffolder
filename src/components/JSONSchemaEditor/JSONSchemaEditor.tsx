@@ -4,7 +4,7 @@ import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor
 import { IJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import TableAdder from '@/components/TableAdder.tsx';
-import { getPrimaryKey } from '@/utils/common.ts';
+import { renameTableInSchema, addPrimaryKeys } from '@/utils/common.ts';
 
 function JSONSchemaEditor() {
   const {
@@ -41,71 +41,6 @@ function JSONSchemaEditor() {
   }, [schema, setFormData]);
 
   const handleSchemaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    /* Tests:
-    Test 1: Rename Table and Update Primary Key
-    Before editing:
-    { user: [ { user_id: 1, name: 'John Doe' } ], }
-    Expected output:
-    { userx: [ { userx_id: 1, name: 'John Doe' } ], }
-  
-    Test 2: Rename Table and Retain Additional Properties
-    Before editing:
-    { user: [ { user_id: 1, name: 'John Doe', desc: 1 } ], }
-    Expected output:
-    { userx: [ { userx_id: 1, name: 'John Doe', desc: 1 } ], }
-  
-    Test 3: Edit Row Values
-    Before editing:
-    { user: [ { user_id: 1, name: 'John Doe', desc: 1 } ], }
-    Expected output:
-    { user: [ { user_id: 1, name: 'John Doe', desc: 'Lorem ipsum' } ], }
-  
-    Test 4: Rename Table and Update Foreign Keys
-    Before editing:
-    {
-      user: [ { user_id: 1, name: 'John Doe' } ],
-      order: [ { order_id: 1, user_id: 1 } ],
-    }
-    Expected output:
-    {
-      userx: [ { userx_id: 1, name: 'John Doe' } ],
-      order: [ { order_id: 1, userx_id: 1 } ],
-    }
-    */
-
-    type IPrimaryKey = Record<string, unknown>;
-
-    const addPrimaryKeys = (
-      schema: Record<string, IPrimaryKey[]>,
-    ): Record<string, IPrimaryKey[]> => {
-      const newSchema: Record<string, IPrimaryKey[]> = {};
-
-      Object.keys(schema).forEach((table) => {
-        newSchema[table] = schema[table].map((row, index) => {
-          const validPKFormats: string[] = [`${table}_id`, 'id'];
-          const firstKey = Object.keys(row)[0];
-          const isFirstKeyValidPKFormat = validPKFormats.includes(firstKey);
-          if (!isFirstKeyValidPKFormat) {
-            const primaryKey = `${table}_id`;
-            const newRow: IPrimaryKey = { [primaryKey]: index + 1 }; // Primary key as the first property
-
-            // Add remaining properties
-            Object.keys(row).forEach((key) => {
-              if (key !== primaryKey) {
-                newRow[key] = row[key];
-              }
-            });
-
-            return newRow;
-          }
-
-          // Return unchanged first key since it's valid
-          return row;
-        });
-      });
-
-      return newSchema;
-    };
     const { previousWord, newWord } = handleWordEdit(e);
     const schemaStringBeforeEditing = JSON.stringify(schema, null, 4);
     const newSchemaString = e.target.value;
@@ -130,65 +65,14 @@ function JSONSchemaEditor() {
       previousWord in oldSchema && !(previousWord in updatedSchema);
 
     if (isTableNameEdited) {
-      const newSchema: IJSONSchema = {};
       const { schemaInfo } = useFormStore.getState();
-      let previousTablePrimaryKey = `${previousWord}_id`;
-      let newTablePrimaryKey = `${newWord}_id`;
-
-      const findPrimaryKey = (tableName: string): string | null => {
-        try {
-          return getPrimaryKey({
-            tableName,
-            schemaInfo,
-          });
-        } catch {
-          return null;
-        }
-      };
-
-      const previousPK = findPrimaryKey(previousWord);
-      const newPK = findPrimaryKey(newWord);
-
-      if (previousPK !== null) {
-        previousTablePrimaryKey = previousPK;
-      }
-      if (newPK !== null) {
-        newTablePrimaryKey = newPK;
-      }
-
-      // Store foreign key values for later update
-      const foreignKeyValues: Record<string, Record<string, unknown>> = {};
-
-      // Collect foreign key values and prepare the new schema
-      for (const [tableName, rows] of Object.entries(oldSchema)) {
-        if (tableName === previousWord) {
-          newSchema[newWord] = rows.map((item) => {
-            const newItem = renameProperty(item, previousTablePrimaryKey, newTablePrimaryKey);
-            return newItem;
-          });
-        } else {
-          newSchema[tableName] = rows.map((item, index) => {
-            if (previousTablePrimaryKey in item) {
-              foreignKeyValues[tableName] = {};
-              foreignKeyValues[tableName][index] = item[previousTablePrimaryKey];
-            }
-            return { ...item };
-          });
-        }
-      }
-
-      // Update foreign key values in the new schema
-      for (const [tableName, rows] of Object.entries(newSchema)) {
-        newSchema[tableName] = rows.map((item) => {
-          return renameProperty(item, previousTablePrimaryKey, newTablePrimaryKey);
-        });
-      }
-
-      // Ensure the old table is removed from the schema
-      const updatedSchemaWithoutOldTable = Object.fromEntries(
-        Object.entries(newSchema).filter(([key]) => key !== previousWord),
-      );
-      setSchema(updatedSchemaWithoutOldTable);
+      const newSchema = renameTableInSchema({
+        oldSchema,
+        previousTableName: previousWord,
+        newTableName: newWord,
+        schemaInfo,
+      });
+      setSchema(newSchema);
     } else {
       setSchema(addPrimaryKeys(updatedSchema));
     }
@@ -207,22 +91,6 @@ function JSONSchemaEditor() {
       cursorPositionRef.current = selectionStart + 1;
       e.preventDefault();
     }
-  };
-
-  const renameProperty = (
-    item: Record<string, unknown>,
-    oldProp: string,
-    newProp: string,
-  ): Record<string, unknown> => {
-    const newItem: Record<string, unknown> = {};
-    for (const key in item) {
-      if (key === oldProp) {
-        newItem[newProp] = item[key];
-      } else {
-        newItem[key] = item[key];
-      }
-    }
-    return newItem;
   };
 
   return (

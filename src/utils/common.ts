@@ -1,5 +1,10 @@
 import { replacePlaceholder } from '@/helpers/stringHelper.ts';
-import { DBTypes, IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
+import {
+  DBTypes,
+  IColumnInfo,
+  ISchemaInfo,
+  IJSONSchema,
+} from '@/interfaces/interfaces.ts';
 import { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
@@ -272,3 +277,122 @@ export const getForeignKeyConstraints = (
     return [];
   }
 };
+
+export function renameTableInSchema({
+  oldSchema,
+  previousTableName,
+  newTableName,
+  schemaInfo,
+}: {
+  oldSchema: IJSONSchema;
+  previousTableName: string;
+  newTableName: string;
+  schemaInfo: ISchemaInfo[];
+}): IJSONSchema {
+  const newSchema: IJSONSchema = {};
+  // let previousTablePrimaryKey = `${previousTableName}_id`;
+  let previousTablePrimaryKey = getPrimaryKey({
+    tableName: previousTableName,
+    schemaInfo,
+  });
+  let newTablePrimaryKey = `${newTableName}_id`;
+
+  function renameProperty(
+    item: Record<string, unknown>,
+    oldProp: string,
+    newProp: string,
+  ): Record<string, unknown> {
+    const newItem: Record<string, unknown> = {};
+    for (const key in item) {
+      if (key === oldProp) {
+        newItem[newProp] = item[key];
+      } else {
+        newItem[key] = item[key];
+      }
+    }
+    return newItem;
+  }
+
+  const findPrimaryKey = (tableName: string): string | null => {
+    try {
+      return getPrimaryKey({
+        tableName,
+        schemaInfo,
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const previousPK = findPrimaryKey(previousTableName);
+  const newPK = findPrimaryKey(newTableName);
+
+  if (previousPK !== null) {
+    previousTablePrimaryKey = previousPK;
+  }
+  if (newPK !== null) {
+    newTablePrimaryKey = newPK;
+  }
+
+  // Store foreign key values for later update
+  const foreignKeyValues: Record<string, Record<string, unknown>> = {};
+
+  // Collect foreign key values and prepare the new schema
+  for (const [tableName, rows] of Object.entries(oldSchema)) {
+    if (tableName === previousTableName) {
+      newSchema[newTableName] = rows.map((row: Record<string, unknown>) => {
+        return renameProperty(row, previousTablePrimaryKey, newTablePrimaryKey);
+      });
+    } else {
+      newSchema[tableName] = rows.map((row: Record<string, unknown>, index) => {
+        if (previousTablePrimaryKey in row) {
+          foreignKeyValues[tableName] = {};
+          foreignKeyValues[tableName][index] = row[previousTablePrimaryKey];
+        }
+        return { ...row };
+      });
+    }
+  }
+
+  // Update foreign key values in the new schema
+  for (const [tableName, rows] of Object.entries(newSchema)) {
+    newSchema[tableName] = rows.map((row: Record<string, unknown>) => {
+      return renameProperty(row, previousTablePrimaryKey, newTablePrimaryKey);
+    });
+  }
+
+  // Ensure the old table is removed from the schema
+  return Object.fromEntries(
+    Object.entries(newSchema).filter(([key]) => key !== previousTableName),
+  );
+}
+
+export function addPrimaryKeys(schema: IJSONSchema): IJSONSchema {
+  const newSchema: IJSONSchema = {};
+
+  Object.keys(schema).forEach((table) => {
+    newSchema[table] = schema[table].map((row, index) => {
+      const validPKFormats: string[] = [`${table}_id`, 'id'];
+      const firstKey = Object.keys(row)[0];
+      const isFirstKeyValidPKFormat = validPKFormats.includes(firstKey);
+      if (!isFirstKeyValidPKFormat) {
+        const primaryKey = `${table}_id`;
+        const newRow: Record<string, unknown> = { [primaryKey]: index + 1 }; // Primary key as the first property
+
+        // Add remaining properties
+        Object.keys(row).forEach((key) => {
+          if (key !== primaryKey) {
+            newRow[key] = row[key];
+          }
+        });
+
+        return newRow;
+      }
+
+      // Return unchanged first key since it's valid
+      return row;
+    });
+  });
+
+  return newSchema;
+}
