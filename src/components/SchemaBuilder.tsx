@@ -34,7 +34,7 @@ interface INewColumnFormData {
 function SchemaBuilder() {
   const { schemaInfo, setSchemaInfo } = useFormStore.getState();
 
-  const { promptModal, editValue } = useModalStore();
+  const { promptModal, newValue, editValue } = useModalStore();
 
   const [newColumnFormData, setNewColumnFormData] =
     useState<INewColumnFormData>({
@@ -193,9 +193,8 @@ function SchemaBuilder() {
     tableIndex: number,
     relationshipType: 'hasOne' | 'hasMany' | 'belongsToMany',
   ) => {
-    const newRelationshipName = await editValue({
+    const newRelationshipName = await newValue({
       title: 'Enter new table name',
-      oldValue: '',
     });
 
     if (newRelationshipName) {
