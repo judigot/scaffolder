@@ -8,11 +8,12 @@ import {
   Close as CloseIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { getColumnDefaultDisplay, renameTableInSchema } from '@/utils/common.ts';
+import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
 import { changeCase } from '@/utils/common.ts';
 import TableAdder from '@/components/TableAdder.tsx';
+import renameTable from '@/utils/renameTable.ts';
 
 interface INewColumnFormData {
   columnName: string;
@@ -62,7 +63,7 @@ function SchemaBuilder() {
     }));
   };
 
-  const renameTable = async (index: number) => {
+  const handleRenameTable = async (index: number) => {
     const oldValue = schemaInfo[index].tableName;
     const newName = await editValue({ title: 'Edit table name', oldValue });
 
@@ -71,7 +72,7 @@ function SchemaBuilder() {
     }
 
     // Update the schema info with the renamed table
-    const updatedSchemaInfo = renameTableInSchema({
+    const updatedSchemaInfo = renameTable({
       oldTableName: oldValue,
       newTableName: newName,
       schemaInfo,
@@ -433,7 +434,7 @@ function SchemaBuilder() {
                         <EditIcon
                           onClick={() => {
                             void (async () => {
-                              await renameTable(selectedTableIndex);
+                              await handleRenameTable(selectedTableIndex);
                             })();
                           }}
                           fontSize="small"

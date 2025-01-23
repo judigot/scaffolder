@@ -4,7 +4,8 @@ import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor
 import { IJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import TableAdder from '@/components/TableAdder.tsx';
-import { renameTableInSchema, addPrimaryKeys } from '@/utils/common.ts';
+import { addPrimaryKeys } from '@/utils/common.ts';
+import renameTable from '@/utils/renameTable.ts';
 
 function JSONSchemaEditor() {
   const {
@@ -75,7 +76,7 @@ function JSONSchemaEditor() {
       );
 
       // Update the schema info to reflect the table rename
-      const newSchemaInfo = renameTableInSchema({
+      const newSchemaInfo = renameTable({
         oldTableName: previousWord,
         newTableName: newWord,
         schemaInfo,

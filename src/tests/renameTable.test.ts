@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import { renameTableInSchema } from '@/utils/common.ts';
+import renameTable from '@/utils/renameTable.ts';
 import manyToManySchema from '@/schema-infos/manyToMany.ts';
 import oneToOneSchema from '@/schema-infos/oneToOne.ts';
 import oneToManySchema from '@/schema-infos/oneToMany.ts';
 
-describe('renameTableInSchema', () => {
+describe('renameTable', () => {
   test('should rename order table to orderz and update all related references', () => {
-    const result = renameTableInSchema({
+    const result = renameTable({
       oldTableName: 'order',
       newTableName: 'orderz',
       schemaInfo: manyToManySchema,
@@ -177,7 +177,7 @@ describe('renameTableInSchema', () => {
   });
 
   test('should rename product table to productz and update all related references', () => {
-    const result = renameTableInSchema({
+    const result = renameTable({
       oldTableName: 'product',
       newTableName: 'productz',
       schemaInfo: manyToManySchema,
@@ -348,7 +348,7 @@ describe('renameTableInSchema', () => {
   });
 
   test('should rename user table to userz and update all related references', () => {
-    const result = renameTableInSchema({
+    const result = renameTable({
       oldTableName: 'user',
       newTableName: 'userz',
       schemaInfo: oneToOneSchema,
@@ -533,7 +533,7 @@ describe('renameTableInSchema', () => {
   });
 
   test('should rename post table to postz in one-to-many schema', () => {
-    const result = renameTableInSchema({
+    const result = renameTable({
       oldTableName: 'post',
       newTableName: 'postz',
       schemaInfo: oneToManySchema,
