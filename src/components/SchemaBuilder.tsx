@@ -37,7 +37,7 @@ function SchemaBuilder() {
       columnName: '',
       dataType: '',
       isNullable: false,
-      defaultValue: "",
+      defaultValue: '',
       isPrimary: false,
       isUnique: false,
       foreignKey: null,
@@ -126,7 +126,7 @@ function SchemaBuilder() {
 
       /* Update pivotRelationships referencing the old table name */
       updatedTable.pivotRelationships = updatedTable.pivotRelationships
-        .filter((rel) => rel.relatedTable && rel.pivotTable) // Filter out invalid relationships
+        .filter((rel) => Boolean(rel.relatedTable && rel.pivotTable)) // Filter out invalid relationships
         .map((rel) => ({
           relatedTable:
             rel.relatedTable === oldValue ? newName : rel.relatedTable,
@@ -361,7 +361,7 @@ function SchemaBuilder() {
     const { name, value, type } = e.target;
     const checked = e.target instanceof HTMLInputElement && e.target.checked;
 
-    setNewColumnFormData((prev) => ({
+    setNewColumnFormData((prev: INewColumnFormData) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
@@ -372,7 +372,7 @@ function SchemaBuilder() {
   ): void => {
     const { value } = e.target;
     try {
-      setNewColumnFormData((prev) => ({
+      setNewColumnFormData((prev: INewColumnFormData) => ({
         ...prev,
         foreignKey: value
           ? {
@@ -398,7 +398,7 @@ function SchemaBuilder() {
   ): void => {
     const { value } = e.target;
     if (value === 'oneToOne' || value === 'oneToMany') {
-      setNewColumnFormData((prev) => ({
+      setNewColumnFormData((prev: INewColumnFormData) => ({
         ...prev,
         foreignKey: prev.foreignKey
           ? {
@@ -754,7 +754,7 @@ function SchemaBuilder() {
                         tabIndex={0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
-                            setIsAddColumnFormVisible((prev) => !prev);
+                            setIsAddColumnFormVisible((prev: boolean) => !prev);
                           }
                         }}
                         className="cursor-pointer"

@@ -47,7 +47,9 @@ export const getForeignTables = (columns: IColumnInfo[]): string[] =>
 export const getForeignKeys = (columns: IColumnInfo[]): string[] => {
   return Array.from(
     new Set(
-      columns.filter((col) => col.foreign_key).map((col) => col.column_name),
+      columns
+        .filter((col) => Boolean(col.foreign_key))
+        .map((col) => col.column_name),
     ),
   );
 };

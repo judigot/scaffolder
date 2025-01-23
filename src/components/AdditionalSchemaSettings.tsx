@@ -1,5 +1,5 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import TagInput from "@/components/TagInput.tsx";
+import TagInput from '@/components/TagInput.tsx';
 import { useState, useEffect } from 'react';
 
 interface IProps {
@@ -41,7 +41,7 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
       .map((column) => column.column_name);
 
     const foreignKeys = schema.columnsInfo
-      .filter((column) => column.foreign_key)
+      .filter((column) => column.foreign_key !== null)
       .map((column) => column.foreign_key?.foreign_column_name ?? '');
 
     // prettier-ignore
@@ -55,7 +55,7 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
     schemaTable: string,
     e: React.ChangeEvent<HTMLInputElement>,
   ): void => {
-    setFormData((prev) => ({
+    setFormData((prev: IFormData) => ({
       ...prev,
       inputValues: {
         ...prev.inputValues,
@@ -65,7 +65,7 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
   };
 
   const handleAddTags = (schemaTable: string, newTags: string[]): void => {
-    setFormData((prev) => ({
+    setFormData((prev: IFormData) => ({
       ...prev,
       addedValues: {
         ...prev.addedValues,

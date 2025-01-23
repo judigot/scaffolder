@@ -3,8 +3,8 @@ import {
   ISchemaInfo,
   ParsedJSONSchema,
 } from '@/interfaces/interfaces.ts';
-import convertType from "@/utils/convertType.ts";
-import identifyTSPrimitiveType from "@/utils/identifyTSPrimitiveType.ts";
+import convertType from '@/utils/convertType.ts';
+import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
 import {
   getForeignKeys,
   getForeignTables,
@@ -126,8 +126,8 @@ export const isJunctionTable = (
   schemaInfo: ISchemaInfo[],
 ): boolean => {
   // Get all foreign keys in the table
-  const foreignKeys = relationship.columnsInfo.filter(
-    (column) => column.foreign_key,
+  const foreignKeys = relationship.columnsInfo.filter((column) =>
+    Boolean(column.foreign_key),
   );
 
   // Check if the table has exactly two foreign keys
@@ -177,8 +177,8 @@ export const addAssociations = (
 
   // Helper function to handle belongsToMany relationships
   const handleBelongsToMany = (relationship: ISchemaInfo) => {
-    const foreignKeys = relationship.columnsInfo.filter(
-      (col) => col.foreign_key,
+    const foreignKeys = relationship.columnsInfo.filter((col) =>
+      Boolean(col.foreign_key),
     );
 
     if (foreignKeys.length === 2) {
