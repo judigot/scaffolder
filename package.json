@@ -106,5 +106,9 @@
     "vite": "^6.0.3",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.8"
-  }
+  },
+  "trustedDependencies": [
+    "@parcel/watcher",
+    "@swc/core"
+  ]
 }

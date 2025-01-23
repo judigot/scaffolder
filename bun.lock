@@ -1,5 +1,5 @@
 {
-  "lockfileVersion": 0,
+  "lockfileVersion": 1,
   "workspaces": {
     "": {
       "name": "bigbang",
@@ -80,6 +80,10 @@
       },
     },
   },
+  "trustedDependencies": [
+    "@swc/core",
+    "@parcel/watcher",
+  ],
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.4.1", "", {}, "sha512-12WGKBQzjUAI4ayyF4IAtfw2QR/IDoqk6jTddXDhtYTJF9ASmoE1zst7cVtP0aL/F1jUJL5r+JxKXKEgHNbEUQ=="],
 
