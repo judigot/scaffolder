@@ -1,7 +1,7 @@
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import { useState, useRef, useEffect } from 'react';
 
-function EditValueModal({
+function InputValueModal({
   id,
   oldValue,
   resolve,
@@ -80,4 +80,4 @@ function EditValueModal({
   );
 }
 
-export default EditValueModal;
+export default InputValueModal;

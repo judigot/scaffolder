@@ -1,4 +1,4 @@
-import EditValueModal from '@/components/EditNameForm.tsx';
+import InputValueModal from '@/components/EditNameForm.tsx';
 import { create } from 'zustand';
 
 type ModalIDs = string;
@@ -116,7 +116,7 @@ export const useModalStore = create<IModalState>((set) => ({
             id,
             title,
             content: (
-              <EditValueModal id={id} oldValue={oldValue} resolve={resolve} />
+              <InputValueModal id={id} oldValue={oldValue} resolve={resolve} />
             ),
           },
         ],
@@ -134,7 +134,7 @@ export const useModalStore = create<IModalState>((set) => ({
             id,
             title,
             content: (
-              <EditValueModal id={id} oldValue="" resolve={resolve} />
+              <InputValueModal id={id} oldValue="" resolve={resolve} />
             ),
           },
         ],
