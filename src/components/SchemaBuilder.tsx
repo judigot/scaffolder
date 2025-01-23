@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import {
+  ITableInfo,
+  IColumnInfo
+} from '@/interfaces/interfaces.ts';
 import { addRelationship } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import {
@@ -12,6 +15,7 @@ import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
 import { changeCase } from '@/utils/common.ts';
+import TableAdder from '@/components/TableAdder.tsx';
 
 interface INewColumnFormData {
   columnName: string;
@@ -42,6 +46,22 @@ function SchemaBuilder() {
       isUnique: false,
       foreignKey: null,
     });
+
+  const [selectedParentTable, setSelectedParentTable] = useState<string>('');
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ): void => {
+    const { name, value, type } = e.target;
+    const checked = e.target instanceof HTMLInputElement && e.target.checked;
+
+    setNewColumnFormData((prev: INewColumnFormData) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
 
   const renameTable = async (index: number) => {
     const oldValue = schemaInfo[index].tableName;
@@ -272,8 +292,6 @@ function SchemaBuilder() {
 
   const [isAddColumnFormVisible, setIsAddColumnFormVisible] = useState(false);
 
-  const [selectedParentTable, setSelectedParentTable] = useState<string>('');
-
   const addNewColumnToTable = (columnData: INewColumnFormData): void => {
     if (selectedTableIndex === null) {
       return;
@@ -351,20 +369,6 @@ function SchemaBuilder() {
       isUnique: false,
       foreignKey: null,
     });
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ): void => {
-    const { name, value, type } = e.target;
-    const checked = e.target instanceof HTMLInputElement && e.target.checked;
-
-    setNewColumnFormData((prev: INewColumnFormData) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
   };
 
   const handleForeignKeyChange = (
@@ -445,6 +449,7 @@ function SchemaBuilder() {
     <div className="text-white">
       <div className="flex flex-col md:flex-row">
         <div className="border-b border-gray-600 pr-4 w-full md:w-auto">
+          <TableAdder />
           <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
           <ul className="space-y-2">
             {schemaInfo
