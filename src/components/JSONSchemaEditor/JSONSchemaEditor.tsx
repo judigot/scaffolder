@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import JSON5 from 'json5';
-import { useWordEditor } from "@/components/JSONSchemaEditor/hooks/useWordEditor.ts";
-import { IJSONSchema } from "@/interfaces/interfaces.ts";
-import { useFormStore } from "@/useFormStore.ts";
+import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor.ts';
+import { IJSONSchema } from '@/interfaces/interfaces.ts';
+import { useFormStore } from '@/useFormStore.ts';
 
-const App: React.FC = () => {
+function JSONSchemaEditor() {
   const {
     formData: { schemaInput },
     setFormData,
@@ -270,6 +270,6 @@ const App: React.FC = () => {
       )}
     </>
   );
-};
+}
 
-export default App;
+export default JSONSchemaEditor;

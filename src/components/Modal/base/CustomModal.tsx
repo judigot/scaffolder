@@ -9,13 +9,13 @@ interface ICustomModalProps {
   useStaticPortal?: boolean;
 }
 
-const CustomModal: React.FC<ICustomModalProps> = ({
+function CustomModal({
   isOpen,
   title,
   onClose,
   children,
   useStaticPortal = false,
-}) => {
+}: ICustomModalProps) {
   const modal = useRef<HTMLDivElement>(null);
   const modalRoot = useStaticPortal
     ? document.getElementById('static-modal-root') // For static portals
@@ -87,6 +87,6 @@ const CustomModal: React.FC<ICustomModalProps> = ({
     </div>,
     modalRoot,
   );
-};
+}
 
 export default CustomModal;
