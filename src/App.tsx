@@ -16,6 +16,7 @@ import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx
 
 function App() {
   const {
+    schemaInfo,
     setOneToOne,
     setOneToMany,
     setManyToMany,
@@ -39,7 +40,6 @@ function App() {
   } = formData;
 
   const {
-    getSchemaInfo,
     interfaces,
     SQLSchema,
     mockData,
@@ -49,8 +49,6 @@ function App() {
     aggregateJoins,
     setTransformations,
   } = useTransformationsStore();
-
-  const schemaInfo = getSchemaInfo();
 
   const stringInterfaces = consolidateInterfaces(interfaces);
 
