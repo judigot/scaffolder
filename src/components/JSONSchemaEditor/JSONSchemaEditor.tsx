@@ -29,10 +29,6 @@ function JSONSchemaEditor() {
   }
 
   useEffect(() => {
-    setSchema(schemaInput);
-  }, [schemaInput]);
-
-  useEffect(() => {
     if (useFormStore.getState().formData.schemaInput !== schema) {
       repositionCursor();
       setFormData({
