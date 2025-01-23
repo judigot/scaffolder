@@ -38,7 +38,7 @@ BelongsToMany Rules:
 */
 
 // Constants
-const UNIQUE_COLUMN_NAMES = [
+export const UNIQUE_COLUMN_NAMES = [
   'id',
   'email',
   'username',
