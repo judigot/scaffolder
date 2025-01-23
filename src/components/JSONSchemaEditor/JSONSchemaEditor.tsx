@@ -10,6 +10,7 @@ function JSONSchemaEditor() {
   const {
     formData: { schemaInput },
     setFormData,
+    schemaInfo,
   } = useFormStore();
 
   const [schema, setSchema] = useState<IJSONSchema>(schemaInput);
@@ -64,20 +65,32 @@ function JSONSchemaEditor() {
     const isTableNameEdited =
       previousWord in oldSchema && !(previousWord in updatedSchema);
 
-    if (isTableNameEdited) {
-      const { schemaInfo } = useFormStore.getState();
-      const newSchema = renameTableInSchema({
+    if (isTableNameEdited && newWord) {
+      // Create a new schema with the renamed table using Object.entries/fromEntries
+      const renamedSchema = Object.fromEntries(
+        Object.entries(oldSchema).map(([key, value]) => [
+          key === previousWord ? newWord : key,
+          value,
+        ]),
+      );
+
+      // Update the schema info to reflect the table rename
+      const newSchemaInfo = renameTableInSchema({
         oldTableName: previousWord,
         newTableName: newWord,
         schemaInfo,
       });
+
+      // Update both schema and schema info
       setFormData({
         ...useFormStore.getState().formData,
-        schemaInput: updatedSchema,
+        schemaInput: renamedSchema,
       });
-      setSchema(newSchema);
+      useFormStore.getState().setSchemaInfo(newSchemaInfo);
+      setSchema(renamedSchema);
     } else {
-      setSchema(addPrimaryKeys(updatedSchema));
+      const processedSchema = addPrimaryKeys(updatedSchema);
+      setSchema(processedSchema);
     }
   };
 
