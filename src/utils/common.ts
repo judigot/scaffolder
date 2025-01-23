@@ -279,92 +279,150 @@ export const getForeignKeyConstraints = (
 };
 
 export function renameTableInSchema({
-  oldSchema,
-  previousTableName,
+  oldTableName,
   newTableName,
   schemaInfo,
 }: {
-  oldSchema: IJSONSchema;
-  previousTableName: string;
+  oldTableName: string;
   newTableName: string;
   schemaInfo: ISchemaInfo[];
-}): IJSONSchema {
-  const newSchema: IJSONSchema = {};
-  // let previousTablePrimaryKey = `${previousTableName}_id`;
-  let previousTablePrimaryKey = getPrimaryKey({
-    tableName: previousTableName,
-    schemaInfo,
-  });
-  let newTablePrimaryKey = `${newTableName}_id`;
-
-  function renameProperty(
-    item: Record<string, unknown>,
-    oldProp: string,
-    newProp: string,
-  ): Record<string, unknown> {
-    const newItem: Record<string, unknown> = {};
-    for (const key in item) {
-      if (key === oldProp) {
-        newItem[newProp] = item[key];
-      } else {
-        newItem[key] = item[key];
-      }
+}): ISchemaInfo[] {
+  const newSchemaInfo: ISchemaInfo[] = schemaInfo.map((table) => {
+    // If this is the table being renamed
+    if (table.tableName === oldTableName) {
+      return {
+        ...table,
+        tableName: newTableName,
+        requiredColumns: table.requiredColumns.map((col) =>
+          col === `${oldTableName}_id` ? `${newTableName}_id` : col,
+        ),
+        columnsInfo: table.columnsInfo.map((col) => ({
+          ...col,
+          column_name:
+            col.column_name === `${oldTableName}_id`
+              ? `${newTableName}_id`
+              : col.column_name,
+        })),
+        childTables: table.childTables.map((childTable) =>
+          childTable.startsWith(oldTableName)
+            ? childTable.replace(oldTableName, newTableName)
+            : childTable,
+        ),
+        hasMany: table.hasMany.map((relation) =>
+          relation.startsWith(oldTableName)
+            ? relation.replace(oldTableName, newTableName)
+            : relation,
+        ),
+        belongsToMany: table.belongsToMany.map((relation) =>
+          relation === oldTableName ? newTableName : relation,
+        ),
+        pivotRelationships: table.pivotRelationships.map((pivot) => ({
+          ...pivot,
+          pivotTable: pivot.pivotTable.includes(oldTableName)
+            ? pivot.pivotTable.replace(oldTableName, newTableName)
+            : pivot.pivotTable,
+          relatedTable:
+            pivot.relatedTable === oldTableName
+              ? newTableName
+              : pivot.relatedTable,
+        })),
+      };
     }
-    return newItem;
-  }
 
-  const findPrimaryKey = (tableName: string): string | null => {
-    try {
-      return getPrimaryKey({
-        tableName,
-        schemaInfo,
-      });
-    } catch {
-      return null;
-    }
-  };
+    // For all other tables, update their references
+    const isRelatedPivotTable =
+      table.isPivot &&
+      (table.tableName.startsWith(`${oldTableName}_`) ||
+        table.tableName.endsWith(`_${oldTableName}`));
 
-  const previousPK = findPrimaryKey(previousTableName);
-  const newPK = findPrimaryKey(newTableName);
+    const oldPivotTableName = table.tableName;
+    const newPivotTableName = isRelatedPivotTable
+      ? table.tableName.replace(oldTableName, newTableName)
+      : table.tableName;
 
-  if (previousPK !== null) {
-    previousTablePrimaryKey = previousPK;
-  }
-  if (newPK !== null) {
-    newTablePrimaryKey = newPK;
-  }
-
-  // Store foreign key values for later update
-  const foreignKeyValues: Record<string, Record<string, unknown>> = {};
-
-  // Collect foreign key values and prepare the new schema
-  for (const [tableName, rows] of Object.entries(oldSchema)) {
-    if (tableName === previousTableName) {
-      newSchema[newTableName] = rows.map((row: Record<string, unknown>) => {
-        return renameProperty(row, previousTablePrimaryKey, newTablePrimaryKey);
-      });
-    } else {
-      newSchema[tableName] = rows.map((row: Record<string, unknown>, index) => {
-        if (previousTablePrimaryKey in row) {
-          foreignKeyValues[tableName] = {};
-          foreignKeyValues[tableName][index] = row[previousTablePrimaryKey];
+    return {
+      ...table,
+      tableName: newPivotTableName,
+      childTables: table.childTables.map((childTable) =>
+        childTable === oldTableName ||
+        childTable.startsWith(`${oldTableName}_`) ||
+        childTable.endsWith(`_${oldTableName}`)
+          ? childTable.replace(oldTableName, newTableName)
+          : childTable,
+      ),
+      hasOne: table.hasOne.map((relation) =>
+        relation === oldTableName ? newTableName : relation,
+      ),
+      hasMany: table.hasMany.map((relation) =>
+        relation === oldTableName ||
+        relation.startsWith(`${oldTableName}_`) ||
+        relation.endsWith(`_${oldTableName}`)
+          ? relation.replace(oldTableName, newTableName)
+          : relation,
+      ),
+      belongsTo: table.belongsTo.map((relation) =>
+        relation === oldTableName ? newTableName : relation,
+      ),
+      belongsToMany: table.belongsToMany.map((relation) =>
+        relation === oldTableName ? newTableName : relation,
+      ),
+      pivotRelationships: table.pivotRelationships.map((pivot) => ({
+        ...pivot,
+        pivotTable: pivot.pivotTable.includes(oldTableName)
+          ? pivot.pivotTable.replace(oldTableName, newTableName)
+          : pivot.pivotTable,
+        relatedTable:
+          pivot.relatedTable === oldTableName
+            ? newTableName
+            : pivot.relatedTable,
+      })),
+      requiredColumns: table.requiredColumns.map((col) => {
+        if (isRelatedPivotTable && col === `${oldPivotTableName}_id`) {
+          return `${newPivotTableName}_id`;
         }
-        return { ...row };
-      });
-    }
-  }
+        return col === `${oldTableName}_id` ? `${newTableName}_id` : col;
+      }),
+      columnsInfo: table.columnsInfo.map((col) => {
+        if (
+          isRelatedPivotTable &&
+          col.column_name === `${oldPivotTableName}_id`
+        ) {
+          return {
+            ...col,
+            column_name: `${newPivotTableName}_id`,
+          };
+        }
+        return {
+          ...col,
+          column_name:
+            col.column_name === `${oldTableName}_id`
+              ? `${newTableName}_id`
+              : col.column_name,
+          foreign_key: col.foreign_key
+            ? {
+                ...col.foreign_key,
+                foreign_table_name:
+                  col.foreign_key.foreign_table_name === oldTableName
+                    ? newTableName
+                    : col.foreign_key.foreign_table_name,
+                foreign_column_name:
+                  col.foreign_key.foreign_column_name === `${oldTableName}_id`
+                    ? `${newTableName}_id`
+                    : col.foreign_key.foreign_column_name,
+              }
+            : null,
+        };
+      }),
+      foreignTables: table.foreignTables.map((foreignTable) =>
+        foreignTable === oldTableName ? newTableName : foreignTable,
+      ),
+      foreignKeys: table.foreignKeys.map((key) =>
+        key === `${oldTableName}_id` ? `${newTableName}_id` : key,
+      ),
+    };
+  });
 
-  // Update foreign key values in the new schema
-  for (const [tableName, rows] of Object.entries(newSchema)) {
-    newSchema[tableName] = rows.map((row: Record<string, unknown>) => {
-      return renameProperty(row, previousTablePrimaryKey, newTablePrimaryKey);
-    });
-  }
-
-  // Ensure the old table is removed from the schema
-  return Object.fromEntries(
-    Object.entries(newSchema).filter(([key]) => key !== previousTableName),
-  );
+  return newSchemaInfo;
 }
 
 export function addPrimaryKeys(schema: IJSONSchema): IJSONSchema {

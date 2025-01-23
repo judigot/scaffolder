@@ -8,7 +8,7 @@ import {
   Close as CloseIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { getColumnDefaultDisplay } from '@/utils/common.ts';
+import { getColumnDefaultDisplay, renameTableInSchema } from '@/utils/common.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
 import { changeCase } from '@/utils/common.ts';
@@ -31,7 +31,7 @@ interface INewColumnFormData {
 function SchemaBuilder() {
   const isPivotTableColumnsEditable = true;
 
-  const { schemaInfo, setSchemaInfo } = useFormStore.getState();
+  const { schemaInfo, setSchemaInfo } = useFormStore();
 
   const { promptModal, newValue, editValue } = useModalStore();
 
@@ -70,6 +70,32 @@ function SchemaBuilder() {
       return;
     }
 
+    // Update the JSON schema first
+    const updatedSchemaInfo = renameTableInSchema({
+      oldTableName: oldValue,
+      newTableName: newName,
+      schemaInfo,
+    });
+    setSchemaInfo(updatedSchemaInfo);
+
+    /* Define the relationship keys */
+    const relationshipKeys: (keyof Pick<
+      ITableInfo,
+      | 'hasOne'
+      | 'hasMany'
+      | 'belongsTo'
+      | 'belongsToMany'
+      | 'foreignTables'
+      | 'childTables'
+    >)[] = [
+      'hasOne',
+      'hasMany',
+      'belongsTo',
+      'belongsToMany',
+      'foreignTables',
+      'childTables',
+    ];
+
     /* Helper to generate pivot table name */
     const generatePivotTableName = (table1: string, table2: string): string => {
       if (!table1 || !table2) {
@@ -85,39 +111,83 @@ function SchemaBuilder() {
       /* Rename the table itself */
       if (updatedTable.tableName === oldValue) {
         updatedTable.tableName = newName;
+        
+        // Update required columns that match the old primary key pattern
+        updatedTable.requiredColumns = updatedTable.requiredColumns.map(col => 
+          col === `${oldValue}_id` ? `${newName}_id` : col
+        );
+
+        // Update primary key name if it follows the table name pattern
+        updatedTable.columnsInfo = updatedTable.columnsInfo.map(column => {
+          if (column.primary_key && column.column_name === `${oldValue}_id`) {
+            return {
+              ...column,
+              column_name: `${newName}_id`
+            };
+          }
+          return column;
+        });
       }
 
-      /* If this is a pivot table that contains the old name, rename it */
-      if (updatedTable.isPivot && updatedTable.tableName.includes(oldValue)) {
-        const relatedTables = updatedTable.foreignTables
-          .filter(Boolean) // Remove any undefined/null values
-          .map((tableName) => (tableName === oldValue ? newName : tableName));
+      /* Rename pivot/join tables that reference the renamed table */
+      const oldPivotPattern = new RegExp(`^${oldValue}_|_${oldValue}$|^${oldValue.replace('_', '')}|${oldValue.replace('_', '')}$`);
+      if (updatedTable.tableName.match(oldPivotPattern)) {
+        // Find the other table name by removing the old value part
+        const otherTableName = updatedTable.tableName
+          .replace(new RegExp(`^${oldValue}_`), '')
+          .replace(new RegExp(`_${oldValue}$`), '')
+          .replace(new RegExp(`^${oldValue.replace('_', '')}`), '')
+          .replace(new RegExp(`${oldValue.replace('_', '')}$`), '');
 
-        if (relatedTables.length === 2) {
-          updatedTable.tableName = generatePivotTableName(
-            relatedTables[0],
-            relatedTables[1],
+        // Generate new pivot table name
+        updatedTable.tableName = generatePivotTableName(newName, otherTableName);
+
+        // Set isPivot flag
+        updatedTable.isPivot = true;
+
+        // Update required columns for the pivot table
+        updatedTable.requiredColumns = updatedTable.requiredColumns.map(col => {
+          if (col === `${oldValue}_id`) {return `${newName}_id`;}
+          if (col === `${oldValue}_${otherTableName}_id` || col === `${otherTableName}_${oldValue}_id`) {
+            return updatedTable.tableName + '_id';
+          }
+          return col;
+        });
+
+        // Update columnsInfo for the pivot table
+        updatedTable.columnsInfo = updatedTable.columnsInfo.map(column => {
+          const updatedColumn = { ...column };
+          
+          // Update primary key
+          if (column.primary_key) {
+            updatedColumn.column_name = updatedTable.tableName + '_id';
+          }
+          
+          // Update foreign key references
+          if (column.foreign_key?.foreign_table_name === oldValue) {
+            updatedColumn.column_name = `${newName}_id`;
+            updatedColumn.foreign_key = {
+              ...column.foreign_key,
+              foreign_table_name: newName,
+              foreign_column_name: `${newName}_id`
+            };
+          }
+          
+          return updatedColumn;
+        });
+
+        // Update foreign keys array
+        updatedTable.foreignKeys = updatedTable.foreignKeys.map(key => 
+          key === `${oldValue}_id` ? `${newName}_id` : key
+        );
+
+        // Update belongsTo relationships for the pivot table
+        if (!updatedTable.belongsTo.includes(newName) && updatedTable.belongsTo.includes(oldValue)) {
+          updatedTable.belongsTo = updatedTable.belongsTo.map(table => 
+            table === oldValue ? newName : table
           );
         }
       }
-
-      /* Define the relationship keys */
-      const relationshipKeys: (keyof Pick<
-        ITableInfo,
-        | 'hasOne'
-        | 'hasMany'
-        | 'belongsTo'
-        | 'belongsToMany'
-        | 'foreignTables'
-        | 'childTables'
-      >)[] = [
-        'hasOne',
-        'hasMany',
-        'belongsTo',
-        'belongsToMany',
-        'foreignTables',
-        'childTables',
-      ];
 
       /* Update relationships referencing the old table name */
       relationshipKeys.forEach((relation) => {
@@ -146,41 +216,67 @@ function SchemaBuilder() {
       /* Update pivotRelationships referencing the old table name */
       updatedTable.pivotRelationships = updatedTable.pivotRelationships
         .filter((rel) => Boolean(rel.relatedTable && rel.pivotTable)) // Filter out invalid relationships
-        .map((rel) => ({
-          relatedTable:
-            rel.relatedTable === oldValue ? newName : rel.relatedTable,
-          pivotTable: rel.pivotTable.includes(oldValue)
-            ? generatePivotTableName(
-                rel.relatedTable === oldValue ? newName : rel.relatedTable,
-                updatedTable.tableName,
-              )
-            : rel.pivotTable,
-        }));
+        .map((rel) => {
+          const updatedRel = { ...rel };
+          if (rel.relatedTable === oldValue) {
+            updatedRel.relatedTable = newName;
+          }
+          if (rel.pivotTable.includes(oldValue)) {
+            const parts = rel.pivotTable.split('_');
+            const otherParts = parts.filter(part => !part.includes(oldValue) && part !== '');
+            if (otherParts.length === 0) {
+              return updatedRel;
+            }
+            updatedRel.pivotTable = generatePivotTableName(newName, otherParts[0]);
+          }
+          return updatedRel;
+        });
 
       /* Update foreign keys in columnsInfo */
       updatedTable.columnsInfo = updatedTable.columnsInfo.map((column) => {
-        if (column.foreign_key?.foreign_table_name === oldValue) {
-          return {
-            ...column,
-            foreign_key: {
-              ...column.foreign_key,
-              foreign_table_name: newName,
-            },
+        const updatedColumn = { ...column };
+        
+        // Update foreign key references
+        if (updatedColumn.foreign_key?.foreign_table_name === oldValue) {
+          updatedColumn.foreign_key = {
+            ...updatedColumn.foreign_key,
+            foreign_table_name: newName,
+            foreign_column_name: `${newName}_id`
           };
+          // Also update the column name if it matches the old foreign key pattern
+          if (updatedColumn.column_name === `${oldValue}_id`) {
+            updatedColumn.column_name = `${newName}_id`;
+          }
         }
-        return column;
+        
+        return updatedColumn;
       });
 
-      /* Rename primary key if it's not 'id' */
-      updatedTable.columnsInfo = updatedTable.columnsInfo.map((column) => {
-        if (column.primary_key && column.column_name !== 'id') {
-          return {
-            ...column,
-            column_name: `${newName}_id`,
-          };
+      /* Update required columns and foreign keys arrays */
+      if (updatedTable.foreignTables.includes(newName)) {
+        // Update required columns that reference the old table's foreign key
+        updatedTable.requiredColumns = updatedTable.requiredColumns.map(col => 
+          col === `${oldValue}_id` ? `${newName}_id` : col
+        );
+
+        // Update foreign keys array
+        updatedTable.foreignKeys = updatedTable.foreignKeys.map(key => 
+          key === `${oldValue}_id` ? `${newName}_id` : key
+        );
+      }
+
+      /* Update belongsToMany relationships */
+      if (updatedTable.pivotRelationships.some(rel => 
+        rel.relatedTable === oldValue || 
+        (rel.pivotTable.includes(oldValue) && rel.pivotTable.includes(updatedTable.tableName))
+      )) {
+        if (!updatedTable.belongsToMany.includes(newName)) {
+          updatedTable.belongsToMany = [
+            ...updatedTable.belongsToMany.filter(table => table !== oldValue),
+            newName
+          ];
         }
-        return column;
-      });
+      }
 
       return updatedTable;
     });

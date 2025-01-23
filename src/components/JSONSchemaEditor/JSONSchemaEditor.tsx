@@ -67,10 +67,13 @@ function JSONSchemaEditor() {
     if (isTableNameEdited) {
       const { schemaInfo } = useFormStore.getState();
       const newSchema = renameTableInSchema({
-        oldSchema,
-        previousTableName: previousWord,
+        oldTableName: previousWord,
         newTableName: newWord,
         schemaInfo,
+      });
+      setFormData({
+        ...useFormStore.getState().formData,
+        schemaInput: updatedSchema,
       });
       setSchema(newSchema);
     } else {
