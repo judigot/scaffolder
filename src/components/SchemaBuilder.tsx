@@ -760,28 +760,37 @@ function SchemaBuilder() {
                         className="cursor-pointer"
                       >
                         {isAddColumnFormVisible ? (
-                          <SaveIcon
-                            fontSize="medium"
-                            className="text-white-500"
-                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddColumnFormVisible(false);
+                            }}
+                          >
+                            <span className="ml-1">Save</span>
+                            <SaveIcon fontSize="medium" />
+                          </button>
                         ) : (
-                          <AddIcon
-                            fontSize="medium"
-                            className="text-white-500"
+                          <button
+                            type="button"
                             onClick={() => {
                               setIsAddColumnFormVisible(true);
                             }}
-                          />
+                          >
+                            <span className="ml-1">Add Columns</span>
+                            <AddIcon fontSize="medium" />
+                          </button>
                         )}
                       </div>
                       {isAddColumnFormVisible && (
-                        <CloseIcon
-                          fontSize="medium"
-                          className="text-white-500"
+                        <button
+                          type="button"
                           onClick={() => {
                             setIsAddColumnFormVisible(false);
                           }}
-                        />
+                        >
+                          <span className="ml-1">Cancel</span>
+                          <CloseIcon fontSize="medium" />
+                        </button>
                       )}
                     </div>
 
