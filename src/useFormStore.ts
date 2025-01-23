@@ -57,7 +57,7 @@ const initialFormData: IFormData = {
   // frontendDir: 'C:/Users/Username/Desktop/app/frontend',
   dbConnection: 'postgresql://root:123@localhost:5432/laravel',
   framework: frameworks.LARAVEL,
-  includeInsertData: false,
+  includeInsertData: true,
   insertOption: 'SQLInsertQueries',
   includeTypeGuards: true,
   outputOnSingleFile: false,
@@ -78,7 +78,7 @@ export const useFormStore = create(
 
       return {
         formData: initialFormData,
-        schemaInfo: manyToMany,
+        schemaInfo: oneToOne,
         dbType: initialDbType,
         quote: initialQuote,
         creationMode: CREATION_MODES.JSON_SCHEMA,
