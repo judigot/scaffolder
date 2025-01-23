@@ -10,30 +10,6 @@ function App() {
   const [sampleData, setSampleData] = useState<string>('');
 
   useEffect(() => {
-    const typeMappings = {
-      primaryKey: {
-        typescript: 'number',
-      },
-      password: {
-        typescript: 'string',
-      },
-      number: {
-        typescript: 'number',
-      },
-      float: {
-        typescript: 'number',
-      },
-      string: {
-        typescript: 'string',
-      },
-      boolean: {
-        typescript: 'boolean',
-      },
-      Date: {
-        typescript: 'Date',
-      },
-    } as const;
-
     const jsonSchema = {
       user: [
         {
@@ -147,7 +123,6 @@ function App() {
     setJSONSchemaTransformation(
       generateInterface({
         interfaceName: 'JSONSchema',
-        typeMappings,
         data: jsonSchema,
         isDateStringFormat: true,
       }),
@@ -156,7 +131,6 @@ function App() {
     setArrayOfObjectsTransformation(
       generateInterface({
         interfaceName: 'arrayOfObjects',
-        typeMappings,
         data: arrayOfObjectsVariable,
         isDateStringFormat: true,
       }),
@@ -165,7 +139,6 @@ function App() {
     setObjectTransformation(
       generateInterface({
         interfaceName: 'Object',
-        typeMappings,
         data: objectVariable,
         isDateStringFormat: true,
       }),
@@ -174,7 +147,6 @@ function App() {
     setSampleData(
       generateInterface({
         interfaceName: 'UserPost',
-        typeMappings,
         data: sampleData,
         isDateStringFormat: true,
       }),
