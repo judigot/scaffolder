@@ -50,6 +50,10 @@ function App() {
     setTransformations,
   } = useTransformationsStore();
 
+  useEffect(() => {
+    setTransformations();
+  }, [schemaInfo, setTransformations]);
+
   const stringInterfaces = consolidateInterfaces(interfaces);
 
   const [generationStatus, setGenerationStatus] = useState<{
@@ -65,10 +69,6 @@ function App() {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    setTransformations();
-  }, [formData, setTransformations]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -226,6 +226,7 @@ function App() {
                       //   schemaInput: JSON.stringify(mockData, null, 4),
                       // };
                       // setFormData(newFormData);
+
                       setTransformations(schemaInfo);
 
                       setIsLoading(true);

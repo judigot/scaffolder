@@ -11,6 +11,7 @@ import {
   usersPostsOneToManySchema,
   POSSchema,
 } from '@/json-schemas/index.ts';
+import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -76,6 +77,13 @@ export const useFormStore = create(
       );
       const initialQuote = SQLQueries.quote[initialDbType];
 
+      // Subscribe to changes in schemaInfo and formData
+      const subscribeToChanges = () => {
+        const { setTransformations } = useTransformationsStore.getState();
+        const { schemaInfo } = get();
+        setTransformations(schemaInfo);
+      };
+
       return {
         formData: initialFormData,
         schemaInfo: oneToOne,
@@ -84,6 +92,7 @@ export const useFormStore = create(
         creationMode: CREATION_MODES.JSON_SCHEMA,
         setSchemaInfo: (schemaInfo) => {
           set({ schemaInfo });
+          subscribeToChanges();
         },
         setCreationMode: (creationMode) => {
           set({ creationMode });
@@ -108,6 +117,9 @@ export const useFormStore = create(
           // Prevent unnecessary transformations when schemaInfo is unchanged
           if (JSON.stringify(oldSchemaInfo) !== JSON.stringify(newSchemaInfo)) {
             set({ schemaInfo: newSchemaInfo });
+            subscribeToChanges();
+          } else {
+            subscribeToChanges(); // Still trigger for formData changes
           }
         },
         setOneToOne: () => {
@@ -118,14 +130,7 @@ export const useFormStore = create(
             },
             schemaInfo: oneToOne,
           }));
-
-          if (get().creationMode === CREATION_MODES.JSON_SCHEMA) {
-            //
-          }
-
-          if (get().creationMode === CREATION_MODES.SCHEMA_BUILDER) {
-            //
-          }
+          subscribeToChanges();
         },
         setOneToMany: () => {
           set((state) => ({
@@ -135,14 +140,7 @@ export const useFormStore = create(
             },
             schemaInfo: oneToMany,
           }));
-
-          if (get().creationMode === CREATION_MODES.JSON_SCHEMA) {
-            //
-          }
-
-          if (get().creationMode === CREATION_MODES.SCHEMA_BUILDER) {
-            //
-          }
+          subscribeToChanges();
         },
         setManyToMany: () => {
           set((state) => ({
@@ -152,14 +150,7 @@ export const useFormStore = create(
             },
             schemaInfo: manyToMany,
           }));
-
-          if (get().creationMode === CREATION_MODES.JSON_SCHEMA) {
-            //
-          }
-
-          if (get().creationMode === CREATION_MODES.SCHEMA_BUILDER) {
-            //
-          }
+          subscribeToChanges();
         },
         setDBType: (dbType) => {
           set((state) => {
@@ -192,6 +183,7 @@ export const useFormStore = create(
               quote: newQuote,
             };
           });
+          subscribeToChanges();
         },
       };
     },
