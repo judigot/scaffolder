@@ -43,7 +43,7 @@ function TableAdder({ className = '' }: ITableAdderProps) {
         id="newTableName"
         name="newTableName"
         type="text"
-        placeholder="Enter table name"
+        placeholder="Enter new table name"
         value={newTableName}
         onChange={(e) => { setNewTableName(e.target.value); }}
         className="mb-2 p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
