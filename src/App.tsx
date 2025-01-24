@@ -150,6 +150,100 @@ function App() {
             ))}
           </select>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label htmlFor="backendUrl" className="block text-sm font-medium">
+              Backend URL:
+              {!generationStatus.isBackendUrlValid && (
+                <i className="text-red-500">&nbsp;Invalid backend URL</i>
+              )}
+              <input
+                type="text"
+                id="backendUrl"
+                name="backendUrl"
+                value={backendUrl}
+                onChange={handleChange}
+                className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                  generationStatus.isBackendUrlValid
+                    ? 'border-gray-700 focus:border-indigo-500'
+                    : 'border-red-500 focus:border-red-500'
+                }`}
+              />
+            </label>
+            <label htmlFor="backendDir" className="block text-sm font-medium">
+              Backend Directory:
+              {!generationStatus.isBackendDirValid && (
+                <i className="text-red-500">&nbsp;Invalid backend directory</i>
+              )}
+              <input
+                type="text"
+                id="backendDir"
+                name="backendDir"
+                value={backendDir}
+                onChange={handleChange}
+                className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                  generationStatus.isBackendDirValid
+                    ? 'border-gray-700 focus:border-indigo-500'
+                    : 'border-red-500 focus:border-red-500'
+                }`}
+              />
+            </label>
+            <label htmlFor="frontendDir" className="block text-sm font-medium">
+              Frontend Directory:
+              {!generationStatus.isFrontendDirValid && (
+                <i className="text-red-500">&nbsp;Invalid frontend directory</i>
+              )}
+              <input
+                type="text"
+                id="frontendDir"
+                name="frontendDir"
+                value={frontendDir}
+                onChange={handleChange}
+                className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                  generationStatus.isFrontendDirValid
+                    ? 'border-gray-700 focus:border-indigo-500'
+                    : 'border-red-500 focus:border-red-500'
+                }`}
+              />
+            </label>
+            <label htmlFor="dbConnection" className="block text-sm font-medium">
+              Database Connection:
+              {!generationStatus.isDBConnectionValid && (
+                <i className="text-red-500">&nbsp;Invalid connection string</i>
+              )}
+              <div className="flex flex-col sm:flex-row sm:justify-between pb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDBType('postgresql');
+                  }}
+                  className="mb-2 sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  PostgreSQL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDBType('mysql');
+                  }}
+                  className="mb-2 sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  MySQL
+                </button>
+              </div>
+              <input
+                type="text"
+                id="dbConnection"
+                name="dbConnection"
+                value={dbConnection}
+                onChange={handleChange}
+                className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                  generationStatus.isDBConnectionValid
+                    ? 'border-gray-700 focus:border-indigo-500'
+                    : 'border-red-500 focus:border-red-500'
+                }`}
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               data-testid="generate-app-button"
               type="button"
@@ -353,134 +447,18 @@ function App() {
                     rows={10}
                     className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                   /> */}
-
-                  <div>
-                    <label
-                      htmlFor="additionalSchemaSettings"
-                      className="block text-sm font-medium"
-                    >
-                      Additional Schema Settings:
-                      <AdditionalSchemaSettings schemaInfo={schemaInfo} />
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label
-                      htmlFor="backendUrl"
-                      className="block text-sm font-medium"
-                    >
-                      Backend URL:
-                      {!generationStatus.isBackendUrlValid && (
-                        <i className="text-red-500">
-                          &nbsp;Invalid backend URL
-                        </i>
-                      )}
-                      <input
-                        type="text"
-                        id="backendUrl"
-                        name="backendUrl"
-                        value={backendUrl}
-                        onChange={handleChange}
-                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                          generationStatus.isBackendUrlValid
-                            ? 'border-gray-700 focus:border-indigo-500'
-                            : 'border-red-500 focus:border-red-500'
-                        }`}
-                      />
-                    </label>
-                    <label
-                      htmlFor="backendDir"
-                      className="block text-sm font-medium"
-                    >
-                      Backend Directory:
-                      {!generationStatus.isBackendDirValid && (
-                        <i className="text-red-500">
-                          &nbsp;Invalid backend directory
-                        </i>
-                      )}
-                      <input
-                        type="text"
-                        id="backendDir"
-                        name="backendDir"
-                        value={backendDir}
-                        onChange={handleChange}
-                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                          generationStatus.isBackendDirValid
-                            ? 'border-gray-700 focus:border-indigo-500'
-                            : 'border-red-500 focus:border-red-500'
-                        }`}
-                      />
-                    </label>
-                    <label
-                      htmlFor="frontendDir"
-                      className="block text-sm font-medium"
-                    >
-                      Frontend Directory:
-                      {!generationStatus.isFrontendDirValid && (
-                        <i className="text-red-500">
-                          &nbsp;Invalid frontend directory
-                        </i>
-                      )}
-                      <input
-                        type="text"
-                        id="frontendDir"
-                        name="frontendDir"
-                        value={frontendDir}
-                        onChange={handleChange}
-                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                          generationStatus.isFrontendDirValid
-                            ? 'border-gray-700 focus:border-indigo-500'
-                            : 'border-red-500 focus:border-red-500'
-                        }`}
-                      />
-                    </label>
-                    <label
-                      htmlFor="dbConnection"
-                      className="block text-sm font-medium"
-                    >
-                      Database Connection:
-                      {!generationStatus.isDBConnectionValid && (
-                        <i className="text-red-500">
-                          &nbsp;Invalid connection string
-                        </i>
-                      )}
-                      <div className="flex flex-col sm:flex-row sm:justify-between pb-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDBType('postgresql');
-                          }}
-                          className="mb-2 sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                        >
-                          PostgreSQL
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDBType('mysql');
-                          }}
-                          className="mb-2 sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                        >
-                          MySQL
-                        </button>
-                      </div>
-                      <input
-                        type="text"
-                        id="dbConnection"
-                        name="dbConnection"
-                        value={dbConnection}
-                        onChange={handleChange}
-                        className={`p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                          generationStatus.isDBConnectionValid
-                            ? 'border-gray-700 focus:border-indigo-500'
-                            : 'border-red-500 focus:border-red-500'
-                        }`}
-                      />
-                    </label>
-                  </div>
                 </form>
               </>
             )}
+            <div>
+              <label
+                htmlFor="additionalSchemaSettings"
+                className="block text-sm font-medium"
+              >
+                Additional Schema Settings:
+                <AdditionalSchemaSettings schemaInfo={schemaInfo} />
+              </label>
+            </div>
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
