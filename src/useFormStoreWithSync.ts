@@ -16,8 +16,6 @@ import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
 const ENABLE_TAB_SYNC = true;
 const SYNC_CHANNEL_NAME = 'scaffolder-sync';
-type StorageState = Pick<IFormStore, 'formData' | 'schemaInfo'>;
-type FormState = IFormStore;
 interface ISyncMessage {
   type: 'STATE_UPDATE';
   payload: {
@@ -116,7 +114,58 @@ const broadcastStateChange = (updates: Partial<IFormStore>) => {
       });
   }
 };
+const setupTabSync = (set: (state: Partial<IFormStore>) => void) => {
+  if (!ENABLE_TAB_SYNC) {
+    return;
+  }
+
+  if (syncChannel) {
+    syncChannel.onmessage = (message: MessageEvent<ISyncMessage>) => {
+      handleSyncMessage(message, set);
+    };
+    return;
+  }
+
+  // Fallback: Poll localStorage for changes
+  let lastChecked = Date.now();
+  const pollInterval = setInterval(() => {
+    const currentTime = Date.now();
+    Object.entries(localStorage)
+      .filter(([key, value]) => {
+        const timestamp = parseInt(
+          key.replace(`${SYNC_CHANNEL_NAME}-`, ''),
+          10,
+        );
+        return Boolean(
+          key.startsWith(SYNC_CHANNEL_NAME) && timestamp > lastChecked && value,
+        );
+      })
+      .forEach(([, value]) => {
+        if (typeof value !== 'string') {
+          return;
+        }
+        try {
+          const parsed: unknown = JSON.parse(value);
+          if (isSyncMessage(parsed)) {
+            const event = new MessageEvent<ISyncMessage>('message', {
+              data: parsed,
+            });
+            handleSyncMessage(event, set);
+          }
+        } catch (error) {
+          console.error('Error parsing sync message:', error);
+        }
+      });
+    lastChecked = currentTime;
+  }, 1000);
+
+  // Cleanup on unmount
+  window.addEventListener('unload', () => {
+    clearInterval(pollInterval);
+  });
+};
 const syncChannel = createSyncChannel();
+
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -174,71 +223,24 @@ function determineSQLDatabaseType(dbConnection: string): DBTypes {
   return dbType;
 }
 
-const persistConfig: PersistOptions<FormState, StorageState> = {
+const persistConfig: PersistOptions<IFormStore, unknown> = {
   name: 'formData',
   storage: createJSONStorage(() => localStorage),
-  partialize: (state: FormState): StorageState => ({
+  partialize: (state): Pick<IFormStore, 'formData' | 'schemaInfo'> => ({
     formData: state.formData,
     schemaInfo: state.schemaInfo,
   }),
 };
 
-export const useFormStore = create<FormState>()(
+export const useFormStore = create<IFormStore>()(
   persist((set, get) => {
+    setupTabSync(set);
+
     const initialDbType = determineSQLDatabaseType(
       initialFormData.dbConnection,
     );
     const initialQuote = SQLQueries.quote[initialDbType];
 
-    if (ENABLE_TAB_SYNC) {
-      if (syncChannel) {
-        syncChannel.onmessage = (message: MessageEvent<ISyncMessage>) => {
-          handleSyncMessage(message, set);
-        };
-      } else {
-        // Fallback: Poll localStorage for changes
-        let lastChecked = Date.now();
-        const pollInterval = setInterval(() => {
-          const currentTime = Date.now();
-          Object.entries(localStorage)
-            .filter(([key, value]) => {
-              const timestamp = parseInt(
-                key.replace(`${SYNC_CHANNEL_NAME}-`, ''),
-                10,
-              );
-              return Boolean(
-                key.startsWith(SYNC_CHANNEL_NAME) &&
-                  timestamp > lastChecked &&
-                  value,
-              );
-            })
-            .forEach(([, value]) => {
-              if (typeof value !== 'string') {
-                return;
-              }
-              try {
-                const parsed: unknown = JSON.parse(value);
-                if (isSyncMessage(parsed)) {
-                  const event = new MessageEvent<ISyncMessage>('message', {
-                    data: parsed,
-                  });
-                  handleSyncMessage(event, set);
-                }
-              } catch (error) {
-                console.error('Error parsing sync message:', error);
-              }
-            });
-          lastChecked = currentTime;
-        }, 1000);
-
-        // Cleanup on unmount
-        window.addEventListener('unload', () => {
-          clearInterval(pollInterval);
-        });
-      }
-    }
-
-    // Subscribe to changes in schemaInfo and formData
     const subscribeToChanges = () => {
       const { setTransformations } = useTransformationsStore.getState();
       const { schemaInfo } = get();
