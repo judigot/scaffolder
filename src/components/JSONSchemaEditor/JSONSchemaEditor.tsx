@@ -21,6 +21,11 @@ function JSONSchemaEditor() {
 
   const { handleWordEdit } = useWordEditor(JSON.stringify(schema, null, 4));
 
+  // Add effect to sync schema with formData.schemaInput
+  useEffect(() => {
+    setSchema(schemaInput);
+  }, [schemaInput]);
+
   function repositionCursor() {
     if (textAreaRef.current) {
       textAreaRef.current.selectionStart = cursorPositionRef.current;
@@ -78,7 +83,7 @@ function JSONSchemaEditor() {
         schemaInfo,
       });
 
-      // Update both schema and schema info
+      // Update both schema input and schema info
       setFormData({
         ...useFormStore.getState().formData,
         schemaInput: renamedSchema,
