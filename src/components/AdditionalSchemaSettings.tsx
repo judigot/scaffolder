@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import TagInput from '@/components/TagInput.tsx';
 import { useAdditionalSchemaStore } from '@/useAdditionalSchhemaSettings.ts';
-import { useFormStore } from '@/useFormStore.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
 
 function AdditionalSchemaSettings() {
   const { additionalSettings: formData, setInputValue, setAddedValues, setSearchable, resetFormData } =
     useAdditionalSchemaStore();
-  const schemaInfo = useFormStore((state) => state.schemaInfo);
+  const { schemaInfo } = useTransformationsStore();
 
   /* Initialize missing tables when component mounts or schema changes */
   useEffect(() => {

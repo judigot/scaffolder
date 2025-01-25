@@ -17,7 +17,6 @@ import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx
 function App() {
   const {
     dbType,
-    schemaInfo,
     setOneToOne,
     setOneToMany,
     setManyToMany,
@@ -26,7 +25,6 @@ function App() {
     creationMode,
     setCreationMode,
     setFormData,
-    setSchemaInfo,
   } = useFormStore();
 
   const {
@@ -42,6 +40,7 @@ function App() {
   } = formData;
 
   const {
+    schemaInfo,
     interfaces,
     SQLSchema,
     mockData,
@@ -50,6 +49,7 @@ function App() {
     oneToOneJoins,
     aggregateJoins,
     setTransformations,
+    setSchemaInfo,
   } = useTransformationsStore();
 
   useEffect(() => {

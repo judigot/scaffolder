@@ -6,13 +6,15 @@ import { useFormStore } from '@/useFormStore.ts';
 import TableAdder from '@/components/TableAdder.tsx';
 import { addPrimaryKeys } from '@/utils/common.ts';
 import renameTable from '@/utils/renameTable.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
 
 function JSONSchemaEditor() {
   const {
     formData: { schemaInput },
     setFormData,
-    schemaInfo,
   } = useFormStore();
+
+  const { schemaInfo, setSchemaInfo } = useTransformationsStore();
 
   const [schema, setSchema] = useState<IJSONSchema>(schemaInput);
   const [isValidJson, setIsValidJson] = useState<boolean>(true);
@@ -88,7 +90,7 @@ function JSONSchemaEditor() {
         ...useFormStore.getState().formData,
         schemaInput: renamedSchema,
       });
-      useFormStore.getState().setSchemaInfo(newSchemaInfo);
+      setSchemaInfo(newSchemaInfo);
       setSchema(renamedSchema);
     } else {
       const processedSchema = addPrimaryKeys(updatedSchema);

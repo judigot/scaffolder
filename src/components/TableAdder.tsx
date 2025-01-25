@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import identifySchema from '@/utils/identifySchema.ts';
-import { useFormStore } from '@/useFormStore.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
 
 interface ITableAdderProps {
   className?: string;
 }
 
 function TableAdder({ className = '' }: ITableAdderProps) {
-  const { schemaInfo, setSchemaInfo } = useFormStore.getState();
+  const { schemaInfo, setSchemaInfo } = useTransformationsStore();
   const [newTableName, setNewTableName] = useState<string>('');
 
   const handleAddTable = () => {

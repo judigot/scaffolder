@@ -9,11 +9,11 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
-import { useFormStore } from '@/useFormStore.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
 import { changeCase } from '@/utils/common.ts';
 import TableAdder from '@/components/TableAdder.tsx';
 import renameTable from '@/utils/renameTable.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
 
 interface INewColumnFormData {
   columnName: string;
@@ -32,7 +32,7 @@ interface INewColumnFormData {
 function SchemaBuilder() {
   const isPivotTableColumnsEditable = true;
 
-  const { schemaInfo, setSchemaInfo } = useFormStore();
+  const { schemaInfo, setSchemaInfo } = useTransformationsStore();
 
   const { promptModal, newValue, editValue } = useModalStore();
 
