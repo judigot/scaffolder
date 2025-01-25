@@ -61,14 +61,14 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
 
   let relationshipAttributes: string[] = [];
 
-  if (pivotRelationships.length > 0) {
+  if (pivotRelationships && pivotRelationships.length > 0) {
     // Generate attributes only for pivot relationships
     relationshipAttributes = pivotRelationships.map(({ relatedTable }) => {
       const relatedClass = changeCase(relatedTable).pascalCase;
       const relationName = relatedTable + 's';
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
-  } else if (hasMany.length > 0 && childTables.length > 0) {
+  } else if (hasMany && hasMany.length > 0 && childTables && childTables.length > 0) {
     // Generate attributes for hasMany and childTables if no pivotRelationships exist
     relationshipAttributes = hasMany.map((relatedTable) => {
       const relatedClass = changeCase(relatedTable).pascalCase;

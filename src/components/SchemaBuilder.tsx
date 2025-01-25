@@ -1,6 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { useState } from 'react';
 import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
-import { addRelationship, purgeForeignKeyTraces } from '@/helpers/relationshipHelper.ts';
+import {
+  addRelationship,
+  purgeForeignKeyTraces,
+} from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import {
   Edit as EditIcon,
@@ -114,6 +118,28 @@ function SchemaBuilder() {
   const handleRemoveRelationship = async (tableIndex: number) => {
     const sourceTable = schemaInfo[tableIndex];
 
+    if (!sourceTable.pivotRelationships) {
+      throw new Error('pivotRelationships is undefined');
+    }
+    if (!sourceTable.childTables) {
+      throw new Error('childTables is undefined');
+    }
+    if (!sourceTable.hasOne) {
+      throw new Error('hasOne is undefined');
+    }
+    if (!sourceTable.hasMany) {
+      throw new Error('hasMany is undefined');
+    }
+    if (!sourceTable.belongsTo) {
+      throw new Error('belongsTo is undefined');
+    }
+    if (!sourceTable.belongsToMany) {
+      throw new Error('belongsToMany is undefined');
+    }
+    if (!sourceTable.foreignTables) {
+      throw new Error('foreignTables is undefined');
+    }
+
     const result = await promptModal({
       title: `Remove "${sourceTable.tableName}" table?`,
       description: `Are you sure you want to remove "${sourceTable.tableName}" table and its dependent tables?`,
@@ -148,14 +174,18 @@ function SchemaBuilder() {
       (rel) => rel.pivotTable,
     );
 
-    /* Gather all tables to remove: source table + pivot child tables + pivot tables in pivotRelationships */
     const tablesToRemove = [
       sourceTable.tableName,
       ...schemaInfo
-        .filter(
-          (table) =>
-            sourceTable.childTables.includes(table.tableName) && table.isPivot,
-        )
+        .filter((table) => {
+          if (!sourceTable.childTables) {
+            throw new Error('childTables is undefined');
+          }
+          return (
+            sourceTable.childTables.includes(table.tableName) &&
+            table.isPivot === true
+          );
+        })
         .map((table) => table.tableName),
       ...pivotTablesFromRelationships,
     ];
@@ -164,6 +194,10 @@ function SchemaBuilder() {
     const updatedSchema = schemaInfo
       .filter((table) => !tablesToRemove.includes(table.tableName))
       .map((table) => {
+        if (!table.pivotRelationships) {
+          throw new Error('pivotRelationships is undefined');
+        }
+
         relationshipKeys.forEach((relation) => {
           const currentRelations = table[relation];
           if (Array.isArray(currentRelations)) {
@@ -190,7 +224,7 @@ function SchemaBuilder() {
     0,
   );
 
-  const pivotTables = schemaInfo.filter((table) => table.isPivot);
+  const pivotTables = schemaInfo.filter((table) => table.isPivot === true);
 
   const [isAddColumnFormVisible, setIsAddColumnFormVisible] = useState(false);
 
@@ -207,15 +241,15 @@ function SchemaBuilder() {
       data_type: columnData.dataType,
       is_nullable: columnData.isNullable ? 'YES' : 'NO',
       column_default:
-        columnData.defaultValue === '' ? null : columnData.defaultValue,
-      primary_key: columnData.isPrimary,
-      unique: columnData.isUnique,
+        columnData.defaultValue === '' ? undefined : columnData.defaultValue,
+      primary_key: columnData.isPrimary ? true : undefined,
+      unique: columnData.isUnique ? true : undefined,
       foreign_key: columnData.foreignKey
         ? {
             foreign_table_name: columnData.foreignKey.tableName,
             foreign_column_name: columnData.foreignKey.columnName,
           }
-        : null,
+        : undefined,
     };
 
     // Add the column to the table
@@ -228,13 +262,26 @@ function SchemaBuilder() {
       );
 
       if (parentTableIndex !== -1) {
+        if (!updatedSchema[parentTableIndex].hasOne) {
+          throw new Error('hasOne is undefined');
+        }
+        if (!updatedSchema[parentTableIndex].hasMany) {
+          throw new Error('hasMany is undefined');
+        }
+        if (!updatedSchema[parentTableIndex].childTables) {
+          throw new Error('childTables is undefined');
+        }
+
         if (columnData.foreignKey.relationType === 'oneToOne') {
           if (
             !updatedSchema[parentTableIndex].hasOne.includes(table.tableName)
           ) {
             updatedSchema[parentTableIndex].hasOne.push(table.tableName);
           }
-          if (!table.belongsTo.includes(columnData.foreignKey.tableName)) {
+          if (
+            table.belongsTo &&
+            !table.belongsTo.includes(columnData.foreignKey.tableName)
+          ) {
             table.belongsTo.push(columnData.foreignKey.tableName);
           }
         } else {
@@ -243,12 +290,18 @@ function SchemaBuilder() {
           ) {
             updatedSchema[parentTableIndex].hasMany.push(table.tableName);
           }
-          if (!table.belongsTo.includes(columnData.foreignKey.tableName)) {
+          if (
+            table.belongsTo &&
+            !table.belongsTo.includes(columnData.foreignKey.tableName)
+          ) {
             table.belongsTo.push(columnData.foreignKey.tableName);
           }
         }
 
-        if (!table.foreignTables.includes(columnData.foreignKey.tableName)) {
+        if (
+          table.foreignTables &&
+          !table.foreignTables.includes(columnData.foreignKey.tableName)
+        ) {
           table.foreignTables.push(columnData.foreignKey.tableName);
         }
         if (
@@ -322,6 +375,16 @@ function SchemaBuilder() {
   };
 
   const getAvailableForeignTables = (currentTable: ITableInfo): string[] => {
+    if (!currentTable.belongsTo) {
+      throw new Error('belongsTo is undefined');
+    }
+    if (!currentTable.belongsToMany) {
+      throw new Error('belongsToMany is undefined');
+    }
+    if (!currentTable.foreignTables) {
+      throw new Error('foreignTables is undefined');
+    }
+
     const existingForeignTables = new Set([
       ...currentTable.belongsTo,
       ...currentTable.belongsToMany,
@@ -333,7 +396,7 @@ function SchemaBuilder() {
         (table) =>
           table.tableName !== currentTable.tableName && // Exclude self-reference
           !existingForeignTables.has(table.tableName) && // Exclude existing foreign tables
-          !table.isPivot, // Exclude pivot tables
+          table.isPivot !== true, // Exclude pivot tables
       )
       .map((table) => table.tableName);
   };
@@ -347,6 +410,32 @@ function SchemaBuilder() {
     );
   };
 
+  if (selectedTableIndex === null) {
+    throw new Error('selectedTableIndex is null');
+  }
+
+  // if (!schemaInfo[selectedTableIndex].hasOne) {
+  //   throw new Error('hasOne is undefined for the selected table');
+  // }
+  // if (!schemaInfo[selectedTableIndex].hasMany) {
+  //   throw new Error('hasMany is undefined for the selected table');
+  // }
+  // if (!schemaInfo[selectedTableIndex].belongsTo) {
+  //   throw new Error('belongsTo is undefined for the selected table');
+  // }
+  // if (!schemaInfo[selectedTableIndex].belongsToMany) {
+  //   throw new Error('belongsToMany is undefined for the selected table');
+  // }
+  // if (!schemaInfo[selectedTableIndex].foreignTables) {
+  //   throw new Error('foreignTables is undefined for the selected table');
+  // }
+  // if (!schemaInfo[selectedTableIndex].pivotRelationships) {
+  //   throw new Error('pivotRelationships is undefined for the selected table');
+  // }
+  // if (!schemaInfo[selectedTableIndex].childTables) {
+  //   throw new Error('childTables is undefined for the selected table');
+  // }
+
   return (
     <div className="text-white">
       <TableAdder />
@@ -355,7 +444,7 @@ function SchemaBuilder() {
           <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
           <ul className="space-y-2">
             {schemaInfo
-              .filter((table) => !table.isPivot)
+              .filter((table) => table.isPivot !== true)
               .map((tableInfo) => {
                 const { tableName } = tableInfo;
 
@@ -391,7 +480,7 @@ function SchemaBuilder() {
               <h2 className="text-xl font-semibold mb-4">Pivot Tables</h2>
               <ul className="space-y-2">
                 {schemaInfo
-                  .filter((table) => table.isPivot)
+                  .filter((table) => table.isPivot === true)
                   .map((tableInfo) => {
                     const { tableName } = tableInfo;
 
@@ -430,7 +519,7 @@ function SchemaBuilder() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold">
                     {schemaInfo[selectedTableIndex].tableName}
-                    {!schemaInfo[selectedTableIndex].isPivot && (
+                    {schemaInfo[selectedTableIndex].isPivot !== true && (
                       <>
                         &nbsp;
                         <EditIcon
@@ -459,7 +548,7 @@ function SchemaBuilder() {
                   </h2>
                 </div>
 
-                {!schemaInfo[selectedTableIndex].isPivot && (
+                {schemaInfo[selectedTableIndex].isPivot !== true && (
                   <>
                     <div className="flex flex-wrap gap-2 mt-4">
                       <button
@@ -533,7 +622,7 @@ function SchemaBuilder() {
                 <h3 className="font-semibold mt-4 mb-2">Relationships</h3>
                 <div className="space-y-4">
                   {/* One-to-One Relationships */}
-                  {schemaInfo[selectedTableIndex].hasOne.length > 0 && (
+                  {schemaInfo[selectedTableIndex].hasOne && schemaInfo[selectedTableIndex].hasOne.length > 0 && (
                     <div className="bg-blue-500/10 p-4 rounded-lg">
                       <h4 className="font-semibold text-blue-400 mb-2">
                         One-to-One Relationships
@@ -545,7 +634,7 @@ function SchemaBuilder() {
                             <span className="ml-2 font-medium">{table}</span>
                           </li>
                         ))}
-                        {schemaInfo[selectedTableIndex].belongsTo.map(
+                        {schemaInfo[selectedTableIndex].belongsTo && schemaInfo[selectedTableIndex].belongsTo.length > 0 && schemaInfo[selectedTableIndex].belongsTo.map(
                           (table) => (
                             <li key={table} className="flex items-center">
                               <span className="text-blue-300">Belongs To:</span>
@@ -558,7 +647,7 @@ function SchemaBuilder() {
                   )}
 
                   {/* One-to-Many Relationships */}
-                  {schemaInfo[selectedTableIndex].hasMany.length > 0 && (
+                  {schemaInfo[selectedTableIndex].hasMany && schemaInfo[selectedTableIndex].hasMany.length > 0 && (
                     <div className="bg-green-500/10 p-4 rounded-lg">
                       <h4 className="font-semibold text-green-400 mb-2">
                         One-to-Many Relationships
@@ -575,9 +664,7 @@ function SchemaBuilder() {
                   )}
 
                   {/* Many-to-Many Relationships */}
-                  {(schemaInfo[selectedTableIndex].belongsToMany.length > 0 ||
-                    schemaInfo[selectedTableIndex].pivotRelationships.length >
-                      0) && (
+                  {schemaInfo[selectedTableIndex].belongsToMany && schemaInfo[selectedTableIndex].belongsToMany.length > 0 && schemaInfo[selectedTableIndex].pivotRelationships && schemaInfo[selectedTableIndex].pivotRelationships.length > 0 && (
                     <div className="bg-purple-500/10 p-4 rounded-lg">
                       <h4 className="font-semibold text-purple-400 mb-2">
                         Many-to-Many Relationships
@@ -614,8 +701,7 @@ function SchemaBuilder() {
                   )}
 
                   {/* Table References */}
-                  {(schemaInfo[selectedTableIndex].foreignTables.length > 0 ||
-                    schemaInfo[selectedTableIndex].childTables.length > 0) && (
+                  {schemaInfo[selectedTableIndex].foreignTables && schemaInfo[selectedTableIndex].foreignTables.length > 0 && schemaInfo[selectedTableIndex].childTables && schemaInfo[selectedTableIndex].childTables.length > 0 && (
                     <div className="bg-gray-500/10 p-4 rounded-lg">
                       <h4 className="font-semibold text-gray-400 mb-2">
                         Table References
@@ -654,8 +740,9 @@ function SchemaBuilder() {
                   <br />
                   <div className="flex justify-between items-center">
                     <h3 className="font-semibold mb-2 inline-block">Columns</h3>
-                    {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-                    {(!schemaInfo[selectedTableIndex].isPivot || isPivotTableColumnsEditable) && (
+                    {}
+                    {(schemaInfo[selectedTableIndex].isPivot !== true ||
+                      isPivotTableColumnsEditable) && (
                       <div
                         role="button"
                         tabIndex={0}
@@ -702,154 +789,310 @@ function SchemaBuilder() {
                     )}
                   </div>
 
-                  {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-                  {isAddColumnFormVisible && (!schemaInfo[selectedTableIndex].isPivot || isPivotTableColumnsEditable) && (
-                    <>
-                      <br />
-                      <form
-                        id="schemaBuilderForm"
-                        name="schemaBuilderForm"
-                        className="mb-2 bg-gray-800 rounded shadow overflow-x-auto"
-                        onSubmit={handleSubmit}
-                      >
-                        <div className="flex items-center border-b border-gray-600 p-2">
-                          <input
-                            name="columnName"
-                            type="text"
-                            value={newColumnFormData.columnName}
-                            onChange={handleInputChange}
-                            placeholder="Column Name"
-                            className={`border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1`}
-                            required
-                          />
-                          <select
-                            name="dataType"
-                            value={newColumnFormData.dataType}
-                            onChange={handleInputChange}
-                            className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
-                            required
-                          >
-                            <option value="">Select Type</option>
-                            <option value="string">String</option>
-                            <option value="number">Number</option>
-                            <option value="Date">Date</option>
-                            <option value="boolean">Boolean</option>
-                          </select>
-                          <select
-                            name="foreignKey"
-                            value={
-                              newColumnFormData.foreignKey?.tableName ?? ''
-                            }
-                            onChange={handleForeignKeyChange}
-                            className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
-                          >
-                            <option value="">Foreign Key</option>
-                            {selectedTableIndex &&
-                              getAvailableForeignTables(
-                                schemaInfo[selectedTableIndex],
-                              ).map((tableName) => (
-                                <option key={tableName} value={tableName}>
-                                  {tableName}
-                                </option>
-                              ))}
-                          </select>
-                          {newColumnFormData.foreignKey && (
+                  {}
+                  {isAddColumnFormVisible &&
+                    (!('isPivot' in schemaInfo[selectedTableIndex]) ||
+                      isPivotTableColumnsEditable) && (
+                      <>
+                        <br />
+                        <form
+                          id="schemaBuilderForm"
+                          name="schemaBuilderForm"
+                          className="mb-2 bg-gray-800 rounded shadow overflow-x-auto"
+                          onSubmit={handleSubmit}
+                        >
+                          <div className="flex items-center border-b border-gray-600 p-2">
+                            <input
+                              name="columnName"
+                              type="text"
+                              value={newColumnFormData.columnName}
+                              onChange={handleInputChange}
+                              placeholder="Column Name"
+                              className={`border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1`}
+                              required
+                            />
                             <select
-                              name="relationType"
-                              value={newColumnFormData.foreignKey.relationType}
-                              onChange={handleRelationTypeChange}
-                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[150px] mr-1"
+                              name="dataType"
+                              value={newColumnFormData.dataType}
+                              onChange={handleInputChange}
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
                               required
                             >
-                              <option value="">Select Relationship</option>
-                              <option value="oneToOne">
-                                One-to-One (
-                                {changeCase(selectedParentTable).pascalCase} can
-                                only have one{' '}
-                                {
-                                  changeCase(
-                                    schemaInfo[selectedTableIndex]?.tableName,
-                                  ).singular
-                                }
-                                )
-                              </option>
-                              <option value="oneToMany">
-                                One-to-Many (
-                                {changeCase(selectedParentTable).pascalCase} can
-                                have many{' '}
-                                {
-                                  changeCase(
-                                    schemaInfo[selectedTableIndex]?.tableName,
-                                  ).plural
-                                }
-                                )
-                              </option>
+                              <option value="">Select Type</option>
+                              <option value="string">String</option>
+                              <option value="number">Number</option>
+                              <option value="Date">Date</option>
+                              <option value="boolean">Boolean</option>
                             </select>
-                          )}
-                          <input
-                            name="defaultValue"
-                            type="text"
-                            value={newColumnFormData.defaultValue}
-                            onChange={handleInputChange}
-                            placeholder="Default"
-                            className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
-                          />
-                          <div className="flex items-center ml-auto">
+                            <select
+                              name="foreignKey"
+                              value={
+                                newColumnFormData.foreignKey?.tableName ?? ''
+                              }
+                              onChange={handleForeignKeyChange}
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
+                            >
+                              <option value="">Foreign Key</option>
+                              {selectedTableIndex &&
+                                getAvailableForeignTables(
+                                  schemaInfo[selectedTableIndex],
+                                ).map((tableName) => (
+                                  <option key={tableName} value={tableName}>
+                                    {tableName}
+                                  </option>
+                                ))}
+                            </select>
+                            {newColumnFormData.foreignKey && (
+                              <select
+                                name="relationType"
+                                value={
+                                  newColumnFormData.foreignKey.relationType
+                                }
+                                onChange={handleRelationTypeChange}
+                                className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[150px] mr-1"
+                                required
+                              >
+                                <option value="">Select Relationship</option>
+                                <option value="oneToOne">
+                                  One-to-One (
+                                  {changeCase(selectedParentTable).pascalCase}{' '}
+                                  can only have one{' '}
+                                  {
+                                    changeCase(
+                                      schemaInfo[selectedTableIndex]?.tableName,
+                                    ).singular
+                                  }
+                                  )
+                                </option>
+                                <option value="oneToMany">
+                                  One-to-Many (
+                                  {changeCase(selectedParentTable).pascalCase}{' '}
+                                  can have many{' '}
+                                  {
+                                    changeCase(
+                                      schemaInfo[selectedTableIndex]?.tableName,
+                                    ).plural
+                                  }
+                                  )
+                                </option>
+                              </select>
+                            )}
                             <input
-                              name="isNullable"
-                              type="checkbox"
-                              checked={newColumnFormData.isNullable}
+                              name="defaultValue"
+                              type="text"
+                              value={newColumnFormData.defaultValue}
                               onChange={handleInputChange}
-                              className="mr-1 text-indigo-500"
+                              placeholder="Default"
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
                             />
-                            <span className="text-gray-300 text-sm">
-                              Nullable
-                            </span>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                name="isNullable"
+                                type="checkbox"
+                                checked={newColumnFormData.isNullable}
+                                onChange={handleInputChange}
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Nullable
+                              </span>
+                            </div>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                name="isPrimary"
+                                type="checkbox"
+                                checked={newColumnFormData.isPrimary}
+                                onChange={handleInputChange}
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Primary
+                              </span>
+                            </div>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                name="isUnique"
+                                type="checkbox"
+                                checked={newColumnFormData.isUnique}
+                                onChange={handleInputChange}
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Unique
+                              </span>
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={!isFormValid()}
+                              className={`ml-2 px-3 py-1 font-bold rounded transition-colors duration-200 ${
+                                isFormValid()
+                                  ? 'bg-green-500 hover:bg-green-600 text-black'
+                                  : 'bg-gray-500 cursor-not-allowed text-gray-300'
+                              }`}
+                              title={
+                                !isFormValid()
+                                  ? 'Please fill in required fields (Column Name and Data Type)'
+                                  : 'Add column'
+                              }
+                            >
+                              Add
+                            </button>
                           </div>
-                          <div className="flex items-center ml-auto">
+                        </form>
+                      </>
+                    )}
+
+                  {isAddColumnFormVisible &&
+                    (schemaInfo[selectedTableIndex].isPivot !== true ||
+                      isPivotTableColumnsEditable) && (
+                      <>
+                        <br />
+                        <form
+                          id="schemaBuilderForm"
+                          name="schemaBuilderForm"
+                          className="mb-2 bg-gray-800 rounded shadow overflow-x-auto"
+                          onSubmit={handleSubmit}
+                        >
+                          <div className="flex items-center border-b border-gray-600 p-2">
                             <input
-                              name="isPrimary"
-                              type="checkbox"
-                              checked={newColumnFormData.isPrimary}
+                              name="columnName"
+                              type="text"
+                              value={newColumnFormData.columnName}
                               onChange={handleInputChange}
-                              className="mr-1 text-indigo-500"
+                              placeholder="Column Name"
+                              className={`border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1`}
+                              required
                             />
-                            <span className="text-gray-300 text-sm">
-                              Primary
-                            </span>
-                          </div>
-                          <div className="flex items-center ml-auto">
+                            <select
+                              name="dataType"
+                              value={newColumnFormData.dataType}
+                              onChange={handleInputChange}
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
+                              required
+                            >
+                              <option value="">Select Type</option>
+                              <option value="string">String</option>
+                              <option value="number">Number</option>
+                              <option value="Date">Date</option>
+                              <option value="boolean">Boolean</option>
+                            </select>
+                            <select
+                              name="foreignKey"
+                              value={
+                                newColumnFormData.foreignKey?.tableName ?? ''
+                              }
+                              onChange={handleForeignKeyChange}
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
+                            >
+                              <option value="">Foreign Key</option>
+                              {selectedTableIndex &&
+                                getAvailableForeignTables(
+                                  schemaInfo[selectedTableIndex],
+                                ).map((tableName) => (
+                                  <option key={tableName} value={tableName}>
+                                    {tableName}
+                                  </option>
+                                ))}
+                            </select>
+                            {newColumnFormData.foreignKey && (
+                              <select
+                                name="relationType"
+                                value={
+                                  newColumnFormData.foreignKey.relationType
+                                }
+                                onChange={handleRelationTypeChange}
+                                className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[150px] mr-1"
+                                required
+                              >
+                                <option value="">Select Relationship</option>
+                                <option value="oneToOne">
+                                  One-to-One (
+                                  {changeCase(selectedParentTable).pascalCase}{' '}
+                                  can only have one{' '}
+                                  {
+                                    changeCase(
+                                      schemaInfo[selectedTableIndex]?.tableName,
+                                    ).singular
+                                  }
+                                  )
+                                </option>
+                                <option value="oneToMany">
+                                  One-to-Many (
+                                  {changeCase(selectedParentTable).pascalCase}{' '}
+                                  can have many{' '}
+                                  {
+                                    changeCase(
+                                      schemaInfo[selectedTableIndex]?.tableName,
+                                    ).plural
+                                  }
+                                  )
+                                </option>
+                              </select>
+                            )}
                             <input
-                              name="isUnique"
-                              type="checkbox"
-                              checked={newColumnFormData.isUnique}
+                              name="defaultValue"
+                              type="text"
+                              value={newColumnFormData.defaultValue}
                               onChange={handleInputChange}
-                              className="mr-1 text-indigo-500"
+                              placeholder="Default"
+                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
                             />
-                            <span className="text-gray-300 text-sm">
-                              Unique
-                            </span>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                name="isNullable"
+                                type="checkbox"
+                                checked={newColumnFormData.isNullable}
+                                onChange={handleInputChange}
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Nullable
+                              </span>
+                            </div>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                name="isPrimary"
+                                type="checkbox"
+                                checked={newColumnFormData.isPrimary}
+                                onChange={handleInputChange}
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Primary
+                              </span>
+                            </div>
+                            <div className="flex items-center ml-auto">
+                              <input
+                                name="isUnique"
+                                type="checkbox"
+                                checked={newColumnFormData.isUnique}
+                                onChange={handleInputChange}
+                                className="mr-1 text-indigo-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                Unique
+                              </span>
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={!isFormValid()}
+                              className={`ml-2 px-3 py-1 font-bold rounded transition-colors duration-200 ${
+                                isFormValid()
+                                  ? 'bg-green-500 hover:bg-green-600 text-black'
+                                  : 'bg-gray-500 cursor-not-allowed text-gray-300'
+                              }`}
+                              title={
+                                !isFormValid()
+                                  ? 'Please fill in required fields (Column Name and Data Type)'
+                                  : 'Add column'
+                              }
+                            >
+                              Add
+                            </button>
                           </div>
-                          <button
-                            type="submit"
-                            disabled={!isFormValid()}
-                            className={`ml-2 px-3 py-1 font-bold rounded transition-colors duration-200 ${
-                              isFormValid()
-                                ? 'bg-green-500 hover:bg-green-600 text-black'
-                                : 'bg-gray-500 cursor-not-allowed text-gray-300'
-                            }`}
-                            title={
-                              !isFormValid()
-                                ? 'Please fill in required fields (Column Name and Data Type)'
-                                : 'Add column'
-                            }
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </form>
-                    </>
-                  )}
+                        </form>
+                      </>
+                    )}
 
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-left border-collapse border border-gray-600">

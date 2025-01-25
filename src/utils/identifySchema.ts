@@ -143,7 +143,7 @@ export const isJunctionTable = (
     );
 
     // Check if the table has no child tables
-    const hasNoChildTables = relationship.childTables.length === 0;
+    const hasNoChildTables = relationship.childTables?.length === 0;
 
     // Ensure both parent tables are defined before checking name combination
     if (parentTable1 && parentTable2) {

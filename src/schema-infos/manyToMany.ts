@@ -10,34 +10,23 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-        unique: false,
-        foreign_key: null,
+        primary_key: true
       },
       {
         column_name: 'product_name',
         data_type: 'string',
-        is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
-      },
+        is_nullable: 'NO'
+      }
     ],
-    foreignTables: [],
-    foreignKeys: [],
-    isPivot: false,
     childTables: ['order_product'],
-    hasOne: [],
     hasMany: ['order_product'],
-    belongsTo: [],
     belongsToMany: ['order'],
     pivotRelationships: [
       {
         relatedTable: 'order',
-        pivotTable: 'order_product',
-      },
-    ],
+        pivotTable: 'order_product'
+      }
+    ]
   },
   {
     tableName: 'customer',
@@ -48,29 +37,16 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-        unique: false,
-        foreign_key: null,
+        primary_key: true
       },
       {
         column_name: 'name',
         data_type: 'string',
-        is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
-      },
+        is_nullable: 'NO'
+      }
     ],
-    foreignTables: [],
-    foreignKeys: [],
-    isPivot: false,
     childTables: ['order'],
-    hasOne: [],
-    hasMany: ['order'],
-    belongsTo: [],
-    belongsToMany: [],
-    pivotRelationships: [],
+    hasMany: ['order']
   },
   {
     tableName: 'order',
@@ -81,37 +57,30 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-        unique: false,
-        foreign_key: null,
+        primary_key: true
       },
       {
         column_name: 'customer_id',
         data_type: 'number',
         is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
         foreign_key: {
           foreign_table_name: 'customer',
-          foreign_column_name: 'customer_id',
-        },
-      },
+          foreign_column_name: 'customer_id'
+        }
+      }
     ],
     foreignTables: ['customer'],
     foreignKeys: ['customer_id'],
-    isPivot: false,
     childTables: ['order_product'],
-    hasOne: [],
     hasMany: ['order_product'],
     belongsTo: ['customer'],
     belongsToMany: ['product'],
     pivotRelationships: [
       {
         relatedTable: 'product',
-        pivotTable: 'order_product',
-      },
-    ],
+        pivotTable: 'order_product'
+      }
+    ]
   },
   {
     tableName: 'order_product',
@@ -122,43 +91,30 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-        unique: false,
-        foreign_key: null,
+        primary_key: true
       },
       {
         column_name: 'order_id',
         data_type: 'number',
         is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
         foreign_key: {
           foreign_table_name: 'order',
-          foreign_column_name: 'order_id',
-        },
+          foreign_column_name: 'order_id'
+        }
       },
       {
         column_name: 'product_id',
         data_type: 'number',
         is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
         foreign_key: {
           foreign_table_name: 'product',
-          foreign_column_name: 'product_id',
-        },
-      },
+          foreign_column_name: 'product_id'
+        }
+      }
     ],
+    isPivot: true,
     foreignTables: ['order', 'product'],
     foreignKeys: ['order_id', 'product_id'],
-    isPivot: true,
-    childTables: [],
-    hasOne: [],
-    hasMany: [],
-    belongsTo: ['order', 'product'],
-    belongsToMany: [],
-    pivotRelationships: [],
-  },
+    belongsTo: ['order', 'product']
+  }
 ] satisfies ISchemaInfo[];

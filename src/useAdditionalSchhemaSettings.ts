@@ -6,7 +6,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 const getSimilarity = (str1: string, str2: string): number => {
   const set1 = new Set(str1.toLowerCase());
   const set2 = new Set(str2.toLowerCase());
-  const intersection = new Set([...set1].filter(x => set2.has(x)));
+  const intersection = new Set([...set1].filter((x) => set2.has(x)));
   return intersection.size / Math.max(set1.size, set2.size);
 };
 
@@ -103,9 +103,13 @@ export const useAdditionalSchemaStore = create<IAdditionalSchemaStore>()(
       resetFormData: (schemaInfo) => {
         set((state) => {
           // Helper function to find the most similar old table name
-          const findMostSimilarTable = (newTable: string): string | undefined => {
+          const findMostSimilarTable = (
+            newTable: string,
+          ): string | undefined => {
             const oldTables = Object.keys(state.additionalSettings.inputValues);
-            if (oldTables.length === 0) {return undefined;}
+            if (oldTables.length === 0) {
+              return undefined;
+            }
 
             const similarityThreshold = 0.5; // Adjust this value to be more or less strict
             let mostSimilar: string | undefined;
@@ -133,22 +137,26 @@ export const useAdditionalSchemaStore = create<IAdditionalSchemaStore>()(
 
           // Build a map of old column names to new ones for each table
           const columnMappings: Record<string, Record<string, string>> = {};
-          
+
           // First pass: collect all old table mappings
           schemaInfo.forEach((schema) => {
             const similarTable = findMostSimilarTable(schema.tableName);
-            if (similarTable !== undefined && similarTable !== schema.tableName) {
+            if (
+              similarTable !== undefined &&
+              similarTable !== schema.tableName
+            ) {
               // Get all columns from the new schema
               const newColumns = schema.columnsInfo.map((col) => ({
                 name: col.column_name,
                 isPrimary: col.primary_key,
-                isForeign: col.foreign_key !== null,
+                isForeign: Boolean(col.foreign_key),
               }));
 
               // Map old column names to new ones based on similarity and type
               columnMappings[similarTable] = {};
-              const oldAddedValues = state.additionalSettings.addedValues[similarTable] ?? [];
-              
+              const oldAddedValues =
+                state.additionalSettings.addedValues[similarTable] ?? [];
+
               oldAddedValues.forEach((oldColName) => {
                 // Try to find a matching new column with the same characteristics
                 const matchingNewCol = newColumns.find((col) => {
@@ -156,7 +164,8 @@ export const useAdditionalSchemaStore = create<IAdditionalSchemaStore>()(
                 });
 
                 if (matchingNewCol) {
-                  columnMappings[similarTable][oldColName] = matchingNewCol.name;
+                  columnMappings[similarTable][oldColName] =
+                    matchingNewCol.name;
                 }
               });
             }
@@ -166,24 +175,38 @@ export const useAdditionalSchemaStore = create<IAdditionalSchemaStore>()(
           schemaInfo.forEach((schema) => {
             const similarTable = findMostSimilarTable(schema.tableName);
 
-            if (similarTable !== undefined && similarTable !== schema.tableName) {
+            if (
+              similarTable !== undefined &&
+              similarTable !== schema.tableName
+            ) {
               // Migrate data from old table name to new one
-              newFormData.inputValues[schema.tableName] = state.additionalSettings.inputValues[similarTable] ?? '';
-              
+              newFormData.inputValues[schema.tableName] =
+                state.additionalSettings.inputValues[similarTable] ?? '';
+
               // Update column names in addedValues using the mapping
-              const oldAddedValues = state.additionalSettings.addedValues[similarTable] ?? [];
-              newFormData.addedValues[schema.tableName] = oldAddedValues.map((oldColName) => {
-                const newColName = columnMappings[similarTable][oldColName];
-                return newColName || oldColName.replace(similarTable, schema.tableName);
-              });
-              
-              newFormData.searchable[schema.tableName] = state.additionalSettings.searchable[similarTable] ?? false;
+              const oldAddedValues =
+                state.additionalSettings.addedValues[similarTable] ?? [];
+              newFormData.addedValues[schema.tableName] = oldAddedValues.map(
+                (oldColName) => {
+                  const newColName = columnMappings[similarTable][oldColName];
+                  return (
+                    newColName ||
+                    oldColName.replace(similarTable, schema.tableName)
+                  );
+                },
+              );
+
+              newFormData.searchable[schema.tableName] =
+                state.additionalSettings.searchable[similarTable] ?? false;
               newMapping[similarTable] = schema.tableName;
             } else {
               // Initialize new tables with default values or keep existing ones
-              newFormData.inputValues[schema.tableName] = state.additionalSettings.inputValues[schema.tableName] ?? '';
-              newFormData.addedValues[schema.tableName] = state.additionalSettings.addedValues[schema.tableName] ?? [];
-              newFormData.searchable[schema.tableName] = state.additionalSettings.searchable[schema.tableName] ?? false;
+              newFormData.inputValues[schema.tableName] =
+                state.additionalSettings.inputValues[schema.tableName] ?? '';
+              newFormData.addedValues[schema.tableName] =
+                state.additionalSettings.addedValues[schema.tableName] ?? [];
+              newFormData.searchable[schema.tableName] =
+                state.additionalSettings.searchable[schema.tableName] ?? false;
             }
           });
 

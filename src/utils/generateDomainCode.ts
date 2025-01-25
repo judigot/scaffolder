@@ -36,10 +36,10 @@ function generateDomainCode({
     tableInfo: ISchemaInfo;
     relatedTable: string;
   }): IDomainStatus => {
-    const hasOne = tableInfo.hasOne.includes(relatedTable);
-    const hasMany = tableInfo.hasMany.includes(relatedTable);
-    const belongsTo = tableInfo.belongsTo.includes(relatedTable);
-    const isPivotRelationship = tableInfo.pivotRelationships.some(
+    const hasOne = tableInfo.hasOne?.includes(relatedTable) ?? false;
+    const hasMany = tableInfo.hasMany?.includes(relatedTable) ?? false;
+    const belongsTo = tableInfo.belongsTo?.includes(relatedTable) ?? false;
+    const isPivotRelationship = tableInfo.pivotRelationships?.some(
       (rel) => rel.relatedTable === relatedTable,
     );
 
@@ -50,13 +50,13 @@ function generateDomainCode({
 
     // Check if the current table exists in the related table's relationships
     const isInRelatedTableHasOne =
-      relatedTableInfo?.hasOne.includes(tableName) ?? false;
+      relatedTableInfo?.hasOne?.includes(tableName) ?? false;
     const isInRelatedTableHasMany =
-      relatedTableInfo?.hasMany.includes(tableName) ?? false;
+      relatedTableInfo?.hasMany?.includes(tableName) ?? false;
     const isInRelatedTableBelongsTo =
-      relatedTableInfo?.belongsTo.includes(tableName) ?? false;
+      relatedTableInfo?.belongsTo?.includes(tableName) ?? false;
     const isInRelatedTablePivot =
-      relatedTableInfo?.pivotRelationships.some(
+      relatedTableInfo?.pivotRelationships?.some(
         (rel) => rel.relatedTable === tableName,
       ) ?? false;
 
@@ -64,7 +64,7 @@ function generateDomainCode({
       belongsTo,
       hasOne,
       hasMany,
-      pivotRelationships: isPivotRelationship,
+      pivotRelationships: isPivotRelationship ?? false,
       isOneToOne:
         hasOne ||
         isInRelatedTableHasOne ||
@@ -73,15 +73,15 @@ function generateDomainCode({
       isOneToMany:
         (hasMany && isInRelatedTableBelongsTo) ||
         (belongsTo && isInRelatedTableHasMany),
-      isManyToMany: isPivotRelationship && isInRelatedTablePivot,
+      isManyToMany: (isPivotRelationship ?? false) && isInRelatedTablePivot,
       isBelongsTo: relationshipType === 'belongsTo',
       isBelongsToMany: relationshipType === 'belongsToMany',
-      isPivot: isPivotRelationship,
+      isPivot: isPivotRelationship ?? false,
     };
   };
 
   const primaryKey = tableInfo.columnsInfo.find(
-    (column) => column.primary_key,
+    (column) => column.primary_key ?? false,
   )?.column_name;
 
   if (primaryKey == null) {
@@ -107,18 +107,20 @@ function generateDomainCode({
     // Find pivot table by checking which table has both foreign keys
     const pivotTableName =
       relationshipType === 'belongsToMany' || relationshipType === 'manyToMany'
-        ? schemaInfo.find(
-            (table) =>
-              table.foreignTables.includes(relatedTable) &&
-              table.foreignTables.includes(tableName),
+        ? schemaInfo.find((table) =>
+            Boolean(
+              table.foreignTables &&
+                table.foreignTables.includes(relatedTable) &&
+                table.foreignTables.includes(tableName),
+            ),
           )?.tableName
-        : tableInfo.pivotRelationships.find(
+        : tableInfo.pivotRelationships?.find(
             (rel) => rel.relatedTable === relatedTable,
           )?.pivotTable;
 
     const relatedTableForeignKey = schemaInfo
       .find((table) => table.tableName === relatedTable)
-      ?.columnsInfo.find((column) => column.primary_key)?.column_name;
+      ?.columnsInfo.find((column) => Boolean(column.primary_key))?.column_name;
 
     if (relatedTableForeignKey == null) {
       throw new Error(
@@ -164,7 +166,8 @@ function generateDomainCode({
       tableNameKebabCasePlural,
     };
 
-    const hasPivotRelationships = pivotRelationships.length > 0;
+    const hasPivotRelationships =
+      pivotRelationships && pivotRelationships.length > 0;
 
     const updatedPlaceholders = {
       relatedTableForeignKey,
@@ -175,7 +178,7 @@ function generateDomainCode({
       relatedTableNamePascalPlural,
       relatedTableNameKebabCasePlural,
       primaryKey,
-      ...(hasPivotRelationships && {
+      ...((hasPivotRelationships ?? false) && {
         pivotTableName,
         pivotTableNamePascal,
         pivotTableNameKebabCase,
@@ -203,7 +206,7 @@ function generateDomainCode({
         if (typeof templateVal === 'function') {
           tempTemplate = templateVal({
             ...status,
-            isPivot,
+            isPivot: isPivot ?? false,
           });
         }
 
@@ -262,13 +265,19 @@ function generateDomainCode({
 
   // Generate all methods
   const allMethods = [
-    ...hasOne.flatMap((table) => generateCodeFromTable(table, 'oneToOne')),
-    ...hasMany.flatMap((table) => generateCodeFromTable(table, 'oneToMany')),
-    ...belongsTo.flatMap((table) => generateCodeFromTable(table, 'belongsTo')),
-    ...belongsToMany.flatMap((table) =>
+    ...(hasOne ?? []).flatMap((table) =>
+      generateCodeFromTable(table, 'oneToOne'),
+    ),
+    ...(hasMany ?? []).flatMap((table) =>
+      generateCodeFromTable(table, 'oneToMany'),
+    ),
+    ...(belongsTo ?? []).flatMap((table) =>
+      generateCodeFromTable(table, 'belongsTo'),
+    ),
+    ...(belongsToMany ?? []).flatMap((table) =>
       generateCodeFromTable(table, 'belongsToMany'),
     ),
-    ...pivotRelationships.flatMap(({ relatedTable }) =>
+    ...(pivotRelationships ?? []).flatMap(({ relatedTable }) =>
       generateCodeFromTable(relatedTable, 'manyToMany'),
     ),
   ];

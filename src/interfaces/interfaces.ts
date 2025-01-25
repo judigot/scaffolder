@@ -6,34 +6,40 @@ export interface IColumnInfo {
   column_name: string;
   data_type: string;
   is_nullable: string;
-  column_default: string | null;
-  primary_key: boolean;
-  unique: boolean;
-  foreign_key: {
+  column_default?: string;
+  primary_key?: true;
+  unique?: true;
+  foreign_key?: {
     foreign_table_name: string;
     foreign_column_name: string;
-  } | null;
+  };
 }
 
 export interface ITableInfo {
   tableName: string;
-  foreignTables: string[];
-  childTables: string[];
-  isPivot: boolean;
-  hasOne: string[];
-  hasMany: string[];
-  belongsTo: string[];
-  belongsToMany: string[];
-  pivotRelationships: {
-    relatedTable: string;
-    pivotTable: string;
-  }[];
+  foreignTables?: [string, ...string[]]; // One or none
+  childTables?: [string, ...string[]]; // One or none
+  isPivot?: true;
+  hasOne?: [string, ...string[]]; // One or none
+  hasMany?: [string, ...string[]]; // One or none
+  belongsTo?: [string, ...string[]]; // One or none
+  belongsToMany?: [string, ...string[]]; // One or none
+  pivotRelationships?: [
+    {
+      relatedTable: string;
+      pivotTable: string;
+    },
+    ...{
+      relatedTable: string;
+      pivotTable: string;
+    }[],
+  ];
 }
 
 export interface ISchemaInfo extends ITableInfo {
-  requiredColumns: string[];
   columnsInfo: IColumnInfo[];
-  foreignKeys: string[];
+  requiredColumns?: [string, ...string[]]; // One or none
+  foreignKeys?: [string, ...string[]]; // One or none
 }
 
 export type ParsedJSONSchema = Record<string, Record<string, unknown>[]>;

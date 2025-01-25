@@ -1,9 +1,9 @@
 import { replacePlaceholder } from '@/helpers/stringHelper.ts';
 import {
-    DBTypes,
-    IColumnInfo,
-    ISchemaInfo,
-    IJSONSchema,
+  DBTypes,
+  IColumnInfo,
+  ISchemaInfo,
+  IJSONSchema,
 } from '@/interfaces/interfaces.ts';
 import { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
 import { useFormStore } from '@/useFormStore.ts';
@@ -89,8 +89,8 @@ export function getPrimaryKey({
     throw new Error(`Table "${tableName}" not found in schema information.`);
   }
 
-  const primaryKeyColumn = tableSchema.columnsInfo.find(
-    (column) => column.primary_key,
+  const primaryKeyColumn = tableSchema.columnsInfo.find((column) =>
+    Boolean(column.primary_key),
   );
 
   if (!primaryKeyColumn) {
@@ -124,9 +124,9 @@ export const generateModelImports = (schemaInfo: ISchemaInfo): string => {
 
   // Collect unique import statements for related models
   [
-    ...hasOne,
-    ...hasMany,
-    ...pivotRelationships.map((item) => item.relatedTable),
+    ...(hasOne ?? []),
+    ...(hasMany ?? []),
+    ...(pivotRelationships ?? []).map((item) => item.relatedTable),
   ].forEach((relatedTable) => {
     const relatedClass = changeCase(relatedTable).pascalCase;
     imports.add(`use App\\Models\\${relatedClass};`);
@@ -265,7 +265,7 @@ export const getForeignKeyConstraints = (
   if (tableInfo?.foreignKeys) {
     return tableInfo.foreignKeys.map((key) => {
       const referencedTable =
-        tableInfo.foreignTables.find((table) => key.startsWith(table)) ??
+        tableInfo.foreignTables?.find((table) => key.startsWith(table)) ??
         key.slice(0, -3);
       const primaryKeyColumn = getPrimaryKey({
         tableName: referencedTable,
@@ -330,7 +330,8 @@ export function renameTableInSchema({
               ? newTableName
               : updatedColumn.foreign_key.foreign_table_name,
           foreign_column_name:
-            updatedColumn.foreign_key.foreign_column_name === `${oldTableName}_id`
+            updatedColumn.foreign_key.foreign_column_name ===
+            `${oldTableName}_id`
               ? `${newTableName}_id`
               : updatedColumn.foreign_key.foreign_column_name,
         };
@@ -354,7 +355,9 @@ export function renameTableInSchema({
 
   const replaceOldTableNameInChildTables = (tables: string[]): string[] => {
     return tables.map((table) =>
-      table.includes(oldTableName) ? table.replace(oldTableName, newTableName) : table,
+      table.includes(oldTableName)
+        ? table.replace(oldTableName, newTableName)
+        : table,
     );
   };
 
@@ -366,7 +369,9 @@ export function renameTableInSchema({
 
   const replaceOldTableNameInHasMany = (relations: string[]): string[] => {
     return relations.map((relation) =>
-      relation.includes(oldTableName) ? relation.replace(oldTableName, newTableName) : relation,
+      relation.includes(oldTableName)
+        ? relation.replace(oldTableName, newTableName)
+        : relation,
     );
   };
 
@@ -376,7 +381,9 @@ export function renameTableInSchema({
     );
   };
 
-  const replaceOldTableNameInBelongsToMany = (relations: string[]): string[] => {
+  const replaceOldTableNameInBelongsToMany = (
+    relations: string[],
+  ): string[] => {
     return relations.map((relation) =>
       relation === oldTableName ? newTableName : relation,
     );
@@ -404,15 +411,19 @@ export function renameTableInSchema({
         table.tableName.endsWith(`_${oldTableName}`));
 
     // If this is the table being renamed or a related pivot table
-    const updatedTableName = isRelatedPivotTable
-      ? table.tableName.replace(oldTableName, newTableName)
-      : replaceOldTableNameInTableName(table.tableName);
+    const updatedTableName =
+      (isRelatedPivotTable ?? false)
+        ? table.tableName.replace(oldTableName, newTableName)
+        : replaceOldTableNameInTableName(table.tableName);
 
     // Update all table properties using helper functions
-    return {
+    const returnValue = {
       ...table,
       tableName: updatedTableName,
-      requiredColumns: replaceOldTableNameInRequiredColumns(
+    };
+
+    /* 
+    requiredColumns: replaceOldTableNameInRequiredColumns(
         table.requiredColumns,
         table.tableName,
         table.isPivot,
@@ -429,8 +440,12 @@ export function renameTableInSchema({
       hasMany: replaceOldTableNameInHasMany(table.hasMany),
       belongsTo: replaceOldTableNameInBelongsTo(table.belongsTo),
       belongsToMany: replaceOldTableNameInBelongsToMany(table.belongsToMany),
-      pivotRelationships: replaceOldTableNameInPivotRelationships(table.pivotRelationships),
-    };
+      pivotRelationships: replaceOldTableNameInPivotRelationships(
+        table.pivotRelationships,
+      ),
+       */
+
+    return returnValue;
   });
 }
 

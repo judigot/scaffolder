@@ -10,97 +10,57 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-        unique: false,
-        foreign_key: null,
+        primary_key: true
       },
       {
         column_name: 'name',
         data_type: 'string',
-        is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'NO'
       },
       {
         column_name: 'email',
         data_type: 'string',
         is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: true,
-        foreign_key: null,
+        unique: true
       },
       {
         column_name: 'email_verified_at',
         data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'YES'
       },
       {
         column_name: 'password',
         data_type: 'string',
-        is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'NO'
       },
       {
         column_name: 'remember_token',
         data_type: 'string',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'YES'
       },
       {
         column_name: 'created_at',
         data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'YES'
       },
       {
         column_name: 'updated_at',
         data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'YES'
       },
       {
         column_name: 'deleted_at',
         data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
-      },
+        is_nullable: 'YES'
+      }
     ],
-    foreignTables: [],
-    foreignKeys: [],
-    isPivot: false,
     childTables: ['user_user_type'],
-    hasOne: [],
-    hasMany: [],
-    belongsTo: [],
-    belongsToMany: [],
     pivotRelationships: [
       {
         relatedTable: 'user_types',
-        pivotTable: 'user_user_type',
-      },
-    ],
+        pivotTable: 'user_user_type'
+      }
+    ]
   },
   {
     tableName: 'user_types',
@@ -111,61 +71,37 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-        unique: false,
-        foreign_key: null,
+        primary_key: true
       },
       {
         column_name: 'name',
         data_type: 'string',
         is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: true,
-        foreign_key: null,
+        unique: true
       },
       {
         column_name: 'created_at',
         data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'YES'
       },
       {
         column_name: 'updated_at',
         data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
+        is_nullable: 'YES'
       },
       {
         column_name: 'deleted_at',
         data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
-      },
+        is_nullable: 'YES'
+      }
     ],
-    foreignTables: [],
-    foreignKeys: [],
-    isPivot: false,
     childTables: ['user_user_type'],
-    hasOne: [],
-    hasMany: [],
-    belongsTo: [],
-    belongsToMany: [],
     pivotRelationships: [
       {
         relatedTable: 'users',
-        pivotTable: 'user_user_type',
-      },
-    ],
+        pivotTable: 'user_user_type'
+      }
+    ]
   },
   {
     tableName: 'user_user_type',
@@ -176,70 +112,22 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-        unique: false,
-        foreign_key: null,
+        primary_key: true
       },
       {
         column_name: 'user_id',
         data_type: 'number',
         is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
         foreign_key: {
           foreign_table_name: 'users',
-          foreign_column_name: 'id',
-        },
+          foreign_column_name: 'id'
+        }
       },
       {
         column_name: 'user_type_id',
         data_type: 'number',
-        is_nullable: 'NO',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: {
-          foreign_table_name: 'user_types',
-          foreign_column_name: 'id',
-        },
-      },
-      {
-        column_name: 'created_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
-      },
-      {
-        column_name: 'updated_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
-      },
-      {
-        column_name: 'deleted_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-        column_default: null,
-        primary_key: false,
-        unique: false,
-        foreign_key: null,
-      },
-    ],
-    foreignTables: ['users', 'user_types'],
-    foreignKeys: ['user_id', 'user_type_id'],
-    isPivot: false,
-    childTables: [],
-    hasOne: [],
-    hasMany: [],
-    belongsTo: ['users', 'user_types'],
-    belongsToMany: [],
-    pivotRelationships: [],
-  },
+        is_nullable: 'NO'
+      }
+    ]
+  }
 ] satisfies ISchemaInfo[];

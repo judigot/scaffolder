@@ -22,11 +22,11 @@ function AdditionalSchemaSettings() {
 
   const getSuggestions = (schema: ISchemaInfo): string[] => {
     const primaryKeys = schema.columnsInfo
-      .filter((column) => column.primary_key)
+      .filter((column) => column.primary_key ?? false)
       .map((column) => column.column_name);
 
     const foreignKeys = schema.columnsInfo
-      .filter((column) => column.foreign_key !== null)
+      .filter((column) => column.foreign_key !== undefined)
       .map((column) => column.foreign_key?.foreign_column_name ?? '');
 
     // prettier-ignore

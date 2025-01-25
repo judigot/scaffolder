@@ -52,7 +52,8 @@ function renameTable({
               ? newTableName
               : updatedColumn.foreign_key.foreign_table_name,
           foreign_column_name:
-            updatedColumn.foreign_key.foreign_column_name === `${oldTableName}_id`
+            updatedColumn.foreign_key.foreign_column_name ===
+            `${oldTableName}_id`
               ? `${newTableName}_id`
               : updatedColumn.foreign_key.foreign_column_name,
         };
@@ -76,7 +77,9 @@ function renameTable({
 
   const replaceOldTableNameInChildTables = (tables: string[]): string[] => {
     return tables.map((table) =>
-      table.includes(oldTableName) ? table.replace(oldTableName, newTableName) : table,
+      table.includes(oldTableName)
+        ? table.replace(oldTableName, newTableName)
+        : table,
     );
   };
 
@@ -88,7 +91,9 @@ function renameTable({
 
   const replaceOldTableNameInHasMany = (relations: string[]): string[] => {
     return relations.map((relation) =>
-      relation.includes(oldTableName) ? relation.replace(oldTableName, newTableName) : relation,
+      relation.includes(oldTableName)
+        ? relation.replace(oldTableName, newTableName)
+        : relation,
     );
   };
 
@@ -98,9 +103,13 @@ function renameTable({
     );
   };
 
-  const replaceOldTableNameInBelongsToMany = (relations: string[]): string[] => {
+  const replaceOldTableNameInBelongsToMany = (
+    relations: string[],
+  ): string[] => {
     return relations.map((relation) =>
-      relation === oldTableName ? newTableName : relation,
+      relation.includes(oldTableName)
+        ? relation.replace(oldTableName, newTableName)
+        : relation,
     );
   };
 
@@ -126,33 +135,94 @@ function renameTable({
         table.tableName.endsWith(`_${oldTableName}`));
 
     // If this is the table being renamed or a related pivot table
-    const updatedTableName = isRelatedPivotTable
-      ? table.tableName.replace(oldTableName, newTableName)
-      : replaceOldTableNameInTableName(table.tableName);
+    const updatedTableName =
+      (isRelatedPivotTable ?? false)
+        ? table.tableName.replace(oldTableName, newTableName)
+        : replaceOldTableNameInTableName(table.tableName);
 
-    // Update all table properties using helper functions
-    return {
+    const returnValue = {
       ...table,
       tableName: updatedTableName,
-      requiredColumns: replaceOldTableNameInRequiredColumns(
-        table.requiredColumns,
-        table.tableName,
-        table.isPivot,
-      ),
-      columnsInfo: replaceOldTableNameInColumnInfo(
-        table.columnsInfo,
-        table.tableName,
-        table.isPivot,
-      ),
-      foreignTables: replaceOldTableNameInForeignTables(table.foreignTables),
-      foreignKeys: replaceOldTableNameInForeignKeys(table.foreignKeys),
-      childTables: replaceOldTableNameInChildTables(table.childTables),
-      hasOne: replaceOldTableNameInHasOne(table.hasOne),
-      hasMany: replaceOldTableNameInHasMany(table.hasMany),
-      belongsTo: replaceOldTableNameInBelongsTo(table.belongsTo),
-      belongsToMany: replaceOldTableNameInBelongsToMany(table.belongsToMany),
-      pivotRelationships: replaceOldTableNameInPivotRelationships(table.pivotRelationships),
     };
+
+    const requiredColumns = replaceOldTableNameInRequiredColumns(
+      table.requiredColumns ?? [],
+      table.tableName,
+      table.isPivot ?? false,
+    );
+    if (requiredColumns.length > 0) {
+      const [first, ...rest] = requiredColumns;
+      returnValue.requiredColumns = [first, ...rest];
+    }
+
+    const columnsInfo = replaceOldTableNameInColumnInfo(
+      table.columnsInfo,
+      table.tableName,
+      table.isPivot ?? false,
+    );
+    if (columnsInfo.length > 0) {
+      returnValue.columnsInfo = columnsInfo;
+    }
+
+    const foreignTables = replaceOldTableNameInForeignTables(
+      table.foreignTables ?? [],
+    );
+    if (foreignTables.length > 0) {
+      const [first, ...rest] = foreignTables;
+      returnValue.foreignTables = [first, ...rest];
+    }
+
+    const foreignKeys = replaceOldTableNameInForeignKeys(
+      table.foreignKeys ?? [],
+    );
+    if (foreignKeys.length > 0) {
+      const [first, ...rest] = foreignKeys;
+      returnValue.foreignKeys = [first, ...rest];
+    }
+
+    const childTables = replaceOldTableNameInChildTables(
+      table.childTables ?? [],
+    );
+    if (childTables.length > 0) {
+      const [first, ...rest] = childTables;
+      returnValue.childTables = [first, ...rest];
+    }
+
+    const hasOne = replaceOldTableNameInHasOne(table.hasOne ?? []);
+    if (hasOne.length > 0) {
+      const [first, ...rest] = hasOne;
+      returnValue.hasOne = [first, ...rest];
+    }
+
+    const hasMany = replaceOldTableNameInHasMany(table.hasMany ?? []);
+    if (hasMany.length > 0) {
+      const [first, ...rest] = hasMany;
+      returnValue.hasMany = [first, ...rest];
+    }
+
+    const belongsTo = replaceOldTableNameInBelongsTo(table.belongsTo ?? []);
+    if (belongsTo.length > 0) {
+      const [first, ...rest] = belongsTo;
+      returnValue.belongsTo = [first, ...rest];
+    }
+
+    const belongsToMany = replaceOldTableNameInBelongsToMany(
+      table.belongsToMany ?? [],
+    );
+    if (belongsToMany.length > 0) {
+      const [first, ...rest] = belongsToMany;
+      returnValue.belongsToMany = [first, ...rest];
+    }
+
+    const pivotRelationships = replaceOldTableNameInPivotRelationships(
+      table.pivotRelationships ?? [],
+    );
+    if (pivotRelationships.length > 0) {
+      const [first, ...rest] = pivotRelationships;
+      returnValue.pivotRelationships = [first, ...rest];
+    }
+
+    return returnValue;
   });
 }
 

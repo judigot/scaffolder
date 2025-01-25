@@ -60,7 +60,7 @@ const fillableExemptions = ['created_at', 'updated_at'];
 
 const createFillable = (tableInfo: ISchemaInfo): string => {
   const primaryKeyColumns = tableInfo.columnsInfo
-    .filter((column) => column.primary_key)
+    .filter((column) => column.primary_key ?? false)
     .map((column) => column.column_name);
 
   return tableInfo.columnsInfo
@@ -70,7 +70,7 @@ const createFillable = (tableInfo: ISchemaInfo): string => {
         !fillableExemptions.includes(column.column_name),
     )
     .map((column) => column.column_name)
-    .concat(tableInfo.foreignKeys)
+    .concat(tableInfo.foreignKeys ?? [])
     .filter((value, index, self) => self.indexOf(value) === index)
     .map((column) => `'${column}'`)
     .join(',\n        ');
@@ -108,10 +108,10 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
       // Generate model imports
       const modelImports = [
         ...new Set([
-          ...tableInfo.hasOne,
-          ...tableInfo.hasMany,
-          ...tableInfo.belongsToMany,
-          ...tableInfo.foreignKeys.map((fk) => fk.replace('_id', '')),
+          ...(tableInfo.hasOne ?? []),
+          ...(tableInfo.hasMany ?? []),
+          ...(tableInfo.belongsToMany ?? []),
+          ...(tableInfo.foreignKeys ?? []).map((fk) => fk.replace('_id', '')),
         ]),
       ]
         .sort()
