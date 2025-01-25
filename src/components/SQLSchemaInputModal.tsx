@@ -10,7 +10,7 @@ interface IForm {
 
 function SQLSchemaInputModal() {
   const {
-    formData: { dbConnection },
+    dbConnection
   } = useFormStore();
   const { isSQLSchemaModalOpen, setIsSQLSchemaModalOpen, SQLSchemaEditable } =
     useModalStore();

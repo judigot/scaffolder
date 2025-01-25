@@ -9,10 +9,7 @@ import renameTable from '@/utils/renameTable.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 
 function JSONSchemaEditor() {
-  const {
-    formData: { schemaInput },
-    setFormData,
-  } = useFormStore();
+  const { schemaInput, setFormData } = useFormStore();
 
   const { schemaInfo, setSchemaInfo } = useTransformationsStore();
 
@@ -36,12 +33,9 @@ function JSONSchemaEditor() {
   }
 
   useEffect(() => {
-    if (useFormStore.getState().formData.schemaInput !== schema) {
+    if (useFormStore.getState().schemaInput !== schema) {
       repositionCursor();
-      setFormData({
-        ...useFormStore.getState().formData,
-        schemaInput: schema,
-      });
+      useFormStore.setState({ schemaInput: schema });
     }
   }, [schema, setFormData]);
 
@@ -86,10 +80,7 @@ function JSONSchemaEditor() {
       });
 
       // Update both schema input and schema info
-      setFormData({
-        ...useFormStore.getState().formData,
-        schemaInput: renamedSchema,
-      });
+      useFormStore.setState({ schemaInput: renamedSchema });
       setSchemaInfo(newSchemaInfo);
       setSchema(renamedSchema);
     } else {

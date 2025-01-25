@@ -35,7 +35,7 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
   schemaInfo: oneToOne,
   interfaces: {},
   getParsedSchemaInput: () => {
-    const { schemaInput } = useFormStore.getState().formData;
+    const { schemaInput } = useFormStore.getState();
     return schemaInput;
   },
   SQLSchema: '',
@@ -69,12 +69,7 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
         mockDataRows: 2,
         schemaInfo,
       });
-      useFormStore.setState((state) => ({
-        formData: {
-          ...state.formData,
-          schemaInput: parsedSchema,
-        },
-      }));
+      useFormStore.setState({ schemaInput: parsedSchema });
     } catch {
       set({
         interfaces: { errorMessage },
@@ -91,12 +86,10 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
   setTransformations: (tempSchemaInfo?: ISchemaInfo[] | null) => {
     // If schemaInfo is not provided, get it from the current state
     const {
-      formData: {
-        includeInsertData,
-        insertOption,
-        includeTypeGuards,
-        outputOnSingleFile,
-      },
+      includeInsertData,
+      insertOption,
+      includeTypeGuards,
+      outputOnSingleFile,
     } = useFormStore.getState();
 
     const schemaInfo = tempSchemaInfo ?? get().schemaInfo;

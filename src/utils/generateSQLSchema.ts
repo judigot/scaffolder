@@ -37,7 +37,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
   return formatSQL(
     schemaInfo
       .map(({ tableName, columnsInfo }) => {
-        const dbConnection = useFormStore.getState().formData.dbConnection;
+        const dbConnection = useFormStore.getState().dbConnection;
         const dbType = determineSQLDatabaseType(dbConnection);
         const columns = columnsInfo
           .map((column) =>

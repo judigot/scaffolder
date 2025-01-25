@@ -5,10 +5,7 @@ import { IJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
 const App: React.FC = () => {
-  const {
-    formData: { schemaInput },
-    setFormData,
-  } = useFormStore();
+  const { schemaInput, setFormData } = useFormStore();
 
   const [schema, setSchema] = useState<IJSONSchema>(schemaInput);
   const [newTableName, setNewTableName] = useState<string>('');
@@ -31,12 +28,9 @@ const App: React.FC = () => {
   }, [schemaInput]);
 
   useEffect(() => {
-    if (useFormStore.getState().formData.schemaInput !== schema) {
+    if (useFormStore.getState().schemaInput !== schema) {
       repositionCursor();
-      setFormData({
-        ...useFormStore.getState().formData,
-        schemaInput: schema,
-      });
+      useFormStore.setState({ schemaInput: schema });
     }
   }, [schema, setFormData]);
 

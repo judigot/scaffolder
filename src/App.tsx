@@ -16,18 +16,6 @@ import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx
 
 function App() {
   const {
-    dbType,
-    setOneToOne,
-    setOneToMany,
-    setManyToMany,
-    setDBType,
-    formData,
-    creationMode,
-    setCreationMode,
-    setFormData,
-  } = useFormStore();
-
-  const {
     backendUrl,
     backendDir,
     frontendDir,
@@ -37,7 +25,14 @@ function App() {
     insertOption,
     includeTypeGuards,
     outputOnSingleFile,
-  } = formData;
+    dbType,
+    setOneToOne,
+    setOneToMany,
+    setManyToMany,
+    setDBType,
+    creationMode,
+    setCreationMode,
+  } = useFormStore();
 
   const {
     schemaInfo,
@@ -80,10 +75,10 @@ function App() {
     const { name, value, type } = e.target;
     const checked = e.target instanceof HTMLInputElement && e.target.checked;
     const newFormData = {
-      ...useFormStore.getState().formData,
+      ...useFormStore.getState(),
       [name]: type === 'checkbox' ? checked : value,
     };
-    setFormData(newFormData);
+    useFormStore.setState(newFormData);
   };
 
   const { setIsSQLSchemaModalOpen, setSQLSchemaEditable } = useModalStore();
@@ -351,7 +346,7 @@ function App() {
                     //   schemaInfo,
                     // });
                     // const newFormData = {
-                    //   ...useFormStore.getState().formData,
+                    //   ...useFormStore.getState(),
                     //   schemaInput: JSON.stringify(mockData, null, 4),
                     // };
                     // setFormData(newFormData);

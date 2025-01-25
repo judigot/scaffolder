@@ -1,9 +1,9 @@
 import { replacePlaceholder } from '@/helpers/stringHelper.ts';
 import {
-  DBTypes,
-  IColumnInfo,
-  ISchemaInfo,
-  IJSONSchema,
+    DBTypes,
+    IColumnInfo,
+    ISchemaInfo,
+    IJSONSchema,
 } from '@/interfaces/interfaces.ts';
 import { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
 import { useFormStore } from '@/useFormStore.ts';
@@ -206,7 +206,7 @@ export const generateColumnDefinition = ({
 
   // Special columns
   // if (column_name === 'deleted_at') {
-  //   const dbConnection = useFormStore.getState().formData.dbConnection;
+  //   const dbConnection = useFormStore.getState().dbConnection;
   //   const targetType =
   //     columnType === 'sql-tables'
   //       ? determineSQLDatabaseType(dbConnection)

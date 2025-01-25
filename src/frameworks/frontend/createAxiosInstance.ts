@@ -3,7 +3,7 @@ import { createFile } from '@/helpers/stringHelper.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
 const createBaseController = (): IFile => {
-  const backendUrl = useFormStore.getState().formData.backendUrl;
+  const backendUrl = useFormStore.getState().backendUrl;
   const template = `
 import axios from 'axios';
 
