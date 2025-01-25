@@ -118,28 +118,6 @@ function SchemaBuilder() {
   const handleRemoveRelationship = async (tableIndex: number) => {
     const sourceTable = schemaInfo[tableIndex];
 
-    if (!sourceTable.pivotRelationships) {
-      throw new Error('pivotRelationships is undefined');
-    }
-    if (!sourceTable.childTables) {
-      throw new Error('childTables is undefined');
-    }
-    if (!sourceTable.hasOne) {
-      throw new Error('hasOne is undefined');
-    }
-    if (!sourceTable.hasMany) {
-      throw new Error('hasMany is undefined');
-    }
-    if (!sourceTable.belongsTo) {
-      throw new Error('belongsTo is undefined');
-    }
-    if (!sourceTable.belongsToMany) {
-      throw new Error('belongsToMany is undefined');
-    }
-    if (!sourceTable.foreignTables) {
-      throw new Error('foreignTables is undefined');
-    }
-
     const result = await promptModal({
       title: `Remove "${sourceTable.tableName}" table?`,
       description: `Are you sure you want to remove "${sourceTable.tableName}" table and its dependent tables?`,
@@ -170,7 +148,7 @@ function SchemaBuilder() {
     ];
 
     /* Gather pivot tables directly linked in the sourceTable's pivotRelationships */
-    const pivotTablesFromRelationships = sourceTable.pivotRelationships.map(
+    const pivotTablesFromRelationships = sourceTable.pivotRelationships?.map(
       (rel) => rel.pivotTable,
     );
 
