@@ -50,15 +50,12 @@ export const scaffoldService = async (
 
   let isDBConnectionValid = false;
 
+  let isBackendUrlValid = false;
+
   const isBackendDirValid = backendDir !== '' && fs.existsSync(backendDirPath);
 
   const isFrontendDirValid =
     frontendDir !== '' && fs.existsSync(frontendDirPath);
-
-  const isBackendUrlValid = await checkBackendUrlValidity(
-    backendUrl,
-    schemaInfo,
-  );
 
   if (SQLSchema != null) {
     try {
@@ -133,6 +130,8 @@ export const scaffoldService = async (
           : path.resolve(__dirname, `../output/frontend`),
       });
     }
+
+    isBackendUrlValid = await checkBackendUrlValidity(backendUrl, schemaInfo);
 
     return {
       isBackendUrlValid,

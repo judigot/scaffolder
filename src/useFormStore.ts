@@ -28,7 +28,7 @@ export interface IFormData {
   dbConnection: string;
   framework: (typeof frameworks)[keyof typeof frameworks] | '';
   includeInsertData: boolean;
-  insertOption: string;
+  insertOption: 'SQLInsertQueries' | 'SQLInsertQueriesFromMockData';
   includeTypeGuards: boolean;
   outputOnSingleFile: boolean;
 }
@@ -60,7 +60,7 @@ const initialFormData: IFormData = {
   dbConnection: 'postgresql://root:123@localhost:5432/laravel',
   framework: frameworks.LARAVEL,
   includeInsertData: true,
-  insertOption: 'SQLInsertQueries',
+  insertOption: 'SQLInsertQueriesFromMockData',
   includeTypeGuards: true,
   outputOnSingleFile: false,
 };
