@@ -1,164 +1,184 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 
 export const addRelationship = (
   schemaInfo: ISchemaInfo[],
-  tableIndex: number,
+  sourceTableName: string,
   relationshipType: 'hasOne' | 'hasMany' | 'belongsToMany',
-  newTableName: string,
+  targetTableName: string,
 ): ISchemaInfo[] => {
   const updatedSchema = [...schemaInfo];
-  const sourceTable = updatedSchema[tableIndex];
+  const sourceTable = updatedSchema.find(table => table.tableName === sourceTableName);
 
-  if (relationshipType === 'hasOne' || relationshipType === 'hasMany') {
-    // Add to source table's hasOne or hasMany
-    if (!sourceTable[relationshipType].includes(newTableName)) {
-      sourceTable[relationshipType].push(newTableName);
+  if (!sourceTable) {
+    throw new Error(`Source table "${sourceTableName}" not found in schema`);
+  }
+
+  /* Helper functions to make the code more readable */
+  function createBasicTable(tableName: string): ISchemaInfo {
+    const primaryKey = createPrimaryKeyColumn(tableName);
+    return {
+      tableName,
+      columnsInfo: [primaryKey],
+      requiredColumns: [`${tableName}_id`],
+      foreignTables: [],
+      childTables: [],
+      isPivot: false,
+      hasOne: [],
+      hasMany: [],
+      belongsTo: [],
+      belongsToMany: [],
+      pivotRelationships: [],
+      foreignKeys: [],
+    };
+  }
+
+  function createPrimaryKeyColumn(tableName: string): IColumnInfo {
+    return {
+      column_name: `${tableName}_id`,
+      data_type: 'number',
+      is_nullable: 'NO',
+      column_default: 'AUTO_INCREMENT',
+      primary_key: true,
+      unique: false,
+      foreign_key: null,
+    };
+  }
+
+  function createForeignKeyColumn(referencedTable: string, isOneToOne = false): IColumnInfo {
+    return {
+      column_name: `${referencedTable}_id`,
+      data_type: 'number',
+      is_nullable: 'NO',
+      column_default: null,
+      primary_key: false,
+      unique: isOneToOne, // Make unique for one-to-one relationships
+      foreign_key: {
+        foreign_table_name: referencedTable,
+        foreign_column_name: `${referencedTable}_id`,
+      },
+    };
+  }
+
+  function createPivotTable(sourceTableName: string, targetTableName: string): ISchemaInfo {
+    const pivotTableName = `${sourceTableName}_${targetTableName}`;
+    return {
+      tableName: pivotTableName,
+      columnsInfo: [
+        createPrimaryKeyColumn(pivotTableName),
+        createForeignKeyColumn(sourceTableName),
+        createForeignKeyColumn(targetTableName),
+      ],
+      requiredColumns: [
+        `${pivotTableName}_id`,
+        `${sourceTableName}_id`,
+        `${targetTableName}_id`,
+      ],
+      foreignTables: [sourceTableName, targetTableName],
+      foreignKeys: [
+        `${sourceTableName}_id`,
+        `${targetTableName}_id`,
+      ],
+      childTables: [],
+      isPivot: true,
+      hasOne: [],
+      hasMany: [],
+      belongsTo: [sourceTableName, targetTableName],
+      belongsToMany: [],
+      pivotRelationships: [],
+    };
+  }
+
+  function setupOneToOneOrManyRelationship(source: ISchemaInfo, target: ISchemaInfo): void {
+    // Add foreign key to target table
+    const foreignKey = createForeignKeyColumn(source.tableName, relationshipType === 'hasOne');
+    target.columnsInfo.splice(1, 0, foreignKey); // Insert after primary key
+    target.requiredColumns.push(foreignKey.column_name);
+    target.foreignKeys.push(foreignKey.column_name);
+
+    // Add to source table's relationships
+    if (!source[relationshipType].includes(target.tableName)) {
+      source[relationshipType].push(target.tableName);
+    }
+    if (!source.childTables.includes(target.tableName)) {
+      source.childTables.push(target.tableName);
     }
 
-    // Add to source table's childTables
-    if (!sourceTable.childTables.includes(newTableName)) {
-      sourceTable.childTables.push(newTableName);
+    // Add to target table's relationships
+    if (!target.foreignTables.includes(source.tableName)) {
+      target.foreignTables.push(source.tableName);
     }
-
-    // Check if the target table exists
-    let targetTable = updatedSchema.find(
-      (table) => table.tableName === newTableName,
-    );
-
-    if (!targetTable) {
-      // Create a new target table if it doesn't exist
-      targetTable = {
-        tableName: newTableName,
-        columnsInfo: [
-          {
-            column_name: `${newTableName}_id`,
-            data_type: 'number',
-            is_nullable: 'NO',
-            column_default: 'AUTO_INCREMENT',
-            primary_key: true,
-            unique: false,
-            foreign_key: null,
-          },
-        ],
-        foreignTables: [sourceTable.tableName],
-        childTables: [],
-        isPivot: false,
-        hasOne: [],
-        hasMany: [],
-        belongsTo: [sourceTable.tableName],
-        belongsToMany: [],
-        pivotRelationships: [],
-        foreignKeys: [],
-        requiredColumns: [],
-      };
-      updatedSchema.push(targetTable);
-    } else {
-      // Update the existing target table
-      if (!targetTable.foreignTables.includes(sourceTable.tableName)) {
-        targetTable.foreignTables.push(sourceTable.tableName);
-      }
-      if (!targetTable.belongsTo.includes(sourceTable.tableName)) {
-        targetTable.belongsTo.push(sourceTable.tableName);
-      }
+    if (!target.belongsTo.includes(source.tableName)) {
+      target.belongsTo.push(source.tableName);
     }
   }
 
-  if (relationshipType === 'belongsToMany') {
-    // Many-to-many relationships require a pivot table
-    const pivotTableName = `${sourceTable.tableName}_${newTableName}`;
-
-    // Add to source table's belongsToMany
-    if (!sourceTable.belongsToMany.includes(newTableName)) {
-      sourceTable.belongsToMany.push(newTableName);
+  function setupManyToManyRelationship(source: ISchemaInfo, target: ISchemaInfo, pivotTableName: string): void {
+    // Setup source table relationships
+    if (!source.belongsToMany.includes(target.tableName)) {
+      source.belongsToMany.push(target.tableName);
     }
-
-    // Add the pivot relationship to sourceTable
-    if (
-      !sourceTable.pivotRelationships.some(
-        (relation) => relation.relatedTable === newTableName,
-      )
-    ) {
-      sourceTable.pivotRelationships.push({
-        relatedTable: newTableName,
+    if (!source.hasMany.includes(pivotTableName)) {
+      source.hasMany.push(pivotTableName);
+    }
+    if (!source.childTables.includes(pivotTableName)) {
+      source.childTables.push(pivotTableName);
+    }
+    if (!source.pivotRelationships.some(rel => rel.relatedTable === target.tableName)) {
+      source.pivotRelationships.push({
+        relatedTable: target.tableName,
         pivotTable: pivotTableName,
       });
     }
 
-    // Check if the pivot table exists
-    let pivotTable = updatedSchema.find(
-      (table) => table.tableName === pivotTableName,
-    );
+    // Setup target table relationships
+    if (!target.belongsToMany.includes(source.tableName)) {
+      target.belongsToMany.push(source.tableName);
+    }
+    if (!target.hasMany.includes(pivotTableName)) {
+      target.hasMany.push(pivotTableName);
+    }
+    if (!target.childTables.includes(pivotTableName)) {
+      target.childTables.push(pivotTableName);
+    }
+    if (!target.pivotRelationships.some(rel => rel.relatedTable === source.tableName)) {
+      target.pivotRelationships.push({
+        relatedTable: source.tableName,
+        pivotTable: pivotTableName,
+      });
+    }
+  }
 
-    if (!pivotTable) {
-      // Create a new pivot table
-      pivotTable = {
-        tableName: pivotTableName,
-        columnsInfo: [
-          {
-            column_name: '',
-            data_type: '',
-            is_nullable: '',
-            column_default: null,
-            primary_key: false,
-            unique: false,
-            foreign_key: null,
-          },
-        ],
-        foreignKeys: [],
-        requiredColumns: [],
-        foreignTables: [sourceTable.tableName, newTableName],
-        childTables: [],
-        isPivot: true,
-        hasOne: [],
-        hasMany: [],
-        belongsTo: [sourceTable.tableName, newTableName],
-        belongsToMany: [],
-        pivotRelationships: [],
-      };
+  /* Main logic starts here */
+  if (relationshipType === 'hasOne' || relationshipType === 'hasMany') {
+    // Find or create the target table
+    let targetTable = updatedSchema.find(table => table.tableName === targetTableName);
+    if (!targetTable) {
+      targetTable = createBasicTable(targetTableName);
+      updatedSchema.push(targetTable);
+    }
+
+    // Setup one-to-one or one-to-many relationship
+    setupOneToOneOrManyRelationship(sourceTable, targetTable);
+  }
+
+  if (relationshipType === 'belongsToMany') {
+    const pivotTableName = `${sourceTable.tableName}_${targetTableName}`;
+
+    // Find or create the target table
+    let targetTable = updatedSchema.find(table => table.tableName === targetTableName);
+    if (!targetTable) {
+      targetTable = createBasicTable(targetTableName);
+      updatedSchema.push(targetTable);
+    }
+
+    // Create pivot table if it doesn't exist
+    if (!updatedSchema.find(table => table.tableName === pivotTableName)) {
+      const pivotTable = createPivotTable(sourceTable.tableName, targetTableName);
       updatedSchema.push(pivotTable);
     }
 
-    // Add to target table's belongsToMany
-    const targetTable = updatedSchema.find(
-      (table) => table.tableName === newTableName,
-    );
-
-    if (!targetTable) {
-      // Create a new target table if it doesn't exist
-      updatedSchema.push({
-        tableName: newTableName,
-        columnsInfo: [
-          {
-            column_name: '',
-            data_type: '',
-            is_nullable: '',
-            column_default: null,
-            primary_key: false,
-            unique: false,
-            foreign_key: null,
-          },
-        ],
-        foreignKeys: [],
-        requiredColumns: [],
-        foreignTables: [],
-        childTables: [pivotTableName],
-        isPivot: false,
-        hasOne: [],
-        hasMany: [],
-        belongsTo: [],
-        belongsToMany: [sourceTable.tableName],
-        pivotRelationships: [],
-      });
-    } else {
-      // Update the existing target table
-      if (!targetTable.belongsToMany.includes(sourceTable.tableName)) {
-        targetTable.belongsToMany.push(sourceTable.tableName);
-      }
-
-      if (!targetTable.childTables.includes(pivotTableName)) {
-        targetTable.childTables.push(pivotTableName);
-      }
-    }
+    // Setup many-to-many relationships
+    setupManyToManyRelationship(sourceTable, targetTable, pivotTableName);
   }
 
   return updatedSchema;

@@ -94,6 +94,8 @@ function SchemaBuilder() {
     tableIndex: number,
     relationshipType: 'hasOne' | 'hasMany' | 'belongsToMany',
   ) => {
+    const sourceTable = schemaInfo[tableIndex];
+
     const newRelationshipName = await newValue({
       title: 'Enter new table name',
     });
@@ -101,7 +103,7 @@ function SchemaBuilder() {
     if (newRelationshipName) {
       const updatedSchema = addRelationship(
         schemaInfo,
-        tableIndex,
+        sourceTable.tableName,
         relationshipType,
         newRelationshipName,
       );
