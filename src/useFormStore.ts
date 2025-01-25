@@ -102,7 +102,7 @@ export const useFormStore = create<IFormStore>()(
         schemaInfo: oneToOne,
         dbType: initialDbType,
         quote: initialQuote,
-        creationMode: CREATION_MODES.JSON_SCHEMA,
+        creationMode: CREATION_MODES.SCHEMA_BUILDER,
         setSchemaInfo: (schemaInfo) => {
           set({ schemaInfo });
           subscribeToChanges();
