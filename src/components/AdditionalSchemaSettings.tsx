@@ -1,39 +1,24 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { useEffect } from 'react';
 import TagInput from '@/components/TagInput.tsx';
-import { useState, useEffect } from 'react';
+import { useAdditionalSchemaStore } from '@/useAdditionalSchhemaSettings.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
-interface IProps {
-  schemaInfo: ISchemaInfo[];
-}
+function AdditionalSchemaSettings() {
+  const { additionalSettings: formData, setInputValue, setAddedValues, setSearchable, resetFormData } =
+    useAdditionalSchemaStore();
+  const schemaInfo = useFormStore((state) => state.schemaInfo);
 
-interface IFormData {
-  inputValues: Record<string, string>; // Individual input values for each table
-  addedValues: Record<string, string[]>; // Tags for each table
-}
-
-function AdditionalSchemaSettings({ schemaInfo }: IProps) {
-  const [formData, setFormData] = useState<IFormData>({
-    inputValues: {}, // Store input values for each schema table
-    addedValues: {}, // Store added values (tags) for each schema table
-  });
-
-  /* Ensure that formData resets when schemaInfo changes */
+  /* Initialize missing tables when component mounts or schema changes */
   useEffect(() => {
-    const initialFormData = schemaInfo.reduce<IFormData>(
-      (acc, schema) => ({
-        inputValues: {
-          ...acc.inputValues,
-          [schema.tableName]: '', // Initialize input values for each table
-        },
-        addedValues: {
-          ...acc.addedValues,
-          [schema.tableName]: [], // Initialize added values for each table
-        },
-      }),
-      { inputValues: {}, addedValues: {} },
+    const hasMissingTables = schemaInfo.some(
+      (schema) => !(schema.tableName in formData.inputValues),
     );
-    setFormData(initialFormData);
-  }, [schemaInfo]);
+    
+    if (hasMissingTables) {
+      resetFormData(schemaInfo);
+    }
+  }, [schemaInfo, formData, resetFormData]);
 
   const getSuggestions = (schema: ISchemaInfo): string[] => {
     const primaryKeys = schema.columnsInfo
@@ -49,33 +34,6 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
       ...primaryKeys,
       ...foreignKeys
     ])];
-  };
-
-  const handleTagInputChange = (
-    schemaTable: string,
-    e: React.ChangeEvent<HTMLInputElement>,
-  ): void => {
-    setFormData((prev: IFormData) => ({
-      ...prev,
-      inputValues: {
-        ...prev.inputValues,
-        [schemaTable]: e.target.value, // Update specific input value for the table
-      },
-    }));
-  };
-
-  const handleAddTags = (schemaTable: string, newTags: string[]): void => {
-    setFormData((prev: IFormData) => ({
-      ...prev,
-      addedValues: {
-        ...prev.addedValues,
-        [schemaTable]: newTags, // Add tags specific to the table
-      },
-      inputValues: {
-        ...prev.inputValues,
-        [schemaTable]: '', // Clear the input field after tags are added
-      },
-    }));
   };
 
   return (
@@ -107,14 +65,14 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
                       id={`tag-input-${schema.tableName}`}
                       required={true}
                       placeholder="Add a composite unique field"
-                      inputValue={formData.inputValues[schema.tableName] ?? ''} // Use specific input value
+                      inputValue={formData.inputValues[schema.tableName] ?? ''}
                       onInputChange={(e) => {
-                        handleTagInputChange(schema.tableName, e);
-                      }} // Handle change for specific table
-                      addedValues={formData.addedValues[schema.tableName] ?? []} // Use specific added values
+                        setInputValue(schema.tableName, e.target.value);
+                      }}
+                      addedValues={formData.addedValues[schema.tableName] ?? []}
                       onAddValue={(newTags) => {
-                        handleAddTags(schema.tableName, newTags);
-                      }} // Handle adding tags for specific table
+                        setAddedValues(schema.tableName, newTags);
+                      }}
                       suggestions={getSuggestions(schema)}
                       showSuggestionsOnFocus={true}
                     />
@@ -126,6 +84,10 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
                     name={`searchable-${schema.tableName}`}
                     type="checkbox"
                     className="form-checkbox h-4 w-4 text-indigo-600"
+                    checked={formData.searchable[schema.tableName] ?? false}
+                    onChange={(e) => {
+                      setSearchable(schema.tableName, e.target.checked);
+                    }}
                   />
                 </td>
               </tr>
@@ -133,9 +95,6 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
           </tbody>
         </table>
       </div>
-      {/* <pre className="mt-4 text-sm text-gray-400">
-        {JSON.stringify(formData, null, 4)}
-      </pre> */}
     </div>
   );
 }
