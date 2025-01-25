@@ -70,7 +70,8 @@ function determineSQLDatabaseType(dbConnection: string): DBTypes {
 }
 
 export const useFormStore = create<IFormStore>()(
-  persist((set, get) => {
+  persist(
+    (set, get) => {
       const initialDbType = determineSQLDatabaseType(
         initialFormData.dbConnection,
       );
