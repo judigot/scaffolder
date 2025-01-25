@@ -167,7 +167,7 @@ function App() {
               <div className="inline-block text-sm font-medium mr-2">
                 Backend URL:
                 {!generationStatus.isBackendUrlValid && (
-                  <i className="text-red-500">&nbsp;Invalid backend URL</i>
+                  <i className="block text-red-500">&nbsp;Invalid backend URL</i>
                 )}
                 <input
                   type="text"
@@ -185,7 +185,7 @@ function App() {
               <div className="inline-block text-sm font-medium mr-2">
                 Backend Directory:
                 {!generationStatus.isBackendDirValid && (
-                  <i className="text-red-500">
+                  <i className="block text-red-500">
                     &nbsp;Invalid backend directory
                   </i>
                 )}
@@ -205,7 +205,7 @@ function App() {
               <div className="inline-block text-sm font-medium mr-2">
                 Frontend Directory:
                 {!generationStatus.isFrontendDirValid && (
-                  <i className="text-red-500">
+                  <i className="block text-red-500">
                     &nbsp;Invalid frontend directory
                   </i>
                 )}
@@ -225,7 +225,7 @@ function App() {
               <div className="inline-block text-sm font-medium mr-2">
                 Database Connection:
                 {!generationStatus.isDBConnectionValid && (
-                  <i className="text-red-500">
+                  <i className="block text-red-500">
                     &nbsp;Invalid connection string
                   </i>
                 )}
