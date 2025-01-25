@@ -1,15 +1,16 @@
-import { DBTypes, IJSONSchema, ISchemaInfo } from "@/interfaces/interfaces.ts";
+import { DBTypes, IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import path from 'node:path';
-import { executePostgreSQL } from "@/utils/executePostgreSQL.ts";
-import { executeMySQL } from "@/utils/executeMySQL.ts";
-import extractDBConnectionInfo from "@/utils/extractDBConnectionInfo.ts";
-import createFolderStructure from "@/utils/createFolderStructure.ts";
-import { useFolderStructures } from "@/frameworks/useFolderStructures.ts";
-import { mergeArrayOfObjects } from "@/utils/mergeArrayOfObjects.ts";
+import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
+import { executeMySQL } from '@/utils/executeMySQL.ts';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import createFolderStructure from '@/utils/createFolderStructure.ts';
+import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
+import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects.ts';
 import https from 'node:https';
 import http from 'node:http';
 import fs from 'node:fs';
 import { IncomingMessage } from 'node:http';
+import { changeCase } from '@/utils/common.ts';
 
 interface IScaffoldRequest {
   schema: IJSONSchema;
@@ -30,7 +31,9 @@ interface IScaffoldResponse {
   isDBConnectionValid: boolean;
 }
 
-export const scaffoldService = async (data: IScaffoldRequest): Promise<IScaffoldResponse> => {
+export const scaffoldService = async (
+  data: IScaffoldRequest,
+): Promise<IScaffoldResponse> => {
   const {
     schemaInfo,
     framework,
@@ -47,7 +50,8 @@ export const scaffoldService = async (data: IScaffoldRequest): Promise<IScaffold
 
   let isDBConnectionValid = false;
   const isBackendDirValid = backendDir !== '' && fs.existsSync(backendDirPath);
-  const isFrontendDirValid = frontendDir !== '' && fs.existsSync(frontendDirPath);
+  const isFrontendDirValid =
+    frontendDir !== '' && fs.existsSync(frontendDirPath);
 
   if (SQLSchema != null) {
     try {
@@ -92,7 +96,7 @@ export const scaffoldService = async (data: IScaffoldRequest): Promise<IScaffold
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const folderStructures = useFolderStructures(schemaInfo);
-    
+
     if (
       isBackendDirValid &&
       isFrontendDirValid &&
@@ -123,15 +127,17 @@ export const scaffoldService = async (data: IScaffoldRequest): Promise<IScaffold
       });
     }
 
-    const isBackendUrlValid = await checkBackendUrlValidity(backendUrl);
-    
+    const isBackendUrlValid = await checkBackendUrlValidity(
+      backendUrl,
+      schemaInfo,
+    );
+
     return {
       isBackendUrlValid,
       isBackendDirValid,
       isFrontendDirValid,
       isDBConnectionValid,
     };
-
   } catch (error) {
     console.error('Error generating models:', error);
     return {
@@ -143,19 +149,29 @@ export const scaffoldService = async (data: IScaffoldRequest): Promise<IScaffold
   }
 };
 
-function checkBackendUrlValidity(backendUrl: string): Promise<boolean> {
+function checkBackendUrlValidity(
+  backendUrl: string,
+  schemaInfo: ISchemaInfo[],
+): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       const parsedUrl = new URL(backendUrl);
       const request = parsedUrl.protocol === 'https:' ? https.get : http.get;
 
-      request(backendUrl, (res: IncomingMessage) => {
-        if (res.statusCode != null && res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      }).on('error', () => {
+      request(
+        `${backendUrl}/${changeCase(schemaInfo[0].tableName).snakeCasePlural}`,
+        (res: IncomingMessage) => {
+          if (
+            res.statusCode != null &&
+            res.statusCode >= 200 &&
+            res.statusCode < 300
+          ) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        },
+      ).on('error', () => {
         resolve(false);
       });
     } catch (error) {
