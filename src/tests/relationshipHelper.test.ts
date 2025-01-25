@@ -19,20 +19,9 @@ describe('relationshipHelper', () => {
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
-              unique: false,
-              foreign_key: null,
             },
           ],
           requiredColumns: ['user_id'],
-          foreignTables: [],
-          foreignKeys: [],
-          isPivot: false,
-          childTables: [],
-          hasOne: [],
-          hasMany: [],
-          belongsTo: [],
-          belongsToMany: [],
-          pivotRelationships: [],
         },
       ];
     });
@@ -62,8 +51,7 @@ describe('relationshipHelper', () => {
           column_name: 'user_id',
           data_type: 'number',
           is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
+
           unique: true, // One-to-one should be unique
           foreign_key: {
             foreign_table_name: 'user',
@@ -87,20 +75,9 @@ describe('relationshipHelper', () => {
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
-              unique: false,
-              foreign_key: null,
             },
           ],
           requiredColumns: ['profile_id'],
-          foreignTables: [],
-          foreignKeys: [],
-          isPivot: false,
-          childTables: [],
-          hasOne: [],
-          hasMany: [],
-          belongsTo: [],
-          belongsToMany: [],
-          pivotRelationships: [],
         });
 
         const result = addRelationship(baseSchema, 'user', 'hasOne', 'profile');
@@ -130,9 +107,7 @@ describe('relationshipHelper', () => {
           column_name: 'user_id',
           data_type: 'number',
           is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false, // One-to-many should not be unique
+
           foreign_key: {
             foreign_table_name: 'user',
             foreign_column_name: 'user_id',
@@ -184,9 +159,7 @@ describe('relationshipHelper', () => {
           column_name: 'user_id',
           data_type: 'number',
           is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false,
+
           foreign_key: {
             foreign_table_name: 'user',
             foreign_column_name: 'user_id',
@@ -196,9 +169,7 @@ describe('relationshipHelper', () => {
           column_name: 'role_id',
           data_type: 'number',
           is_nullable: 'NO',
-          column_default: null,
-          primary_key: false,
-          unique: false,
+
           foreign_key: {
             foreign_table_name: 'role',
             foreign_column_name: 'role_id',
@@ -226,20 +197,9 @@ describe('relationshipHelper', () => {
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
-              unique: false,
-              foreign_key: null,
             },
           ],
           requiredColumns: ['role_id'],
-          foreignTables: [],
-          foreignKeys: [],
-          isPivot: false,
-          childTables: [],
-          hasOne: [],
-          hasMany: [],
-          belongsTo: [],
-          belongsToMany: [],
-          pivotRelationships: [],
         });
 
         const result = addRelationship(
@@ -275,15 +235,12 @@ describe('relationshipHelper', () => {
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
-              unique: false,
-              foreign_key: null,
             },
             {
               column_name: 'user_id',
               data_type: 'number',
               is_nullable: 'NO',
-              column_default: null,
-              primary_key: false,
+
               unique: true,
               foreign_key: {
                 foreign_table_name: 'user',
@@ -294,13 +251,8 @@ describe('relationshipHelper', () => {
           requiredColumns: ['post_id', 'user_id'],
           foreignTables: ['user'],
           foreignKeys: ['user_id'],
-          isPivot: false,
-          childTables: [],
-          hasOne: [],
-          hasMany: [],
+
           belongsTo: ['user'],
-          belongsToMany: [],
-          pivotRelationships: [],
         },
       ];
 
@@ -331,18 +283,14 @@ describe('relationshipHelper', () => {
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
-              unique: false,
-              foreign_key: null,
             },
           ],
           requiredColumns: ['post_id'],
-          foreignTables: [],
-          foreignKeys: [],
-          isPivot: false,
+
           childTables: ['post_tag'],
-          hasOne: [],
+
           hasMany: ['post_tag'],
-          belongsTo: [],
+
           belongsToMany: ['tag'],
           pivotRelationships: [
             {
@@ -374,20 +322,13 @@ describe('relationshipHelper', () => {
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
-              unique: false,
-              foreign_key: null,
             },
           ],
           requiredColumns: ['user_id'],
-          foreignTables: [],
-          foreignKeys: [],
-          isPivot: false,
+
           childTables: ['post'],
-          hasOne: [],
+
           hasMany: ['post'],
-          belongsTo: [],
-          belongsToMany: [],
-          pivotRelationships: [],
         },
         {
           tableName: 'post',
@@ -398,16 +339,12 @@ describe('relationshipHelper', () => {
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
-              unique: false,
-              foreign_key: null,
             },
             {
               column_name: 'user_id',
               data_type: 'number',
               is_nullable: 'NO',
-              column_default: null,
-              primary_key: false,
-              unique: false,
+
               foreign_key: {
                 foreign_table_name: 'user',
                 foreign_column_name: 'user_id',
@@ -417,13 +354,8 @@ describe('relationshipHelper', () => {
           requiredColumns: ['post_id', 'user_id'],
           foreignTables: ['user'],
           foreignKeys: ['user_id'],
-          isPivot: false,
-          childTables: [],
-          hasOne: [],
-          hasMany: [],
+
           belongsTo: ['user'],
-          belongsToMany: [],
-          pivotRelationships: [],
         },
       ];
 
