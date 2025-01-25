@@ -131,6 +131,7 @@ export const scaffoldService = async (
       });
     }
 
+    // Set backend URL status only after the files are created
     isBackendUrlValid = await checkBackendUrlValidity(backendUrl, schemaInfo);
 
     return {
