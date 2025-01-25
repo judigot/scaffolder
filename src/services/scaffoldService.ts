@@ -49,9 +49,16 @@ export const scaffoldService = async (
   const frontendDirPath = path.resolve(__dirname, frontendDir);
 
   let isDBConnectionValid = false;
+
   const isBackendDirValid = backendDir !== '' && fs.existsSync(backendDirPath);
+
   const isFrontendDirValid =
     frontendDir !== '' && fs.existsSync(frontendDirPath);
+
+  const isBackendUrlValid = await checkBackendUrlValidity(
+    backendUrl,
+    schemaInfo,
+  );
 
   if (SQLSchema != null) {
     try {
@@ -127,11 +134,6 @@ export const scaffoldService = async (
       });
     }
 
-    const isBackendUrlValid = await checkBackendUrlValidity(
-      backendUrl,
-      schemaInfo,
-    );
-
     return {
       isBackendUrlValid,
       isBackendDirValid,
@@ -141,7 +143,7 @@ export const scaffoldService = async (
   } catch (error) {
     console.error('Error generating models:', error);
     return {
-      isBackendUrlValid: false,
+      isBackendUrlValid,
       isBackendDirValid,
       isFrontendDirValid,
       isDBConnectionValid,
