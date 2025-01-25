@@ -26,6 +26,7 @@ function App() {
     creationMode,
     setCreationMode,
     setFormData,
+    setSchemaInfo,
   } = useFormStore();
 
   const {
@@ -355,7 +356,7 @@ function App() {
                     // };
                     // setFormData(newFormData);
 
-                    setTransformations(schemaInfo);
+                    setSchemaInfo(schemaInfo);
 
                     setIsLoading(true);
                     fetch(`http://localhost:5000/scaffold`, {
@@ -465,20 +466,11 @@ function App() {
                 <SchemaBuilder />
               </>
             )}
+            {/* @ts-expect-error: JSONSchemaEditor is temporarily disabled */}
             {creationMode === CREATION_MODES.JSON_SCHEMA && (
               <>
                 <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
                 <JSONSchemaEditor />
-
-                {/* <textarea
-                    data-testid="schema-input"
-                    id="schemaInput"
-                    name="schemaInput"
-                    value={String(schemaInput)}
-                    onChange={handleChange}
-                    rows={10}
-                    className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                  /> */}
               </>
             )}
             <div>
