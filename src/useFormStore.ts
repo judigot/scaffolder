@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, PersistOptions } from 'zustand/middleware';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
 import { DBTypes, IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { SQLQueries } from '@/utils/mappings.ts';
@@ -12,6 +12,7 @@ import {
   POSSchema,
 } from '@/json-schemas/index.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
+import { createTabSync } from '@/utils/createTabSync.ts';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -69,9 +70,21 @@ function determineSQLDatabaseType(dbConnection: string): DBTypes {
   return dbType;
 }
 
+const persistConfig: PersistOptions<IFormStore, unknown> = {
+  name: 'formData',
+  storage: createJSONStorage(() => localStorage),
+  partialize: (state) => ({
+    formData: state.formData,
+    schemaInfo: state.schemaInfo,
+  }),
+};
+
 export const useFormStore = create<IFormStore>()(
-  persist(
-    (set, get) => {
+  // persist((set, get) => {
+
+  /* prettier-ignore */
+  persist((rawSet, get) => { const set = createTabSync<IFormStore>('scaffolder-sync')(rawSet);
+
       const initialDbType = determineSQLDatabaseType(
         initialFormData.dbConnection,
       );
@@ -181,9 +194,6 @@ export const useFormStore = create<IFormStore>()(
         },
       };
     },
-    {
-      name: 'formData',
-      storage: createJSONStorage(() => localStorage),
-    },
+    persistConfig,
   ),
 );
