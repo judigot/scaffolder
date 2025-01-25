@@ -115,6 +115,8 @@ function JSONSchemaEditor() {
     <>
       <TableAdder />
       <textarea
+        id="schemaInput"
+        name="schemaInput"
         ref={textAreaRef}
         rows={10}
         className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"

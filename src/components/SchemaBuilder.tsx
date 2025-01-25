@@ -705,6 +705,8 @@ function SchemaBuilder() {
                     <>
                       <br />
                       <form
+                        id="schemaBuilderForm"
+                        name="schemaBuilderForm"
                         className="mb-2 bg-gray-800 rounded shadow overflow-x-auto"
                         onSubmit={handleSubmit}
                       >

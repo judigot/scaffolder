@@ -106,7 +106,12 @@ function SQLSchemaInputModal() {
     >
       <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full space-y-4">
         <h1 className="text-lg font-bold text-white">Edit SQL Schema</h1>
-        <form className="flex flex-col space-y-4" onSubmit={handleSubmit}>
+        <form
+          id="schemaInputForm"
+          name="schemaInputForm"
+          className="flex flex-col space-y-4"
+          onSubmit={handleSubmit}
+        >
           <div>
             <textarea
               id="SQLSchemaEditable"

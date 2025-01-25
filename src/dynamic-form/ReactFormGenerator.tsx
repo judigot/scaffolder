@@ -93,7 +93,12 @@ export function DynamicForm(structure: typeof JSONFormStructure) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="dynamic-form">
+    <form
+      id="reactFormGeneratorForm"
+      name="reactFormGeneratorForm"
+      onSubmit={handleSubmit}
+      className="dynamic-form"
+    >
       <h1>{structure.title}</h1>
       <p>{structure.description}</p>
 

@@ -95,193 +95,188 @@ function App() {
             App Generator
           </h1>
         </div>
-        <div className="inline-block">
-          <div className="inline-block text-sm font-medium mr-2">
-            Schema Templates:
-            <div className="flex items-center h-10">
-              <button
-                data-testid="one-to-one-button"
-                type="button"
-                onClick={() => {
-                  setOneToOne();
-                }}
-                className="sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-              >
-                One to One
-              </button>
-              <button
-                data-testid="one-to-many-button"
-                type="button"
-                onClick={() => {
-                  setOneToMany();
-                }}
-                className="sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-              >
-                One to Many
-              </button>
-              <button
-                data-testid="many-to-many-button"
-                type="button"
-                onClick={() => {
-                  setManyToMany();
-                }}
-                className="sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-              >
-                Many to Many
-              </button>
-            </div>
-          </div>
-          <div className="inline-block text-sm font-medium">
-            Database Builder:
-            <div>
-              <select
-                value={creationMode}
-                onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                  const isValueInObject = <T extends object>(
-                    obj: T,
-                    value: unknown,
-                  ): value is T[keyof T] => {
-                    return Object.values(obj).includes(value);
-                  };
-
-                  const selected = event.target.value;
-                  if (isValueInObject(CREATION_MODES, selected)) {
-                    setCreationMode(selected);
-                  }
-                }}
-                className="h-10 mr-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 border-2 rounded-md p-1 focus:outline-none"
-              >
-                {Object.entries(CREATION_MODES).map(([key, value]) => (
-                  <option key={key} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+        <form id="appGeneratorForm" name="appGeneratorForm">
           <div className="inline-block">
-            <label
-              htmlFor="backendUrl"
-              className="inline-block text-sm font-medium mr-2"
-            >
-              Backend URL:
-              {!generationStatus.isBackendUrlValid && (
-                <i className="text-red-500">&nbsp;Invalid backend URL</i>
-              )}
-              <input
-                type="text"
-                id="backendUrl"
-                name="backendUrl"
-                value={backendUrl}
-                onChange={handleChange}
-                className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                  generationStatus.isBackendUrlValid
-                    ? 'border-gray-700 focus:border-indigo-500'
-                    : 'border-red-500 focus:border-red-500'
-                }`}
-              />
-            </label>
-            <label
-              htmlFor="backendDir"
-              className="inline-block text-sm font-medium mr-2"
-            >
-              Backend Directory:
-              {!generationStatus.isBackendDirValid && (
-                <i className="text-red-500">&nbsp;Invalid backend directory</i>
-              )}
-              <input
-                type="text"
-                id="backendDir"
-                name="backendDir"
-                value={backendDir}
-                onChange={handleChange}
-                className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                  generationStatus.isBackendDirValid
-                    ? 'border-gray-700 focus:border-indigo-500'
-                    : 'border-red-500 focus:border-red-500'
-                }`}
-              />
-            </label>
-            <label
-              htmlFor="frontendDir"
-              className="inline-block text-sm font-medium mr-2"
-            >
-              Frontend Directory:
-              {!generationStatus.isFrontendDirValid && (
-                <i className="text-red-500">&nbsp;Invalid frontend directory</i>
-              )}
-              <input
-                type="text"
-                id="frontendDir"
-                name="frontendDir"
-                value={frontendDir}
-                onChange={handleChange}
-                className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                  generationStatus.isFrontendDirValid
-                    ? 'border-gray-700 focus:border-indigo-500'
-                    : 'border-red-500 focus:border-red-500'
-                }`}
-              />
-            </label>
-            <label
-              htmlFor="dbConnection"
-              className="inline-block text-sm font-medium mr-2"
-            >
-              Database Connection:
-              {!generationStatus.isDBConnectionValid && (
-                <i className="text-red-500">&nbsp;Invalid connection string</i>
-              )}
-              <input
-                type="text"
-                id="dbConnection"
-                name="dbConnection"
-                value={dbConnection}
-                onChange={handleChange}
-                className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                  generationStatus.isDBConnectionValid
-                    ? 'border-gray-700 focus:border-indigo-500'
-                    : 'border-red-500 focus:border-red-500'
-                }`}
-              />
-            </label>
+            <div className="inline-block text-sm font-medium mr-2">
+              Schema Templates:
+              <div className="flex items-center h-10">
+                <button
+                  data-testid="one-to-one-button"
+                  type="button"
+                  onClick={() => {
+                    setOneToOne();
+                  }}
+                  className="sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  One to One
+                </button>
+                <button
+                  data-testid="one-to-many-button"
+                  type="button"
+                  onClick={() => {
+                    setOneToMany();
+                  }}
+                  className="sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  One to Many
+                </button>
+                <button
+                  data-testid="many-to-many-button"
+                  type="button"
+                  onClick={() => {
+                    setManyToMany();
+                  }}
+                  className="sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+                >
+                  Many to Many
+                </button>
+              </div>
+            </div>
+            <div className="inline-block text-sm font-medium">
+              Database Builder:
+              <div>
+                <select
+                  id="creationMode"
+                  name="creationMode"
+                  value={creationMode}
+                  onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                    const isValueInObject = <T extends object>(
+                      obj: T,
+                      value: unknown,
+                    ): value is T[keyof T] => {
+                      return Object.values(obj).includes(value);
+                    };
+
+                    const selected = event.target.value;
+                    if (isValueInObject(CREATION_MODES, selected)) {
+                      setCreationMode(selected);
+                    }
+                  }}
+                  className="h-10 mr-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 border-2 rounded-md p-1 focus:outline-none"
+                >
+                  {Object.entries(CREATION_MODES).map(([key, value]) => (
+                    <option key={key} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div className="inline-block">
-              <label
-                htmlFor="backendDir"
-                className="inline-block text-sm font-medium mr-2"
-              >
-                Database Type:
-                <div className="flex items-center h-10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDBType('postgresql');
-                    }}
-                    className={`mr-2 sm:mb-0 px-2 py-0.5 rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 ${
-                      dbType === 'postgresql'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-800 text-white'
-                    }`}
-                  >
-                    PostgreSQL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDBType('mysql');
-                    }}
-                    className={`sm:mb-0 px-2 py-0.5 rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 ${
-                      dbType === 'mysql'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-800 text-white'
-                    }`}
-                  >
-                    MySQL
-                  </button>
+              <div className="inline-block text-sm font-medium mr-2">
+                Backend URL:
+                {!generationStatus.isBackendUrlValid && (
+                  <i className="text-red-500">&nbsp;Invalid backend URL</i>
+                )}
+                <input
+                  type="text"
+                  id="backendUrl"
+                  name="backendUrl"
+                  value={backendUrl}
+                  onChange={handleChange}
+                  className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isBackendUrlValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
+                />
+              </div>
+              <div className="inline-block text-sm font-medium mr-2">
+                Backend Directory:
+                {!generationStatus.isBackendDirValid && (
+                  <i className="text-red-500">
+                    &nbsp;Invalid backend directory
+                  </i>
+                )}
+                <input
+                  type="text"
+                  id="backendDir"
+                  name="backendDir"
+                  value={backendDir}
+                  onChange={handleChange}
+                  className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isBackendDirValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
+                />
+              </div>
+              <div className="inline-block text-sm font-medium mr-2">
+                Frontend Directory:
+                {!generationStatus.isFrontendDirValid && (
+                  <i className="text-red-500">
+                    &nbsp;Invalid frontend directory
+                  </i>
+                )}
+                <input
+                  type="text"
+                  id="frontendDir"
+                  name="frontendDir"
+                  value={frontendDir}
+                  onChange={handleChange}
+                  className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isFrontendDirValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
+                />
+              </div>
+              <div className="inline-block text-sm font-medium mr-2">
+                Database Connection:
+                {!generationStatus.isDBConnectionValid && (
+                  <i className="text-red-500">
+                    &nbsp;Invalid connection string
+                  </i>
+                )}
+                <input
+                  type="text"
+                  id="dbConnection"
+                  name="dbConnection"
+                  value={dbConnection}
+                  onChange={handleChange}
+                  className={`h-10 p-2 block border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                    generationStatus.isDBConnectionValid
+                      ? 'border-gray-700 focus:border-indigo-500'
+                      : 'border-red-500 focus:border-red-500'
+                  }`}
+                />
+              </div>
+              <div className="inline-block">
+                <div className="inline-block text-sm font-medium mr-2">
+                  Database Type:
+                  <div className="flex items-center h-10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDBType('postgresql');
+                      }}
+                      className={`mr-2 sm:mb-0 px-2 py-0.5 rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 ${
+                        dbType === 'postgresql'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-800 text-white'
+                      }`}
+                    >
+                      PostgreSQL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDBType('mysql');
+                      }}
+                      className={`sm:mb-0 px-2 py-0.5 rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 ${
+                        dbType === 'mysql'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-800 text-white'
+                      }`}
+                    >
+                      MySQL
+                    </button>
+                  </div>
                 </div>
-              </label>
+              </div>
             </div>
           </div>
-        </div>
+        </form>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             data-testid="generate-app-button"
@@ -473,10 +468,9 @@ function App() {
             {creationMode === CREATION_MODES.JSON_SCHEMA && (
               <>
                 <h2 className="text-xl font-bold mb-2">JSON Database Schema</h2>
-                <form className="space-y-4">
-                  <JSONSchemaEditor />
+                <JSONSchemaEditor />
 
-                  {/* <textarea
+                {/* <textarea
                     data-testid="schema-input"
                     id="schemaInput"
                     name="schemaInput"
@@ -485,23 +479,19 @@ function App() {
                     rows={10}
                     className="p-2 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                   /> */}
-                </form>
               </>
             )}
             <div>
-              <label
-                htmlFor="additionalSchemaSettings"
-                className="block text-sm font-medium"
-              >
+              <div className="block text-sm font-medium">
                 Additional Schema Settings:
                 <AdditionalSchemaSettings schemaInfo={schemaInfo} />
-              </label>
+              </div>
             </div>
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Files to Generate</h2>
-            <label htmlFor="framework" className="block text-sm font-medium">
+            <div className="block text-sm font-medium">
               Framework:
               <select
                 id="framework"
@@ -519,7 +509,7 @@ function App() {
                   ),
                 )}
               </select>
-            </label>
+            </div>
             <div className="grid grid-rows-2 h-screen gap-4">
               {/* <div className="bg-blue-500  text-white font-bold">
                 <FileViewer
@@ -562,10 +552,7 @@ function App() {
                 rows={15}
                 className="cursor-pointer p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               />
-              <label
-                htmlFor="includeInsertData"
-                className="block text-sm font-medium mt-4"
-              >
+              <div className="block text-sm font-medium mt-4">
                 <input
                   data-testid="include-insert-data-checkbox"
                   type="checkbox"
@@ -576,10 +563,10 @@ function App() {
                   className="mr-2"
                 />
                 Include Insert Data
-              </label>
+              </div>
               {includeInsertData && (
                 <div className="mt-2">
-                  <label className="block text-sm font-medium">
+                  <div className="block text-sm font-medium">
                     <input
                       type="radio"
                       name="insertOption"
@@ -589,8 +576,8 @@ function App() {
                       className="mr-2"
                     />
                     Rows from JSON Database Schema
-                  </label>
-                  <label className="block text-sm font-medium">
+                  </div>
+                  <div className="block text-sm font-medium">
                     <input
                       type="radio"
                       name="insertOption"
@@ -600,7 +587,7 @@ function App() {
                       className="mr-2"
                     />
                     Rows from mock data
-                  </label>
+                  </div>
                 </div>
               )}
               <button
@@ -742,10 +729,7 @@ function App() {
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <div className="float-right">
-              <label
-                htmlFor="includeTypeGuards"
-                className="block text-sm font-medium mt-4"
-              >
+              <div className="block text-sm font-medium mt-4">
                 <input
                   type="checkbox"
                   id="includeTypeGuards"
@@ -755,11 +739,8 @@ function App() {
                   className="mr-2"
                 />
                 Include Type Guards
-              </label>
-              <label
-                htmlFor="outputOnSingleFile"
-                className="block text-sm font-medium mt-4"
-              >
+              </div>
+              <div className="block text-sm font-medium mt-4">
                 <input
                   type="checkbox"
                   id="outputOnSingleFile"
@@ -769,7 +750,7 @@ function App() {
                   className="mr-2"
                 />
                 Output on a Single File
-              </label>
+              </div>
             </div>
             <br />
             <h2 className="text-xl font-bold mb-2">TypeScript Interfaces</h2>
@@ -797,6 +778,8 @@ function App() {
                           {interfaceName}.ts
                         </h3>
                         <textarea
+                          id={`interface-${interfaceName}`}
+                          name={`interface-${interfaceName}`}
                           value={content}
                           readOnly
                           rows={10}

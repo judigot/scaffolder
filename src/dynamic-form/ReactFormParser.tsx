@@ -330,6 +330,8 @@ export function FormParser({
 
     return (
       <form
+        id="reactFormParserForm"
+        name="reactFormParserForm"
         className="form-step mb-8 p-4 md:p-6 lg:p-8"
         onSubmit={(e) => {
           e.preventDefault(); // Prevent default form submission

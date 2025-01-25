@@ -122,6 +122,8 @@ function AdditionalSchemaSettings({ schemaInfo }: IProps) {
                 </td>
                 <td className="border-b border-gray-600 px-4 py-2">
                   <input
+                    id={`searchable-${schema.tableName}`}
+                    name={`searchable-${schema.tableName}`}
                     type="checkbox"
                     className="form-checkbox h-4 w-4 text-indigo-600"
                   />
