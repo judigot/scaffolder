@@ -167,7 +167,9 @@ function App() {
               <div className="inline-block text-sm font-medium mr-2">
                 Backend URL:
                 {!generationStatus.isBackendUrlValid && (
-                  <i className="block text-red-500">&nbsp;Invalid backend URL</i>
+                  <i className="block text-red-500">
+                    &nbsp;Invalid backend URL
+                  </i>
                 )}
                 <input
                   type="text"
@@ -437,7 +439,7 @@ function App() {
             <div>
               <div className="block text-sm font-medium">
                 Additional Schema Settings:
-                <AdditionalSchemaSettings schemaInfo={schemaInfo} />
+                <AdditionalSchemaSettings />
               </div>
             </div>
           </div>
