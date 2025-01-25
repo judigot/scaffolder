@@ -163,3 +163,45 @@ export const addRelationship = (
 
   return updatedSchema;
 };
+
+export const purgeForeignKeyTraces = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
+  const existingTableNames = new Set(schemaInfo.map(table => table.tableName));
+
+  return schemaInfo.map(table => {
+    // Clean up columnsInfo by removing columns with invalid foreign keys
+    const updatedColumnsInfo = table.columnsInfo.filter(column => {
+      // Keep columns that either have no foreign key or have a valid foreign key
+      return column.foreign_key === null || existingTableNames.has(column.foreign_key.foreign_table_name);
+    });
+
+    // Get the list of removed column names
+    const removedColumnNames = new Set(
+      table.columnsInfo
+        .filter(column => 
+          column.foreign_key !== null && !existingTableNames.has(column.foreign_key.foreign_table_name)
+        )
+        .map(column => column.column_name)
+    );
+
+    // Clean up relationship arrays and required columns
+    const updatedTable = {
+      ...table,
+      columnsInfo: updatedColumnsInfo,
+      requiredColumns: table.requiredColumns.filter(col => !removedColumnNames.has(col)),
+      foreignTables: table.foreignTables.filter(t => existingTableNames.has(t)),
+      childTables: table.childTables.filter(t => existingTableNames.has(t)),
+      hasOne: table.hasOne.filter(t => existingTableNames.has(t)),
+      hasMany: table.hasMany.filter(t => existingTableNames.has(t)),
+      belongsTo: table.belongsTo.filter(t => existingTableNames.has(t)),
+      belongsToMany: table.belongsToMany.filter(t => existingTableNames.has(t)),
+      pivotRelationships: table.pivotRelationships.filter(rel => 
+        existingTableNames.has(rel.relatedTable) && existingTableNames.has(rel.pivotTable)
+      ),
+      foreignKeys: updatedColumnsInfo
+        .filter(col => col.foreign_key !== null)
+        .map(col => col.column_name)
+    };
+
+    return updatedTable;
+  });
+};

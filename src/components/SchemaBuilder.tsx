@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
-import { addRelationship } from '@/helpers/relationshipHelper.ts';
+import { addRelationship, purgeForeignKeyTraces } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import {
   Edit as EditIcon,
@@ -181,7 +181,7 @@ function SchemaBuilder() {
         return table;
       });
 
-    setSchemaInfo(updatedSchema);
+    setSchemaInfo(purgeForeignKeyTraces(updatedSchema));
   };
 
   const [selectedTableIndex, setSelectedTableIndex] = useState<number | null>(
