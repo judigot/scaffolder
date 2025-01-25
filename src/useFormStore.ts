@@ -32,7 +32,7 @@ export interface IFormData {
   outputOnSingleFile: boolean;
 }
 
-interface IFormStore {
+interface IFormStore extends Record<PropertyKey, unknown> {
   formData: IFormData;
   schemaInfo: ISchemaInfo[];
   dbType: DBTypes | undefined;
