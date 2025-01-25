@@ -28,7 +28,7 @@ interface IStore {
 
 const errorMessage = 'An error occurred';
 
-export const useTransformationsStore = create<IStore>((set, get) => ({
+export const useTransformationsStore = create<IStore>()((set, get) => ({
   interfaces: {},
   getParsedSchemaInput: () => {
     const { schemaInput } = useFormStore.getState().formData;
