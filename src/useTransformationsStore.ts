@@ -180,7 +180,9 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
 
     let directJoins: string[] = [];
     try {
-      directJoins = generateSQLDirectJoins(schemaInfo);
+      directJoins = generateSQLDirectJoins(schemaInfo).filter(
+        (join): join is string => join !== undefined,
+      );
       set({ directJoins });
     } catch {
       set({ directJoins: [errorMessage] });
@@ -188,7 +190,9 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
 
     let oneToOneJoins: string[] = [];
     try {
-      oneToOneJoins = generateSQLHasOneJoins(schemaInfo);
+      oneToOneJoins = generateSQLHasOneJoins(schemaInfo).filter(
+        (join): join is string => join !== undefined,
+      );
       set({ oneToOneJoins });
     } catch {
       set({ oneToOneJoins: [errorMessage] });
@@ -196,7 +200,9 @@ export const useTransformationsStore = create<IStore>()((set, get) => ({
 
     let aggregateJoins: string[] = [];
     try {
-      aggregateJoins = generateSQLAggregateJoins(schemaInfo);
+      aggregateJoins = generateSQLAggregateJoins(schemaInfo).filter(
+        (join): join is string => join !== undefined,
+      );
       set({ aggregateJoins });
     } catch {
       set({ aggregateJoins: [errorMessage] });
