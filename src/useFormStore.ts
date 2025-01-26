@@ -63,9 +63,6 @@ function determineSQLDatabaseType(dbConnection: string): DBTypes {
 const persistConfig: PersistOptions<IFormStore, unknown> = {
   name: 'formData',
   storage: createJSONStorage(() => localStorage),
-  // partialize: (state) => ({
-  //   formData: state,
-  // }),
 };
 
 export const useFormStore = create<IFormStore>()(

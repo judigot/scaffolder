@@ -3,7 +3,7 @@ interface ISyncMessage<T> {
   payload: Partial<T>;
 }
 
-export function createTabSync<T extends Record<string, unknown>>(
+export function createTabSync<T extends Record<PropertyKey, unknown>>(
   channelName: string,
 ) {
   let channel: BroadcastChannel | null = null;
