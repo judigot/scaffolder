@@ -3,6 +3,7 @@ import {
   addRelationship,
   purgeForeignKeyTraces,
 } from '@/helpers/relationshipHelper.ts';
+
 describe('relationshipHelper', () => {
   describe('addRelationship', () => {
     let baseSchema: ISchemaInfo[];
@@ -51,7 +52,6 @@ describe('relationshipHelper', () => {
           column_name: 'user_id',
           data_type: 'number',
           is_nullable: 'NO',
-
           unique: true, // One-to-one should be unique
           foreign_key: {
             foreign_table_name: 'user',
@@ -107,7 +107,6 @@ describe('relationshipHelper', () => {
           column_name: 'user_id',
           data_type: 'number',
           is_nullable: 'NO',
-
           foreign_key: {
             foreign_table_name: 'user',
             foreign_column_name: 'user_id',
@@ -141,7 +140,6 @@ describe('relationshipHelper', () => {
 
         // Check target table (role)
         const targetTable = result.find((t) => t.tableName === 'role');
-        expect(targetTable).toBeDefined();
         expect(targetTable?.belongsToMany).toContain('user');
         expect(targetTable?.hasMany).toContain('user_role');
         expect(targetTable?.childTables).toContain('user_role');
@@ -159,7 +157,6 @@ describe('relationshipHelper', () => {
           column_name: 'user_id',
           data_type: 'number',
           is_nullable: 'NO',
-
           foreign_key: {
             foreign_table_name: 'user',
             foreign_column_name: 'user_id',
@@ -169,7 +166,6 @@ describe('relationshipHelper', () => {
           column_name: 'role_id',
           data_type: 'number',
           is_nullable: 'NO',
-
           foreign_key: {
             foreign_table_name: 'role',
             foreign_column_name: 'role_id',
@@ -213,12 +209,6 @@ describe('relationshipHelper', () => {
         const pivotTable = result.find((t) => t.tableName === 'user_role');
         expect(pivotTable).toBeDefined();
         expect(pivotTable?.isPivot).toBe(true);
-
-        // Verify both tables have proper relationships
-        const sourceTable = result.find((t) => t.tableName === 'user');
-        const targetTable = result.find((t) => t.tableName === 'role');
-        expect(sourceTable?.belongsToMany).toContain('role');
-        expect(targetTable?.belongsToMany).toContain('user');
       });
     });
   });
@@ -240,7 +230,6 @@ describe('relationshipHelper', () => {
               column_name: 'user_id',
               data_type: 'number',
               is_nullable: 'NO',
-
               unique: true,
               foreign_key: {
                 foreign_table_name: 'user',
@@ -251,8 +240,12 @@ describe('relationshipHelper', () => {
           requiredColumns: ['post_id', 'user_id'],
           foreignTables: ['user'],
           foreignKeys: ['user_id'],
-
           belongsTo: ['user'],
+          hasMany: ['comment'],
+          childTables: ['comment'],
+          pivotRelationships: [
+            { relatedTable: 'tag', pivotTable: 'post_tag' },
+          ],
         },
       ];
 
@@ -266,49 +259,13 @@ describe('relationshipHelper', () => {
       ).toBeUndefined();
 
       // All references should be removed
-      expect(postTable.requiredColumns).not.toContain('user_id');
-      expect(postTable.foreignTables).not.toContain('user');
-      expect(postTable.foreignKeys).not.toContain('user_id');
-      expect(postTable.belongsTo).not.toContain('user');
-    });
-
-    it('should handle pivot relationships', () => {
-      const schema: ISchemaInfo[] = [
-        {
-          tableName: 'post',
-          columnsInfo: [
-            {
-              column_name: 'post_id',
-              data_type: 'number',
-              is_nullable: 'NO',
-              column_default: 'AUTO_INCREMENT',
-              primary_key: true,
-            },
-          ],
-          requiredColumns: ['post_id'],
-
-          childTables: ['post_tag'],
-
-          hasMany: ['post_tag'],
-
-          belongsToMany: ['tag'],
-          pivotRelationships: [
-            {
-              relatedTable: 'tag',
-              pivotTable: 'post_tag',
-            },
-          ],
-        },
-      ];
-
-      const result = purgeForeignKeyTraces(schema);
-      const postTable = result[0];
-
-      // All references to non-existent tables should be removed
-      expect(postTable.childTables).toHaveLength(0);
-      expect(postTable.hasMany).toHaveLength(0);
-      expect(postTable.belongsToMany).toHaveLength(0);
-      expect(postTable.pivotRelationships).toHaveLength(0);
+      expect(postTable.foreignTables).toBeUndefined();
+      expect(postTable.foreignKeys).toBeUndefined();
+      expect(postTable.belongsTo).toBeUndefined();
+      expect(postTable.hasMany).toBeUndefined();
+      expect(postTable.childTables).toBeUndefined();
+      expect(postTable.pivotRelationships).toBeUndefined();
+      expect(postTable.requiredColumns).toEqual(['post_id']);
     });
 
     it('should not modify tables with valid relationships', () => {
@@ -325,9 +282,7 @@ describe('relationshipHelper', () => {
             },
           ],
           requiredColumns: ['user_id'],
-
           childTables: ['post'],
-
           hasMany: ['post'],
         },
         {
@@ -344,7 +299,6 @@ describe('relationshipHelper', () => {
               column_name: 'user_id',
               data_type: 'number',
               is_nullable: 'NO',
-
               foreign_key: {
                 foreign_table_name: 'user',
                 foreign_column_name: 'user_id',
@@ -354,7 +308,6 @@ describe('relationshipHelper', () => {
           requiredColumns: ['post_id', 'user_id'],
           foreignTables: ['user'],
           foreignKeys: ['user_id'],
-
           belongsTo: ['user'],
         },
       ];

@@ -1,19 +1,14 @@
-import identifySchema from '@/utils/identifySchema.ts';
 import { describe, it, expect } from 'vitest';
 import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
-import {
-  usersPostOneToOneSchema,
-  usersPostsOneToManySchema,
-  POSSchema,
-} from '@/json-schemas/index.ts';
+import manyToMany from '@/schema-infos/manyToMany.ts';
+import oneToMany from '@/schema-infos/oneToMany.ts';
+import oneToOne from '@/schema-infos/oneToOne.ts';
 
 describe('generateSQLDirectJoins', () => {
-  const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
-  const userPostsOneToManySchemaInfo = identifySchema(
-    usersPostsOneToManySchema,
-  );
-  const POSSchemaInfo = identifySchema(POSSchema);
+  const userPostOneToOneSchemaInfo = oneToOne;
+  const userPostsOneToManySchemaInfo = oneToMany;
+  const POSSchemaInfo = manyToMany;
 
   it('should generate correct SQL JOIN queries for usersPostOneToOneSchema', () => {
     const joinQueries = generateSQLDirectJoins(userPostOneToOneSchemaInfo).join(

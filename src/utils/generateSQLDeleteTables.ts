@@ -1,10 +1,10 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
-function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]): string[] {
+function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]) {
   const foreignKeys = schemaInfo.reduce<Record<string, string[]>>(
     (acc, table) => {
-      acc[table.tableName] = table.foreignKeys.map((fk) =>
+      acc[table.tableName] = table.foreignKeys?.map((fk) =>
         fk.replace('_id', ''),
       );
       return acc;

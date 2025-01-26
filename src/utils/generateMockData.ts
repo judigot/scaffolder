@@ -27,7 +27,7 @@ const topologicalSort = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
     }
     if (!visited.has(table.tableName)) {
       temp.add(table.tableName);
-      table.childTables.forEach((childTable) => {
+      (table.childTables ?? []).forEach((childTable) => {
         const childRelationship = schemaInfo.find(
           (r) => r.tableName === childTable,
         );

@@ -1,19 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import identifySchema from '@/utils/identifySchema.ts';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces.ts';
 import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
-import {
-  usersPostOneToOneSchema,
-  usersPostsOneToManySchema,
-  POSSchema,
-} from '@/json-schemas/index.ts';
+import manyToMany from '@/schema-infos/manyToMany.ts';
+import oneToMany from '@/schema-infos/oneToMany.ts';
+import oneToOne from '@/schema-infos/oneToOne.ts';
 
 describe('generateTypescriptInterfaces', () => {
-  const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
-  const userPostsOneToManySchemaInfo = identifySchema(
-    usersPostsOneToManySchema,
-  );
-  const POSSchemaInfo = identifySchema(POSSchema);
+  const userPostOneToOneSchemaInfo = oneToOne;
+  const userPostsOneToManySchemaInfo = oneToMany;
+  const POSSchemaInfo = manyToMany;
 
   it('should generate correct TypeScript interfaces and type guards for one-to-one relationship', () => {
     const tsInterfaces = generateTypescriptInterfaces({

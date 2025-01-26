@@ -2,13 +2,13 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { changeCase, getPrimaryKey } from '@/utils/common.ts';
 
-function generateHasOneSQLJoins(schemaInfo: ISchemaInfo[]): string[] {
+function generateHasOneSQLJoins(schemaInfo: ISchemaInfo[]) {
   const quote = useFormStore.getState().quote;
 
   const joinQueries = schemaInfo
-    .filter(({ hasOne }) => hasOne.length > 0) // Focus only on tables with hasOne relationships
+    .filter(({ hasOne }): boolean => hasOne !== undefined) // Focus only on tables with hasOne relationships
     .flatMap(({ tableName, hasOne }) => {
-      return hasOne.map((childTable) => {
+      return hasOne?.map((childTable) => {
         // Retrieve primary keys for both parent and child tables
         const parentPrimaryKey = getPrimaryKey({
           tableName,

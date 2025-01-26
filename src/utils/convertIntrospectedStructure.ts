@@ -39,7 +39,7 @@ export const getForeignTables = (columns: IColumnInfo[]): string[] =>
   Array.from(
     new Set(
       columns
-        .filter((column) => column.foreign_key !== null)
+        .filter((column) => column.foreign_key !== undefined)
         .map((column) => column.foreign_key?.foreign_table_name ?? ''),
     ),
   ).filter((tableName) => tableName !== '');
@@ -62,15 +62,28 @@ export const convertColumn = ({
   primary_key,
   unique,
   foreign_key,
-}: IColumnInfo): IColumnInfo => ({
-  column_name,
-  data_type: getTypeScriptType(data_type),
-  is_nullable,
-  column_default: primary_key ? `AUTO_INCREMENT` : column_default,
-  primary_key,
-  unique,
-  foreign_key,
-});
+}: IColumnInfo): IColumnInfo => {
+  const convertedColumn: IColumnInfo = {
+    column_name,
+    data_type: getTypeScriptType(data_type),
+    is_nullable,
+    ...(() => {
+      if (primary_key) {
+        return { column_default: 'AUTO_INCREMENT' };
+      }
+      if (column_default !== undefined && column_default !== null) {
+        return {
+          column_default: column_default.replace(/'([^']+)'::text/, '$1'),
+        };
+      }
+      return {};
+    })(),
+    ...(primary_key && { primary_key }),
+    ...(unique && { unique }),
+    ...(foreign_key && { foreign_key }),
+  };
+  return convertedColumn;
+};
 
 export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
   let tableName: string;
@@ -90,17 +103,10 @@ export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
 
   return {
     tableName,
-    requiredColumns,
+    ...(requiredColumns.length > 0 && { requiredColumns }),
     columnsInfo,
-    foreignTables,
-    foreignKeys,
-    isPivot: false,
-    childTables: [],
-    hasOne: [],
-    hasMany: [],
-    belongsTo: [],
-    belongsToMany: [],
-    pivotRelationships: [],
+    ...(foreignTables.length > 0 && { foreignTables }),
+    ...(foreignKeys.length > 0 && { foreignKeys }),
   };
 };
 
@@ -108,9 +114,9 @@ export const populateChildTables = (
   tableMap: Map<string, ISchemaInfo>,
 ): void => {
   tableMap.forEach((table) => {
-    table.foreignTables.forEach((foreignTable) => {
+    table.foreignTables?.forEach((foreignTable) => {
       if (tableMap.has(foreignTable)) {
-        tableMap.get(foreignTable)?.childTables.push(table.tableName);
+        tableMap.get(foreignTable)?.childTables?.push(table.tableName);
       }
     });
   });

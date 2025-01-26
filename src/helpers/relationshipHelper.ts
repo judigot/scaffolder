@@ -84,34 +84,37 @@ export const addRelationship = (
     source: ISchemaInfo,
     target: ISchemaInfo,
   ): void {
+    // Initialize arrays if they don't exist
+    source[relationshipType] = source[relationshipType] ?? [];
+    source.childTables = source.childTables ?? [];
+    target.foreignTables = target.foreignTables ?? [];
+    target.foreignKeys = target.foreignKeys ?? [];
+    target.belongsTo = target.belongsTo ?? [];
+
     // Add foreign key to target table
     const foreignKey = createForeignKeyColumn(
       source.tableName,
       relationshipType === 'hasOne',
     );
     target.columnsInfo.splice(1, 0, foreignKey); // Insert after primary key
-    target.requiredColumns?.push(foreignKey.column_name);
-    target.foreignKeys?.push(foreignKey.column_name);
+    target.requiredColumns = target.requiredColumns ?? [];
+    target.requiredColumns.push(foreignKey.column_name);
+    target.foreignKeys = target.foreignKeys ?? [];
+    target.foreignKeys.push(foreignKey.column_name);
 
     // Add to source table's relationships
-    if (
-      source[relationshipType] &&
-      !source[relationshipType].includes(target.tableName)
-    ) {
+    if (!source[relationshipType].includes(target.tableName)) {
       source[relationshipType].push(target.tableName);
     }
-    if (source.childTables && !source.childTables.includes(target.tableName)) {
+    if (!source.childTables.includes(target.tableName)) {
       source.childTables.push(target.tableName);
     }
 
     // Add to target table's relationships
-    if (
-      target.foreignTables &&
-      !target.foreignTables.includes(source.tableName)
-    ) {
+    if (!target.foreignTables.includes(source.tableName)) {
       target.foreignTables.push(source.tableName);
     }
-    if (target.belongsTo && !target.belongsTo.includes(source.tableName)) {
+    if (!target.belongsTo.includes(source.tableName)) {
       target.belongsTo.push(source.tableName);
     }
   }
@@ -121,21 +124,37 @@ export const addRelationship = (
     target: ISchemaInfo,
     pivotTableName: string,
   ): void {
+    // Initialize arrays if they don't exist
+    source.belongsToMany = source.belongsToMany ?? [];
+    source.hasMany = source.hasMany ?? [];
+    source.childTables = source.childTables ?? [];
+    source.pivotRelationships = source.pivotRelationships ?? [
+      {
+        relatedTable: '',
+        pivotTable: '',
+      },
+    ];
+    target.belongsToMany = target.belongsToMany ?? [];
+    target.hasMany = target.hasMany ?? [];
+    target.childTables = target.childTables ?? [];
+    target.pivotRelationships = target.pivotRelationships ?? [
+      {
+        relatedTable: '',
+        pivotTable: '',
+      },
+    ];
+
     // Setup source table relationships
-    if (
-      source.belongsToMany &&
-      !source.belongsToMany.includes(target.tableName)
-    ) {
+    if (!source.belongsToMany.includes(target.tableName)) {
       source.belongsToMany.push(target.tableName);
     }
-    if (source.hasMany && !source.hasMany.includes(pivotTableName)) {
+    if (!source.hasMany.includes(pivotTableName)) {
       source.hasMany.push(pivotTableName);
     }
-    if (source.childTables && !source.childTables.includes(pivotTableName)) {
+    if (!source.childTables.includes(pivotTableName)) {
       source.childTables.push(pivotTableName);
     }
     if (
-      source.pivotRelationships &&
       !source.pivotRelationships.some(
         (rel) => rel.relatedTable === target.tableName,
       )
@@ -147,22 +166,20 @@ export const addRelationship = (
     }
 
     // Setup target table relationships
-    if (
-      target.belongsToMany &&
-      !target.belongsToMany.includes(source.tableName)
-    ) {
+    if (!target.belongsToMany.includes(source.tableName)) {
       target.belongsToMany.push(source.tableName);
     }
-    if (target.hasMany && !target.hasMany.includes(pivotTableName)) {
+    if (!target.hasMany.includes(pivotTableName)) {
       target.hasMany.push(pivotTableName);
     }
-    if (target.childTables && !target.childTables.includes(pivotTableName)) {
+    if (!target.childTables.includes(pivotTableName)) {
       target.childTables.push(pivotTableName);
     }
     if (
-      target.pivotRelationships &&
-      !target.pivotRelationships.some(
-        (rel) => rel.relatedTable === source.tableName,
+      !(
+        target.pivotRelationships.some(
+          (rel) => rel.relatedTable === source.tableName,
+        )
       )
     ) {
       target.pivotRelationships.push({
@@ -225,7 +242,6 @@ export const purgeForeignKeyTraces = (
   return schemaInfo.map((table) => {
     // Clean up columnsInfo by removing columns with invalid foreign keys
     const updatedColumnsInfo = table.columnsInfo.filter((column) => {
-      // Keep columns that either have no foreign key or have a valid foreign key
       return (
         !column.foreign_key ||
         existingTableNames.has(column.foreign_key.foreign_table_name)
@@ -248,91 +264,64 @@ export const purgeForeignKeyTraces = (
       ...table,
       columnsInfo: updatedColumnsInfo,
     };
-    const pivotRelationships = table.pivotRelationships?.filter(
-      (rel) =>
-        existingTableNames.has(rel.relatedTable) &&
-        existingTableNames.has(rel.pivotTable),
-    );
-    if (pivotRelationships && pivotRelationships.length > 0) {
-      const [first, ...rest] = pivotRelationships;
-      updatedTable.pivotRelationships = [first, ...rest];
-    }
 
-    const foreignTables = table.foreignTables?.filter((t) =>
+    // Helper function to filter arrays
+    const filterArray = (
+      array: string[] | undefined,
+      filterFn: (item: string) => boolean,
+    ): string[] | undefined => {
+      if (array?.length == null) {
+        return undefined;
+      }
+      const filtered = array.filter(filterFn);
+      return filtered.length > 0 ? filtered : undefined;
+    };
+
+    // Clean up all relationship arrays
+    updatedTable.foreignTables = filterArray(table.foreignTables, (t) =>
       existingTableNames.has(t),
     );
-    if (foreignTables && foreignTables.length > 0) {
-      const [first, ...rest] = foreignTables;
-      updatedTable.foreignTables = [first, ...rest];
-    }
-
-    const foreignKeys = table.foreignKeys?.filter((t) =>
+    updatedTable.foreignKeys = filterArray(
+      table.foreignKeys,
+      (k) => !removedColumnNames.has(k),
+    );
+    updatedTable.childTables = filterArray(table.childTables, (t) =>
       existingTableNames.has(t),
     );
-    if (foreignKeys && foreignKeys.length > 0) {
-      const [first, ...rest] = foreignKeys;
-      updatedTable.foreignKeys = [first, ...rest];
-    }
-
-    const childTables = table.childTables?.filter((t) =>
+    updatedTable.hasOne = filterArray(table.hasOne, (t) =>
       existingTableNames.has(t),
     );
-    if (childTables && childTables.length > 0) {
-      const [first, ...rest] = childTables;
-      updatedTable.childTables = [first, ...rest];
-    }
-
-    const hasOne = table.hasOne?.filter((t) => existingTableNames.has(t));
-    if (hasOne && hasOne.length > 0) {
-      const [first, ...rest] = hasOne;
-      updatedTable.hasOne = [first, ...rest];
-    }
-
-    const hasMany = table.hasMany?.filter((t) => existingTableNames.has(t));
-    if (hasMany && hasMany.length > 0) {
-      const [first, ...rest] = hasMany;
-      updatedTable.hasMany = [first, ...rest];
-    }
-
-    const belongsTo = table.belongsTo?.filter((t) => existingTableNames.has(t));
-    if (belongsTo && belongsTo.length > 0) {
-      const [first, ...rest] = belongsTo;
-      updatedTable.belongsTo = [first, ...rest];
-    }
-
-    const belongsToMany = table.belongsToMany?.filter((t) =>
+    updatedTable.hasMany = filterArray(table.hasMany, (t) =>
       existingTableNames.has(t),
     );
-    if (belongsToMany && belongsToMany.length > 0) {
-      const [first, ...rest] = belongsToMany;
-      updatedTable.belongsToMany = [first, ...rest];
-    }
+    updatedTable.belongsTo = filterArray(table.belongsTo, (t) =>
+      existingTableNames.has(t),
+    );
+    updatedTable.belongsToMany = filterArray(table.belongsToMany, (t) =>
+      existingTableNames.has(t),
+    );
 
-    const requiredColumns = table.requiredColumns?.filter(
+    const requiredColumns = filterArray(
+      table.requiredColumns,
       (col) => !removedColumnNames.has(col),
     );
+
     if (requiredColumns && requiredColumns.length > 0) {
-      const [first, ...rest] = requiredColumns;
-      updatedTable.requiredColumns = [first, ...rest];
+      updatedTable.requiredColumns = requiredColumns;
     }
 
-    /*
-
-     columnsInfo: updatedColumnsInfo,
-      requiredColumns: table.requiredColumns.filter(col => !removedColumnNames.has(col)),
-      foreignTables: table.foreignTables.filter(t => existingTableNames.has(t)),
-      childTables: table.childTables.filter(t => existingTableNames.has(t)),
-      hasOne: table.hasOne.filter(t => existingTableNames.has(t)),
-      hasMany: table.hasMany.filter(t => existingTableNames.has(t)),
-      belongsTo: table.belongsTo.filter(t => existingTableNames.has(t)),
-      belongsToMany: table.belongsToMany.filter(t => existingTableNames.has(t)),
-      pivotRelationships: table.pivotRelationships.filter(rel => 
-        existingTableNames.has(rel.relatedTable) && existingTableNames.has(rel.pivotTable)
-      ),
-      foreignKeys: updatedColumnsInfo
-        .filter(col => col.foreign_key !== null)
-        .map(col => col.column_name)
-    */
+    // Clean up pivot relationships
+    if (table.pivotRelationships?.length != null) {
+      const filteredPivotRelationships = table.pivotRelationships.filter(
+        (rel) =>
+          existingTableNames.has(rel.relatedTable) &&
+          existingTableNames.has(rel.pivotTable),
+      );
+      updatedTable.pivotRelationships =
+        filteredPivotRelationships.length > 0
+          ? filteredPivotRelationships
+          : undefined;
+    }
 
     return updatedTable;
   });

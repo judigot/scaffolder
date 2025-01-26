@@ -1,13 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import identifySchema from '@/utils/identifySchema.ts';
 import generateDomainCode from '@/utils/generateDomainCode.ts';
 import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 import { watermark } from '@/constants.ts';
-import {
-  usersPostOneToOneSchema,
-  usersPostsOneToManySchema,
-  POSSchema,
-} from '@/json-schemas/index.ts';
+import oneToOne from '@/schema-infos/oneToOne.ts';
+import oneToMany from '@/schema-infos/oneToMany.ts';
+import manyToMany from '@/schema-infos/manyToMany.ts';
 
 const template = `
     <?php
@@ -36,11 +33,9 @@ class {{className}} extends Model
     `;
 
 describe('createModels', () => {
-  const userPostOneToOneSchemaInfo = identifySchema(usersPostOneToOneSchema);
-  const userPostsOneToManySchemaInfo = identifySchema(
-    usersPostsOneToManySchema,
-  );
-  const POSSchemaInfo = identifySchema(POSSchema);
+  const userPostOneToOneSchemaInfo = oneToOne;
+  const userPostsOneToManySchemaInfo = oneToMany;
+  const POSSchemaInfo = manyToMany;
 
   it('should generate correct relationships for User model with one-to-one Post', () => {
     const userTableInfo = userPostOneToOneSchemaInfo.find(

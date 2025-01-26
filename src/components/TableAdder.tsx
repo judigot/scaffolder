@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
-import identifySchema from '@/utils/identifySchema.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 
 interface ITableAdderProps {
@@ -21,16 +20,21 @@ function TableAdder({ className = '' }: ITableAdderProps) {
       );
 
       if (!doesTableExist) {
-        // Create a minimal JSON schema for the new table
-        const jsonSchema: IJSONSchema = {
-          [newTableName]: [{ [newTableId]: 1 }],
+        const newTableSchema: ISchemaInfo = {
+          tableName: newTableName,
+          columnsInfo: [
+            {
+              column_name: newTableId,
+              data_type: 'number',
+              is_nullable: 'NO',
+              column_default: 'AUTO_INCREMENT',
+              primary_key: true,
+            },
+          ],
+          requiredColumns: [newTableId],
         };
 
-        // Use identifySchema to create a standardized schema structure
-        const newTableSchema = identifySchema(jsonSchema);
-        
-        // Add the new table to existing schema
-        const updatedSchema: ISchemaInfo[] = [...schemaInfo, ...newTableSchema];
+        const updatedSchema: ISchemaInfo[] = [...schemaInfo, newTableSchema];
         setSchemaInfo(updatedSchema);
         setNewTableName('');
       }
@@ -45,7 +49,9 @@ function TableAdder({ className = '' }: ITableAdderProps) {
         type="text"
         placeholder="Enter new table name"
         value={newTableName}
-        onChange={(e) => { setNewTableName(e.target.value); }}
+        onChange={(e) => {
+          setNewTableName(e.target.value);
+        }}
         className="mb-2 p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
@@ -68,4 +74,4 @@ function TableAdder({ className = '' }: ITableAdderProps) {
   );
 }
 
-export default TableAdder; 
+export default TableAdder;

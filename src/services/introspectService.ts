@@ -1,23 +1,28 @@
-import { DBTypes, ISchemaInfo, isITableArray } from "@/interfaces/interfaces.ts";
-import introspect from "@/utils/introspect.ts";
-import convertIntrospectedStructure from "@/utils/convertIntrospectedStructure.ts";
+import {
+  DBTypes,
+  IIntrospectedSchemaInfo,
+  isITableArray,
+} from '@/interfaces/interfaces.ts';
+import introspect from '@/utils/introspect.ts';
 
 interface IIntrospectRequest {
   dbType: DBTypes;
   dbConnection: string;
 }
 
-export const introspectService = async (data: IIntrospectRequest): Promise<ISchemaInfo[]> => {
-  const { dbConnection } = data;
+export const introspectService = async (
+  data: IIntrospectRequest,
+): Promise<IIntrospectedSchemaInfo[]> => {
+  const { dbConnection, dbType } = data;
 
   if (!dbConnection) {
     throw new Error('Database connection string is required');
   }
 
-  const introspectionResult = await introspect(dbConnection);
+  const introspectionResult = await introspect(dbConnection, dbType);
 
   if (isITableArray(introspectionResult)) {
-    return convertIntrospectedStructure(introspectionResult);
+    return introspectionResult;
   }
 
   throw new Error('Invalid introspection result');

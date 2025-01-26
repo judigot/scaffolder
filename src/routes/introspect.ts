@@ -1,16 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { introspectService } from '@/services/introspectService.ts';
+import { DBTypes } from '@/interfaces/interfaces.ts';
 
 const router = Router();
 
 router.post(
   '/introspect',
   async (
-    req: Request<unknown, unknown, { dbConnection: string }>,
+    req: Request<unknown, unknown, { dbConnection: string; dbType: DBTypes }>,
     res: Response,
   ): Promise<void> => {
     try {
-      const result = await introspectService(req.body);
+      const result = await introspectService({
+        dbType: req.body.dbType,
+        dbConnection: req.body.dbConnection,
+      });
       res.json(result);
     } catch (error) {
       if (error instanceof Error) {

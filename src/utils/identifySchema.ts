@@ -37,7 +37,6 @@ BelongsToMany Rules:
 
 */
 
-// Constants
 export const UNIQUE_COLUMN_NAMES = [
   'id',
   'email',
@@ -66,7 +65,9 @@ interface IFieldInfo {
   nullable: boolean;
 }
 
-// Function to populate field information
+/* 
+  Populate field information from the rows, capturing each field's type(s) and nullability.
+*/
 const populateFieldInfo = (
   records: Record<string, unknown>[],
 ): Record<string, IFieldInfo> => {
@@ -74,7 +75,10 @@ const populateFieldInfo = (
 
   records.forEach((record) => {
     Object.entries(record).forEach(([key, value]) => {
-      fields[key] = { types: new Set<string>(), nullable: false };
+      fields[key] = {
+        types: new Set<string>(),
+        nullable: false,
+      };
       fields[key].types.add(
         value === null ? 'null' : identifyTSPrimitiveType(value),
       );
@@ -87,15 +91,25 @@ const populateFieldInfo = (
   return fields;
 };
 
+/* 
+  Mark whether each table is a pivot table (junction table).
+*/
 export function identifyPivotTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo.map((relationship) => {
-    relationship.isPivot = isJunctionTable(relationship, schemaInfo);
+    // Reassign to true only if it meets pivot condition
+    if (isJunctionTable(relationship, schemaInfo)) {
+      relationship.isPivot = true;
+    }
 
-    return relationship;
+    return {
+      ...relationship,
+    };
   });
 }
 
-// Function to determine the primary key field
+/* 
+  Determine the primary key field name based on convention or 'id'.
+*/
 const determinePrimaryKeyField = (
   tableName: string,
   firstKey: string,
@@ -105,7 +119,9 @@ const determinePrimaryKeyField = (
     : `${tableName}_id`;
 };
 
-// Function to detect one-to-many relationships
+/* 
+  Detect one-to-many relationships by checking if any foreign key value repeats.
+*/
 const detectOneToManyRelationship = (
   rows: Record<string, unknown>[],
   foreignKey: string,
@@ -120,21 +136,25 @@ const detectOneToManyRelationship = (
   return Object.values(foreignKeyCounts).some((count) => count > 1);
 };
 
-// Function to check if a table is a junction table (pivot table)
+/* 
+  Check if a table is a junction (pivot) table.
+  A table is pivot if:
+    - It has exactly two foreign keys.
+    - The table name is a combination of the parent tables' names.
+    - It has no child tables.
+*/
 export const isJunctionTable = (
   relationship: ISchemaInfo,
   schemaInfo: ISchemaInfo[],
 ): boolean => {
-  // Get all foreign keys in the table
   const foreignKeys = relationship.columnsInfo.filter((column) =>
     Boolean(column.foreign_key),
   );
 
-  // Check if the table has exactly two foreign keys
   if (foreignKeys.length === 2) {
     const [firstKey, secondKey] = foreignKeys;
 
-    // Find the parent tables based on foreign keys
+    // Find the parent tables
     const parentTable1 = schemaInfo.find(
       (rel) => rel.tableName === firstKey.foreign_key?.foreign_table_name,
     );
@@ -142,10 +162,8 @@ export const isJunctionTable = (
       (rel) => rel.tableName === secondKey.foreign_key?.foreign_table_name,
     );
 
-    // Check if the table has no child tables
-    const hasNoChildTables = relationship.childTables?.length === 0;
+    const hasNoChildTables = (relationship.childTables ?? []).length === 0;
 
-    // Ensure both parent tables are defined before checking name combination
     if (parentTable1 && parentTable2) {
       const isNameCombination =
         relationship.tableName ===
@@ -153,15 +171,15 @@ export const isJunctionTable = (
         relationship.tableName ===
           `${parentTable2.tableName}_${parentTable1.tableName}`;
 
-      // Return true if the table name matches the combination rule and has no child tables
       return hasNoChildTables && isNameCombination;
     }
   }
-
   return false;
 };
 
-// Function to add relationship info to schema
+/*
+  Add associations (hasOne, hasMany, belongsTo, belongsToMany) to each ISchemaInfo based on foreign keys, pivot detection, etc.
+*/
 export const addAssociations = (
   schemaInfo: ISchemaInfo[],
   data: ParsedJSONSchema | null = null,
@@ -169,13 +187,14 @@ export const addAssociations = (
   const isIntrospection = data === null;
   const tempSchemaInfo = schemaInfo.map((relationship) => ({
     ...relationship,
-    hasOne: [...relationship.hasOne],
-    hasMany: [...relationship.hasMany],
-    belongsTo: [...relationship.belongsTo],
-    belongsToMany: [...relationship.belongsToMany],
+    ...(relationship.hasOne && { hasOne: relationship.hasOne }),
+    ...(relationship.hasMany && { hasMany: relationship.hasMany }),
+    ...(relationship.belongsTo && { belongsTo: relationship.belongsTo }),
+    ...(relationship.belongsToMany && {
+      belongsToMany: relationship.belongsToMany,
+    }),
   }));
 
-  // Helper function to handle belongsToMany relationships
   const handleBelongsToMany = (relationship: ISchemaInfo) => {
     const foreignKeys = relationship.columnsInfo.filter((col) =>
       Boolean(col.foreign_key),
@@ -192,12 +211,22 @@ export const addAssociations = (
       );
 
       if (table1 && table2) {
-        table1.belongsToMany = Array.from(
-          new Set([...table1.belongsToMany, table2.tableName]),
-        );
-        table2.belongsToMany = Array.from(
-          new Set([...table2.belongsToMany, table1.tableName]),
-        );
+        // Only create the array if it doesn't exist, then push the new item
+        if (!table1.belongsToMany) {
+          table1.belongsToMany = [table2.tableName];
+        } else {
+          table1.belongsToMany.push(table2.tableName);
+          // Optionally ensure uniqueness:
+          table1.belongsToMany = Array.from(new Set(table1.belongsToMany));
+        }
+
+        if (!table2.belongsToMany) {
+          table2.belongsToMany = [table1.tableName];
+        } else {
+          table2.belongsToMany.push(table1.tableName);
+          // Optionally ensure uniqueness:
+          table2.belongsToMany = Array.from(new Set(table2.belongsToMany));
+        }
       }
     }
   };
@@ -211,36 +240,67 @@ export const addAssociations = (
           (rel) => rel.tableName === column.foreign_key?.foreign_table_name,
         );
         if (parentTable) {
-          relationship.belongsTo = Array.from(
-            new Set([...relationship.belongsTo, parentTable.tableName]),
-          );
+          // --- belongsTo ---
+          if (!relationship.belongsTo) {
+            // if `belongsTo` is undefined, create it
+            relationship.belongsTo = [parentTable.tableName];
+          } else {
+            // if it already exists, push and remove duplicates
+            relationship.belongsTo.push(parentTable.tableName);
+            relationship.belongsTo = Array.from(
+              new Set(relationship.belongsTo),
+            );
+          }
 
+          // For introspection or JSON data, we differentiate how we detect relationships
           if (!isIntrospection) {
             if (detectOneToManyRelationship(rows, column.column_name)) {
-              parentTable.hasMany = Array.from(
-                new Set([...parentTable.hasMany, relationship.tableName]),
-              );
+              // --- parentTable.hasMany ---
+              if (!parentTable.hasMany) {
+                parentTable.hasMany = [relationship.tableName];
+              } else {
+                parentTable.hasMany.push(relationship.tableName);
+                parentTable.hasMany = Array.from(new Set(parentTable.hasMany));
+              }
             } else if (!isJunctionTable(relationship, schemaInfo)) {
-              parentTable.hasOne = Array.from(
-                new Set([...parentTable.hasOne, relationship.tableName]),
-              );
+              // --- parentTable.hasOne ---
+              if (!parentTable.hasOne) {
+                parentTable.hasOne = [relationship.tableName];
+              } else {
+                parentTable.hasOne.push(relationship.tableName);
+                parentTable.hasOne = Array.from(new Set(parentTable.hasOne));
+              }
             }
           } else {
+            // For introspected structure
             const foreignTable = tempSchemaInfo.find((rel) =>
-              rel.columnsInfo.some(
-                (col) =>
+              rel.columnsInfo.some((col) =>
+                Boolean(
                   col.primary_key && col.column_name === column.column_name,
+                ),
               ),
             );
             if (foreignTable) {
               if (!column.unique) {
-                foreignTable.hasMany = Array.from(
-                  new Set([...foreignTable.hasMany, relationship.tableName]),
-                );
+                // --- foreignTable.hasMany ---
+                if (!foreignTable.hasMany) {
+                  foreignTable.hasMany = [relationship.tableName];
+                } else {
+                  foreignTable.hasMany.push(relationship.tableName);
+                  foreignTable.hasMany = Array.from(
+                    new Set(foreignTable.hasMany),
+                  );
+                }
               } else if (!isJunctionTable(relationship, schemaInfo)) {
-                foreignTable.hasOne = Array.from(
-                  new Set([...foreignTable.hasOne, relationship.tableName]),
-                );
+                // --- foreignTable.hasOne ---
+                if (!foreignTable.hasOne) {
+                  foreignTable.hasOne = [relationship.tableName];
+                } else {
+                  foreignTable.hasOne.push(relationship.tableName);
+                  foreignTable.hasOne = Array.from(
+                    new Set(foreignTable.hasOne),
+                  );
+                }
               }
             }
           }
@@ -256,12 +316,14 @@ export const addAssociations = (
   return tempSchemaInfo;
 };
 
-// Function to perform topological sorting based on table hierarchy
+/*
+  Sort tables topologically, so that parent tables appear before child tables.
+*/
 export const sortTablesBasedOnHierarchy = (
   schemaInfo: ISchemaInfo[],
 ): ISchemaInfo[] => {
   if (isAlreadySorted(schemaInfo)) {
-    return schemaInfo; /* Return the original array if already sorted */
+    return schemaInfo; /* Return original if already sorted */
   }
 
   const sorted: ISchemaInfo[] = [];
@@ -272,14 +334,18 @@ export const sortTablesBasedOnHierarchy = (
       return;
     }
     visited.add(table.tableName);
-    table.childTables.forEach((childTable) => {
-      const childRelationship = schemaInfo.find(
-        (r) => r.tableName === childTable,
-      );
-      if (childRelationship) {
-        visit(childRelationship);
-      }
-    });
+
+    if (table.childTables != null) {
+      table.childTables.forEach((childTable) => {
+        const childRelationship = schemaInfo.find(
+          (r) => r.tableName === childTable,
+        );
+        if (childRelationship) {
+          visit(childRelationship);
+        }
+      });
+    }
+
     sorted.push(table);
   };
 
@@ -290,18 +356,25 @@ export const sortTablesBasedOnHierarchy = (
   return sorted.reverse();
 };
 
-// Function to check if schema is already sorted
+/*
+  Check whether schemaInfo is already sorted: 
+  Each table's childTables (if any) should appear only after the current table.
+*/
 export const isAlreadySorted = (schemaInfo: ISchemaInfo[]): boolean => {
-  return schemaInfo.every((relationship, i) =>
-    relationship.childTables.every(
-      (childTable) =>
-        schemaInfo.findIndex((r) => r.tableName === childTable) > i,
-    ),
+  return schemaInfo.every(
+    (relationship, i) =>
+      relationship.childTables == null ||
+      relationship.childTables.every(
+        (childTable) =>
+          schemaInfo.findIndex((r) => r.tableName === childTable) > i,
+      ),
   );
 };
 
-// Helper function to create column information
-const createColumnsInfo = ({
+/*
+  Create column information for each field based on the sample rows.
+*/
+export function createColumnsInfo({
   fields,
   rows,
   tableName,
@@ -311,7 +384,7 @@ const createColumnsInfo = ({
   rows: Record<string, unknown>[];
   tableName: string;
   primaryKeyField: string;
-}): IColumnInfo[] => {
+}): IColumnInfo[] {
   return Object.keys(fields).map((key) => {
     const sampleValue = rows.find((record) => record[key] !== null)?.[key];
     const fieldType = convertType({
@@ -326,86 +399,103 @@ const createColumnsInfo = ({
             foreign_table_name: key.replace('_id', ''),
             foreign_column_name: key,
           }
-        : null;
+        : undefined;
 
-    return {
+    /* Start with only the required props */
+    const columnInfo: IColumnInfo = {
       column_name: key,
       data_type: fieldType,
       is_nullable: fields[key].nullable ? 'YES' : 'NO',
-      column_default: isPrimaryKey
-        ? // ? `nextval('${table}_${key}_seq'::regclass)`
-          `AUTO_INCREMENT`
-        : null,
-      primary_key: isPrimaryKey,
-      unique: isUnique,
-      foreign_key: foreignKey,
     };
-  });
-};
 
-// Helper function to link child tables
+    /* Add optional properties only when true or defined */
+    if (isPrimaryKey) {
+      columnInfo.primary_key = true;
+      columnInfo.column_default = 'AUTO_INCREMENT';
+    }
+    if (isUnique) {
+      columnInfo.unique = true;
+    }
+    if (foreignKey != null) {
+      columnInfo.foreign_key = foreignKey;
+    }
+
+    return columnInfo;
+  });
+}
+
+/*
+  Link child tables based on foreignTables. 
+*/
 export function linkChildTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo.map((relationship) => {
-    relationship.foreignTables.map((foreignTable) => {
-      const foreignRelationship = schemaInfo.find(
-        (r) => r.tableName === foreignTable,
-      );
-      if (foreignRelationship) {
-        foreignRelationship.childTables.push(relationship.tableName);
-      }
-    });
+    if (relationship.foreignTables) {
+      relationship.foreignTables.forEach((foreignTable) => {
+        const foreignRelationship = schemaInfo.find(
+          (r) => r.tableName === foreignTable,
+        );
+        if (foreignRelationship) {
+          if (!foreignRelationship.childTables) {
+            foreignRelationship.childTables = [];
+          }
+          foreignRelationship.childTables.push(relationship.tableName);
+        }
+      });
+    }
     return relationship;
   });
 }
 
+/*
+  Add pivot relationships for parent tables in belongsTo.
+*/
 export function addParentRelationships(
   schemaInfo: ISchemaInfo[],
 ): ISchemaInfo[] {
   schemaInfo.forEach((info) => {
-    // Iterate over the parent tables in 'belongsTo' to set their pivot relationships
-    info.belongsTo.forEach((parentTable) => {
-      const parentTableInfo = schemaInfo.find(
-        (schema) => schema.tableName === parentTable,
-      );
-
-      if (parentTableInfo) {
-        // Identify the other parent table in the pivot relationship
-        const partnerTable = info.belongsTo.find(
-          (table) => table !== parentTable,
+    if (info.belongsTo != null) {
+      info.belongsTo.forEach((parentTable) => {
+        const parentTableInfo = schemaInfo.find(
+          (schema) => schema.tableName === parentTable,
         );
-
-        if (partnerTable != null) {
-          parentTableInfo.pivotRelationships.push({
-            relatedTable: partnerTable,
-            pivotTable: info.tableName,
-          });
+        if (parentTableInfo) {
+          const partnerTable = info.belongsTo?.find(
+            (table) => table !== parentTable,
+          );
+          if (partnerTable != null) {
+            if (!parentTableInfo.pivotRelationships) {
+              parentTableInfo.pivotRelationships = [];
+            }
+            parentTableInfo.pivotRelationships.push({
+              relatedTable: partnerTable,
+              pivotTable: info.tableName,
+            });
+          }
         }
-      }
-    });
+      });
+    }
   });
 
   return schemaInfo;
 }
 
+/*
+  Determine unique foreign keys for one-to-one relationships.
+*/
 export const determineUniqueForeignKeys = (
   schemaInfo: ISchemaInfo[],
 ): ISchemaInfo[] => {
   schemaInfo.forEach((relationship) => {
     relationship.columnsInfo.forEach((column) => {
       if (column.foreign_key) {
-        // Find the parent table that this foreign key references
         const parentTable = schemaInfo.find(
           (rel) => rel.tableName === column.foreign_key?.foreign_table_name,
         );
-
         if (parentTable) {
-          // Check if the parent table has a `hasOne` relationship with the current table
-          const isOneToOne = parentTable.hasOne.includes(
+          const isOneToOne = parentTable.hasOne?.includes(
             relationship.tableName,
           );
-
-          // If the relationship is one-to-one, mark the foreign key as unique
-          if (isOneToOne) {
+          if (isOneToOne === true) {
             column.unique = true;
           }
         }
@@ -416,6 +506,9 @@ export const determineUniqueForeignKeys = (
   return schemaInfo;
 };
 
+/*
+  Combine all schema transformations and return final schema.
+*/
 export function addSchemaInfo(
   schemaInfo: ISchemaInfo[],
   data: ParsedJSONSchema | null = null,
@@ -439,15 +532,17 @@ export function addSchemaInfo(
   return schemaInfo;
 }
 
-function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
-  let schemaInfo: ISchemaInfo[] = Object.keys(data).map((tableName) => {
+/*
+  Main function: For each table, populate columns, detect relationships, and produce final schema.
+*/
+export function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
+  const schemaInfo: ISchemaInfo[] = Object.keys(data).map((tableName) => {
     const rows = data[tableName];
     const fields = populateFieldInfo(rows);
     const primaryKeyField = determinePrimaryKeyField(
       tableName,
       Object.keys(rows[0])[0],
     );
-
     const columnsInfo = createColumnsInfo({
       fields,
       rows,
@@ -455,29 +550,85 @@ function identifySchema(data: ParsedJSONSchema): ISchemaInfo[] {
       primaryKeyField,
     });
 
+    /* Gather optional fields */
     const requiredColumns = getRequiredColumns(columnsInfo);
     const foreignTables = getForeignTables(columnsInfo);
     const foreignKeys = getForeignKeys(columnsInfo);
 
-    return {
+    /* Always include 'tableName' and 'columnsInfo' */
+    const tableInfo: ISchemaInfo = {
       tableName,
-      requiredColumns,
       columnsInfo,
-      foreignTables,
-      foreignKeys,
-      isPivot: false,
-      childTables: [],
-      hasOne: [],
-      hasMany: [],
-      belongsTo: [],
-      belongsToMany: [],
-      pivotRelationships: [],
     };
+
+    /* Only add properties if they have entries */
+    if (requiredColumns.length > 0) {
+      tableInfo.requiredColumns = requiredColumns;
+    }
+    if (foreignKeys.length > 0) {
+      tableInfo.foreignKeys = foreignKeys;
+    }
+    if (foreignTables.length > 0) {
+      tableInfo.foreignTables = foreignTables;
+    }
+
+    return tableInfo;
   });
 
-  schemaInfo = addSchemaInfo(schemaInfo, data);
+  /* Add relationships and clean up schema */
+  const enrichedSchema = addSchemaInfo(schemaInfo, data);
+  return cleanUpSchemaInfo(enrichedSchema);
+}
 
-  return schemaInfo;
+/*
+  Remove empty arrays, undefined properties, or false booleans so the final data is "very flat".
+*/
+function cleanUpSchemaInfo(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
+  return schemaInfo.map((item) => {
+    // We only keep properties that have actual values
+    const cleaned: ISchemaInfo = {
+      tableName: item.tableName,
+      columnsInfo: item.columnsInfo,
+    };
+
+    // Only add optional arrays if non-empty
+    if (item.requiredColumns && item.requiredColumns.length > 0) {
+      cleaned.requiredColumns = item.requiredColumns;
+    }
+    if (item.foreignKeys && item.foreignKeys.length > 0) {
+      cleaned.foreignKeys = item.foreignKeys;
+    }
+    if (item.foreignTables && item.foreignTables.length > 0) {
+      cleaned.foreignTables = item.foreignTables;
+    }
+    if (item.childTables && item.childTables.length > 0) {
+      cleaned.childTables = item.childTables;
+    }
+
+    // Only add isPivot if true
+    if (item.isPivot) {
+      cleaned.isPivot = true;
+    }
+
+    // Only add these relationship arrays if non-empty
+    if (item.hasOne && item.hasOne.length > 0) {
+      cleaned.hasOne = item.hasOne;
+    }
+    if (item.hasMany && item.hasMany.length > 0) {
+      cleaned.hasMany = item.hasMany;
+    }
+    if (item.belongsTo && item.belongsTo.length > 0) {
+      cleaned.belongsTo = item.belongsTo;
+    }
+    if (item.belongsToMany && item.belongsToMany.length > 0) {
+      cleaned.belongsToMany = item.belongsToMany;
+    }
+    if (item.pivotRelationships && item.pivotRelationships.length > 0) {
+      cleaned.pivotRelationships = item.pivotRelationships;
+    }
+
+    return cleaned;
+  });
 }
 
 export default identifySchema;

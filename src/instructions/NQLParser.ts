@@ -36,19 +36,8 @@ function addTable(
           is_nullable: 'NO',
           column_default: 'AUTO_INCREMENT',
           primary_key: true,
-          unique: false,
-          foreign_key: null,
         },
       ],
-      foreignTables: [],
-      foreignKeys: [],
-      isPivot: false,
-      childTables: [],
-      hasOne: [],
-      hasMany: [],
-      belongsTo: [],
-      belongsToMany: [],
-      pivotRelationships: [],
     });
   }
 }
@@ -73,8 +62,6 @@ function addForeignKey(
       column_name: foreignKeyName,
       data_type: 'number',
       is_nullable: 'NO',
-      column_default: null,
-      primary_key: false,
       unique: isUnique || UNIQUE_COLUMN_NAMES.includes(foreignKeyName),
       foreign_key: {
         foreign_table_name: singularToTable,

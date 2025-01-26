@@ -1,9 +1,10 @@
-import fs from "node:fs";
+import fs from 'node:fs';
 import path from 'node:path';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
-import process from "node:process";
+import process from 'node:process';
+import { DBTypes } from '@/interfaces/interfaces.ts';
 
 const platform: string = process.platform;
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -41,12 +42,15 @@ const ignoredTables_laravel: string[] = [
   'horizon_tags',
 ];
 
-export const introspect = async (dbConnection: string): Promise<unknown> => {
+export const introspect = async (
+  dbConnection: string,
+  dbType: DBTypes,
+): Promise<unknown> => {
   if (!dbConnection) {
     throw new Error('Database connection string is required');
   }
 
-  const { dbType, dbName } = extractDBConnectionInfo(dbConnection);
+  const { dbName } = extractDBConnectionInfo(dbConnection);
 
   const query = readSqlFile(`introspect_${String(dbType)}.sql`);
   let result: unknown;
