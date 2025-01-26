@@ -148,7 +148,7 @@ function App() {
                       setCreationMode(selected);
                     }
                   }}
-                  className="h-10 mr-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 border-2 rounded-md p-1 focus:outline-none"
+                  className="text-center h-10 mr-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 border-2 rounded-md p-1 focus:outline-none"
                 >
                   {Object.entries(CREATION_MODES).map(([key, value]) => (
                     <option key={key} value={value}>
