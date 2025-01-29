@@ -7,7 +7,7 @@ import { changeCase } from '@/utils/common.ts';
 
 const CREATE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '../../interfaces/I{{className}}';
+import { I{{className}} } from '@/interfaces/interfaces.ts';
 
 type IBody = Omit<I{{className}}, '{{primaryKey}}' | 'created_at' | 'updated_at'>;
 
@@ -21,7 +21,7 @@ export const create{{className}} = async (
 
 const READ_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '../../interfaces/I{{className}}';
+import { I{{className}} } from '@/interfaces/interfaces.ts';
 
 export const read{{className}} = async (): Promise<I{{className}}[]> => {
   const response = await axiosInstance.get<I{{className}}[]>('/{{tableNamePlural}}');
@@ -31,7 +31,7 @@ export const read{{className}} = async (): Promise<I{{className}}[]> => {
 
 const UPDATE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '../../interfaces/I{{className}}';
+import { I{{className}} } from '@/interfaces/interfaces.ts';
 
 type IBody = I{{className}};
 

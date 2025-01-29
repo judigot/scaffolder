@@ -1,8 +1,7 @@
-import { DBTypes, IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import path from 'node:path';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
 import createFolderStructure from '@/utils/createFolderStructure.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects.ts';
@@ -11,17 +10,12 @@ import http from 'node:http';
 import fs from 'node:fs';
 import { IncomingMessage } from 'node:http';
 import { changeCase } from '@/utils/common.ts';
+import { IFormStore } from '@/useFormStore.ts';
 
 interface IScaffoldRequest {
-  schema: IJSONSchema;
-  dbType: DBTypes;
+  formData: IFormStore;
   schemaInfo: ISchemaInfo[];
-  framework: string;
-  backendDir: string;
-  frontendDir: string;
-  dbConnection: string;
   SQLSchema: string | null;
-  backendUrl: string;
 }
 
 interface IScaffoldResponse {
@@ -34,15 +28,16 @@ interface IScaffoldResponse {
 export const scaffoldService = async (
   data: IScaffoldRequest,
 ): Promise<IScaffoldResponse> => {
+  const { schemaInfo, SQLSchema, formData } = data;
+
   const {
-    schemaInfo,
     framework,
     backendDir,
     frontendDir,
     dbConnection,
-    SQLSchema,
     backendUrl,
-  } = data;
+    dbType,
+  } = formData;
 
   const __dirname = path.dirname(new URL(import.meta.url).pathname);
   const backendDirPath = path.resolve(__dirname, backendDir);
@@ -59,13 +54,13 @@ export const scaffoldService = async (
 
   if (SQLSchema != null) {
     try {
-      if (extractDBConnectionInfo(dbConnection).dbType === 'postgresql') {
+      if (dbType === 'postgresql') {
         await executePostgreSQL(
           dbConnection,
           `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
         );
       }
-      if (extractDBConnectionInfo(dbConnection).dbType === 'mysql') {
+      if (dbType === 'mysql') {
         await executeMySQL(
           dbConnection,
           `
@@ -99,7 +94,7 @@ export const scaffoldService = async (
 
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const folderStructures = useFolderStructures(schemaInfo);
+    const folderStructures = useFolderStructures({ schemaInfo, formData });
 
     if (
       isBackendDirValid &&

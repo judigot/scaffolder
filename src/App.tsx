@@ -16,6 +16,7 @@ import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 
 function App() {
+  const formData = useFormStore();
   const {
     backendUrl,
     backendDir,
@@ -33,7 +34,7 @@ function App() {
     setDBType,
     creationMode,
     setCreationMode,
-  } = useFormStore();
+  } = formData;
 
   const {
     schemaInfo,
@@ -295,12 +296,8 @@ function App() {
                 },
                 body: JSON.stringify({
                   schemaInfo,
-                  backendDir,
-                  frontendDir,
-                  dbConnection,
-                  framework,
                   SQLSchema,
-                  backendUrl,
+                  formData,
                 }),
               })
                 .then((response) => response.json())
@@ -483,11 +480,18 @@ function App() {
 
               <FileViewer
                 folderColor={'yellow'}
-                folderStructure={useFolderStructures(schemaInfo)[framework]}
+                folderStructure={
+                  useFolderStructures({ schemaInfo, formData: useFormStore() })[
+                    framework
+                  ]
+                }
               />
               <FileViewer
                 folderColor={'green'}
-                folderStructure={useFolderStructures(schemaInfo).frontend}
+                folderStructure={
+                  useFolderStructures({ schemaInfo, formData: useFormStore() })
+                    .frontend
+                }
               />
             </div>
           </div>

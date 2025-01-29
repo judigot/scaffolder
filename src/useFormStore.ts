@@ -32,7 +32,7 @@ export const frameworks = {
 //   outputOnSingleFile: boolean;
 // }
 
-interface IFormStore extends Record<PropertyKey, unknown> {
+export interface IFormStore extends Record<PropertyKey, unknown> {
   schemaInput: IJSONSchema;
   backendUrl: string;
   backendDir: string;

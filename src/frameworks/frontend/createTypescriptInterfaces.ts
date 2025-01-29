@@ -2,17 +2,34 @@ import { IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces.ts';
 
-const createTypescriptInterfaces = (schemaInfo: ISchemaInfo[]): IStructure => {
+const createTypescriptInterfaces = (
+  schemaInfo: ISchemaInfo[],
+  includeTypeGuards: boolean,
+  outputOnSingleFile: boolean,
+): IStructure => {
   const interfaces = generateTypescriptInterfaces({
     schemaInfo,
-    includeTypeGuards: true,
-    outputOnSingleFile: false,
+    includeTypeGuards,
   });
+
+  if (outputOnSingleFile) {
+    const combinedContent = Object.entries(interfaces)
+      .map(([, content]) => content)
+      .join('\n\n'); // Separate each interface with a new line
+
+    return [
+      {
+        type: 'file',
+        name: 'interfaces.ts',
+        content: combinedContent,
+      },
+    ];
+  }
+
   return Object.entries(interfaces).map(([interfaceName, content]) => {
-    const fileName = `${interfaceName}.ts`;
     return {
       type: 'file',
-      name: fileName,
+      name: `${interfaceName}.ts`,
       content,
     };
   });

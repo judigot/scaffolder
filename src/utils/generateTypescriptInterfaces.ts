@@ -11,7 +11,6 @@ const generateTypescriptInterfaces = ({
 }: {
   schemaInfo: ISchemaInfo[];
   includeTypeGuards: boolean;
-  outputOnSingleFile: boolean;
 }): Record<string, string> => {
   const generateInterface = (
     table: string,
@@ -56,11 +55,8 @@ const generateTypescriptInterfaces = ({
           {
             column_name,
             data_type,
-            primary_key: false,
             is_nullable,
             column_default: '',
-            unique: false,
-            foreign_key: null,
           },
           'typescript',
         );

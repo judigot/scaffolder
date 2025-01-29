@@ -7,7 +7,7 @@ import { changeCase } from '@/utils/common.ts';
 
 const _CREATE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '../../interfaces/I{{className}}';
+import { I{{className}} } from '@/interfaces/interfaces.ts';
 
 type IBody = Omit<I{{className}}, '{{primaryKey}}' | 'created_at' | 'updated_at'>;
 
@@ -26,7 +26,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import { read{{className}} } from '@/services/{{tableName}}/read-{{tableName}}';
-import { I{{className}} } from '@/interfaces/I{{className}}';
+import { I{{className}} } from '@/interfaces/interfaces.ts';
 
 export const use{{className}}Data = (
   behavior?: Omit<UseQueryOptions<I{{className}}[], unknown>, 'queryKey' | 'queryFn'>,
@@ -40,7 +40,7 @@ export const use{{className}}Data = (
 
 const _UPDATE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '../../interfaces/I{{className}}';
+import { I{{className}} } from '@/interfaces/interfaces.ts';
 
 type IBody = I{{className}};
 
