@@ -56,6 +56,19 @@ export const useModalStore = create<IModalState>((set) => ({
 
     // Return a promise to resolve user interaction
     return new Promise<boolean>((resolve) => {
+      const handleKeyPress = (e: KeyboardEvent): void => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          resolve(true);
+          set((state) => ({
+            modals: state.modals.filter((modal) => modal.id !== id),
+          }));
+          window.removeEventListener('keydown', handleKeyPress);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyPress);
+
       set((state) => ({
         modals: [
           ...state.modals,
@@ -70,6 +83,7 @@ export const useModalStore = create<IModalState>((set) => ({
                     onSubmit={(e) => {
                       e.preventDefault();
                       resolve(true);
+                      window.removeEventListener('keydown', handleKeyPress);
                       set((state) => ({
                         modals: state.modals.filter((modal) => modal.id !== id),
                       }));
@@ -79,6 +93,7 @@ export const useModalStore = create<IModalState>((set) => ({
                       type="button"
                       onClick={() => {
                         resolve(false);
+                        window.removeEventListener('keydown', handleKeyPress);
                         set((state) => ({
                           modals: state.modals.filter(
                             (modal) => modal.id !== id,
@@ -133,9 +148,7 @@ export const useModalStore = create<IModalState>((set) => ({
           {
             id,
             title,
-            content: (
-              <InputValueModal id={id} oldValue="" resolve={resolve} />
-            ),
+            content: <InputValueModal id={id} oldValue="" resolve={resolve} />,
           },
         ],
       }));
