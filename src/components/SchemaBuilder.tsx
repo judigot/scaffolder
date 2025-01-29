@@ -423,6 +423,25 @@ function SchemaBuilder() {
 
   return (
     <div className="text-white">
+      <button
+        className="float-right sm:mb-0 sm:mb-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+        onClick={() => {
+          void (async () => {
+            const result = await promptModal({
+              title: 'Delete All Tables',
+              description:
+                'Are you sure you want to delete all tables? This action cannot be undone.',
+              trueText: 'Yes',
+              falseText: 'No',
+            });
+            if (result) {
+              setSchemaInfo([]); // Clear all tables
+            }
+          })();
+        }}
+      >
+        Delete Tables
+      </button>
       <TableAdder />
       <div className="flex flex-col md:flex-row">
         <div className="pr-4 w-full md:w-auto">
