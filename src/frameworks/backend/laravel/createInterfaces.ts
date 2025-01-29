@@ -34,12 +34,16 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
 
       const modelImports = generateModelImports(tableInfo);
 
-      const modelSpecificMethods = generateDomainCode({
+      const modelSpecificMethodsArray = generateDomainCode({
         schemaInfo,
         tableInfo,
         tableName,
         codeToGenerate: 'repositoryMethod',
-      }).join(';\n') + ';';
+      });
+      const modelSpecificMethods =
+        modelSpecificMethodsArray.length > 0
+          ? modelSpecificMethodsArray.join(';\n') + ';'
+          : '';
 
       const replacements = {
         tableNamePascalCase,
