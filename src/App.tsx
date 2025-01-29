@@ -50,7 +50,12 @@ function App() {
 
   useEffect(() => {
     setTransformations();
-  }, [schemaInfo, setTransformations]);
+  }, [
+    includeInsertData, // Don't remove! This toggles mock data generation
+    includeTypeGuards, // Don't remove! This toggles type guards generation in the UI
+    schemaInfo,
+    setTransformations,
+  ]);
 
   const stringInterfaces = consolidateInterfaces(interfaces);
 
