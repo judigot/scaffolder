@@ -4,8 +4,8 @@ const structure: IRepositoryStructure = {
   group: 'CRUD',
   methods: [
     {
-      methodName: 'getAll',
-      route: `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'index'])->name('{{tableNameKebabCasePlural}}.index');`,
+      methodName: 'index',
+      route: `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
       description: 'Get all records',
       repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->all();',
@@ -13,7 +13,7 @@ const structure: IRepositoryStructure = {
       serviceContent: `
         return $this->repository->{{methodName}}();
       `,
-      controllerMethod: 'index()',
+      controllerMethod: '{{methodName}}()',
       controllerContent: `
         $items = $this->service->{{methodName}}();
         return response()->json($items);
@@ -40,7 +40,7 @@ const structure: IRepositoryStructure = {
       route: `Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');`,
       description: 'Create a new record',
       repositoryMethod: '{{methodName}}(array $data): Model',
-      repositoryContent: 'return $this->model->create($data);',
+      repositoryContent: 'return $this->model->{{methodName}}($data);',
       serviceMethod: '{{methodName}}(array $data)',
       serviceContent: `
         return $this->repository->{{methodName}}($data);
@@ -53,12 +53,12 @@ const structure: IRepositoryStructure = {
     },
     {
       methodName: 'update',
-      route: `Route::put('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.update');`,
+      route: `Route::put('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
       description: 'Update a specific record by ID',
       repositoryMethod: '{{methodName}}(int $id, array $data): bool',
       repositoryContent: `
         $record = $this->model->find($id);
-        return $record ? $record->update($data) : false;
+        return $record ? $record->{{methodName}}($data) : false;
       `,
       serviceMethod: '{{methodName}}($id, array $data)',
       serviceContent: `
@@ -71,19 +71,19 @@ const structure: IRepositoryStructure = {
       `,
     },
     {
-      methodName: 'delete',
-      route: `Route::delete('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'destroy'])->name('{{tableNameKebabCasePlural}}.destroy');`,
+      methodName: 'destroy',
+      route: `Route::delete('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
       description: 'Delete a specific record by ID',
       repositoryMethod: '{{methodName}}(int $id): bool',
       repositoryContent: `
         $record = $this->model->find($id);
-        return $record ? $record->delete() : false;
+        return $record ? $record->{{methodName}}() : false;
       `,
       serviceMethod: '{{methodName}}($id)',
       serviceContent: `
         return $this->repository->{{methodName}}($id);
       `,
-      controllerMethod: 'destroy($id)',
+      controllerMethod: '{{methodName}}($id)',
       controllerContent: `
         $deleted = $this->service->{{methodName}}($id);
         return $deleted ? response()->json(['message' => 'Resource deleted']) : response()->json(['message' => 'Resource not found'], 404);
