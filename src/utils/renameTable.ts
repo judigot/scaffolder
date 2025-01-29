@@ -140,87 +140,51 @@ function renameTable({
         ? table.tableName.replace(oldTableName, newTableName)
         : replaceOldTableNameInTableName(table.tableName);
 
-    const returnValue = {
-      ...table,
-      tableName: updatedTableName,
-    };
-
     const requiredColumns = replaceOldTableNameInRequiredColumns(
       table.requiredColumns ?? [],
       table.tableName,
       table.isPivot ?? false,
     );
-    if (requiredColumns.length > 0) {
-      const [first, ...rest] = requiredColumns;
-      returnValue.requiredColumns = [first, ...rest];
-    }
 
     const columnsInfo = replaceOldTableNameInColumnInfo(
       table.columnsInfo,
       table.tableName,
       table.isPivot ?? false,
     );
-    if (columnsInfo.length > 0) {
-      returnValue.columnsInfo = columnsInfo;
-    }
 
     const foreignTables = replaceOldTableNameInForeignTables(
       table.foreignTables ?? [],
     );
-    if (foreignTables.length > 0) {
-      const [first, ...rest] = foreignTables;
-      returnValue.foreignTables = [first, ...rest];
-    }
-
     const foreignKeys = replaceOldTableNameInForeignKeys(
       table.foreignKeys ?? [],
     );
-    if (foreignKeys.length > 0) {
-      const [first, ...rest] = foreignKeys;
-      returnValue.foreignKeys = [first, ...rest];
-    }
-
     const childTables = replaceOldTableNameInChildTables(
       table.childTables ?? [],
     );
-    if (childTables.length > 0) {
-      const [first, ...rest] = childTables;
-      returnValue.childTables = [first, ...rest];
-    }
-
     const hasOne = replaceOldTableNameInHasOne(table.hasOne ?? []);
-    if (hasOne.length > 0) {
-      const [first, ...rest] = hasOne;
-      returnValue.hasOne = [first, ...rest];
-    }
-
     const hasMany = replaceOldTableNameInHasMany(table.hasMany ?? []);
-    if (hasMany.length > 0) {
-      const [first, ...rest] = hasMany;
-      returnValue.hasMany = [first, ...rest];
-    }
-
     const belongsTo = replaceOldTableNameInBelongsTo(table.belongsTo ?? []);
-    if (belongsTo.length > 0) {
-      const [first, ...rest] = belongsTo;
-      returnValue.belongsTo = [first, ...rest];
-    }
-
     const belongsToMany = replaceOldTableNameInBelongsToMany(
       table.belongsToMany ?? [],
     );
-    if (belongsToMany.length > 0) {
-      const [first, ...rest] = belongsToMany;
-      returnValue.belongsToMany = [first, ...rest];
-    }
-
     const pivotRelationships = replaceOldTableNameInPivotRelationships(
       table.pivotRelationships ?? [],
     );
-    if (pivotRelationships.length > 0) {
-      const [first, ...rest] = pivotRelationships;
-      returnValue.pivotRelationships = [first, ...rest];
-    }
+
+    const returnValue = {
+      ...table,
+      tableName: updatedTableName,
+      ...(requiredColumns.length > 0 && { requiredColumns }),
+      ...(columnsInfo.length > 0 && { columnsInfo }),
+      ...(foreignTables.length > 0 && { foreignTables }),
+      ...(foreignKeys.length > 0 && { foreignKeys }),
+      ...(childTables.length > 0 && { childTables }),
+      ...(hasOne.length > 0 && { hasOne }),
+      ...(hasMany.length > 0 && { hasMany }),
+      ...(belongsTo.length > 0 && { belongsTo }),
+      ...(belongsToMany.length > 0 && { belongsToMany }),
+      ...(pivotRelationships.length > 0 && { pivotRelationships }),
+    };
 
     return returnValue;
   });

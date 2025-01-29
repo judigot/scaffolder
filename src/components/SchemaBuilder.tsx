@@ -172,25 +172,23 @@ function SchemaBuilder() {
         relationshipKeys.forEach((relation) => {
           const currentRelations = table[relation];
           if (currentRelations && Array.isArray(currentRelations)) {
-            const arrayValue = currentRelations.filter(
+            const relationsValue = currentRelations.filter(
               (rel) => !tablesToRemove.includes(rel),
             );
-            if (arrayValue.length > 0) {
-              const [first, ...rest] = arrayValue;
-              table[relation] = [first, ...rest];
+            if (relationsValue.length > 0) {
+              table[relation] = [...relationsValue];
             }
           }
         });
 
         if (table.pivotRelationships) {
-          const arrayValues = table.pivotRelationships.filter(
+          const pivotRelationships = table.pivotRelationships.filter(
             (rel) =>
               !tablesToRemove.includes(rel.relatedTable) &&
               !tablesToRemove.includes(rel.pivotTable),
           );
-          if (arrayValues.length > 0) {
-            const [first, ...rest] = arrayValues;
-            table.pivotRelationships = [first, ...rest];
+          if (pivotRelationships.length > 0) {
+            table.pivotRelationships = [...pivotRelationships];
           }
         }
 
