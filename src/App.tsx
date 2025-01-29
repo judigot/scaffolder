@@ -14,6 +14,7 @@ import { CREATION_MODES } from '@/constants.ts';
 import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
+import { loadFeatureMethods } from '@/frameworks/base-methods/index.ts';
 
 function App() {
   const formData = useFormStore();
@@ -33,6 +34,10 @@ function App() {
     creationMode,
     setCreationMode,
   } = formData;
+
+  const featureMethods = loadFeatureMethods(framework.toLowerCase());
+  // eslint-disable-next-line no-console
+  console.log(featureMethods);
 
   const {
     schemaInfo,
@@ -101,7 +106,7 @@ function App() {
             <div className="inline-block text-sm font-medium mr-2">
               Schema Templates:
               <div className="flex items-center h-10">
-              <button
+                <button
                   data-testid="one-to-one-button"
                   type="button"
                   onClick={() => {

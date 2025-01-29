@@ -4,15 +4,19 @@ export default {
   methodName: 'index',
   route: `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
   description: 'Get all records',
-  repositoryMethod: '{{methodName}}(): Collection',
-  repositoryContent: 'return $this->model->all();',
-  serviceMethod: '{{methodName}}()',
+  repositoryMethod: `{{methodName}}(): Collection`,
+  repositoryContent: `return $this->model->all();`,
+  serviceMethod: `{{methodName}}()`,
   serviceContent: `
-      return $this->repository->{{methodName}}();
+      
+        return $this->repository->{{methodName}}();
+      
     `,
-  controllerMethod: '{{methodName}}()',
+  controllerMethod: `{{methodName}}()`,
   controllerContent: `
-      $items = $this->service->{{methodName}}();
-      return response()->json($items);
+      
+        $items = $this->service->{{methodName}}();
+        return response()->json($items);
+      
     `,
 } satisfies IMethod;

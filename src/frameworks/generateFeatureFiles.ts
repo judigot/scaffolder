@@ -1,19 +1,16 @@
+import { methods } from '@/frameworks/backend/laravel/base-methods/index.ts';
+import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-interface IMethod {
-  methodName: string;
-  route: string;
-  description: string;
-  repositoryMethod: string;
-  repositoryContent: string;
-  serviceMethod: string;
-  serviceContent: string;
-  controllerMethod: string;
-  controllerContent: string;
-}
+// Convert `import.meta.url` to a file path (for ES modules)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const generateFeatureFiles = (methods: IMethod[], outputDir = 'base-methods') => {
+const generateFeatureFiles = (methods: IMethod[]) => {
+  const outputDir = path.join(__dirname, 'base-methods'); // Ensures files are created in the same directory
+
   methods.forEach((method) => {
     const featureDir = path.join(outputDir, method.methodName);
     const featureFile = path.join(featureDir, 'laravel.ts');
@@ -48,6 +45,46 @@ export default {
     // eslint-disable-next-line no-console
     console.log(`✅ Created: ${featureFile}`);
   });
+
+  // Generate index.ts
+  generateIndexFile(outputDir);
 };
+
+// Generate `index.ts` that dynamically imports all `laravel.ts` files
+const generateIndexFile = (outputDir: string) => {
+  const featureDirs = fs
+    .readdirSync(outputDir)
+    .filter((dir) => fs.statSync(path.join(outputDir, dir)).isDirectory());
+
+  // Generate static imports for each Laravel method
+  const imports = featureDirs
+    .map((feature) => `import ${feature} from './${feature}/laravel.ts';`)
+    .join('\n');
+
+  // Generate the exported object with hardcoded Laravel imports
+  const indexContent = `${imports}
+
+export const loadFeatureMethods = (frameworkName: string) => {
+  if (frameworkName !== 'laravel') {
+    throw new Error(\`Framework "\${frameworkName}" is not statically imported\`);
+  }
+
+  return {
+    laravel: {
+${featureDirs.map((feature) => `      ${feature},`).join('\n')}
+    }
+  };
+};
+`;
+
+  fs.writeFileSync(path.join(outputDir, 'index.ts'), indexContent, 'utf8');
+  // eslint-disable-next-line no-console
+  console.log(`✅ Created: ${path.join(outputDir, 'index.ts')}`);
+};
+
+export { generateIndexFile };
+
+// Run the generator
+generateFeatureFiles(methods);
 
 export { generateFeatureFiles };
