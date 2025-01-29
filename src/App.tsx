@@ -28,9 +28,7 @@ function App() {
     includeTypeGuards,
     outputOnSingleFile,
     dbType,
-    setOneToOne,
-    setOneToMany,
-    setManyToMany,
+    setMasterSchema,
     setDBType,
     creationMode,
     setCreationMode,
@@ -103,35 +101,15 @@ function App() {
             <div className="inline-block text-sm font-medium mr-2">
               Schema Templates:
               <div className="flex items-center h-10">
-                <button
+              <button
                   data-testid="one-to-one-button"
                   type="button"
                   onClick={() => {
-                    setOneToOne();
+                    setMasterSchema();
                   }}
                   className="sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
                 >
-                  One to One
-                </button>
-                <button
-                  data-testid="one-to-many-button"
-                  type="button"
-                  onClick={() => {
-                    setOneToMany();
-                  }}
-                  className="sm:mb-0 sm:mr-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                >
-                  One to Many
-                </button>
-                <button
-                  data-testid="many-to-many-button"
-                  type="button"
-                  onClick={() => {
-                    setManyToMany();
-                  }}
-                  className="sm:mb-0 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-                >
-                  Many to Many
+                  Master Schema
                 </button>
               </div>
             </div>

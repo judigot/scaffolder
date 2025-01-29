@@ -9,9 +9,11 @@ import {
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,
   POSSchema,
+  masterJSONSchema,
 } from '@/json-schemas/index.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
+import masterSchema from '@/schema-infos/masterSchema.ts';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -49,6 +51,7 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   setCreationMode: (
     creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES],
   ) => void;
+  setMasterSchema: () => void;
   setOneToOne: () => void;
   setOneToMany: () => void;
   setManyToMany: () => void;
@@ -75,7 +78,7 @@ export const useFormStore = create<IFormStore>()(
     const initialQuote = SQLQueries.quote[initialDbType];
 
     return {
-      schemaInput: usersPostOneToOneSchema,
+      schemaInput: masterJSONSchema,
       backendUrl: 'http://localhost:8000/api',
       backendDir: 'C:/Users/Jude/Desktop/laravel',
       // backendDir: 'C:/Users/Username/Desktop/app/backend',
@@ -92,6 +95,10 @@ export const useFormStore = create<IFormStore>()(
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
       setCreationMode: (creationMode) => {
         set({ creationMode });
+      },
+      setMasterSchema: () => {
+        set({ schemaInput: masterJSONSchema });
+        useTransformationsStore.getState().setSchemaInfo(masterSchema);
       },
       setOneToOne: () => {
         set({ schemaInput: usersPostOneToOneSchema });

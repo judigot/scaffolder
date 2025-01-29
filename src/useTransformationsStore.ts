@@ -11,8 +11,8 @@ import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces.t
 import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import generateSQLSchema from '@/utils/generateSQLSchema.ts';
 import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
-import { oneToOne } from '@/schema-infos/index.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
+import masterSchema from '@/schema-infos/masterSchema.ts';
 
 interface ITransformations extends Record<PropertyKey, unknown> {
   schemaInfo: ISchemaInfo[];
@@ -46,7 +46,7 @@ export const useTransformationsStore = create<ITransformations>()(
   persist((rawSet, get) => {
     const set = createTabSync<ITransformations>('schemaInfo-sync')(rawSet);
     return {
-      schemaInfo: oneToOne,
+      schemaInfo: masterSchema,
       interfaces: {},
       getParsedSchemaInput: () => {
         const { schemaInput } = useFormStore.getState();
@@ -98,12 +98,8 @@ export const useTransformationsStore = create<ITransformations>()(
         }
       },
       setTransformations: (tempSchemaInfo?: ISchemaInfo[] | null) => {
-        const {
-          includeInsertData,
-          insertOption,
-          includeTypeGuards,
-          outputOnSingleFile,
-        } = useFormStore.getState();
+        const { includeInsertData, insertOption, includeTypeGuards } =
+          useFormStore.getState();
 
         const schemaInfo = tempSchemaInfo ?? get().schemaInfo;
 
@@ -137,7 +133,6 @@ export const useTransformationsStore = create<ITransformations>()(
           interfaces = generateTypescriptInterfaces({
             schemaInfo,
             includeTypeGuards,
-            outputOnSingleFile,
           });
           set({ interfaces });
         } catch {
