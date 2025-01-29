@@ -523,17 +523,21 @@ function App() {
               </div>
               {includeInsertData && (
                 <div className="mt-2">
-                  <div className="block text-sm font-medium">
-                    <input
-                      type="radio"
-                      name="insertOption"
-                      value="SQLInsertQueries"
-                      checked={insertOption === 'SQLInsertQueries'}
-                      onChange={handleChange}
-                      className="mr-2"
-                    />
-                    Rows from JSON Database Schema
-                  </div>
+                  {/* @ts-expect-error: JSONSchemaEditor is temporarily disabled */}
+                  {creationMode === CREATION_MODES.JSON_SCHEMA && (
+                    <div className="block text-sm font-medium">
+                      <input
+                        type="radio"
+                        name="insertOption"
+                        value="SQLInsertQueries"
+                        checked={insertOption === 'SQLInsertQueries'}
+                        onChange={handleChange}
+                        className="mr-2"
+                      />
+                      Rows from JSON Database Schema
+                    </div>
+                  )}
+
                   <div className="block text-sm font-medium">
                     <input
                       type="radio"
