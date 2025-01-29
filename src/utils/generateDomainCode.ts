@@ -2,7 +2,7 @@ import { replacePlaceholder } from '@/helpers/stringHelper.ts';
 import { changeCase } from '@/utils/common.ts';
 import domainStructure from '@/frameworks/backend/laravel/domain-methods/DomainMethods.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { IMethods } from '@/interfaces/IRepositoryPatternStructure.ts';
+import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { TableReplacements } from '@/interfaces/placeholders.ts';
 import { RelationshipTypes } from '@/interfaces/IRelationshipTypes.ts';
 import { IDomainStatus } from '@/interfaces/IDomainStatus.ts';
@@ -24,7 +24,7 @@ function generateDomainCode({
   schemaInfo: ISchemaInfo[];
   tableInfo: ISchemaInfo;
   tableName: ISchemaInfo['tableName'];
-  codeToGenerate: keyof IMethods;
+  codeToGenerate: keyof IMethod;
   relationshipType?: RelationshipTypes;
 }): string[] {
   const determineRelationshipType = ({

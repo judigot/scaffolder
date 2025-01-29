@@ -15,7 +15,7 @@ type RelationshipMethodGroups =
 
 type DomainMethodGroups = 'Domain Relations';
 
-export interface IMethods {
+export interface IMethod {
   methodName: string;
   route: string;
   description: string;
@@ -31,12 +31,12 @@ export interface IMethods {
 
 export interface IRepositoryStructure {
   group: MethodGroups | RelationshipMethodGroups | DomainMethodGroups;
-  methods: IMethods[];
+  methods: IMethod[];
 }
 
 export interface IDomainStructure {
   group: MethodGroups | RelationshipMethodGroups | DomainMethodGroups;
   methods: {
-    [key in keyof IMethods]: string | ((status: IDomainStatus) => string);
+    [key in keyof IMethod]: string | ((status: IDomainStatus) => string);
   }[];
 }

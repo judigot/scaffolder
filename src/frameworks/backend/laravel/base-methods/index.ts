@@ -15,12 +15,19 @@ const baseMethods: IRepositoryStructure[] = [
   { ...AdvancedOperations },
 ];
 
-// // Log all methods from each method group
+// // Log all methods names from each method group
 // baseMethods.forEach(({ methods }) => {
 //   methods.forEach(({ methodName }) => {
 //     // eslint-disable-next-line no-console
 //     console.log(methodName);
 //   });
 // });
+
+// Log all methods content
+export const methods = baseMethods.flatMap(({ methods }) => {
+  return methods.map((method) => {
+    return method;
+  });
+});
 
 export default baseMethods;
