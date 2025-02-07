@@ -23,8 +23,10 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
         fs.mkdirSync(featureDir, { recursive: true });
       }
 
-      // Define the TypeScript content
-      const fileContent = `import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+      // Write the TypeScript file
+      fs.writeFileSync(
+        featureFile,
+        `import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: '${method.methodName}',
@@ -37,10 +39,9 @@ export default {
   controllerMethod: \`${method.controllerMethod}\`,
   controllerContent: \`${method.controllerContent}\`,
 } satisfies IMethod;
-`;
-
-      // Write the TypeScript file
-      fs.writeFileSync(featureFile, fileContent, 'utf8');
+`,
+        'utf8',
+      );
       // eslint-disable-next-line no-console
       console.log(`✅ Created: ${featureFile}`);
     });
@@ -82,9 +83,5 @@ ${featureDirs.map((feature) => `      ${feature},`).join('\n')}
   console.log(`✅ Created: ${path.join(outputDir, 'index.ts')}`);
 };
 
-export { generateIndexFile };
-
 // Run the generator
 generateFeatureFiles(methods);
-
-export { generateFeatureFiles };
