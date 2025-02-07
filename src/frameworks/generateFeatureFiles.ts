@@ -11,9 +11,10 @@ const __dirname = path.dirname(__filename);
 const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
   const outputDir = path.join(__dirname, 'base-methods'); // Ensures files are created in the same directory
 
-  operation.forEach(({ methods }) => {
+  operation.forEach(({ group, methods }) => {
     methods.map((method) => {
-      const featureDir = path.join(outputDir, method.methodName);
+      const groupDir = path.join(outputDir, group);
+      const featureDir = path.join(groupDir, method.methodName);
       const featureFile = path.join(featureDir, 'laravel.ts');
 
       // Ensure the feature directory exists
