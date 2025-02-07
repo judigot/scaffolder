@@ -8,13 +8,46 @@ import { fileURLToPath } from 'url';
 // Convert `import.meta.url` to a file path (for ES modules)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const outputDir = path.join(__dirname, 'base-methods'); // Ensures files are created in the same directory
+
+if (fs.existsSync(outputDir)) {
+  fs.rmdirSync(outputDir, { recursive: true });
+  // eslint-disable-next-line no-console
+  console.log(`✅ Deleted: ${outputDir}`);
+}
+
+// Generate index.ts for a specific group directory
+const generateGroupIndexFile = (groupDir: string, methods: string[]) => {
+  const imports = methods
+    .map((method) => `import ${method} from './${method}/laravel.ts';`)
+    .join('\n');
+
+  const exports = `export default {
+${methods.map((method) => `  ...${method},`).join('\n')}
+} satisfies IMethod;`;
+
+  const indexContent = `import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+${imports}\n\n${exports}\n`;
+  const indexPath = path.join(groupDir, 'index.ts');
+  fs.writeFileSync(indexPath, indexContent, 'utf8');
+  // eslint-disable-next-line no-console
+  console.log(`✅ Created: ${indexPath}`);
+};
 
 const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
-  const outputDir = path.join(__dirname, 'base-methods'); // Ensures files are created in the same directory
+  // Track methods by group for generating group index files
+  const methodsByGroup = new Map<string, string[]>();
 
   operation.forEach(({ group, methods }) => {
-    methods.map((method) => {
-      const groupDir = path.join(outputDir, changeCase(group).kebabCase);
+    const groupDirName = changeCase(group).kebabCase;
+    const groupDir = path.join(outputDir, groupDirName);
+
+    // Initialize group methods array if not exists
+    if (!methodsByGroup.has(groupDirName)) {
+      methodsByGroup.set(groupDirName, []);
+    }
+
+    methods.forEach((method) => {
       const featureDir = path.join(groupDir, method.methodName);
       const featureFile = path.join(featureDir, 'laravel.ts');
 
@@ -22,6 +55,9 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
       if (!fs.existsSync(featureDir)) {
         fs.mkdirSync(featureDir, { recursive: true });
       }
+
+      // Track method for group index
+      methodsByGroup.get(groupDirName)?.push(method.methodName);
 
       // Write the TypeScript file
       fs.writeFileSync(
@@ -47,35 +83,48 @@ export default {
     });
   });
 
-  // Generate index.ts
-  generateIndexFile(outputDir);
+  // Generate index.ts for each group
+  methodsByGroup.forEach((methods, groupDirName) => {
+    const groupDir = path.join(outputDir, groupDirName);
+    generateGroupIndexFile(groupDir, methods);
+  });
+
+  // Generate main index.ts
+  generateIndexFile(outputDir, methodsByGroup);
 };
 
 // Generate `index.ts` that dynamically imports all `laravel.ts` files
-const generateIndexFile = (outputDir: string) => {
-  const featureDirs = fs
-    .readdirSync(outputDir)
-    .filter((dir) => fs.statSync(path.join(outputDir, dir)).isDirectory());
+const generateIndexFile = (
+  outputDir: string,
+  methodsByGroup: Map<string, string[]>,
+) => {
+  const featureDirs = Array.from(methodsByGroup.keys());
 
-  // Generate static imports for each Laravel method
+  // Generate imports for each group
   const imports = featureDirs
-    .map((feature) => `import ${feature} from './${feature}/laravel.ts';`)
+    .map(
+      (feature) =>
+        `import ${changeCase(feature).pascalCase} from './${feature}/index.ts';`,
+    )
     .join('\n');
 
-  // Generate the exported object with hardcoded Laravel imports
-  const indexContent = `${imports}
+  // Generate the base methods array
+  const indexContent = `import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+${imports}
 
-export const loadFeatureMethods = (frameworkName: string) => {
-  if (frameworkName !== 'laravel') {
-    throw new Error(\`Framework "\${frameworkName}" is not statically imported\`);
-  }
+const baseMethods: IRepositoryStructure[] = [
+${featureDirs
+  .map((feature) => {
+    const groupName = feature
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    return `  { group: '${changeCase(groupName).titleCase}', methods: [${changeCase(feature).pascalCase}] }`;
+  })
+  .join(',\n')}
+];
 
-  return {
-    laravel: {
-${featureDirs.map((feature) => `      ${feature},`).join('\n')}
-    },
-  };
-};
+export default baseMethods;
 `;
 
   fs.writeFileSync(path.join(outputDir, 'index.ts'), indexContent, 'utf8');
