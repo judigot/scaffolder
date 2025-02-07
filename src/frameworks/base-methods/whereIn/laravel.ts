@@ -8,17 +8,13 @@ export default {
   repositoryContent: `return $this->model->whereIn($column, $values)->get();`,
   serviceMethod: `whereIn(string $column, array $values): Collection`,
   serviceContent: `
-      
         return $this->repository->whereIn($column, $values);
-      
-    `,
+      `,
   controllerMethod: `whereIn(Request $request)`,
   controllerContent: `
-      
         $column = $request->input('column');
         $values = $request->input('values', []);
         $items = $this->service->whereIn($column, $values);
         return response()->json($items);
-      
-    `,
+      `,
 } satisfies IMethod;

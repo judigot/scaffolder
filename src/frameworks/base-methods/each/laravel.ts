@@ -8,17 +8,13 @@ export default {
   repositoryContent: `return $this->model->each($callback);`,
   serviceMethod: `each(callable $callback): bool`,
   serviceContent: `
-      
         return $this->repository->each($callback);
-      
-    `,
+      `,
   controllerMethod: `each()`,
   controllerContent: `
-      
         $callback = function ($item) {
             return response()->json($item);
         };
         $this->service->each($callback);
-      
-    `,
+      `,
 } satisfies IMethod;

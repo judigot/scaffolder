@@ -10,17 +10,13 @@ export default {
       `,
   serviceMethod: `{{methodName}}(array $criteria, array $data): bool`,
   serviceContent: `
-      
       return $this->repository->{{methodName}}($criteria, $data);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
       $criteria = $request->input('criteria', []);
       $data = $request->input('data', []);
       $updated = $this->service->{{methodName}}($criteria, $data);
       return response()->json(['updated' => $updated]);
-      
-    `,
+      `,
 } satisfies IMethod;

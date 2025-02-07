@@ -14,18 +14,14 @@ export default {
       `,
   serviceMethod: `{{methodName}}(string $query, array $fields, int $perPage = 15)`,
   serviceContent: `
-      
         return $this->repository->{{methodName}}($query, $fields, $perPage);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
         $query = $request->input('query');
         $fields = $request->input('fields', []);
         $perPage = $request->input('per_page', 15);
         $results = $this->service->{{methodName}}($query, $fields, $perPage);
         return response()->json($results);
-      
-    `,
+      `,
 } satisfies IMethod;

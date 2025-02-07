@@ -8,16 +8,12 @@ export default {
   repositoryContent: `return $this->model->paginate($perPage);`,
   serviceMethod: `{{methodName}}(int $perPage = 15)`,
   serviceContent: `
-      
         return $this->repository->{{methodName}}($perPage);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
         $perPage = $request->input('per_page', 15);
         $items = $this->service->{{methodName}}($perPage);
         return response()->json($items);
-      
-    `,
+      `,
 } satisfies IMethod;

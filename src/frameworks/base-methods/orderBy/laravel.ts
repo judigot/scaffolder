@@ -8,17 +8,13 @@ export default {
   repositoryContent: `return $this->model->orderBy($column, $direction)->get();`,
   serviceMethod: `{{methodName}}(string $column, string $direction = 'asc'): Collection`,
   serviceContent: `
-      
       return $this->repository->{{methodName}}($column, $direction);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
       $column = $request->input('column');
       $direction = $request->input('direction', 'asc');
       $items = $this->service->{{methodName}}($column, $direction);
       return response()->json($items);
-      
-    `,
+      `,
 } satisfies IMethod;

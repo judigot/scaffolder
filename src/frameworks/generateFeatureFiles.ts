@@ -1,5 +1,5 @@
 import { methods } from '@/frameworks/backend/laravel/base-methods/index.ts';
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,20 +8,21 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const generateFeatureFiles = (methods: IMethod[]) => {
+const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
   const outputDir = path.join(__dirname, 'base-methods'); // Ensures files are created in the same directory
 
-  methods.forEach((method) => {
-    const featureDir = path.join(outputDir, method.methodName);
-    const featureFile = path.join(featureDir, 'laravel.ts');
+  operation.forEach(({ methods }) => {
+    methods.map((method) => {
+      const featureDir = path.join(outputDir, method.methodName);
+      const featureFile = path.join(featureDir, 'laravel.ts');
 
-    // Ensure the feature directory exists
-    if (!fs.existsSync(featureDir)) {
-      fs.mkdirSync(featureDir, { recursive: true });
-    }
+      // Ensure the feature directory exists
+      if (!fs.existsSync(featureDir)) {
+        fs.mkdirSync(featureDir, { recursive: true });
+      }
 
-    // Define the TypeScript content
-    const fileContent = `import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+      // Define the TypeScript content
+      const fileContent = `import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: '${method.methodName}',
@@ -30,20 +31,17 @@ export default {
   repositoryMethod: \`${method.repositoryMethod}\`,
   repositoryContent: \`${method.repositoryContent}\`,
   serviceMethod: \`${method.serviceMethod}\`,
-  serviceContent: \`
-      ${method.serviceContent}
-    \`,
+  serviceContent: \`${method.serviceContent}\`,
   controllerMethod: \`${method.controllerMethod}\`,
-  controllerContent: \`
-      ${method.controllerContent}
-    \`,
+  controllerContent: \`${method.controllerContent}\`,
 } satisfies IMethod;
 `;
 
-    // Write the TypeScript file
-    fs.writeFileSync(featureFile, fileContent, 'utf8');
-    // eslint-disable-next-line no-console
-    console.log(`✅ Created: ${featureFile}`);
+      // Write the TypeScript file
+      fs.writeFileSync(featureFile, fileContent, 'utf8');
+      // eslint-disable-next-line no-console
+      console.log(`✅ Created: ${featureFile}`);
+    });
   });
 
   // Generate index.ts

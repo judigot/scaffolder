@@ -11,17 +11,13 @@ export default {
       `,
   serviceMethod: `{{methodName}}(int $id): bool`,
   serviceContent: `
-      
       return $this->repository->{{methodName}}($id);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}($id)`,
   controllerContent: `
-      
       $softDeleted = $this->service->{{methodName}}($id);
       return $softDeleted
             ? response()->json(['message' => 'Resource soft-deleted'])
             : response()->json(['message' => 'Resource not found'], 404);
-      
-    `,
+      `,
 } satisfies IMethod;

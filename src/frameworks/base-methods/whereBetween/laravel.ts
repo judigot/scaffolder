@@ -8,17 +8,13 @@ export default {
   repositoryContent: `return $this->model->whereBetween($column, $range)->get();`,
   serviceMethod: `whereBetween(string $column, array $range): Collection`,
   serviceContent: `
-      
         return $this->repository->whereBetween($column, $range);
-      
-    `,
+      `,
   controllerMethod: `whereBetween(Request $request)`,
   controllerContent: `
-      
         $column = $request->input('column');
         $range = $request->input('range', []);
         $items = $this->service->whereBetween($column, $range);
         return response()->json($items);
-      
-    `,
+      `,
 } satisfies IMethod;

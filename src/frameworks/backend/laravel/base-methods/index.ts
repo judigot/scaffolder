@@ -24,10 +24,8 @@ const baseMethods: IRepositoryStructure[] = [
 // });
 
 // Log all methods content
-export const methods = baseMethods.flatMap(({ methods }) => {
-  return methods.map((method) => {
-    return method;
-  });
+export const methods = baseMethods.flatMap((operation) => {
+  return operation;
 });
 
 export default baseMethods;

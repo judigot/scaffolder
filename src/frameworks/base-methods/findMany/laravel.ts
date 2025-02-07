@@ -8,16 +8,12 @@ export default {
   repositoryContent: `return $this->model->findMany($ids);`,
   serviceMethod: `{{methodName}}(array $ids): Collection`,
   serviceContent: `
-      
       return $this->repository->{{methodName}}($ids);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
       $ids = $request->input('ids', []);
       $items = $this->service->{{methodName}}($ids);
       return response()->json($items);
-      
-    `,
+      `,
 } satisfies IMethod;

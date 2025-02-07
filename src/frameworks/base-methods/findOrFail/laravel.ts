@@ -8,15 +8,11 @@ export default {
   repositoryContent: `return $this->model->findOrFail($id);`,
   serviceMethod: `{{methodName}}(int $id): Model`,
   serviceContent: `
-      
       return $this->repository->{{methodName}}($id);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}($id)`,
   controllerContent: `
-      
       $item = $this->service->{{methodName}}($id);
       return response()->json($item);
-      
-    `,
+      `,
 } satisfies IMethod;

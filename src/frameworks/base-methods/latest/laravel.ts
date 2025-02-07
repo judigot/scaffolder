@@ -8,16 +8,12 @@ export default {
   repositoryContent: `return $this->model->latest($column)->first();`,
   serviceMethod: `{{methodName}}(string $column = 'created_at'): ?Model`,
   serviceContent: `
-      
       return $this->repository->{{methodName}}($column);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
       $column = $request->input('column', 'created_at');
       $item = $this->service->{{methodName}}($column);
       return response()->json($item);
-      
-    `,
+      `,
 } satisfies IMethod;

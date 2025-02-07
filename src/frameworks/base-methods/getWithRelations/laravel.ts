@@ -8,16 +8,12 @@ export default {
   repositoryContent: `return $this->model->with($relations)->get();`,
   serviceMethod: `{{methodName}}(array $relations): Collection`,
   serviceContent: `
-      
         return $this->repository->{{methodName}}($relations);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
         $relations = $request->input('relations', []);
         $items = $this->service->{{methodName}}($relations);
         return response()->json($items);
-      
-    `,
+      `,
 } satisfies IMethod;

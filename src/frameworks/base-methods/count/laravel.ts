@@ -8,16 +8,12 @@ export default {
   repositoryContent: `return $this->model->where($criteria)->count();`,
   serviceMethod: `{{methodName}}(array $criteria = []): int`,
   serviceContent: `
-      
         return $this->repository->{{methodName}}($criteria);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}(Request $request)`,
   controllerContent: `
-      
         $criteria = $request->all();
         $count = $this->service->{{methodName}}($criteria);
         return response()->json(['count' => $count]);
-      
-    `,
+      `,
 } satisfies IMethod;

@@ -8,17 +8,13 @@ export default {
   repositoryContent: `return $this->model->firstOrNew($attributes, $values);`,
   serviceMethod: `firstOrNew(array $attributes, array $values = []): Model`,
   serviceContent: `
-      
         return $this->repository->firstOrNew($attributes, $values);
-      
-    `,
+      `,
   controllerMethod: `firstOrNew(Request $request)`,
   controllerContent: `
-      
         $attributes = $request->input('attributes', []);
         $values = $request->input('values', []);
         $item = $this->service->firstOrNew($attributes, $values);
         return response()->json($item);
-      
-    `,
+      `,
 } satisfies IMethod;

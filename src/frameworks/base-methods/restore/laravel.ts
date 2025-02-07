@@ -11,17 +11,13 @@ export default {
       `,
   serviceMethod: `{{methodName}}(int $id): bool`,
   serviceContent: `
-      
       return $this->repository->{{methodName}}($id);
-      
-    `,
+      `,
   controllerMethod: `{{methodName}}($id)`,
   controllerContent: `
-      
       $restored = $this->service->{{methodName}}($id);
       return $restored
             ? response()->json(['message' => 'Resource restored'])
             : response()->json(['message' => 'Resource not found'], 404);
-      
-    `,
+      `,
 } satisfies IMethod;

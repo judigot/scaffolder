@@ -8,15 +8,11 @@ export default {
   repositoryContent: `return $this->model->{{methodName}}($data);`,
   serviceMethod: `{{methodName}}(array $data)`,
   serviceContent: `
-      
         return $this->repository->{{methodName}}($data);
-      
-    `,
+      `,
   controllerMethod: `store(Request $request)`,
   controllerContent: `
-      
         $item = $this->service->{{methodName}}($request->all());
         return response()->json($item, 201);
-      
-    `,
+      `,
 } satisfies IMethod;
