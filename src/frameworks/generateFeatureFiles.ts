@@ -1,5 +1,6 @@
 import { methods } from '@/frameworks/backend/laravel/base-methods/index.ts';
 import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+import { changeCase } from '@/utils/common.ts';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,7 +14,7 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
 
   operation.forEach(({ group, methods }) => {
     methods.map((method) => {
-      const groupDir = path.join(outputDir, group);
+      const groupDir = path.join(outputDir, changeCase(group).kebabCase);
       const featureDir = path.join(groupDir, method.methodName);
       const featureFile = path.join(featureDir, 'laravel.ts');
 
