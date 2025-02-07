@@ -34,7 +34,7 @@ import withTrashed from './withTrashed/laravel.ts';
 
 export const loadFeatureMethods = (frameworkName: string) => {
   if (frameworkName !== 'laravel') {
-    return;
+    throw new Error(`Framework "${frameworkName}" is not statically imported`);
   }
 
   return {

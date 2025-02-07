@@ -72,7 +72,7 @@ export const loadFeatureMethods = (frameworkName: string) => {
   return {
     laravel: {
 ${featureDirs.map((feature) => `      ${feature},`).join('\n')}
-    }
+    },
   };
 };
 `;
