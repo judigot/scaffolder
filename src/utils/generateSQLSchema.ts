@@ -23,7 +23,7 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
         const parentTable = schemaInfo.find(
           (t) => t.tableName === relatedTable,
         );
-        const hasOneRelationship = parentTable?.hasOne.includes(table) ?? false;
+        const hasOneRelationship = parentTable?.hasOne?.includes(table) ?? false;
 
         if (hasOneRelationship) {
           return constraint.replace(/;?$/, ' ON DELETE CASCADE');

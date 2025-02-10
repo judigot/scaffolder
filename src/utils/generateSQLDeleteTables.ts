@@ -4,9 +4,11 @@ import { useFormStore } from '@/useFormStore.ts';
 function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]) {
   const foreignKeys = schemaInfo.reduce<Record<string, string[]>>(
     (acc, table) => {
-      acc[table.tableName] = table.foreignKeys?.map((fk) =>
-        fk.replace('_id', ''),
-      );
+      if (table.foreignKeys) {
+        acc[table.tableName] = table.foreignKeys
+          .map((fk) => fk.replace('_id', ''))
+          .filter((fk): fk is string => fk !== '');
+      }
       return acc;
     },
     {},
