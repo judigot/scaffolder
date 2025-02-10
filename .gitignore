@@ -25,5 +25,3 @@ dist-ssr
 
 .env
 output
-
-src/frameworks/base-methods

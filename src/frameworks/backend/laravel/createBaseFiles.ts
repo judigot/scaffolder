@@ -1,5 +1,5 @@
 import { IFile } from '@/components/FileViewer.tsx';
-import baseMethods from '@/frameworks/backend/laravel/base-methods/index.ts';
+import baseMethods from '@/frameworks/base-methods/index.ts';
 import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
 
 const createBaseFiles = (

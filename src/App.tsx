@@ -14,7 +14,7 @@ import { CREATION_MODES } from '@/constants.ts';
 import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import { loadFeatureMethods } from '@/frameworks/base-methods/index.ts';
+import { baseMethods } from '@/frameworks/base-methods/index.ts';
 
 function App() {
   const formData = useFormStore();
@@ -35,9 +35,8 @@ function App() {
     setCreationMode,
   } = formData;
 
-  const featureMethods = loadFeatureMethods(framework.toLowerCase());
   // eslint-disable-next-line no-console
-  console.log(featureMethods);
+  console.log(baseMethods);
 
   const {
     schemaInfo,

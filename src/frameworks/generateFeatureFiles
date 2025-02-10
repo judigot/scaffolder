@@ -22,9 +22,9 @@ const generateGroupIndexFile = (groupDir: string, methods: string[]) => {
     .map((method) => `import ${method} from './${method}/laravel.ts';`)
     .join('\n');
 
-  const exports = `export default {
-${methods.map((method) => `  ...${method},`).join('\n')}
-} satisfies IMethod;`;
+  const exports = `export default [
+${methods.map((method) => `  ${method},`).join('\n')}
+] satisfies IMethod[];`;
 
   const indexContent = `import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 ${imports}\n\n${exports}\n`;
@@ -90,38 +90,30 @@ export default {
   });
 
   // Generate main index.ts
-  generateIndexFile(outputDir, methodsByGroup);
+  generateIndexFile(outputDir);
 };
 
 // Generate `index.ts` that dynamically imports all `laravel.ts` files
-const generateIndexFile = (
-  outputDir: string,
-  methodsByGroup: Map<string, string[]>,
-) => {
-  const featureDirs = Array.from(methodsByGroup.keys());
-
-  // Generate imports for each group
-  const imports = featureDirs
-    .map(
-      (feature) =>
-        `import ${changeCase(feature).pascalCase} from './${feature}/index.ts';`,
-    )
-    .join('\n');
-
+const generateIndexFile = (outputDir: string) => {
   // Generate the base methods array
   const indexContent = `import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
-${imports}
+import CRUD from './crud/index.ts';
+import QueryAndSearch from './query-and-search/index.ts';
+import SoftDeletesAndRestoration from './soft-deletes-and-restoration/index.ts';
+import BulkOperations from './bulk-operations/index.ts';
+import RetrievalAndSorting from './retrieval-and-sorting/index.ts';
+import AdvancedOperations from './advanced-operations/index.ts';
 
-const baseMethods: IRepositoryStructure[] = [
-${featureDirs
-  .map((feature) => {
-    const groupName = feature
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-    return `  { group: '${changeCase(groupName).titleCase}', methods: [${changeCase(feature).pascalCase}] }`;
-  })
-  .join(',\n')}
+export const baseMethods: IRepositoryStructure[] = [
+  { group: 'CRUD', methods: CRUD },
+  { group: 'Query and Search', methods: QueryAndSearch },
+  {
+    group: 'Soft Deletes and Restoration',
+    methods: SoftDeletesAndRestoration,
+  },
+  { group: 'Bulk Operations', methods: BulkOperations },
+  { group: 'Retrieval and Sorting', methods: RetrievalAndSorting },
+  { group: 'Advanced Operations', methods: AdvancedOperations },
 ];
 
 export default baseMethods;

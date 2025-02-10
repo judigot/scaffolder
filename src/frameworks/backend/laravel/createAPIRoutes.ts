@@ -1,5 +1,5 @@
 import { IFile } from '@/components/FileViewer.tsx';
-import baseMethods from '@/frameworks/backend/laravel/base-methods/index.ts';
+import baseMethods from '@/frameworks/base-methods/index.ts';
 import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { TableReplacements } from '@/interfaces/placeholders.ts';
