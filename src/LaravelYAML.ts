@@ -21,12 +21,12 @@ app:
     - CREATE_FILE(AppServiceProviderTemplate.php)
 routes:
   - CREATE_FILE(api.php)
-  - CREATE_MULTIPLE_FILES($_tableNameKebabCasePlural_$.php)
+  - CREATE_MULTIPLE_FILES($_tableNameKebabCasePlural_$.php --template table-routes.php)
 frontend:
   src:
     hooks:
       CREATE_DYNAMIC_FOLDERS($_tableNameSnakeCaseSingular_$):
         - CREATE_FILE(use$_tableNamePascalCaseSingular_$.ts)
     interfaces:
-      - CREATE_MULTIPLE_FILES(I$_tableNamePascalCase_$.ts)
+      - CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts)
 `;
