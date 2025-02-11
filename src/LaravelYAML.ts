@@ -3,30 +3,30 @@ app:
   Http:
     Controllers:
       - BaseController.php
-      - CREATE_MULTIPLE_FILES(__tableNamePascalCase__Controller.php)
+      - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Controller.php)
       - CREATE_FILE(AuthController.php --conditions hasUsers=true)
       - CREATE_FILE(AuthController.php --template AuthControllerMultiTenancy.php --conditions [hasUsers=true, isMultiTenancyEnabled=true])
     Resources:
-      - CREATE_MULTIPLE_FILES(__tableNamePascalCase__Resource.php)
+      - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Resource.php)
   Repositories:
     - BaseRepository.php
     - BaseInterface.php
-    - CREATE_MULTIPLE_FILES(__tableNamePascalCase__Repository.php)
+    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Repository.php)
   Services:
     - BaseService.php
-    - CREATE_MULTIPLE_FILES(__tableNamePascalCase__Service.php)
+    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Service.php)
   Models:
-    - CREATE_MULTIPLE_FILES(__tableNamePascalCase__.php)
+    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php)
   Providers:
     - CREATE_FILE(AppServiceProviderTemplate.php)
 routes:
   - CREATE_FILE(api.php)
-  - CREATE_MULTIPLE_FILES(__tableNameKebabCasePlural__.php)
+  - CREATE_MULTIPLE_FILES($_tableNameKebabCasePlural_$.php)
 frontend:
   src:
     hooks:
-      CREATE_DYNAMIC_FOLDERS(__tableNameSnakeCaseSingular__):
-        - CREATE_FILE(use__tableNamePascalCaseSingular__.ts)
+      CREATE_DYNAMIC_FOLDERS($_tableNameSnakeCaseSingular_$):
+        - CREATE_FILE(use$_tableNamePascalCaseSingular_$.ts)
     interfaces:
-      - CREATE_MULTIPLE_FILES(I__tableNamePascalCaseSingular__.ts)
+      - CREATE_MULTIPLE_FILES(I$_tableNamePascalCase_$.ts)
 `;

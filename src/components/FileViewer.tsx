@@ -14,17 +14,12 @@ import { vscDarkPlus as highlightStyle } from 'react-syntax-highlighter/dist/esm
 
 export interface IBase {
   name: string;
-  path?: string;
   type: 'file' | 'folder';
 }
 
 export interface IFile extends IBase {
   type: 'file';
   content: string;
-  replacements?: Record<
-    string,
-    string | (() => string | Record<string, string>)
-  >;
 }
 
 export interface IFolder extends IBase {
