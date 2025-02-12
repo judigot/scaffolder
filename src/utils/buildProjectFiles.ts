@@ -22,16 +22,19 @@ const _isYamlObject = (value: unknown): value is IYamlObject => {
 const loadTemplateContent = (templateName: string): string => {
   const store = useStore.getState();
   const templatesFolder = store.userFiles.find(
-    (item): item is IFolder => item.type === 'folder' && item.name === 'Templates'
+    (item): item is IFolder =>
+      item.type === 'folder' && item.name === 'Templates',
   );
-  
+
   if (!templatesFolder) {
-    console.warn(`Templates folder not found when trying to load template: ${templateName}`);
+    console.warn(
+      `Templates folder not found when trying to load template: ${templateName}`,
+    );
     return '';
   }
 
   const templateFile = templatesFolder.children.find(
-    (item): item is IFile => item.type === 'file' && item.name === templateName
+    (item): item is IFile => item.type === 'file' && item.name === templateName,
   );
 
   if (!templateFile) {
@@ -42,10 +45,12 @@ const loadTemplateContent = (templateName: string): string => {
   return templateFile.content;
 };
 
-const getReplacementsForTable = (table: ISchemaInfo): Record<string, string> => {
+const getReplacementsForTable = (
+  table: ISchemaInfo,
+): Record<string, string> => {
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
-  
+
   return {
     tableNamePascalCase: caseFormats.pascalCase,
     tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
@@ -139,108 +144,121 @@ const parseConditionalFolder = (
 const processLoopTables = (content: string): string => {
   // Handle base methods controller loop
   const baseMethodsRegex = /\[\[LOOP_BASE_METHODS_CONTROLLER\s+([^\]]+)\]\]/g;
-  content = content.replace(baseMethodsRegex, (_match: string, loopContent: string) => {
-    const store = useStore.getState();
-    const baseMethodsFolder = store.userFiles.find(
-      (item): item is IFolder => item.type === 'folder' && item.name === 'BaseMethods'
-    );
-    
-    if (!baseMethodsFolder) {
-      console.warn('BaseMethods folder not found');
-      return '';
-    }
-
-    // Load the base-methods-group.yaml to get the groups
-    const groupFile = store.userFiles.find(
-      (item): item is IFile => item.type === 'file' && item.name === 'base-methods-group.yaml'
-    );
-
-    interface IMethodGroup {
-      methods: string[];
-    }
-
-    type IMethodGroups = Record<string, IMethodGroup>;
-
-    const isRecord = (value: unknown): value is Record<string, unknown> => {
-      return typeof value === 'object' && value !== null;
-    };
-
-    const isMethodGroups = (value: unknown): value is IMethodGroups => {
-      if (!isRecord(value)) {
-        return false;
-      }
-      return Object.values(value).every(group => 
-        isRecord(group) && 
-        Array.isArray(group.methods) && 
-        group.methods.every(method => typeof method === 'string')
+  content = content.replace(
+    baseMethodsRegex,
+    (_match: string, loopContent: string) => {
+      const store = useStore.getState();
+      const baseMethodsFolder = store.userFiles.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'BaseMethods',
       );
-    };
 
-    // Parse the groups file
-    const parsedGroups: unknown = groupFile ? parse(groupFile.content) : {};
-    const groups: IMethodGroups = isMethodGroups(parsedGroups) ? parsedGroups : {};
-
-    interface IBaseMethodYAML {
-      methodName: string;
-      route: string;
-      description: string;
-      repositoryMethod: string;
-      repositoryContent: string;
-      serviceMethod: string;
-      serviceContent: string;
-      controllerMethod: string;
-      controllerContent: string;
-    }
-
-    const isBaseMethodYAML = (value: unknown): value is IBaseMethodYAML => {
-      if (!isRecord(value)) {
-        return false;
+      if (!baseMethodsFolder) {
+        console.warn('BaseMethods folder not found');
+        return '';
       }
-      return typeof value.methodName === 'string' && 
-             typeof value.controllerMethod === 'string' && 
-             typeof value.controllerContent === 'string';
-    };
 
-    // Create a map of method name to its content
-    const methodsMap = new Map<string, string>();
-    baseMethodsFolder.children
-      .filter((item): item is IFile => item.type === 'file')
-      .forEach(file => {
-        try {
-          const yamlContent: unknown = parse(file.content);
-          if (isBaseMethodYAML(yamlContent)) {
-            // First replace the method-specific placeholders in the content
-            const processedContent = replacePlaceholders(yamlContent.controllerContent, {
-              methodName: yamlContent.methodName
-            });
+      // Load the base-methods-group.yaml to get the groups
+      const groupFile = store.userFiles.find(
+        (item): item is IFile =>
+          item.type === 'file' && item.name === 'base-methods-group.yaml',
+      );
 
-            // Then use the template format from loopContent but with our processed values
-            const methodContent = replacePlaceholders(loopContent, {
-              controllerMethod: yamlContent.controllerMethod,
-              controllerContent: processedContent
-            });
+      interface IMethodGroup {
+        methods: string[];
+      }
 
-            methodsMap.set(yamlContent.methodName, methodContent);
+      type IMethodGroups = Record<string, IMethodGroup>;
+
+      const isRecord = (value: unknown): value is Record<string, unknown> => {
+        return typeof value === 'object' && value !== null;
+      };
+
+      const isMethodGroups = (value: unknown): value is IMethodGroups => {
+        if (!isRecord(value)) {
+          return false;
+        }
+        return Object.values(value).every(
+          (group) =>
+            isRecord(group) &&
+            Array.isArray(group.methods) &&
+            group.methods.every((method) => typeof method === 'string'),
+        );
+      };
+
+      // Parse the groups file
+      const parsedGroups: unknown = groupFile ? parse(groupFile.content) : {};
+      const groups: IMethodGroups = isMethodGroups(parsedGroups)
+        ? parsedGroups
+        : {};
+
+      interface IBaseMethodYAML {
+        methodName: string;
+        route: string;
+        description: string;
+        repositoryMethod: string;
+        repositoryContent: string;
+        serviceMethod: string;
+        serviceContent: string;
+        controllerMethod: string;
+        controllerContent: string;
+      }
+
+      const isBaseMethodYAML = (value: unknown): value is IBaseMethodYAML => {
+        if (!isRecord(value)) {
+          return false;
+        }
+        return (
+          typeof value.methodName === 'string' &&
+          typeof value.controllerMethod === 'string' &&
+          typeof value.controllerContent === 'string'
+        );
+      };
+
+      // Create a map of method name to its content
+      const methodsMap = new Map<string, string>();
+      baseMethodsFolder.children
+        .filter((item): item is IFile => item.type === 'file')
+        .forEach((file) => {
+          try {
+            const yamlContent: unknown = parse(file.content);
+            if (isBaseMethodYAML(yamlContent)) {
+              // First replace the method-specific placeholders in the content
+              const processedContent = replacePlaceholders(
+                yamlContent.controllerContent,
+                {
+                  methodName: yamlContent.methodName,
+                },
+              );
+
+              // Then use the template format from loopContent but with our processed values
+              const methodContent = replacePlaceholders(loopContent, {
+                controllerMethod: yamlContent.controllerMethod,
+                controllerContent: processedContent,
+              });
+
+              methodsMap.set(yamlContent.methodName, methodContent);
+            }
+          } catch (error) {
+            console.warn(`Error parsing YAML in ${file.name}:`, error);
           }
-        } catch (error) {
-          console.warn(`Error parsing YAML in ${file.name}:`, error);
-        }
+        });
+
+      // Build the output by groups
+      const output: string[] = [];
+      Object.entries(groups).forEach(([groupName, group]) => {
+        output.push(`\n    // ${groupName}\n`);
+        group.methods.forEach((methodName) => {
+          const methodContent = methodsMap.get(methodName);
+          if (typeof methodContent === 'string') {
+            output.push(methodContent);
+          }
+        });
       });
 
-    // Build the output by groups
-    const output: string[] = [];
-    Object.entries(groups).forEach(([groupName, group]) => {
-      output.push(`\n    // ${groupName}\n`);
-      group.methods.forEach(methodName => {
-        const methodContent = methodsMap.get(methodName);
-        if (typeof methodContent === 'string') {
-          output.push(methodContent);
-        }
-      });
-    });
-
-    return output.join('\n\n');
-  });
+      return output.join('\n\n');
+    },
+  );
 
   // Handle regular table loops
   const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
@@ -250,29 +268,35 @@ const processLoopTables = (content: string): string => {
         const replacements = getReplacementsForTable(table);
         return replacePlaceholders(String(loopContent).trim(), replacements);
       })
-      .join('\n    ');  // Add proper indentation for PHP files
+      .join('\n    '); // Add proper indentation for PHP files
   });
 };
 
-const createFileContent = (options: ICommandOptions, table?: ISchemaInfo, fileName?: string): string => {
+const createFileContent = (
+  options: ICommandOptions,
+  table?: ISchemaInfo,
+  fileName?: string,
+): string => {
   // If no template is specified but filename ends with .php, use it as template
-  const template = options.template ?? (fileName?.endsWith('.php') === true ? fileName : undefined);
-  
+  const template =
+    options.template ??
+    (fileName?.endsWith('.php') === true ? fileName : undefined);
+
   if (typeof template === 'string' && template.length > 0) {
     if (table) {
       const replacements = getReplacementsForTable(table);
       let templateContent = loadTemplateContent(template);
-      
+
       // Clean up template content
       templateContent = templateContent.replace(/^\s*\n/, ''); // Remove leading empty line
-      
+
       const processedContent = replacePlaceholders(
-        processLoopTables(templateContent), 
+        processLoopTables(templateContent),
         {
           ...replacements,
           modelSpecificRoutes: options.modelSpecificRoutes ?? '',
           baseRoutesForController: options.baseRoutesForController ?? '',
-        }
+        },
       );
       return processedContent.trim();
     }
@@ -287,7 +311,7 @@ const createFileContent = (options: ICommandOptions, table?: ISchemaInfo, fileNa
   if (conditions !== undefined && conditions.length > 0) {
     metadata.push(`@conditions: ${conditions.join(',')}`);
   }
-  
+
   return metadata.length > 0 ? metadata.join('\n') : '';
 };
 
@@ -296,20 +320,26 @@ const replacePlaceholders = (
   replacements: Record<string, string>,
 ): string => {
   // Handle the placeholders with new $_..._$ syntax
-  return text.replace(/\$_([^_]+)_\$|\{\{([^}]+)\}\}/g, (_, placeholder1: string | undefined, placeholder2: string | undefined) => {
-    const key = (placeholder2 ?? placeholder1 ?? '').trim();
-    if (key.length === 0) {
-      return '';
-    }
-    if (!(key in replacements)) {
-      console.warn(`No replacement found for placeholder: ${String(key)}`);
-      return key;
-    }
-    return replacements[key];
-  });
+  return text.replace(
+    /\$_([^_]+)_\$|\{\{([^}]+)\}\}/g,
+    (_, placeholder1: string | undefined, placeholder2: string | undefined) => {
+      const key = (placeholder2 ?? placeholder1 ?? '').trim();
+      if (key.length === 0) {
+        return '';
+      }
+      if (!(key in replacements)) {
+        console.warn(`No replacement found for placeholder: ${String(key)}`);
+        return key;
+      }
+      return replacements[key];
+    },
+  );
 };
 
-const processMultipleFiles = (fileName: string, options: ICommandOptions = {}): IFile[] => {
+const processMultipleFiles = (
+  fileName: string,
+  options: ICommandOptions = {},
+): IFile[] => {
   // Get the template content once
   let templateContent = '';
   if (typeof options.template === 'string' && options.template.length > 0) {
@@ -348,14 +378,17 @@ const processMultipleFiles = (fileName: string, options: ICommandOptions = {}): 
   return files.filter((file): file is IFile => file.content.length > 0);
 };
 
-const processDynamicFolders = (folderName: string, children: unknown): IStructure => {
+const processDynamicFolders = (
+  folderName: string,
+  children: unknown,
+): IStructure => {
   return masterSchema.map((table) => {
     const replacements = getReplacementsForTable(table);
     const processedName = replacePlaceholders(folderName, replacements);
-    
+
     // Process children with the current table context
     const processedChildren = processYamlNodeWithContext(children, table);
-    
+
     return {
       type: 'folder',
       name: processedName,
@@ -364,7 +397,10 @@ const processDynamicFolders = (folderName: string, children: unknown): IStructur
   });
 };
 
-const processYamlNodeWithContext = (node: unknown, table: ISchemaInfo): IStructure => {
+const processYamlNodeWithContext = (
+  node: unknown,
+  table: ISchemaInfo,
+): IStructure => {
   if (typeof node === 'string') {
     if (node.startsWith('CREATE_FILE(')) {
       const { command, options } = parseCommand(node.slice(12, -1));
@@ -378,40 +414,51 @@ const processYamlNodeWithContext = (node: unknown, table: ISchemaInfo): IStructu
       const replacements = getReplacementsForTable(table);
       const processedName = replacePlaceholders(command, replacements);
 
-      return [{
-        type: 'file',
-        name: processedName,
-        content: createFileContent(options, table, processedName),
-      }];
+      return [
+        {
+          type: 'file',
+          name: processedName,
+          content: createFileContent(options, table, processedName),
+        },
+      ];
     }
     if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
       const { command, options } = parseCommand(node.slice(21, -1));
       return processMultipleFiles(command, options);
     }
     if (node.startsWith('@LOOP_TABLES(')) {
-      return [{
-        type: 'file',
-        name: 'template.tmp',
-        content: `@loop: tables\n${node}`,
-      }];
+      return [
+        {
+          type: 'file',
+          name: 'template.tmp',
+          content: `@loop: tables\n${node}`,
+        },
+      ];
     }
 
     // Handle bare filenames by looking for templates
     const templateContent = loadTemplateContent(node);
     if (templateContent.length > 0) {
       const replacements = getReplacementsForTable(table);
-      return [{
-        type: 'file',
-        name: node,
-        content: replacePlaceholders(processLoopTables(templateContent), replacements).trim(),
-      }];
+      return [
+        {
+          type: 'file',
+          name: node,
+          content: replacePlaceholders(
+            processLoopTables(templateContent),
+            replacements,
+          ).trim(),
+        },
+      ];
     }
 
-    return [{
-      type: 'file',
-      name: node,
-      content: '',
-    }];
+    return [
+      {
+        type: 'file',
+        name: node,
+        content: '',
+      },
+    ];
   }
 
   if (Array.isArray(node)) {
@@ -423,11 +470,13 @@ const processYamlNodeWithContext = (node: unknown, table: ISchemaInfo): IStructu
       // Handle conditional folders
       const { name, conditions } = parseConditionalFolder(key);
       if (conditions && !checkConditions(conditions)) {
-        return [{
-          type: 'folder',
-          name,
-          children: [],
-        }];
+        return [
+          {
+            type: 'folder',
+            name,
+            children: [],
+          },
+        ];
       }
 
       if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
@@ -437,11 +486,13 @@ const processYamlNodeWithContext = (node: unknown, table: ISchemaInfo): IStructu
         return processDynamicFolders(folderName, value);
       }
 
-      return [{
-        type: 'folder',
-        name,
-        children: processYamlNodeWithContext(value, table),
-      }];
+      return [
+        {
+          type: 'folder',
+          name,
+          children: processYamlNodeWithContext(value, table),
+        },
+      ];
     });
   }
 
@@ -459,39 +510,47 @@ const processYamlNode = (node: unknown): IStructure => {
         return [];
       }
 
-      return [{
-        type: 'file',
-        name: command,
-        content: createFileContent(options, undefined, command),
-      }];
+      return [
+        {
+          type: 'file',
+          name: command,
+          content: createFileContent(options, undefined, command),
+        },
+      ];
     }
     if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
       const { command, options } = parseCommand(node.slice(21, -1));
       return processMultipleFiles(command, options);
     }
     if (node.startsWith('@LOOP_TABLES(')) {
-      return [{
-        type: 'file',
-        name: 'template.tmp',
-        content: `@loop: tables\n${node}`,
-      }];
+      return [
+        {
+          type: 'file',
+          name: 'template.tmp',
+          content: `@loop: tables\n${node}`,
+        },
+      ];
     }
 
     // Handle bare filenames by looking for templates
     const templateContent = loadTemplateContent(node);
     if (templateContent.length > 0) {
-      return [{
-        type: 'file',
-        name: node,
-        content: processLoopTables(templateContent).trim(),
-      }];
+      return [
+        {
+          type: 'file',
+          name: node,
+          content: processLoopTables(templateContent).trim(),
+        },
+      ];
     }
 
-    return [{
-      type: 'file',
-      name: node,
-      content: '',
-    }];
+    return [
+      {
+        type: 'file',
+        name: node,
+        content: '',
+      },
+    ];
   }
 
   if (Array.isArray(node)) {
@@ -503,11 +562,13 @@ const processYamlNode = (node: unknown): IStructure => {
       // Handle conditional folders
       const { name, conditions } = parseConditionalFolder(key);
       if (conditions && !checkConditions(conditions)) {
-        return [{
-          type: 'folder',
-          name,
-          children: [],
-        }];
+        return [
+          {
+            type: 'folder',
+            name,
+            children: [],
+          },
+        ];
       }
 
       if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
@@ -517,11 +578,13 @@ const processYamlNode = (node: unknown): IStructure => {
         return processDynamicFolders(folderName, value);
       }
 
-      return [{
-        type: 'folder',
-        name,
-        children: processYamlNode(value),
-      }];
+      return [
+        {
+          type: 'folder',
+          name,
+          children: processYamlNode(value),
+        },
+      ];
     });
   }
 
@@ -543,4 +606,4 @@ export const buildProjectFiles = (yamlContent: string): IStructure => {
     }
     return [];
   }
-}; 
+};
