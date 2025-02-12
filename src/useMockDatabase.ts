@@ -51,7 +51,7 @@ use Illuminate\\Database\\Eloquent\\Model;
 
 interface BaseInterface
 {
-    [[LOOP_BASE_METHODS_CONTROLLER public function {{repositoryMethod}}; ]]
+    [[LOOP_BASE_METHODS public function {{repositoryMethod}}; ]]
 }
 `,
         },
@@ -74,7 +74,7 @@ abstract class BaseController extends Controller
     {
         $this->service = $service;
     }
-    [[LOOP_BASE_METHODS_CONTROLLER
+    [[LOOP_BASE_METHODS
     public function {{controllerMethod}}
     {
     {{controllerContent}}

@@ -143,7 +143,7 @@ const parseConditionalFolder = (
 
 const processLoopTables = (content: string): string => {
   // Handle base methods controller loop
-  const baseMethodsRegex = /\[\[LOOP_BASE_METHODS_CONTROLLER\s+([^\]]+)\]\]/g;
+  const baseMethodsRegex = /\[\[LOOP_BASE_METHODS\s+([^\]]+)\]\]/g;
   content = content.replace(
     baseMethodsRegex,
     (_match: string, loopContent: string) => {
