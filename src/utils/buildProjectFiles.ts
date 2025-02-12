@@ -139,7 +139,7 @@ const parseConditionalFolder = (
 const processLoopTables = (content: string): string => {
   // Handle base methods controller loop
   const baseMethodsRegex = /\[\[LOOP_BASE_METHODS_CONTROLLER\s+([^\]]+)\]\]/g;
-  content = content.replace(baseMethodsRegex, (_match: string, _loopContent: string) => {
+  content = content.replace(baseMethodsRegex, (_match: string, loopContent: string) => {
     const store = useStore.getState();
     const baseMethodsFolder = store.userFiles.find(
       (item): item is IFolder => item.type === 'folder' && item.name === 'BaseMethods'
@@ -149,6 +149,36 @@ const processLoopTables = (content: string): string => {
       console.warn('BaseMethods folder not found');
       return '';
     }
+
+    // Load the base-methods-group.yaml to get the groups
+    const groupFile = store.userFiles.find(
+      (item): item is IFile => item.type === 'file' && item.name === 'base-methods-group.yaml'
+    );
+
+    interface IMethodGroup {
+      methods: string[];
+    }
+
+    type IMethodGroups = Record<string, IMethodGroup>;
+
+    const isRecord = (value: unknown): value is Record<string, unknown> => {
+      return typeof value === 'object' && value !== null;
+    };
+
+    const isMethodGroups = (value: unknown): value is IMethodGroups => {
+      if (!isRecord(value)) {
+        return false;
+      }
+      return Object.values(value).every(group => 
+        isRecord(group) && 
+        Array.isArray(group.methods) && 
+        group.methods.every(method => typeof method === 'string')
+      );
+    };
+
+    // Parse the groups file
+    const parsedGroups: unknown = groupFile ? parse(groupFile.content) : {};
+    const groups: IMethodGroups = isMethodGroups(parsedGroups) ? parsedGroups : {};
 
     interface IBaseMethodYAML {
       methodName: string;
@@ -162,10 +192,6 @@ const processLoopTables = (content: string): string => {
       controllerContent: string;
     }
 
-    const isRecord = (value: unknown): value is Record<string, unknown> => {
-      return typeof value === 'object' && value !== null;
-    };
-
     const isBaseMethodYAML = (value: unknown): value is IBaseMethodYAML => {
       if (!isRecord(value)) {
         return false;
@@ -175,30 +201,45 @@ const processLoopTables = (content: string): string => {
              typeof value.controllerContent === 'string';
     };
 
-    return baseMethodsFolder.children
+    // Create a map of method name to its content
+    const methodsMap = new Map<string, string>();
+    baseMethodsFolder.children
       .filter((item): item is IFile => item.type === 'file')
-      .map(file => {
+      .forEach(file => {
         try {
           const yamlContent: unknown = parse(file.content);
           if (isBaseMethodYAML(yamlContent)) {
-            // Only replace {{methodName}} in the content
+            // First replace the method-specific placeholders in the content
             const processedContent = replacePlaceholders(yamlContent.controllerContent, {
               methodName: yamlContent.methodName
             });
 
-            // Use exact strings from YAML with minimal formatting
-            return `public function ${yamlContent.controllerMethod}
-    {
-        ${processedContent.split('\n').join('\n        ')}
-    }`;
+            // Then use the template format from loopContent but with our processed values
+            const methodContent = replacePlaceholders(loopContent, {
+              controllerMethod: yamlContent.controllerMethod,
+              controllerContent: processedContent
+            });
+
+            methodsMap.set(yamlContent.methodName, methodContent);
           }
         } catch (error) {
           console.warn(`Error parsing YAML in ${file.name}:`, error);
         }
-        return '';
-      })
-      .filter(content => content.length > 0)
-      .join('\n\n');  // Add extra newline between methods
+      });
+
+    // Build the output by groups
+    const output: string[] = [];
+    Object.entries(groups).forEach(([groupName, group]) => {
+      output.push(`\n    // ${groupName}\n`);
+      group.methods.forEach(methodName => {
+        const methodContent = methodsMap.get(methodName);
+        if (typeof methodContent === 'string') {
+          output.push(methodContent);
+        }
+      });
+    });
+
+    return output.join('\n\n');
   });
 
   // Handle regular table loops

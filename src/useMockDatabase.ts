@@ -57,12 +57,12 @@ abstract class BaseController extends Controller
     {
         $this->service = $service;
     }
-[[LOOP_BASE_METHODS_CONTROLLER
-public function {{controllerMethod}}
+    [[LOOP_BASE_METHODS_CONTROLLER
+    public function {{controllerMethod}}
     {
     {{controllerContent}}
     }
-]]
+    ]]
 }
 `,
         },
@@ -410,7 +410,7 @@ serviceContent: |
     return $this->repository->chunk($size, $callback);
 controllerMethod: chunk(Request $request)
 controllerContent: |
-    $size = $request->input('size', 100);
+        $size = $request->input('size', 100);
     $callback = function ($items) {
         return response()->json($items);
     };
