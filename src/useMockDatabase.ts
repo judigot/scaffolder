@@ -40,8 +40,164 @@ Advanced Operations:
       children: [
         {
           type: 'file',
+          name: 'BaseController.php',
+          content: `
+<?php
+
+namespace App\\Http\\Controllers;
+
+use Illuminate\\Http\\Request;
+use Illuminate\\Routing\\Controller;
+
+abstract class BaseController extends Controller
+{
+    protected $service;
+
+    public function __construct($service)
+    {
+        $this->service = $service;
+    }
+[[LOOP_BASE_METHODS_CONTROLLER
+public function {{controllerMethod}}
+    {
+    {{controllerContent}}
+    }
+]]
+}
+`,
+        },
+        {
+          type: 'file',
+          name: 'model-template.php',
+          content: `
+<?php
+
+namespace App\\Models;
+
+{{modelImports}}
+use Illuminate\\Database\\Eloquent\\Model;
+use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
+
+class {{className}} extends Model
+{
+    use HasFactory;
+
+    protected $table = '{{tableName}}';
+
+    {{primaryKey}}
+
+    protected $hidden = [{{hiddenColumns}}];
+
+    protected $fillable = [
+        {{fillable}}
+    ];
+
+    {{domainMethods}}
+}
+`,
+        },
+        {
+          type: 'file',
+          name: 'resource-template.php',
+          content: `
+<?php
+
+namespace App\\Http\\Resources;
+
+use Illuminate\\Http\\Resources\\Json\\JsonResource;
+
+class {{className}}Resource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @param \\Illuminate\\Http\\Request $request
+     * @return array
+     */
+    public function toArray($request)
+    {
+        return [
+{{attributes}}
+        ];
+    }
+}
+`,
+        },
+        {
+          type: 'file',
+          name: 'repository-template.php',
+          content: `
+<?php
+
+namespace App\\Repositories;
+
+{{modelImports}}
+use Illuminate\\Support\\Collection;
+use App\\Models\\{{tableNamePascalCase}};
+use App\\Repositories\\BaseRepository;
+
+class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tableNamePascalCase}}Interface
+{
+    public function __construct({{tableNamePascalCase}} $model)
+    {
+        parent::__construct($model);
+    }
+{{modelSpecificMethods}}
+}
+`,
+        },
+        {
+          type: 'file',
+          name: 'service-template.php',
+          content: `
+<?php
+
+namespace App\\Services;
+
+use App\\Models\\{{className}};
+use App\\Repositories\\{{className}}Repository;
+
+class {{className}}Service extends BaseService
+{
+    public function __construct({{className}}Repository $repository)
+    {
+        parent::__construct($repository);
+    }
+}
+`,
+        },
+        {
+          type: 'file',
+          name: 'controller-template.php',
+          content: `
+<?php
+
+namespace App\\Http\\Controllers;
+
+use App\\Models\\{{tableNamePascalCase}};
+use App\\Repositories\\{{tableNamePascalCase}}Interface;
+use App\\Services\\{{tableNamePascalCase}}Service;
+use Illuminate\\Http\\Request;
+use App\\Http\\Controllers\\BaseController;
+
+class {{tableNamePascalCase}}Controller extends BaseController
+{
+    protected $repository;
+
+    public function __construct({{tableNamePascalCase}}Interface \${{tableName}}Repository, {{tableNamePascalCase}}Service \${{tableName}}Service)
+    {
+        parent::__construct(\${{tableName}}Service);
+        $this->repository = \${{tableName}}Repository;
+    }
+
+{{controllerMethods}}
+}`,
+        },
+        {
+          type: 'file',
           name: 'api.php',
-          content: `<?php
+          content: `
+<?php
 
 use Illuminate\\Http\\Request;
 use Illuminate\\Support\\Facades\\Route;
@@ -236,7 +392,7 @@ serviceContent: |
     return $this->repository->{{methodName}}(array $data);
 controllerMethod: store(Request $request)
 controllerContent: |
-    $item = $this->service->{{methodName}}(array $request->all());
+    $item = $this->service->{{methodName}}($request->all());
     return response()->json($item, 201);
 `,
         },

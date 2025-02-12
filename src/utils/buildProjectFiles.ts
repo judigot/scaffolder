@@ -137,9 +137,72 @@ const parseConditionalFolder = (
 };
 
 const processLoopTables = (content: string): string => {
-  // New simpler syntax: [[LOOP_TABLES content]]
+  // Handle base methods controller loop
+  const baseMethodsRegex = /\[\[LOOP_BASE_METHODS_CONTROLLER\s+([^\]]+)\]\]/g;
+  content = content.replace(baseMethodsRegex, (_match: string, _loopContent: string) => {
+    const store = useStore.getState();
+    const baseMethodsFolder = store.userFiles.find(
+      (item): item is IFolder => item.type === 'folder' && item.name === 'BaseMethods'
+    );
+    
+    if (!baseMethodsFolder) {
+      console.warn('BaseMethods folder not found');
+      return '';
+    }
+
+    interface IBaseMethodYAML {
+      methodName: string;
+      route: string;
+      description: string;
+      repositoryMethod: string;
+      repositoryContent: string;
+      serviceMethod: string;
+      serviceContent: string;
+      controllerMethod: string;
+      controllerContent: string;
+    }
+
+    const isRecord = (value: unknown): value is Record<string, unknown> => {
+      return typeof value === 'object' && value !== null;
+    };
+
+    const isBaseMethodYAML = (value: unknown): value is IBaseMethodYAML => {
+      if (!isRecord(value)) {
+        return false;
+      }
+      return typeof value.methodName === 'string' && 
+             typeof value.controllerMethod === 'string' && 
+             typeof value.controllerContent === 'string';
+    };
+
+    return baseMethodsFolder.children
+      .filter((item): item is IFile => item.type === 'file')
+      .map(file => {
+        try {
+          const yamlContent: unknown = parse(file.content);
+          if (isBaseMethodYAML(yamlContent)) {
+            // Only replace {{methodName}} in the content
+            const processedContent = replacePlaceholders(yamlContent.controllerContent, {
+              methodName: yamlContent.methodName
+            });
+
+            // Use exact strings from YAML with minimal formatting
+            return `public function ${yamlContent.controllerMethod}
+    {
+        ${processedContent.split('\n').join('\n        ')}
+    }`;
+          }
+        } catch (error) {
+          console.warn(`Error parsing YAML in ${file.name}:`, error);
+        }
+        return '';
+      })
+      .filter(content => content.length > 0)
+      .join('\n\n');  // Add extra newline between methods
+  });
+
+  // Handle regular table loops
   const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
-  
   return content.replace(loopRegex, (_match: string, loopContent: string) => {
     return masterSchema
       .map((table) => {
@@ -192,7 +255,7 @@ const replacePlaceholders = (
   replacements: Record<string, string>,
 ): string => {
   // Handle the placeholders with new $_..._$ syntax
-  const processed = text.replace(/\$_([^_]+)_\$|\{\{([^}]+)\}\}/g, (_, placeholder1: string | undefined, placeholder2: string | undefined) => {
+  return text.replace(/\$_([^_]+)_\$|\{\{([^}]+)\}\}/g, (_, placeholder1: string | undefined, placeholder2: string | undefined) => {
     const key = (placeholder2 ?? placeholder1 ?? '').trim();
     if (key.length === 0) {
       return '';
@@ -203,9 +266,6 @@ const replacePlaceholders = (
     }
     return replacements[key];
   });
-
-  // Clean up any remaining parentheses from the command
-  return processed.replace(/[()]/g, '');
 };
 
 const processMultipleFiles = (fileName: string, options: ICommandOptions = {}): IFile[] => {
@@ -294,6 +354,18 @@ const processYamlNodeWithContext = (node: unknown, table: ISchemaInfo): IStructu
         content: `@loop: tables\n${node}`,
       }];
     }
+
+    // Handle bare filenames by looking for templates
+    const templateContent = loadTemplateContent(node);
+    if (templateContent.length > 0) {
+      const replacements = getReplacementsForTable(table);
+      return [{
+        type: 'file',
+        name: node,
+        content: replacePlaceholders(processLoopTables(templateContent), replacements).trim(),
+      }];
+    }
+
     return [{
       type: 'file',
       name: node,
@@ -363,6 +435,17 @@ const processYamlNode = (node: unknown): IStructure => {
         content: `@loop: tables\n${node}`,
       }];
     }
+
+    // Handle bare filenames by looking for templates
+    const templateContent = loadTemplateContent(node);
+    if (templateContent.length > 0) {
+      return [{
+        type: 'file',
+        name: node,
+        content: processLoopTables(templateContent).trim(),
+      }];
+    }
+
     return [{
       type: 'file',
       name: node,
