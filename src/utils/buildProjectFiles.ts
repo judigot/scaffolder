@@ -90,9 +90,7 @@ const checkConditions = (conditions: string[]): boolean => {
 const parseCommand = (
   command: string,
 ): { command: string; options: ICommandOptions } => {
-  // Normalize any old format placeholders in the command
-  const normalizedCommand = command.replace(/__([^_]+)__/g, '$_$1_$');
-  const parts = normalizedCommand.split('--');
+  const parts = command.split('--');
   const mainCommand = parts[0].trim();
   const options: ICommandOptions = {};
 
@@ -222,10 +220,7 @@ const processMultipleFiles = (fileName: string, options: ICommandOptions = {}): 
 
   const files = masterSchema.map((table) => {
     const replacements = getReplacementsForTable(table);
-    // Convert old placeholder format to new format if needed
-    const normalizedFileName = fileName.replace(/__([^_]+)__/g, '$_$1_$');
-    // Process filename with new placeholder format
-    const processedName = replacePlaceholders(normalizedFileName, replacements);
+    const processedName = replacePlaceholders(fileName, replacements);
 
     return {
       type: 'file' as const,
@@ -241,10 +236,7 @@ const processMultipleFiles = (fileName: string, options: ICommandOptions = {}): 
 const processDynamicFolders = (folderName: string, children: unknown): IStructure => {
   return masterSchema.map((table) => {
     const replacements = getReplacementsForTable(table);
-    // Convert old placeholder format to new format if needed
-    const normalizedFolderName = folderName.replace(/__([^_]+)__/g, '$_$1_$');
-    // Process folder name with new placeholder format
-    const processedName = replacePlaceholders(normalizedFolderName, replacements);
+    const processedName = replacePlaceholders(folderName, replacements);
     
     // Process children with the current table context
     const processedChildren = processYamlNodeWithContext(children, table);
@@ -269,8 +261,7 @@ const processYamlNodeWithContext = (node: unknown, table: ISchemaInfo): IStructu
       }
 
       const replacements = getReplacementsForTable(table);
-      const normalizedCommand = command.replace(/__([^_]+)__/g, '$_$1_$');
-      const processedName = replacePlaceholders(normalizedCommand, replacements);
+      const processedName = replacePlaceholders(command, replacements);
 
       return [{
         type: 'file',
@@ -313,8 +304,8 @@ const processYamlNodeWithContext = (node: unknown, table: ISchemaInfo): IStructu
       }
 
       if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
-        // Extract folder name and normalize it
-        const folderName = key.slice(22, -1).replace(/__([^_]+)__/g, '$_$1_$');
+        // Extract folder name
+        const folderName = key.slice(22, -1);
         // Return the dynamic folders directly without an extra parent folder
         return processDynamicFolders(folderName, value);
       }
@@ -382,8 +373,8 @@ const processYamlNode = (node: unknown): IStructure => {
       }
 
       if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
-        // Extract folder name and normalize it
-        const folderName = key.slice(22, -1).replace(/__([^_]+)__/g, '$_$1_$');
+        // Extract folder name
+        const folderName = key.slice(22, -1);
         // Return the dynamic folders directly without an extra parent folder
         return processDynamicFolders(folderName, value);
       }
