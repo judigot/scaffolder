@@ -3,6 +3,7 @@ app:
   Http:
     Controllers:
       - BaseController.php
+      - BaseInterface.php
       - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Controller.php --template controller-template.php)
       - CREATE_FILE(AuthController.php --conditions hasUsers=true)
       - CREATE_FILE(AuthController.php --template AuthControllerMultiTenancy.php --conditions [hasUsers=true, isMultiTenancyEnabled=true])

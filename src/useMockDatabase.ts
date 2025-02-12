@@ -40,6 +40,23 @@ Advanced Operations:
       children: [
         {
           type: 'file',
+          name: 'BaseInterface.php',
+          content: `
+<?php
+
+namespace App\\Repositories;
+
+use Illuminate\\Support\\Collection;
+use Illuminate\\Database\\Eloquent\\Model;
+
+interface BaseInterface
+{
+    [[LOOP_BASE_METHODS_CONTROLLER public function {{repositoryMethod}}; ]]
+}
+`,
+        },
+        {
+          type: 'file',
           name: 'BaseController.php',
           content: `
 <?php

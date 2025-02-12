@@ -223,21 +223,36 @@ const processLoopTables = (content: string): string => {
           try {
             const yamlContent: unknown = parse(file.content);
             if (isBaseMethodYAML(yamlContent)) {
-              // First replace the method-specific placeholders in the content
-              const processedContent = replacePlaceholders(
-                yamlContent.controllerContent,
-                {
-                  methodName: yamlContent.methodName,
-                },
-              );
+              // Check if we're processing BaseInterface.php by looking at the loop content
+              if (loopContent.includes('{{repositoryMethod}}')) {
+                // For interface, use the raw repositoryMethod but process any methodName placeholders in it
+                const processedMethod = replacePlaceholders(
+                  yamlContent.repositoryMethod,
+                  {
+                    methodName: yamlContent.methodName,
+                  },
+                );
 
-              // Then use the template format from loopContent but with our processed values
-              const methodContent = replacePlaceholders(loopContent, {
-                controllerMethod: yamlContent.controllerMethod,
-                controllerContent: processedContent,
-              });
+                const methodContent = replacePlaceholders(loopContent, {
+                  repositoryMethod: processedMethod,
+                });
+                methodsMap.set(yamlContent.methodName, methodContent);
+              } else {
+                // For regular controller methods, process as before
+                const processedContent = replacePlaceholders(
+                  yamlContent.controllerContent,
+                  {
+                    methodName: yamlContent.methodName,
+                  },
+                );
 
-              methodsMap.set(yamlContent.methodName, methodContent);
+                const methodContent = replacePlaceholders(loopContent, {
+                  controllerMethod: yamlContent.controllerMethod,
+                  controllerContent: processedContent,
+                });
+
+                methodsMap.set(yamlContent.methodName, methodContent);
+              }
             }
           } catch (error) {
             console.warn(`Error parsing YAML in ${file.name}:`, error);
