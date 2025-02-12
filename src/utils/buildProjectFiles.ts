@@ -216,16 +216,30 @@ const processMultipleFiles = (fileName: string, options: ICommandOptions = {}): 
     if (loadedContent.length > 0) {
       templateContent = loadedContent;
     }
+  } else {
+    // Try to load template based on filename if no template option provided
+    templateContent = loadTemplateContent(fileName);
   }
 
   const files = masterSchema.map((table) => {
     const replacements = getReplacementsForTable(table);
     const processedName = replacePlaceholders(fileName, replacements);
 
+    let content = '';
+    if (templateContent.length > 0) {
+      content = replacePlaceholders(processLoopTables(templateContent), {
+        ...replacements,
+        modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+        baseRoutesForController: options.baseRoutesForController ?? '',
+      });
+    } else {
+      content = `@table: ${table.tableName}`;
+    }
+
     return {
-      type: 'file' as const,
+      type: 'file',
       name: processedName,
-      content: templateContent.length > 0 ? templateContent : `@table: ${table.tableName}`,
+      content: content.trim(),
     };
   });
 
@@ -242,7 +256,7 @@ const processDynamicFolders = (folderName: string, children: unknown): IStructur
     const processedChildren = processYamlNodeWithContext(children, table);
     
     return {
-      type: 'folder' as const,
+      type: 'folder',
       name: processedName,
       children: processedChildren,
     };
