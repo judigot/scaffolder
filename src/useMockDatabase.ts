@@ -106,7 +106,7 @@ class {{tableNamePascalCase}} extends Model
     protected $hidden = [{{hiddenColumns}}];
 
     protected $fillable = [
-        [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " ]]
+        [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " --ignore="created_at,updated_at" ]]
     ];
 
     {{domainMethods}}

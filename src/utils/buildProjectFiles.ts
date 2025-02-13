@@ -322,6 +322,7 @@ const processIterateCommand = (
   const templateMatch = /--template="([^"]+)"/.exec(options);
   const separatorMatch = /--separator="([^"]+)"/.exec(options);
   const removeDuplicates = options.includes('--removeDuplicates');
+  const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
   
   const template = templateMatch ? templateMatch[1] : '{{value}}';
   // Use literal separator string and preserve spaces
@@ -331,6 +332,11 @@ const processIterateCommand = (
         .replace(/\\t/g, '\t')
         .replace(/\\s/g, ' ')
     : '\n';
+
+  // Parse ignore list with flexible whitespace
+  const ignoreList = ignoreMatch 
+    ? ignoreMatch[1].split(',').map(item => item.trim())
+    : [];
 
   // Convert snake_case table name to PascalCase model name
   const toModelName = (tableName: string): string => {
@@ -345,6 +351,12 @@ const processIterateCommand = (
     if (arr.length === 0) {return '';}
     if (arr.length === 1) {return arr[0];}
     return arr.slice(0, -1).join(separator) + separator + arr.slice(-1)[0];
+  };
+
+  // Helper function to filter ignored values
+  const filterIgnored = (values: string[]): string[] => {
+    if (ignoreList.length === 0) {return values;}
+    return values.filter(value => !ignoreList.includes(value));
   };
 
   // Collect all values from all properties
@@ -386,8 +398,9 @@ const processIterateCommand = (
     }
   }
 
-  // Remove duplicates if requested
-  const finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
+  // Remove duplicates if requested and filter ignored values
+  let finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
+  finalValues = filterIgnored(finalValues);
 
   // Map values through template and join
   const lines = finalValues.map(value => template.replace(/\{\{value\}\}/g, value));
