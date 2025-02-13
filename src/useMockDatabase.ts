@@ -23,6 +23,21 @@ export const useStore = create<IStore>()(() => ({
       ],
     },
     {
+      type: 'folder',
+      name: 'Constants',
+      children: [
+        {
+          type: 'file',
+          name: 'fillableExemptions.yaml',
+          content: `
+- {{getPrimaryKey()}}
+- created_at
+- updated_at
+`,
+        },
+      ],
+    },
+    {
       type: 'file',
       name: 'base-methods-group.yaml',
       content: `
@@ -106,7 +121,7 @@ class {{tableNamePascalCase}} extends Model
     protected $hidden = [{{hiddenColumns}}];
 
     protected $fillable = [
-        [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " --ignore="created_at,updated_at" ]]
+        [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
     ];
 
     {{domainMethods}}

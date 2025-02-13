@@ -305,6 +305,109 @@ const processLoopTables = (content: string): string => {
   });
 };
 
+const loadConstant = (constantName: string, table?: ISchemaInfo): string[] => {
+  const store = useStore.getState();
+  const constantsFolder = store.userFiles.find(
+    (item): item is IFolder =>
+      item.type === 'folder' && item.name === 'Constants',
+  );
+
+  if (!constantsFolder) {
+    console.warn('Constants folder not found');
+    return [];
+  }
+
+  const constantFile = constantsFolder.children.find(
+    (item): item is IFile => item.type === 'file' && item.name === `${constantName}.yaml`,
+  );
+
+  if (!constantFile) {
+    console.warn(`Constant file not found: ${constantName}.yaml`);
+    return [];
+  }
+
+  try {
+    // Preprocess content to quote values with curly braces to ensure they're parsed as strings
+    const preprocessedContent = constantFile.content.replace(
+      /^-\s*(\{\{[^}]+\}\})\s*$/gm,
+      '- "$1"'
+    );
+
+    // Parse YAML content
+    const parsed: unknown = parse(preprocessedContent);
+
+    // Type guard for Record<string, unknown>
+    function isRecord(value: unknown): value is Record<string, unknown> {
+      return value !== null && typeof value === 'object';
+    }
+
+    // First get raw values without processing placeholders
+    let rawValues: string[] = [];
+
+    // Handle both formats:
+    // Format 1: Array of values
+    if (Array.isArray(parsed)) {
+      rawValues = parsed.map(item => String(item).trim());
+    }
+    // Format 2: Named constant object
+    else if (isRecord(parsed)) {
+      if (constantName in parsed && Array.isArray(parsed[constantName])) {
+        const values = parsed[constantName];
+        if (Array.isArray(values)) {
+          rawValues = values.map(item => String(item).trim());
+        }
+      }
+    }
+
+    // Then process placeholders if table is provided
+    if (table) {
+      const replacements = getReplacementsForTable(table);
+      return rawValues.map(value => replacePlaceholders(value, replacements, table));
+    }
+
+    return rawValues;
+  } catch (error) {
+    console.warn(`Error parsing constant file ${constantName}.yaml:`, error);
+    return [];
+  }
+};
+
+const processCommand = (
+  text: string,
+  table?: ISchemaInfo,
+): string => {
+  // Process all commands in order of specificity
+  let result = text;
+
+  // First, process USE_CONSTANT commands
+  result = result.replace(
+    /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/g,
+    (_match: string, group1: string) => {
+      if (!table) {return '';}
+      const constantName = String(group1).trim();
+      return loadConstant(constantName, table).join(',');
+    }
+  );
+
+  // Then, process ITERATE commands
+  result = result.replace(
+    /\[\[\s*ITERATE\(([^[\]]+)\)([^\]]*)\]\]/g,
+    (fullMatch: string, group1: string, group2: string) => {
+      if (!table) {return '';}
+      const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
+      const propertyPaths = String(group1);
+      const options = String(group2);
+      const cmdResult = processIterateCommand(
+        `ITERATE(${propertyPaths})${options}`,
+        table
+      );
+      return cmdResult ? whitespace + cmdResult : '';
+    }
+  );
+
+  return result;
+};
+
 const processIterateCommand = (
   command: string,
   table: ISchemaInfo | undefined,
@@ -323,6 +426,8 @@ const processIterateCommand = (
   const separatorMatch = /--separator="([^"]+)"/.exec(options);
   const removeDuplicates = options.includes('--removeDuplicates');
   const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
+
+  /*prettier-ignore*/ (($= ignoreMatch) => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
   
   const template = templateMatch ? templateMatch[1] : '{{value}}';
   // Use literal separator string and preserve spaces
@@ -333,9 +438,19 @@ const processIterateCommand = (
         .replace(/\\s/g, ' ')
     : '\n';
 
-  // Parse ignore list with flexible whitespace
+  // Parse ignore list with flexible whitespace and handle USE_CONSTANT
   const ignoreList = ignoreMatch 
-    ? ignoreMatch[1].split(',').map(item => item.trim())
+    ? ignoreMatch[1].split(',').map(item => {
+        const trimmed = item.trim();
+        const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(trimmed);
+        if (constantMatch) {
+          // Get raw values from constant file without any processing
+          return loadConstant(constantMatch[1]);
+        }
+        // For non-constant values, still process any placeholders they might have
+        const replacements = getReplacementsForTable(table);
+        return replacePlaceholders(trimmed, replacements, table);
+      }).flat()
     : [];
 
   // Convert snake_case table name to PascalCase model name
@@ -402,8 +517,15 @@ const processIterateCommand = (
   let finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
   finalValues = filterIgnored(finalValues);
 
-  // Map values through template and join
-  const lines = finalValues.map(value => template.replace(/\{\{value\}\}/g, value));
+  // Map values through template and join with proper replacements
+  const lines = finalValues.map(value => {
+    const replacements = {
+      ...getReplacementsForTable(table),
+      value
+    };
+    return replacePlaceholders(template, replacements, table);
+  });
+  
   return joinWithSeparator(lines);
 };
 
@@ -412,19 +534,11 @@ const replacePlaceholders = (
   replacements: Record<string, string>,
   table?: ISchemaInfo,
 ): string => {
-  // Handle ITERATE commands first
-  text = text.replace(
-    /\[\[\s*ITERATE\([^[\]]+\)[^\]]*\]\]/g,
-    match => {
-      const result = processIterateCommand(match.slice(2, -2).trim(), table);
-      // Preserve the whitespace before the ITERATE command
-      const whitespace = /^\s*/.exec(match)?.[0] ?? '';
-      return result ? whitespace + result : '';
-    }
-  );
+  // First process all commands
+  const processedText = processCommand(text, table);
 
-  // Handle the placeholders with new $_..._$ syntax
-  return text.replace(
+  // Then handle the regular placeholders
+  return processedText.replace(
     /\$_([^_]+)_\$|\{\{([^}]+)\}\}/g,
     (_, placeholder1: string | undefined, placeholder2: string | undefined) => {
       const key = (placeholder2 ?? placeholder1 ?? '').trim();
@@ -759,3 +873,4 @@ export const buildProjectFiles = (yamlContent: string): IStructure => {
     return [];
   }
 };
+
