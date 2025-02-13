@@ -124,10 +124,14 @@ class {{tableNamePascalCase}} extends Model
         [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
     ];
 
-    [[ ITERATE(hasOne) --template="public function {{valueSingular}}(){\\n          return $this->hasOne(Profile::class, '{{getPrimaryKey()}}');\\n}" --separator="\\n" ]]
-    [[ ITERATE(hasMany) --template="public function {{valuePlural}}(){\\n          return $this->hasMany(Profile::class, '{{getPrimaryKey()}}');\\n}" --separator="\\n" ]]
-    [[ ITERATE(belongsTo) --template="public function {{valueSingular}}(){\\n          return $this->belongsTo(Profile::class, '{{getPrimaryKey()}}'); }" --separator="\\n" ]]
+    [[ ITERATE(hasOne) --template="public function {{valueSingular}}(){\\n          return $this->hasOne(Profile::class, '{{getPrimaryKey()}}');\\n    }" --separator="\\n" ]]
+    
+    [[ ITERATE(hasMany) --template="public function {{valuePlural}}(){\\n          return $this->hasMany(Profile::class, '{{getPrimaryKey()}}');\\n    }" --separator="\\n" ]]
+    
+    [[ ITERATE(belongsTo) --template="public function {{valueSingular}}(){\\n          return $this->belongsTo(Profile::class, '{{getPrimaryKey()}}');\\n    }" --separator="\\n" ]]
+    
     [[ ITERATE(belongsToMany) --template="public function {{valuePlural}}(){}" --separator="\\n" ]]
+    
     [[ ITERATE(pivotRelationships.pivotTable) --template="public function {{valueSingular}}(){}" --separator="\\n" ]]
 }
 `,
