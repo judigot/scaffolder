@@ -112,6 +112,31 @@ describe('useSchemaInfo', () => {
     });
   });
 
+  describe('Get All Columns', () => {
+    it('should return all columns for user table', () => {
+      const userColumns = schemaInfo.getAllColumns('user');
+      expect(userColumns).toEqual([
+        'user_id',
+        'first_name',
+        'last_name',
+        'email',
+        'username',
+        'password',
+        'created_at',
+        'updated_at'
+      ]);
+    });
+
+    it('should return all columns for pivot table', () => {
+      const orderProductColumns = schemaInfo.getAllColumns('order_product');
+      expect(orderProductColumns).toEqual([
+        'order_product_id',
+        'order_id',
+        'product_id'
+      ]);
+    });
+  });
+
   describe('Error Cases', () => {
     it('should handle nonexistent tables', () => {
       expect(schemaInfo.getPrimaryKey('nonexistent')).toBe('');

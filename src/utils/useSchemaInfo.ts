@@ -18,6 +18,7 @@ interface ISchemaInfoResult {
   getPrimaryKey: (tableName: string) => string;
   getForeignTables: (tableName: string) => string[];
   getRequiredColumns: (tableName: string) => string[];
+  getAllColumns: (tableName: string) => string[];
   getColumnsInfo: (tableName: string) => IColumnInfo[];
   getChildTables: (tableName: string) => string[];
   getRelationships: (tableName: string) => IRelationships;
@@ -77,6 +78,15 @@ export const useSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     return [...new Set([...requiredFromColumns, ...explicitlyRequired])];
   };
 
+  /* Get all columns for a table */
+  const getAllColumns = (tableName: string): string[] => {
+    const table = tableMap.get(tableName);
+    if (!table) {
+      return [];
+    }
+    return table.columnsInfo.map((col: IColumnInfo) => col.column_name);
+  };
+
   /* Get columns info for a table */
   const getColumnsInfo = (tableName: string): IColumnInfo[] => {
     const table = tableMap.get(tableName);
@@ -126,6 +136,7 @@ export const useSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     pivotTables,
     getPrimaryKey,
     getForeignTables,
+    getAllColumns,
     getRequiredColumns,
     getColumnsInfo,
     getChildTables,
