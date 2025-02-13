@@ -422,9 +422,9 @@ const processCommand = (text: string, table?: ISchemaInfo): string => {
     },
   );
 
-  // Then, process ITERATE commands
+  // Process ITERATE commands
   result = result.replace(
-    /\[\[\s*ITERATE\(([^[\]]+)\)([^\]]*)\]\]/g,
+    /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
     (fullMatch: string, group1: string, group2: string) => {
       if (!table) {
         return '';
@@ -436,7 +436,7 @@ const processCommand = (text: string, table?: ISchemaInfo): string => {
         `ITERATE(${propertyPaths})${options}`,
         table,
       );
-      return cmdResult ? whitespace + cmdResult : '';
+      return cmdResult ? String(whitespace) + String(cmdResult) : '';
     },
   );
 
@@ -448,15 +448,13 @@ const processIterateCommand = (
   table: ISchemaInfo | undefined,
 ): string => {
   // Extract the property path and options
-  const match = /ITERATE\(([^)]+)\)\s*(.*)/.exec(command);
+  // Make the closing parenthesis optional and handle incomplete commands
+  const match = /ITERATE\((.*?)(?:\)(\s*.*))?$/.exec(command);
   if (!match || !table) {
     return '';
   }
 
-  const [, propertyPathsStr, options] = match;
-
-  // Split property paths and clean whitespace
-  const propertyPaths = propertyPathsStr.split(',').map((p) => p.trim());
+  const [, propertyPathsStr, options = ''] = match;
 
   // Parse options
   const templateMatch = /--template="([^"]+)"/.exec(options);
@@ -472,6 +470,7 @@ const processIterateCommand = (
         .replace(/\\t/g, '\t')
         .replace(/\\s/g, ' ')
     : '{{value}}';
+
   // Use literal separator string and preserve spaces
   const separator = separatorMatch
     ? separatorMatch[1]
@@ -517,14 +516,6 @@ const processIterateCommand = (
       })
     : [];
 
-  // Convert snake_case table name to PascalCase model name
-  const toModelName = (tableName: string): string => {
-    return tableName
-      .split('_')
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join('');
-  };
-
   // Helper function to join array with separator between elements
   const joinWithSeparator = (arr: string[]): string => {
     if (arr.length === 0) {
@@ -564,50 +555,80 @@ const processIterateCommand = (
     return values.filter((value) => flattenedFilterList.includes(value));
   };
 
+  // Convert snake_case table name to PascalCase model name
+  const toModelName = (tableName: string): string => {
+    return tableName
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('');
+  };
+
+  // Split property paths and clean whitespace
+  const propertyPaths = propertyPathsStr.split(',').map((p) => {
+    let path = p.trim();
+    // If it's a function call with missing closing parenthesis, add it
+    if (path.startsWith('{{') && path.includes('(') && !path.includes(')')) {
+      path = `${path})}}`;
+    }
+    // If it's a function call with missing closing brace, add it
+    if (path.startsWith('{{') && !path.endsWith('}}')) {
+      path = `${path}}}`;
+    }
+    return path;
+  });
+
   // Collect all values from all properties
   const allValues: string[] = [];
 
   for (const propertyPath of propertyPaths) {
-    // Remove any curly braces and whitespace from the property path
+    // Check if the entire propertyPath is a function call
+    if (propertyPath.startsWith('{{') && propertyPath.endsWith('}}')) {
+      const functionCall = propertyPath.slice(2, -2).trim();
+      // Extract just the function name without any parentheses
+      const functionName = functionCall.replace(/\([^)]*\)?$/, '');
+      
+      switch (functionName) {
+        case 'getAllColumns': {
+          const values = schemaInfo.getAllColumns(table.tableName);
+          allValues.push(...values);
+          continue;
+        }
+        case 'getRequiredColumns': {
+          const values = schemaInfo.getRequiredColumns(table.tableName);
+          allValues.push(...values);
+          continue;
+        }
+        case 'getPrimaryKey': {
+          const value = schemaInfo.getPrimaryKey(table.tableName);
+          if (value) {
+            allValues.push(value);
+          }
+          continue;
+        }
+      }
+      continue; // Skip unknown function calls
+    }
+
+    // Handle direct property access
     const cleanPath = propertyPath.replace(/[{}]/g, '').trim();
-
-    if (cleanPath === 'pivotRelationships.pivotTable') {
-      const pivotTables =
-        table.pivotRelationships?.map((rel) => toModelName(rel.pivotTable)) ??
-        [];
-      allValues.push(...pivotTables);
-      continue;
-    }
-
-    // Handle getAllColumns() function call
-    if (cleanPath === 'getAllColumns()') {
-      const values = schemaInfo.getAllColumns(table.tableName);
-      console.warn('getAllColumns values:', values); // Debug log
-      allValues.push(...values);
-      continue;
-    }
 
     switch (cleanPath) {
       case 'hasMany': {
-        // Use raw values without case transformation
         const values = table.hasMany ?? [];
         allValues.push(...values);
         break;
       }
       case 'belongsToMany': {
-        // Use raw values without case transformation
         const values = table.belongsToMany ?? [];
         allValues.push(...values);
         break;
       }
       case 'hasOne': {
-        // Use raw values without case transformation
         const values = table.hasOne ?? [];
         allValues.push(...values);
         break;
       }
       case 'belongsTo': {
-        // Use raw values without case transformation
         const values = table.belongsTo ?? [];
         allValues.push(...values);
         break;
@@ -617,19 +638,20 @@ const processIterateCommand = (
         allValues.push(...values);
         break;
       }
+      case 'pivotRelationships.pivotTable': {
+        const pivotTables =
+          table.pivotRelationships?.map((rel) => toModelName(rel.pivotTable)) ??
+          [];
+        allValues.push(...pivotTables);
+        break;
+      }
     }
   }
 
-  // Debug logs
-  console.warn('All values:', allValues);
-  console.warn('Filter list:', filterList);
-
-  // Remove duplicates if requested, filter ignored values, and apply filter
+  // Remove duplicates if requested, apply filter, and filter ignored values
   let finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
-  finalValues = filterIgnored(finalValues);
-  console.warn('After ignore:', finalValues);
   finalValues = applyFilter(finalValues);
-  console.warn('After filter:', finalValues);
+  finalValues = filterIgnored(finalValues);
 
   // Map values through template and join with proper replacements
   const lines = finalValues.map((value) => {
