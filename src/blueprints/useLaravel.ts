@@ -36,21 +36,21 @@ class {{className}} extends Model
     {{domainMethods}}
 }
 `,
-          replacements: {
-            primaryKey: `protected $primaryKey = '{{getPrimaryKey()}}';`,
-            hiddenColumns: `protected $hidden = [{{getHiddenColumns()}}];`,
-            fillable: `protected $fillable = [{{getRequiredColumns()}}];`,
-            domainMethods: `{{getModelDomainMethods()}}`,
-            modelImports: () => {
-              return {
-                hasOne: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
-                hasMany: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
-                belongsTo: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
-                belongsToMany: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
-                pivotRelationships: `{{loop("use App\\Models\\{{pivotTableNamePascalCase}}")}}`,
-              };
-            },
-          },
+          // replacements: {
+          //   primaryKey: `protected $primaryKey = '{{getPrimaryKey()}}';`,
+          //   hiddenColumns: `protected $hidden = [{{getHiddenColumns()}}];`,
+          //   fillable: `protected $fillable = [{{getRequiredColumns()}}];`,
+          //   domainMethods: `{{getModelDomainMethods()}}`,
+          //   modelImports: () => {
+          //     return {
+          //       hasOne: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+          //       hasMany: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+          //       belongsTo: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+          //       belongsToMany: `{{loop("use App\\Models\\{{relatedTableNamePascalCase}}")}}`,
+          //       pivotRelationships: `{{loop("use App\\Models\\{{pivotTableNamePascalCase}}")}}`,
+          //     };
+          //   },
+          // },
         },
       ],
     },
