@@ -313,13 +313,15 @@ const processIterateCommand = (
   const match = /ITERATE\(([^)]+)\)\s*(.*)/.exec(command);
   if (!match || !table) {return '';}
 
-  const [, propertyPath, options] = match;
+  const [, propertyPathsStr, options] = match;
+
+  // Split property paths and clean whitespace
+  const propertyPaths = propertyPathsStr.split(',').map(p => p.trim());
 
   // Parse options
   const templateMatch = /--template="([^"]+)"/.exec(options);
   const separatorMatch = /--separator="([^"]+)"/.exec(options);
-
-  /*prettier-ignore*/ (($= separatorMatch) => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
+  const removeDuplicates = options.includes('--removeDuplicates');
   
   const template = templateMatch ? templateMatch[1] : '{{value}}';
   // Use literal separator string and preserve spaces
@@ -345,51 +347,51 @@ const processIterateCommand = (
     return arr.slice(0, -1).join(separator) + separator + arr.slice(-1)[0];
   };
 
-  // Special handling for pivotRelationships.pivotTable
-  if (propertyPath === 'pivotRelationships.pivotTable') {
-    const pivotTables = table.pivotRelationships?.map(rel => toModelName(rel.pivotTable)) ?? [];
-    return joinWithSeparator([...new Set(pivotTables)]
-      .map(value => template.replace(/\{\{value\}\}/g, value)));
+  // Collect all values from all properties
+  const allValues: string[] = [];
+  
+  for (const propertyPath of propertyPaths) {
+    if (propertyPath === 'pivotRelationships.pivotTable') {
+      const pivotTables = table.pivotRelationships?.map(rel => toModelName(rel.pivotTable)) ?? [];
+      allValues.push(...pivotTables);
+      continue;
+    }
+
+    switch (propertyPath) {
+      case 'hasMany': {
+        const values = (table.hasMany ?? []).map(toModelName);
+        allValues.push(...values);
+        break;
+      }
+      case 'belongsToMany': {
+        const values = (table.belongsToMany ?? []).map(toModelName);
+        allValues.push(...values);
+        break;
+      }
+      case 'hasOne': {
+        const values = (table.hasOne ?? []).map(toModelName);
+        allValues.push(...values);
+        break;
+      }
+      case 'belongsTo': {
+        const values = (table.belongsTo ?? []).map(toModelName);
+        allValues.push(...values);
+        break;
+      }
+      case 'requiredColumns': {
+        const values = table.requiredColumns ?? [];
+        allValues.push(...values);
+        break;
+      }
+    }
   }
 
-  // Handle specific array properties
-  switch (propertyPath) {
-    case 'hasMany': {
-      const values = (table.hasMany ?? []).map(toModelName);
-      return joinWithSeparator([...new Set(values)]
-        .map(value => template.replace(/\{\{value\}\}/g, value)));
-    }
-    case 'belongsToMany': {
-      const values = (table.belongsToMany ?? []).map(toModelName);
-      return joinWithSeparator([...new Set(values)]
-        .map(value => template.replace(/\{\{value\}\}/g, value)));
-    }
-    case 'hasOne': {
-      const values = (table.hasOne ?? []).map(toModelName);
-      return joinWithSeparator([...new Set(values)]
-        .map(value => template.replace(/\{\{value\}\}/g, value)));
-    }
-    case 'belongsTo': {
-      const values = (table.belongsTo ?? []).map(toModelName);
-      return joinWithSeparator([...new Set(values)]
-        .map(value => template.replace(/\{\{value\}\}/g, value)));
-    }
-    case 'requiredColumns': {
-      const requiredColumns = table.requiredColumns;
-      if (!requiredColumns || requiredColumns.length === 0) {
-        return '';
-      }
-      
-      // For required columns, we need to preserve the exact indentation
-      const lines = requiredColumns
-        .map(value => template.replace(/\{\{value\}\}/g, value));
-      
-      // Join with separator between elements
-      return joinWithSeparator(lines);
-    }
-    default:
-      return '';
-  }
+  // Remove duplicates if requested
+  const finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
+
+  // Map values through template and join
+  const lines = finalValues.map(value => template.replace(/\{\{value\}\}/g, value));
+  return joinWithSeparator(lines);
 };
 
 const replacePlaceholders = (

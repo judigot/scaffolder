@@ -91,10 +91,7 @@ abstract class BaseController extends Controller
 
 namespace App\\Models;
 
-[[ ITERATE(hasOne) --template="use App\\Models\\{{value}};" --separator="\\n" ]]
-[[ ITERATE(hasMany) --template="use App\\Models\\{{value}};" --separator="\\n" ]]
-[[ ITERATE(belongsTo) --template="use App\\Models\\{{value}};" --separator="\\n" ]]
-[[ ITERATE(belongsToMany) --template="use App\\Models\\{{value}};" --separator="\\n" ]]
+[[ ITERATE(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\\Models\\{{value}};" --separator="\\n" ]]
 use Illuminate\\Database\\Eloquent\\Model;
 use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
