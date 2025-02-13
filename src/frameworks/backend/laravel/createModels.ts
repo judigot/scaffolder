@@ -7,7 +7,7 @@ import generateDomainCode from '@/utils/generateDomainCode.ts';
 import modelStructure from '@/frameworks/backend/laravel/_modelStructure.ts';
 
 // Columns excluded from API GET responses to protect sensitive data or internal fields
-const hiddenFields = [
+export const hiddenFields = [
   'password',
   'hashed_password',
   'api_token',

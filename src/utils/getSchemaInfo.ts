@@ -1,4 +1,5 @@
 import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import { hiddenFields } from '@/frameworks/backend/laravel/createModels.ts';
 
 interface IRelationships {
   hasOne?: string[];
@@ -19,6 +20,7 @@ interface ISchemaInfoResult {
   getForeignTables: (tableName: string) => string[];
   getRequiredColumns: (tableName: string) => string[];
   getAllColumns: (tableName: string) => string[];
+  getHiddenColumns: (tableName: string) => string[];
   getColumnsInfo: (tableName: string) => IColumnInfo[];
   getChildTables: (tableName: string) => string[];
   getRelationships: (tableName: string) => IRelationships;
@@ -87,6 +89,17 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     return table.columnsInfo.map((col: IColumnInfo) => col.column_name);
   };
 
+  /* Get hidden columns for a table */
+  const getHiddenColumns = (tableName: string): string[] => {
+    const table = tableMap.get(tableName);
+    if (!table) {
+      return [];
+    }
+
+    const allColumns = table.columnsInfo.map((col) => col.column_name);
+    return allColumns.filter((column) => hiddenFields.includes(column));
+  };
+
   /* Get columns info for a table */
   const getColumnsInfo = (tableName: string): IColumnInfo[] => {
     const table = tableMap.get(tableName);
@@ -138,6 +151,7 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     getForeignTables,
     getAllColumns,
     getRequiredColumns,
+    getHiddenColumns,
     getColumnsInfo,
     getChildTables,
     getRelationships,

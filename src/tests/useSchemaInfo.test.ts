@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
+import { hiddenFields } from '@/frameworks/backend/laravel/createModels.ts';
 
 describe('useSchemaInfo', () => {
   const schemaInfo = getSchemaInfo(masterSchema);
@@ -146,6 +147,36 @@ describe('useSchemaInfo', () => {
       expect(schemaInfo.getForeignTables('nonexistent')).toEqual([]);
       expect(schemaInfo.getRelationships('nonexistent')).toEqual({});
       expect(schemaInfo.isPivot('nonexistent')).toBe(false);
+      expect(schemaInfo.getHiddenColumns('nonexistent')).toEqual([]);
+    });
+  });
+
+  describe('Hidden Columns', () => {
+    it('should return hidden columns for user table', () => {
+      const userHidden = schemaInfo.getHiddenColumns('user');
+      expect(userHidden).toContain('password');
+    });
+
+    it('should return empty array for tables without hidden columns', () => {
+      const productHidden = schemaInfo.getHiddenColumns('product');
+      expect(productHidden).toEqual([]);
+    });
+
+    it('should match against the hiddenFields constant', () => {
+      const allColumns = schemaInfo.getAllColumns('user');
+      const hiddenColumns = schemaInfo.getHiddenColumns('user');
+      
+      // All hidden columns should be in the hiddenFields list
+      hiddenColumns.forEach(column => {
+        expect(hiddenFields).toContain(column);
+      });
+
+      // All columns from hiddenFields that exist in the table should be hidden
+      allColumns.forEach(column => {
+        if (hiddenFields.includes(column)) {
+          expect(hiddenColumns).toContain(column);
+        }
+      });
     });
   });
 });
