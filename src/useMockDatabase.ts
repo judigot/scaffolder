@@ -91,7 +91,11 @@ abstract class BaseController extends Controller
 
 namespace App\\Models;
 
-{{modelImports}}
+[[ ITERATE(hasOne.relatedTable) --template="use App\\Models\\{{value}};" --separator="\n" ]]
+[[ ITERATE(hasMany.relatedTable) --template="use App\\Models\\{{value}};" --separator="\n" ]]
+[[ ITERATE(belongsTo.relatedTable) --template="use App\\Models\\{{value}};" --separator="\n" ]]
+[[ ITERATE(belongsToMany.relatedTable) --template="use App\\Models\\{{value}};" --separator="\n" ]]
+[[ ITERATE(pivotRelationships.pivotTable) --template="use App\\Models\\{{value}};" --separator="\n" ]]
 use Illuminate\\Database\\Eloquent\\Model;
 use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
@@ -106,7 +110,7 @@ class {{tableNamePascalCase}} extends Model
     protected $hidden = [{{hiddenColumns}}];
 
     protected $fillable = [
-        {{getRequiredColumns()}}
+        [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\n        " ]]
     ];
 
     {{domainMethods}}
