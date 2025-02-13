@@ -58,7 +58,7 @@ const hiddenFields = [
 
 const fillableExemptions = ['created_at', 'updated_at'];
 
-const createFillable = (tableInfo: ISchemaInfo): string => {
+export const createFillable = (tableInfo: ISchemaInfo): string => {
   const primaryKeyColumns = tableInfo.columnsInfo
     .filter((column) => column.primary_key ?? false)
     .map((column) => column.column_name);

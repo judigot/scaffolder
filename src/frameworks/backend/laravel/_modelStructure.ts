@@ -25,6 +25,13 @@ class {{className}} extends Model
     {{domainMethods}}
 }`,
 
+  modelImports: `model import`,
+  className: `class {{className}} extends Model`,
+  primaryKey: `protected $primaryKey = 'product_id';`,
+  hiddenColumns: `class {{className}} extends Model`,
+  fillable: `class {{className}} extends Model`,
+  domainMethods: `class {{className}} extends Model`,
+
   // New
   timestamps: `protected $timestamps = {{useTimestamps}};
     protected $timestampFields = {

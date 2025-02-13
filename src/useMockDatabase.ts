@@ -95,18 +95,18 @@ namespace App\\Models;
 use Illuminate\\Database\\Eloquent\\Model;
 use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
-class {{className}} extends Model
+class {{tableNamePascalCase}} extends Model
 {
     use HasFactory;
 
     protected $table = '{{tableName}}';
 
-    {{primaryKey}}
+    protected $primaryKey = '{{getPrimaryKey({{tableName}})}}';
 
     protected $hidden = [{{hiddenColumns}}];
 
     protected $fillable = [
-        {{fillable}}
+        {{getRequiredColumns({{tableName}})}}
     ];
 
     {{domainMethods}}
@@ -390,6 +390,17 @@ class AuthController extends BaseController
 `,
         },
       ],
+    },
+    {
+      type: 'file',
+      name: 'model-structure.yaml',
+      content: `
+
+
+
+
+
+      `,
     },
     {
       type: 'folder',
