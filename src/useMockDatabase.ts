@@ -124,15 +124,25 @@ class {{tableNamePascalCase}} extends Model
         [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
     ];
 
-    [[ ITERATE(hasOne) --template="public function {{valueSingular}}() {\\n        return $this->hasOne({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');\\n    }" --separator="\\n\\n" ]]
+    [[ ITERATE(hasOne) --template="public function {{valueSingular}}() {
+        return $this->hasOne({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');
+    }" --separator="\\n\\n" ]]
 
-    [[ ITERATE(hasMany) --template="public function {{valuePlural}}() {\\n        return $this->hasMany({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');\\n    }" --separator="\\n\\n" ]]
+    [[ ITERATE(hasMany) --template="public function {{valuePlural}}() {
+        return $this->hasMany({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');
+    }" --separator="\\n\\n" ]]
 
-    [[ ITERATE(belongsTo) --template="public function {{valueSingular}}() {\\n        return $this->belongsTo({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');\\n    }" --separator="\\n\\n" ]]
+    [[ ITERATE(belongsTo) --template="public function {{valueSingular}}() {
+        return $this->belongsTo({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');
+    }" --separator="\\n\\n" ]]
 
-    [[ ITERATE(belongsToMany) --template="public function {{valuePlural}}() {\\n        return $this->belongsToMany({{valuePascalCaseSingular}}::class);\\n    }" --separator="\\n\\n" ]]
+    [[ ITERATE(belongsToMany) --template="public function {{valuePlural}}() {
+        return $this->belongsToMany({{valuePascalCaseSingular}}::class);
+    }" --separator="\\n\\n" ]]
 
-    [[ ITERATE(pivotRelationships.pivotTable) --template="public function {{valueSingular}}() {\\n        return $this->belongsTo({{valuePascalCaseSingular}}::class);\\n    }" --separator="\\n\\n" ]]
+    [[ ITERATE(pivotRelationships.pivotTable) --template="public function {{valueSingular}}() {
+        return $this->belongsTo({{valuePascalCaseSingular}}::class);
+    }" --separator="\\n\\n" ]]
 }
 `,
         },

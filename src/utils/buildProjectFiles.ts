@@ -42,7 +42,11 @@ const loadTemplateContent = (templateName: string): string => {
     return '';
   }
 
-  return templateFile.content;
+  // Convert template to a single line with single backslash escapes
+  return templateFile.content
+    .replace(/\r\n/g, '\n') // Normalize line endings first
+    .replace(/\n/g, '\\n'); // Escape newlines with single backslash
+  // return templateFile.content;
 };
 
 const getReplacementsForTable = (
