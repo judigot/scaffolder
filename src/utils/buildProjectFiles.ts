@@ -555,14 +555,6 @@ const processIterateCommand = (
     return values.filter((value) => flattenedFilterList.includes(value));
   };
 
-  // Convert snake_case table name to PascalCase model name
-  const toModelName = (tableName: string): string => {
-    return tableName
-      .split('_')
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join('');
-  };
-
   // Split property paths and clean whitespace
   const propertyPaths = propertyPathsStr.split(',').map((p) => {
     let path = p.trim();
@@ -586,7 +578,7 @@ const processIterateCommand = (
       const functionCall = propertyPath.slice(2, -2).trim();
       // Extract just the function name without any parentheses
       const functionName = functionCall.replace(/\([^)]*\)?$/, '');
-      
+
       switch (functionName) {
         case 'getAllColumns': {
           const values = schemaInfo.getAllColumns(table.tableName);
@@ -638,10 +630,9 @@ const processIterateCommand = (
         allValues.push(...values);
         break;
       }
-      case 'pivotRelationships.pivotTable': {
+      case 'pivotRelationships.relatedTable': {
         const pivotTables =
-          table.pivotRelationships?.map((rel) => toModelName(rel.pivotTable)) ??
-          [];
+          table.pivotRelationships?.map((rel) => rel.relatedTable) ?? [];
         allValues.push(...pivotTables);
         break;
       }
@@ -726,10 +717,8 @@ const createFileContent = (
   table?: ISchemaInfo,
   fileName?: string,
 ): string => {
-  // If no template is specified but filename ends with .php, use it as template
-  const template =
-    options.template ??
-    (fileName?.endsWith('.php') === true ? fileName : undefined);
+  // If no template is specified, use the filename as the template
+  const template = options.template ?? fileName;
 
   if (typeof template === 'string' && template.length > 0) {
     if (table) {

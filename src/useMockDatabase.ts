@@ -179,24 +179,21 @@ class {{tableNamePascalCase}} extends Model
     ];
 
     [[ ITERATE(hasOne) --template="public function {{valueSingular}}() {
-        return $this->hasOne({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');
+    return $this->hasOne({{valuePascalCaseSingular}}::class);
     }" --separator="\\n\\n" ]]
 
     [[ ITERATE(hasMany) --template="public function {{valuePlural}}() {
-        return $this->hasMany({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');
+        return $this->hasMany({{valuePascalCaseSingular}}::class);
     }" --separator="\\n\\n" ]]
 
-    [[ ITERATE(belongsTo) --template="public function {{valueSingular}}() {
-        return $this->belongsTo({{valuePascalCaseSingular}}::class, '{{getPrimaryKey()}}');
-    }" --separator="\\n\\n" ]]
-
-    [[ ITERATE(belongsToMany) --template="public function {{valuePlural}}() {
+    [[ ITERATE(pivotRelationships.relatedTable) --template="public function {{valuePlural}}() {
         return $this->belongsToMany({{valuePascalCaseSingular}}::class);
     }" --separator="\\n\\n" ]]
 
-    [[ ITERATE(pivotRelationships.pivotTable) --template="public function {{valueSingular}}() {
+    [[ ITERATE(belongsTo) --template="public function {{valueSingular}}() {
         return $this->belongsTo({{valuePascalCaseSingular}}::class);
     }" --separator="\\n\\n" ]]
+
 }
 `,
         },
