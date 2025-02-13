@@ -1,6 +1,5 @@
 export const laravelFolderStructure = `
-Models:
-  - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
+- CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
 `;
 // export const laravelFolderStructure = `
 // app:
