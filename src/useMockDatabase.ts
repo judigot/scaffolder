@@ -106,7 +106,7 @@ abstract class BaseController extends Controller
 
 namespace App\\Models;
 
-[[ ITERATE(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\\Models\\{{value}};" --separator="\\n" ]]
+[[ ITERATE(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\\Models\\{{valuePascalCaseSingular}};" --separator="\\n" ]]
 use Illuminate\\Database\\Eloquent\\Model;
 use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;
 
@@ -124,7 +124,11 @@ class {{tableNamePascalCase}} extends Model
         [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
     ];
 
-    {{domainMethods}}
+    [[ ITERATE(hasOne) --template="public function {{valueSingular}}(){\\n          return $this->hasOne(Profile::class, '{{getPrimaryKey()}}');\\n}" --separator="\\n" ]]
+    [[ ITERATE(hasMany) --template="public function {{valuePlural}}(){\\n          return $this->hasMany(Profile::class, '{{getPrimaryKey()}}');\\n}" --separator="\\n" ]]
+    [[ ITERATE(belongsTo) --template="public function {{valueSingular}}(){\\n          return $this->belongsTo(Profile::class, '{{getPrimaryKey()}}'); }" --separator="\\n" ]]
+    [[ ITERATE(belongsToMany) --template="public function {{valuePlural}}(){}" --separator="\\n" ]]
+    [[ ITERATE(pivotRelationships.pivotTable) --template="public function {{valueSingular}}(){}" --separator="\\n" ]]
 }
 `,
         },
