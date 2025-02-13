@@ -1,5 +1,8 @@
 {
   "semi": true,
+  "plugins": [
+    "@prettier/plugin-php"
+  ],
   "singleQuote": true,
   "printWidth": 80,
   "tabWidth": 2,
