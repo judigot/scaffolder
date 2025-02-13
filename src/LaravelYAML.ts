@@ -26,7 +26,7 @@ app:
     - BaseService.php
     - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Service.php --template service-template.php)
   Models:
-    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php)
+    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
   Providers:
     - CREATE_FILE(AppServiceProviderTemplate.php)
 routes:
