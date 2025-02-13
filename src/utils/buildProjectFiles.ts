@@ -76,7 +76,25 @@ const getReplacementsForTable = (
     tableNamePhraseCaseSingular: caseFormats.phraseCaseSingular,
     tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
     tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
+    // Add primary key and required columns with matching template syntax
+    'getPrimaryKey()': getPrimaryKey(table),
+    'getRequiredColumns()': getRequiredColumns(table).map(col => `'${col}'`).join(',\n        '),
   };
+};
+
+export const getPrimaryKey = (table: ISchemaInfo): string => {
+  const primaryKeyColumn = table.columnsInfo.find((col) => col.primary_key === true);
+  return primaryKeyColumn?.column_name ?? '';
+};
+
+export const getRequiredColumns = (table: ISchemaInfo): string[] => {
+  const requiredFromColumns = table.columnsInfo
+    .filter((col) => col.is_nullable === 'NO')
+    .map((col) => col.column_name);
+
+  const explicitlyRequired = table.requiredColumns ?? [];
+
+  return [...new Set([...requiredFromColumns, ...explicitlyRequired])];
 };
 
 const checkConditions = (conditions: string[]): boolean => {

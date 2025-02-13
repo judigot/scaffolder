@@ -101,12 +101,12 @@ class {{tableNamePascalCase}} extends Model
 
     protected $table = '{{tableName}}';
 
-    protected $primaryKey = '{{getPrimaryKey({{tableName}})}}';
+    protected $primaryKey = '{{getPrimaryKey()}}';
 
     protected $hidden = [{{hiddenColumns}}];
 
     protected $fillable = [
-        {{getRequiredColumns({{tableName}})}}
+        {{getRequiredColumns()}}
     ];
 
     {{domainMethods}}
