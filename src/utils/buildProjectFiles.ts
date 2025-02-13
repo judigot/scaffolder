@@ -427,7 +427,13 @@ const processIterateCommand = (
   const removeDuplicates = options.includes('--removeDuplicates');
   const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
 
-  const template = templateMatch ? templateMatch[1] : '{{value}}';
+  // Process escape sequences in template
+  const template = templateMatch 
+    ? templateMatch[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\s/g, ' ')
+    : '{{value}}';
   // Use literal separator string and preserve spaces
   const separator = separatorMatch 
     ? separatorMatch[1]
