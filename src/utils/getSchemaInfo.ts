@@ -25,7 +25,7 @@ interface ISchemaInfoResult {
   isPivot: (tableName: string) => boolean;
 }
 
-export const useSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
+export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
   /* Create a map for quick table lookups */
   const tableMap = new Map<string, ISchemaInfo>();
   schema.forEach((table) => {
@@ -145,4 +145,4 @@ export const useSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
   };
 };
 
-export default useSchemaInfo;
+export default getSchemaInfo;

@@ -5,16 +5,9 @@ import masterSchema from '@/schema-infos/masterSchema.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { useStore } from '@/useMockDatabase.ts';
-import useSchemaInfo from '@/utils/useSchemaInfo.ts';
+import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
-interface ISchemaInfoMethods {
-  getPrimaryKey: (tableName: string) => string;
-  getRequiredColumns: (tableName: string) => string[];
-  getAllColumns: (tableName: string) => string[];
-}
-
-// eslint-disable-next-line react-hooks/rules-of-hooks
-const getSchemaInfo = (): ISchemaInfoMethods => useSchemaInfo(masterSchema);
+const schemaInfo = getSchemaInfo(masterSchema);
 
 interface ICommandOptions {
   conditions?: string[];
@@ -56,10 +49,10 @@ const loadTemplateContent = (templateName: string): string => {
     // Holds each protected segment (anything within --template="..." or --separator="...").
     const placeholders: string[] = [];
     let index = 0;
-  
+
     // Regex to match either --template="..." or --separator="..."
     const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
-  
+
     // 1) Temporarily replace those segments with placeholders
     let protectedString = input.replace(pattern, (match: string) => {
       placeholders.push(match);
@@ -67,22 +60,27 @@ const loadTemplateContent = (templateName: string): string => {
       index += 1;
       return placeholder;
     });
-  
-    // 2) Replace all remaining \n (i.e., \\n) with real newlines outside placeholders
-    protectedString = protectedString.replace(/\\n/g, "\n");
-  
-    // 3) Restore protected segments so that \\n in them remains intact
-    protectedString = protectedString.replace(/__PLACEHOLDER_(\d+)__/g, (_: string, p1: string) => {
-      const i = parseInt(p1, 10);
-      return placeholders[i] ?? "";
-    });
-  
-    return protectedString;
-  }  
 
-  return replaceOutsideTemplateSeparator(templateFile.content
-    .replace(/\r\n/g, '\n') // Normalize line endings first
-    .replace(/\n/g, '\\n'));
+    // 2) Replace all remaining \n (i.e., \\n) with real newlines outside placeholders
+    protectedString = protectedString.replace(/\\n/g, '\n');
+
+    // 3) Restore protected segments so that \\n in them remains intact
+    protectedString = protectedString.replace(
+      /__PLACEHOLDER_(\d+)__/g,
+      (_: string, p1: string) => {
+        const i = parseInt(p1, 10);
+        return placeholders[i] ?? '';
+      },
+    );
+
+    return protectedString;
+  }
+
+  return replaceOutsideTemplateSeparator(
+    templateFile.content
+      .replace(/\r\n/g, '\n') // Normalize line endings first
+      .replace(/\n/g, '\\n'),
+  );
 
   // return templateFile.content;
 };
@@ -91,12 +89,9 @@ const loadTemplateContent = (templateName: string): string => {
 type ReplacementValue = string | string[];
 type Replacements = Record<string, ReplacementValue>;
 
-const getReplacementsForTable = (
-  table: ISchemaInfo,
-): Replacements => {
+const getReplacementsForTable = (table: ISchemaInfo): Replacements => {
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
-  const schemaInfo = getSchemaInfo();
 
   return {
     tableNamePascalCase: caseFormats.pascalCase,
@@ -331,7 +326,11 @@ const processLoopTables = (content: string): string => {
     return masterSchema
       .map((table) => {
         const replacements = getReplacementsForTable(table);
-        return replacePlaceholders(String(loopContent).trim(), replacements, table);
+        return replacePlaceholders(
+          String(loopContent).trim(),
+          replacements,
+          table,
+        );
       })
       .join('\n    '); // Add proper indentation for PHP files
   });
@@ -350,7 +349,8 @@ const loadConstant = (constantName: string, table?: ISchemaInfo): string[] => {
   }
 
   const constantFile = constantsFolder.children.find(
-    (item): item is IFile => item.type === 'file' && item.name === `${constantName}.yaml`,
+    (item): item is IFile =>
+      item.type === 'file' && item.name === `${constantName}.yaml`,
   );
 
   if (!constantFile) {
@@ -362,7 +362,7 @@ const loadConstant = (constantName: string, table?: ISchemaInfo): string[] => {
     // Preprocess content to quote values with curly braces to ensure they're parsed as strings
     const preprocessedContent = constantFile.content.replace(
       /^-\s*(\{\{[^}]+\}\})\s*$/gm,
-      '- "$1"'
+      '- "$1"',
     );
 
     // Parse YAML content
@@ -379,14 +379,14 @@ const loadConstant = (constantName: string, table?: ISchemaInfo): string[] => {
     // Handle both formats:
     // Format 1: Array of values
     if (Array.isArray(parsed)) {
-      rawValues = parsed.map(item => String(item).trim());
+      rawValues = parsed.map((item) => String(item).trim());
     }
     // Format 2: Named constant object
     else if (isRecord(parsed)) {
       if (constantName in parsed && Array.isArray(parsed[constantName])) {
         const values = parsed[constantName];
         if (Array.isArray(values)) {
-          rawValues = values.map(item => String(item).trim());
+          rawValues = values.map((item) => String(item).trim());
         }
       }
     }
@@ -394,7 +394,9 @@ const loadConstant = (constantName: string, table?: ISchemaInfo): string[] => {
     // Then process placeholders if table is provided
     if (table) {
       const replacements = getReplacementsForTable(table);
-      return rawValues.map(value => replacePlaceholders(value, replacements, table));
+      return rawValues.map((value) =>
+        replacePlaceholders(value, replacements, table),
+      );
     }
 
     return rawValues;
@@ -404,10 +406,7 @@ const loadConstant = (constantName: string, table?: ISchemaInfo): string[] => {
   }
 };
 
-const processCommand = (
-  text: string,
-  table?: ISchemaInfo,
-): string => {
+const processCommand = (text: string, table?: ISchemaInfo): string => {
   // Process all commands in order of specificity
   let result = text;
 
@@ -415,26 +414,30 @@ const processCommand = (
   result = result.replace(
     /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/g,
     (_match: string, group1: string) => {
-      if (!table) {return '';}
+      if (!table) {
+        return '';
+      }
       const constantName = String(group1).trim();
       return loadConstant(constantName, table).join(',');
-    }
+    },
   );
 
   // Then, process ITERATE commands
   result = result.replace(
     /\[\[\s*ITERATE\(([^[\]]+)\)([^\]]*)\]\]/g,
     (fullMatch: string, group1: string, group2: string) => {
-      if (!table) {return '';}
+      if (!table) {
+        return '';
+      }
       const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
       const propertyPaths = String(group1);
       const options = String(group2);
       const cmdResult = processIterateCommand(
         `ITERATE(${propertyPaths})${options}`,
-        table
+        table,
       );
       return cmdResult ? whitespace + cmdResult : '';
-    }
+    },
   );
 
   return result;
@@ -446,12 +449,14 @@ const processIterateCommand = (
 ): string => {
   // Extract the property path and options
   const match = /ITERATE\(([^)]+)\)\s*(.*)/.exec(command);
-  if (!match || !table) {return '';}
+  if (!match || !table) {
+    return '';
+  }
 
   const [, propertyPathsStr, options] = match;
 
   // Split property paths and clean whitespace
-  const propertyPaths = propertyPathsStr.split(',').map(p => p.trim());
+  const propertyPaths = propertyPathsStr.split(',').map((p) => p.trim());
 
   // Parse options
   const templateMatch = /--template="([^"]+)"/.exec(options);
@@ -461,14 +466,14 @@ const processIterateCommand = (
   const filterMatch = /--filter="([^"]+)"/.exec(options);
 
   // Process escape sequences in template
-  const template = templateMatch 
+  const template = templateMatch
     ? templateMatch[1]
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
         .replace(/\\s/g, ' ')
     : '{{value}}';
   // Use literal separator string and preserve spaces
-  const separator = separatorMatch 
+  const separator = separatorMatch
     ? separatorMatch[1]
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
@@ -476,25 +481,32 @@ const processIterateCommand = (
     : '\n';
 
   // Parse ignore list with flexible whitespace and handle USE_CONSTANT
-  const ignoreList = ignoreMatch 
-    ? ignoreMatch[1].split(',').map(item => {
-        const trimmed = item.trim();
-        const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(trimmed);
-        if (constantMatch) {
-          // Get raw values from constant file without any processing
-          return loadConstant(constantMatch[1]);
-        }
-        // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table);
-        return replacePlaceholders(trimmed, replacements, table);
-      }).flat()
+  const ignoreList = ignoreMatch
+    ? ignoreMatch[1]
+        .split(',')
+        .map((item) => {
+          const trimmed = item.trim();
+          const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(
+            trimmed,
+          );
+          if (constantMatch) {
+            // Get raw values from constant file without any processing
+            return loadConstant(constantMatch[1]);
+          }
+          // For non-constant values, still process any placeholders they might have
+          const replacements = getReplacementsForTable(table);
+          return replacePlaceholders(trimmed, replacements, table);
+        })
+        .flat()
     : [];
 
   // Parse filter list with flexible whitespace and handle USE_CONSTANT
-  const filterList = filterMatch 
-    ? filterMatch[1].split(',').map(item => {
+  const filterList = filterMatch
+    ? filterMatch[1].split(',').map((item) => {
         const trimmed = item.trim();
-        const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(trimmed);
+        const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(
+          trimmed,
+        );
         if (constantMatch) {
           // Get raw values from constant file and return as an array
           return loadConstant(constantMatch[1], table);
@@ -509,54 +521,66 @@ const processIterateCommand = (
   const toModelName = (tableName: string): string => {
     return tableName
       .split('_')
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
   };
 
   // Helper function to join array with separator between elements
   const joinWithSeparator = (arr: string[]): string => {
-    if (arr.length === 0) {return '';}
-    if (arr.length === 1) {return arr[0];}
+    if (arr.length === 0) {
+      return '';
+    }
+    if (arr.length === 1) {
+      return arr[0];
+    }
     return arr.slice(0, -1).join(separator) + separator + arr.slice(-1)[0];
   };
 
   // Helper function to filter ignored values
   const filterIgnored = (values: string[]): string[] => {
-    if (ignoreList.length === 0) {return values;}
-    return values.filter(value => !ignoreList.includes(value));
+    if (ignoreList.length === 0) {
+      return values;
+    }
+    return values.filter((value) => !ignoreList.includes(value));
   };
 
   // Helper function to apply filter
   const applyFilter = (values: string[]): string[] => {
-    if (filterList.length === 0) {return values;}
-    
-    // Flatten the filter list to handle both direct values and arrays from USE_CONSTANT
-    const flattenedFilterList = filterList.reduce<string[]>((acc, filterPattern) => {
-      if (Array.isArray(filterPattern)) {
-        return [...acc, ...filterPattern];
-      }
-      return [...acc, filterPattern];
-    }, []);
+    if (filterList.length === 0) {
+      return values;
+    }
 
-    return values.filter(value => flattenedFilterList.includes(value));
+    // Flatten the filter list to handle both direct values and arrays from USE_CONSTANT
+    const flattenedFilterList = filterList.reduce<string[]>(
+      (acc, filterPattern) => {
+        if (Array.isArray(filterPattern)) {
+          return [...acc, ...filterPattern];
+        }
+        return [...acc, filterPattern];
+      },
+      [],
+    );
+
+    return values.filter((value) => flattenedFilterList.includes(value));
   };
 
   // Collect all values from all properties
   const allValues: string[] = [];
-  
+
   for (const propertyPath of propertyPaths) {
     // Remove any curly braces and whitespace from the property path
     const cleanPath = propertyPath.replace(/[{}]/g, '').trim();
 
     if (cleanPath === 'pivotRelationships.pivotTable') {
-      const pivotTables = table.pivotRelationships?.map(rel => toModelName(rel.pivotTable)) ?? [];
+      const pivotTables =
+        table.pivotRelationships?.map((rel) => toModelName(rel.pivotTable)) ??
+        [];
       allValues.push(...pivotTables);
       continue;
     }
 
     // Handle getAllColumns() function call
     if (cleanPath === 'getAllColumns()') {
-      const schemaInfo = getSchemaInfo();
       const values = schemaInfo.getAllColumns(table.tableName);
       console.warn('getAllColumns values:', values); // Debug log
       allValues.push(...values);
@@ -608,10 +632,10 @@ const processIterateCommand = (
   console.warn('After filter:', finalValues);
 
   // Map values through template and join with proper replacements
-  const lines = finalValues.map(value => {
+  const lines = finalValues.map((value) => {
     // Get all case variations of the value using changeCase
     const caseFormats = changeCase(value);
-    
+
     // Add all case variations and the raw value to replacements
     const replacements = {
       value, // Raw value without case transformation
@@ -639,12 +663,12 @@ const processIterateCommand = (
       valueKebabCaseSingular: caseFormats.kebabCaseSingular,
       valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
       // Add table replacements for other placeholders that might be in the template
-      ...getReplacementsForTable(table)
+      ...getReplacementsForTable(table),
     };
-    
+
     return replacePlaceholders(template, replacements, table);
   });
-  
+
   return joinWithSeparator(lines);
 };
 
@@ -700,7 +724,7 @@ const createFileContent = (
           modelSpecificRoutes: options.modelSpecificRoutes ?? '',
           baseRoutesForController: options.baseRoutesForController ?? '',
         },
-        table
+        table,
       );
       return processedContent.trim();
     }
@@ -748,7 +772,7 @@ const processMultipleFiles = (
           modelSpecificRoutes: options.modelSpecificRoutes ?? '',
           baseRoutesForController: options.baseRoutesForController ?? '',
         },
-        table
+        table,
       );
     } else {
       content = `@table: ${table.tableName}`;
@@ -994,4 +1018,3 @@ export const buildProjectFiles = (yamlContent: string): IStructure => {
     return [];
   }
 };
-

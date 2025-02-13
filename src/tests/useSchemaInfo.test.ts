@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import useSchemaInfo from '@/utils/useSchemaInfo.ts';
+import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
 
 describe('useSchemaInfo', () => {
-  const schemaInfo = useSchemaInfo(masterSchema);
+  const schemaInfo = getSchemaInfo(masterSchema);
 
   it('should return all table names', () => {
     expect(schemaInfo.tableNames).toEqual([
