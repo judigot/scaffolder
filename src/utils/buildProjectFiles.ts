@@ -96,7 +96,7 @@ const parseCommand = (
   command: string,
 ): { command: string; options: ICommandOptions } => {
   const parts = command.split('--');
-  const mainCommand = parts[0].trim();
+  const mainCommand = parts[0].trim().replace(/[()]/g, '');
   const options: ICommandOptions = {};
 
   parts.slice(1).forEach((part) => {
@@ -432,7 +432,7 @@ const processYamlNodeWithContext = (
       return [
         {
           type: 'file',
-          name: processedName,
+          name: processedName.replace(/[()]/g, ''),
           content: createFileContent(options, table, processedName),
         },
       ];
@@ -488,15 +488,15 @@ const processYamlNodeWithContext = (
         return [
           {
             type: 'folder',
-            name,
+            name: name.replace(/[()]/g, ''),
             children: [],
           },
         ];
       }
 
       if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
-        // Extract folder name
-        const folderName = key.slice(22, -1);
+        // Extract folder name and remove parentheses
+        const folderName = key.slice(22, -1).replace(/[()]/g, '');
         // Return the dynamic folders directly without an extra parent folder
         return processDynamicFolders(folderName, value);
       }
@@ -504,7 +504,7 @@ const processYamlNodeWithContext = (
       return [
         {
           type: 'folder',
-          name,
+          name: name.replace(/[()]/g, ''),
           children: processYamlNodeWithContext(value, table),
         },
       ];
@@ -528,7 +528,7 @@ const processYamlNode = (node: unknown): IStructure => {
       return [
         {
           type: 'file',
-          name: command,
+          name: command.replace(/[()]/g, ''),
           content: createFileContent(options, undefined, command),
         },
       ];
@@ -580,15 +580,15 @@ const processYamlNode = (node: unknown): IStructure => {
         return [
           {
             type: 'folder',
-            name,
+            name: name.replace(/[()]/g, ''),
             children: [],
           },
         ];
       }
 
       if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
-        // Extract folder name
-        const folderName = key.slice(22, -1);
+        // Extract folder name and remove parentheses
+        const folderName = key.slice(22, -1).replace(/[()]/g, '');
         // Return the dynamic folders directly without an extra parent folder
         return processDynamicFolders(folderName, value);
       }
@@ -596,7 +596,7 @@ const processYamlNode = (node: unknown): IStructure => {
       return [
         {
           type: 'folder',
-          name,
+          name: name.replace(/[()]/g, ''),
           children: processYamlNode(value),
         },
       ];
