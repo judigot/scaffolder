@@ -42,10 +42,38 @@ const loadTemplateContent = (templateName: string): string => {
     return '';
   }
 
-  // Convert template to a single line with single backslash escapes
-  return templateFile.content
+  function replaceOutsideTemplateSeparator(input: string): string {
+    // Holds each protected segment (anything within --template="..." or --separator="...").
+    const placeholders: string[] = [];
+    let index = 0;
+  
+    // Regex to match either --template="..." or --separator="..."
+    const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
+  
+    // 1) Temporarily replace those segments with placeholders
+    let protectedString = input.replace(pattern, (match: string) => {
+      placeholders.push(match);
+      const placeholder = `__PLACEHOLDER_${String(index)}__`; // <-- Avoid numeric template literal
+      index += 1;
+      return placeholder;
+    });
+  
+    // 2) Replace all remaining \n (i.e., \\n) with real newlines outside placeholders
+    protectedString = protectedString.replace(/\\n/g, "\n");
+  
+    // 3) Restore protected segments so that \\n in them remains intact
+    protectedString = protectedString.replace(/__PLACEHOLDER_(\d+)__/g, (_: string, p1: string) => {
+      const i = parseInt(p1, 10);
+      return placeholders[i] ?? "";
+    });
+  
+    return protectedString;
+  }  
+
+  return replaceOutsideTemplateSeparator(templateFile.content
     .replace(/\r\n/g, '\n') // Normalize line endings first
-    .replace(/\n/g, '\\n'); // Escape newlines with single backslash
+    .replace(/\n/g, '\\n'));
+
   // return templateFile.content;
 };
 
