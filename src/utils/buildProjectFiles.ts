@@ -5,6 +5,16 @@ import masterSchema from '@/schema-infos/masterSchema.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { useStore } from '@/useMockDatabase.ts';
+import useSchemaInfo from '@/utils/useSchemaInfo.ts';
+
+interface ISchemaInfoMethods {
+  getPrimaryKey: (tableName: string) => string;
+  getRequiredColumns: (tableName: string) => string[];
+  getAllColumns: (tableName: string) => string[];
+}
+
+// eslint-disable-next-line react-hooks/rules-of-hooks
+const getSchemaInfo = (): ISchemaInfoMethods => useSchemaInfo(masterSchema);
 
 interface ICommandOptions {
   conditions?: string[];
@@ -77,11 +87,16 @@ const loadTemplateContent = (templateName: string): string => {
   // return templateFile.content;
 };
 
+// Update the type to handle string arrays
+type ReplacementValue = string | string[];
+type Replacements = Record<string, ReplacementValue>;
+
 const getReplacementsForTable = (
   table: ISchemaInfo,
-): Record<string, string> => {
+): Replacements => {
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
+  const schemaInfo = getSchemaInfo();
 
   return {
     tableNamePascalCase: caseFormats.pascalCase,
@@ -89,7 +104,6 @@ const getReplacementsForTable = (
     tableNameKebabCasePlural: caseFormats.kebabCasePlural,
     tableNamePlural: caseFormats.plural,
     tableNameSnakeCaseSingular: caseFormats.snakeCaseSingular,
-    // Add all other case formats
     tableName,
     tableNameSingular: caseFormats.singular,
     tableNameTitleCase: caseFormats.titleCase,
@@ -109,24 +123,10 @@ const getReplacementsForTable = (
     tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
     tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
     // Add primary key and required columns with matching template syntax
-    'getPrimaryKey()': getPrimaryKey(table),
-    'getRequiredColumns()': getRequiredColumns(table).map(col => `'${col}'`).join(',\n        '),
+    'getPrimaryKey()': schemaInfo.getPrimaryKey(table.tableName),
+    'getRequiredColumns()': schemaInfo.getRequiredColumns(table.tableName),
+    'getAllColumns()': schemaInfo.getAllColumns(table.tableName),
   };
-};
-
-export const getPrimaryKey = (table: ISchemaInfo): string => {
-  const primaryKeyColumn = table.columnsInfo.find((col) => col.primary_key === true);
-  return primaryKeyColumn?.column_name ?? '';
-};
-
-export const getRequiredColumns = (table: ISchemaInfo): string[] => {
-  const requiredFromColumns = table.columnsInfo
-    .filter((col) => col.is_nullable === 'NO')
-    .map((col) => col.column_name);
-
-  const explicitlyRequired = table.requiredColumns ?? [];
-
-  return [...new Set([...requiredFromColumns, ...explicitlyRequired])];
 };
 
 const checkConditions = (conditions: string[]): boolean => {
@@ -458,6 +458,7 @@ const processIterateCommand = (
   const separatorMatch = /--separator="([^"]+)"/.exec(options);
   const removeDuplicates = options.includes('--removeDuplicates');
   const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
+  const filterMatch = /--filter="([^"]+)"/.exec(options);
 
   // Process escape sequences in template
   const template = templateMatch 
@@ -489,6 +490,21 @@ const processIterateCommand = (
       }).flat()
     : [];
 
+  // Parse filter list with flexible whitespace and handle USE_CONSTANT
+  const filterList = filterMatch 
+    ? filterMatch[1].split(',').map(item => {
+        const trimmed = item.trim();
+        const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(trimmed);
+        if (constantMatch) {
+          // Get raw values from constant file and return as an array
+          return loadConstant(constantMatch[1], table);
+        }
+        // For non-constant values, still process any placeholders they might have
+        const replacements = getReplacementsForTable(table);
+        return replacePlaceholders(trimmed, replacements, table);
+      })
+    : [];
+
   // Convert snake_case table name to PascalCase model name
   const toModelName = (tableName: string): string => {
     return tableName
@@ -510,17 +526,44 @@ const processIterateCommand = (
     return values.filter(value => !ignoreList.includes(value));
   };
 
+  // Helper function to apply filter
+  const applyFilter = (values: string[]): string[] => {
+    if (filterList.length === 0) {return values;}
+    
+    // Flatten the filter list to handle both direct values and arrays from USE_CONSTANT
+    const flattenedFilterList = filterList.reduce<string[]>((acc, filterPattern) => {
+      if (Array.isArray(filterPattern)) {
+        return [...acc, ...filterPattern];
+      }
+      return [...acc, filterPattern];
+    }, []);
+
+    return values.filter(value => flattenedFilterList.includes(value));
+  };
+
   // Collect all values from all properties
   const allValues: string[] = [];
   
   for (const propertyPath of propertyPaths) {
-    if (propertyPath === 'pivotRelationships.pivotTable') {
+    // Remove any curly braces and whitespace from the property path
+    const cleanPath = propertyPath.replace(/[{}]/g, '').trim();
+
+    if (cleanPath === 'pivotRelationships.pivotTable') {
       const pivotTables = table.pivotRelationships?.map(rel => toModelName(rel.pivotTable)) ?? [];
       allValues.push(...pivotTables);
       continue;
     }
 
-    switch (propertyPath) {
+    // Handle getAllColumns() function call
+    if (cleanPath === 'getAllColumns()') {
+      const schemaInfo = getSchemaInfo();
+      const values = schemaInfo.getAllColumns(table.tableName);
+      console.warn('getAllColumns values:', values); // Debug log
+      allValues.push(...values);
+      continue;
+    }
+
+    switch (cleanPath) {
       case 'hasMany': {
         // Use raw values without case transformation
         const values = table.hasMany ?? [];
@@ -553,9 +596,16 @@ const processIterateCommand = (
     }
   }
 
-  // Remove duplicates if requested and filter ignored values
+  // Debug logs
+  console.warn('All values:', allValues);
+  console.warn('Filter list:', filterList);
+
+  // Remove duplicates if requested, filter ignored values, and apply filter
   let finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
   finalValues = filterIgnored(finalValues);
+  console.warn('After ignore:', finalValues);
+  finalValues = applyFilter(finalValues);
+  console.warn('After filter:', finalValues);
 
   // Map values through template and join with proper replacements
   const lines = finalValues.map(value => {
@@ -591,6 +641,7 @@ const processIterateCommand = (
       // Add table replacements for other placeholders that might be in the template
       ...getReplacementsForTable(table)
     };
+    
     return replacePlaceholders(template, replacements, table);
   });
   
@@ -599,7 +650,7 @@ const processIterateCommand = (
 
 const replacePlaceholders = (
   text: string,
-  replacements: Record<string, string>,
+  replacements: Record<string, string | string[]>,
   table?: ISchemaInfo,
 ): string => {
   // First process all commands
@@ -617,7 +668,9 @@ const replacePlaceholders = (
         console.warn(`No replacement found for placeholder: ${String(key)}`);
         return key;
       }
-      return replacements[key];
+      const value = replacements[key];
+      // Handle array values by joining them with commas
+      return Array.isArray(value) ? value.join(',') : value;
     },
   );
 };

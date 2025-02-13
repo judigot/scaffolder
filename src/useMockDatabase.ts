@@ -170,7 +170,9 @@ class {{tableNamePascalCase}} extends Model
 
     protected $primaryKey = '{{getPrimaryKey()}}';
 
-    protected $hidden = [{{hiddenColumns}}];
+    protected $hidden = [
+        [[ ITERATE({{getAllColumns()}}) --template="'{{value}}'" --separator=",\\n        " --filter="[[ USE_CONSTANT(hiddenColumns) ]]" ]]
+    ];
 
     protected $fillable = [
         [[ ITERATE(requiredColumns) --template="'{{value}}'" --separator=",\\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]

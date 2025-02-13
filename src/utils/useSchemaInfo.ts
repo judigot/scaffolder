@@ -1,4 +1,4 @@
-import { type ISchemaInfo, type IColumnInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 
 interface IRelationships {
   hasOne?: string[];
