@@ -1,6 +1,9 @@
 export const laravelFolderStructure = `
-- CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
+- CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template typescript-interface-template.yaml)
 `;
+// export const laravelFolderStructure = `
+// - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
+// `;
 // export const laravelFolderStructure = `
 // app:
 //   Http:
@@ -31,5 +34,5 @@ export const laravelFolderStructure = `
 //       CREATE_DYNAMIC_FOLDERS($_tableNameSnakeCaseSingular_$):
 //         - CREATE_FILE(use$_tableNamePascalCaseSingular_$.ts)
 //     interfaces:
-//       - CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts)
+//       - CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template typescript-interface-template.yaml)
 // `;

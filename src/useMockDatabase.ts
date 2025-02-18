@@ -270,19 +270,15 @@ Advanced Operations:
       children: [
         {
           type: 'file',
-          name: 'BaseInterface.php',
+          name: 'template.yaml',
           content: `
-<?php
+{{tableNamePascalCase}} Columns:
+  [[ ITERATE(columnsInfo) --template="
 
-namespace App\\Repositories;
-
-use Illuminate\\Support\\Collection;
-use Illuminate\\Database\\Eloquent\\Model;
-
-interface BaseInterface
-{
-    [[LOOP_BASE_METHODS public function {{repositoryMethod}}; ]]
-}
+  [[ IF(column_name EQUALS "password") --template=" This is a password column\n" ENDIF ]]
+  [[ IF(column_name NOT EQUAL "password") --template=" {{columnNameCamelCase}}:" ENDIF ]]
+   
+   " --separator="\n" ]]
 `,
         },
         {
@@ -310,6 +306,23 @@ abstract class BaseController extends Controller
     {{controllerContent}}
     }
     ]]
+}
+`,
+        },
+        {
+          type: 'file',
+          name: 'BaseInterface.php',
+          content: `
+<?php
+
+namespace App\\Repositories;
+
+use Illuminate\\Support\\Collection;
+use Illuminate\\Database\\Eloquent\\Model;
+
+interface BaseInterface
+{
+    [[LOOP_BASE_METHODS public function {{repositoryMethod}}; ]]
 }
 `,
         },
