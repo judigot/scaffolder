@@ -274,7 +274,7 @@ Advanced Operations:
           content: `
 {{tableNamePascalCase}} Columns:
   [[ ITERATE(columnsInfo) --template="
-
+{{columnNameCamelCase}}
   [[ IF(column_name EQUALS "password") --template=" This is a password column\n" ENDIF ]]
   [[ IF(column_name NOT EQUAL "password") --template=" {{columnNameCamelCase}}:" ENDIF ]]
    

@@ -1,5 +1,5 @@
 export const laravelFolderStructure = `
-- CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template typescript-interface-template.yaml)
+- CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template template.yaml)
 `;
 // export const laravelFolderStructure = `
 // - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
