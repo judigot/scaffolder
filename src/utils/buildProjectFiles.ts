@@ -50,11 +50,9 @@ export const buildProjectFiles = (
     }
 
     function replaceOutsideTemplateSeparator(input: string): string {
-      // Holds each protected segment (anything within --template="..." or --separator="...").
       const placeholders: string[] = [];
       let index = 0;
 
-      // Regex to match either --template="..." or --separator="..."
       const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
 
       // 1) Temporarily replace those segments with placeholders
