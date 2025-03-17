@@ -429,7 +429,6 @@ export const buildProjectFiles = (
       },
     );
 
-    // Process ITERATE commands
     result = result.replace(
       /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
       (fullMatch: string, group1: string, group2: string) => {
@@ -644,7 +643,6 @@ export const buildProjectFiles = (
           break;
         }
         case 'columnsInfo': {
-          // Handle columnsInfo specially to extract column_name values
           const columnNames = table.columnsInfo.map(col => col.column_name);
           allValues.push(...columnNames);
           break;
