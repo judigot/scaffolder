@@ -270,14 +270,19 @@ Advanced Operations:
       children: [
         {
           type: 'file',
-          name: 'template.yaml',
+          name: 'template.txt',
           content: `
 {{tableNamePascalCase}} Columns:
   [[ ITERATE(columnsInfo) --template="
-{{columnNameCamelCase}}
-  [[ IF(column_name EQUALS "password") --template=" This is a password column\n" ENDIF ]]
-  [[ IF(column_name NOT EQUAL "password") --template=" {{columnNameCamelCase}}:" ENDIF ]]
+
+   {% IF column_name EQUALS 'password' %}
+    {{valueCamelCase}}: This is a password column.
+   {% ENDIF %}
    
+   {% IF column_name NOT EQUAL 'password' %}
+    {{valueCamelCase}}: This is not a password column.
+   {% ENDIF %}
+
    " --separator="\n" ]]
 `,
         },
