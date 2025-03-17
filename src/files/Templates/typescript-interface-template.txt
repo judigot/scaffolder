@@ -1,0 +1,11 @@
+export interface I{{tableNamePascalCase}} {
+[[ ITERATE(columnsInfo) --template="
+{% IF column_name EQUALS 'password' %}
+{{value}}: string; // This is a password column.
+{% ENDIF %}
+
+{% IF column_name NOT EQUAL 'password' %}
+{{value}}: {{columnType}};
+{% ENDIF %}
+" --separator="\n" ]]
+}

@@ -1,12 +1,5 @@
 {{tableNamePascalCase}} Columns:
   [[ ITERATE(columnsInfo) --template="
-
-   {% IF column_name EQUALS 'password' %}
-    {{valueCamelCase}}: This is a password column.
-   {% ENDIF %}
-   
-   {% IF column_name NOT EQUAL 'password' %}
-    {{valueCamelCase}}: This is not a password column.
-   {% ENDIF %}
-
+   {% IF column_name EQUALS 'password' %}{{valueCamelCase}}: This is a password column.{% ENDIF %}   
+   {% IF column_name NOT EQUAL 'password' %}{{valueCamelCase}}: This is not a password column.{% ENDIF %}
    " --separator="\n" ]]
