@@ -643,6 +643,12 @@ export const buildProjectFiles = (
           allValues.push(...pivotTables);
           break;
         }
+        case 'columnsInfo': {
+          // Handle columnsInfo specially to extract column_name values
+          const columnNames = table.columnsInfo.map(col => col.column_name);
+          allValues.push(...columnNames);
+          break;
+        }
       }
     }
 
@@ -682,6 +688,8 @@ export const buildProjectFiles = (
         valueCamelCaseSingular: caseFormats.camelCaseSingular,
         valueKebabCaseSingular: caseFormats.kebabCaseSingular,
         valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
+        // For columnsInfo iteration, add columnNameCamelCase as an alias for valueCamelCase
+        columnNameCamelCase: caseFormats.camelCase,
         // Add table replacements for other placeholders that might be in the template
         ...getReplacementsForTable(table),
       };
