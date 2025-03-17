@@ -4,1016 +4,1034 @@ import config from '@/config/config.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
-import { useStore } from '@/useMockDatabase.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
 const schemaInfo = getSchemaInfo(masterSchema);
 
-interface ICommandOptions {
-  conditions?: string[];
-  template?: string;
-  modelSpecificRoutes?: string;
-  baseRoutesForController?: string;
-}
+export const buildProjectFiles = (
+  yamlContent: string,
+  userFiles: IStructure,
+): IStructure => {
+  interface ICommandOptions {
+    conditions?: string[];
+    template?: string;
+    modelSpecificRoutes?: string;
+    baseRoutesForController?: string;
+  }
 
-type IYamlObject = Record<string, unknown>;
+  type IYamlObject = Record<string, unknown>;
 
-const _isYamlObject = (value: unknown): value is IYamlObject => {
-  return value !== null && typeof value === 'object';
-};
+  const _isYamlObject = (value: unknown): value is IYamlObject => {
+    return value !== null && typeof value === 'object';
+  };
 
-const loadTemplateContent = (templateName: string): string => {
-  const store = useStore.getState();
-  const templatesFolder = store.userFiles.find(
-    (item): item is IFolder =>
-      item.type === 'folder' && item.name === 'Templates',
-  );
-
-  if (!templatesFolder) {
-    console.warn(
-      `Templates folder not found when trying to load template: ${templateName}`,
+  const loadTemplateContent = (templateName: string): string => {
+    const store = userFiles;
+    const templatesFolder = store.find(
+      (item): item is IFolder =>
+        item.type === 'folder' && item.name === 'Templates',
     );
-    return '';
-  }
 
-  const templateFile = templatesFolder.children.find(
-    (item): item is IFile => item.type === 'file' && item.name === templateName,
-  );
+    if (!templatesFolder) {
+      console.warn(
+        `Templates folder not found when trying to load template: ${templateName}`,
+      );
+      return '';
+    }
 
-  if (!templateFile) {
-    console.warn(`Template file not found: ${templateName}`);
-    return '';
-  }
+    const templateFile = templatesFolder.children.find(
+      (item): item is IFile =>
+        item.type === 'file' && item.name === templateName,
+    );
 
-  function replaceOutsideTemplateSeparator(input: string): string {
-    // Holds each protected segment (anything within --template="..." or --separator="...").
-    const placeholders: string[] = [];
-    let index = 0;
+    if (!templateFile) {
+      console.warn(`Template file not found: ${templateName}`);
+      return '';
+    }
 
-    // Regex to match either --template="..." or --separator="..."
-    const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
+    function replaceOutsideTemplateSeparator(input: string): string {
+      // Holds each protected segment (anything within --template="..." or --separator="...").
+      const placeholders: string[] = [];
+      let index = 0;
 
-    // 1) Temporarily replace those segments with placeholders
-    let protectedString = input.replace(pattern, (match: string) => {
-      placeholders.push(match);
-      const placeholder = `__PLACEHOLDER_${String(index)}__`; // <-- Avoid numeric template literal
-      index += 1;
-      return placeholder;
+      // Regex to match either --template="..." or --separator="..."
+      const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
+
+      // 1) Temporarily replace those segments with placeholders
+      let protectedString = input.replace(pattern, (match: string) => {
+        placeholders.push(match);
+        const placeholder = `__PLACEHOLDER_${String(index)}__`; // <-- Avoid numeric template literal
+        index += 1;
+        return placeholder;
+      });
+
+      // 2) Replace all remaining \n (i.e., \\n) with real newlines outside placeholders
+      protectedString = protectedString.replace(/\\n/g, '\n');
+
+      // 3) Restore protected segments so that \\n in them remains intact
+      protectedString = protectedString.replace(
+        /__PLACEHOLDER_(\d+)__/g,
+        (_: string, p1: string) => {
+          const i = parseInt(p1, 10);
+          return placeholders[i] ?? '';
+        },
+      );
+
+      return protectedString;
+    }
+
+    return replaceOutsideTemplateSeparator(
+      templateFile.content
+        .replace(/\r\n/g, '\n') // Normalize line endings first
+        .replace(/\n/g, '\\n'),
+    );
+
+    // return templateFile.content;
+  };
+
+  // Update the type to handle string arrays
+  type ReplacementValue = string | string[];
+  type Replacements = Record<string, ReplacementValue>;
+
+  const getReplacementsForTable = (table: ISchemaInfo): Replacements => {
+    const tableName = table.tableName;
+    const caseFormats = changeCase(tableName);
+
+    return {
+      tableNamePascalCase: caseFormats.pascalCase,
+      tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
+      tableNameKebabCasePlural: caseFormats.kebabCasePlural,
+      tableNamePlural: caseFormats.plural,
+      tableNameSnakeCaseSingular: caseFormats.snakeCaseSingular,
+      tableName,
+      tableNameSingular: caseFormats.singular,
+      tableNameTitleCase: caseFormats.titleCase,
+      tableNameSentenceCase: caseFormats.sentenceCase,
+      tableNamePhraseCase: caseFormats.phraseCase,
+      tableNameCamelCase: caseFormats.camelCase,
+      tableNameKebabCase: caseFormats.kebabCase,
+      tableNameSnakeCase: caseFormats.snakeCase,
+      tableNameTitleCasePlural: caseFormats.titleCasePlural,
+      tableNameSentenceCasePlural: caseFormats.sentenceCasePlural,
+      tableNamePhraseCasePlural: caseFormats.phraseCasePlural,
+      tableNamePascalCasePlural: caseFormats.pascalCasePlural,
+      tableNameCamelCasePlural: caseFormats.camelCasePlural,
+      tableNameTitleCaseSingular: caseFormats.titleCaseSingular,
+      tableNameSentenceCaseSingular: caseFormats.sentenceCaseSingular,
+      tableNamePhraseCaseSingular: caseFormats.phraseCaseSingular,
+      tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
+      tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
+      // Add primary key and required columns with matching template syntax
+      'getPrimaryKey()': schemaInfo.getPrimaryKey(table.tableName),
+      'getRequiredColumns()': schemaInfo.getRequiredColumns(table.tableName),
+      'getAllColumns()': schemaInfo.getAllColumns(table.tableName),
+    };
+  };
+
+  const checkConditions = (conditions: string[]): boolean => {
+    return conditions.every((condition) => {
+      const [key, value] = condition.split('=');
+      if (key === 'hasUsers') {
+        return String(config.users.hasUsers) === value;
+      }
+      if (key === 'isMultiTenancyEnabled') {
+        return String(config.users.isMultiTenancyEnabled) === value;
+      }
+      return false;
+    });
+  };
+
+  const parseCommand = (
+    command: string,
+  ): { command: string; options: ICommandOptions } => {
+    const parts = command.split('--');
+    const mainCommand = parts[0].trim().replace(/[()]/g, '');
+    const options: ICommandOptions = {};
+
+    parts.slice(1).forEach((part) => {
+      const [key, value] = part.trim().split(' ');
+      if (key === 'conditions' && typeof value === 'string') {
+        const trimmedValue = value.trim();
+        if (trimmedValue.length === 0) {
+          return;
+        }
+        if (trimmedValue.startsWith('[')) {
+          options.conditions = trimmedValue
+            .slice(1, -1)
+            .split(',')
+            .map((condition) => condition.trim())
+            .filter((condition): condition is string => condition.length > 0);
+        } else {
+          options.conditions = [trimmedValue];
+        }
+      } else if (key === 'template' && typeof value === 'string') {
+        const trimmedTemplate = value.trim();
+        if (trimmedTemplate.length > 0) {
+          options.template = trimmedTemplate;
+        }
+      }
     });
 
-    // 2) Replace all remaining \n (i.e., \\n) with real newlines outside placeholders
-    protectedString = protectedString.replace(/\\n/g, '\n');
+    return { command: mainCommand, options };
+  };
 
-    // 3) Restore protected segments so that \\n in them remains intact
-    protectedString = protectedString.replace(
-      /__PLACEHOLDER_(\d+)__/g,
-      (_: string, p1: string) => {
-        const i = parseInt(p1, 10);
-        return placeholders[i] ?? '';
+  const parseConditionalFolder = (
+    folderName: string,
+  ): { name: string; conditions?: string[] } => {
+    const match = /^(.+?)\(--condition\s+(.+?)\)$/.exec(folderName);
+    if (!match) {
+      return { name: folderName };
+    }
+
+    const [, name, condition] = match;
+    return {
+      name: name.trim(),
+      conditions: [condition.trim()],
+    };
+  };
+
+  const processLoopTables = (content: string): string => {
+    // Handle base methods controller loop
+    const baseMethodsRegex = /\[\[LOOP_BASE_METHODS\s+([^\]]+)\]\]/g;
+    content = content.replace(
+      baseMethodsRegex,
+      (_match: string, loopContent: string) => {
+        const store = userFiles;
+        const baseMethodsFolder = store.find(
+          (item): item is IFolder =>
+            item.type === 'folder' && item.name === 'BaseMethods',
+        );
+
+        if (!baseMethodsFolder) {
+          console.warn('BaseMethods folder not found');
+          return '';
+        }
+
+        // Load the base-methods-group.yaml to get the groups
+        const groupFile = store.find(
+          (item): item is IFile =>
+            item.type === 'file' && item.name === 'base-methods-group.yaml',
+        );
+
+        interface IMethodGroup {
+          methods: string[];
+        }
+
+        type IMethodGroups = Record<string, IMethodGroup>;
+
+        const isRecord = (value: unknown): value is Record<string, unknown> => {
+          return typeof value === 'object' && value !== null;
+        };
+
+        const isMethodGroups = (value: unknown): value is IMethodGroups => {
+          if (!isRecord(value)) {
+            return false;
+          }
+          return Object.values(value).every(
+            (group) =>
+              isRecord(group) &&
+              Array.isArray(group.methods) &&
+              group.methods.every((method) => typeof method === 'string'),
+          );
+        };
+
+        // Parse the groups file
+        const parsedGroups: unknown = groupFile ? parse(groupFile.content) : {};
+        const groups: IMethodGroups = isMethodGroups(parsedGroups)
+          ? parsedGroups
+          : {};
+
+        interface IBaseMethodYAML {
+          methodName: string;
+          route: string;
+          description: string;
+          repositoryMethod: string;
+          repositoryContent: string;
+          serviceMethod: string;
+          serviceContent: string;
+          controllerMethod: string;
+          controllerContent: string;
+        }
+
+        const isBaseMethodYAML = (value: unknown): value is IBaseMethodYAML => {
+          if (!isRecord(value)) {
+            return false;
+          }
+          return (
+            typeof value.methodName === 'string' &&
+            typeof value.controllerMethod === 'string' &&
+            typeof value.controllerContent === 'string'
+          );
+        };
+
+        // Create a map of method name to its content
+        const methodsMap = new Map<string, string>();
+        baseMethodsFolder.children
+          .filter((item): item is IFile => item.type === 'file')
+          .forEach((file) => {
+            try {
+              const yamlContent: unknown = parse(file.content);
+              if (isBaseMethodYAML(yamlContent)) {
+                // Check if we're processing BaseInterface.php by looking at the loop content
+                if (loopContent.includes('{{repositoryMethod}}')) {
+                  // For interface, use the raw repositoryMethod but process any methodName placeholders in it
+                  const processedMethod = replacePlaceholders(
+                    yamlContent.repositoryMethod,
+                    {
+                      methodName: yamlContent.methodName,
+                    },
+                  );
+
+                  const methodContent = replacePlaceholders(loopContent, {
+                    repositoryMethod: processedMethod,
+                  });
+                  methodsMap.set(yamlContent.methodName, methodContent);
+                } else {
+                  // For regular controller methods, process as before
+                  const processedContent = replacePlaceholders(
+                    yamlContent.controllerContent,
+                    {
+                      methodName: yamlContent.methodName,
+                    },
+                  );
+
+                  const methodContent = replacePlaceholders(loopContent, {
+                    controllerMethod: yamlContent.controllerMethod,
+                    controllerContent: processedContent,
+                  });
+
+                  methodsMap.set(yamlContent.methodName, methodContent);
+                }
+              }
+            } catch (error) {
+              console.warn(`Error parsing YAML in ${file.name}:`, error);
+            }
+          });
+
+        // Build the output by groups
+        const output: string[] = [];
+        Object.entries(groups).forEach(([groupName, group]) => {
+          output.push(`\n    // ${groupName}\n`);
+          group.methods.forEach((methodName) => {
+            const methodContent = methodsMap.get(methodName);
+            if (typeof methodContent === 'string') {
+              output.push(methodContent);
+            }
+          });
+        });
+
+        return output.join('\n\n');
       },
     );
 
-    return protectedString;
-  }
-
-  return replaceOutsideTemplateSeparator(
-    templateFile.content
-      .replace(/\r\n/g, '\n') // Normalize line endings first
-      .replace(/\n/g, '\\n'),
-  );
-
-  // return templateFile.content;
-};
-
-// Update the type to handle string arrays
-type ReplacementValue = string | string[];
-type Replacements = Record<string, ReplacementValue>;
-
-const getReplacementsForTable = (table: ISchemaInfo): Replacements => {
-  const tableName = table.tableName;
-  const caseFormats = changeCase(tableName);
-
-  return {
-    tableNamePascalCase: caseFormats.pascalCase,
-    tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
-    tableNameKebabCasePlural: caseFormats.kebabCasePlural,
-    tableNamePlural: caseFormats.plural,
-    tableNameSnakeCaseSingular: caseFormats.snakeCaseSingular,
-    tableName,
-    tableNameSingular: caseFormats.singular,
-    tableNameTitleCase: caseFormats.titleCase,
-    tableNameSentenceCase: caseFormats.sentenceCase,
-    tableNamePhraseCase: caseFormats.phraseCase,
-    tableNameCamelCase: caseFormats.camelCase,
-    tableNameKebabCase: caseFormats.kebabCase,
-    tableNameSnakeCase: caseFormats.snakeCase,
-    tableNameTitleCasePlural: caseFormats.titleCasePlural,
-    tableNameSentenceCasePlural: caseFormats.sentenceCasePlural,
-    tableNamePhraseCasePlural: caseFormats.phraseCasePlural,
-    tableNamePascalCasePlural: caseFormats.pascalCasePlural,
-    tableNameCamelCasePlural: caseFormats.camelCasePlural,
-    tableNameTitleCaseSingular: caseFormats.titleCaseSingular,
-    tableNameSentenceCaseSingular: caseFormats.sentenceCaseSingular,
-    tableNamePhraseCaseSingular: caseFormats.phraseCaseSingular,
-    tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
-    tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
-    // Add primary key and required columns with matching template syntax
-    'getPrimaryKey()': schemaInfo.getPrimaryKey(table.tableName),
-    'getRequiredColumns()': schemaInfo.getRequiredColumns(table.tableName),
-    'getAllColumns()': schemaInfo.getAllColumns(table.tableName),
+    // Handle regular table loops
+    const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
+    return content.replace(loopRegex, (_match: string, loopContent: string) => {
+      return masterSchema
+        .map((table) => {
+          const replacements = getReplacementsForTable(table);
+          return replacePlaceholders(
+            String(loopContent).trim(),
+            replacements,
+            table,
+          );
+        })
+        .join('\n    '); // Add proper indentation for PHP files
+    });
   };
-};
 
-const checkConditions = (conditions: string[]): boolean => {
-  return conditions.every((condition) => {
-    const [key, value] = condition.split('=');
-    if (key === 'hasUsers') {
-      return String(config.users.hasUsers) === value;
-    }
-    if (key === 'isMultiTenancyEnabled') {
-      return String(config.users.isMultiTenancyEnabled) === value;
-    }
-    return false;
-  });
-};
-
-const parseCommand = (
-  command: string,
-): { command: string; options: ICommandOptions } => {
-  const parts = command.split('--');
-  const mainCommand = parts[0].trim().replace(/[()]/g, '');
-  const options: ICommandOptions = {};
-
-  parts.slice(1).forEach((part) => {
-    const [key, value] = part.trim().split(' ');
-    if (key === 'conditions' && typeof value === 'string') {
-      const trimmedValue = value.trim();
-      if (trimmedValue.length === 0) {
-        return;
-      }
-      if (trimmedValue.startsWith('[')) {
-        options.conditions = trimmedValue
-          .slice(1, -1)
-          .split(',')
-          .map((condition) => condition.trim())
-          .filter((condition): condition is string => condition.length > 0);
-      } else {
-        options.conditions = [trimmedValue];
-      }
-    } else if (key === 'template' && typeof value === 'string') {
-      const trimmedTemplate = value.trim();
-      if (trimmedTemplate.length > 0) {
-        options.template = trimmedTemplate;
-      }
-    }
-  });
-
-  return { command: mainCommand, options };
-};
-
-const parseConditionalFolder = (
-  folderName: string,
-): { name: string; conditions?: string[] } => {
-  const match = /^(.+?)\(--condition\s+(.+?)\)$/.exec(folderName);
-  if (!match) {
-    return { name: folderName };
-  }
-
-  const [, name, condition] = match;
-  return {
-    name: name.trim(),
-    conditions: [condition.trim()],
-  };
-};
-
-const processLoopTables = (content: string): string => {
-  // Handle base methods controller loop
-  const baseMethodsRegex = /\[\[LOOP_BASE_METHODS\s+([^\]]+)\]\]/g;
-  content = content.replace(
-    baseMethodsRegex,
-    (_match: string, loopContent: string) => {
-      const store = useStore.getState();
-      const baseMethodsFolder = store.userFiles.find(
-        (item): item is IFolder =>
-          item.type === 'folder' && item.name === 'BaseMethods',
-      );
-
-      if (!baseMethodsFolder) {
-        console.warn('BaseMethods folder not found');
-        return '';
-      }
-
-      // Load the base-methods-group.yaml to get the groups
-      const groupFile = store.userFiles.find(
-        (item): item is IFile =>
-          item.type === 'file' && item.name === 'base-methods-group.yaml',
-      );
-
-      interface IMethodGroup {
-        methods: string[];
-      }
-
-      type IMethodGroups = Record<string, IMethodGroup>;
-
-      const isRecord = (value: unknown): value is Record<string, unknown> => {
-        return typeof value === 'object' && value !== null;
-      };
-
-      const isMethodGroups = (value: unknown): value is IMethodGroups => {
-        if (!isRecord(value)) {
-          return false;
-        }
-        return Object.values(value).every(
-          (group) =>
-            isRecord(group) &&
-            Array.isArray(group.methods) &&
-            group.methods.every((method) => typeof method === 'string'),
-        );
-      };
-
-      // Parse the groups file
-      const parsedGroups: unknown = groupFile ? parse(groupFile.content) : {};
-      const groups: IMethodGroups = isMethodGroups(parsedGroups)
-        ? parsedGroups
-        : {};
-
-      interface IBaseMethodYAML {
-        methodName: string;
-        route: string;
-        description: string;
-        repositoryMethod: string;
-        repositoryContent: string;
-        serviceMethod: string;
-        serviceContent: string;
-        controllerMethod: string;
-        controllerContent: string;
-      }
-
-      const isBaseMethodYAML = (value: unknown): value is IBaseMethodYAML => {
-        if (!isRecord(value)) {
-          return false;
-        }
-        return (
-          typeof value.methodName === 'string' &&
-          typeof value.controllerMethod === 'string' &&
-          typeof value.controllerContent === 'string'
-        );
-      };
-
-      // Create a map of method name to its content
-      const methodsMap = new Map<string, string>();
-      baseMethodsFolder.children
-        .filter((item): item is IFile => item.type === 'file')
-        .forEach((file) => {
-          try {
-            const yamlContent: unknown = parse(file.content);
-            if (isBaseMethodYAML(yamlContent)) {
-              // Check if we're processing BaseInterface.php by looking at the loop content
-              if (loopContent.includes('{{repositoryMethod}}')) {
-                // For interface, use the raw repositoryMethod but process any methodName placeholders in it
-                const processedMethod = replacePlaceholders(
-                  yamlContent.repositoryMethod,
-                  {
-                    methodName: yamlContent.methodName,
-                  },
-                );
-
-                const methodContent = replacePlaceholders(loopContent, {
-                  repositoryMethod: processedMethod,
-                });
-                methodsMap.set(yamlContent.methodName, methodContent);
-              } else {
-                // For regular controller methods, process as before
-                const processedContent = replacePlaceholders(
-                  yamlContent.controllerContent,
-                  {
-                    methodName: yamlContent.methodName,
-                  },
-                );
-
-                const methodContent = replacePlaceholders(loopContent, {
-                  controllerMethod: yamlContent.controllerMethod,
-                  controllerContent: processedContent,
-                });
-
-                methodsMap.set(yamlContent.methodName, methodContent);
-              }
-            }
-          } catch (error) {
-            console.warn(`Error parsing YAML in ${file.name}:`, error);
-          }
-        });
-
-      // Build the output by groups
-      const output: string[] = [];
-      Object.entries(groups).forEach(([groupName, group]) => {
-        output.push(`\n    // ${groupName}\n`);
-        group.methods.forEach((methodName) => {
-          const methodContent = methodsMap.get(methodName);
-          if (typeof methodContent === 'string') {
-            output.push(methodContent);
-          }
-        });
-      });
-
-      return output.join('\n\n');
-    },
-  );
-
-  // Handle regular table loops
-  const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
-  return content.replace(loopRegex, (_match: string, loopContent: string) => {
-    return masterSchema
-      .map((table) => {
-        const replacements = getReplacementsForTable(table);
-        return replacePlaceholders(
-          String(loopContent).trim(),
-          replacements,
-          table,
-        );
-      })
-      .join('\n    '); // Add proper indentation for PHP files
-  });
-};
-
-const loadConstant = (constantName: string, table?: ISchemaInfo): string[] => {
-  const store = useStore.getState();
-  const constantsFolder = store.userFiles.find(
-    (item): item is IFolder =>
-      item.type === 'folder' && item.name === 'Constants',
-  );
-
-  if (!constantsFolder) {
-    console.warn('Constants folder not found');
-    return [];
-  }
-
-  const constantFile = constantsFolder.children.find(
-    (item): item is IFile =>
-      item.type === 'file' && item.name === `${constantName}.yaml`,
-  );
-
-  if (!constantFile) {
-    console.warn(`Constant file not found: ${constantName}.yaml`);
-    return [];
-  }
-
-  try {
-    // Preprocess content to quote values with curly braces to ensure they're parsed as strings
-    const preprocessedContent = constantFile.content.replace(
-      /^-\s*(\{\{[^}]+\}\})\s*$/gm,
-      '- "$1"',
+  const loadConstant = (
+    constantName: string,
+    table?: ISchemaInfo,
+  ): string[] => {
+    const store = userFiles;
+    const constantsFolder = store.find(
+      (item): item is IFolder =>
+        item.type === 'folder' && item.name === 'Constants',
     );
 
-    // Parse YAML content
-    const parsed: unknown = parse(preprocessedContent);
-
-    // Type guard for Record<string, unknown>
-    function isRecord(value: unknown): value is Record<string, unknown> {
-      return value !== null && typeof value === 'object';
+    if (!constantsFolder) {
+      console.warn('Constants folder not found');
+      return [];
     }
 
-    // First get raw values without processing placeholders
-    let rawValues: string[] = [];
+    const constantFile = constantsFolder.children.find(
+      (item): item is IFile =>
+        item.type === 'file' && item.name === `${constantName}.yaml`,
+    );
 
-    // Handle both formats:
-    // Format 1: Array of values
-    if (Array.isArray(parsed)) {
-      rawValues = parsed.map((item) => String(item).trim());
+    if (!constantFile) {
+      console.warn(`Constant file not found: ${constantName}.yaml`);
+      return [];
     }
-    // Format 2: Named constant object
-    else if (isRecord(parsed)) {
-      if (constantName in parsed && Array.isArray(parsed[constantName])) {
-        const values = parsed[constantName];
-        if (Array.isArray(values)) {
-          rawValues = values.map((item) => String(item).trim());
+
+    try {
+      // Preprocess content to quote values with curly braces to ensure they're parsed as strings
+      const preprocessedContent = constantFile.content.replace(
+        /^-\s*(\{\{[^}]+\}\})\s*$/gm,
+        '- "$1"',
+      );
+
+      // Parse YAML content
+      const parsed: unknown = parse(preprocessedContent);
+
+      // Type guard for Record<string, unknown>
+      function isRecord(value: unknown): value is Record<string, unknown> {
+        return value !== null && typeof value === 'object';
+      }
+
+      // First get raw values without processing placeholders
+      let rawValues: string[] = [];
+
+      // Handle both formats:
+      // Format 1: Array of values
+      if (Array.isArray(parsed)) {
+        rawValues = parsed.map((item) => String(item).trim());
+      }
+      // Format 2: Named constant object
+      else if (isRecord(parsed)) {
+        if (constantName in parsed && Array.isArray(parsed[constantName])) {
+          const values = parsed[constantName];
+          if (Array.isArray(values)) {
+            rawValues = values.map((item) => String(item).trim());
+          }
         }
       }
+
+      // Then process placeholders if table is provided
+      if (table) {
+        const replacements = getReplacementsForTable(table);
+        return rawValues.map((value) =>
+          replacePlaceholders(value, replacements, table),
+        );
+      }
+
+      return rawValues;
+    } catch (error) {
+      console.warn(`Error parsing constant file ${constantName}.yaml:`, error);
+      return [];
+    }
+  };
+
+  const processCommand = (text: string, table?: ISchemaInfo): string => {
+    // Process all commands in order of specificity
+    let result = text;
+
+    // First, process USE_CONSTANT commands
+    result = result.replace(
+      /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/g,
+      (_match: string, group1: string) => {
+        if (!table) {
+          return '';
+        }
+        const constantName = String(group1).trim();
+        return loadConstant(constantName, table).join(',');
+      },
+    );
+
+    // Process ITERATE commands
+    result = result.replace(
+      /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
+      (fullMatch: string, group1: string, group2: string) => {
+        if (!table) {
+          return '';
+        }
+        const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
+        const propertyPaths = String(group1);
+        const options = String(group2);
+        const cmdResult = processIterateCommand(
+          `ITERATE(${propertyPaths})${options}`,
+          table,
+        );
+        return cmdResult ? String(whitespace) + String(cmdResult) : '';
+      },
+    );
+
+    return result;
+  };
+
+  const processIterateCommand = (
+    command: string,
+    table: ISchemaInfo | undefined,
+  ): string => {
+    // Extract the property path and options
+    // Make the closing parenthesis optional and handle incomplete commands
+    const match = /ITERATE\((.*?)(?:\)(\s*.*))?$/.exec(command);
+    if (!match || !table) {
+      return '';
     }
 
-    // Then process placeholders if table is provided
-    if (table) {
-      const replacements = getReplacementsForTable(table);
-      return rawValues.map((value) =>
-        replacePlaceholders(value, replacements, table),
-      );
-    }
+    const [, propertyPathsStr, options = ''] = match;
 
-    return rawValues;
-  } catch (error) {
-    console.warn(`Error parsing constant file ${constantName}.yaml:`, error);
-    return [];
-  }
-};
+    // Parse options
+    const templateMatch = /--template="([^"]+)"/.exec(options);
+    const separatorMatch = /--separator="([^"]+)"/.exec(options);
+    const removeDuplicates = options.includes('--removeDuplicates');
+    const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
+    const filterMatch = /--filter="([^"]+)"/.exec(options);
 
-const processCommand = (text: string, table?: ISchemaInfo): string => {
-  // Process all commands in order of specificity
-  let result = text;
+    // Process escape sequences in template
+    const template = templateMatch
+      ? templateMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\s/g, ' ')
+      : '{{value}}';
 
-  // First, process USE_CONSTANT commands
-  result = result.replace(
-    /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/g,
-    (_match: string, group1: string) => {
-      if (!table) {
-        return '';
-      }
-      const constantName = String(group1).trim();
-      return loadConstant(constantName, table).join(',');
-    },
-  );
+    // Use literal separator string and preserve spaces
+    const separator = separatorMatch
+      ? separatorMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\s/g, ' ')
+      : '\n';
 
-  // Process ITERATE commands
-  result = result.replace(
-    /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
-    (fullMatch: string, group1: string, group2: string) => {
-      if (!table) {
-        return '';
-      }
-      const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
-      const propertyPaths = String(group1);
-      const options = String(group2);
-      const cmdResult = processIterateCommand(
-        `ITERATE(${propertyPaths})${options}`,
-        table,
-      );
-      return cmdResult ? String(whitespace) + String(cmdResult) : '';
-    },
-  );
+    // Parse ignore list with flexible whitespace and handle USE_CONSTANT
+    const ignoreList = ignoreMatch
+      ? ignoreMatch[1]
+          .split(',')
+          .map((item) => {
+            const trimmed = item.trim();
+            const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(
+              trimmed,
+            );
+            if (constantMatch) {
+              // Get raw values from constant file without any processing
+              return loadConstant(constantMatch[1]);
+            }
+            // For non-constant values, still process any placeholders they might have
+            const replacements = getReplacementsForTable(table);
+            return replacePlaceholders(trimmed, replacements, table);
+          })
+          .flat()
+      : [];
 
-  return result;
-};
-
-const processIterateCommand = (
-  command: string,
-  table: ISchemaInfo | undefined,
-): string => {
-  // Extract the property path and options
-  // Make the closing parenthesis optional and handle incomplete commands
-  const match = /ITERATE\((.*?)(?:\)(\s*.*))?$/.exec(command);
-  if (!match || !table) {
-    return '';
-  }
-
-  const [, propertyPathsStr, options = ''] = match;
-
-  // Parse options
-  const templateMatch = /--template="([^"]+)"/.exec(options);
-  const separatorMatch = /--separator="([^"]+)"/.exec(options);
-  const removeDuplicates = options.includes('--removeDuplicates');
-  const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
-  const filterMatch = /--filter="([^"]+)"/.exec(options);
-
-  // Process escape sequences in template
-  const template = templateMatch
-    ? templateMatch[1]
-        .replace(/\\n/g, '\n')
-        .replace(/\\t/g, '\t')
-        .replace(/\\s/g, ' ')
-    : '{{value}}';
-
-  // Use literal separator string and preserve spaces
-  const separator = separatorMatch
-    ? separatorMatch[1]
-        .replace(/\\n/g, '\n')
-        .replace(/\\t/g, '\t')
-        .replace(/\\s/g, ' ')
-    : '\n';
-
-  // Parse ignore list with flexible whitespace and handle USE_CONSTANT
-  const ignoreList = ignoreMatch
-    ? ignoreMatch[1]
-        .split(',')
-        .map((item) => {
+    // Parse filter list with flexible whitespace and handle USE_CONSTANT
+    const filterList = filterMatch
+      ? filterMatch[1].split(',').map((item) => {
           const trimmed = item.trim();
           const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(
             trimmed,
           );
           if (constantMatch) {
-            // Get raw values from constant file without any processing
-            return loadConstant(constantMatch[1]);
+            // Get raw values from constant file and return as an array
+            return loadConstant(constantMatch[1], table);
           }
           // For non-constant values, still process any placeholders they might have
           const replacements = getReplacementsForTable(table);
           return replacePlaceholders(trimmed, replacements, table);
         })
-        .flat()
-    : [];
+      : [];
 
-  // Parse filter list with flexible whitespace and handle USE_CONSTANT
-  const filterList = filterMatch
-    ? filterMatch[1].split(',').map((item) => {
-        const trimmed = item.trim();
-        const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(
-          trimmed,
-        );
-        if (constantMatch) {
-          // Get raw values from constant file and return as an array
-          return loadConstant(constantMatch[1], table);
-        }
-        // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table);
-        return replacePlaceholders(trimmed, replacements, table);
-      })
-    : [];
-
-  // Helper function to join array with separator between elements
-  const joinWithSeparator = (arr: string[]): string => {
-    if (arr.length === 0) {
-      return '';
-    }
-    if (arr.length === 1) {
-      return arr[0];
-    }
-    return arr.slice(0, -1).join(separator) + separator + arr.slice(-1)[0];
-  };
-
-  // Helper function to filter ignored values
-  const filterIgnored = (values: string[]): string[] => {
-    if (ignoreList.length === 0) {
-      return values;
-    }
-    return values.filter((value) => !ignoreList.includes(value));
-  };
-
-  // Helper function to apply filter
-  const applyFilter = (values: string[]): string[] => {
-    if (filterList.length === 0) {
-      return values;
-    }
-
-    // Flatten the filter list to handle both direct values and arrays from USE_CONSTANT
-    const flattenedFilterList = filterList.reduce<string[]>(
-      (acc, filterPattern) => {
-        if (Array.isArray(filterPattern)) {
-          return [...acc, ...filterPattern];
-        }
-        return [...acc, filterPattern];
-      },
-      [],
-    );
-
-    return values.filter((value) => flattenedFilterList.includes(value));
-  };
-
-  // Split property paths and clean whitespace
-  const propertyPaths = propertyPathsStr.split(',').map((p) => {
-    let path = p.trim();
-    // If it's a function call with missing closing parenthesis, add it
-    if (path.startsWith('{{') && path.includes('(') && !path.includes(')')) {
-      path = `${path})}}`;
-    }
-    // If it's a function call with missing closing brace, add it
-    if (path.startsWith('{{') && !path.endsWith('}}')) {
-      path = `${path}}}`;
-    }
-    return path;
-  });
-
-  // Collect all values from all properties
-  const allValues: string[] = [];
-
-  for (const propertyPath of propertyPaths) {
-    // Check if the entire propertyPath is a function call
-    if (propertyPath.startsWith('{{') && propertyPath.endsWith('}}')) {
-      const functionCall = propertyPath.slice(2, -2).trim();
-      // Extract just the function name without any parentheses
-      const functionName = functionCall.replace(/\([^)]*\)?$/, '');
-
-      switch (functionName) {
-        case 'getAllColumns': {
-          const values = schemaInfo.getAllColumns(table.tableName);
-          allValues.push(...values);
-          continue;
-        }
-        case 'getRequiredColumns': {
-          const values = schemaInfo.getRequiredColumns(table.tableName);
-          allValues.push(...values);
-          continue;
-        }
-        case 'getPrimaryKey': {
-          const value = schemaInfo.getPrimaryKey(table.tableName);
-          if (value) {
-            allValues.push(value);
-          }
-          continue;
-        }
-      }
-      continue; // Skip unknown function calls
-    }
-
-    // Handle direct property access
-    const cleanPath = propertyPath.replace(/[{}]/g, '').trim();
-
-    switch (cleanPath) {
-      case 'hasMany': {
-        const values = table.hasMany ?? [];
-        allValues.push(...values);
-        break;
-      }
-      case 'belongsToMany': {
-        const values = table.belongsToMany ?? [];
-        allValues.push(...values);
-        break;
-      }
-      case 'hasOne': {
-        const values = table.hasOne ?? [];
-        allValues.push(...values);
-        break;
-      }
-      case 'belongsTo': {
-        const values = table.belongsTo ?? [];
-        allValues.push(...values);
-        break;
-      }
-      case 'requiredColumns': {
-        const values = table.requiredColumns ?? [];
-        allValues.push(...values);
-        break;
-      }
-      case 'pivotRelationships.relatedTable': {
-        const pivotTables =
-          table.pivotRelationships?.map((rel) => rel.relatedTable) ?? [];
-        allValues.push(...pivotTables);
-        break;
-      }
-    }
-  }
-
-  // Remove duplicates if requested, apply filter, and filter ignored values
-  let finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
-  finalValues = applyFilter(finalValues);
-  finalValues = filterIgnored(finalValues);
-
-  // Map values through template and join with proper replacements
-  const lines = finalValues.map((value) => {
-    // Get all case variations of the value using changeCase
-    const caseFormats = changeCase(value);
-
-    // Add all case variations and the raw value to replacements
-    const replacements = {
-      value, // Raw value without case transformation
-      valuePlural: caseFormats.plural,
-      valueSingular: caseFormats.singular,
-      valueTitleCase: caseFormats.titleCase,
-      valueSentenceCase: caseFormats.sentenceCase,
-      valuePhraseCase: caseFormats.phraseCase,
-      valuePascalCase: caseFormats.pascalCase,
-      valueCamelCase: caseFormats.camelCase,
-      valueKebabCase: caseFormats.kebabCase,
-      valueSnakeCase: caseFormats.snakeCase,
-      valueTitleCasePlural: caseFormats.titleCasePlural,
-      valueSentenceCasePlural: caseFormats.sentenceCasePlural,
-      valuePhraseCasePlural: caseFormats.phraseCasePlural,
-      valuePascalCasePlural: caseFormats.pascalCasePlural,
-      valueCamelCasePlural: caseFormats.camelCasePlural,
-      valueKebabCasePlural: caseFormats.kebabCasePlural,
-      valueSnakeCasePlural: caseFormats.snakeCasePlural,
-      valueTitleCaseSingular: caseFormats.titleCaseSingular,
-      valueSentenceCaseSingular: caseFormats.sentenceCaseSingular,
-      valuePhraseCaseSingular: caseFormats.phraseCaseSingular,
-      valuePascalCaseSingular: caseFormats.pascalCaseSingular,
-      valueCamelCaseSingular: caseFormats.camelCaseSingular,
-      valueKebabCaseSingular: caseFormats.kebabCaseSingular,
-      valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
-      // Add table replacements for other placeholders that might be in the template
-      ...getReplacementsForTable(table),
-    };
-
-    return replacePlaceholders(template, replacements, table);
-  });
-
-  return joinWithSeparator(lines);
-};
-
-const replacePlaceholders = (
-  text: string,
-  replacements: Record<string, string | string[]>,
-  table?: ISchemaInfo,
-): string => {
-  // First process all commands
-  const processedText = processCommand(text, table);
-
-  // Then handle the regular placeholders
-  return processedText.replace(
-    /\$_([^_]+)_\$|\{\{([^}]+)\}\}/g,
-    (_, placeholder1: string | undefined, placeholder2: string | undefined) => {
-      const key = (placeholder2 ?? placeholder1 ?? '').trim();
-      if (key.length === 0) {
+    // Helper function to join array with separator between elements
+    const joinWithSeparator = (arr: string[]): string => {
+      if (arr.length === 0) {
         return '';
       }
-      if (!(key in replacements)) {
-        console.warn(`No replacement found for placeholder: ${String(key)}`);
-        return key;
+      if (arr.length === 1) {
+        return arr[0];
       }
-      const value = replacements[key];
-      // Handle array values by joining them with commas
-      return Array.isArray(value) ? value.join(',') : value;
-    },
-  );
-};
+      return arr.slice(0, -1).join(separator) + separator + arr.slice(-1)[0];
+    };
 
-const createFileContent = (
-  options: ICommandOptions,
-  table?: ISchemaInfo,
-  fileName?: string,
-): string => {
-  // If no template is specified, use the filename as the template
-  const template = options.template ?? fileName;
+    // Helper function to filter ignored values
+    const filterIgnored = (values: string[]): string[] => {
+      if (ignoreList.length === 0) {
+        return values;
+      }
+      return values.filter((value) => !ignoreList.includes(value));
+    };
 
-  if (typeof template === 'string' && template.length > 0) {
-    if (table) {
-      const replacements = getReplacementsForTable(table);
-      let templateContent = loadTemplateContent(template);
+    // Helper function to apply filter
+    const applyFilter = (values: string[]): string[] => {
+      if (filterList.length === 0) {
+        return values;
+      }
 
-      // Clean up template content
-      templateContent = templateContent.replace(/^\s*\n/, ''); // Remove leading empty line
-
-      const processedContent = replacePlaceholders(
-        processLoopTables(templateContent),
-        {
-          ...replacements,
-          modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-          baseRoutesForController: options.baseRoutesForController ?? '',
+      // Flatten the filter list to handle both direct values and arrays from USE_CONSTANT
+      const flattenedFilterList = filterList.reduce<string[]>(
+        (acc, filterPattern) => {
+          if (Array.isArray(filterPattern)) {
+            return [...acc, ...filterPattern];
+          }
+          return [...acc, filterPattern];
         },
-        table,
+        [],
       );
-      return processedContent.trim();
+
+      return values.filter((value) => flattenedFilterList.includes(value));
+    };
+
+    // Split property paths and clean whitespace
+    const propertyPaths = propertyPathsStr.split(',').map((p) => {
+      let path = p.trim();
+      // If it's a function call with missing closing parenthesis, add it
+      if (path.startsWith('{{') && path.includes('(') && !path.includes(')')) {
+        path = `${path})}}`;
+      }
+      // If it's a function call with missing closing brace, add it
+      if (path.startsWith('{{') && !path.endsWith('}}')) {
+        path = `${path}}}`;
+      }
+      return path;
+    });
+
+    // Collect all values from all properties
+    const allValues: string[] = [];
+
+    for (const propertyPath of propertyPaths) {
+      // Check if the entire propertyPath is a function call
+      if (propertyPath.startsWith('{{') && propertyPath.endsWith('}}')) {
+        const functionCall = propertyPath.slice(2, -2).trim();
+        // Extract just the function name without any parentheses
+        const functionName = functionCall.replace(/\([^)]*\)?$/, '');
+
+        switch (functionName) {
+          case 'getAllColumns': {
+            const values = schemaInfo.getAllColumns(table.tableName);
+            allValues.push(...values);
+            continue;
+          }
+          case 'getRequiredColumns': {
+            const values = schemaInfo.getRequiredColumns(table.tableName);
+            allValues.push(...values);
+            continue;
+          }
+          case 'getPrimaryKey': {
+            const value = schemaInfo.getPrimaryKey(table.tableName);
+            if (value) {
+              allValues.push(value);
+            }
+            continue;
+          }
+        }
+        continue; // Skip unknown function calls
+      }
+
+      // Handle direct property access
+      const cleanPath = propertyPath.replace(/[{}]/g, '').trim();
+
+      switch (cleanPath) {
+        case 'hasMany': {
+          const values = table.hasMany ?? [];
+          allValues.push(...values);
+          break;
+        }
+        case 'belongsToMany': {
+          const values = table.belongsToMany ?? [];
+          allValues.push(...values);
+          break;
+        }
+        case 'hasOne': {
+          const values = table.hasOne ?? [];
+          allValues.push(...values);
+          break;
+        }
+        case 'belongsTo': {
+          const values = table.belongsTo ?? [];
+          allValues.push(...values);
+          break;
+        }
+        case 'requiredColumns': {
+          const values = table.requiredColumns ?? [];
+          allValues.push(...values);
+          break;
+        }
+        case 'pivotRelationships.relatedTable': {
+          const pivotTables =
+            table.pivotRelationships?.map((rel) => rel.relatedTable) ?? [];
+          allValues.push(...pivotTables);
+          break;
+        }
+      }
     }
-    const templateContent = loadTemplateContent(template);
-    if (templateContent) {
-      return processLoopTables(templateContent).trim();
+
+    // Remove duplicates if requested, apply filter, and filter ignored values
+    let finalValues = removeDuplicates ? [...new Set(allValues)] : allValues;
+    finalValues = applyFilter(finalValues);
+    finalValues = filterIgnored(finalValues);
+
+    // Map values through template and join with proper replacements
+    const lines = finalValues.map((value) => {
+      // Get all case variations of the value using changeCase
+      const caseFormats = changeCase(value);
+
+      // Add all case variations and the raw value to replacements
+      const replacements = {
+        value, // Raw value without case transformation
+        valuePlural: caseFormats.plural,
+        valueSingular: caseFormats.singular,
+        valueTitleCase: caseFormats.titleCase,
+        valueSentenceCase: caseFormats.sentenceCase,
+        valuePhraseCase: caseFormats.phraseCase,
+        valuePascalCase: caseFormats.pascalCase,
+        valueCamelCase: caseFormats.camelCase,
+        valueKebabCase: caseFormats.kebabCase,
+        valueSnakeCase: caseFormats.snakeCase,
+        valueTitleCasePlural: caseFormats.titleCasePlural,
+        valueSentenceCasePlural: caseFormats.sentenceCasePlural,
+        valuePhraseCasePlural: caseFormats.phraseCasePlural,
+        valuePascalCasePlural: caseFormats.pascalCasePlural,
+        valueCamelCasePlural: caseFormats.camelCasePlural,
+        valueKebabCasePlural: caseFormats.kebabCasePlural,
+        valueSnakeCasePlural: caseFormats.snakeCasePlural,
+        valueTitleCaseSingular: caseFormats.titleCaseSingular,
+        valueSentenceCaseSingular: caseFormats.sentenceCaseSingular,
+        valuePhraseCaseSingular: caseFormats.phraseCaseSingular,
+        valuePascalCaseSingular: caseFormats.pascalCaseSingular,
+        valueCamelCaseSingular: caseFormats.camelCaseSingular,
+        valueKebabCaseSingular: caseFormats.kebabCaseSingular,
+        valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
+        // Add table replacements for other placeholders that might be in the template
+        ...getReplacementsForTable(table),
+      };
+
+      return replacePlaceholders(template, replacements, table);
+    });
+
+    return joinWithSeparator(lines);
+  };
+
+  const replacePlaceholders = (
+    text: string,
+    replacements: Record<string, string | string[]>,
+    table?: ISchemaInfo,
+  ): string => {
+    // First process all commands
+    const processedText = processCommand(text, table);
+
+    // Then handle the regular placeholders
+    return processedText.replace(
+      /\$_([^_]+)_\$|\{\{([^}]+)\}\}/g,
+      (
+        _,
+        placeholder1: string | undefined,
+        placeholder2: string | undefined,
+      ) => {
+        const key = (placeholder2 ?? placeholder1 ?? '').trim();
+        if (key.length === 0) {
+          return '';
+        }
+        if (!(key in replacements)) {
+          console.warn(`No replacement found for placeholder: ${String(key)}`);
+          return key;
+        }
+        const value = replacements[key];
+        // Handle array values by joining them with commas
+        return Array.isArray(value) ? value.join(',') : value;
+      },
+    );
+  };
+
+  const createFileContent = (
+    options: ICommandOptions,
+    table?: ISchemaInfo,
+    fileName?: string,
+  ): string => {
+    // If no template is specified, use the filename as the template
+    const template = options.template ?? fileName;
+
+    if (typeof template === 'string' && template.length > 0) {
+      if (table) {
+        const replacements = getReplacementsForTable(table);
+        let templateContent = loadTemplateContent(template);
+
+        // Clean up template content
+        templateContent = templateContent.replace(/^\s*\n/, ''); // Remove leading empty line
+
+        const processedContent = replacePlaceholders(
+          processLoopTables(templateContent),
+          {
+            ...replacements,
+            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+            baseRoutesForController: options.baseRoutesForController ?? '',
+          },
+          table,
+        );
+        return processedContent.trim();
+      }
+      const templateContent = loadTemplateContent(template);
+      if (templateContent) {
+        return processLoopTables(templateContent).trim();
+      }
     }
-  }
 
-  const metadata: string[] = [];
-  const conditions = options.conditions;
-  if (conditions !== undefined && conditions.length > 0) {
-    metadata.push(`@conditions: ${conditions.join(',')}`);
-  }
-
-  return metadata.length > 0 ? metadata.join('\n') : '';
-};
-
-const processMultipleFiles = (
-  fileName: string,
-  options: ICommandOptions = {},
-): IFile[] => {
-  // Get the template content once
-  let templateContent = '';
-  if (typeof options.template === 'string' && options.template.length > 0) {
-    const loadedContent = loadTemplateContent(options.template);
-    if (loadedContent.length > 0) {
-      templateContent = loadedContent;
+    const metadata: string[] = [];
+    const conditions = options.conditions;
+    if (conditions !== undefined && conditions.length > 0) {
+      metadata.push(`@conditions: ${conditions.join(',')}`);
     }
-  } else {
-    // Try to load template based on filename if no template option provided
-    templateContent = loadTemplateContent(fileName);
-  }
 
-  const files = masterSchema.map((table) => {
-    const replacements = getReplacementsForTable(table);
-    const processedName = replacePlaceholders(fileName, replacements);
+    return metadata.length > 0 ? metadata.join('\n') : '';
+  };
 
-    let content = '';
-    if (templateContent.length > 0) {
-      content = replacePlaceholders(
-        processLoopTables(templateContent),
-        {
-          ...replacements,
-          modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-          baseRoutesForController: options.baseRoutesForController ?? '',
-        },
-        table,
-      );
+  const processMultipleFiles = (
+    fileName: string,
+    options: ICommandOptions = {},
+  ): IFile[] => {
+    // Get the template content once
+    let templateContent = '';
+    if (typeof options.template === 'string' && options.template.length > 0) {
+      const loadedContent = loadTemplateContent(options.template);
+      if (loadedContent.length > 0) {
+        templateContent = loadedContent;
+      }
     } else {
-      content = `@table: ${table.tableName}`;
+      // Try to load template based on filename if no template option provided
+      templateContent = loadTemplateContent(fileName);
     }
 
-    return {
-      type: 'file',
-      name: processedName,
-      content: content.trim(),
-    };
-  });
+    const files = masterSchema.map((table) => {
+      const replacements = getReplacementsForTable(table);
+      const processedName = replacePlaceholders(fileName, replacements);
 
-  // Filter out any empty files
-  return files.filter((file): file is IFile => file.content.length > 0);
-};
-
-const processDynamicFolders = (
-  folderName: string,
-  children: unknown,
-): IStructure => {
-  return masterSchema.map((table) => {
-    const replacements = getReplacementsForTable(table);
-    const processedName = replacePlaceholders(folderName, replacements);
-
-    // Process children with the current table context
-    const processedChildren = processYamlNodeWithContext(children, table);
-
-    return {
-      type: 'folder',
-      name: processedName,
-      children: processedChildren,
-    };
-  });
-};
-
-const processYamlNodeWithContext = (
-  node: unknown,
-  table: ISchemaInfo,
-): IStructure => {
-  if (typeof node === 'string') {
-    if (node.startsWith('CREATE_FILE(')) {
-      const { command, options } = parseCommand(node.slice(12, -1));
-
-      // Skip file if conditions are not met
-      const conditions = options.conditions;
-      if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
-        return [];
+      let content = '';
+      if (templateContent.length > 0) {
+        content = replacePlaceholders(
+          processLoopTables(templateContent),
+          {
+            ...replacements,
+            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+            baseRoutesForController: options.baseRoutesForController ?? '',
+          },
+          table,
+        );
+      } else {
+        content = `@table: ${table.tableName}`;
       }
 
-      const replacements = getReplacementsForTable(table);
-      const processedName = replacePlaceholders(command, replacements);
-
-      return [
-        {
-          type: 'file',
-          name: processedName.replace(/[()]/g, ''),
-          content: createFileContent(options, table, processedName),
-        },
-      ];
-    }
-    if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
-      const { command, options } = parseCommand(node.slice(21, -1));
-      return processMultipleFiles(command, options);
-    }
-    if (node.startsWith('@LOOP_TABLES(')) {
-      return [
-        {
-          type: 'file',
-          name: 'template.tmp',
-          content: `@loop: tables\n${node}`,
-        },
-      ];
-    }
-
-    // Handle bare filenames by looking for templates
-    const templateContent = loadTemplateContent(node);
-    if (templateContent.length > 0) {
-      const replacements = getReplacementsForTable(table);
-      return [
-        {
-          type: 'file',
-          name: node,
-          content: replacePlaceholders(
-            processLoopTables(templateContent),
-            replacements,
-          ).trim(),
-        },
-      ];
-    }
-
-    return [
-      {
+      return {
         type: 'file',
-        name: node,
-        content: '',
-      },
-    ];
-  }
+        name: processedName,
+        content: content.trim(),
+      };
+    });
 
-  if (Array.isArray(node)) {
-    return node.flatMap((item) => processYamlNodeWithContext(item, table));
-  }
+    // Filter out any empty files
+    return files.filter((file): file is IFile => file.content.length > 0);
+  };
 
-  if (typeof node === 'object' && node !== null) {
-    return Object.entries(node).flatMap(([key, value]): IStructure => {
-      // Handle conditional folders
-      const { name, conditions } = parseConditionalFolder(key);
-      if (conditions && !checkConditions(conditions)) {
+  const processDynamicFolders = (
+    folderName: string,
+    children: unknown,
+  ): IStructure => {
+    return masterSchema.map((table) => {
+      const replacements = getReplacementsForTable(table);
+      const processedName = replacePlaceholders(folderName, replacements);
+
+      // Process children with the current table context
+      const processedChildren = processYamlNodeWithContext(children, table);
+
+      return {
+        type: 'folder',
+        name: processedName,
+        children: processedChildren,
+      };
+    });
+  };
+
+  const processYamlNodeWithContext = (
+    node: unknown,
+    table: ISchemaInfo,
+  ): IStructure => {
+    if (typeof node === 'string') {
+      if (node.startsWith('CREATE_FILE(')) {
+        const { command, options } = parseCommand(node.slice(12, -1));
+
+        // Skip file if conditions are not met
+        const conditions = options.conditions;
+        if (
+          conditions &&
+          conditions.length > 0 &&
+          !checkConditions(conditions)
+        ) {
+          return [];
+        }
+
+        const replacements = getReplacementsForTable(table);
+        const processedName = replacePlaceholders(command, replacements);
+
         return [
           {
-            type: 'folder',
-            name: name.replace(/[()]/g, ''),
-            children: [],
+            type: 'file',
+            name: processedName.replace(/[()]/g, ''),
+            content: createFileContent(options, table, processedName),
+          },
+        ];
+      }
+      if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
+        const { command, options } = parseCommand(node.slice(21, -1));
+        return processMultipleFiles(command, options);
+      }
+      if (node.startsWith('@LOOP_TABLES(')) {
+        return [
+          {
+            type: 'file',
+            name: 'template.tmp',
+            content: `@loop: tables\n${node}`,
           },
         ];
       }
 
-      if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
-        // Extract folder name and remove parentheses
-        const folderName = key.slice(22, -1).replace(/[()]/g, '');
-        // Return the dynamic folders directly without an extra parent folder
-        return processDynamicFolders(folderName, value);
-      }
-
-      return [
-        {
-          type: 'folder',
-          name: name.replace(/[()]/g, ''),
-          children: processYamlNodeWithContext(value, table),
-        },
-      ];
-    });
-  }
-
-  return [];
-};
-
-const processYamlNode = (node: unknown): IStructure => {
-  if (typeof node === 'string') {
-    if (node.startsWith('CREATE_FILE(')) {
-      const { command, options } = parseCommand(node.slice(12, -1));
-
-      // Skip file if conditions are not met
-      const conditions = options.conditions;
-      if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
-        return [];
-      }
-
-      return [
-        {
-          type: 'file',
-          name: command.replace(/[()]/g, ''),
-          content: createFileContent(options, undefined, command),
-        },
-      ];
-    }
-    if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
-      const { command, options } = parseCommand(node.slice(21, -1));
-      return processMultipleFiles(command, options);
-    }
-    if (node.startsWith('@LOOP_TABLES(')) {
-      return [
-        {
-          type: 'file',
-          name: 'template.tmp',
-          content: `@loop: tables\n${node}`,
-        },
-      ];
-    }
-
-    // Handle bare filenames by looking for templates
-    const templateContent = loadTemplateContent(node);
-    if (templateContent.length > 0) {
-      return [
-        {
-          type: 'file',
-          name: node,
-          content: processLoopTables(templateContent).trim(),
-        },
-      ];
-    }
-
-    return [
-      {
-        type: 'file',
-        name: node,
-        content: '',
-      },
-    ];
-  }
-
-  if (Array.isArray(node)) {
-    return node.flatMap((item) => processYamlNode(item));
-  }
-
-  if (typeof node === 'object' && node !== null) {
-    return Object.entries(node).flatMap(([key, value]): IStructure => {
-      // Handle conditional folders
-      const { name, conditions } = parseConditionalFolder(key);
-      if (conditions && !checkConditions(conditions)) {
+      // Handle bare filenames by looking for templates
+      const templateContent = loadTemplateContent(node);
+      if (templateContent.length > 0) {
+        const replacements = getReplacementsForTable(table);
         return [
           {
-            type: 'folder',
-            name: name.replace(/[()]/g, ''),
-            children: [],
+            type: 'file',
+            name: node,
+            content: replacePlaceholders(
+              processLoopTables(templateContent),
+              replacements,
+            ).trim(),
           },
         ];
       }
 
-      if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
-        // Extract folder name and remove parentheses
-        const folderName = key.slice(22, -1).replace(/[()]/g, '');
-        // Return the dynamic folders directly without an extra parent folder
-        return processDynamicFolders(folderName, value);
+      return [
+        {
+          type: 'file',
+          name: node,
+          content: '',
+        },
+      ];
+    }
+
+    if (Array.isArray(node)) {
+      return node.flatMap((item) => processYamlNodeWithContext(item, table));
+    }
+
+    if (typeof node === 'object' && node !== null) {
+      return Object.entries(node).flatMap(([key, value]): IStructure => {
+        // Handle conditional folders
+        const { name, conditions } = parseConditionalFolder(key);
+        if (conditions && !checkConditions(conditions)) {
+          return [
+            {
+              type: 'folder',
+              name: name.replace(/[()]/g, ''),
+              children: [],
+            },
+          ];
+        }
+
+        if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
+          // Extract folder name and remove parentheses
+          const folderName = key.slice(22, -1).replace(/[()]/g, '');
+          // Return the dynamic folders directly without an extra parent folder
+          return processDynamicFolders(folderName, value);
+        }
+
+        return [
+          {
+            type: 'folder',
+            name: name.replace(/[()]/g, ''),
+            children: processYamlNodeWithContext(value, table),
+          },
+        ];
+      });
+    }
+
+    return [];
+  };
+
+  const processYamlNode = (node: unknown): IStructure => {
+    if (typeof node === 'string') {
+      if (node.startsWith('CREATE_FILE(')) {
+        const { command, options } = parseCommand(node.slice(12, -1));
+
+        // Skip file if conditions are not met
+        const conditions = options.conditions;
+        if (
+          conditions &&
+          conditions.length > 0 &&
+          !checkConditions(conditions)
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            type: 'file',
+            name: command.replace(/[()]/g, ''),
+            content: createFileContent(options, undefined, command),
+          },
+        ];
+      }
+      if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
+        const { command, options } = parseCommand(node.slice(21, -1));
+        return processMultipleFiles(command, options);
+      }
+      if (node.startsWith('@LOOP_TABLES(')) {
+        return [
+          {
+            type: 'file',
+            name: 'template.tmp',
+            content: `@loop: tables\n${node}`,
+          },
+        ];
+      }
+
+      // Handle bare filenames by looking for templates
+      const templateContent = loadTemplateContent(node);
+      if (templateContent.length > 0) {
+        return [
+          {
+            type: 'file',
+            name: node,
+            content: processLoopTables(templateContent).trim(),
+          },
+        ];
       }
 
       return [
         {
-          type: 'folder',
-          name: name.replace(/[()]/g, ''),
-          children: processYamlNode(value),
+          type: 'file',
+          name: node,
+          content: '',
         },
       ];
-    });
-  }
+    }
 
-  return [];
-};
+    if (Array.isArray(node)) {
+      return node.flatMap((item) => processYamlNode(item));
+    }
 
-export const buildProjectFiles = (yamlContent: string): IStructure => {
+    if (typeof node === 'object' && node !== null) {
+      return Object.entries(node).flatMap(([key, value]): IStructure => {
+        // Handle conditional folders
+        const { name, conditions } = parseConditionalFolder(key);
+        if (conditions && !checkConditions(conditions)) {
+          return [
+            {
+              type: 'folder',
+              name: name.replace(/[()]/g, ''),
+              children: [],
+            },
+          ];
+        }
+
+        if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
+          // Extract folder name and remove parentheses
+          const folderName = key.slice(22, -1).replace(/[()]/g, '');
+          // Return the dynamic folders directly without an extra parent folder
+          return processDynamicFolders(folderName, value);
+        }
+
+        return [
+          {
+            type: 'folder',
+            name: name.replace(/[()]/g, ''),
+            children: processYamlNode(value),
+          },
+        ];
+      });
+    }
+
+    return [];
+  };
+
   try {
     const parsedYaml: unknown = parse(yamlContent);
     if (!_isYamlObject(parsedYaml)) {
