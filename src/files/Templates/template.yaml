@@ -1,5 +1,0 @@
-{{tableNamePascalCase}} Columns:
-  [[ ITERATE(columnsInfo) --template="
-  [[ IF(column_name EQUALS "password") --template="{{valueCamelCase}}: This is a password column.\n" ENDIF ]]
-  [[ IF(column_name NOT EQUAL "password") --template="{{valueCamelCase}}: This is not a password column.\n" ENDIF ]]
-   " --separator="\n" ]]

@@ -2,7 +2,7 @@ import { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
 import config from '@/config/config.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
@@ -559,6 +559,94 @@ export const buildProjectFiles = (
       return values.filter((value) => flattenedFilterList.includes(value));
     };
 
+    // Helper function to process IF conditions in a template
+    const processIfConditions = (template: string, column: IColumnInfo): string => {
+      // Process IF conditions with {% IF column_name EQUALS 'value' %} syntax
+      return template.replace(
+        /{%\s*IF\s+column_name\s+(EQUALS|NOT\s+EQUAL)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
+        (
+          _match: string, 
+          operator: string, 
+          value: string, 
+          content: string
+        ): string => {
+          const columnName = column.column_name;
+          
+          // Evaluate the condition
+          let conditionMet = false;
+          if (operator === 'EQUALS') {
+            conditionMet = columnName === value;
+          } else if (operator === 'NOT EQUAL') {
+            conditionMet = columnName !== value;
+          }
+          
+          // Return the content if condition is met, otherwise empty string
+          return conditionMet ? content : '';
+        }
+      );
+    };
+
+    // Helper function to process columnsInfo iteration with IF conditions
+    const processColumnsInfoIteration = (
+      tableObj: ISchemaInfo,
+      templateStr: string,
+      separatorStr: string
+    ): string => {
+      // Process each column individually
+      const results: string[] = [];
+      
+      for (const column of tableObj.columnsInfo) {
+        // Create a copy of the template for this column
+        let processedTemplate = templateStr;
+        
+        // Process IF conditions
+        processedTemplate = processIfConditions(processedTemplate, column);
+        
+        // Get case variations for the column name
+        const caseFormats = changeCase(column.column_name);
+        
+        // Create replacements for this column
+        const replacements = {
+          value: column.column_name,
+          valuePlural: caseFormats.plural,
+          valueSingular: caseFormats.singular,
+          valueTitleCase: caseFormats.titleCase,
+          valueSentenceCase: caseFormats.sentenceCase,
+          valuePhraseCase: caseFormats.phraseCase,
+          valuePascalCase: caseFormats.pascalCase,
+          valueCamelCase: caseFormats.camelCase,
+          valueKebabCase: caseFormats.kebabCase,
+          valueSnakeCase: caseFormats.snakeCase,
+          valueTitleCasePlural: caseFormats.titleCasePlural,
+          valueSentenceCasePlural: caseFormats.sentenceCasePlural,
+          valuePhraseCasePlural: caseFormats.phraseCasePlural,
+          valuePascalCasePlural: caseFormats.pascalCasePlural,
+          valueCamelCasePlural: caseFormats.camelCasePlural,
+          valueKebabCasePlural: caseFormats.kebabCasePlural,
+          valueSnakeCasePlural: caseFormats.snakeCasePlural,
+          valueTitleCaseSingular: caseFormats.titleCaseSingular,
+          valueSentenceCaseSingular: caseFormats.sentenceCaseSingular,
+          valuePhraseCaseSingular: caseFormats.phraseCaseSingular,
+          valuePascalCaseSingular: caseFormats.pascalCaseSingular,
+          valueCamelCaseSingular: caseFormats.camelCaseSingular,
+          valueKebabCaseSingular: caseFormats.kebabCaseSingular,
+          valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
+          // For columnsInfo iteration, add columnNameCamelCase as an alias for valueCamelCase
+          columnNameCamelCase: caseFormats.camelCase,
+          // Add table replacements for other placeholders that might be in the template
+          ...getReplacementsForTable(tableObj),
+        };
+        
+        // Replace placeholders
+        const result = replacePlaceholders(processedTemplate, replacements, tableObj);
+        if (result.trim()) {
+          results.push(result);
+        }
+      }
+      
+      return results.join(separatorStr);
+    };
+
     // Split property paths and clean whitespace
     const propertyPaths = propertyPathsStr.split(',').map((p) => {
       let path = p.trim();
@@ -573,6 +661,12 @@ export const buildProjectFiles = (
       return path;
     });
 
+    // Special handling for columnsInfo iteration
+    if (propertyPaths.includes('columnsInfo')) {
+      return processColumnsInfoIteration(table, template, separator);
+    }
+
+    // For other types of iterations, use the original logic
     // Collect all values from all properties
     const allValues: string[] = [];
 
@@ -641,6 +735,7 @@ export const buildProjectFiles = (
           break;
         }
         case 'columnsInfo': {
+          // Handle columnsInfo specially to extract column_name values
           const columnNames = table.columnsInfo.map(col => col.column_name);
           allValues.push(...columnNames);
           break;
