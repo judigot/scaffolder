@@ -5,17 +5,19 @@ import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { useModalStore } from '@/useModalStore.ts';
 
 import { consolidateInterfaces } from '@/utils/common.ts';
-import FileViewer from '@/components/FileViewer.tsx';
+import FileViewer, { IStructure } from '@/components/FileViewer.tsx';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings.tsx';
 import { handleCopy } from '@/helpers/stringHelper.ts';
-import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
 import { CREATION_MODES } from '@/constants.ts';
 import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
+import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
+import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 
 function App() {
+  const [userFiles, setUserFiles] = useState<IStructure>([]);
   const formData = useFormStore();
   const {
     backendUrl,
@@ -46,6 +48,56 @@ function App() {
     setTransformations,
     setSchemaInfo,
   } = useTransformationsStore();
+
+  useEffect(() => {
+    fetch(`http://localhost:5000/userFiles`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((response) => response.json())
+      .then((result: IStructure) => {
+        // Success
+        const folderName = 'Projects';
+        const fileName = 'LaravelFolderStructure.yaml';
+        const objectIndex: number = result.findIndex(
+          (object): boolean => object.name === folderName,
+        );
+        if (objectIndex === -1) {
+          throw new Error(`Folder ${folderName} not found`);
+        }
+        const projectsFolder = result[objectIndex];
+        if (
+          !('children' in projectsFolder) ||
+          !Array.isArray(projectsFolder.children)
+        ) {
+          throw new Error(`Folder ${folderName} is not a valid folder`);
+        }
+        const fileIndex = projectsFolder.children.findIndex(
+          (object): boolean => object.name === fileName,
+        );
+        if (fileIndex === -1) {
+          throw new Error(`File ${fileName} not found in folder ${folderName}`);
+        }
+        const projectFile = projectsFolder.children[fileIndex];
+        if (!('content' in projectFile)) {
+          throw new Error(`File ${fileName} is not a valid file`);
+        }
+
+        const projectFileContent = projectFile.content;
+
+        setUserFiles(buildProjectFiles(projectFileContent, result));
+      })
+      .catch((error: unknown) => {
+        // Failure
+        if (error instanceof Error) {
+          throw new Error(error.message);
+        }
+        throw new Error(`Unknown error: ${String(error)}`);
+      });
+  }, []);
 
   useEffect(() => {
     setTransformations();
@@ -455,7 +507,7 @@ function App() {
                   folderStructure={useFolderStructures(schemaInfo).frontend}
                 />
               </div> */}
-
+              <FileViewer folderColor={'yellow'} folderStructure={userFiles} />
               <FileViewer
                 folderColor={'yellow'}
                 folderStructure={

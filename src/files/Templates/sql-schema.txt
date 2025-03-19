@@ -1,0 +1,30 @@
+-- SQL Schema for {{tableNamePascalCase}} table
+CREATE TABLE {{tableNameSnakeCase}} (
+  [[ ITERATE(columnsInfo) --template="
+  {{valueSnakeCase}} {% IF data_type EQUALS string %}VARCHAR(255){% ENDIF %}{% IF data_type EQUALS number %}INTEGER{% ENDIF %}{% IF data_type EQUALS boolean %}BOOLEAN{% ENDIF %}{% IF data_type EQUALS Date %}TIMESTAMP{% ENDIF %}{% IF is_nullable EQUALS 'NO' %} NOT NULL{% ENDIF %}{% IF column_default IS NOT NULL %} DEFAULT {{column_default}}{% ENDIF %}{% IF primary_key IS TRUE %} PRIMARY KEY{% ENDIF %}{% IF unique IS TRUE %} UNIQUE{% ENDIF %}," --separator="\n  " ]]
+  
+  -- Foreign key constraints
+  [[ ITERATE(columnsInfo) --template="
+  {% IF foreign_key EXISTS %}FOREIGN KEY ({{valueSnakeCase}}) REFERENCES {{foreign_table}}({{foreign_column}}),{% ENDIF %}" --separator="\n  " ]]
+  
+  -- Timestamp columns
+  [[ ITERATE(columnsInfo) --template="
+  {% IF column_name EQUALS 'createdAt' %}created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,{% ENDIF %}
+  {% IF column_name EQUALS 'updatedAt' %}updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,{% ENDIF %}" --separator="\n  " ]]
+  
+  -- Add any special indexes
+  [[ ITERATE(columnsInfo) --template="
+  {% IF column_name EQUALS 'email' %}INDEX idx_{{tableNameSnakeCase}}_email ({{valueSnakeCase}}),{% ENDIF %}
+  {% IF column_name CONTAINS 'name' %}INDEX idx_{{tableNameSnakeCase}}_{{valueSnakeCase}} ({{valueSnakeCase}}),{% ENDIF %}" --separator="\n  " ]]
+  
+  -- Remove trailing comma (this is just a placeholder, you'd need special handling for this)
+  placeholder_to_remove_trailing_comma
+);
+
+-- Table comment
+COMMENT ON TABLE {{tableNameSnakeCase}} IS '{{tableNameSentenceCase}}';
+
+-- Column comments
+[[ ITERATE(columnsInfo) --template="
+COMMENT ON COLUMN {{tableNameSnakeCase}}.{{valueSnakeCase}} IS '{% IF primary_key IS TRUE %}Primary key for {% ENDIF %}{% IF foreign_key EXISTS %}Foreign key to {{foreign_table}} {% ENDIF %}{% IF column_name EQUALS 'password' %}Hashed password - never expose! {% ENDIF %}{{valueSentenceCase}}';
+" --separator="\n" ]] 
