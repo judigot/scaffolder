@@ -34,5 +34,5 @@ frontend:
       CREATE_DYNAMIC_FOLDERS($_tableNameSnakeCaseSingular_$):
         - CREATE_FILE(use$_tableNamePascalCaseSingular_$.ts)
     interfaces:
-      - CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template typescript-interface-template.yaml)
+      - CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template typescript-interface-template.txt)
 `;
