@@ -13,10 +13,5 @@ abstract class BaseController extends Controller
     {
         $this->service = $service;
     }
-    [[LOOP_BASE_METHODS
-    public function {{controllerMethod}}
-    {
-    {{controllerContent}}
-    }
-    ]]
+    [[ITERATE(/BaseMethods) --template="{{methodName}}"]]
 }

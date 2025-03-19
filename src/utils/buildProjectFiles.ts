@@ -6,6 +6,13 @@ import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
+// Configuration for folder names that can be changed in one place
+const folderConfig = {
+  methodsFolder: 'BaseMethods',
+  methodGroupFile: 'base-methods-group.yaml',
+  methodGroupFileAlt: 'base-method-group.yaml',
+};
+
 const schemaInfo = getSchemaInfo(masterSchema);
 
 export const buildProjectFiles = (
@@ -197,18 +204,20 @@ export const buildProjectFiles = (
         const store = userFiles;
         const baseMethodsFolder = store.find(
           (item): item is IFolder =>
-            item.type === 'folder' && item.name === 'BaseMethods',
+            item.type === 'folder' && item.name === folderConfig.methodsFolder,
         );
 
         if (!baseMethodsFolder) {
-          console.warn('BaseMethods folder not found');
+          console.warn(`${folderConfig.methodsFolder} folder not found`);
           return '';
         }
 
         // Load the base-methods-group.yaml to get the groups
         const groupFile = store.find(
           (item): item is IFile =>
-            item.type === 'file' && item.name === 'base-methods-group.yaml',
+            item.type === 'file' &&
+            (item.name === folderConfig.methodGroupFile ||
+              item.name === folderConfig.methodGroupFileAlt),
         );
 
         interface IMethodGroup {
@@ -239,29 +248,6 @@ export const buildProjectFiles = (
           ? parsedGroups
           : {};
 
-        interface IBaseMethodYAML {
-          methodName: string;
-          route: string;
-          description: string;
-          repositoryMethod: string;
-          repositoryContent: string;
-          serviceMethod: string;
-          serviceContent: string;
-          controllerMethod: string;
-          controllerContent: string;
-        }
-
-        const isBaseMethodYAML = (value: unknown): value is IBaseMethodYAML => {
-          if (!isRecord(value)) {
-            return false;
-          }
-          return (
-            typeof value.methodName === 'string' &&
-            typeof value.controllerMethod === 'string' &&
-            typeof value.controllerContent === 'string'
-          );
-        };
-
         // Create a map of method name to its content
         const methodsMap = new Map<string, string>();
         baseMethodsFolder.children
@@ -269,37 +255,89 @@ export const buildProjectFiles = (
           .forEach((file) => {
             try {
               const yamlContent: unknown = parse(file.content);
-              if (isBaseMethodYAML(yamlContent)) {
-                // Check if we're processing BaseInterface.php by looking at the loop content
-                if (loopContent.includes('{{repositoryMethod}}')) {
-                  // For interface, use the raw repositoryMethod but process any methodName placeholders in it
+              if (isRecord(yamlContent)) {
+                // Extract all properties from YAML to create dynamic replacements
+                // All properties become available as placeholders in templates
+                const replacements: Record<string, string> = {};
+
+                // Process all properties recursively to handle nested objects
+                const processObject = (
+                  obj: Record<string, unknown>,
+                  prefix = '',
+                  result: Record<string, string> = {},
+                ): Record<string, string> => {
+                  Object.entries(obj).forEach(([key, value]) => {
+                    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+                    if (typeof value === 'string') {
+                      result[fullKey] = value;
+                    } else if (
+                      typeof value === 'number' ||
+                      typeof value === 'boolean'
+                    ) {
+                      result[fullKey] = String(value);
+                    } else if (
+                      value !== null &&
+                      typeof value === 'object' &&
+                      !Array.isArray(value)
+                    ) {
+                      // Handle nested objects recursively - use type guard instead of type assertion
+                      if (isRecord(value)) {
+                        processObject(value, fullKey, result);
+                      }
+                    } else if (Array.isArray(value)) {
+                      // Handle arrays by joining with commas
+                      result[fullKey] = value
+                        .map((item) => String(item))
+                        .join(',');
+                    }
+                  });
+
+                  return result;
+                };
+
+                // Use the isRecord type guard instead of type assertion
+                if (isRecord(yamlContent)) {
+                  processObject(yamlContent, '', replacements);
+                }
+
+                // Make sure value is always set for templates that use {{value}} if not already present
+                if (!('value' in replacements)) {
+                  replacements.value = file.name.replace(/\.[^.]+$/, '');
+                }
+
+                // Use first property's value as primary key or filename as fallback
+                let primaryValue = file.name.replace(/\.[^.]+$/, '');
+                if (Object.keys(replacements).length > 0) {
+                  primaryValue = Object.values(replacements)[0];
+                }
+
+                // Process the YAML content with all available properties
+                let methodContent: string;
+
+                if (
+                  loopContent.includes('{{repositoryMethod}}') &&
+                  'repositoryMethod' in replacements
+                ) {
+                  // For interface, process the template with all properties
                   const processedMethod = replacePlaceholders(
-                    yamlContent.repositoryMethod,
-                    {
-                      methodName: yamlContent.methodName,
-                    },
+                    replacements.repositoryMethod,
+                    replacements,
                   );
 
-                  const methodContent = replacePlaceholders(loopContent, {
+                  methodContent = replacePlaceholders(loopContent, {
+                    ...replacements,
                     repositoryMethod: processedMethod,
                   });
-                  methodsMap.set(yamlContent.methodName, methodContent);
                 } else {
-                  // For regular controller methods, process as before
-                  const processedContent = replacePlaceholders(
-                    yamlContent.controllerContent,
-                    {
-                      methodName: yamlContent.methodName,
-                    },
+                  // For all other templates, process with all available properties
+                  methodContent = replacePlaceholders(
+                    loopContent,
+                    replacements,
                   );
-
-                  const methodContent = replacePlaceholders(loopContent, {
-                    controllerMethod: yamlContent.controllerMethod,
-                    controllerContent: processedContent,
-                  });
-
-                  methodsMap.set(yamlContent.methodName, methodContent);
                 }
+
+                methodsMap.set(primaryValue, methodContent);
               }
             } catch (error) {
               console.warn(`Error parsing YAML in ${file.name}:`, error);
@@ -560,21 +598,31 @@ export const buildProjectFiles = (
     };
 
     // Helper function to process IF conditions in a template
-    const processIfConditions = (template: string, column: IColumnInfo): string => {
+    const processIfConditions = (
+      template: string,
+      column: IColumnInfo,
+    ): string => {
       // Process column info
-      console.warn('Processing column:', column.column_name, 'type:', column.data_type, 'nullable:', column.is_nullable);
-      
+      console.warn(
+        'Processing column:',
+        column.column_name,
+        'type:',
+        column.data_type,
+        'nullable:',
+        column.is_nullable,
+      );
+
       // Process column_name conditions
       let result = template.replace(
         /{%\s*IF\s+column_name\s+(EQUALS|NOT\s+EQUAL)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
         (
-          _match: string, 
-          operator: string, 
-          value: string, 
-          content: string
+          _match: string,
+          operator: string,
+          value: string,
+          content: string,
         ): string => {
           const columnName = column.column_name;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'EQUALS') {
@@ -582,15 +630,22 @@ export const buildProjectFiles = (
           } else if (operator === 'NOT EQUAL') {
             conditionMet = columnName !== value;
           }
-          
+
           // Log the condition result
-          console.warn('Column name condition:', columnName, operator, value, '=', conditionMet);
-          
+          console.warn(
+            'Column name condition:',
+            columnName,
+            operator,
+            value,
+            '=',
+            conditionMet,
+          );
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process data_type conditions with quoted values
       result = result.replace(
         /{%\s*IF\s+data_type\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
@@ -598,31 +653,39 @@ export const buildProjectFiles = (
           _match: string,
           operator: string,
           value: string,
-          content: string
+          content: string,
         ): string => {
           const dataType = column.data_type;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'EQUALS') {
             conditionMet = dataType === value;
-            console.warn(`Evaluating data type condition: "${String(dataType)}" EQUALS "${String(value)}" = ${String(conditionMet)}`);
+            console.warn(
+              `Evaluating data type condition: "${String(dataType)}" EQUALS "${String(value)}" = ${String(conditionMet)}`,
+            );
           } else if (operator === 'NOT EQUAL') {
             conditionMet = dataType !== value;
-            console.warn(`Evaluating data type condition: "${String(dataType)}" NOT EQUAL "${String(value)}" = ${String(conditionMet)}`);
+            console.warn(
+              `Evaluating data type condition: "${String(dataType)}" NOT EQUAL "${String(value)}" = ${String(conditionMet)}`,
+            );
           } else if (operator === 'CONTAINS') {
             conditionMet = dataType.includes(value);
-            console.warn(`Evaluating data type condition: "${String(dataType)}" CONTAINS "${String(value)}" = ${String(conditionMet)}`);
+            console.warn(
+              `Evaluating data type condition: "${String(dataType)}" CONTAINS "${String(value)}" = ${String(conditionMet)}`,
+            );
           } else if (operator === 'NOT CONTAINS') {
             conditionMet = !dataType.includes(value);
-            console.warn(`Evaluating data type condition: "${String(dataType)}" NOT CONTAINS "${String(value)}" = ${String(conditionMet)}`);
+            console.warn(
+              `Evaluating data type condition: "${String(dataType)}" NOT CONTAINS "${String(value)}" = ${String(conditionMet)}`,
+            );
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process data_type conditions with unquoted values
       result = result.replace(
         /{%\s*IF\s+data_type\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS)\s+([^'"\s]+)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
@@ -630,10 +693,10 @@ export const buildProjectFiles = (
           _match: string,
           operator: string,
           value: string,
-          content: string
+          content: string,
         ): string => {
           const dataType = column.data_type;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'EQUALS') {
@@ -645,12 +708,12 @@ export const buildProjectFiles = (
           } else if (operator === 'NOT CONTAINS') {
             conditionMet = !dataType.includes(value);
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process is_nullable conditions
       result = result.replace(
         /{%\s*IF\s+is_nullable\s+(EQUALS|NOT\s+EQUAL)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
@@ -658,25 +721,29 @@ export const buildProjectFiles = (
           _match: string,
           operator: string,
           value: string,
-          content: string
+          content: string,
         ): string => {
           const isNullable = column.is_nullable;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'EQUALS') {
             conditionMet = isNullable === value;
-            console.warn(`Evaluating is_nullable condition: "${String(isNullable)}" EQUALS "${String(value)}" = ${String(conditionMet)}`);
+            console.warn(
+              `Evaluating is_nullable condition: "${String(isNullable)}" EQUALS "${String(value)}" = ${String(conditionMet)}`,
+            );
           } else if (operator === 'NOT EQUAL') {
             conditionMet = isNullable !== value;
-            console.warn(`Evaluating is_nullable condition: "${String(isNullable)}" NOT EQUAL "${String(value)}" = ${String(conditionMet)}`);
+            console.warn(
+              `Evaluating is_nullable condition: "${String(isNullable)}" NOT EQUAL "${String(value)}" = ${String(conditionMet)}`,
+            );
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process is_nullable conditions with unquoted values
       result = result.replace(
         /{%\s*IF\s+is_nullable\s+(EQUALS|NOT\s+EQUAL)\s+([^'"\s]+)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
@@ -684,10 +751,10 @@ export const buildProjectFiles = (
           _match: string,
           operator: string,
           value: string,
-          content: string
+          content: string,
         ): string => {
           const isNullable = column.is_nullable;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'EQUALS') {
@@ -695,12 +762,12 @@ export const buildProjectFiles = (
           } else if (operator === 'NOT EQUAL') {
             conditionMet = isNullable !== value;
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process column_default conditions
       result = result.replace(
         /{%\s*IF\s+column_default\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS|IS\s+NULL|IS\s+NOT\s+NULL)\s*(?:'([^']+)')?\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
@@ -708,43 +775,53 @@ export const buildProjectFiles = (
           _match: string,
           operator: string,
           value: string | undefined,
-          content: string
+          content: string,
         ): string => {
           const columnDefault = column.column_default;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'IS NULL') {
-            conditionMet = columnDefault === null || columnDefault === undefined;
+            conditionMet =
+              columnDefault === null || columnDefault === undefined;
           } else if (operator === 'IS NOT NULL') {
-            conditionMet = columnDefault !== null && columnDefault !== undefined;
+            conditionMet =
+              columnDefault !== null && columnDefault !== undefined;
           } else if (value !== undefined) {
             if (operator === 'EQUALS') {
-              conditionMet = columnDefault !== null && columnDefault !== undefined && String(columnDefault) === value;
+              conditionMet =
+                columnDefault !== null &&
+                columnDefault !== undefined &&
+                String(columnDefault) === value;
             } else if (operator === 'NOT EQUAL') {
-              conditionMet = columnDefault === null || columnDefault === undefined || String(columnDefault) !== value;
+              conditionMet =
+                columnDefault === null ||
+                columnDefault === undefined ||
+                String(columnDefault) !== value;
             } else if (operator === 'CONTAINS') {
-              conditionMet = columnDefault !== null && columnDefault !== undefined && String(columnDefault).includes(value);
+              conditionMet =
+                columnDefault !== null &&
+                columnDefault !== undefined &&
+                String(columnDefault).includes(value);
             } else if (operator === 'NOT CONTAINS') {
-              conditionMet = columnDefault === null || columnDefault === undefined || !String(columnDefault).includes(value);
+              conditionMet =
+                columnDefault === null ||
+                columnDefault === undefined ||
+                !String(columnDefault).includes(value);
             }
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process primary_key conditions
       result = result.replace(
         /{%\s*IF\s+primary_key\s+(IS\s+TRUE|IS\s+FALSE)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          content: string
-        ): string => {
+        (_match: string, operator: string, content: string): string => {
           const isPrimaryKey = column.primary_key === true;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'IS TRUE') {
@@ -752,22 +829,18 @@ export const buildProjectFiles = (
           } else if (operator === 'IS FALSE') {
             conditionMet = !isPrimaryKey;
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process unique conditions
       result = result.replace(
         /{%\s*IF\s+unique\s+(IS\s+TRUE|IS\s+FALSE)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          content: string
-        ): string => {
+        (_match: string, operator: string, content: string): string => {
           const isUnique = column.unique === true;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'IS TRUE') {
@@ -775,22 +848,18 @@ export const buildProjectFiles = (
           } else if (operator === 'IS FALSE') {
             conditionMet = !isUnique;
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process foreign_key conditions
       result = result.replace(
         /{%\s*IF\s+foreign_key\s+(EXISTS|NOT\s+EXISTS)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          content: string
-        ): string => {
+        (_match: string, operator: string, content: string): string => {
           const hasForeignKey = column.foreign_key !== undefined;
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'EXISTS') {
@@ -798,12 +867,12 @@ export const buildProjectFiles = (
           } else if (operator === 'NOT EXISTS') {
             conditionMet = !hasForeignKey;
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       // Process foreign_table_name conditions
       result = result.replace(
         /{%\s*IF\s+foreign_table_name\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
@@ -811,15 +880,15 @@ export const buildProjectFiles = (
           _match: string,
           operator: string,
           value: string,
-          content: string
+          content: string,
         ): string => {
           const foreignTableName = column.foreign_key?.foreign_table_name;
-          
+
           // If no foreign key, condition is not met
           if (foreignTableName === undefined) {
             return '';
           }
-          
+
           // Evaluate the condition
           let conditionMet = false;
           if (operator === 'EQUALS') {
@@ -831,12 +900,12 @@ export const buildProjectFiles = (
           } else if (operator === 'NOT CONTAINS') {
             conditionMet = !foreignTableName.includes(value);
           }
-          
+
           // Return the content if condition is met, otherwise empty string
           return conditionMet ? content : '';
-        }
+        },
       );
-      
+
       return result;
     };
 
@@ -844,26 +913,32 @@ export const buildProjectFiles = (
     const processColumnsInfoIteration = (
       tableObj: ISchemaInfo,
       templateStr: string,
-      separatorStr: string
+      separatorStr: string,
     ): string => {
-      console.warn(`Processing columnsInfo iteration for table: ${String(tableObj.tableName)}`);
-      console.warn(`Template string length: ${String(templateStr.length)} characters`);
-      
+      console.warn(
+        `Processing columnsInfo iteration for table: ${String(tableObj.tableName)}`,
+      );
+      console.warn(
+        `Template string length: ${String(templateStr.length)} characters`,
+      );
+
       // Process each column individually
       const results: string[] = [];
-      
+
       for (const column of tableObj.columnsInfo) {
         // Create a copy of the template for this column
         let processedTemplate = templateStr;
-        
-        console.warn(`Processing column: ${String(column.column_name)}, type: ${String(column.data_type)}, nullable: ${String(column.is_nullable)}`);
-        
+
+        console.warn(
+          `Processing column: ${String(column.column_name)}, type: ${String(column.data_type)}, nullable: ${String(column.is_nullable)}`,
+        );
+
         // Process IF conditions
         processedTemplate = processIfConditions(processedTemplate, column);
-        
+
         // Get case variations for the column name
         const caseFormats = changeCase(column.column_name);
-        
+
         // Create replacements for this column
         const replacements = {
           value: column.column_name,
@@ -904,19 +979,29 @@ export const buildProjectFiles = (
           // Add table replacements for other placeholders that might be in the template
           ...getReplacementsForTable(tableObj),
         };
-        
+
         // Replace placeholders
-        const result = replacePlaceholders(processedTemplate, replacements, tableObj);
+        const result = replacePlaceholders(
+          processedTemplate,
+          replacements,
+          tableObj,
+        );
         if (result.trim()) {
           results.push(result);
-          console.warn(`Added processed result for column: ${String(column.column_name)}`);
+          console.warn(
+            `Added processed result for column: ${String(column.column_name)}`,
+          );
         } else {
-          console.warn(`Empty result for column: ${String(column.column_name)}, skipping`);
+          console.warn(
+            `Empty result for column: ${String(column.column_name)}, skipping`,
+          );
         }
       }
-      
+
       const finalResult = results.join(separatorStr);
-      console.warn(`Final columnsInfo iteration result length: ${String(finalResult.length)} characters`);
+      console.warn(
+        `Final columnsInfo iteration result length: ${String(finalResult.length)} characters`,
+      );
       return finalResult;
     };
 
@@ -942,6 +1027,138 @@ export const buildProjectFiles = (
     // For other types of iterations, use the original logic
     // Collect all values from all properties
     const allValues: string[] = [];
+
+    // Special handling for user folder paths (starting with /)
+    const folderPathPattern = /^\/(.+)$/;
+    // Create a map to store all placeholder values for each method/value
+    const allPlaceholderValues = new Map<string, Record<string, string>>();
+    for (const path of propertyPaths) {
+      const folderMatch = folderPathPattern.exec(path);
+      if (folderMatch) {
+        const [, folderPath] = folderMatch;
+        console.warn(`Processing folder path: ${String(folderPath)}`);
+
+        // Navigate through the folder structure
+        const pathParts = folderPath.split('/').filter(Boolean);
+        let currentFolder: IFolder | undefined;
+
+        // Start from root
+        const store = userFiles;
+
+        // Find the target folder
+        if (pathParts.length > 0) {
+          // Find the first level folder
+          currentFolder = store.find(
+            (item): item is IFolder =>
+              item.type === 'folder' && item.name === pathParts[0],
+          );
+
+          // Navigate through the rest of the path
+          for (let i = 1; i < pathParts.length && currentFolder; i++) {
+            currentFolder = currentFolder.children.find(
+              (item): item is IFolder =>
+                item.type === 'folder' && item.name === pathParts[i],
+            );
+          }
+        }
+
+        if (currentFolder) {
+          console.warn(
+            `Found folder: ${String(currentFolder.name)} with ${String(currentFolder.children.length)} children`,
+          );
+
+          // Process all YAML files in the folder
+          const methodNames: string[] = [];
+
+          // Process each file in the folder
+          currentFolder.children.forEach((item) => {
+            if (item.type === 'file') {
+              const fileName = item.name.replace(/\.[^.]+$/, '');
+
+              // For YAML files, try to extract structured data
+              if (item.name.endsWith('.yaml') || item.name.endsWith('.yml')) {
+                try {
+                  // Safely try to parse YAML content
+                  const content = item.content;
+                  const parsedContent: unknown = parse(content);
+
+                  // Process YAML content if it's a valid object
+                  if (
+                    parsedContent !== null &&
+                    typeof parsedContent === 'object' &&
+                    !Array.isArray(parsedContent)
+                  ) {
+                    const extractedValues: Record<string, string> = {};
+                    const recordContent = parsedContent;
+
+                    // Process all properties in the object
+                    Object.entries(recordContent).forEach(([key, value]) => {
+                      if (typeof value === 'string') {
+                        extractedValues[key] = value;
+                      } else if (
+                        typeof value === 'number' ||
+                        typeof value === 'boolean'
+                      ) {
+                        extractedValues[key] = String(value);
+                      } else if (Array.isArray(value)) {
+                        extractedValues[key] = value
+                          .map((item) => String(item))
+                          .join(',');
+                      }
+                    });
+
+                    if (Object.keys(extractedValues).length > 0) {
+                      // If we have at least one valid property, ensure 'value' is set
+                      if (!('value' in extractedValues)) {
+                        extractedValues.value = fileName;
+                      }
+
+                      // Determine primary value to use for the iteration
+                      let primaryValue = extractedValues.value || fileName;
+
+                      // Try common identifier properties first
+                      const identifiers = ['id', 'name', 'key', 'identifier'];
+                      for (const id of identifiers) {
+                        if (id in extractedValues) {
+                          primaryValue = extractedValues[id];
+                          break;
+                        }
+                      }
+
+                      methodNames.push(primaryValue);
+                      allPlaceholderValues.set(primaryValue, extractedValues);
+                      console.warn(
+                        `Added values from YAML: ${String(primaryValue)} with ${String(Object.keys(extractedValues).length)} properties`,
+                      );
+                      return; // Skip to next file
+                    }
+                  }
+                } catch (error) {
+                  console.warn(
+                    `Error processing YAML file ${String(item.name)}: ${String(error instanceof Error ? error.message : 'Unknown error')}`,
+                  );
+                }
+              }
+
+              // Fallback for non-YAML files or if YAML processing failed
+              methodNames.push(fileName);
+              allPlaceholderValues.set(fileName, { value: fileName });
+              console.warn(`Added filename as value: ${String(fileName)}`);
+            }
+          });
+
+          // Add all method names to the allValues array
+          if (methodNames.length > 0) {
+            allValues.push(...methodNames);
+            console.warn(
+              `Added ${String(methodNames.length)} values from folder ${String(currentFolder.name)}`,
+            );
+          }
+        } else {
+          console.warn(`Folder not found: ${String(folderPath)}`);
+        }
+      }
+    }
 
     for (const propertyPath of propertyPaths) {
       // Check if the entire propertyPath is a function call
@@ -1009,7 +1226,7 @@ export const buildProjectFiles = (
         }
         case 'columnsInfo': {
           // Handle columnsInfo specially to extract column_name values
-          const columnNames = table.columnsInfo.map(col => col.column_name);
+          const columnNames = table.columnsInfo.map((col) => col.column_name);
           allValues.push(...columnNames);
           break;
         }
@@ -1027,7 +1244,7 @@ export const buildProjectFiles = (
       const caseFormats = changeCase(value);
 
       // Add all case variations and the raw value to replacements
-      const replacements = {
+      const replacements: Record<string, string | string[]> = {
         value, // Raw value without case transformation
         valuePlural: caseFormats.plural,
         valueSingular: caseFormats.singular,
@@ -1055,6 +1272,14 @@ export const buildProjectFiles = (
         // Add table replacements for other placeholders that might be in the template
         ...getReplacementsForTable(table),
       };
+
+      // Add all placeholders found in the YAML file for this value
+      const placeholders = allPlaceholderValues.get(value);
+      if (placeholders !== undefined) {
+        Object.entries(placeholders).forEach(([key, val]) => {
+          replacements[key] = val;
+        });
+      }
 
       return replacePlaceholders(template, replacements, table);
     });
@@ -1151,24 +1376,20 @@ export const buildProjectFiles = (
       templateContent = loadTemplateContent(fileName);
     }
 
-    const files = masterSchema.map((table) => {
+    const files: IFile[] = masterSchema.map((table) => {
       const replacements = getReplacementsForTable(table);
       const processedName = replacePlaceholders(fileName, replacements);
 
       let content = '';
-      if (templateContent.length > 0) {
-        content = replacePlaceholders(
-          processLoopTables(templateContent),
-          {
-            ...replacements,
-            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-            baseRoutesForController: options.baseRoutesForController ?? '',
-          },
-          table,
-        );
-      } else {
-        content = `@table: ${table.tableName}`;
-      }
+      content = replacePlaceholders(
+        processLoopTables(templateContent),
+        {
+          ...replacements,
+          modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+          baseRoutesForController: options.baseRoutesForController ?? '',
+        },
+        table,
+      );
 
       return {
         type: 'file',
@@ -1178,7 +1399,7 @@ export const buildProjectFiles = (
     });
 
     // Filter out any empty files
-    return files.filter((file): file is IFile => file.content.length > 0);
+    return files;
   };
 
   const processDynamicFolders = (
