@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\{{tableNamePascalCase}};
-use App\\Repositories\\{{tableNamePascalCase}}Interface;
-use App\\Services\\{{tableNamePascalCase}}Service;
-use Illuminate\\Http\\Request;
-use App\\Http\\Controllers\\BaseController;
+use App\Models\{{tableNamePascalCase}};
+use App\Repositories\{{tableNamePascalCase}}Interface;
+use App\Services\{{tableNamePascalCase}}Service;
+use Illuminate\Http\Request;
+use App\Http\Controllers\BaseController;
 
 class {{tableNamePascalCase}}Controller extends BaseController
 {

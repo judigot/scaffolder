@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Repositories;
+namespace App\Repositories;
 
 {{modelImports}}
-use Illuminate\\Support\\Collection;
-use App\\Models\\{{tableNamePascalCase}};
-use App\\Repositories\\BaseRepository;
+use Illuminate\Support\Collection;
+use App\Models\{{tableNamePascalCase}};
+use App\Repositories\BaseRepository;
 
 class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tableNamePascalCase}}Interface
 {
