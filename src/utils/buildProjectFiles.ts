@@ -1318,48 +1318,6 @@ export const buildProjectFiles = (
     );
   };
 
-  const createFileContent = (
-    options: ICommandOptions,
-    table?: ISchemaInfo,
-    fileName?: string,
-  ): string => {
-    // If no template is specified, use the filename as the template
-    const template = options.template ?? fileName;
-
-    if (typeof template === 'string' && template.length > 0) {
-      if (table) {
-        const replacements = getReplacementsForTable(table);
-        let templateContent = loadTemplateContent(template);
-
-        // Clean up template content
-        templateContent = templateContent.replace(/^\s*\n/, ''); // Remove leading empty line
-
-        const processedContent = replacePlaceholders(
-          processLoopTables(templateContent),
-          {
-            ...replacements,
-            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-            baseRoutesForController: options.baseRoutesForController ?? '',
-          },
-          table,
-        );
-        return processedContent.trim();
-      }
-      const templateContent = loadTemplateContent(template);
-      if (templateContent) {
-        return processLoopTables(templateContent).trim();
-      }
-    }
-
-    const metadata: string[] = [];
-    const conditions = options.conditions;
-    if (conditions !== undefined && conditions.length > 0) {
-      metadata.push(`@conditions: ${conditions.join(',')}`);
-    }
-
-    return metadata.length > 0 ? metadata.join('\n') : '';
-  };
-
   const processMultipleFiles = (
     fileName: string,
     options: ICommandOptions = {},
@@ -1391,10 +1349,16 @@ export const buildProjectFiles = (
         table,
       );
 
+      // Process ITERATE commands
+      content = processIterateCommandsInContent(content, table);
+
+      // Format with consistent character handling
+      const finalContent = formatFileContent(content);
+
       return {
         type: 'file',
         name: processedName,
-        content: content.replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
+        content: finalContent,
       };
     });
 
@@ -1442,11 +1406,29 @@ export const buildProjectFiles = (
         const replacements = getReplacementsForTable(table);
         const processedName = replacePlaceholders(command, replacements);
 
+        // Load and process template content
+        const templateContent = loadTemplateContent(options.template ?? processedName);
+        const processedContent = replacePlaceholders(
+          processLoopTables(templateContent),
+          {
+            ...replacements,
+            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+            baseRoutesForController: options.baseRoutesForController ?? '',
+          },
+          table,
+        );
+
+        // Process ITERATE commands
+        const contentWithIterates = processIterateCommandsInContent(processedContent, table);
+        
+        // Format the final content with proper character replacements
+        const finalContent = formatFileContent(contentWithIterates);
+
         return [
           {
             type: 'file',
             name: processedName.replace(/[()]/g, ''),
-            content: createFileContent(options, table, processedName).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
+            content: finalContent,
           },
         ];
       }
@@ -1468,14 +1450,25 @@ export const buildProjectFiles = (
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
         const replacements = getReplacementsForTable(table);
+        
+        // Process the template content with all replacements
+        let processedContent = replacePlaceholders(
+          processLoopTables(templateContent),
+          replacements,
+          table
+        );
+        
+        // Process ITERATE commands explicitly
+        processedContent = processIterateCommandsInContent(processedContent, table);
+        
+        // Format the final content with proper character replacements
+        const finalContent = formatFileContent(processedContent);
+
         return [
           {
             type: 'file',
             name: node,
-            content: replacePlaceholders(
-              processLoopTables(templateContent),
-              replacements,
-            ).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
+            content: finalContent,
           },
         ];
       }
@@ -1527,6 +1520,41 @@ export const buildProjectFiles = (
     return [];
   };
 
+  // Implement the processIterateCommandsInContent function before the formatFileContent function
+  const processIterateCommandsInContent = (content: string, table?: ISchemaInfo): string => {
+    return content.replace(
+      /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
+      (fullMatch: string, propertyPathsStr: string, options: string) => {
+        // If no table context is provided, try to use the first schema
+        if (!table && masterSchema.length > 0) {
+          table = masterSchema[0];
+        }
+        
+        // If we have a valid table context, process the ITERATE command
+        if (table) {
+          const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
+          const cmdResult = processIterateCommand(
+            `ITERATE(${String(propertyPathsStr)})${String(options)}`,
+            table
+          );
+          return cmdResult ? String(whitespace) + String(cmdResult) : '';
+        }
+        
+        // If no valid table context is available, return the original match
+        return fullMatch;
+      }
+    );
+  };
+
+  // Add a helper function to ensure consistent formatting
+  const formatFileContent = (content: string): string => {
+    return content
+      .replace(/\\n/g, '\n')  // Replace \n with actual newlines
+      .replace(/\\t/g, '    ') // Replace \t with four spaces
+      .replace(/\t/g, '    ')  // Replace tab characters with four spaces
+      .trim();
+  };
+
   const processYamlNode = (node: unknown): IStructure => {
     if (typeof node === 'string') {
       if (node.startsWith('CREATE_FILE(')) {
@@ -1542,11 +1570,36 @@ export const buildProjectFiles = (
           return [];
         }
 
+        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        if (!schemaInfo) {
+          console.warn('No schema information available for replacements.');
+          return [];
+        }
+
+        const replacements = getReplacementsForTable(schemaInfo);
+        const processedName = replacePlaceholders(command, replacements);
+
+        // Load and process template content
+        const templateContent = loadTemplateContent(options.template ?? processedName);
+        
+        // Process the template with all replacements
+        let processedContent = replacePlaceholders(
+          processLoopTables(templateContent),
+          replacements,
+          schemaInfo
+        );
+        
+        // Process ITERATE commands explicitly using the same function as bare filenames
+        processedContent = processIterateCommandsInContent(processedContent, schemaInfo);
+        
+        // Format the final content with proper character replacements
+        const finalContent = formatFileContent(processedContent);
+
         return [
           {
             type: 'file',
-            name: command.replace(/[()]/g, ''),
-            content: createFileContent(options, undefined, command).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
+            name: processedName.replace(/[()]/g, ''),
+            content: finalContent,
           },
         ];
       }
@@ -1567,11 +1620,32 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
+        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        if (!schemaInfo) {
+          console.warn('No schema information available for replacements.');
+          return [];
+        }
+
+        const replacements = getReplacementsForTable(schemaInfo);
+        
+        // Process the template content with all replacements
+        let processedContent = replacePlaceholders(
+          processLoopTables(templateContent),
+          replacements,
+          schemaInfo
+        );
+        
+        // Process ITERATE commands explicitly
+        processedContent = processIterateCommandsInContent(processedContent, schemaInfo);
+        
+        // Format the final content with proper character replacements
+        const finalContent = formatFileContent(processedContent);
+
         return [
           {
             type: 'file',
             name: node,
-            content: processLoopTables(templateContent).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
+            content: finalContent,
           },
         ];
       }
