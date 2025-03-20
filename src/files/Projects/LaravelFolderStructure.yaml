@@ -1,1 +1,1 @@
-- CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/typescript-interface.txt)
+- CREATE_FILE(BaseController.php --template /Templates/BaseController.php)

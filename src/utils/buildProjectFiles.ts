@@ -16,7 +16,7 @@ const folderConfig = {
 const schemaInfo = getSchemaInfo(masterSchema);
 
 export const buildProjectFiles = (
-  yamlContent: string,
+  projectYamlPath: string,
   userFiles: IStructure,
 ): IStructure => {
   interface ICommandOptions {
@@ -31,6 +31,52 @@ export const buildProjectFiles = (
   const _isYamlObject = (value: unknown): value is IYamlObject => {
     return value !== null && typeof value === 'object';
   };
+
+  // Find the YAML file in userFiles
+  const findFileInStructure = (
+    path: string,
+    structure: IStructure
+  ): IFile | undefined => {
+    // Remove leading slash if present
+    const normPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    // Split the path into components
+    const pathComponents = normPath.split('/');
+    const fileName = pathComponents.pop() ?? '';
+    
+    // Navigate through the directory structure
+    let currentItems: IStructure = structure;
+    
+    for (const component of pathComponents) {
+      const folder = currentItems.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === component,
+      );
+      
+      if (!folder) {
+        console.warn(`Folder not found in path: ${String(component)}`);
+        return undefined;
+      }
+      
+      currentItems = folder.children;
+    }
+    
+    // Find the file in the final directory
+    return currentItems.find(
+      (item): item is IFile =>
+        item.type === 'file' && item.name === fileName,
+    );
+  };
+
+  // Get the YAML content from the specified path
+  const projectFile = findFileInStructure(projectYamlPath, userFiles);
+  
+  if (!projectFile) {
+    console.error(`Project YAML file not found at path: ${String(projectYamlPath)}`);
+    return [];
+  }
+  
+  const yamlContent = projectFile.content;
 
   const loadTemplateContent = (templatePath: string): string => {
     const store = userFiles;
