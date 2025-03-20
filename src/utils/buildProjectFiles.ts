@@ -1394,7 +1394,7 @@ export const buildProjectFiles = (
       return {
         type: 'file',
         name: processedName,
-        content: content.trim(),
+        content: content.replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
       };
     });
 
@@ -1446,7 +1446,7 @@ export const buildProjectFiles = (
           {
             type: 'file',
             name: processedName.replace(/[()]/g, ''),
-            content: createFileContent(options, table, processedName),
+            content: createFileContent(options, table, processedName).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
           },
         ];
       }
@@ -1475,7 +1475,7 @@ export const buildProjectFiles = (
             content: replacePlaceholders(
               processLoopTables(templateContent),
               replacements,
-            ).trim(),
+            ).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
           },
         ];
       }
@@ -1546,7 +1546,7 @@ export const buildProjectFiles = (
           {
             type: 'file',
             name: command.replace(/[()]/g, ''),
-            content: createFileContent(options, undefined, command),
+            content: createFileContent(options, undefined, command).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
           },
         ];
       }
@@ -1571,7 +1571,7 @@ export const buildProjectFiles = (
           {
             type: 'file',
             name: node,
-            content: processLoopTables(templateContent).trim(),
+            content: processLoopTables(templateContent).replace(/\\n/g, '\n') .replace(/\\t/g, '    ').trim(),
           },
         ];
       }

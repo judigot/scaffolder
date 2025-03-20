@@ -21,7 +21,7 @@ abstract class BaseController extends Controller
 {{controllerContent}}    }"]]
 
     // Advanced Operations
-    [[ITERATE(/BaseMethods/laravel/advanced-operations) --template="
+[[ITERATE(/BaseMethods/laravel/advanced-operations) --template="
     public function {{controllerMethod}}
     {
 {{controllerContent}}    }"]]
