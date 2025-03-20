@@ -1,38 +1,38 @@
 // export const laravelFolderStructure = `
-// - CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template template.yaml)
+// - CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/template.yaml)
 // `;
 // export const laravelFolderStructure = `
-// - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
+// - CREATE_MULTIPLE_FILES({{tableNamePascalCase}}.php --template /Templates/model-template.php)
 // `;
 export const laravelFolderStructure = `
 app:
   Http:
     Controllers:
-      - BaseController.php
-      - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Controller.php --template controller-template.php)
+      - /Templates/BaseController.php
+      - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Controller.php --template /Templates/controller-template.php)
       - CREATE_FILE(AuthController.php --conditions hasUsers=true)
-      - CREATE_FILE(AuthController.php --template AuthControllerMultiTenancy.php --conditions [hasUsers=true, isMultiTenancyEnabled=true])
+      - CREATE_FILE(AuthController.php --template /Templates/AuthControllerMultiTenancy.php --conditions [hasUsers=true, isMultiTenancyEnabled=true])
     Resources:
-      - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Resource.php --template resource-template.php)
+      - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Resource.php --template /Templates/resource-template.php)
   Repositories:
-    - BaseRepository.php
-    - BaseInterface.php
-    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Repository.php --template repository-template.php)
+    - /Templates/BaseRepository.php
+    - /Templates/BaseInterface.php
+    - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Repository.php --template /Templates/repository-template.php)
   Services:
-    - BaseService.php
-    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$Service.php --template service-template.php)
+    - /Templates/BaseService.php
+    - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Service.php --template /Templates/service-template.php)
   Models:
-    - CREATE_MULTIPLE_FILES($_tableNamePascalCase_$.php --template model-template.php)
+    - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}.php --template /Templates/model-template.php)
   Providers:
-    - CREATE_FILE(AppServiceProviderTemplate.php)
+    - CREATE_FILE(/Templates/AppServiceProviderTemplate.php)
 routes:
-  - CREATE_FILE(api.php)
-  - CREATE_MULTIPLE_FILES($_tableNameKebabCasePlural_$.php --template table-routes.php)
+  - CREATE_FILE(/Templates/api.php)
+  - CREATE_MULTIPLE_FILES({{tableNameKebabCasePlural}}.php --template /Templates/table-routes.php)
 frontend:
   src:
     hooks:
-      CREATE_DYNAMIC_FOLDERS($_tableNameSnakeCaseSingular_$):
-        - CREATE_FILE(use$_tableNamePascalCaseSingular_$.ts)
+      CREATE_DYNAMIC_FOLDERS({{tableNameSnakeCaseSingular}}):
+        - CREATE_FILE(/Templates/use{{tableNamePascalCaseSingular}}.ts)
     interfaces:
-      - CREATE_MULTIPLE_FILES(I$_tableNamePascalCaseSingular_$.ts --template typescript-interface-template.txt)
+      - CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/typescript-interface.txt)
 `;

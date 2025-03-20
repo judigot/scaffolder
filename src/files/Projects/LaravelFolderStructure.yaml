@@ -1,1 +1,30 @@
-- CREATE_FILE(BaseController.php --template /Templates/BaseController.php)
+app:
+  Http:
+    Controllers:
+      - /Templates/BaseController.php
+      - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Controller.php --template /Templates/controller-template.php)
+      - CREATE_FILE(AuthController.php --conditions hasUsers=true)
+      - CREATE_FILE(AuthController.php --template /Templates/AuthControllerMultiTenancy.php --conditions [hasUsers=true, isMultiTenancyEnabled=true])
+    Resources:
+      - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Resource.php --template /Templates/resource-template.php)
+  Repositories:
+    - /Templates/backend/laravel/BaseRepository.php
+    - /Templates/BaseInterface.php
+    - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Repository.php --template /Templates/repository-template.php)
+  Services:
+    - /Templates/BaseService.php
+    - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Service.php --template /Templates/service-template.php)
+  Models:
+    - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}.php --template /Templates/model-template.php)
+  Providers:
+    - CREATE_FILE(/Templates/AppServiceProviderTemplate.php)
+routes:
+  - CREATE_FILE(/Templates/api.php)
+  - CREATE_MULTIPLE_FILES({{tableNameKebabCasePlural}}.php --template /Templates/table-routes.php)
+frontend:
+  src:
+    hooks:
+      CREATE_DYNAMIC_FOLDERS({{tableNameSnakeCaseSingular}}):
+        - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/hook.txt)
+    interfaces:
+      - CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/typescript-interface.txt)

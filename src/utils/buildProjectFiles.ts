@@ -1070,6 +1070,21 @@ export const buildProjectFiles = (
     );
   };
 
+  // Add this helper function right after formatFileContent
+  const formatFileContent = (content: string): string => {
+    return content
+      .replace(/\\n/g, '\n')  // Replace \n with actual newlines
+      .replace(/\\t/g, '    ') // Replace \t with four spaces
+      .replace(/\t/g, '    ')  // Replace tab characters with four spaces
+      .trim();
+  };
+
+  // Add a helper function to extract filename from path
+  const extractFileNameFromPath = (path: string): string => {
+    const pathComponents = path.split('/');
+    return pathComponents[pathComponents.length - 1];
+  };
+
   // Update the processMultipleFiles function
   const processMultipleFiles = (
     fileName: string,
@@ -1091,6 +1106,10 @@ export const buildProjectFiles = (
       const replacements = getReplacementsForTable(table);
       const processedName = replacePlaceholders(fileName, replacements);
 
+      // Extract the base filename from the processed path if it contains slashes
+      const outputFileName = processedName.includes('/') ? 
+        extractFileNameFromPath(processedName) : processedName;
+
       let content = '';
       content = replacePlaceholders(
         processLoopTables(templateContent),
@@ -1110,7 +1129,7 @@ export const buildProjectFiles = (
 
       return {
         type: 'file',
-        name: processedName,
+        name: outputFileName,
         content: finalContent,
       };
     });
@@ -1231,7 +1250,7 @@ export const buildProjectFiles = (
     return finalContent;
   };
 
-  // Update processYamlNodeWithContext to use processIterateInTemplate
+  // Update processYamlNodeWithContext function
   const processYamlNodeWithContext = (
     node: unknown,
     table: ISchemaInfo,
@@ -1250,23 +1269,31 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const replacements = getReplacementsForTable(table);
+        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        if (!schemaInfo) {
+          console.warn('No schema information available for replacements.');
+          return [];
+        }
+
+        const replacements = getReplacementsForTable(schemaInfo);
         const processedName = replacePlaceholders(command, replacements);
+
+        // Extract just the filename portion if it contains slashes
+        const outputFileName = processedName.includes('/') ? 
+          extractFileNameFromPath(processedName) : processedName.replace(/[()]/g, '');
 
         // Load and process template content
         const templateContent = loadTemplateContent(options.template ?? processedName);
+        
+        // Process the template with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
-          {
-            ...replacements,
-            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-            baseRoutesForController: options.baseRoutesForController ?? '',
-          },
-          table,
+          replacements,
+          schemaInfo
         );
-
-        // Process ITERATE commands
-        processedContent = processIterateInTemplate(processedContent, table);
+        
+        // Process ITERATE commands explicitly
+        processedContent = processIterateInTemplate(processedContent, schemaInfo);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
@@ -1274,7 +1301,7 @@ export const buildProjectFiles = (
         return [
           {
             type: 'file',
-            name: processedName.replace(/[()]/g, ''),
+            name: outputFileName,
             content: finalContent,
           },
         ];
@@ -1296,25 +1323,35 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
-        const replacements = getReplacementsForTable(table);
+        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        if (!schemaInfo) {
+          console.warn('No schema information available for replacements.');
+          return [];
+        }
+
+        const replacements = getReplacementsForTable(schemaInfo);
         
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          table
+          schemaInfo
         );
         
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, table);
+        processedContent = processIterateInTemplate(processedContent, schemaInfo);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
 
+        // Extract just the filename from the path
+        // Extract just the filename portion for the output
+        const outputFileName = extractFileNameFromPath(node);
+
         return [
           {
             type: 'file',
-            name: node,
+            name: outputFileName,
             content: finalContent,
           },
         ];
@@ -1359,157 +1396,6 @@ export const buildProjectFiles = (
             type: 'folder',
             name: name.replace(/[()]/g, ''),
             children: processYamlNodeWithContext(value, table),
-          },
-        ];
-      });
-    }
-
-    return [];
-  };
-
-  // Add a helper function to ensure consistent formatting
-  const formatFileContent = (content: string): string => {
-    return content
-      .replace(/\\n/g, '\n')  // Replace \n with actual newlines
-      .replace(/\\t/g, '    ') // Replace \t with four spaces
-      .replace(/\t/g, '    ')  // Replace tab characters with four spaces
-      .trim();
-  };
-
-  const processYamlNode = (node: unknown): IStructure => {
-    if (typeof node === 'string') {
-      if (node.startsWith('CREATE_FILE(')) {
-        const { command, options } = parseCommand(node.slice(12, -1));
-
-        // Skip file if conditions are not met
-        const conditions = options.conditions;
-        if (
-          conditions &&
-          conditions.length > 0 &&
-          !checkConditions(conditions)
-        ) {
-          return [];
-        }
-
-        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
-        if (!schemaInfo) {
-          console.warn('No schema information available for replacements.');
-          return [];
-        }
-
-        const replacements = getReplacementsForTable(schemaInfo);
-        const processedName = replacePlaceholders(command, replacements);
-
-        // Load and process template content
-        const templateContent = loadTemplateContent(options.template ?? processedName);
-        
-        // Process the template with all replacements
-        let processedContent = replacePlaceholders(
-          processLoopTables(templateContent),
-          replacements,
-          schemaInfo
-        );
-        
-        // Process ITERATE commands explicitly using the same function as bare filenames
-        processedContent = processIterateInTemplate(processedContent, schemaInfo);
-        
-        // Format the final content with proper character replacements
-        const finalContent = formatFileContent(processedContent);
-
-        return [
-          {
-            type: 'file',
-            name: processedName.replace(/[()]/g, ''),
-            content: finalContent,
-          },
-        ];
-      }
-      if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
-        const { command, options } = parseCommand(node.slice(21, -1));
-        return processMultipleFiles(command, options);
-      }
-      if (node.startsWith('@LOOP_TABLES(')) {
-        return [
-          {
-            type: 'file',
-            name: 'template.tmp',
-            content: `@loop: tables\n${node}`,
-          },
-        ];
-      }
-
-      // Handle bare filenames by looking for templates
-      const templateContent = loadTemplateContent(node);
-      if (templateContent.length > 0) {
-        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
-        if (!schemaInfo) {
-          console.warn('No schema information available for replacements.');
-          return [];
-        }
-
-        const replacements = getReplacementsForTable(schemaInfo);
-        
-        // Process the template content with all replacements
-        let processedContent = replacePlaceholders(
-          processLoopTables(templateContent),
-          replacements,
-          schemaInfo
-        );
-        
-        // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfo);
-        
-        // Format the final content with proper character replacements
-        const finalContent = formatFileContent(processedContent);
-
-        return [
-          {
-            type: 'file',
-            name: node,
-            content: finalContent,
-          },
-        ];
-      }
-
-      return [
-        {
-          type: 'file',
-          name: node,
-          content: '',
-        },
-      ];
-    }
-
-    if (Array.isArray(node)) {
-      return node.flatMap((item) => processYamlNode(item));
-    }
-
-    if (typeof node === 'object' && node !== null) {
-      return Object.entries(node).flatMap(([key, value]): IStructure => {
-        // Handle conditional folders
-        const { name, conditions } = parseConditionalFolder(key);
-        if (conditions && !checkConditions(conditions)) {
-          return [
-            {
-              type: 'folder',
-              name: name.replace(/[()]/g, ''),
-              children: [],
-            },
-          ];
-        }
-
-        if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
-          // Extract folder name and remove parentheses
-          const folderName = key.slice(22, -1).replace(/[()]/g, '');
-          // Return the dynamic folders directly without an extra parent folder
-          return processDynamicFolders(folderName, value);
-        }
-
-        return [
-          {
-            type: 'folder',
-            name: name.replace(/[()]/g, ''),
-            children: processYamlNode(value),
           },
         ];
       });
@@ -1604,6 +1490,155 @@ export const buildProjectFiles = (
     });
     
     return content;
+  };
+
+  const processYamlNode = (node: unknown): IStructure => {
+    if (typeof node === 'string') {
+      if (node.startsWith('CREATE_FILE(')) {
+        const { command, options } = parseCommand(node.slice(12, -1));
+
+        // Skip file if conditions are not met
+        const conditions = options.conditions;
+        if (
+          conditions &&
+          conditions.length > 0 &&
+          !checkConditions(conditions)
+        ) {
+          return [];
+        }
+
+        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        if (!schemaInfo) {
+          console.warn('No schema information available for replacements.');
+          return [];
+        }
+
+        const replacements = getReplacementsForTable(schemaInfo);
+        const processedName = replacePlaceholders(command, replacements);
+
+        // Extract just the filename portion if it contains slashes
+        const outputFileName = processedName.includes('/') ? 
+          extractFileNameFromPath(processedName) : processedName.replace(/[()]/g, '');
+
+        // Load and process template content
+        const templateContent = loadTemplateContent(options.template ?? processedName);
+        
+        // Process the template with all replacements
+        let processedContent = replacePlaceholders(
+          processLoopTables(templateContent),
+          replacements,
+          schemaInfo
+        );
+        
+        // Process ITERATE commands explicitly
+        processedContent = processIterateInTemplate(processedContent, schemaInfo);
+        
+        // Format the final content with proper character replacements
+        const finalContent = formatFileContent(processedContent);
+
+        return [
+          {
+            type: 'file',
+            name: outputFileName,
+            content: finalContent,
+          },
+        ];
+      }
+      if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
+        const { command, options } = parseCommand(node.slice(21, -1));
+        return processMultipleFiles(command, options);
+      }
+      if (node.startsWith('@LOOP_TABLES(')) {
+        return [
+          {
+            type: 'file',
+            name: 'template.tmp',
+            content: `@loop: tables\n${node}`,
+          },
+        ];
+      }
+
+      // Handle bare filenames by looking for templates
+      const templateContent = loadTemplateContent(node);
+      if (templateContent.length > 0) {
+        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        if (!schemaInfo) {
+          console.warn('No schema information available for replacements.');
+          return [];
+        }
+
+        const replacements = getReplacementsForTable(schemaInfo);
+        
+        // Process the template content with all replacements
+        let processedContent = replacePlaceholders(
+          processLoopTables(templateContent),
+          replacements,
+          schemaInfo
+        );
+        
+        // Process ITERATE commands explicitly
+        processedContent = processIterateInTemplate(processedContent, schemaInfo);
+        
+        // Format the final content with proper character replacements
+        const finalContent = formatFileContent(processedContent);
+
+        // Extract just the filename from the path
+        const outputFileName = extractFileNameFromPath(node);
+
+        return [
+          {
+            type: 'file',
+            name: outputFileName,
+            content: finalContent,
+          },
+        ];
+      }
+
+      return [
+        {
+          type: 'file',
+          name: node,
+          content: '',
+        },
+      ];
+    }
+
+    if (Array.isArray(node)) {
+      return node.flatMap((item) => processYamlNode(item));
+    }
+
+    if (typeof node === 'object' && node !== null) {
+      return Object.entries(node).flatMap(([key, value]): IStructure => {
+        // Handle conditional folders
+        const { name, conditions } = parseConditionalFolder(key);
+        if (conditions && !checkConditions(conditions)) {
+          return [
+            {
+              type: 'folder',
+              name: name.replace(/[()]/g, ''),
+              children: [],
+            },
+          ];
+        }
+
+        if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
+          // Extract folder name and remove parentheses
+          const folderName = key.slice(22, -1).replace(/[()]/g, '');
+          // Return the dynamic folders directly without an extra parent folder
+          return processDynamicFolders(folderName, value);
+        }
+
+        return [
+          {
+            type: 'folder',
+            name: name.replace(/[()]/g, ''),
+            children: processYamlNode(value),
+          },
+        ];
+      });
+    }
+
+    return [];
   };
 
   try {
