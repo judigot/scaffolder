@@ -1,5 +1,5 @@
 export interface I{{tableNamePascalCase}} {
-[[ ITERATE(columnsInfo) --template="  {{value}}{% IF is_nullable EQUALS 'YES' %}?{% ENDIF %}: {% IF data_type EQUALS string %}string{% ENDIF %}{% IF data_type EQUALS number %}number{% ENDIF %}{% IF data_type EQUALS boolean %}boolean{% ENDIF %}{% IF data_type EQUALS Date %}Date{% ENDIF %};" --separator="\n" ]]
+[[ ITERATE(columnsInfo) --template="  {{value}}{% IF is_nullable EQUALS 'YES' %}?{% ENDIF %}: {% IF data_type EQUALS 'string' %}string{% ENDIF %}{% IF data_type EQUALS 'number' %}number{% ENDIF %}{% IF data_type EQUALS 'boolean' %}boolean{% ENDIF %}{% IF data_type EQUALS 'Date' %}Date{% ENDIF %};" --separator="\n" ]]
 }
 
 export function isIUser(data: unknown): data is IUser {
