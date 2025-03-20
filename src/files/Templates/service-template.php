@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use App\\Models\\{{className}};
-use App\\Repositories\\{{className}}Repository;
+use App\Models\{{tableNamePascalCase}};
+use App\Repositories\{{tableNamePascalCase}}Repository;
 
-class {{className}}Service extends BaseService
+class {{tableNamePascalCase}}Service extends BaseService
 {
-    public function __construct({{className}}Repository $repository)
+    public function __construct({{tableNamePascalCase}}Repository $repository)
     {
         parent::__construct($repository);
     }

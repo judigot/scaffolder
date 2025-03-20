@@ -90,7 +90,7 @@ function App() {
 
         // const projectFileContent = projectFile.content;
 
-        setUserFiles(buildProjectFiles("/Projects/LaravelFolderStructure.yaml", result));
+        setUserFiles(buildProjectFiles("/Projects/Laravel.yaml", result));
       })
       .catch((error: unknown) => {
         // Failure

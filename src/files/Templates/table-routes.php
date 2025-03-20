@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\\Support\\Facades\\Route;
-use App\\Http\\Controllers\\{{tableNamePascalCase}}Controller;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\{{tableNamePascalCase}}Controller;
 
 // Custom routes for {{tableNamePascalCase}}
 

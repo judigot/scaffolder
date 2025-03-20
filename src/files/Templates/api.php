@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Route;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('api')->group(function () {
-    [[LOOP_TABLES require __DIR__ . '/$_tableNamePlural_$.php';]]
+    [[LOOP_TABLES require __DIR__ . '/{{tableNamePlural}}.php';]]
 });

@@ -12,12 +12,12 @@ app:
     - /Templates/BaseInterface.php
     - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Repository.php --template /Templates/repository-template.php)
   Services:
-    - /Templates/BaseService.php
+    - /Templates/backend/laravel/BaseService.php
     - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Service.php --template /Templates/service-template.php)
   Models:
     - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}.php --template /Templates/model-template.php)
   Providers:
-    - CREATE_FILE(/Templates/AppServiceProviderTemplate.php)
+    - CREATE_FILE(/Templates/backend/laravel/AppServiceProviderTemplate.php)
 routes:
   - CREATE_FILE(/Templates/api.php)
   - CREATE_MULTIPLE_FILES({{tableNameKebabCasePlural}}.php --template /Templates/table-routes.php)
