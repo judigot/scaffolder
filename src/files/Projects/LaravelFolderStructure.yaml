@@ -1,1 +1,1 @@
-- CREATE_FILE(template.txt --include-files="laravel" --exclude-files="create-laravel")
+- CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/features.txt)
