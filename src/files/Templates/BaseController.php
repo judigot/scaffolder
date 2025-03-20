@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use Illuminate\\Http\\Request;
-use Illuminate\\Routing\\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 
 abstract class BaseController extends Controller
 {
@@ -13,5 +13,16 @@ abstract class BaseController extends Controller
     {
         $this->service = $service;
     }
-    [[ITERATE(/BaseMethods) --template="{{methodName}}"]]
+
+    // CRUD
+[[ITERATE(/BaseMethods/laravel/crud) --template="
+    public function {{controllerMethod}}
+    {
+{{controllerContent}}    }"]]
+
+    // Advanced Operations
+    [[ITERATE(/BaseMethods/laravel/advanced-operations) --template="
+    public function {{controllerMethod}}
+    {
+{{controllerContent}}    }"]]
 }
