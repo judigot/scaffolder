@@ -2,7 +2,7 @@ import { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
 import config from '@/config/config.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
-import { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
@@ -504,6 +504,8 @@ export const buildProjectFiles = (
     const removeDuplicates = options.includes('--removeDuplicates');
     const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
     const filterMatch = /--filter="([^"]+)"/.exec(options);
+    const includedFilesMatch = /--include-files="([^"]+)"/.exec(options);
+    const excludedFilesMatch = /--exclude-files="([^"]+)"/.exec(options);
 
     // Process escape sequences in template
     const template = templateMatch
@@ -520,6 +522,15 @@ export const buildProjectFiles = (
           .replace(/\\t/g, '\t')
           .replace(/\\s/g, ' ')
       : '\n';
+
+    // Parse include and exclude filters
+    const includedFiles = includedFilesMatch 
+      ? includedFilesMatch[1].split(',').map(item => item.trim())
+      : [];
+    
+    const excludedFiles = excludedFilesMatch
+      ? excludedFilesMatch[1].split(',').map(item => item.trim()) 
+      : [];
 
     // Parse ignore list with flexible whitespace and handle USE_CONSTANT
     const ignoreList = ignoreMatch
@@ -597,414 +608,6 @@ export const buildProjectFiles = (
       return values.filter((value) => flattenedFilterList.includes(value));
     };
 
-    // Helper function to process IF conditions in a template
-    const processIfConditions = (
-      template: string,
-      column: IColumnInfo,
-    ): string => {
-      // Process column info
-      console.warn(
-        'Processing column:',
-        column.column_name,
-        'type:',
-        column.data_type,
-        'nullable:',
-        column.is_nullable,
-      );
-
-      // Process column_name conditions
-      let result = template.replace(
-        /{%\s*IF\s+column_name\s+(EQUALS|NOT\s+EQUAL)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          value: string,
-          content: string,
-        ): string => {
-          const columnName = column.column_name;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'EQUALS') {
-            conditionMet = columnName === value;
-          } else if (operator === 'NOT EQUAL') {
-            conditionMet = columnName !== value;
-          }
-
-          // Log the condition result
-          console.warn(
-            'Column name condition:',
-            columnName,
-            operator,
-            value,
-            '=',
-            conditionMet,
-          );
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process data_type conditions with quoted values
-      result = result.replace(
-        /{%\s*IF\s+data_type\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          value: string,
-          content: string,
-        ): string => {
-          const dataType = column.data_type;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'EQUALS') {
-            conditionMet = dataType === value;
-            console.warn(
-              `Evaluating data type condition: "${String(dataType)}" EQUALS "${String(value)}" = ${String(conditionMet)}`,
-            );
-          } else if (operator === 'NOT EQUAL') {
-            conditionMet = dataType !== value;
-            console.warn(
-              `Evaluating data type condition: "${String(dataType)}" NOT EQUAL "${String(value)}" = ${String(conditionMet)}`,
-            );
-          } else if (operator === 'CONTAINS') {
-            conditionMet = dataType.includes(value);
-            console.warn(
-              `Evaluating data type condition: "${String(dataType)}" CONTAINS "${String(value)}" = ${String(conditionMet)}`,
-            );
-          } else if (operator === 'NOT CONTAINS') {
-            conditionMet = !dataType.includes(value);
-            console.warn(
-              `Evaluating data type condition: "${String(dataType)}" NOT CONTAINS "${String(value)}" = ${String(conditionMet)}`,
-            );
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process data_type conditions with unquoted values
-      result = result.replace(
-        /{%\s*IF\s+data_type\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS)\s+([^'"\s]+)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          value: string,
-          content: string,
-        ): string => {
-          const dataType = column.data_type;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'EQUALS') {
-            conditionMet = dataType === value;
-          } else if (operator === 'NOT EQUAL') {
-            conditionMet = dataType !== value;
-          } else if (operator === 'CONTAINS') {
-            conditionMet = dataType.includes(value);
-          } else if (operator === 'NOT CONTAINS') {
-            conditionMet = !dataType.includes(value);
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process is_nullable conditions
-      result = result.replace(
-        /{%\s*IF\s+is_nullable\s+(EQUALS|NOT\s+EQUAL)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          value: string,
-          content: string,
-        ): string => {
-          const isNullable = column.is_nullable;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'EQUALS') {
-            conditionMet = isNullable === value;
-            console.warn(
-              `Evaluating is_nullable condition: "${String(isNullable)}" EQUALS "${String(value)}" = ${String(conditionMet)}`,
-            );
-          } else if (operator === 'NOT EQUAL') {
-            conditionMet = isNullable !== value;
-            console.warn(
-              `Evaluating is_nullable condition: "${String(isNullable)}" NOT EQUAL "${String(value)}" = ${String(conditionMet)}`,
-            );
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process is_nullable conditions with unquoted values
-      result = result.replace(
-        /{%\s*IF\s+is_nullable\s+(EQUALS|NOT\s+EQUAL)\s+([^'"\s]+)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          value: string,
-          content: string,
-        ): string => {
-          const isNullable = column.is_nullable;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'EQUALS') {
-            conditionMet = isNullable === value;
-          } else if (operator === 'NOT EQUAL') {
-            conditionMet = isNullable !== value;
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process column_default conditions
-      result = result.replace(
-        /{%\s*IF\s+column_default\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS|IS\s+NULL|IS\s+NOT\s+NULL)\s*(?:'([^']+)')?\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          value: string | undefined,
-          content: string,
-        ): string => {
-          const columnDefault = column.column_default;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'IS NULL') {
-            conditionMet =
-              columnDefault === null || columnDefault === undefined;
-          } else if (operator === 'IS NOT NULL') {
-            conditionMet =
-              columnDefault !== null && columnDefault !== undefined;
-          } else if (value !== undefined) {
-            if (operator === 'EQUALS') {
-              conditionMet =
-                columnDefault !== null &&
-                columnDefault !== undefined &&
-                String(columnDefault) === value;
-            } else if (operator === 'NOT EQUAL') {
-              conditionMet =
-                columnDefault === null ||
-                columnDefault === undefined ||
-                String(columnDefault) !== value;
-            } else if (operator === 'CONTAINS') {
-              conditionMet =
-                columnDefault !== null &&
-                columnDefault !== undefined &&
-                String(columnDefault).includes(value);
-            } else if (operator === 'NOT CONTAINS') {
-              conditionMet =
-                columnDefault === null ||
-                columnDefault === undefined ||
-                !String(columnDefault).includes(value);
-            }
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process primary_key conditions
-      result = result.replace(
-        /{%\s*IF\s+primary_key\s+(IS\s+TRUE|IS\s+FALSE)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (_match: string, operator: string, content: string): string => {
-          const isPrimaryKey = column.primary_key === true;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'IS TRUE') {
-            conditionMet = isPrimaryKey;
-          } else if (operator === 'IS FALSE') {
-            conditionMet = !isPrimaryKey;
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process unique conditions
-      result = result.replace(
-        /{%\s*IF\s+unique\s+(IS\s+TRUE|IS\s+FALSE)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (_match: string, operator: string, content: string): string => {
-          const isUnique = column.unique === true;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'IS TRUE') {
-            conditionMet = isUnique;
-          } else if (operator === 'IS FALSE') {
-            conditionMet = !isUnique;
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process foreign_key conditions
-      result = result.replace(
-        /{%\s*IF\s+foreign_key\s+(EXISTS|NOT\s+EXISTS)\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (_match: string, operator: string, content: string): string => {
-          const hasForeignKey = column.foreign_key !== undefined;
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'EXISTS') {
-            conditionMet = hasForeignKey;
-          } else if (operator === 'NOT EXISTS') {
-            conditionMet = !hasForeignKey;
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      // Process foreign_table_name conditions
-      result = result.replace(
-        /{%\s*IF\s+foreign_table_name\s+(EQUALS|NOT\s+EQUAL|CONTAINS|NOT\s+CONTAINS)\s+'([^']+)'\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g,
-        (
-          _match: string,
-          operator: string,
-          value: string,
-          content: string,
-        ): string => {
-          const foreignTableName = column.foreign_key?.foreign_table_name;
-
-          // If no foreign key, condition is not met
-          if (foreignTableName === undefined) {
-            return '';
-          }
-
-          // Evaluate the condition
-          let conditionMet = false;
-          if (operator === 'EQUALS') {
-            conditionMet = foreignTableName === value;
-          } else if (operator === 'NOT EQUAL') {
-            conditionMet = foreignTableName !== value;
-          } else if (operator === 'CONTAINS') {
-            conditionMet = foreignTableName.includes(value);
-          } else if (operator === 'NOT CONTAINS') {
-            conditionMet = !foreignTableName.includes(value);
-          }
-
-          // Return the content if condition is met, otherwise empty string
-          return conditionMet ? content : '';
-        },
-      );
-
-      return result;
-    };
-
-    // Helper function to process columnsInfo iteration with IF conditions
-    const processColumnsInfoIteration = (
-      tableObj: ISchemaInfo,
-      templateStr: string,
-      separatorStr: string,
-    ): string => {
-      console.warn(
-        `Processing columnsInfo iteration for table: ${String(tableObj.tableName)}`,
-      );
-      console.warn(
-        `Template string length: ${String(templateStr.length)} characters`,
-      );
-
-      // Process each column individually
-      const results: string[] = [];
-
-      for (const column of tableObj.columnsInfo) {
-        // Create a copy of the template for this column
-        let processedTemplate = templateStr;
-
-        console.warn(
-          `Processing column: ${String(column.column_name)}, type: ${String(column.data_type)}, nullable: ${String(column.is_nullable)}`,
-        );
-
-        // Process IF conditions
-        processedTemplate = processIfConditions(processedTemplate, column);
-
-        // Get case variations for the column name
-        const caseFormats = changeCase(column.column_name);
-
-        // Create replacements for this column
-        const replacements = {
-          value: column.column_name,
-          valuePlural: caseFormats.plural,
-          valueSingular: caseFormats.singular,
-          valueTitleCase: caseFormats.titleCase,
-          valueSentenceCase: caseFormats.sentenceCase,
-          valuePhraseCase: caseFormats.phraseCase,
-          valuePascalCase: caseFormats.pascalCase,
-          valueCamelCase: caseFormats.camelCase,
-          valueKebabCase: caseFormats.kebabCase,
-          valueSnakeCase: caseFormats.snakeCase,
-          valueTitleCasePlural: caseFormats.titleCasePlural,
-          valueSentenceCasePlural: caseFormats.sentenceCasePlural,
-          valuePhraseCasePlural: caseFormats.phraseCasePlural,
-          valuePascalCasePlural: caseFormats.pascalCasePlural,
-          valueCamelCasePlural: caseFormats.camelCasePlural,
-          valueKebabCasePlural: caseFormats.kebabCasePlural,
-          valueSnakeCasePlural: caseFormats.snakeCasePlural,
-          valueTitleCaseSingular: caseFormats.titleCaseSingular,
-          valueSentenceCaseSingular: caseFormats.sentenceCaseSingular,
-          valuePhraseCaseSingular: caseFormats.phraseCaseSingular,
-          valuePascalCaseSingular: caseFormats.pascalCaseSingular,
-          valueCamelCaseSingular: caseFormats.camelCaseSingular,
-          valueKebabCaseSingular: caseFormats.kebabCaseSingular,
-          valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
-          // For columnsInfo iteration, add columnNameCamelCase as an alias for valueCamelCase
-          columnNameCamelCase: caseFormats.camelCase,
-          // Add column properties
-          data_type: column.data_type,
-          is_nullable: column.is_nullable,
-          column_default: column.column_default ?? '',
-          is_primary_key: column.primary_key === true ? 'true' : 'false',
-          is_unique: column.unique === true ? 'true' : 'false',
-          foreign_table: column.foreign_key?.foreign_table_name ?? '',
-          foreign_column: column.foreign_key?.foreign_column_name ?? '',
-          has_foreign_key: column.foreign_key !== undefined ? 'true' : 'false',
-          // Add table replacements for other placeholders that might be in the template
-          ...getReplacementsForTable(tableObj),
-        };
-
-        // Replace placeholders
-        const result = replacePlaceholders(
-          processedTemplate,
-          replacements,
-          tableObj,
-        );
-        if (result.trim()) {
-          results.push(result);
-          console.warn(
-            `Added processed result for column: ${String(column.column_name)}`,
-          );
-        } else {
-          console.warn(
-            `Empty result for column: ${String(column.column_name)}, skipping`,
-          );
-        }
-      }
-
-      const finalResult = results.join(separatorStr);
-      console.warn(
-        `Final columnsInfo iteration result length: ${String(finalResult.length)} characters`,
-      );
-      return finalResult;
-    };
-
     // Split property paths and clean whitespace
     const propertyPaths = propertyPathsStr.split(',').map((p) => {
       let path = p.trim();
@@ -1032,6 +635,10 @@ export const buildProjectFiles = (
     const folderPathPattern = /^\/(.+)$/;
     // Create a map to store all placeholder values for each method/value
     const allPlaceholderValues = new Map<string, Record<string, string>>();
+    
+    // Track filenames separately to apply include/exclude filters
+    const fileNameMap = new Map<string, string>();
+    
     for (const path of propertyPaths) {
       const folderMatch = folderPathPattern.exec(path);
       if (folderMatch) {
@@ -1067,16 +674,29 @@ export const buildProjectFiles = (
             `Found folder: ${String(currentFolder.name)} with ${String(currentFolder.children.length)} children`,
           );
 
-          // Process all YAML files in the folder
-          const methodNames: string[] = [];
-
-          // Process each file in the folder
+          // Process all files in the folder
           currentFolder.children.forEach((item) => {
             if (item.type === 'file') {
-              const fileName = item.name.replace(/\.[^.]+$/, '');
+              const fileName = item.name;
+              const fileBaseName = fileName.replace(/\.[^.]+$/, '');
+              
+              // Apply include/exclude filters based on the filename
+              const shouldInclude = includedFiles.length === 0 || 
+                includedFiles.some(pattern => fileName.includes(pattern));
+              
+              const shouldExclude = excludedFiles.length > 0 && 
+                excludedFiles.some(pattern => fileName.includes(pattern));
+              
+              // Skip this file if it doesn't meet the include/exclude criteria
+              if (!shouldInclude || shouldExclude) {
+                console.warn(`Skipping file ${fileName} based on include/exclude filters`);
+                return;
+              }
+
+              console.warn(`Processing file ${fileName} that matches include/exclude filters`);
 
               // For YAML files, try to extract structured data
-              if (item.name.endsWith('.yaml') || item.name.endsWith('.yml')) {
+              if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) {
                 try {
                   // Safely try to parse YAML content
                   const content = item.content;
@@ -1110,11 +730,11 @@ export const buildProjectFiles = (
                     if (Object.keys(extractedValues).length > 0) {
                       // If we have at least one valid property, ensure 'value' is set
                       if (!('value' in extractedValues)) {
-                        extractedValues.value = fileName;
+                        extractedValues.value = fileBaseName;
                       }
 
                       // Determine primary value to use for the iteration
-                      let primaryValue = extractedValues.value || fileName;
+                      let primaryValue = extractedValues.value || fileBaseName;
 
                       // Try common identifier properties first
                       const identifiers = ['id', 'name', 'key', 'identifier'];
@@ -1125,8 +745,9 @@ export const buildProjectFiles = (
                         }
                       }
 
-                      methodNames.push(primaryValue);
+                      allValues.push(primaryValue);
                       allPlaceholderValues.set(primaryValue, extractedValues);
+                      fileNameMap.set(primaryValue, fileName);
                       console.warn(
                         `Added values from YAML: ${String(primaryValue)} with ${String(Object.keys(extractedValues).length)} properties`,
                       );
@@ -1135,25 +756,18 @@ export const buildProjectFiles = (
                   }
                 } catch (error) {
                   console.warn(
-                    `Error processing YAML file ${String(item.name)}: ${String(error instanceof Error ? error.message : 'Unknown error')}`,
+                    `Error processing YAML file ${String(fileName)}: ${String(error instanceof Error ? error.message : 'Unknown error')}`,
                   );
                 }
               }
 
               // Fallback for non-YAML files or if YAML processing failed
-              methodNames.push(fileName);
-              allPlaceholderValues.set(fileName, { value: fileName });
-              console.warn(`Added filename as value: ${String(fileName)}`);
+              allValues.push(fileBaseName);
+              allPlaceholderValues.set(fileBaseName, { value: fileBaseName });
+              fileNameMap.set(fileBaseName, fileName);
+              console.warn(`Added filename as value: ${String(fileBaseName)}`);
             }
           });
-
-          // Add all method names to the allValues array
-          if (methodNames.length > 0) {
-            allValues.push(...methodNames);
-            console.warn(
-              `Added ${String(methodNames.length)} values from folder ${String(currentFolder.name)}`,
-            );
-          }
         } else {
           console.warn(`Folder not found: ${String(folderPath)}`);
         }
@@ -1318,6 +932,33 @@ export const buildProjectFiles = (
     );
   };
 
+  // Add a function to process ITERATE commands in template content
+  const processIterateInTemplate = (content: string, table?: ISchemaInfo): string => {
+    return content.replace(
+      /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
+      (fullMatch: string, propertyPathsStr: string, options: string) => {
+        // If no table context is provided, try to use the first schema
+        if (!table && masterSchema.length > 0) {
+          table = masterSchema[0];
+        }
+        
+        // If we have a valid table context, process the ITERATE command
+        if (table) {
+          const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
+          const cmdResult = processIterateCommand(
+            `ITERATE(${propertyPathsStr})${options}`,
+            table
+          );
+          return cmdResult ? String(whitespace) + String(cmdResult) : '';
+        }
+        
+        // If no valid table context is available, return the original match
+        return fullMatch;
+      }
+    );
+  };
+
+  // Update the processMultipleFiles function
   const processMultipleFiles = (
     fileName: string,
     options: ICommandOptions = {},
@@ -1350,7 +991,7 @@ export const buildProjectFiles = (
       );
 
       // Process ITERATE commands
-      content = processIterateCommandsInContent(content, table);
+      content = processIterateInTemplate(content, table);
 
       // Format with consistent character handling
       const finalContent = formatFileContent(content);
@@ -1385,6 +1026,100 @@ export const buildProjectFiles = (
     });
   };
 
+  // Add the columnsInfo iteration function
+  const processColumnsInfoIteration = (
+    tableObj: ISchemaInfo,
+    templateStr: string,
+    separatorStr: string,
+  ): string => {
+    console.warn(
+      `Processing columnsInfo iteration for table: ${String(tableObj.tableName)}`,
+    );
+    console.warn(
+      `Template string length: ${String(templateStr.length)} characters`,
+    );
+
+    // Process each column individually
+    const results: string[] = [];
+
+    for (const column of tableObj.columnsInfo) {
+      // Create a copy of the template for this column
+      const processedTemplate = templateStr;
+
+      console.warn(
+        `Processing column: ${String(column.column_name)}, type: ${String(column.data_type)}, nullable: ${String(column.is_nullable)}`,
+      );
+
+      // Get case variations for the column name
+      const caseFormats = changeCase(column.column_name);
+
+      // Create replacements for this column
+      const replacements = {
+        value: column.column_name,
+        valuePlural: caseFormats.plural,
+        valueSingular: caseFormats.singular,
+        valueTitleCase: caseFormats.titleCase,
+        valueSentenceCase: caseFormats.sentenceCase,
+        valuePhraseCase: caseFormats.phraseCase,
+        valuePascalCase: caseFormats.pascalCase,
+        valueCamelCase: caseFormats.camelCase,
+        valueKebabCase: caseFormats.kebabCase,
+        valueSnakeCase: caseFormats.snakeCase,
+        valueTitleCasePlural: caseFormats.titleCasePlural,
+        valueSentenceCasePlural: caseFormats.sentenceCasePlural,
+        valuePhraseCasePlural: caseFormats.phraseCasePlural,
+        valuePascalCasePlural: caseFormats.pascalCasePlural,
+        valueCamelCasePlural: caseFormats.camelCasePlural,
+        valueKebabCasePlural: caseFormats.kebabCasePlural,
+        valueSnakeCasePlural: caseFormats.snakeCasePlural,
+        valueTitleCaseSingular: caseFormats.titleCaseSingular,
+        valueSentenceCaseSingular: caseFormats.sentenceCaseSingular,
+        valuePhraseCaseSingular: caseFormats.phraseCaseSingular,
+        valuePascalCaseSingular: caseFormats.pascalCaseSingular,
+        valueCamelCaseSingular: caseFormats.camelCaseSingular,
+        valueKebabCaseSingular: caseFormats.kebabCaseSingular,
+        valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
+        // For columnsInfo iteration, add columnNameCamelCase as an alias for valueCamelCase
+        columnNameCamelCase: caseFormats.camelCase,
+        // Add column properties
+        data_type: column.data_type,
+        is_nullable: column.is_nullable,
+        column_default: column.column_default ?? '',
+        is_primary_key: column.primary_key === true ? 'true' : 'false',
+        is_unique: column.unique === true ? 'true' : 'false',
+        foreign_table: column.foreign_key?.foreign_table_name ?? '',
+        foreign_column: column.foreign_key?.foreign_column_name ?? '',
+        has_foreign_key: column.foreign_key !== undefined ? 'true' : 'false',
+        // Add table replacements for other placeholders that might be in the template
+        ...getReplacementsForTable(tableObj),
+      };
+
+      // Replace placeholders
+      const result = replacePlaceholders(
+        processedTemplate,
+        replacements,
+        tableObj,
+      );
+      if (result.trim()) {
+        results.push(result);
+        console.warn(
+          `Added processed result for column: ${String(column.column_name)}`,
+        );
+      } else {
+        console.warn(
+          `Empty result for column: ${String(column.column_name)}, skipping`,
+        );
+      }
+    }
+
+    const finalContent = results.join(separatorStr);
+    console.warn(
+      `Final columnsInfo iteration result length: ${String(finalContent.length)} characters`,
+    );
+    return finalContent;
+  };
+
+  // Update processYamlNodeWithContext to use processIterateInTemplate
   const processYamlNodeWithContext = (
     node: unknown,
     table: ISchemaInfo,
@@ -1408,7 +1143,7 @@ export const buildProjectFiles = (
 
         // Load and process template content
         const templateContent = loadTemplateContent(options.template ?? processedName);
-        const processedContent = replacePlaceholders(
+        let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           {
             ...replacements,
@@ -1419,10 +1154,10 @@ export const buildProjectFiles = (
         );
 
         // Process ITERATE commands
-        const contentWithIterates = processIterateCommandsInContent(processedContent, table);
+        processedContent = processIterateInTemplate(processedContent, table);
         
         // Format the final content with proper character replacements
-        const finalContent = formatFileContent(contentWithIterates);
+        const finalContent = formatFileContent(processedContent);
 
         return [
           {
@@ -1459,7 +1194,7 @@ export const buildProjectFiles = (
         );
         
         // Process ITERATE commands explicitly
-        processedContent = processIterateCommandsInContent(processedContent, table);
+        processedContent = processIterateInTemplate(processedContent, table);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
@@ -1520,32 +1255,6 @@ export const buildProjectFiles = (
     return [];
   };
 
-  // Implement the processIterateCommandsInContent function before the formatFileContent function
-  const processIterateCommandsInContent = (content: string, table?: ISchemaInfo): string => {
-    return content.replace(
-      /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
-      (fullMatch: string, propertyPathsStr: string, options: string) => {
-        // If no table context is provided, try to use the first schema
-        if (!table && masterSchema.length > 0) {
-          table = masterSchema[0];
-        }
-        
-        // If we have a valid table context, process the ITERATE command
-        if (table) {
-          const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
-          const cmdResult = processIterateCommand(
-            `ITERATE(${String(propertyPathsStr)})${String(options)}`,
-            table
-          );
-          return cmdResult ? String(whitespace) + String(cmdResult) : '';
-        }
-        
-        // If no valid table context is available, return the original match
-        return fullMatch;
-      }
-    );
-  };
-
   // Add a helper function to ensure consistent formatting
   const formatFileContent = (content: string): string => {
     return content
@@ -1590,7 +1299,7 @@ export const buildProjectFiles = (
         );
         
         // Process ITERATE commands explicitly using the same function as bare filenames
-        processedContent = processIterateCommandsInContent(processedContent, schemaInfo);
+        processedContent = processIterateInTemplate(processedContent, schemaInfo);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
@@ -1636,7 +1345,7 @@ export const buildProjectFiles = (
         );
         
         // Process ITERATE commands explicitly
-        processedContent = processIterateCommandsInContent(processedContent, schemaInfo);
+        processedContent = processIterateInTemplate(processedContent, schemaInfo);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
