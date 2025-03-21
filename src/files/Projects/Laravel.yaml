@@ -2,6 +2,7 @@ app:
   Http:
     Controllers:
       - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
+      - CREATE_FILE(AuthController.php --conditions hasUsers=true --template /Templates/backend/laravel/AuthController.txt)
       - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Controller.php --template /Templates/backend/laravel/Controller.txt)
     Resources:
       - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Resource.php --template /Templates/backend/laravel/Resource.txt)
