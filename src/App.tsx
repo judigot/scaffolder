@@ -90,7 +90,9 @@ function App() {
 
         // const projectFileContent = projectFile.content;
 
-        setUserFiles(buildProjectFiles("/Projects/Laravel.yaml", result, schemaInfo));
+        setUserFiles(
+          buildProjectFiles('/Projects/Laravel.yaml', result, schemaInfo),
+        );
       })
       .catch((error: unknown) => {
         // Failure
@@ -509,9 +511,10 @@ function App() {
                   folderStructure={useFolderStructures(schemaInfo).frontend}
                 />
               </div> */}
-              <FileViewer folderColor={'yellow'} folderStructure={userFiles} />
+              <FileViewer mode="edit" folderStructure={[]} />
+              <FileViewer mode="edit" folderStructure={userFiles} />
               <FileViewer
-                folderColor={'yellow'}
+                mode="view"
                 folderStructure={
                   useFolderStructures({ schemaInfo, formData: useFormStore() })[
                     framework
@@ -519,7 +522,7 @@ function App() {
                 }
               />
               <FileViewer
-                folderColor={'green'}
+                mode="view"
                 folderStructure={
                   useFolderStructures({ schemaInfo, formData: useFormStore() })
                     .frontend

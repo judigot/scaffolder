@@ -36,10 +36,10 @@ const darkTheme = createTheme({
 
 function FileViewer({
   folderStructure,
-  folderColor,
+  mode,
 }: {
   folderStructure: IStructure;
-  folderColor: string;
+  mode: 'edit' | 'view';
 }) {
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
 
@@ -73,6 +73,7 @@ function FileViewer({
     onSelectFile: (file: IFile) => void,
     parentId = '',
   ) {
+    const folderColor = mode === 'edit' ? 'text-yellow-500' : 'text-gray-200';
     return items.map((item, index) => {
       const itemId = `${parentId}-${item.name}-${String(index)}`;
       if (item.type === 'folder') {
@@ -82,10 +83,7 @@ function FileViewer({
             itemId={itemId}
             label={
               <>
-                <FolderIcon
-                  fontSize="small"
-                  className={`text-${folderColor}-500`}
-                />
+                <FolderIcon fontSize="small" className={folderColor} />
                 &nbsp;
                 {item.name}
               </>
@@ -193,10 +191,9 @@ function FileViewer({
                 })()}
                 theme="vs-dark"
                 options={{
-                  readOnly: true,
-                  domReadOnly: true,
+                  readOnly: mode === 'view',
+                  domReadOnly: mode === 'view',
                   minimap: { enabled: true },
-                  scrollBeyondLastLine: false,
                   fontSize: 14,
                   lineNumbers: 'on',
                 }}
