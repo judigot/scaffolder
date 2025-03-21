@@ -16,9 +16,9 @@ const folderConfig = {
 export const buildProjectFiles = (
   projectYamlPath: string,
   userFiles: IStructure,
-  schemaInfoRaw: ISchemaInfo[],
+  schemaInfo: ISchemaInfo[],
 ): IStructure => {
-  const schemaInfo = getSchemaInfo(schemaInfoRaw);
+  const schemaInfoProcessed = getSchemaInfo(schemaInfo);
   interface ICommandOptions {
     conditions?: string[];
     template?: string;
@@ -236,9 +236,9 @@ export const buildProjectFiles = (
       tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
       tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
       // Add primary key and required columns with matching template syntax
-      'getPrimaryKey()': schemaInfo.getPrimaryKey(table.tableName),
-      'getRequiredColumns()': schemaInfo.getRequiredColumns(table.tableName),
-      'getAllColumns()': schemaInfo.getAllColumns(table.tableName),
+      'getPrimaryKey()': schemaInfoProcessed.getPrimaryKey(table.tableName),
+      'getRequiredColumns()': schemaInfoProcessed.getRequiredColumns(table.tableName),
+      'getAllColumns()': schemaInfoProcessed.getAllColumns(table.tableName),
     };
   };
 
@@ -472,7 +472,7 @@ export const buildProjectFiles = (
     // Handle regular table loops
     const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
     return content.replace(loopRegex, (_match: string, loopContent: string) => {
-      return schemaInfoRaw
+      return schemaInfo
         .map((table) => {
           const replacements = getReplacementsForTable(table);
           return replacePlaceholders(
@@ -892,17 +892,17 @@ export const buildProjectFiles = (
 
         switch (functionName) {
           case 'getAllColumns': {
-            const values = schemaInfo.getAllColumns(table.tableName);
+            const values = schemaInfoProcessed.getAllColumns(table.tableName);
             allValues.push(...values);
             continue;
           }
           case 'getRequiredColumns': {
-            const values = schemaInfo.getRequiredColumns(table.tableName);
+            const values = schemaInfoProcessed.getRequiredColumns(table.tableName);
             allValues.push(...values);
             continue;
           }
           case 'getPrimaryKey': {
-            const value = schemaInfo.getPrimaryKey(table.tableName);
+            const value = schemaInfoProcessed.getPrimaryKey(table.tableName);
             if (value) {
               allValues.push(value);
             }
@@ -1050,8 +1050,8 @@ export const buildProjectFiles = (
       /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
       (fullMatch: string, propertyPathsStr: string, options: string) => {
         // If no table context is provided, try to use the first schema
-        if (!table && schemaInfoRaw.length > 0) {
-          table = schemaInfoRaw[0];
+        if (!table && schemaInfo.length > 0) {
+          table = schemaInfo[0];
         }
         
         // If we have a valid table context, process the ITERATE command
@@ -1102,7 +1102,7 @@ export const buildProjectFiles = (
       templateContent = loadTemplateContent(fileName);
     }
 
-    const files: IFile[] = schemaInfoRaw.map((table) => {
+    const files: IFile[] = schemaInfo.map((table) => {
       const replacements = getReplacementsForTable(table);
       const processedName = replacePlaceholders(fileName, replacements);
 
@@ -1142,7 +1142,7 @@ export const buildProjectFiles = (
     folderName: string,
     children: unknown,
   ): IStructure => {
-    return schemaInfoRaw.map((table) => {
+    return schemaInfo.map((table) => {
       const replacements = getReplacementsForTable(table);
       const processedName = replacePlaceholders(folderName, replacements);
 
@@ -1269,13 +1269,13 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
-        if (!schemaInfo) {
+        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfo);
+        const replacements = getReplacementsForTable(schemaInfoProcessed);
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
@@ -1289,11 +1289,11 @@ export const buildProjectFiles = (
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfo
+          schemaInfoProcessed
         );
         
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfo);
+        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
@@ -1323,23 +1323,23 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
-        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
-        if (!schemaInfo) {
+        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfo);
+        const replacements = getReplacementsForTable(schemaInfoProcessed);
         
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfo
+          schemaInfoProcessed
         );
         
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfo);
+        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
@@ -1507,13 +1507,13 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
-        if (!schemaInfo) {
+        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfo);
+        const replacements = getReplacementsForTable(schemaInfoProcessed);
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
@@ -1527,11 +1527,11 @@ export const buildProjectFiles = (
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfo
+          schemaInfoProcessed
         );
         
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfo);
+        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
@@ -1561,23 +1561,23 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
-        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
-        if (!schemaInfo) {
+        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfo);
+        const replacements = getReplacementsForTable(schemaInfoProcessed);
         
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfo
+          schemaInfoProcessed
         );
         
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfo);
+        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
         
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
