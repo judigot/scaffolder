@@ -128,21 +128,11 @@ export const addRelationship = (
     source.belongsToMany = source.belongsToMany ?? [];
     source.hasMany = source.hasMany ?? [];
     source.childTables = source.childTables ?? [];
-    source.pivotRelationships = source.pivotRelationships ?? [
-      {
-        relatedTable: '',
-        pivotTable: '',
-      },
-    ];
+    source.pivotRelationships = source.pivotRelationships ?? [];
     target.belongsToMany = target.belongsToMany ?? [];
     target.hasMany = target.hasMany ?? [];
     target.childTables = target.childTables ?? [];
-    target.pivotRelationships = target.pivotRelationships ?? [
-      {
-        relatedTable: '',
-        pivotTable: '',
-      },
-    ];
+    target.pivotRelationships = target.pivotRelationships ?? [];
 
     // Setup source table relationships
     if (!source.belongsToMany.includes(target.tableName)) {
@@ -176,10 +166,8 @@ export const addRelationship = (
       target.childTables.push(pivotTableName);
     }
     if (
-      !(
-        target.pivotRelationships.some(
-          (rel) => rel.relatedTable === source.tableName,
-        )
+      !target.pivotRelationships.some(
+        (rel) => rel.relatedTable === source.tableName,
       )
     ) {
       target.pivotRelationships.push({
