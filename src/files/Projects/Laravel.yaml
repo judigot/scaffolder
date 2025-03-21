@@ -24,7 +24,7 @@ routes:
 frontend:
   src:
     hooks:
-      CREATE_DYNAMIC_FOLDERS({{tableNameSnakeCaseSingular}}):
+      CREATE_DYNAMIC_FOLDERS({{tableNameKebabCaseSingular}}):
         - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/hook.txt)
     interfaces:
       - CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/typescript-interface.txt)
