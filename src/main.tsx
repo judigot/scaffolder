@@ -53,8 +53,6 @@ class Profile extends Model
   console.log(formattedCode);
 })();
 
-
-
 const rootElement = document.getElementById('root');
 
 if (rootElement) {
