@@ -7,8 +7,6 @@ import {
   ContentCopy as CopyIcon,
   Code as CodeIcon,
   Folder as FolderIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
   CreateNewFolder as CreateNewFolderIcon,
   NoteAdd as NoteAddIcon,
   Save as SaveIcon,
@@ -16,7 +14,7 @@ import {
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
-import ContextMenu, { IContextMenuItem } from '@/components/UI/ContextMenu.tsx';
+import ContextMenu from '@/components/UI/ContextMenu.tsx';
 
 export interface IBase {
   name: string;
@@ -402,8 +400,10 @@ function FileViewer({
 
   // Fix for non-null assertion in MenuItem
   const handleDeleteItem = () => {
-    if (!contextMenu?.item) {return;}
-    
+    if (!contextMenu?.item) {
+      return;
+    }
+
     const item = contextMenu.item;
     // Store the relevant information
     const parentPath = contextMenu.parentPath ?? [];
@@ -545,86 +545,6 @@ function FileViewer({
       }
     });
   }
-
-  // Prepare menu items for the context menu
-  const getContextMenuItems = (): IContextMenuItem[] => {
-    const items: IContextMenuItem[] = [];
-    
-    // Root level menu (no item selected)
-    if (!contextMenu?.item) {
-      items.push(
-        {
-          id: 'newFile',
-          icon: <NoteAddIcon fontSize="small" />,
-          label: 'New File',
-          onClick: () => {
-            void (async () => {
-              await handleOpenDialog('newFile');
-            })();
-          },
-        },
-        {
-          id: 'newFolder',
-          icon: <CreateNewFolderIcon fontSize="small" />,
-          label: 'New Folder',
-          onClick: () => {
-            void (async () => {
-              await handleOpenDialog('newFolder');
-            })();
-          },
-        }
-      );
-      return items;
-    }
-    
-    // Common options for both files and folders
-    items.push(
-      {
-        id: 'rename',
-        icon: <EditIcon fontSize="small" />,
-        label: 'Rename',
-        onClick: () => {
-          void (async () => {
-            await handleOpenDialog('rename', contextMenu.item);
-          })();
-        },
-      },
-      {
-        id: 'delete',
-        icon: <DeleteIcon fontSize="small" />,
-        label: 'Delete',
-        onClick: handleDeleteItem,
-      }
-    );
-    
-    // Folder-specific options
-    if (contextMenu.item.type === 'folder') {
-      items.push(
-        {
-          id: 'newFileInFolder',
-          icon: <NoteAddIcon fontSize="small" />,
-          label: 'New File',
-          onClick: () => {
-            void (async () => {
-              await handleOpenDialog('newFile');
-            })();
-          },
-        },
-        {
-          id: 'newFolderInFolder',
-          icon: <CreateNewFolderIcon fontSize="small" />,
-          label: 'New Folder',
-          onClick: () => {
-            void (async () => {
-              await handleOpenDialog('newFolder');
-            })();
-          },
-        }
-      );
-    }
-    
-    return items;
-  };
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -770,7 +690,82 @@ function FileViewer({
         <ContextMenu
           x={contextMenu.mouseX}
           y={contextMenu.mouseY}
-          menuItems={getContextMenuItems()}
+          menuItems={(() => {
+            const menuItems = [];
+
+            // Root level menu (no item selected)
+            if (!contextMenu.item) {
+              menuItems.push(
+                {
+                  id: 'newFile',
+                  icon: <NoteAddIcon fontSize="small" />,
+                  label: 'New File',
+                  onClick: () => {
+                    void (async () => {
+                      await handleOpenDialog('newFile');
+                    })();
+                  },
+                },
+                {
+                  id: 'newFolder',
+                  icon: <CreateNewFolderIcon fontSize="small" />,
+                  label: 'New Folder',
+                  onClick: () => {
+                    void (async () => {
+                      await handleOpenDialog('newFolder');
+                    })();
+                  },
+                },
+              );
+            }
+
+            // Item-specific menu options
+            if (contextMenu.item) {
+              // Common options for both files and folders
+              menuItems.push(
+                {
+                  id: 'rename',
+                  label: 'Rename',
+                  onClick: () => {
+                    void (async () => {
+                      await handleOpenDialog('rename', contextMenu.item);
+                    })();
+                  },
+                },
+                {
+                  id: 'delete',
+                  label: 'Delete',
+                  onClick: handleDeleteItem,
+                },
+              );
+
+              // Folder-specific options
+              if (contextMenu.item.type === 'folder') {
+                menuItems.push(
+                  {
+                    id: 'newFileInFolder',
+                    label: 'New File',
+                    onClick: () => {
+                      void (async () => {
+                        await handleOpenDialog('newFile');
+                      })();
+                    },
+                  },
+                  {
+                    id: 'newFolderInFolder',
+                    label: 'New Folder',
+                    onClick: () => {
+                      void (async () => {
+                        await handleOpenDialog('newFolder');
+                      })();
+                    },
+                  },
+                );
+              }
+            }
+
+            return menuItems;
+          })()}
           onClose={handleCloseContextMenu}
         />
       )}
