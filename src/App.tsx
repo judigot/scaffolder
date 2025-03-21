@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { frameworks, useFormStore } from '@/useFormStore.ts';
+import { useFormStore } from '@/useFormStore.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
 import { useModalStore } from '@/useModalStore.ts';
@@ -13,11 +13,10 @@ import { CREATION_MODES } from '@/constants.ts';
 import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
 function App() {
-  const [userFiles, setUserFiles] = useState<IStructure>([]);
   const formData = useFormStore();
   const {
     backendUrl,
@@ -49,6 +48,9 @@ function App() {
     setSchemaInfo,
   } = useTransformationsStore();
 
+  const { projectFiles, projects, project, setUserFiles, setProject } =
+    useMockDatabaseStore();
+
   useEffect(() => {
     fetch(`http://localhost:5000/userFiles`, {
       method: 'GET',
@@ -59,16 +61,17 @@ function App() {
     })
       .then((response) => response.json())
       .then((userFiles: IStructure) => {
+        setUserFiles({ userFiles, schemaInfo });
         // Success
         // const folderName = 'Projects';
-        // const fileName = 'LaravelFolderStructure.yaml';
-        // const objectIndex: number = result.findIndex(
+        // const fileName = 'Laravel.yaml';
+        // const objectIndex: number = userFiles.findIndex(
         //   (object): boolean => object.name === folderName,
         // );
         // if (objectIndex === -1) {
         //   throw new Error(`Folder ${folderName} not found`);
         // }
-        // const projectsFolder = result[objectIndex];
+        // const projectsFolder = userFiles[objectIndex];
         // if (
         //   !('children' in projectsFolder) ||
         //   !Array.isArray(projectsFolder.children)
@@ -86,13 +89,9 @@ function App() {
         //   throw new Error(`File ${fileName} is not a valid file`);
         // }
 
-        // // /*prettier-ignore*/ (($= result) => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
-
-        // const projectFileContent = projectFile.content;
-
-        setUserFiles(
-          buildProjectFiles('/Projects/Laravel.yaml', userFiles, schemaInfo),
-        );
+        // setUserFiles(
+        //   buildProjectFiles('/Projects/Laravel.yaml', userFiles, schemaInfo),
+        // );
       })
       .catch((error: unknown) => {
         // Failure
@@ -101,7 +100,7 @@ function App() {
         }
         throw new Error(`Unknown error: ${String(error)}`);
       });
-  }, [schemaInfo]);
+  }, [schemaInfo, setUserFiles]);
 
   useEffect(() => {
     setTransformations();
@@ -134,6 +133,13 @@ function App() {
     >,
   ) => {
     const { name, value, type } = e.target;
+    if (name === 'framework') {
+      const project = projects.find((project) => project.name === value);
+      if (project) {
+        setProject(project);
+      }
+      return;
+    }
     const checked = e.target instanceof HTMLInputElement && e.target.checked;
     const newFormData = {
       ...useFormStore.getState(),
@@ -357,7 +363,7 @@ function App() {
             {isLoading && 'Generating...'}
             {!isLoading && (
               <>
-                Create <strong>{framework}</strong> App
+                Create <strong>{project?.name}</strong> App
                 <span className="text-2xl">🪄</span>
               </>
             )}
@@ -480,22 +486,20 @@ function App() {
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Generated Code</h2>
             <div className="block text-sm font-medium">
-              Framework:
+              Project:
               <select
                 id="framework"
                 name="framework"
-                value={framework}
+                value={project?.name}
                 onChange={handleChange}
                 className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >
                 {/* <option value={''}>Select a framework</option> */}
-                {Object.entries(frameworks).map(
-                  ([key, value]: [string, string]) => (
-                    <option key={key} value={value}>
-                      {value}
-                    </option>
-                  ),
-                )}
+                {projects.map((value) => (
+                  <option key={value.name} value={value.name}>
+                    {value.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -512,7 +516,7 @@ function App() {
                 />
               </div> */}
               {/* <FileViewer mode="edit" folderStructure={[]} /> */}
-              <FileViewer mode="edit" folderStructure={userFiles} />
+              <FileViewer mode="edit" folderStructure={projectFiles} />
               <FileViewer
                 mode="view"
                 folderStructure={
