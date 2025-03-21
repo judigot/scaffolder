@@ -4,14 +4,21 @@
 // export const laravelFolderStructure = `
 // - CREATE_MULTIPLE_FILES({{tableNamePascalCase}}.php --template /Templates/model-template.php)
 // `;
+// export const laravelFolderStructure = `
+// app:
+//   Http:
+//     Controllers:
+//       - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
+//       - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Controller.php --template /Templates/backend/laravel/Controller.txt)
+//       - CREATE_FILE(AuthController.php --conditions hasUsers=true)
+//       - CREATE_FILE(AuthController.php --conditions [hasUsers=true, isMultiTenancyEnabled=true] --template /Templates/backend/laravel/AuthControllerMultiTenancy.txt)
+// `;
 export const laravelFolderStructure = `
 app:
   Http:
     Controllers:
       - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
       - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Controller.php --template /Templates/backend/laravel/Controller.txt)
-      - CREATE_FILE(AuthController.php --conditions hasUsers=true)
-      - CREATE_FILE(AuthController.php --conditions [hasUsers=true, isMultiTenancyEnabled=true] --template /Templates/backend/laravel/AuthControllerMultiTenancy.txt)
     Resources:
       - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Resource.php --template /Templates/backend/laravel/Resource.txt)
   Repositories:
@@ -35,7 +42,6 @@ frontend:
         - CREATE_MULTIPLE_FILES(use{{tableNamePascalCaseSingular}}.ts --use-related-table --template /Templates/frontend/React-Hook.txt)
         - CREATE_FILE(api.ts --template /Templates/backend/laravel/api.txt)
         - CREATE_MULTIPLE_FILES(use{{tableNamePascalCaseSingular}}.tsx --template /Templates/frontend/React-Hook.txt)
-
     interfaces:
       - CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
 `;
