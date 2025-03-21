@@ -401,8 +401,24 @@ function FileViewer({
     }
   };
 
+  // Fix for non-null assertion in MenuItem
+  const handleDeleteItem = () => {
+    const item = contextMenu?.item;
+    // Store the relevant information
+    const parentPath = contextMenu?.parentPath ?? [];
+    
+    // Close the context menu immediately before showing the modal
+    handleCloseContextMenu();
+    
+    if (item) {
+      void (async () => {
+        await deleteItem(item, parentPath);
+      })();
+    }
+  };
+
   // Delete file or folder
-  const deleteItem = async (item: IFile | IFolder) => {
+  const deleteItem = async (item: IFile | IFolder, parentPath: string[] = []) => {
     // Prompt user for confirmation before deleting
     const result = await promptModal({
       title: `Delete ${item.type === 'file' ? 'File' : 'Folder'}`,
@@ -443,10 +459,11 @@ function FileViewer({
       });
     };
 
-    const deletePath = contextMenu?.parentPath ?? [];
+    // Use the passed parent path instead of getting from contextMenu
+    // since contextMenu will already be null
     const updatedStructure = deleteItemFromStructure(
       folderStructure,
-      deletePath,
+      parentPath,
       item.name,
     );
     setFolderStructure(updatedStructure);
@@ -526,18 +543,6 @@ function FileViewer({
       }
     });
   }
-
-  // Fix for non-null assertion in MenuItem
-  const handleDeleteItem = () => {
-    const item = contextMenu?.item;
-    if (item) {
-      void (async () => {
-        await deleteItem(item);
-        // Close context menu after deletion process is complete
-        handleCloseContextMenu();
-      })();
-    }
-  };
 
   return (
     <ThemeProvider theme={darkTheme}>
