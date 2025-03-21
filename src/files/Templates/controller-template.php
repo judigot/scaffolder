@@ -12,10 +12,10 @@ class {{tableNamePascalCase}}Controller extends BaseController
 {
     protected $repository;
 
-    public function __construct({{tableNamePascalCase}}Interface \${{tableName}}Repository, {{tableNamePascalCase}}Service \${{tableName}}Service)
+    public function __construct({{tableNamePascalCase}}Interface ${{tableName}}Repository, {{tableNamePascalCase}}Service ${{tableName}}Service)
     {
-        parent::__construct(\${{tableName}}Service);
-        $this->repository = \${{tableName}}Repository;
+        parent::__construct(${{tableName}}Service);
+        $this->repository = ${{tableName}}Repository;
     }
 
 [[ITERATE(/BaseMethodsNew/crud) --include-files="laravel" --template="    {{controllerMethod}}
