@@ -5,13 +5,6 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
-// Configuration for folder names that can be changed in one place
-const folderConfig = {
-  methodsFolder: 'BaseMethods',
-  methodGroupFile: 'base-methods-group.yaml',
-  methodGroupFileAlt: 'base-method-group.yaml',
-};
-
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -305,170 +298,6 @@ export const buildProjectFiles = (
   };
 
   const processLoopTables = (content: string): string => {
-    // Handle base methods controller loop
-    const baseMethodsRegex = /\[\[LOOP_BASE_METHODS\s+([^\]]+)\]\]/g;
-    content = content.replace(
-      baseMethodsRegex,
-      (_match: string, loopContent: string) => {
-        const store = userFiles;
-        const baseMethodsFolder = store.find(
-          (item): item is IFolder =>
-            item.type === 'folder' && item.name === folderConfig.methodsFolder,
-        );
-
-        if (!baseMethodsFolder) {
-          console.warn(`${folderConfig.methodsFolder} folder not found`);
-          return '';
-        }
-
-        // Load the base-methods-group.yaml to get the groups
-        const groupFile = store.find(
-          (item): item is IFile =>
-            item.type === 'file' &&
-            (item.name === folderConfig.methodGroupFile ||
-              item.name === folderConfig.methodGroupFileAlt),
-        );
-
-        interface IMethodGroup {
-          methods: string[];
-        }
-
-        type IMethodGroups = Record<string, IMethodGroup>;
-
-        const isRecord = (value: unknown): value is Record<string, unknown> => {
-          return typeof value === 'object' && value !== null;
-        };
-
-        const isMethodGroups = (value: unknown): value is IMethodGroups => {
-          if (!isRecord(value)) {
-            return false;
-          }
-          return Object.values(value).every(
-            (group) =>
-              isRecord(group) &&
-              Array.isArray(group.methods) &&
-              group.methods.every((method) => typeof method === 'string'),
-          );
-        };
-
-        // Parse the groups file
-        const parsedGroups: unknown = groupFile ? parse(groupFile.content) : {};
-        const groups: IMethodGroups = isMethodGroups(parsedGroups)
-          ? parsedGroups
-          : {};
-
-        // Create a map of method name to its content
-        const methodsMap = new Map<string, string>();
-        baseMethodsFolder.children
-          .filter((item): item is IFile => item.type === 'file')
-          .forEach((file) => {
-            try {
-              const yamlContent: unknown = parse(file.content);
-              if (isRecord(yamlContent)) {
-                // Extract all properties from YAML to create dynamic replacements
-                // All properties become available as placeholders in templates
-                const replacements: Record<string, string> = {};
-
-                // Process all properties recursively to handle nested objects
-                const processObject = (
-                  obj: Record<string, unknown>,
-                  prefix = '',
-                  result: Record<string, string> = {},
-                ): Record<string, string> => {
-                  Object.entries(obj).forEach(([key, value]) => {
-                    const fullKey = prefix ? `${prefix}.${key}` : key;
-
-                    if (typeof value === 'string') {
-                      result[fullKey] = value;
-                    } else if (
-                      typeof value === 'number' ||
-                      typeof value === 'boolean'
-                    ) {
-                      result[fullKey] = String(value);
-                    } else if (
-                      value !== null &&
-                      typeof value === 'object' &&
-                      !Array.isArray(value)
-                    ) {
-                      // Handle nested objects recursively - use type guard instead of type assertion
-                      if (isRecord(value)) {
-                        processObject(value, fullKey, result);
-                      }
-                    } else if (Array.isArray(value)) {
-                      // Handle arrays by joining with commas
-                      result[fullKey] = value
-                        .map((item) => String(item))
-                        .join(',');
-                    }
-                  });
-
-                  return result;
-                };
-
-                // Use the isRecord type guard instead of type assertion
-                if (isRecord(yamlContent)) {
-                  processObject(yamlContent, '', replacements);
-                }
-
-                // Make sure value is always set for templates that use {{value}} if not already present
-                if (!('value' in replacements)) {
-                  replacements.value = file.name.replace(/\.[^.]+$/, '');
-                }
-
-                // Use first property's value as primary key or filename as fallback
-                let primaryValue = file.name.replace(/\.[^.]+$/, '');
-                if (Object.keys(replacements).length > 0) {
-                  primaryValue = Object.values(replacements)[0];
-                }
-
-                // Process the YAML content with all available properties
-                let methodContent: string;
-
-                if (
-                  loopContent.includes('{{repositoryMethod}}') &&
-                  'repositoryMethod' in replacements
-                ) {
-                  // For interface, process the template with all properties
-                  const processedMethod = replacePlaceholders(
-                    replacements.repositoryMethod,
-                    replacements,
-                  );
-
-                  methodContent = replacePlaceholders(loopContent, {
-                    ...replacements,
-                    repositoryMethod: processedMethod,
-                  });
-                } else {
-                  // For all other templates, process with all available properties
-                  methodContent = replacePlaceholders(
-                    loopContent,
-                    replacements,
-                  );
-                }
-
-                methodsMap.set(primaryValue, methodContent);
-              }
-            } catch (error) {
-              console.warn(`Error parsing YAML in ${file.name}:`, error);
-            }
-          });
-
-        // Build the output by groups
-        const output: string[] = [];
-        Object.entries(groups).forEach(([groupName, group]) => {
-          output.push(`\n    // ${groupName}\n`);
-          group.methods.forEach((methodName) => {
-            const methodContent = methodsMap.get(methodName);
-            if (typeof methodContent === 'string') {
-              output.push(methodContent);
-            }
-          });
-        });
-
-        return output.join('\n\n');
-      },
-    );
-
     // Handle regular table loops
     const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
     return content.replace(loopRegex, (_match: string, loopContent: string) => {
@@ -630,7 +459,7 @@ export const buildProjectFiles = (
           .replace(/\\n/g, '\n')
           .replace(/\\t/g, '\t')
           .replace(/\\s/g, ' ')
-      : '\n';
+      : '';
 
     // Parse include and exclude filters
     const includedFiles = includedFilesMatch 

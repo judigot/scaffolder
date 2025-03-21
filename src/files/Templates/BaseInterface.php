@@ -7,5 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 interface BaseInterface
 {
-    [[LOOP_BASE_METHODS public function {{repositoryMethod}}; ]]
+    [[ITERATE(/BaseMethodsNew/crud) --include-files="laravel" --template="{{repositoryMethod}};" --separator="\n    "]]
+    [[ITERATE(/BaseMethodsNew/advanced-operations) --include-files="laravel" --template="{{repositoryMethod}};" --separator="\n    "]]
 }
