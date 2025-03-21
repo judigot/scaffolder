@@ -58,7 +58,7 @@ function App() {
       },
     })
       .then((response) => response.json())
-      .then((result: IStructure) => {
+      .then((userFiles: IStructure) => {
         // Success
         // const folderName = 'Projects';
         // const fileName = 'LaravelFolderStructure.yaml';
@@ -91,7 +91,7 @@ function App() {
         // const projectFileContent = projectFile.content;
 
         setUserFiles(
-          buildProjectFiles('/Projects/Laravel.yaml', result, schemaInfo),
+          buildProjectFiles('/Projects/Laravel.yaml', userFiles, schemaInfo),
         );
       })
       .catch((error: unknown) => {
