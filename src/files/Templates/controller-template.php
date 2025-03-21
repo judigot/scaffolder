@@ -18,5 +18,11 @@ class {{tableNamePascalCase}}Controller extends BaseController
         $this->repository = \${{tableName}}Repository;
     }
 
-{{controllerMethods}}
+[[ITERATE(/BaseMethodsNew/crud) --include-files="laravel" --template="    {{controllerMethod}}
+    {
+{{controllerContent}}    }"]]
+
+[[ITERATE(/BaseMethodsNew/advanced-operations) --include-files="laravel" --template="    {{controllerMethod}}
+    {
+{{controllerContent}}    }"]]
 }
