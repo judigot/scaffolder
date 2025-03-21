@@ -9,8 +9,7 @@ import {
   Folder as FolderIcon,
 } from '@mui/icons-material';
 import { handleCopy } from '@/helpers/stringHelper.ts';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus as highlightStyle } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import Editor from '@monaco-editor/react';
 
 export interface IBase {
   name: string;
@@ -167,44 +166,41 @@ function FileViewer({
                   </button>
                 </div>
               </div>
-              <SyntaxHighlighter
-                showLineNumbers={true}
-                customStyle={{
-                  cursor: 'text',
-                  backgroundColor: '#1f1f1f',
-                  margin: '0',
-                  height: '420px',
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: '#888 #444',
-                }}
-                lineNumberStyle={{
-                  color: '#888',
-                }}
+              <Editor
+                height="420px"
+                defaultValue={selectedFile.content}
+                value={selectedFile.content}
                 language={(() => {
                   const fileExtension: string | undefined = selectedFile.name
                     .split('.')
                     .pop();
-                  if (fileExtension == undefined) {
+                  if (fileExtension === undefined) {
                     return 'plaintext';
                   }
                   const languageMap: Record<string, string> = {
                     ts: 'typescript',
-                    js: 'typescript',
+                    js: 'javascript',
                     php: 'php',
                     css: 'css',
                     sass: 'sass',
                     java: 'java',
                     sql: 'sql',
                     txt: 'plaintext',
-                    jsx: 'jsx',
-                    tsx: 'tsx',
+                    jsx: 'javascript',
+                    tsx: 'typescript',
                   };
-                  return languageMap[fileExtension];
+                  return languageMap[fileExtension] || 'plaintext';
                 })()}
-                style={highlightStyle}
-              >
-                {selectedFile.content}
-              </SyntaxHighlighter>
+                theme="vs-dark"
+                options={{
+                  readOnly: true,
+                  domReadOnly: true,
+                  minimap: { enabled: true },
+                  scrollBeyondLastLine: false,
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                }}
+              />
             </div>
           )}
         </div>
