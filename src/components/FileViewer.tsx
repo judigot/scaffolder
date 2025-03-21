@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import {
   Close as CloseIcon,
   ContentCopy as CopyIcon,
@@ -32,12 +31,6 @@ export interface IFolder extends IBase {
 }
 
 export type IStructure = (IFile | IFolder)[];
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
 
 // Define a type for the editor
 interface ICodeEditor {
@@ -547,16 +540,16 @@ function FileViewer({
   }
 
   return (
-    <ThemeProvider theme={darkTheme}>
+    <div className="h-96 p-2">
       <div className="grid grid-cols-1 md:grid-cols-3 text-white">
-        <div className="col-span-1 bg-gray-800 p-4 select-none">
+        <div className="col-span-1 bg-gray-800 select-none mr-2">
           <div>
             <div className="flex justify-between mb-4">
               <button
                 onClick={() => {
                   handleCopy(JSON.stringify(folderStructure, null, 4));
                 }}
-                className="h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >
                 Copy Folder Structure
               </button>
@@ -569,7 +562,7 @@ function FileViewer({
                         await handleOpenDialog('newFile');
                       })();
                     }}
-                    className="h-max w-max bg-green-600 p-2 text-white rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring focus:ring-green-500 focus:ring-opacity-50 flex items-center"
+                    className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
                     title="New File"
                     aria-label="New File"
                   >
@@ -581,7 +574,7 @@ function FileViewer({
                         await handleOpenDialog('newFolder');
                       })();
                     }}
-                    className="h-max w-max bg-blue-600 p-2 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
+                    className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
                     title="New Folder"
                     aria-label="New Folder"
                   >
@@ -592,7 +585,7 @@ function FileViewer({
             </div>
 
             <div
-              className="overflow-auto max-h-96"
+              className="overflow-auto max-h-80"
               onContextMenu={(e) => {
                 if (mode === 'edit') {
                   handleContextMenu(e);
@@ -626,7 +619,7 @@ function FileViewer({
                   {mode === 'edit' && (
                     <button
                       onClick={saveFileChanges}
-                      className="hover:bg-green-700 bg-green-600 text-white px-3 py-1 rounded mr-2 float-right"
+                      className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right"
                     >
                       <SaveIcon fontSize="small" />
                     </button>
@@ -637,13 +630,13 @@ function FileViewer({
                     }}
                     className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right"
                   >
-                    Copy &nbsp;
                     <CopyIcon fontSize="small" />
                   </button>
                 </div>
               </div>
               <Editor
-                height="420px"
+                // className="max-h-96"
+                height="20rem"
                 defaultValue={selectedFile.content}
                 value={fileContent}
                 language={(() => {
@@ -769,7 +762,7 @@ function FileViewer({
           onClose={handleCloseContextMenu}
         />
       )}
-    </ThemeProvider>
+    </div>
   );
 }
 

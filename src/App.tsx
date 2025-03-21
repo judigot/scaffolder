@@ -498,7 +498,7 @@ function App() {
                 )}
               </select>
             </div>
-            <div className="grid grid-rows-2 h-screen gap-4">
+            <div>
               {/* <div className="bg-blue-500  text-white font-bold">
                 <FileViewer
                   folderColor={'yellow'}
@@ -511,7 +511,7 @@ function App() {
                   folderStructure={useFolderStructures(schemaInfo).frontend}
                 />
               </div> */}
-              <FileViewer mode="edit" folderStructure={[]} />
+              {/* <FileViewer mode="edit" folderStructure={[]} /> */}
               <FileViewer mode="edit" folderStructure={userFiles} />
               <FileViewer
                 mode="view"
