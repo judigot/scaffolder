@@ -5,7 +5,6 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
-
 export const buildProjectFiles = (
   projectYamlPath: string,
   userFiles: IStructure,
@@ -17,6 +16,10 @@ export const buildProjectFiles = (
     template?: string;
     modelSpecificRoutes?: string;
     baseRoutesForController?: string;
+    relatedFiles?: string[];
+    includeTable?: string;
+    useRelatedTable?: boolean;
+    excludeTable?: string;
   }
 
   type IYamlObject = Record<string, unknown>;
@@ -28,90 +31,93 @@ export const buildProjectFiles = (
   // Find the YAML file in userFiles
   const findFileInStructure = (
     path: string,
-    structure: IStructure
+    structure: IStructure,
   ): IFile | undefined => {
     // Remove leading slash if present
     const normPath = path.startsWith('/') ? path.substring(1) : path;
-    
+
     // Split the path into components
     const pathComponents = normPath.split('/');
     const fileName = pathComponents.pop() ?? '';
-    
+
     // Navigate through the directory structure
     let currentItems: IStructure = structure;
-    
+
     for (const component of pathComponents) {
       const folder = currentItems.find(
         (item): item is IFolder =>
           item.type === 'folder' && item.name === component,
       );
-      
+
       if (!folder) {
         console.warn(`Folder not found in path: ${String(component)}`);
         return undefined;
       }
-      
+
       currentItems = folder.children;
     }
-    
+
     // Find the file in the final directory
     return currentItems.find(
-      (item): item is IFile =>
-        item.type === 'file' && item.name === fileName,
+      (item): item is IFile => item.type === 'file' && item.name === fileName,
     );
   };
 
   // Get the YAML content from the specified path
   const projectFile = findFileInStructure(projectYamlPath, userFiles);
-  
+
   if (!projectFile) {
-    console.error(`Project YAML file not found at path: ${String(projectYamlPath)}`);
+    console.error(
+      `Project YAML file not found at path: ${String(projectYamlPath)}`,
+    );
     return [];
   }
-  
+
   const yamlContent = projectFile.content;
 
   const loadTemplateContent = (templatePath: string): string => {
     const store = userFiles;
-    
+
     // Check if templatePath starts with a forward slash indicating an absolute path
     if (templatePath.startsWith('/')) {
       // Remove the leading slash
       const normPath = templatePath.substring(1);
-      
+
       // Split the path into components
       const pathComponents = normPath.split('/');
       const lastComponent = pathComponents.pop();
       const templateName = lastComponent ?? '';
-      
+
       // Navigate through the directory structure
       let currentItems: IStructure = store;
-      
+
       for (const component of pathComponents) {
         const folder = currentItems.find(
           (item): item is IFolder =>
             item.type === 'folder' && item.name === component,
         );
-        
+
         if (!folder) {
           console.warn(`Folder not found in path: ${component}`);
           return '';
         }
-        
+
         currentItems = folder.children;
       }
-      
+
       // Find the template file in the final directory
       const templateFile = currentItems.find(
         (item): item is IFile =>
           item.type === 'file' && item.name === templateName,
       );
-      
+
       if (!templateFile) {
-        console.warn(`Template file not found: ${templateName} in specified path`);
+        console.warn(
+          `Template file not found: ${templateName} in specified path`,
+        );
         return '';
       }
-      
+
       function replaceOutsideTemplateSeparator(input: string): string {
         const placeholders: string[] = [];
         let index = 0;
@@ -190,7 +196,7 @@ export const buildProjectFiles = (
             .replace(/\n/g, '\\n'),
         );
       }
-      
+
       console.warn(`Template file not found in root: ${templatePath}`);
       return '';
     }
@@ -230,7 +236,9 @@ export const buildProjectFiles = (
       tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
       // Add primary key and required columns with matching template syntax
       'getPrimaryKey()': schemaInfoProcessed.getPrimaryKey(table.tableName),
-      'getRequiredColumns()': schemaInfoProcessed.getRequiredColumns(table.tableName),
+      'getRequiredColumns()': schemaInfoProcessed.getRequiredColumns(
+        table.tableName,
+      ),
       'getAllColumns()': schemaInfoProcessed.getAllColumns(table.tableName),
     };
   };
@@ -256,8 +264,10 @@ export const buildProjectFiles = (
     const options: ICommandOptions = {};
 
     parts.slice(1).forEach((part) => {
-      const [key, value] = part.trim().split(' ');
-      if (key === 'conditions' && typeof value === 'string') {
+      const [key, ...valueParts] = part.trim().split(' ');
+      const value = valueParts.join(' ');
+
+      if (key === 'conditions' && value) {
         const trimmedValue = value.trim();
         if (trimmedValue.length === 0) {
           return;
@@ -271,10 +281,47 @@ export const buildProjectFiles = (
         } else {
           options.conditions = [trimmedValue];
         }
-      } else if (key === 'template' && typeof value === 'string') {
+      } else if (key === 'template' && value) {
         const trimmedTemplate = value.trim();
         if (trimmedTemplate.length > 0) {
           options.template = trimmedTemplate;
+        }
+      } else if (key === 'related-files' && value && value.trim().length > 0) {
+        // Parse the related files array (e.g., [ CREATE_FILE(...), CREATE_FILE(...) ])
+        const trimmedValue = value.trim();
+        if (trimmedValue.startsWith('[') && trimmedValue.endsWith(']')) {
+          // Extract the array content and split by commas that are not inside parentheses
+          const relatedFilesContent = trimmedValue.slice(1, -1).trim();
+
+          // Use regex to split by commas not inside parentheses
+          const splitRelatedFiles = relatedFilesContent.split(/,(?![^(]*\))/);
+
+          options.relatedFiles = splitRelatedFiles
+            .map((cmd) => cmd.trim())
+            .filter((cmd) => cmd.length > 0);
+        } else {
+          console.warn(
+            `Invalid related-files format: ${value}. Expected format: [ CREATE_FILE(...), ... ]`,
+          );
+        }
+      } else if (key === 'use-related-table') {
+        // Boolean flag without value
+        options.useRelatedTable = true;
+      } else if (key === 'include-table' && value) {
+        // Extract table name from quotes if present
+        const tableNameMatch = /^"([^"]+)"$|^'([^']+)'$/.exec(value.trim());
+        if (tableNameMatch) {
+          options.includeTable = tableNameMatch[1] || tableNameMatch[2];
+        } else {
+          options.includeTable = value.trim();
+        }
+      } else if (key === 'exclude-table' && value) {
+        // Extract table name from quotes if present
+        const tableNameMatch = /^"([^"]+)"$|^'([^']+)'$/.exec(value.trim());
+        if (tableNameMatch) {
+          options.excludeTable = tableNameMatch[1] || tableNameMatch[2];
+        } else {
+          options.excludeTable = value.trim();
         }
       }
     });
@@ -462,12 +509,12 @@ export const buildProjectFiles = (
       : '';
 
     // Parse include and exclude filters
-    const includedFiles = includedFilesMatch 
-      ? includedFilesMatch[1].split(',').map(item => item.trim())
+    const includedFiles = includedFilesMatch
+      ? includedFilesMatch[1].split(',').map((item) => item.trim())
       : [];
-    
+
     const excludedFiles = excludedFilesMatch
-      ? excludedFilesMatch[1].split(',').map(item => item.trim()) 
+      ? excludedFilesMatch[1].split(',').map((item) => item.trim())
       : [];
 
     // Parse ignore list with flexible whitespace and handle USE_CONSTANT
@@ -573,10 +620,10 @@ export const buildProjectFiles = (
     const folderPathPattern = /^\/(.+)$/;
     // Create a map to store all placeholder values for each method/value
     const allPlaceholderValues = new Map<string, Record<string, string>>();
-    
+
     // Track filenames separately to apply include/exclude filters
     const fileNameMap = new Map<string, string>();
-    
+
     for (const path of propertyPaths) {
       const folderMatch = folderPathPattern.exec(path);
       if (folderMatch) {
@@ -617,21 +664,27 @@ export const buildProjectFiles = (
             if (item.type === 'file') {
               const fileName = item.name;
               const fileBaseName = fileName.replace(/\.[^.]+$/, '');
-              
+
               // Apply include/exclude filters based on the filename
-              const shouldInclude = includedFiles.length === 0 || 
-                includedFiles.some(pattern => fileName.includes(pattern));
-              
-              const shouldExclude = excludedFiles.length > 0 && 
-                excludedFiles.some(pattern => fileName.includes(pattern));
-              
+              const shouldInclude =
+                includedFiles.length === 0 ||
+                includedFiles.some((pattern) => fileName.includes(pattern));
+
+              const shouldExclude =
+                excludedFiles.length > 0 &&
+                excludedFiles.some((pattern) => fileName.includes(pattern));
+
               // Skip this file if it doesn't meet the include/exclude criteria
               if (!shouldInclude || shouldExclude) {
-                console.warn(`Skipping file ${fileName} based on include/exclude filters`);
+                console.warn(
+                  `Skipping file ${fileName} based on include/exclude filters`,
+                );
                 return;
               }
 
-              console.warn(`Processing file ${fileName} that matches include/exclude filters`);
+              console.warn(
+                `Processing file ${fileName} that matches include/exclude filters`,
+              );
 
               // For YAML files, try to extract structured data
               if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) {
@@ -726,7 +779,9 @@ export const buildProjectFiles = (
             continue;
           }
           case 'getRequiredColumns': {
-            const values = schemaInfoProcessed.getRequiredColumns(table.tableName);
+            const values = schemaInfoProcessed.getRequiredColumns(
+              table.tableName,
+            );
             allValues.push(...values);
             continue;
           }
@@ -846,9 +901,12 @@ export const buildProjectFiles = (
   ): string => {
     // First process all commands
     const processedText = processCommand(text, table);
-    
+
     // Then process IF conditions
-    const processedConditions = processIfConditions(processedText, replacements);
+    const processedConditions = processIfConditions(
+      processedText,
+      replacements,
+    );
 
     // Then handle the regular placeholders
     return processedConditions.replace(
@@ -874,7 +932,10 @@ export const buildProjectFiles = (
   };
 
   // Add a function to process ITERATE commands in template content
-  const processIterateInTemplate = (content: string, table?: ISchemaInfo): string => {
+  const processIterateInTemplate = (
+    content: string,
+    table?: ISchemaInfo,
+  ): string => {
     return content.replace(
       /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
       (fullMatch: string, propertyPathsStr: string, options: string) => {
@@ -882,29 +943,29 @@ export const buildProjectFiles = (
         if (!table && schemaInfo.length > 0) {
           table = schemaInfo[0];
         }
-        
+
         // If we have a valid table context, process the ITERATE command
         if (table) {
           const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
           const cmdResult = processIterateCommand(
             `ITERATE(${propertyPathsStr})${options}`,
-            table
+            table,
           );
           return cmdResult ? String(whitespace) + String(cmdResult) : '';
         }
-        
+
         // If no valid table context is available, return the original match
         return fullMatch;
-      }
+      },
     );
   };
 
   // Add this helper function right after formatFileContent
   const formatFileContent = (content: string): string => {
     return content
-      .replace(/\\n/g, '\n')  // Replace \n with actual newlines
+      .replace(/\\n/g, '\n') // Replace \n with actual newlines
       .replace(/\\t/g, '    ') // Replace \t with four spaces
-      .replace(/\t/g, '    ')  // Replace tab characters with four spaces
+      .replace(/\t/g, '    ') // Replace tab characters with four spaces
       .trim();
   };
 
@@ -921,7 +982,10 @@ export const buildProjectFiles = (
   ): IFile[] => {
     // Get the template content once
     let templateContent = '';
-    if (typeof options.template === 'string' && options.template.length > 0) {
+    if (
+      typeof options.template === 'string' &&
+      options.template.trim().length > 0
+    ) {
       const loadedContent = loadTemplateContent(options.template);
       if (loadedContent.length > 0) {
         templateContent = loadedContent;
@@ -931,37 +995,106 @@ export const buildProjectFiles = (
       templateContent = loadTemplateContent(fileName);
     }
 
-    const files: IFile[] = schemaInfo.map((table) => {
-      const replacements = getReplacementsForTable(table);
-      const processedName = replacePlaceholders(fileName, replacements);
+    const files: IFile[] = schemaInfo
+      .filter((table) => {
+        // Apply table filtering for include/exclude table flags
+        if (
+          (options.includeTable !== undefined &&
+            options.includeTable.trim().length > 0) ||
+          (options.excludeTable !== undefined &&
+            options.excludeTable.trim().length > 0) ||
+          options.useRelatedTable === true
+        ) {
+          // Process placeholders in the includeTable value
+          const replacements = getReplacementsForTable(table);
+          const processedIncludeTable = replacePlaceholders(
+            String(options.includeTable),
+            replacements,
+            table,
+          );
+          // Skip if the current table doesn't match the include filter
+          if (table.tableName !== processedIncludeTable) {
+            console.warn(
+              `Skipping ${String(fileName)} for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
+            );
+            return false;
+          }
+        }
 
-      // Extract the base filename from the processed path if it contains slashes
-      const outputFileName = processedName.includes('/') ? 
-        extractFileNameFromPath(processedName) : processedName;
+        // Process the new useRelatedTable flag
+        if (options.useRelatedTable === true) {
+          // Check for related tables in any of the relationship types
+          const hasRelationships =
+            [
+              ...(table.hasMany ?? []),
+              ...(table.hasOne ?? []),
+              ...(table.belongsTo ?? []),
+              ...(table.belongsToMany ?? []),
+            ].length > 0;
 
-      let content = '';
-      content = replacePlaceholders(
-        processLoopTables(templateContent),
-        {
-          ...replacements,
-          modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-          baseRoutesForController: options.baseRoutesForController ?? '',
-        },
-        table,
-      );
+          // Skip if there are no relationships
+          if (!hasRelationships) {
+            console.warn(
+              `Skipping ${String(fileName)} for table ${String(table.tableName)}: has no relationships`,
+            );
+            return false;
+          }
+        }
 
-      // Process ITERATE commands
-      content = processIterateInTemplate(content, table);
+        if (
+          options.excludeTable !== undefined &&
+          options.excludeTable.trim().length > 0
+        ) {
+          // Process placeholders in the excludeTable value
+          const replacements = getReplacementsForTable(table);
+          const processedExcludeTable = replacePlaceholders(
+            String(options.excludeTable),
+            replacements,
+            table,
+          );
+          // Skip if the current table matches the exclude filter
+          if (table.tableName === processedExcludeTable) {
+            console.warn(
+              `Skipping ${String(fileName)} for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
+            );
+            return false;
+          }
+        }
 
-      // Format with consistent character handling
-      const finalContent = formatFileContent(content);
+        return true;
+      })
+      .map((table) => {
+        const replacements = getReplacementsForTable(table);
+        const processedName = replacePlaceholders(fileName, replacements);
 
-      return {
-        type: 'file',
-        name: outputFileName,
-        content: finalContent,
-      };
-    });
+        // Extract the base filename from the processed path if it contains slashes
+        const outputFileName = processedName.includes('/')
+          ? extractFileNameFromPath(processedName)
+          : processedName;
+
+        let content = '';
+        content = replacePlaceholders(
+          processLoopTables(templateContent),
+          {
+            ...replacements,
+            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+            baseRoutesForController: options.baseRoutesForController ?? '',
+          },
+          table,
+        );
+
+        // Process ITERATE commands
+        content = processIterateInTemplate(content, table);
+
+        // Format with consistent character handling
+        const finalContent = formatFileContent(content);
+
+        return {
+          type: 'file',
+          name: outputFileName,
+          content: finalContent,
+        };
+      });
 
     // Filter out any empty files
     return files;
@@ -1098,32 +1231,145 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        const schemaInfoProcessed =
+          schemaInfo.length > 0 ? schemaInfo[0] : undefined;
         if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
+        // Apply table filtering for CREATE_FILE
+        if (
+          (options.includeTable !== undefined &&
+            options.includeTable.trim().length > 0) ||
+          (options.excludeTable !== undefined &&
+            options.excludeTable.trim().length > 0) ||
+          options.useRelatedTable === true
+        ) {
+          const filteredResults: IStructure = [];
+
+          for (const table of schemaInfo) {
+            const replacements = getReplacementsForTable(table);
+
+            // Check include filter
+            if (
+              options.includeTable !== undefined &&
+              options.includeTable.trim().length > 0
+            ) {
+              const processedIncludeTable = replacePlaceholders(
+                String(options.includeTable),
+                replacements,
+                table,
+              );
+              if (table.tableName !== processedIncludeTable) {
+                console.warn(
+                  `Skipping CREATE_FILE for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
+                );
+                continue;
+              }
+            }
+
+            // Check exclude filter
+            if (
+              options.excludeTable !== undefined &&
+              options.excludeTable.trim().length > 0
+            ) {
+              const processedExcludeTable = replacePlaceholders(
+                String(options.excludeTable),
+                replacements,
+                table,
+              );
+              if (table.tableName === processedExcludeTable) {
+                console.warn(
+                  `Skipping CREATE_FILE for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
+                );
+                continue;
+              }
+            }
+
+            // Check useRelatedTable flag
+            if (options.useRelatedTable === true) {
+              // Check for related tables in any of the relationship types
+              const hasRelationships =
+                [
+                  ...(table.hasMany ?? []),
+                  ...(table.hasOne ?? []),
+                  ...(table.belongsTo ?? []),
+                  ...(table.belongsToMany ?? []),
+                ].length > 0;
+
+              // Skip if there are no relationships
+              if (!hasRelationships) {
+                console.warn(
+                  `Skipping CREATE_FILE for table ${String(table.tableName)}: has no relationships`,
+                );
+                continue;
+              }
+            }
+
+            const processedName = replacePlaceholders(command, replacements);
+            const outputFileName = processedName.includes('/')
+              ? extractFileNameFromPath(processedName)
+              : processedName.replace(/[()]/g, '');
+
+            // Load and process template content
+            const templateContent = loadTemplateContent(
+              options.template ?? processedName,
+            );
+
+            // Process the template with all replacements
+            let processedContent = replacePlaceholders(
+              processLoopTables(templateContent),
+              replacements,
+              table,
+            );
+
+            // Process ITERATE commands explicitly
+            processedContent = processIterateInTemplate(
+              processedContent,
+              table,
+            );
+
+            // Format the final content with proper character replacements
+            const finalContent = formatFileContent(processedContent);
+
+            filteredResults.push({
+              type: 'file',
+              name: outputFileName,
+              content: finalContent,
+            });
+          }
+
+          return filteredResults;
+        }
+
+        // Original behavior for backward compatibility (no include/exclude filters)
         const replacements = getReplacementsForTable(schemaInfoProcessed);
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
-        const outputFileName = processedName.includes('/') ? 
-          extractFileNameFromPath(processedName) : processedName.replace(/[()]/g, '');
+        const outputFileName = processedName.includes('/')
+          ? extractFileNameFromPath(processedName)
+          : processedName.replace(/[()]/g, '');
 
         // Load and process template content
-        const templateContent = loadTemplateContent(options.template ?? processedName);
-        
+        const templateContent = loadTemplateContent(
+          options.template ?? processedName,
+        );
+
         // Process the template with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfoProcessed
+          schemaInfoProcessed,
         );
-        
+
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
-        
+        processedContent = processIterateInTemplate(
+          processedContent,
+          schemaInfoProcessed,
+        );
+
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
 
@@ -1134,6 +1380,137 @@ export const buildProjectFiles = (
             content: finalContent,
           },
         ];
+      }
+      if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
+        const { command, options } = parseCommand(node.slice(21, -1));
+
+        // When inside a dynamic folder context (processYamlNodeWithContext) with --use-related-table flag,
+        // use only the current table context rather than looping over all tables
+        if (options.useRelatedTable ?? false) {
+          // First check if the current table has relationships if that's required
+          const hasRelationships =
+            [
+              ...(table.hasMany ?? []),
+              ...(table.hasOne ?? []),
+              ...(table.belongsTo ?? []),
+              ...(table.belongsToMany ?? []),
+            ].length > 0;
+
+          // Skip if there are no relationships
+          if (!hasRelationships) {
+            console.warn(
+              `Skipping ${String(command)} for table ${String(table.tableName)}: has no relationships`,
+            );
+            return [];
+          }
+
+          // Get the template content
+          let templateContent = '';
+          if (
+            typeof options.template === 'string' &&
+            options.template.trim().length > 0
+          ) {
+            const loadedContent = loadTemplateContent(options.template);
+            if (loadedContent.length > 0) {
+              templateContent = loadedContent;
+            }
+          } else {
+            // Try to load template based on filename if no template option provided
+            templateContent = loadTemplateContent(command);
+          }
+
+          // Process the file with the current table context only
+          const replacements = getReplacementsForTable(table);
+          const processedName = replacePlaceholders(command, replacements);
+
+          // Extract the base filename from the processed path if it contains slashes
+          const outputFileName = processedName.includes('/')
+            ? extractFileNameFromPath(processedName)
+            : processedName;
+
+          let content = '';
+          content = replacePlaceholders(
+            processLoopTables(templateContent),
+            {
+              ...replacements,
+              modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+              baseRoutesForController: options.baseRoutesForController ?? '',
+            },
+            table,
+          );
+
+          // Process ITERATE commands
+          content = processIterateInTemplate(content, table);
+
+          // Format with consistent character handling
+          const finalContent = formatFileContent(content);
+
+          return [
+            {
+              type: 'file',
+              name: outputFileName,
+              content: finalContent,
+            },
+          ];
+        }
+
+        // Skip generation if the current table doesn't match include table filter
+        if (
+          options.includeTable !== undefined &&
+          options.includeTable.trim().length > 0
+        ) {
+          const replacements = getReplacementsForTable(table);
+          const processedIncludeTable = replacePlaceholders(
+            String(options.includeTable),
+            replacements,
+            table,
+          );
+
+          if (table.tableName !== processedIncludeTable) {
+            console.warn(
+              `Skipping ${String(command)} for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
+            );
+            return [];
+          }
+        }
+
+        // Check useRelatedTable flag (legacy behavior outside dynamic folders)
+        // Check for related tables in any of the relationship types
+        const hasRelationships =
+          [
+            ...(table.hasMany ?? []),
+            ...(table.hasOne ?? []),
+            ...(table.belongsTo ?? []),
+            ...(table.belongsToMany ?? []),
+          ].length > 0;
+
+        // Skip if there are no relationships
+        if (!hasRelationships) {
+          console.warn(
+            `Skipping ${String(command)} for table ${String(table.tableName)}: has no relationships`,
+          );
+          return [];
+        }
+
+        // Skip generation if the current table matches exclude table filter
+        if (
+          options.excludeTable !== undefined &&
+          options.excludeTable.trim().length > 0
+        ) {
+          const replacements = getReplacementsForTable(table);
+          const processedExcludeTable = replacePlaceholders(
+            String(options.excludeTable),
+            replacements,
+            table,
+          );
+
+          if (table.tableName === processedExcludeTable) {
+            console.warn(
+              `Skipping ${String(command)} for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
+            );
+            return [];
+          }
+        }
       }
       if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
         const { command, options } = parseCommand(node.slice(21, -1));
@@ -1152,29 +1529,32 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
-        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        const schemaInfoProcessed =
+          schemaInfo.length > 0 ? schemaInfo[0] : undefined;
         if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
         const replacements = getReplacementsForTable(schemaInfoProcessed);
-        
+
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfoProcessed
+          schemaInfoProcessed,
         );
-        
+
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
-        
+        processedContent = processIterateInTemplate(
+          processedContent,
+          schemaInfoProcessed,
+        );
+
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
 
         // Extract just the filename from the path
-        // Extract just the filename portion for the output
         const outputFileName = extractFileNameFromPath(node);
 
         return [
@@ -1239,85 +1619,150 @@ export const buildProjectFiles = (
     replacements: Record<string, string | string[]>,
   ): string => {
     // Process simple IF conditions without ENDIF
-    const simpleIfPattern = /{%\s*IF\s+([^\s]+)\s+EQUALS\s+['"]?([^'"%{}]*)['"]?\s*%}([^{%]*){%\s*ENDIF\s*%}/g;
-    content = content.replace(simpleIfPattern, (_match: string, variableName: string, value: string, ifContent: string) => {
-      console.warn(`Processing IF condition: ${String(variableName)} EQUALS "${String(value)}" with content length ${String(ifContent.length)}`);
-      
-      // Check if the variable exists
-      if (!(variableName in replacements)) {
-        console.warn(`Variable ${String(variableName)} not found in replacements`);
-        return '';
-      }
-      
-      const variableValue = typeof replacements[variableName] === 'string' 
-        ? String(replacements[variableName])  
-        : '';
-        
-      console.warn(`Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`);
-      
-      return variableValue === value ? ifContent : '';
-    });
-    
+    const simpleIfPattern =
+      /{%\s*IF\s+([^\s]+)\s+EQUALS\s+['"]?([^'"%{}]*)['"]?\s*%}([^{%]*){%\s*ENDIF\s*%}/g;
+    content = content.replace(
+      simpleIfPattern,
+      (
+        _match: string,
+        variableName: string,
+        value: string,
+        ifContent: string,
+      ) => {
+        console.warn(
+          `Processing IF condition: ${String(variableName)} EQUALS "${String(value)}" with content length ${String(ifContent.length)}`,
+        );
+
+        // Check if the variable exists
+        if (!(variableName in replacements)) {
+          console.warn(
+            `Variable ${String(variableName)} not found in replacements`,
+          );
+          return '';
+        }
+
+        const variableValue =
+          typeof replacements[variableName] === 'string'
+            ? String(replacements[variableName])
+            : '';
+
+        console.warn(
+          `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
+        );
+
+        return variableValue === value ? ifContent : '';
+      },
+    );
+
     // Process EQUALS with more complex content (may contain nested tags)
-    const complexEqualsPattern = /{%\s*IF\s+([^\s]+)\s+EQUALS\s+['"]?([^'"%{}]*)['"]?\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g;
-    content = content.replace(complexEqualsPattern, (_match: string, variableName: string, value: string, ifContent: string) => {
-      console.warn(`Processing complex IF condition: ${String(variableName)} EQUALS "${String(value)}" with content length ${String(ifContent.length)}`);
-      
-      // Check if the variable exists
-      if (!(variableName in replacements)) {
-        console.warn(`Variable ${String(variableName)} not found in replacements`);
-        return '';
-      }
-      
-      const variableValue = typeof replacements[variableName] === 'string' 
-        ? String(replacements[variableName])  
-        : '';
-        
-      console.warn(`Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`);
-      
-      return variableValue === value ? ifContent : '';
-    });
-    
+    const complexEqualsPattern =
+      /{%\s*IF\s+([^\s]+)\s+EQUALS\s+['"]?([^'"%{}]*)['"]?\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g;
+    content = content.replace(
+      complexEqualsPattern,
+      (
+        _match: string,
+        variableName: string,
+        value: string,
+        ifContent: string,
+      ) => {
+        console.warn(
+          `Processing complex IF condition: ${String(variableName)} EQUALS "${String(value)}" with content length ${String(ifContent.length)}`,
+        );
+
+        // Check if the variable exists
+        if (!(variableName in replacements)) {
+          console.warn(
+            `Variable ${String(variableName)} not found in replacements`,
+          );
+          return '';
+        }
+
+        const variableValue =
+          typeof replacements[variableName] === 'string'
+            ? String(replacements[variableName])
+            : '';
+
+        console.warn(
+          `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
+        );
+
+        return variableValue === value ? ifContent : '';
+      },
+    );
+
     // Process NOT EQUAL with more complex content
-    const notEqualsPattern = /{%\s*IF\s+([^\s]+)\s+NOT\s+EQUAL\s+['"]?([^'"%{}]*)['"]?\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g;
-    content = content.replace(notEqualsPattern, (_match: string, variableName: string, value: string, ifContent: string) => {
-      console.warn(`Processing NOT EQUAL condition: ${String(variableName)} NOT EQUAL "${String(value)}" with content length ${String(ifContent.length)}`);
-      
-      // Check if the variable exists
-      if (!(variableName in replacements)) {
-        console.warn(`Variable ${String(variableName)} not found in replacements`);
-        return '';
-      }
-      
-      const variableValue = typeof replacements[variableName] === 'string' 
-        ? String(replacements[variableName])  
-        : '';
-        
-      console.warn(`Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`);
-      
-      return variableValue !== value ? ifContent : '';
-    });
-    
+    const notEqualsPattern =
+      /{%\s*IF\s+([^\s]+)\s+NOT\s+EQUAL\s+['"]?([^'"%{}]*)['"]?\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g;
+    content = content.replace(
+      notEqualsPattern,
+      (
+        _match: string,
+        variableName: string,
+        value: string,
+        ifContent: string,
+      ) => {
+        console.warn(
+          `Processing NOT EQUAL condition: ${String(variableName)} NOT EQUAL "${String(value)}" with content length ${String(ifContent.length)}`,
+        );
+
+        // Check if the variable exists
+        if (!(variableName in replacements)) {
+          console.warn(
+            `Variable ${String(variableName)} not found in replacements`,
+          );
+          return '';
+        }
+
+        const variableValue =
+          typeof replacements[variableName] === 'string'
+            ? String(replacements[variableName])
+            : '';
+
+        console.warn(
+          `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
+        );
+
+        return variableValue !== value ? ifContent : '';
+      },
+    );
+
     // Process else condition format
-    const elsePattern = /{%\s*IF\s+([^\s]+)\s+EQUALS\s+['"]?([^'"%{}]*)['"]?\s*%}([\s\S]*?){%\s*ELSE\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g;
-    content = content.replace(elsePattern, (_match: string, variableName: string, value: string, ifContent: string, elseContent: string) => {
-      console.warn(`Processing IF/ELSE condition: ${String(variableName)} EQUALS "${String(value)}"`);
-      
-      // Check if the variable exists
-      if (!(variableName in replacements)) {
-        console.warn(`Variable ${String(variableName)} not found in replacements`);
-        return elseContent; // Use else content if variable isn't found
-      }
-      
-      const variableValue = typeof replacements[variableName] === 'string' 
-        ? String(replacements[variableName])  
-        : '';
-        
-      console.warn(`Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`);
-      
-      return variableValue === value ? ifContent : elseContent;
-    });
-    
+    const elsePattern =
+      /{%\s*IF\s+([^\s]+)\s+EQUALS\s+['"]?([^'"%{}]*)['"]?\s*%}([\s\S]*?){%\s*ELSE\s*%}([\s\S]*?){%\s*ENDIF\s*%}/g;
+    content = content.replace(
+      elsePattern,
+      (
+        _match: string,
+        variableName: string,
+        value: string,
+        ifContent: string,
+        elseContent: string,
+      ) => {
+        console.warn(
+          `Processing IF/ELSE condition: ${String(variableName)} EQUALS "${String(value)}"`,
+        );
+
+        // Check if the variable exists
+        if (!(variableName in replacements)) {
+          console.warn(
+            `Variable ${String(variableName)} not found in replacements`,
+          );
+          return elseContent; // Use else content if variable isn't found
+        }
+
+        const variableValue =
+          typeof replacements[variableName] === 'string'
+            ? String(replacements[variableName])
+            : '';
+
+        console.warn(
+          `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
+        );
+
+        return variableValue === value ? ifContent : elseContent;
+      },
+    );
+
     return content;
   };
 
@@ -1336,32 +1781,145 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        const schemaInfoProcessed =
+          schemaInfo.length > 0 ? schemaInfo[0] : undefined;
         if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
+        // Apply table filtering for CREATE_FILE
+        if (
+          (options.includeTable !== undefined &&
+            options.includeTable.trim().length > 0) ||
+          (options.excludeTable !== undefined &&
+            options.excludeTable.trim().length > 0) ||
+          options.useRelatedTable === true
+        ) {
+          const filteredResults: IStructure = [];
+
+          for (const table of schemaInfo) {
+            const replacements = getReplacementsForTable(table);
+
+            // Check include filter
+            if (
+              options.includeTable !== undefined &&
+              options.includeTable.trim().length > 0
+            ) {
+              const processedIncludeTable = replacePlaceholders(
+                String(options.includeTable),
+                replacements,
+                table,
+              );
+              if (table.tableName !== processedIncludeTable) {
+                console.warn(
+                  `Skipping CREATE_FILE for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
+                );
+                continue;
+              }
+            }
+
+            // Check exclude filter
+            if (
+              options.excludeTable !== undefined &&
+              options.excludeTable.trim().length > 0
+            ) {
+              const processedExcludeTable = replacePlaceholders(
+                String(options.excludeTable),
+                replacements,
+                table,
+              );
+              if (table.tableName === processedExcludeTable) {
+                console.warn(
+                  `Skipping CREATE_FILE for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
+                );
+                continue;
+              }
+            }
+
+            // Check useRelatedTable flag
+            if (options.useRelatedTable === true) {
+              // Check for related tables in any of the relationship types
+              const hasRelationships =
+                [
+                  ...(table.hasMany ?? []),
+                  ...(table.hasOne ?? []),
+                  ...(table.belongsTo ?? []),
+                  ...(table.belongsToMany ?? []),
+                ].length > 0;
+
+              // Skip if there are no relationships
+              if (!hasRelationships) {
+                console.warn(
+                  `Skipping CREATE_FILE for table ${String(table.tableName)}: has no relationships`,
+                );
+                continue;
+              }
+            }
+
+            const processedName = replacePlaceholders(command, replacements);
+            const outputFileName = processedName.includes('/')
+              ? extractFileNameFromPath(processedName)
+              : processedName.replace(/[()]/g, '');
+
+            // Load and process template content
+            const templateContent = loadTemplateContent(
+              options.template ?? processedName,
+            );
+
+            // Process the template with all replacements
+            let processedContent = replacePlaceholders(
+              processLoopTables(templateContent),
+              replacements,
+              table,
+            );
+
+            // Process ITERATE commands explicitly
+            processedContent = processIterateInTemplate(
+              processedContent,
+              table,
+            );
+
+            // Format the final content with proper character replacements
+            const finalContent = formatFileContent(processedContent);
+
+            filteredResults.push({
+              type: 'file',
+              name: outputFileName,
+              content: finalContent,
+            });
+          }
+
+          return filteredResults;
+        }
+
+        // Original behavior for backward compatibility (no include/exclude filters)
         const replacements = getReplacementsForTable(schemaInfoProcessed);
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
-        const outputFileName = processedName.includes('/') ? 
-          extractFileNameFromPath(processedName) : processedName.replace(/[()]/g, '');
+        const outputFileName = processedName.includes('/')
+          ? extractFileNameFromPath(processedName)
+          : processedName.replace(/[()]/g, '');
 
         // Load and process template content
-        const templateContent = loadTemplateContent(options.template ?? processedName);
-        
+        const templateContent = loadTemplateContent(
+          options.template ?? processedName,
+        );
+
         // Process the template with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfoProcessed
+          schemaInfoProcessed,
         );
-        
+
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
-        
+        processedContent = processIterateInTemplate(
+          processedContent,
+          schemaInfoProcessed,
+        );
+
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
 
@@ -1390,24 +1948,28 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
-        const schemaInfoProcessed = schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+        const schemaInfoProcessed =
+          schemaInfo.length > 0 ? schemaInfo[0] : undefined;
         if (!schemaInfoProcessed) {
           console.warn('No schema information available for replacements.');
           return [];
         }
 
         const replacements = getReplacementsForTable(schemaInfoProcessed);
-        
+
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
           processLoopTables(templateContent),
           replacements,
-          schemaInfoProcessed
+          schemaInfoProcessed,
         );
-        
+
         // Process ITERATE commands explicitly
-        processedContent = processIterateInTemplate(processedContent, schemaInfoProcessed);
-        
+        processedContent = processIterateInTemplate(
+          processedContent,
+          schemaInfoProcessed,
+        );
+
         // Format the final content with proper character replacements
         const finalContent = formatFileContent(processedContent);
 
