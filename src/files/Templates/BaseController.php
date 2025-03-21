@@ -15,14 +15,12 @@ abstract class BaseController extends Controller
     }
 
     // CRUD
-[[ITERATE(/BaseMethods/laravel/crud) --template="
-    public function {{controllerMethod}}
+[[ITERATE(/BaseMethods/laravel/crud) --template="    public function {{controllerMethod}}
     {
 {{controllerContent}}    }"]]
 
     // Advanced Operations
-[[ITERATE(/BaseMethods/laravel/advanced-operations) --template="
-    public function {{controllerMethod}}
+[[ITERATE(/BaseMethods/laravel/advanced-operations) --template="    public function {{controllerMethod}}
     {
 {{controllerContent}}    }"]]
 }
