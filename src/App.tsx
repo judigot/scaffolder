@@ -90,7 +90,7 @@ function App() {
 
         // const projectFileContent = projectFile.content;
 
-        setUserFiles(buildProjectFiles("/Projects/Laravel.yaml", result));
+        setUserFiles(buildProjectFiles("/Projects/Laravel.yaml", result, schemaInfo));
       })
       .catch((error: unknown) => {
         // Failure
@@ -99,7 +99,7 @@ function App() {
         }
         throw new Error(`Unknown error: ${String(error)}`);
       });
-  }, []);
+  }, [schemaInfo]);
 
   useEffect(() => {
     setTransformations();

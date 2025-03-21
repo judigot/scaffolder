@@ -1,7 +1,6 @@
 import { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
 import config from '@/config/config.ts';
-import masterSchema from '@/schema-infos/masterSchema.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
@@ -13,12 +12,13 @@ const folderConfig = {
   methodGroupFileAlt: 'base-method-group.yaml',
 };
 
-const schemaInfo = getSchemaInfo(masterSchema);
 
 export const buildProjectFiles = (
   projectYamlPath: string,
   userFiles: IStructure,
+  schemaInfoRaw: ISchemaInfo[],
 ): IStructure => {
+  const schemaInfo = getSchemaInfo(schemaInfoRaw);
   interface ICommandOptions {
     conditions?: string[];
     template?: string;
@@ -472,7 +472,7 @@ export const buildProjectFiles = (
     // Handle regular table loops
     const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
     return content.replace(loopRegex, (_match: string, loopContent: string) => {
-      return masterSchema
+      return schemaInfoRaw
         .map((table) => {
           const replacements = getReplacementsForTable(table);
           return replacePlaceholders(
@@ -1050,8 +1050,8 @@ export const buildProjectFiles = (
       /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
       (fullMatch: string, propertyPathsStr: string, options: string) => {
         // If no table context is provided, try to use the first schema
-        if (!table && masterSchema.length > 0) {
-          table = masterSchema[0];
+        if (!table && schemaInfoRaw.length > 0) {
+          table = schemaInfoRaw[0];
         }
         
         // If we have a valid table context, process the ITERATE command
@@ -1102,7 +1102,7 @@ export const buildProjectFiles = (
       templateContent = loadTemplateContent(fileName);
     }
 
-    const files: IFile[] = masterSchema.map((table) => {
+    const files: IFile[] = schemaInfoRaw.map((table) => {
       const replacements = getReplacementsForTable(table);
       const processedName = replacePlaceholders(fileName, replacements);
 
@@ -1142,7 +1142,7 @@ export const buildProjectFiles = (
     folderName: string,
     children: unknown,
   ): IStructure => {
-    return masterSchema.map((table) => {
+    return schemaInfoRaw.map((table) => {
       const replacements = getReplacementsForTable(table);
       const processedName = replacePlaceholders(folderName, replacements);
 
@@ -1269,7 +1269,7 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
         if (!schemaInfo) {
           console.warn('No schema information available for replacements.');
           return [];
@@ -1323,7 +1323,7 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
-        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
         if (!schemaInfo) {
           console.warn('No schema information available for replacements.');
           return [];
@@ -1507,7 +1507,7 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
         if (!schemaInfo) {
           console.warn('No schema information available for replacements.');
           return [];
@@ -1561,7 +1561,7 @@ export const buildProjectFiles = (
       // Handle bare filenames by looking for templates
       const templateContent = loadTemplateContent(node);
       if (templateContent.length > 0) {
-        const schemaInfo = masterSchema.length > 0 ? masterSchema[0] : undefined;
+        const schemaInfo = schemaInfoRaw.length > 0 ? schemaInfoRaw[0] : undefined;
         if (!schemaInfo) {
           console.warn('No schema information available for replacements.');
           return [];
