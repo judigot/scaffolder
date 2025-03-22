@@ -155,7 +155,7 @@ function App() {
       })
       .then((userFilesFromPublicRepo: IStructure) => {
         // Set the files in the store
-        setUserFiles({ userFiles: userFilesFromPublicRepo, schemaInfo });
+        setUserFiles({ userFiles: userFilesFromPublicRepo });
         setIsGitHubLoading(false);
       })
       .catch((error: unknown) => {
