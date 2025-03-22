@@ -15,6 +15,7 @@ import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 
 function App() {
   const formData = useFormStore();
@@ -79,6 +80,31 @@ function App() {
   };
 
   const { setIsSQLSchemaModalOpen, setSQLSchemaEditable } = useModalStore();
+
+  // Sanitize GitHub URL by removing spaces and unnecessary characters
+  const sanitizeGitHubURL = (url: string): string => {
+    // Remove all spaces
+    return url.replace(/\s+/g, '').trim();
+  };
+
+  // Validate GitHub URL format
+  const isValidGitHubURL = (url: string): boolean => {
+    return url === '' || url.startsWith('https://github.com/');
+  };
+
+  // State for input value before being committed to store
+  const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
+  
+  // Use our custom hook to debounce updates to the Zustand store
+  const [debouncedRepoURL] = useDebouncedValue(inputRepoURL, 500);
+
+  // Update the Zustand store when the debounced value changes
+  useEffect(() => {
+    // Only update the store if the value has actually changed
+    if (debouncedRepoURL !== publicRepoURL) {
+      setPublicRepoURL(debouncedRepoURL);
+    }
+  }, [debouncedRepoURL, publicRepoURL, setPublicRepoURL]);
 
   useEffect(() => {
     /**
@@ -512,9 +538,16 @@ function App() {
                 name="publicRepoURL"
                 type="text"
                 placeholder="Public repository URL: e.g., https://github.com/user/scaffolder-files"
-                value={publicRepoURL}
-                onChange={(e) => { setPublicRepoURL(e.target.value); }}
-                className="mb-2 p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                value={inputRepoURL}
+                onChange={(e) => {
+                  const sanitizedValue = sanitizeGitHubURL(e.target.value);
+                  setInputRepoURL(sanitizedValue);
+                }}
+                className={`mb-2 p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+                  !isValidGitHubURL(inputRepoURL) && inputRepoURL !== '' 
+                    ? 'border-red-500' 
+                    : 'border-gray-700'
+                }`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -523,6 +556,11 @@ function App() {
                   }
                 }}
               />
+              {!isValidGitHubURL(inputRepoURL) && inputRepoURL !== '' && (
+                <div className="text-red-500 text-xs mt-1">
+                  URL must start with https://github.com/
+                </div>
+              )}
               Project:
               <select
                 id="framework"
