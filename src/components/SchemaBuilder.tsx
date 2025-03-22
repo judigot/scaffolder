@@ -594,7 +594,7 @@ function SchemaBuilder() {
                       >
                         Add Many-to-Many
                       </button>
-                      <button className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
+                      {/* <button className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
                         Add Self-Referencing Relationship
                       </button>
                       <button className="px-3 py-1 bg-red-500 text-black font-bold rounded">
@@ -617,7 +617,7 @@ function SchemaBuilder() {
                       </button>
                       <button className="px-3 py-1 bg-lime-500 text-black font-bold rounded">
                         Add Optional Relationship
-                      </button>
+                      </button> */}
                     </div>
                     <br />
                   </>

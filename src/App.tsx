@@ -13,7 +13,6 @@ import { CREATION_MODES } from '@/constants.ts';
 import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 
@@ -24,7 +23,7 @@ function App() {
     backendDir,
     frontendDir,
     dbConnection,
-    framework,
+    // framework,
     includeInsertData,
     insertOption,
     includeTypeGuards,
@@ -94,7 +93,7 @@ function App() {
 
   // State for input value before being committed to store
   const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
-  
+
   // Use our custom hook to debounce updates to the Zustand store
   const [debouncedRepoURL] = useDebouncedValue(inputRepoURL, 500);
 
@@ -191,11 +190,11 @@ function App() {
   });
 
   // Pre-calculate folder structures to avoid conditional hook calls
-  const formDataState = useFormStore();
-  const folderStructures = useFolderStructures({
-    schemaInfo,
-    formData: formDataState,
-  });
+  // const formDataState = useFormStore();
+  // const folderStructures = useFolderStructures({
+  //   schemaInfo,
+  //   formData: formDataState,
+  // });
 
   return (
     <div className="text-white bg-black">
@@ -470,7 +469,7 @@ function App() {
             <i className="text-xs">{dbConnection}</i>
           </button>
 
-          <button
+          {/* <button
             title={JSON.stringify(
               schemaInfo.map(
                 ({
@@ -486,14 +485,27 @@ function App() {
             onClick={(e) => {
               e.preventDefault();
 
-              /* prettier-ignore */ handleCopy(JSON.stringify(schemaInfo.map( ({ requiredColumns: _1, columnsInfo: _2, foreignKeys: _3, ...newObject }) => newObject, ), null, 4));
+              handleCopy(
+                JSON.stringify(
+                  schemaInfo.map(
+                    ({
+                      requiredColumns: _1,
+                      columnsInfo: _2,
+                      foreignKeys: _3,
+                      ...newObject
+                    }) => newObject,
+                  ),
+                  null,
+                  4,
+                ),
+              );
             }}
             className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
           >
             Copy Schema Info
-          </button>
+          </button> */}
 
-          <button
+          {/* <button
             title={JSON.stringify(schemaInfo, null, 4)}
             onClick={(e) => {
               e.preventDefault();
@@ -502,7 +514,7 @@ function App() {
             className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
           >
             Copy Schema Info with Columns
-          </button>
+          </button> */}
         </div>
       </nav>
 
@@ -533,6 +545,7 @@ function App() {
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Generated Code</h2>
             <div className="block text-sm font-medium">
+              Public GitHub Repository URL:
               <input
                 id="publicRepoURL"
                 name="publicRepoURL"
@@ -544,8 +557,8 @@ function App() {
                   setInputRepoURL(sanitizedValue);
                 }}
                 className={`mb-2 p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-                  !isValidGitHubURL(inputRepoURL) && inputRepoURL !== '' 
-                    ? 'border-red-500' 
+                  !isValidGitHubURL(inputRepoURL) && inputRepoURL !== ''
+                    ? 'border-red-500'
                     : 'border-gray-700'
                 }`}
                 onKeyDown={(e) => {
@@ -661,14 +674,14 @@ function App() {
                     </div> */}
                     {/* <FileViewer mode="edit" folderStructure={[]} /> */}
                     <FileViewer mode="edit" folderStructure={projectFiles} />
-                    <FileViewer
+                    {/* <FileViewer
                       mode="view"
                       folderStructure={folderStructures[framework]}
                     />
                     <FileViewer
                       mode="view"
                       folderStructure={folderStructures.frontend}
-                    />
+                    /> */}
                   </>
                 );
               })()}

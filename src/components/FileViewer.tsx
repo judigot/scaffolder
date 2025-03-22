@@ -545,14 +545,14 @@ function FileViewer({
         <div className="col-span-1 bg-gray-800 select-none mr-2">
           <div>
             <div className="flex justify-between mb-4">
-              <button
+              {/* <button
                 onClick={() => {
                   handleCopy(JSON.stringify(folderStructure, null, 4));
                 }}
                 className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >
                 Copy Folder Structure
-              </button>
+              </button> */}
 
               {mode === 'edit' && (
                 <div className="flex space-x-2">
