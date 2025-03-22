@@ -63,7 +63,7 @@ function App() {
     >,
   ) => {
     const { name, value, type } = e.target;
-    if (name === 'framework') {
+    if (name === 'project') {
       const project = projects.find((project) => project.name === value);
       if (project) {
         setProject(project);
@@ -576,8 +576,8 @@ function App() {
               )}
               Project:
               <select
-                id="framework"
-                name="framework"
+                id="project"
+                name="project"
                 value={project?.name}
                 onChange={handleChange}
                 className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
@@ -673,10 +673,10 @@ function App() {
                       />
                     </div> */}
                     {/* <FileViewer mode="edit" folderStructure={[]} /> */}
-                    <FileViewer 
-                      mode="edit" 
+                    <FileViewer
+                      mode="edit"
                       folderStructure={projectFiles}
-                      projectName={project?.name} 
+                      projectName={project?.name}
                     />
                     {/* <FileViewer
                       mode="view"
