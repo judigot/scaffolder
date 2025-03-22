@@ -51,54 +51,85 @@ function App() {
   const { projectFiles, projects, project, setUserFiles, setProject } =
     useMockDatabaseStore();
 
-  useEffect(() => {
-    fetch(`http://localhost:5000/userFiles`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((response) => response.json())
-      .then((userFiles: IStructure) => {
-        setUserFiles({ userFiles, schemaInfo });
-        // Success
-        // const folderName = 'Projects';
-        // const fileName = 'Laravel.yaml';
-        // const objectIndex: number = userFiles.findIndex(
-        //   (object): boolean => object.name === folderName,
-        // );
-        // if (objectIndex === -1) {
-        //   throw new Error(`Folder ${folderName} not found`);
-        // }
-        // const projectsFolder = userFiles[objectIndex];
-        // if (
-        //   !('children' in projectsFolder) ||
-        //   !Array.isArray(projectsFolder.children)
-        // ) {
-        //   throw new Error(`Folder ${folderName} is not a valid folder`);
-        // }
-        // const fileIndex = projectsFolder.children.findIndex(
-        //   (object): boolean => object.name === fileName,
-        // );
-        // if (fileIndex === -1) {
-        //   throw new Error(`File ${fileName} not found in folder ${folderName}`);
-        // }
-        // const projectFile = projectsFolder.children[fileIndex];
-        // if (!('content' in projectFile)) {
-        //   throw new Error(`File ${fileName} is not a valid file`);
-        // }
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isGitHubLoading, setIsGitHubLoading] = useState<boolean>(false);
+  const [gitHubError, setGitHubError] = useState<string | null>(null);
 
-        // setUserFiles(
-        //   buildProjectFiles('/Projects/Laravel.yaml', userFiles, schemaInfo),
-        // );
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value, type } = e.target;
+    if (name === 'framework') {
+      const project = projects.find((project) => project.name === value);
+      if (project) {
+        setProject(project);
+      }
+      return;
+    }
+    const checked = e.target instanceof HTMLInputElement && e.target.checked;
+    const newFormData = {
+      ...useFormStore.getState(),
+      [name]: type === 'checkbox' ? checked : value,
+    };
+    useFormStore.setState(newFormData);
+  };
+
+  const { setIsSQLSchemaModalOpen, setSQLSchemaEditable } = useModalStore();
+
+  useEffect(() => {
+    /**
+     * Fetches repository files from the server-side /getUserFilesFromPublicRepo endpoint
+     * 
+     * This implementation:
+     * 1. Makes a request to our server endpoint that handles GitHub repository fetching
+     * 2. The server downloads and processes files from judigot/scaffolder-files repository
+     * 3. Avoids CORS issues by having the server handle the GitHub API requests
+     * 
+     * The expected server response structure is:
+     * - Projects/ (containing project template files like Laravel.yaml)
+     * - Templates/ (containing template files)
+     * - Other required folders and files
+     */
+    setIsGitHubLoading(true);
+    setGitHubError(null);
+    
+    // Define the error response type
+    interface IErrorResponse {
+      error?: string;
+      message?: string;
+    }
+    
+    // Fetch from our server endpoint that gets files from GitHub
+    fetch('http://localhost:5000/getUserFilesFromPublicRepo')
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then((err: IErrorResponse) => {
+            throw new Error(
+              err.message !== undefined && err.message !== '' 
+                ? err.message 
+                : 'Failed to fetch repository files'
+            );
+          });
+        }
+        return response.json();
+      })
+      .then((userFiles: IStructure) => {
+        // Set the files in the store
+        setUserFiles({ userFiles, schemaInfo });
+        setIsGitHubLoading(false);
       })
       .catch((error: unknown) => {
         // Failure
+        setIsGitHubLoading(false);
         if (error instanceof Error) {
-          throw new Error(error.message);
+          setGitHubError(`Failed to fetch repository files: ${error.message}`);
+          console.error(`Failed to fetch repository files: ${error.message}`);
+        } else {
+          setGitHubError(`Unknown error: ${String(error)}`);
+          console.error(`Unknown error: ${String(error)}`);
         }
-        throw new Error(`Unknown error: ${String(error)}`);
       });
   }, [schemaInfo, setUserFiles]);
 
@@ -125,30 +156,12 @@ function App() {
     isDBConnectionValid: true,
   });
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value, type } = e.target;
-    if (name === 'framework') {
-      const project = projects.find((project) => project.name === value);
-      if (project) {
-        setProject(project);
-      }
-      return;
-    }
-    const checked = e.target instanceof HTMLInputElement && e.target.checked;
-    const newFormData = {
-      ...useFormStore.getState(),
-      [name]: type === 'checkbox' ? checked : value,
-    };
-    useFormStore.setState(newFormData);
-  };
-
-  const { setIsSQLSchemaModalOpen, setSQLSchemaEditable } = useModalStore();
+  // Pre-calculate folder structures to avoid conditional hook calls
+  const formDataState = useFormStore();
+  const folderStructures = useFolderStructures({ 
+    schemaInfo, 
+    formData: formDataState 
+  });
 
   return (
     <div className="text-white bg-black">
@@ -503,35 +516,71 @@ function App() {
               </select>
             </div>
             <div>
-              {/* <div className="bg-blue-500  text-white font-bold">
-                <FileViewer
-                  folderColor={'yellow'}
-                  folderStructure={useFolderStructures(schemaInfo)[framework]}
-                />
-              </div>
-              <div className="bg-green-500 flex text-white font-bold">
-                <FileViewer
-                  folderColor={'green'}
-                  folderStructure={useFolderStructures(schemaInfo).frontend}
-                />
-              </div> */}
-              {/* <FileViewer mode="edit" folderStructure={[]} /> */}
-              <FileViewer mode="edit" folderStructure={projectFiles} />
-              <FileViewer
-                mode="view"
-                folderStructure={
-                  useFolderStructures({ schemaInfo, formData: useFormStore() })[
-                    framework
-                  ]
+              {(() => {
+                if (isGitHubLoading) {
+                  return (
+                    <div className="flex items-center justify-center h-40 bg-gray-900 rounded-md">
+                      <div className="text-white">
+                        <svg className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading repository files from GitHub...
+                      </div>
+                    </div>
+                  );
                 }
-              />
-              <FileViewer
-                mode="view"
-                folderStructure={
-                  useFolderStructures({ schemaInfo, formData: useFormStore() })
-                    .frontend
+                
+                if (gitHubError !== null) {
+                  return (
+                    <div className="flex items-center justify-center h-40 bg-gray-900 rounded-md">
+                      <div className="text-red-500 text-center p-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-500 inline-block mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="font-bold mb-2">Error Loading Repository Files</div>
+                        <div>{gitHubError}</div>
+                        <button 
+                          onClick={() => {
+                            setGitHubError(null);
+                            window.location.reload();
+                          }}
+                          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring focus:ring-red-500 focus:ring-opacity-50"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    </div>
+                  );
                 }
-              />
+                
+                return (
+                  <>
+                    {/* <div className="bg-blue-500  text-white font-bold">
+                      <FileViewer
+                        folderColor={'yellow'}
+                        folderStructure={folderStructures[framework]}
+                      />
+                    </div>
+                    <div className="bg-green-500 flex text-white font-bold">
+                      <FileViewer
+                        folderColor={'green'}
+                        folderStructure={folderStructures.frontend}
+                      />
+                    </div> */}
+                    {/* <FileViewer mode="edit" folderStructure={[]} /> */}
+                    <FileViewer mode="edit" folderStructure={projectFiles} />
+                    <FileViewer
+                      mode="view"
+                      folderStructure={folderStructures[framework]}
+                    />
+                    <FileViewer
+                      mode="view"
+                      folderStructure={folderStructures.frontend}
+                    />
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
