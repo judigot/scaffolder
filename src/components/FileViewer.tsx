@@ -25,6 +25,7 @@ export interface IBase {
 export interface IFile extends IBase {
   type: 'file';
   content: string;
+  uniqueId?: string; // Full path to uniquely identify the file
 }
 
 export interface IFolder extends IBase {
@@ -39,6 +40,11 @@ interface ICodeEditor {
   getValue(): string;
 }
 
+// Helper function to create a unique file identifier
+const createUniqueFileId = (path: string[], fileName: string): string => {
+  return [...path, fileName].join('/');
+};
+
 function FileViewer({
   folderStructure: initialFolderStructure,
   mode,
@@ -52,7 +58,9 @@ function FileViewer({
   const [folderStructure, setFolderStructure] = useState<IStructure>(
     initialFolderStructure,
   );
-  const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
+  const [selectedFile, setSelectedFile] = useState<
+    (IFile & { uniqueId: string }) | null
+  >(null);
   const [fileContent, setFileContent] = useState<string>('');
   const [isFileEdited, setIsFileEdited] = useState<boolean>(false);
   const [contextMenu, setContextMenu] = useState<{
@@ -138,18 +146,24 @@ function FileViewer({
     }
   }, [selectedFile]);
 
+  // Modified effect to find file by uniqueId instead of just name
   useEffect(() => {
     if (selectedFile) {
-      const findFile = (
+      const findFileByUniqueId = (
         items: IStructure,
         path: string[] = [],
       ): { file: IFile | null; path: string[] } => {
         for (const item of items) {
-          if (item.type === 'file' && item.name === selectedFile.name) {
-            // Fix the unnecessary conditional
-            return { file: item, path };
-          } else if (item.type === 'folder') {
-            const found = findFile(item.children, [...path, item.name]);
+          if (item.type === 'file') {
+            const itemUniqueId = createUniqueFileId(path, item.name);
+            if (itemUniqueId === selectedFile.uniqueId) {
+              return { file: item, path };
+            }
+          } else {
+            const found = findFileByUniqueId(item.children, [
+              ...path,
+              item.name,
+            ]);
             if (found.file) {
               return found;
             }
@@ -158,16 +172,22 @@ function FileViewer({
         return { file: null, path: [] };
       };
 
-      const { file, path } = findFile(folderStructure);
+      const { file, path } = findFileByUniqueId(folderStructure);
       if (file) {
-        setSelectedFile(file);
+        // Create a file with uniqueId
+        const fileWithUniqueId = {
+          ...file,
+          uniqueId: createUniqueFileId(path, file.name),
+        };
+        setSelectedFile(fileWithUniqueId);
         setCurrentPath(path);
       } else {
         setSelectedFile(null);
         setCurrentPath([]);
       }
     }
-  }, [folderStructure, selectedFile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderStructure, selectedFile?.uniqueId]);
 
   // Add keyboard event listener for shortcuts
   useEffect(() => {
@@ -558,13 +578,15 @@ function FileViewer({
 
   function renderTree(
     items: IStructure,
-    onSelectFile: (file: IFile) => void,
+    onSelectFile: (file: IFile & { uniqueId: string }) => void,
     parentId = '',
     parentPath: string[] = [],
   ) {
     const folderColor = mode === 'edit' ? 'text-yellow-500' : 'text-gray-200';
     return items.map((item, index) => {
       const itemId = `${parentId}-${item.name}-${String(index)}`;
+
+      // Handle folder items
       if (item.type === 'folder') {
         return (
           <TreeItem
@@ -589,29 +611,36 @@ function FileViewer({
             ])}
           </TreeItem>
         );
-      } else {
-        return (
-          <TreeItem
-            key={itemId}
-            itemId={itemId}
-            label={
-              <div
-                className="flex items-center"
-                onContextMenu={(e) => {
-                  handleContextMenuWithCheck(e, item, parentPath);
-                }}
-              >
-                <CodeIcon fontSize="small" className="text-yellow-500" />
-                &nbsp;
-                {item.name}
-              </div>
-            }
-            onClick={() => {
-              onSelectFile(item);
-            }}
-          />
-        );
       }
+
+      // Handle file items
+      const uniqueId = createUniqueFileId(parentPath, item.name);
+      return (
+        <TreeItem
+          key={itemId}
+          itemId={itemId}
+          label={
+            <div
+              className="flex items-center"
+              onContextMenu={(e) => {
+                handleContextMenuWithCheck(e, item, parentPath);
+              }}
+            >
+              <CodeIcon fontSize="small" className="text-yellow-500" />
+              &nbsp;
+              {item.name}
+            </div>
+          }
+          onClick={() => {
+            // Create a file with uniqueId and pass it to the onSelectFile callback
+            const fileWithUniqueId = {
+              ...item,
+              uniqueId,
+            };
+            onSelectFile(fileWithUniqueId);
+          }}
+        />
+      );
     });
   }
 
