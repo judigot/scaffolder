@@ -7,7 +7,7 @@ import * as path from 'path';
  * @param directoryPath - Path to the directory to read
  * @returns IStructure representation of the directory
  */
-function filesToIStructure(directoryPath: string): IStructure {
+function convertLocalFilesToIStructure(directoryPath: string): IStructure {
   // If no directory is provided or it doesn't exist, return empty structure
   if (!directoryPath || !fs.existsSync(directoryPath)) {
     return [];
@@ -27,7 +27,7 @@ function filesToIStructure(directoryPath: string): IStructure {
         const folder: IFolder = {
           name: item,
           type: 'folder',
-          children: filesToIStructure(itemPath),
+          children: convertLocalFilesToIStructure(itemPath),
         };
         result.push(folder);
       } else {
@@ -47,10 +47,10 @@ function filesToIStructure(directoryPath: string): IStructure {
 
   return result;
 }
-// const laravelFolderStructure = filesToIStructure('src/files');
+// const laravelFolderStructure = convertLocalFilesToIStructure('src/files');
 
 // /*prettier-ignore*/ (($= laravelFolderStructure)=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();
  
 // /*prettier-ignore*/ (($= buildProjectFiles(laravelFolderStructure))=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();
 
-export default filesToIStructure;
+export default convertLocalFilesToIStructure;

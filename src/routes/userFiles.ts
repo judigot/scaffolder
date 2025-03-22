@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import filesToIStructure from '@/utils/filesToIStructure.ts';
+import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
 
 const router = Router();
 
@@ -15,7 +15,7 @@ router.get(
     >,
     res: Response,
   ) => {
-    const result = filesToIStructure('src/files');
+    const result = convertLocalFilesToIStructure('src/files');
     res.json(result);
   },
 );

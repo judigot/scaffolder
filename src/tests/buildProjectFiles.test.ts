@@ -1,6 +1,6 @@
 import masterSchema from '@/schema-infos/masterSchema.ts';
 import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
-import filesToIStructure from '@/utils/filesToIStructure.ts';
+import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
 
 describe('Build Project Files', () => {
   it('should build project files based on templates', () => {
@@ -723,7 +723,7 @@ describe('Build Project Files', () => {
     }
 ]
     `;
-    const userFiles = filesToIStructure('src/files');
+    const userFiles = convertLocalFilesToIStructure('src/files');
     const result = buildProjectFiles(
       '/Projects/Laravel.yaml',
       userFiles,
