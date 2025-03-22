@@ -48,9 +48,5 @@ function convertLocalFilesToIStructure(directoryPath: string): IStructure {
   return result;
 }
 // const laravelFolderStructure = convertLocalFilesToIStructure('src/files');
-
-// /*prettier-ignore*/ (($= laravelFolderStructure)=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();
  
-// /*prettier-ignore*/ (($= buildProjectFiles(laravelFolderStructure))=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();
-
 export default convertLocalFilesToIStructure;

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, PersistOptions } from 'zustand/middleware';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
-import { DBTypes, IJSONSchema } from '@/interfaces/interfaces.ts';
+import { DBTypes, IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { SQLQueries } from '@/utils/mappings.ts';
 import { CREATION_MODES } from '@/constants.ts';
 import { oneToOne, oneToMany, manyToMany } from '@/schema-infos/index.ts';
@@ -18,8 +18,6 @@ import { IFile, IStructure } from '@/components/FileViewer.tsx';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 import equal from 'fast-deep-equal';
-
-// Debug utility to avoid linter errors with console.log
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -69,11 +67,11 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   projectFiles: IStructure;
   projectBuildCache: Record<string, IStructure | null>;
   previousUserFiles: IStructure | null;
+  previousSchemaInfo: ISchemaInfo[] | null;
   setProjectName: (projectName: string) => void;
   setPublicRepoURL: (url: string) => void;
   setProject: (project: IFile) => void;
-  invalidateProjectCache: (userFiles: IStructure) => void;
-  userFilesChanged: (userFiles: IStructure) => boolean;
+  invalidateProjectCache: () => void;
 }
 
 function determineSQLDatabaseType(dbConnection: string): DBTypes {
@@ -118,6 +116,7 @@ export const useFormStore = create<IFormStore>()(
       project: undefined,
       projectBuildCache: {},
       previousUserFiles: null,
+      previousSchemaInfo: null,
       setCreationMode: (creationMode) => {
         set({ creationMode });
       },
@@ -176,16 +175,13 @@ export const useFormStore = create<IFormStore>()(
           publicRepoURL: url,
         });
       },
-      userFilesChanged: (userFiles: IStructure): boolean => {
-        const { previousUserFiles } = get();
-        // Use deep equality comparison to detect changes
-        return !equal(previousUserFiles, userFiles);
-      },
-      invalidateProjectCache: (userFiles: IStructure) => {
+      invalidateProjectCache: () => {
         // Reset the entire project cache
+
+        const { schemaInfo } = useTransformationsStore.getState();
         set({
-          previousUserFiles: userFiles,
           projectBuildCache: {},
+          previousSchemaInfo: schemaInfo,
         });
       },
       setProject: (project: IFile) => {
@@ -194,12 +190,17 @@ export const useFormStore = create<IFormStore>()(
         const state = get();
 
         // Check if userFiles have changed
-        const hasChanged = state.userFilesChanged(userFiles);
+        const hasUserFilesChanged = !equal(state.previousUserFiles, userFiles);
 
-        if (hasChanged) {
-          // Store the new files and clear cache when files change
-
-          state.invalidateProjectCache(userFiles);
+        // Invalidate cache if userFiles has changed
+        if (hasUserFilesChanged) {
+          // Store the new values and clear cache when changes are detected
+          set({
+            previousUserFiles: userFiles,
+            previousSchemaInfo: schemaInfo,
+            projectBuildCache: {},
+          });
+          return;
         }
 
         set((state) => {
@@ -210,9 +211,11 @@ export const useFormStore = create<IFormStore>()(
 
           if (cachedProjectFiles) {
             // Use cached version if available
+
             projectFiles = cachedProjectFiles;
           } else {
             // Calculate new structure if not in cache
+
             projectFiles = buildProjectFiles(
               `/Projects/${project.name}`,
               userFiles,

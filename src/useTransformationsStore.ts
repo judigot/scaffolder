@@ -13,6 +13,9 @@ import generateSQLSchema from '@/utils/generateSQLSchema.ts';
 import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
+import { IStructure } from '@/components/FileViewer.tsx';
+import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
 interface ITransformations extends Record<PropertyKey, unknown> {
   schemaInfo: ISchemaInfo[];
@@ -61,7 +64,52 @@ export const useTransformationsStore = create<ITransformations>()(
       oneToOneJoins: [],
       aggregateJoins: [],
       setSchemaInfo: (schemaInfo) => {
+        const { project, invalidateProjectCache } = useFormStore.getState();
+
+        // First update the schema info in our store
         set({ schemaInfo });
+
+        // Invalidate the built project cache
+        invalidateProjectCache();
+
+        // If we have a currently selected project, rebuild its files
+        if (project) {
+          const { userFiles } = useMockDatabaseStore.getState();
+          useFormStore.setState((state) => {
+            // Check if we have a cached version of this project's file structure
+            const cachedProjectFiles = state.projectBuildCache[project.name];
+
+            let projectFiles: IStructure;
+
+            if (cachedProjectFiles) {
+              // Use cached version if available
+
+              projectFiles = cachedProjectFiles;
+            } else {
+              // Calculate new structure if not in cache
+
+              projectFiles = buildProjectFiles(
+                `/Projects/${project.name}`,
+                userFiles,
+                schemaInfo,
+              );
+
+              // Update cache with the new structure
+              state.projectBuildCache[project.name] = projectFiles;
+            }
+
+            return {
+              project,
+              projectFiles,
+              projectBuildCache: {
+                ...state.projectBuildCache,
+                [project.name]: projectFiles,
+              },
+            };
+          });
+        }
+
+        // Run transformations on the schema
         get().setTransformations(schemaInfo);
       },
       setIntrospectedSchema: (schemaInfo) => {

@@ -62,6 +62,10 @@ function App() {
   const [showGitHubUpdateNotification, setShowGitHubUpdateNotification] =
     useState<boolean>(false);
 
+  // State for showing a notification when schema is updated
+  const [showSchemaUpdateNotification, setShowSchemaUpdateNotification] =
+    useState<boolean>(false);
+
   // State for input value before being committed to store
   const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
 
@@ -88,6 +92,13 @@ function App() {
   useEffect(() => {
     if (githubData?.userFiles) {
       // Log timestamp to monitor GitHub updates
+      console.warn(
+        `%c[GitHub Update] Received new data at ${new Date().toLocaleTimeString()}`,
+        'background: #4CAF50; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;',
+      );
+
+      console.warn(`Repo URL: ${publicRepoURL}`);
+      console.warn(`Files count: ${String(githubData.userFiles.length)}`);
 
       // Show the notification
       setShowGitHubUpdateNotification(true);
@@ -100,6 +111,23 @@ function App() {
       setUserFiles({ userFiles: githubData.userFiles });
     }
   }, [githubData, setUserFiles, publicRepoURL]);
+
+  // Track schema changes
+  useEffect(() => {
+    console.warn(
+      `%c[Schema Update] Schema info changed at ${new Date().toLocaleTimeString()}`,
+      'background: #FF9800; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;',
+    );
+    console.warn(`Schema tables count: ${String(schemaInfo.length)}`);
+
+    // Show the schema update notification
+    setShowSchemaUpdateNotification(true);
+
+    // Hide notification after 3 seconds
+    setTimeout(() => {
+      setShowSchemaUpdateNotification(false);
+    }, 3000);
+  }, [schemaInfo]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -200,6 +228,27 @@ function App() {
             />
           </svg>
           GitHub data updated at {new Date().toLocaleTimeString()}
+        </div>
+      )}
+
+      {/* Schema update notification */}
+      {showSchemaUpdateNotification && (
+        <div className="fixed top-4 left-4 bg-orange-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          Schema updated and files rebuilt at {new Date().toLocaleTimeString()}
         </div>
       )}
 
@@ -645,51 +694,53 @@ function App() {
                     );
                   }
 
-                  return (
-                    <>
-                      {/* <div className="bg-blue-500  text-white font-bold">
-                      <FileViewer
-                        folderColor={'yellow'}
+                  if (project !== undefined) {
+                    return (
+                      <>
+                        {/* <div className="bg-blue-500  text-white font-bold">
+                        <FileViewer
+                          folderColor={'yellow'}
+                          folderStructure={folderStructures[framework]}
+                        />
+                      </div>
+                      <div className="bg-green-500 flex text-white font-bold">
+                        <FileViewer
+                          folderColor={'green'}
+                          folderStructure={folderStructures.frontend}
+                        />
+                      </div> */}
+                        {/* <FileViewer mode="edit" folderStructure={[]} /> */}
+                        Project:
+                        <select
+                          id="project"
+                          name="project"
+                          value={project.name}
+                          onChange={handleChange}
+                          className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                        >
+                          {/* <option value={''}>Select a framework</option> */}
+                          {projects.map((project) => (
+                            <option key={project.name} value={project.name}>
+                              {project.name.replace(/\.[^/.]+$/, '')}
+                            </option>
+                          ))}
+                        </select>
+                        <FileViewer
+                          mode="edit"
+                          folderStructure={projectFiles}
+                          projectName={project.name}
+                        />
+                        {/* <FileViewer
+                        mode="view"
                         folderStructure={folderStructures[framework]}
                       />
-                    </div>
-                    <div className="bg-green-500 flex text-white font-bold">
                       <FileViewer
-                        folderColor={'green'}
+                        mode="view"
                         folderStructure={folderStructures.frontend}
-                      />
-                    </div> */}
-                      {/* <FileViewer mode="edit" folderStructure={[]} /> */}
-                      Project:
-                      <select
-                        id="project"
-                        name="project"
-                        value={project?.name}
-                        onChange={handleChange}
-                        className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                      >
-                        {/* <option value={''}>Select a framework</option> */}
-                        {projects.map((project) => (
-                          <option key={project.name} value={project.name}>
-                            {project.name.replace(/\.[^/.]+$/, '')}
-                          </option>
-                        ))}
-                      </select>
-                      <FileViewer
-                        mode="edit"
-                        folderStructure={projectFiles}
-                        projectName={project?.name}
-                      />
-                      {/* <FileViewer
-                      mode="view"
-                      folderStructure={folderStructures[framework]}
-                    />
-                    <FileViewer
-                      mode="view"
-                      folderStructure={folderStructures.frontend}
-                    /> */}
-                    </>
-                  );
+                      /> */}
+                      </>
+                    );
+                  }
                 })()}
               </div>
             )}
