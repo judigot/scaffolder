@@ -14,6 +14,9 @@ import {
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
+import { IFile } from '@/components/FileViewer.tsx';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -48,7 +51,8 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   dbType: DBTypes | undefined;
   quote: string;
   publicRepoURL: string;
-  setPublicRepoURL: (url: string) => void;
+  clientID: string;
+  clientSecret: string;
   creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES];
   setCreationMode: (
     creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES],
@@ -58,6 +62,10 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   setOneToMany: () => void;
   setManyToMany: () => void;
   setDBType: (dbType: DBTypes) => void;
+  project: IFile | undefined;
+  setProjectName: (projectName: string) => void;
+  setPublicRepoURL: (url: string) => void;
+  setProject: (project: IFile) => void;
 }
 
 function determineSQLDatabaseType(dbConnection: string): DBTypes {
@@ -71,7 +79,7 @@ const persistConfig: PersistOptions<IFormStore, unknown> = {
 };
 
 export const useFormStore = create<IFormStore>()(
-  persist((rawSet) => {
+  persist((rawSet, _get) => {
     const set = createTabSync<IFormStore>('scaffolder-sync')(rawSet);
 
     const initialDbType = determineSQLDatabaseType(
@@ -95,9 +103,8 @@ export const useFormStore = create<IFormStore>()(
       dbType: initialDbType,
       quote: initialQuote,
       publicRepoURL: '',
-      setPublicRepoURL: (url) => {
-        set({ publicRepoURL: url });
-      },
+      clientID: '',
+      clientSecret: '',
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
       setCreationMode: (creationMode) => {
         set({ creationMode });
@@ -145,6 +152,31 @@ export const useFormStore = create<IFormStore>()(
             dbType: newDbType,
             quote: newQuote,
           };
+        });
+      },
+      project: undefined,
+      setProjectName: (projectName: string) => {
+        set({
+          publicRepoURL: `https://github.com/laravel/${projectName}`,
+        });
+      },
+      setPublicRepoURL: (url: string) => {
+        set({
+          publicRepoURL: url,
+        });
+      },
+      setProject: (project: IFile) => {
+        const { schemaInfo } = useTransformationsStore.getState();
+        const { userFiles } = useMockDatabaseStore.getState();
+
+        set({ project });
+
+        useMockDatabaseStore.setState({
+          projectFiles: buildProjectFiles(
+            `/Projects/${project.name}`,
+            userFiles,
+            schemaInfo,
+          ),
         });
       },
     };
