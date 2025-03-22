@@ -14,7 +14,7 @@ import {
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
-import { IFile } from '@/components/FileViewer.tsx';
+import { IFile, IStructure } from '@/components/FileViewer.tsx';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 
@@ -63,6 +63,7 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   setManyToMany: () => void;
   setDBType: (dbType: DBTypes) => void;
   project: IFile | undefined;
+  projectFiles: IStructure;
   setProjectName: (projectName: string) => void;
   setPublicRepoURL: (url: string) => void;
   setProject: (project: IFile) => void;
@@ -106,6 +107,8 @@ export const useFormStore = create<IFormStore>()(
       clientID: '',
       clientSecret: '',
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
+      projectFiles: [],
+      project: undefined,
       setCreationMode: (creationMode) => {
         set({ creationMode });
       },
@@ -154,7 +157,6 @@ export const useFormStore = create<IFormStore>()(
           };
         });
       },
-      project: undefined,
       setProjectName: (projectName: string) => {
         set({
           publicRepoURL: `https://github.com/laravel/${projectName}`,
@@ -169,15 +171,13 @@ export const useFormStore = create<IFormStore>()(
         const { schemaInfo } = useTransformationsStore.getState();
         const { userFiles } = useMockDatabaseStore.getState();
 
-        set({ project });
+        const projectFiles = buildProjectFiles(
+          `/Projects/${project.name}`,
+          userFiles,
+          schemaInfo,
+        );
 
-        useMockDatabaseStore.setState({
-          projectFiles: buildProjectFiles(
-            `/Projects/${project.name}`,
-            userFiles,
-            schemaInfo,
-          ),
-        });
+        set({ project, projectFiles });
       },
     };
   }, persistConfig),

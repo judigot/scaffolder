@@ -7,7 +7,6 @@ import { useFormStore } from '@/useFormStore.ts';
 
 interface IStore {
   userFiles: IStructure;
-  projectFiles: IStructure;
   projects: IFile[];
   setUserFiles: ({
     userFiles,
@@ -16,7 +15,6 @@ interface IStore {
     userFiles: IStructure;
     schemaInfo: ISchemaInfo[];
   }) => void;
-  // setProjectFiles: (schemaInfo: ISchemaInfo[]) => void;
 }
 
 /*
@@ -24,7 +22,6 @@ interface IStore {
  */
 export const useMockDatabaseStore = create<IStore>()((set) => ({
   userFiles: [],
-  projectFiles: [],
   projects: [],
   setUserFiles: ({ userFiles }: { userFiles: IStructure }) => {
     const { schemaInfo } = useTransformationsStore.getState();
@@ -53,24 +50,28 @@ export const useMockDatabaseStore = create<IStore>()((set) => ({
     const firstProject = firstProjectExists ? projects[0] : null;
     const projectSelected = currentProject ?? firstProject;
 
-    if (currentProject == null && firstProject != null) {
-      setProject(firstProject);
-    }
-
-    if (projectSelected == null) {
-      throw new Error('No project could be selected to build project files');
-    }
-
-    const projectFiles = buildProjectFiles(
-      `/Projects/${projectSelected.name}`,
-      userFiles,
-      schemaInfo,
-    );
-
+    // Update the userFiles and projects in this store
     set({
       userFiles,
       projects,
-      projectFiles,
     });
+
+    // If no project is selected yet but we have projects, select the first one
+    if (currentProject == null && firstProject != null) {
+      setProject(firstProject);
+      return;
+    }
+
+    // If we have a selected project, update the projectFiles in useFormStore
+    if (projectSelected) {
+      const projectFiles = buildProjectFiles(
+        `/Projects/${projectSelected.name}`,
+        userFiles,
+        schemaInfo,
+      );
+
+      // Update projectFiles in useFormStore
+      useFormStore.setState({ projectFiles });
+    }
   },
 }));

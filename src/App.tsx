@@ -37,6 +37,7 @@ function App() {
     setPublicRepoURL,
     project,
     setProject,
+    projectFiles,
   } = formData;
 
   const {
@@ -52,8 +53,7 @@ function App() {
     setSchemaInfo,
   } = useTransformationsStore();
 
-  const { projectFiles, projects, setUserFiles } =
-    useMockDatabaseStore();
+  const { projects, setUserFiles } = useMockDatabaseStore();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGitHubLoading, setIsGitHubLoading] = useState<boolean>(false);
