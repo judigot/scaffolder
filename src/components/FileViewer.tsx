@@ -54,6 +54,7 @@ function FileViewer({
   );
   const [selectedFile, setSelectedFile] = useState<IFile | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
+  const [isFileEdited, setIsFileEdited] = useState<boolean>(false);
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
@@ -62,60 +63,10 @@ function FileViewer({
   } | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const editorRef = useRef<ICodeEditor | null>(null);
+  const fileViewerRef = useRef<HTMLDivElement>(null);
 
-  // Update folderStructure when initialFolderStructure changes
-  useEffect(() => {
-    setFolderStructure(initialFolderStructure);
-  }, [initialFolderStructure]);
-
-  // Update fileContent when selectedFile changes
-  useEffect(() => {
-    if (selectedFile) {
-      setFileContent(selectedFile.content);
-    }
-  }, [selectedFile]);
-
-  useEffect(() => {
-    if (selectedFile) {
-      const findFile = (
-        items: IStructure,
-        path: string[] = [],
-      ): { file: IFile | null; path: string[] } => {
-        for (const item of items) {
-          if (item.type === 'file' && item.name === selectedFile.name) {
-            // Fix the unnecessary conditional
-            return { file: item, path };
-          } else if (item.type === 'folder') {
-            const found = findFile(item.children, [...path, item.name]);
-            if (found.file) {
-              return found;
-            }
-          }
-        }
-        return { file: null, path: [] };
-      };
-
-      const { file, path } = findFile(folderStructure);
-      if (file) {
-        setSelectedFile(file);
-        setCurrentPath(path);
-      } else {
-        setSelectedFile(null);
-        setCurrentPath([]);
-      }
-    }
-  }, [folderStructure, selectedFile]);
-
-  // Handle editor mount with proper type
-  const handleEditorDidMount: OnMount = (editor) => {
-    // Store the editor with our interface that only exposes what we need
-    editorRef.current = {
-      getValue: () => editor.getValue(),
-    };
-  };
-
-  // Save file content changes
-  const saveFileChanges = () => {
+  // Save file content changes - wrapped in useCallback
+  const saveFileChanges = useCallback(() => {
     if (!selectedFile || !editorRef.current) {
       return;
     }
@@ -165,6 +116,127 @@ function FileViewer({
 
     setFolderStructure(updatedStructure);
     setFileContent(newContent);
+    setIsFileEdited(false); // Mark as saved
+  }, [
+    selectedFile,
+    editorRef,
+    folderStructure,
+    currentPath,
+    setFolderStructure,
+  ]);
+
+  // Restore the missing useEffect that syncs folderStructure with initialFolderStructure
+  useEffect(() => {
+    setFolderStructure(initialFolderStructure);
+  }, [initialFolderStructure]);
+
+  // Update fileContent when selectedFile changes
+  useEffect(() => {
+    if (selectedFile) {
+      setFileContent(selectedFile.content);
+      setIsFileEdited(false); // Reset edit state when changing files
+    }
+  }, [selectedFile]);
+
+  useEffect(() => {
+    if (selectedFile) {
+      const findFile = (
+        items: IStructure,
+        path: string[] = [],
+      ): { file: IFile | null; path: string[] } => {
+        for (const item of items) {
+          if (item.type === 'file' && item.name === selectedFile.name) {
+            // Fix the unnecessary conditional
+            return { file: item, path };
+          } else if (item.type === 'folder') {
+            const found = findFile(item.children, [...path, item.name]);
+            if (found.file) {
+              return found;
+            }
+          }
+        }
+        return { file: null, path: [] };
+      };
+
+      const { file, path } = findFile(folderStructure);
+      if (file) {
+        setSelectedFile(file);
+        setCurrentPath(path);
+      } else {
+        setSelectedFile(null);
+        setCurrentPath([]);
+      }
+    }
+  }, [folderStructure, selectedFile]);
+
+  // Add keyboard event listener for shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      // Check if the editor has focus or fileViewer is in the document
+      if (!fileViewerRef.current || !selectedFile || !editorRef.current) {
+        return;
+      }
+
+      // Save on Ctrl+S or Cmd+S
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault(); // Prevent browser's save dialog
+        saveFileChanges();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedFile, saveFileChanges]);
+
+  // Handle editor mount with proper type
+  const handleEditorDidMount: OnMount = (editor) => {
+    // Store the editor with our interface that only exposes what we need
+    editorRef.current = {
+      getValue: () => editor.getValue(),
+    };
+  };
+
+  // Handle closing a file with confirmation if unsaved
+  const handleCloseFile = async () => {
+    if (!selectedFile) {
+      return;
+    }
+
+    if (isFileEdited) {
+      // Get user's decision about saving changes
+      const result = await promptModal({
+        title: 'Unsaved Changes',
+        description: `Do you want to save the changes you made to ${selectedFile.name}?`,
+        trueText: 'Save and Close',
+        falseText: 'Close without Saving',
+      });
+
+      // If user chose "Save and Close"
+      if (result) {
+        saveFileChanges();
+      }
+
+      // The promptModal should return true or false based on the button clicked
+      // We continue with closing only if a button was clicked (not dialog cancelled)
+    }
+
+    // Close the file
+    setSelectedFile(null);
+  };
+
+  // Update file content and track edited state
+  const handleEditorChange = (value: string | undefined) => {
+    const newContent = value ?? '';
+    setFileContent(newContent);
+
+    // Check if content is different from the saved file
+    if (selectedFile && newContent !== selectedFile.content) {
+      setIsFileEdited(true);
+    } else {
+      setIsFileEdited(false);
+    }
   };
 
   // Handle right-click for context menu
@@ -601,7 +673,7 @@ function FileViewer({
   };
 
   return (
-    <div className="h-96 p-2">
+    <div className="h-96 p-2" ref={fileViewerRef}>
       <div className="grid grid-cols-1 md:grid-cols-3 text-white">
         <div className="col-span-1 bg-gray-800 select-none mr-2">
           <div>
@@ -680,27 +752,20 @@ function FileViewer({
             <div className="bg-gray-900">
               <div className="mt-2 sticky left-0 top-0 z-20 bg-gray-800 grid grid-cols-[auto_auto] items-center m-0">
                 <div>
-                  <div className="bg-[#1f1f1f] w-max p-2 rounded-t-md">
-                    <span>{selectedFile.name}&nbsp;</span>
+                  <div className="bg-[#1f1f1f] w-max p-2 rounded-t-md flex items-center">
+                    <span>
+                      {selectedFile.name}
+                      {isFileEdited ? ' •' : ''}&nbsp;
+                    </span>
                     <button
-                      onClick={() => {
-                        setSelectedFile(null);
-                      }}
-                      className="hover:bg-gray-700 text-white px-2 py-1 rounded"
+                      onClick={() => void handleCloseFile()}
+                      className="hover:bg-gray-700 text-white px-1 pb-1 rounded transition-colors duration-150"
                     >
                       <CloseIcon fontSize="small" />
                     </button>
                   </div>
                 </div>
                 <div>
-                  {mode === 'edit' && (
-                    <button
-                      onClick={saveFileChanges}
-                      className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right"
-                    >
-                      <SaveIcon fontSize="small" />
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       handleCopy(selectedFile.content);
@@ -709,6 +774,14 @@ function FileViewer({
                   >
                     <CopyIcon fontSize="small" />
                   </button>
+                  {mode === 'edit' && isFileEdited && (
+                    <button
+                      onClick={saveFileChanges}
+                      className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right transition-all duration-150"
+                    >
+                      <SaveIcon fontSize="small" />
+                    </button>
+                  )}
                 </div>
               </div>
               <Editor
@@ -745,9 +818,7 @@ function FileViewer({
                   fontSize: 14,
                   lineNumbers: 'on',
                 }}
-                onChange={(value) => {
-                  setFileContent(value ?? '');
-                }}
+                onChange={handleEditorChange}
                 onMount={handleEditorDidMount}
               />
             </div>
