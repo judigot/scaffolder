@@ -543,6 +543,22 @@ function FileViewer({
     });
   }
 
+  /**
+   * Generates a timestamp string in the format YYYY-MM-DD-HHmmss
+   * @returns Formatted timestamp string
+   */
+  const generateTimestamp = (): string => {
+    const now = new Date();
+    const year = String(now.getFullYear());
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+  };
+
   // Add a function to get the sanitized project name for the zip file
   const getZipFileName = (): string => {
     // Get the base name (remove file extension if present)
@@ -552,19 +568,36 @@ function FileViewer({
       baseName = projectName.replace(/\.[^/.]+$/, '');
     }
 
-    // Generate timestamp in format YYYY-MM-DD-HHmmss
-    const now = new Date();
-    const year = String(now.getFullYear());
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-
-    const timestamp = `${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+    // Generate timestamp
+    const timestamp = generateTimestamp();
 
     // Return formatted filename
     return `${baseName}-${timestamp}.zip`;
+  };
+
+  // Add a function to download just a specific folder
+  const downloadSelectedFolder = (
+    folder: IFolder,
+    _folderPath: string[],
+  ): void => {
+    try {
+      // Create a new IStructure with just this folder
+      const folderStructureToDownload: IStructure = [folder];
+
+      // Use the folder name as the base for the zip file name
+      const baseName = folder.name;
+
+      // Generate timestamp
+      const timestamp = generateTimestamp();
+
+      // Final filename format: [folder-name]-[YYYY-MM-DD]-[HHmmss].zip
+      const zipFileName = `${baseName}-${timestamp}.zip`;
+
+      // Use the existing zip utility function to handle the download
+      zipAndDownloadIStructure(folderStructureToDownload, zipFileName);
+    } catch (error) {
+      console.error('Error downloading folder:', error);
+    }
   };
 
   return (
@@ -795,6 +828,21 @@ function FileViewer({
                       void (async () => {
                         await handleOpenDialog('newFolder');
                       })();
+                    },
+                  },
+                  {
+                    id: 'downloadFolder',
+                    label: 'Download Selected Folder',
+                    onClick: () => {
+                      if (
+                        contextMenu.item &&
+                        contextMenu.item.type === 'folder'
+                      ) {
+                        downloadSelectedFolder(
+                          contextMenu.item,
+                          contextMenu.parentPath ?? [],
+                        );
+                      }
                     },
                   },
                 );
