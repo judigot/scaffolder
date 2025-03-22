@@ -583,9 +583,9 @@ function App() {
                 className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               >
                 {/* <option value={''}>Select a framework</option> */}
-                {projects.map((value) => (
-                  <option key={value.name} value={value.name}>
-                    {value.name}
+                {projects.map((project) => (
+                  <option key={project.name} value={project.name}>
+                    {project.name.replace(/\.[^/.]+$/, '')}
                   </option>
                 ))}
               </select>
