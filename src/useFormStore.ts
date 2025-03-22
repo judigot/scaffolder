@@ -20,23 +20,6 @@ import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 import equal from 'fast-deep-equal';
 
 // Debug utility to avoid linter errors with console.log
-const isDevEnvironment = process.env.NODE_ENV === 'development';
-const debugLog = (message: string): void => {
-  if (isDevEnvironment) {
-    // Using console warn to comply with linter rules
-    console.warn(`[DEBUG] ${message}`);
-  }
-};
-
-// Debug utility for showing alerts
-const debugAlert = (message: string): void => {
-  if (isDevEnvironment) {
-    // eslint-disable-next-line no-alert
-    window.alert(
-      `🔄 GitHub Data Changed!\n\nMessage: ${message}\nTime: ${new Date().toLocaleTimeString()}\n\nThe project file cache has been invalidated and will be rebuilt on next access.`,
-    );
-  }
-};
 
 export const frameworks = {
   LARAVEL: 'Laravel',
@@ -89,7 +72,7 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   setProjectName: (projectName: string) => void;
   setPublicRepoURL: (url: string) => void;
   setProject: (project: IFile) => void;
-  invalidateProjectCache: () => void;
+  invalidateProjectCache: (userFiles: IStructure) => void;
   userFilesChanged: (userFiles: IStructure) => boolean;
 }
 
@@ -198,10 +181,12 @@ export const useFormStore = create<IFormStore>()(
         // Use deep equality comparison to detect changes
         return !equal(previousUserFiles, userFiles);
       },
-      invalidateProjectCache: () => {
+      invalidateProjectCache: (userFiles: IStructure) => {
         // Reset the entire project cache
-        debugAlert('Project cache manually invalidated!');
-        set({ projectBuildCache: {} });
+        set({
+          previousUserFiles: userFiles,
+          projectBuildCache: {},
+        });
       },
       setProject: (project: IFile) => {
         const { schemaInfo } = useTransformationsStore.getState();
@@ -210,16 +195,11 @@ export const useFormStore = create<IFormStore>()(
 
         // Check if userFiles have changed
         const hasChanged = state.userFilesChanged(userFiles);
-        
+
         if (hasChanged) {
           // Store the new files and clear cache when files change
-          debugLog('User files have changed, invalidating cache');
-          debugAlert('GitHub files have changed! Cache invalidated.');
-          
-          set({
-            previousUserFiles: userFiles,
-            projectBuildCache: {},
-          });
+
+          state.invalidateProjectCache(userFiles);
         }
 
         set((state) => {
@@ -230,11 +210,9 @@ export const useFormStore = create<IFormStore>()(
 
           if (cachedProjectFiles) {
             // Use cached version if available
-            debugLog(`Using cached project files for: ${project.name}`);
             projectFiles = cachedProjectFiles;
           } else {
             // Calculate new structure if not in cache
-            debugLog(`Building project files for: ${project.name}`);
             projectFiles = buildProjectFiles(
               `/Projects/${project.name}`,
               userFiles,

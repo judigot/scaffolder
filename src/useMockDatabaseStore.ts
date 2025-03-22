@@ -41,11 +41,6 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
     
     // Check if the user files have actually changed
     const hasChanged = !equal(previousUserFiles, userFiles);
-    
-    // if (hasChanged) {
-    //   // Update the hash in FormStore so it knows userFiles have changed
-    //   updateUserFilesHash(userFiles);
-    // }
 
     const projectsFolder = userFiles.find(
       (item) => item.name === 'Projects' && 'children' in item,
