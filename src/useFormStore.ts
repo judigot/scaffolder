@@ -17,6 +17,7 @@ import masterSchema from '@/schema-infos/masterSchema.ts';
 import { IFile, IStructure } from '@/components/FileViewer.tsx';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
+import equal from 'fast-deep-equal';
 
 // Debug utility to avoid linter errors with console.log
 const isDevEnvironment = process.env.NODE_ENV === 'development';
@@ -24,6 +25,16 @@ const debugLog = (message: string): void => {
   if (isDevEnvironment) {
     // Using console warn to comply with linter rules
     console.warn(`[DEBUG] ${message}`);
+  }
+};
+
+// Debug utility for showing alerts
+const debugAlert = (message: string): void => {
+  if (isDevEnvironment) {
+    // eslint-disable-next-line no-alert
+    window.alert(
+      `🔄 GitHub Data Changed!\n\nMessage: ${message}\nTime: ${new Date().toLocaleTimeString()}\n\nThe project file cache has been invalidated and will be rebuilt on next access.`,
+    );
   }
 };
 
@@ -74,12 +85,12 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   project: IFile | undefined;
   projectFiles: IStructure;
   projectBuildCache: Record<string, IStructure | null>;
-  lastUserFilesHash: string;
+  previousUserFiles: IStructure | null;
   setProjectName: (projectName: string) => void;
   setPublicRepoURL: (url: string) => void;
   setProject: (project: IFile) => void;
   invalidateProjectCache: () => void;
-  updateUserFilesHash: (userFiles: IStructure) => void;
+  userFilesChanged: (userFiles: IStructure) => boolean;
 }
 
 function determineSQLDatabaseType(dbConnection: string): DBTypes {
@@ -123,7 +134,7 @@ export const useFormStore = create<IFormStore>()(
       projectFiles: [],
       project: undefined,
       projectBuildCache: {},
-      lastUserFilesHash: '',
+      previousUserFiles: null,
       setCreationMode: (creationMode) => {
         set({ creationMode });
       },
@@ -182,35 +193,34 @@ export const useFormStore = create<IFormStore>()(
           publicRepoURL: url,
         });
       },
-      updateUserFilesHash: (userFiles: IStructure) => {
-        // Create a hash (simplified version using JSON stringify)
-        // In a real app, consider using a better hashing mechanism
-        const hash = JSON.stringify(userFiles);
-        const state = get();
-        
-        // If the userFiles have changed (comparing hashes)
-        if (hash !== state.lastUserFilesHash) {
-          debugLog('User files have changed, invalidating cache');
-          // Store the new hash
-          set({ 
-            lastUserFilesHash: hash,
-            // Clear the cache when files change
-            projectBuildCache: {}
-          });
-          return true;
-        }
-        return false;
+      userFilesChanged: (userFiles: IStructure): boolean => {
+        const { previousUserFiles } = get();
+        // Use deep equality comparison to detect changes
+        return !equal(previousUserFiles, userFiles);
       },
       invalidateProjectCache: () => {
         // Reset the entire project cache
+        debugAlert('Project cache manually invalidated!');
         set({ projectBuildCache: {} });
       },
       setProject: (project: IFile) => {
         const { schemaInfo } = useTransformationsStore.getState();
         const { userFiles } = useMockDatabaseStore.getState();
+        const state = get();
 
-        // Check if userFiles have changed and invalidate cache if needed
-        get().updateUserFilesHash(userFiles);
+        // Check if userFiles have changed
+        const hasChanged = state.userFilesChanged(userFiles);
+        
+        if (hasChanged) {
+          // Store the new files and clear cache when files change
+          debugLog('User files have changed, invalidating cache');
+          debugAlert('GitHub files have changed! Cache invalidated.');
+          
+          set({
+            previousUserFiles: userFiles,
+            projectBuildCache: {},
+          });
+        }
 
         set((state) => {
           // Check if we have a cached version of this project's file structure

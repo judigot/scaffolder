@@ -59,6 +59,10 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [gitHubError, setGitHubError] = useState<string | null>(null);
 
+  // State for showing a notification when GitHub data is updated
+  const [showGitHubUpdateNotification, setShowGitHubUpdateNotification] =
+    useState<boolean>(false);
+
   // State for input value before being committed to store
   const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
 
@@ -73,10 +77,10 @@ function App() {
       publicRepoURL,
     },
     {
-      refetchInterval: 1 * 1000, // 1 second
-      staleTime: 1 * 1000, // 1 second
+      refetchInterval: 30 * 1000, // 1 second
+      staleTime: 30 * 1000, // 1 second
       gcTime: 1 * 1000, // 10 minutes
-      refetchOnWindowFocus: "always", // Refetch on window focus — but only if stale
+      refetchOnWindowFocus: 'always', // Refetch on window focus — but only if stale
       enabled: !!publicRepoURL,
     },
   );
@@ -84,10 +88,27 @@ function App() {
   // Handle GitHub data changes
   useEffect(() => {
     if (githubData?.userFiles) {
+      // Log timestamp to monitor GitHub updates
+      console.warn(
+        `%c[GitHub Update] Received new data at ${new Date().toLocaleTimeString()}`,
+        'background: #4CAF50; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;',
+      );
+
+      console.warn(`Repo URL: ${publicRepoURL}`);
+      console.warn(`Files count: ${String(githubData.userFiles.length)}`);
+
+      // Show the notification
+      setShowGitHubUpdateNotification(true);
+
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        setShowGitHubUpdateNotification(false);
+      }, 3000);
+
       setUserFiles({ userFiles: githubData.userFiles });
       setGitHubError(null);
     }
-  }, [githubData, setUserFiles]);
+  }, [githubData, setUserFiles, publicRepoURL]);
 
   // Handle GitHub query errors
   useEffect(() => {
@@ -178,6 +199,27 @@ function App() {
 
   return (
     <div className="text-white bg-black">
+      {/* GitHub data update notification */}
+      {showGitHubUpdateNotification && (
+        <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          GitHub data updated at {new Date().toLocaleTimeString()}
+        </div>
+      )}
+
       <nav className="bg-gray-900 text-white p-2 sticky top-0 z-50 text-center">
         <div className="inline-block">
           <h1 className="text-2xl font-bold inline-block pl-5 pr-5">
