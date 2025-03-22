@@ -551,7 +551,7 @@ function FileViewer({
       // Remove file extension if present
       baseName = projectName.replace(/\.[^/.]+$/, '');
     }
-    
+
     // Generate timestamp in format YYYY-MM-DD-HHmmss
     const now = new Date();
     const year = String(now.getFullYear());
@@ -560,9 +560,9 @@ function FileViewer({
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
-    
+
     const timestamp = `${year}-${month}-${day}-${hours}${minutes}${seconds}`;
-    
+
     // Return formatted filename
     return `${baseName}-${timestamp}.zip`;
   };
@@ -583,10 +583,13 @@ function FileViewer({
               </button> */}
 
               {mode === 'edit' && (
-                <div className="flex space-x-2">
+                <div className="flex items-center justify-between w-full">
                   <button
                     onClick={() => {
-                      zipAndDownloadIStructure(folderStructure, getZipFileName());
+                      zipAndDownloadIStructure(
+                        folderStructure,
+                        getZipFileName(),
+                      );
                     }}
                     className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
                     title="Download Project Files"
@@ -594,30 +597,33 @@ function FileViewer({
                   >
                     <DownloadIcon fontSize="small" />
                   </button>
-                  <button
-                    onClick={() => {
-                      void (async () => {
-                        await handleOpenDialog('newFile');
-                      })();
-                    }}
-                    className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
-                    title="New File"
-                    aria-label="New File"
-                  >
-                    <NoteAddIcon fontSize="small" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      void (async () => {
-                        await handleOpenDialog('newFolder');
-                      })();
-                    }}
-                    className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
-                    title="New Folder"
-                    aria-label="New Folder"
-                  >
-                    <CreateNewFolderIcon fontSize="small" />
-                  </button>
+
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        void (async () => {
+                          await handleOpenDialog('newFile');
+                        })();
+                      }}
+                      className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+                      title="New File"
+                      aria-label="New File"
+                    >
+                      <NoteAddIcon fontSize="small" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        void (async () => {
+                          await handleOpenDialog('newFolder');
+                        })();
+                      }}
+                      className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+                      title="New Folder"
+                      aria-label="New Folder"
+                    >
+                      <CreateNewFolderIcon fontSize="small" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
