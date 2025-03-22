@@ -123,9 +123,9 @@ function App() {
         }
         return response.json();
       })
-      .then((userFiles: IStructure) => {
+      .then((userFilesFromPublicRepo: IStructure) => {
         // Set the files in the store
-        setUserFiles({ userFiles, schemaInfo });
+        setUserFiles({ userFiles: userFilesFromPublicRepo, schemaInfo });
         setIsGitHubLoading(false);
       })
       .catch((error: unknown) => {
