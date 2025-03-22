@@ -5,7 +5,7 @@ import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { useModalStore } from '@/useModalStore.ts';
 
 import { consolidateInterfaces } from '@/utils/common.ts';
-import FileViewer, { IStructure } from '@/components/FileViewer.tsx';
+import FileViewer from '@/components/FileViewer.tsx';
 import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings.tsx';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
@@ -15,6 +15,7 @@ import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
+import { useGitHubFiles } from '@/hooks/useGitHubFiles.ts';
 
 function App() {
   const formData = useFormStore();
@@ -56,8 +57,48 @@ function App() {
   const { projects, setUserFiles } = useMockDatabaseStore();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isGitHubLoading, setIsGitHubLoading] = useState<boolean>(false);
   const [gitHubError, setGitHubError] = useState<string | null>(null);
+
+  // State for input value before being committed to store
+  const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
+
+  // Use TanStack Query to fetch GitHub files
+  const {
+    isLoading: isGitHubLoading,
+    refetch: refetchGitHubFiles,
+    data: githubData,
+    error: githubQueryError,
+  } = useGitHubFiles(
+    {
+      publicRepoURL,
+    },
+    {
+      refetchInterval: 1 * 1000, // 1 second
+      staleTime: 1 * 1000, // 1 second
+      gcTime: 1 * 1000, // 10 minutes
+      refetchOnWindowFocus: "always", // Refetch on window focus — but only if stale
+      enabled: !!publicRepoURL,
+    },
+  );
+
+  // Handle GitHub data changes
+  useEffect(() => {
+    if (githubData?.userFiles) {
+      setUserFiles({ userFiles: githubData.userFiles });
+      setGitHubError(null);
+    }
+  }, [githubData, setUserFiles]);
+
+  // Handle GitHub query errors
+  useEffect(() => {
+    if (githubQueryError) {
+      if (githubQueryError instanceof Error) {
+        setGitHubError(githubQueryError.message);
+      } else {
+        setGitHubError('An unknown error occurred');
+      }
+    }
+  }, [githubQueryError]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -96,9 +137,6 @@ function App() {
     return url === '' || url.startsWith('https://github.com/');
   };
 
-  // State for input value before being committed to store
-  const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
-
   // Use our custom hook to debounce updates to the Zustand store
   const [debouncedRepoURL] = useDebouncedValue(inputRepoURL, 500);
 
@@ -107,69 +145,10 @@ function App() {
     // Only update the store if the value has actually changed
     if (debouncedRepoURL !== publicRepoURL) {
       setPublicRepoURL(debouncedRepoURL);
+      // Trigger a refetch when the URL changes
+      void refetchGitHubFiles();
     }
-  }, [debouncedRepoURL, publicRepoURL, setPublicRepoURL]);
-
-  useEffect(() => {
-    /**
-     * Fetches repository files from the server-side /getUserFilesFromPublicRepo endpoint
-     *
-     * This implementation:
-     * 1. Makes a request to our server endpoint that handles GitHub repository fetching
-     * 2. The server downloads and processes files from the repository specified in publicRepoURL
-     * 3. Avoids CORS issues by having the server handle the GitHub API requests
-     *
-     * The expected server response structure is:
-     * - Projects/ (containing project template files like Laravel.yaml)
-     * - Templates/ (containing template files)
-     * - Other required folders and files
-     */
-    setIsGitHubLoading(true);
-    setGitHubError(null);
-
-    // Define the error response type
-    interface IErrorResponse {
-      error?: string;
-      message?: string;
-    }
-
-    // Fetch from our server endpoint that gets files from GitHub
-    fetch('http://localhost:5000/getUserFilesFromPublicRepo', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ publicRepoURL }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.json().then((err: IErrorResponse) => {
-            throw new Error(
-              err.message !== undefined && err.message !== ''
-                ? err.message
-                : 'Failed to fetch repository files',
-            );
-          });
-        }
-        return response.json();
-      })
-      .then((userFilesFromPublicRepo: IStructure) => {
-        // Set the files in the store
-        setUserFiles({ userFiles: userFilesFromPublicRepo });
-        setIsGitHubLoading(false);
-      })
-      .catch((error: unknown) => {
-        // Failure
-        setIsGitHubLoading(false);
-        if (error instanceof Error) {
-          setGitHubError(`Failed to fetch repository files: ${error.message}`);
-          console.error(`Failed to fetch repository files: ${error.message}`);
-        } else {
-          setGitHubError(`Unknown error: ${String(error)}`);
-          console.error(`Unknown error: ${String(error)}`);
-        }
-      });
-  }, [schemaInfo, setUserFiles, publicRepoURL]);
+  }, [debouncedRepoURL, publicRepoURL, setPublicRepoURL, refetchGitHubFiles]);
 
   useEffect(() => {
     setTransformations();
@@ -194,12 +173,8 @@ function App() {
     isDBConnectionValid: true,
   });
 
-  // Pre-calculate folder structures to avoid conditional hook calls
-  // const formDataState = useFormStore();
-  // const folderStructures = useFolderStructures({
-  //   schemaInfo,
-  //   formData: formDataState,
-  // });
+  // Using updated GitHub loading state for UI
+  const isLoadingGitHub = isGitHubLoading;
 
   return (
     <div className="text-white bg-black">
@@ -570,7 +545,7 @@ function App() {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     // Re-fetch when the user presses Enter
-                    setIsGitHubLoading(true);
+                    void refetchGitHubFiles();
                   }
                 }}
               />
@@ -597,7 +572,7 @@ function App() {
             </div>
             <div>
               {(() => {
-                if (isGitHubLoading) {
+                if (isLoadingGitHub) {
                   return (
                     <div className="flex items-center justify-center h-40 bg-gray-900 rounded-md">
                       <div className="text-white">

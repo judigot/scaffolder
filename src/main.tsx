@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import '@/styles/scss/main.scss';
 import App from '@/App.tsx';
@@ -55,15 +56,19 @@ class Profile extends Model
 
 const rootElement = document.getElementById('root');
 
+const queryClient = new QueryClient();
+
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       {/* <FormParser structure={JSONFormStructure} /> */}
 
-      <ModalProvider />
-      <SQLSchemaInputModal />
-      {/* <TransformationTester /> */}
-      <App />
+      <QueryClientProvider client={queryClient}>
+        <ModalProvider />
+        <SQLSchemaInputModal />
+        {/* <TransformationTester /> */}
+        <App />
+      </QueryClientProvider>
     </React.StrictMode>,
   );
 }

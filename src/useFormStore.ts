@@ -74,9 +74,12 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   project: IFile | undefined;
   projectFiles: IStructure;
   projectBuildCache: Record<string, IStructure | null>;
+  lastUserFilesHash: string;
   setProjectName: (projectName: string) => void;
   setPublicRepoURL: (url: string) => void;
   setProject: (project: IFile) => void;
+  invalidateProjectCache: () => void;
+  updateUserFilesHash: (userFiles: IStructure) => void;
 }
 
 function determineSQLDatabaseType(dbConnection: string): DBTypes {
@@ -90,7 +93,7 @@ const persistConfig: PersistOptions<IFormStore, unknown> = {
 };
 
 export const useFormStore = create<IFormStore>()(
-  persist((rawSet, _get) => {
+  persist((rawSet, get) => {
     const set = createTabSync<IFormStore>('scaffolder-sync')(rawSet);
 
     const initialDbType = determineSQLDatabaseType(
@@ -120,6 +123,7 @@ export const useFormStore = create<IFormStore>()(
       projectFiles: [],
       project: undefined,
       projectBuildCache: {},
+      lastUserFilesHash: '',
       setCreationMode: (creationMode) => {
         set({ creationMode });
       },
@@ -178,9 +182,35 @@ export const useFormStore = create<IFormStore>()(
           publicRepoURL: url,
         });
       },
+      updateUserFilesHash: (userFiles: IStructure) => {
+        // Create a hash (simplified version using JSON stringify)
+        // In a real app, consider using a better hashing mechanism
+        const hash = JSON.stringify(userFiles);
+        const state = get();
+        
+        // If the userFiles have changed (comparing hashes)
+        if (hash !== state.lastUserFilesHash) {
+          debugLog('User files have changed, invalidating cache');
+          // Store the new hash
+          set({ 
+            lastUserFilesHash: hash,
+            // Clear the cache when files change
+            projectBuildCache: {}
+          });
+          return true;
+        }
+        return false;
+      },
+      invalidateProjectCache: () => {
+        // Reset the entire project cache
+        set({ projectBuildCache: {} });
+      },
       setProject: (project: IFile) => {
         const { schemaInfo } = useTransformationsStore.getState();
         const { userFiles } = useMockDatabaseStore.getState();
+
+        // Check if userFiles have changed and invalidate cache if needed
+        get().updateUserFilesHash(userFiles);
 
         set((state) => {
           // Check if we have a cached version of this project's file structure
