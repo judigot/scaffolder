@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 
 /**
@@ -212,25 +212,25 @@ export const ContextMenu = ({
  * )}
  * ```
  */
-export const useContextMenu = () => {
-  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
+// export const useContextMenu = () => {
+//   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
   
-  const handleContextMenu = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setContextMenuPosition({ x: event.clientX, y: event.clientY });
-  }, []);
+//   const handleContextMenu = useCallback((event: React.MouseEvent) => {
+//     event.preventDefault();
+//     event.stopPropagation();
+//     setContextMenuPosition({ x: event.clientX, y: event.clientY });
+//   }, []);
   
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenuPosition(null);
-  }, []);
+//   const handleCloseContextMenu = useCallback(() => {
+//     setContextMenuPosition(null);
+//   }, []);
   
-  return {
-    contextMenuPosition,
-    handleContextMenu,
-    handleCloseContextMenu,
-    isContextMenuOpen: contextMenuPosition !== null
-  };
-};
+//   return {
+//     contextMenuPosition,
+//     handleContextMenu,
+//     handleCloseContextMenu,
+//     isContextMenuOpen: contextMenuPosition !== null
+//   };
+// };
 
 export default ContextMenu; 
