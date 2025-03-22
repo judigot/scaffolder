@@ -177,9 +177,11 @@ export const useFormStore = create<IFormStore>()(
       },
       invalidateProjectCache: () => {
         // Reset the entire project cache
-
         const { schemaInfo } = useTransformationsStore.getState();
+        const { userFiles } = useMockDatabaseStore.getState();
+
         set({
+          previousUserFiles: userFiles,
           projectBuildCache: {},
           previousSchemaInfo: schemaInfo,
         });
@@ -195,12 +197,7 @@ export const useFormStore = create<IFormStore>()(
         // Invalidate cache if userFiles has changed
         if (hasUserFilesChanged) {
           // Store the new values and clear cache when changes are detected
-          set({
-            previousUserFiles: userFiles,
-            previousSchemaInfo: schemaInfo,
-            projectBuildCache: {},
-          });
-          return;
+          state.invalidateProjectCache();
         }
 
         set((state) => {
@@ -211,24 +208,42 @@ export const useFormStore = create<IFormStore>()(
 
           if (cachedProjectFiles) {
             // Use cached version if available
-
             projectFiles = cachedProjectFiles;
           } else {
             // Calculate new structure if not in cache
-
             projectFiles = buildProjectFiles(
               `/Projects/${project.name}`,
               userFiles,
               schemaInfo,
             );
 
-            // Update cache with the new structure
-            state.projectBuildCache[project.name] = projectFiles;
+            const newProjects = useMockDatabaseStore.getState().projects;
+
+            // Check if the selected project is still in the projects array
+            const isSelectedProjectInProjects = newProjects.some(
+              (p) => p.name === project.name,
+            );
+
+            if (!isSelectedProjectInProjects) {
+              // If the selected project is not in the projects array, use the first project in the array
+              const firstProject = newProjects[0];
+              projectFiles = buildProjectFiles(
+                `/Projects/${firstProject.name}`,
+                userFiles,
+                schemaInfo,
+              );
+
+              return {
+                projectFiles,
+                project: firstProject,
+                projectBuildCache: { [firstProject.name]: projectFiles },
+              };
+            }
           }
 
           return {
-            project,
             projectFiles,
+            project,
             projectBuildCache: {
               ...state.projectBuildCache,
               [project.name]: projectFiles,

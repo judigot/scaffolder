@@ -39,6 +39,7 @@ function App() {
     project,
     setProject,
     projectFiles,
+    projectBuildCache,
   } = formData;
 
   const {
@@ -80,8 +81,8 @@ function App() {
       publicRepoURL,
     },
     {
-      refetchInterval: 30 * 1000, // 1 second
-      staleTime: 30 * 1000, // 1 second
+      refetchInterval: 1 * 1000, // 1 second
+      staleTime: 1 * 1000, // 1 second
       gcTime: 1 * 1000, // 10 minutes
       refetchOnWindowFocus: false, // Refetch on window focus — but only if stale
       enabled: !!publicRepoURL,
@@ -109,8 +110,11 @@ function App() {
       }, 3000);
 
       setUserFiles({ userFiles: githubData.userFiles });
+      if (project) {
+        setProject(project);
+      }
     }
-  }, [githubData, setUserFiles, publicRepoURL]);
+  }, [githubData, setUserFiles, publicRepoURL, project, setProject]);
 
   // Track schema changes
   useEffect(() => {
@@ -711,6 +715,16 @@ function App() {
                       </div> */}
                         {/* <FileViewer mode="edit" folderStructure={[]} /> */}
                         Project:
+                        <div>
+                          <code>
+                            Cached projects:
+                            {JSON.stringify(
+                              Object.keys(projectBuildCache),
+                              null,
+                              4,
+                            )}
+                          </code>
+                        </div>
                         <select
                           id="project"
                           name="project"
