@@ -88,7 +88,6 @@ router.post(
       res.json(result);
     } catch (error) {
       // Handle errors with appropriate status code and message
-      console.error('Error fetching repository files:', error);
       res.status(500).json({
         error: 'Failed to fetch repository files',
         message: error instanceof Error ? error.message : String(error),
