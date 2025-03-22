@@ -6,10 +6,10 @@ import { SQLQueries } from '@/utils/mappings.ts';
 import { CREATION_MODES } from '@/constants.ts';
 import { oneToOne, oneToMany, manyToMany } from '@/schema-infos/index.ts';
 import {
-  usersPostOneToOneSchema,
-  usersPostsOneToManySchema,
-  POSSchema,
-  masterJSONSchema,
+    usersPostOneToOneSchema,
+    usersPostsOneToManySchema,
+    POSSchema,
+    masterJSONSchema,
 } from '@/json-schemas/index.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
@@ -47,6 +47,8 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   outputOnSingleFile: boolean;
   dbType: DBTypes | undefined;
   quote: string;
+  publicRepoURL: string;
+  setPublicRepoURL: (url: string) => void;
   creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES];
   setCreationMode: (
     creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES],
@@ -92,6 +94,10 @@ export const useFormStore = create<IFormStore>()(
       outputOnSingleFile: false,
       dbType: initialDbType,
       quote: initialQuote,
+      publicRepoURL: 'https://github.com/judigot/scaffolder-files',
+      setPublicRepoURL: (url) => {
+        set({ publicRepoURL: url });
+      },
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
       setCreationMode: (creationMode) => {
         set({ creationMode });

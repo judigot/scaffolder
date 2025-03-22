@@ -33,6 +33,8 @@ function App() {
     setDBType,
     creationMode,
     setCreationMode,
+    publicRepoURL,
+    setPublicRepoURL,
   } = formData;
 
   const {
@@ -81,12 +83,12 @@ function App() {
   useEffect(() => {
     /**
      * Fetches repository files from the server-side /getUserFilesFromPublicRepo endpoint
-     * 
+     *
      * This implementation:
      * 1. Makes a request to our server endpoint that handles GitHub repository fetching
-     * 2. The server downloads and processes files from judigot/scaffolder-files repository
+     * 2. The server downloads and processes files from the repository specified in publicRepoURL
      * 3. Avoids CORS issues by having the server handle the GitHub API requests
-     * 
+     *
      * The expected server response structure is:
      * - Projects/ (containing project template files like Laravel.yaml)
      * - Templates/ (containing template files)
@@ -94,22 +96,28 @@ function App() {
      */
     setIsGitHubLoading(true);
     setGitHubError(null);
-    
+
     // Define the error response type
     interface IErrorResponse {
       error?: string;
       message?: string;
     }
-    
+
     // Fetch from our server endpoint that gets files from GitHub
-    fetch('http://localhost:5000/getUserFilesFromPublicRepo')
-      .then(response => {
+    fetch('http://localhost:5000/getUserFilesFromPublicRepo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ publicRepoURL }),
+    })
+      .then((response) => {
         if (!response.ok) {
           return response.json().then((err: IErrorResponse) => {
             throw new Error(
-              err.message !== undefined && err.message !== '' 
-                ? err.message 
-                : 'Failed to fetch repository files'
+              err.message !== undefined && err.message !== ''
+                ? err.message
+                : 'Failed to fetch repository files',
             );
           });
         }
@@ -131,7 +139,7 @@ function App() {
           console.error(`Unknown error: ${String(error)}`);
         }
       });
-  }, [schemaInfo, setUserFiles]);
+  }, [schemaInfo, setUserFiles, publicRepoURL]);
 
   useEffect(() => {
     setTransformations();
@@ -158,9 +166,9 @@ function App() {
 
   // Pre-calculate folder structures to avoid conditional hook calls
   const formDataState = useFormStore();
-  const folderStructures = useFolderStructures({ 
-    schemaInfo, 
-    formData: formDataState 
+  const folderStructures = useFolderStructures({
+    schemaInfo,
+    formData: formDataState,
   });
 
   return (
@@ -499,6 +507,22 @@ function App() {
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
             <h2 className="text-xl font-bold mb-2">Generated Code</h2>
             <div className="block text-sm font-medium">
+              <input
+                id="publicRepoURL"
+                name="publicRepoURL"
+                type="text"
+                placeholder="Public repository URL: e.g., https://github.com/user/scaffolder-files"
+                value={publicRepoURL}
+                onChange={(e) => { setPublicRepoURL(e.target.value); }}
+                className="mb-2 p-2 h-10 mt-1 block w-full border bg-gray-900 text-white rounded-md shadow-sm focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Re-fetch when the user presses Enter
+                    setIsGitHubLoading(true);
+                  }
+                }}
+              />
               Project:
               <select
                 id="framework"
@@ -521,26 +545,55 @@ function App() {
                   return (
                     <div className="flex items-center justify-center h-40 bg-gray-900 rounded-md">
                       <div className="text-white">
-                        <svg className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Loading repository files from GitHub...
                       </div>
                     </div>
                   );
                 }
-                
+
                 if (gitHubError !== null) {
                   return (
                     <div className="flex items-center justify-center h-40 bg-gray-900 rounded-md">
                       <div className="text-red-500 text-center p-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-500 inline-block mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-10 w-10 text-red-500 inline-block mb-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
                         </svg>
-                        <div className="font-bold mb-2">Error Loading Repository Files</div>
+                        <div className="font-bold mb-2">
+                          Error Loading Repository Files
+                        </div>
                         <div>{gitHubError}</div>
-                        <button 
+                        <button
                           onClick={() => {
                             setGitHubError(null);
                             window.location.reload();
@@ -553,7 +606,7 @@ function App() {
                     </div>
                   );
                 }
-                
+
                 return (
                   <>
                     {/* <div className="bg-blue-500  text-white font-bold">
