@@ -66,9 +66,12 @@ function App() {
   ) => {
     const { name, value, type } = e.target;
     if (name === 'project') {
-      const project = projects.find((project) => project.name === value);
-      if (project) {
-        setProject(project);
+      const selectedProject = projects.find((p) => p.name === value);
+      if (selectedProject) {
+        // Only update the project if it's different from the current one
+        if (project?.name !== selectedProject.name) {
+          setProject(selectedProject);
+        }
       }
       return;
     }

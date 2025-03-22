@@ -1,7 +1,5 @@
 import { IFile, IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { useTransformationsStore } from '@/useTransformationsStore.ts';
-import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 import { create } from 'zustand';
 import { useFormStore } from '@/useFormStore.ts';
 
@@ -24,7 +22,6 @@ export const useMockDatabaseStore = create<IStore>()((set) => ({
   userFiles: [],
   projects: [],
   setUserFiles: ({ userFiles }: { userFiles: IStructure }) => {
-    const { schemaInfo } = useTransformationsStore.getState();
     const { setProject, project: currentProject } = useFormStore.getState();
 
     const projectsFolder = userFiles.find(
@@ -62,16 +59,11 @@ export const useMockDatabaseStore = create<IStore>()((set) => ({
       return;
     }
 
-    // If we have a selected project, update the projectFiles in useFormStore
+    // If we have a selected project and the project files need to be refreshed,
+    // tell useFormStore to update the selected project
+    // This will trigger the caching mechanism in useFormStore
     if (projectSelected) {
-      const projectFiles = buildProjectFiles(
-        `/Projects/${projectSelected.name}`,
-        userFiles,
-        schemaInfo,
-      );
-
-      // Update projectFiles in useFormStore
-      useFormStore.setState({ projectFiles });
+      setProject(projectSelected);
     }
   },
 }));

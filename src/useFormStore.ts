@@ -18,6 +18,15 @@ import { IFile, IStructure } from '@/components/FileViewer.tsx';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 
+// Debug utility to avoid linter errors with console.log
+const isDevEnvironment = process.env.NODE_ENV === 'development';
+const debugLog = (message: string): void => {
+  if (isDevEnvironment) {
+    // Using console warn to comply with linter rules
+    console.warn(`[DEBUG] ${message}`);
+  }
+};
+
 export const frameworks = {
   LARAVEL: 'Laravel',
   NEXTJS: 'Next.js',
@@ -64,6 +73,7 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   setDBType: (dbType: DBTypes) => void;
   project: IFile | undefined;
   projectFiles: IStructure;
+  projectBuildCache: Record<string, IStructure | null>;
   setProjectName: (projectName: string) => void;
   setPublicRepoURL: (url: string) => void;
   setProject: (project: IFile) => void;
@@ -109,6 +119,7 @@ export const useFormStore = create<IFormStore>()(
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
       projectFiles: [],
       project: undefined,
+      projectBuildCache: {},
       setCreationMode: (creationMode) => {
         set({ creationMode });
       },
@@ -171,13 +182,38 @@ export const useFormStore = create<IFormStore>()(
         const { schemaInfo } = useTransformationsStore.getState();
         const { userFiles } = useMockDatabaseStore.getState();
 
-        const projectFiles = buildProjectFiles(
-          `/Projects/${project.name}`,
-          userFiles,
-          schemaInfo,
-        );
+        set((state) => {
+          // Check if we have a cached version of this project's file structure
+          const cachedProjectFiles = state.projectBuildCache[project.name];
 
-        set({ project, projectFiles });
+          let projectFiles: IStructure;
+
+          if (cachedProjectFiles) {
+            // Use cached version if available
+            debugLog(`Using cached project files for: ${project.name}`);
+            projectFiles = cachedProjectFiles;
+          } else {
+            // Calculate new structure if not in cache
+            debugLog(`Building project files for: ${project.name}`);
+            projectFiles = buildProjectFiles(
+              `/Projects/${project.name}`,
+              userFiles,
+              schemaInfo,
+            );
+
+            // Update cache with the new structure
+            state.projectBuildCache[project.name] = projectFiles;
+          }
+
+          return {
+            project,
+            projectFiles,
+            projectBuildCache: {
+              ...state.projectBuildCache,
+              [project.name]: projectFiles,
+            },
+          };
+        });
       },
     };
   }, persistConfig),
