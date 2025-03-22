@@ -109,7 +109,9 @@ function App() {
         setShowGitHubUpdateNotification(false);
       }, 3000);
 
-      setUserFiles({ userFiles: githubData.userFiles });
+      if (githubData.userFiles.length > 0) {
+        setUserFiles({ userFiles: githubData.userFiles });
+      }
       if (project) {
         setProject(project);
       }
@@ -171,13 +173,13 @@ function App() {
   };
 
   // Use our custom hook to debounce updates to the Zustand store
-  const [debouncedRepoURL] = useDebouncedValue(inputRepoURL, 500);
+  const [debouncedRepoURL] = useDebouncedValue(inputRepoURL, 1000);
 
   // Update the Zustand store when the debounced value changes
   useEffect(() => {
     // Only update the store if the value has actually changed
+    setPublicRepoURL(inputRepoURL);
     if (inputRepoURL && debouncedRepoURL !== publicRepoURL) {
-      setPublicRepoURL(debouncedRepoURL);
       // Trigger a refetch when the URL changes
       void refetchGitHubFiles();
     }
