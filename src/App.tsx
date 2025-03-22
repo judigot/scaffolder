@@ -80,7 +80,7 @@ function App() {
       refetchInterval: 30 * 1000, // 1 second
       staleTime: 30 * 1000, // 1 second
       gcTime: 1 * 1000, // 10 minutes
-      refetchOnWindowFocus: 'always', // Refetch on window focus — but only if stale
+      refetchOnWindowFocus: false, // Refetch on window focus — but only if stale
       enabled: !!publicRepoURL,
     },
   );
@@ -596,27 +596,12 @@ function App() {
                   URL must start with https://github.com/
                 </div>
               )}
-              Project:
-              <select
-                id="project"
-                name="project"
-                value={project?.name}
-                onChange={handleChange}
-                className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-              >
-                {/* <option value={''}>Select a framework</option> */}
-                {projects.map((project) => (
-                  <option key={project.name} value={project.name}>
-                    {project.name.replace(/\.[^/.]+$/, '')}
-                  </option>
-                ))}
-              </select>
             </div>
             <div>
               {(() => {
                 if (isLoadingGitHub) {
                   return (
-                    <div className="flex items-center justify-center h-40 bg-gray-900 rounded-md">
+                    <div className="flex items-center justify-center h-40 rounded-md">
                       <div className="text-white">
                         <svg
                           className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block"
@@ -638,7 +623,7 @@ function App() {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                           ></path>
                         </svg>
-                        Loading repository files from GitHub...
+                        Loading repository files...
                       </div>
                     </div>
                   );
@@ -646,7 +631,7 @@ function App() {
 
                 if (gitHubError !== null) {
                   return (
-                    <div className="flex items-center justify-center h-40 bg-gray-900 rounded-md">
+                    <div className="flex items-center justify-center h-40 rounded-md">
                       <div className="text-red-500 text-center p-4">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -666,15 +651,10 @@ function App() {
                           Error Loading Repository Files
                         </div>
                         <div>{gitHubError}</div>
-                        <button
-                          onClick={() => {
-                            setGitHubError(null);
-                            window.location.reload();
-                          }}
-                          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring focus:ring-red-500 focus:ring-opacity-50"
-                        >
-                          Try Again
-                        </button>
+                        <div>
+                          Please check if the URL is a valid public GitHub
+                          repository URL.
+                        </div>
                       </div>
                     </div>
                   );
@@ -695,6 +675,21 @@ function App() {
                       />
                     </div> */}
                     {/* <FileViewer mode="edit" folderStructure={[]} /> */}
+                    Project:
+                    <select
+                      id="project"
+                      name="project"
+                      value={project?.name}
+                      onChange={handleChange}
+                      className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                    >
+                      {/* <option value={''}>Select a framework</option> */}
+                      {projects.map((project) => (
+                        <option key={project.name} value={project.name}>
+                          {project.name.replace(/\.[^/.]+$/, '')}
+                        </option>
+                      ))}
+                    </select>
                     <FileViewer
                       mode="edit"
                       folderStructure={projectFiles}
