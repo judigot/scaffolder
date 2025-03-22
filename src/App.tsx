@@ -673,7 +673,11 @@ function App() {
                       />
                     </div> */}
                     {/* <FileViewer mode="edit" folderStructure={[]} /> */}
-                    <FileViewer mode="edit" folderStructure={projectFiles} />
+                    <FileViewer 
+                      mode="edit" 
+                      folderStructure={projectFiles}
+                      projectName={project?.name} 
+                    />
                     {/* <FileViewer
                       mode="view"
                       folderStructure={folderStructures[framework]}

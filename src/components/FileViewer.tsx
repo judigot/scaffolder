@@ -9,11 +9,13 @@ import {
   CreateNewFolder as CreateNewFolderIcon,
   NoteAdd as NoteAddIcon,
   Save as SaveIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
+import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
 
 export interface IBase {
   name: string;
@@ -40,9 +42,11 @@ interface ICodeEditor {
 function FileViewer({
   folderStructure: initialFolderStructure,
   mode,
+  projectName,
 }: {
   folderStructure: IStructure;
   mode: 'edit' | 'view';
+  projectName?: string;
 }) {
   const { editValue, newValue, promptModal } = useModalStore();
   const [folderStructure, setFolderStructure] = useState<IStructure>(
@@ -539,6 +543,30 @@ function FileViewer({
     });
   }
 
+  // Add a function to get the sanitized project name for the zip file
+  const getZipFileName = (): string => {
+    // Get the base name (remove file extension if present)
+    let baseName = 'project';
+    if (typeof projectName === 'string' && projectName !== '') {
+      // Remove file extension if present
+      baseName = projectName.replace(/\.[^/.]+$/, '');
+    }
+    
+    // Generate timestamp in format YYYY-MM-DD-HHmmss
+    const now = new Date();
+    const year = String(now.getFullYear());
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    const timestamp = `${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+    
+    // Return formatted filename
+    return `${baseName}-${timestamp}.zip`;
+  };
+
   return (
     <div className="h-96 p-2">
       <div className="grid grid-cols-1 md:grid-cols-3 text-white">
@@ -556,6 +584,16 @@ function FileViewer({
 
               {mode === 'edit' && (
                 <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      zipAndDownloadIStructure(folderStructure, getZipFileName());
+                    }}
+                    className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+                    title="Download Project Files"
+                    aria-label="Download Project Files"
+                  >
+                    <DownloadIcon fontSize="small" />
+                  </button>
                   <button
                     onClick={() => {
                       void (async () => {
