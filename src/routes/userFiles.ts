@@ -1,12 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { fetchRepositoryFiles } from '@/utils/downloadPublicRepoFiles.ts';
-import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFilesToIStructure.ts';
+import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
 
 const router = Router();
 
 router.get(
   '/userFiles',
-  async (
+  (
     _req: Request<
       unknown,
       unknown,
@@ -16,29 +15,8 @@ router.get(
     >,
     res: Response,
   ) => {
-    try {
-      // Fetch repository files from GitHub (server-to-server request not subject to CORS)
-      const extractedFiles = await fetchRepositoryFiles({
-        user: 'judigot',
-        repository: 'scaffolder-files',
-        branch: 'main',
-        filesToFetch: ['*'],
-        keepFolderStructure: true,
-      });
-
-      // Convert the extracted files to the expected IStructure format
-      const result = convertPublicRepoFilesToStructure(extractedFiles);
-      
-      // Return the structured data as JSON
-      res.json(result);
-    } catch (error) {
-      // Handle errors with appropriate status code and message
-      console.error('Error fetching repository files:', error);
-      res.status(500).json({
-        error: 'Failed to fetch repository files',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
+    const result = convertLocalFilesToIStructure('src/files');
+    res.json(result);
   },
 );
 

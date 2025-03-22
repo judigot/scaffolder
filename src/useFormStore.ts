@@ -6,10 +6,10 @@ import { SQLQueries } from '@/utils/mappings.ts';
 import { CREATION_MODES } from '@/constants.ts';
 import { oneToOne, oneToMany, manyToMany } from '@/schema-infos/index.ts';
 import {
-    usersPostOneToOneSchema,
-    usersPostsOneToManySchema,
-    POSSchema,
-    masterJSONSchema,
+  usersPostOneToOneSchema,
+  usersPostsOneToManySchema,
+  POSSchema,
+  masterJSONSchema,
 } from '@/json-schemas/index.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
@@ -94,7 +94,7 @@ export const useFormStore = create<IFormStore>()(
       outputOnSingleFile: false,
       dbType: initialDbType,
       quote: initialQuote,
-      publicRepoURL: 'https://github.com/judigot/scaffolder-files',
+      publicRepoURL: '',
       setPublicRepoURL: (url) => {
         set({ publicRepoURL: url });
       },
