@@ -57,7 +57,6 @@ function App() {
   const { projects, setUserFiles } = useMockDatabaseStore();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [gitHubError, setGitHubError] = useState<string | null>(null);
 
   // State for showing a notification when GitHub data is updated
   const [showGitHubUpdateNotification, setShowGitHubUpdateNotification] =
@@ -89,13 +88,6 @@ function App() {
   useEffect(() => {
     if (githubData?.userFiles) {
       // Log timestamp to monitor GitHub updates
-      console.warn(
-        `%c[GitHub Update] Received new data at ${new Date().toLocaleTimeString()}`,
-        'background: #4CAF50; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;',
-      );
-
-      console.warn(`Repo URL: ${publicRepoURL}`);
-      console.warn(`Files count: ${String(githubData.userFiles.length)}`);
 
       // Show the notification
       setShowGitHubUpdateNotification(true);
@@ -106,20 +98,8 @@ function App() {
       }, 3000);
 
       setUserFiles({ userFiles: githubData.userFiles });
-      setGitHubError(null);
     }
   }, [githubData, setUserFiles, publicRepoURL]);
-
-  // Handle GitHub query errors
-  useEffect(() => {
-    if (githubQueryError) {
-      if (githubQueryError instanceof Error) {
-        setGitHubError(githubQueryError.message);
-      } else {
-        setGitHubError('An unknown error occurred');
-      }
-    }
-  }, [githubQueryError]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -164,12 +144,18 @@ function App() {
   // Update the Zustand store when the debounced value changes
   useEffect(() => {
     // Only update the store if the value has actually changed
-    if (debouncedRepoURL !== publicRepoURL) {
+    if (inputRepoURL && debouncedRepoURL !== publicRepoURL) {
       setPublicRepoURL(debouncedRepoURL);
       // Trigger a refetch when the URL changes
       void refetchGitHubFiles();
     }
-  }, [debouncedRepoURL, publicRepoURL, setPublicRepoURL, refetchGitHubFiles]);
+  }, [
+    debouncedRepoURL,
+    inputRepoURL,
+    publicRepoURL,
+    setPublicRepoURL,
+    refetchGitHubFiles,
+  ]);
 
   useEffect(() => {
     setTransformations();
@@ -193,9 +179,6 @@ function App() {
     isFrontendDirValid: true,
     isDBConnectionValid: true,
   });
-
-  // Using updated GitHub loading state for UI
-  const isLoadingGitHub = isGitHubLoading;
 
   return (
     <div className="text-white bg-black">
@@ -584,7 +567,7 @@ function App() {
                     : 'border-gray-700'
                 }`}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (inputRepoURL && e.key === 'Enter') {
                     e.preventDefault();
                     // Re-fetch when the user presses Enter
                     void refetchGitHubFiles();
@@ -597,72 +580,74 @@ function App() {
                 </div>
               )}
             </div>
-            <div>
-              {(() => {
-                if (isLoadingGitHub) {
-                  return (
-                    <div className="flex items-center justify-center h-40 rounded-md">
-                      <div className="text-white">
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
+            {!inputRepoURL && (
+              <div className="flex items-center text-gray-500 justify-center h-40 rounded-md">
+                Please enter a GitHub repository URL to generate code
+              </div>
+            )}
+            {inputRepoURL && isValidGitHubURL(inputRepoURL) && (
+              <div>
+                {(() => {
+                  if (isGitHubLoading) {
+                    return (
+                      <div className="flex items-center justify-center h-40 rounded-md">
+                        <div className="text-white">
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Loading repository files...
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (githubQueryError) {
+                    return (
+                      <div className="flex items-center justify-center h-40 rounded-md">
+                        <div className="text-red-500 text-center p-4">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-10 w-10 text-red-500 inline-block mb-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
                             stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Loading repository files...
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
+                          </svg>
+                          <div className="font-bold mb-2">
+                            Error Loading Repository Files
+                          </div>
+                          <div>{githubQueryError.message}</div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                }
+                    );
+                  }
 
-                if (gitHubError !== null) {
                   return (
-                    <div className="flex items-center justify-center h-40 rounded-md">
-                      <div className="text-red-500 text-center p-4">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-10 w-10 text-red-500 inline-block mb-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        <div className="font-bold mb-2">
-                          Error Loading Repository Files
-                        </div>
-                        <div>{gitHubError}</div>
-                        <div>
-                          Please check if the URL is a valid public GitHub
-                          repository URL.
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <>
-                    {/* <div className="bg-blue-500  text-white font-bold">
+                    <>
+                      {/* <div className="bg-blue-500  text-white font-bold">
                       <FileViewer
                         folderColor={'yellow'}
                         folderStructure={folderStructures[framework]}
@@ -674,28 +659,28 @@ function App() {
                         folderStructure={folderStructures.frontend}
                       />
                     </div> */}
-                    {/* <FileViewer mode="edit" folderStructure={[]} /> */}
-                    Project:
-                    <select
-                      id="project"
-                      name="project"
-                      value={project?.name}
-                      onChange={handleChange}
-                      className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                    >
-                      {/* <option value={''}>Select a framework</option> */}
-                      {projects.map((project) => (
-                        <option key={project.name} value={project.name}>
-                          {project.name.replace(/\.[^/.]+$/, '')}
-                        </option>
-                      ))}
-                    </select>
-                    <FileViewer
-                      mode="edit"
-                      folderStructure={projectFiles}
-                      projectName={project?.name}
-                    />
-                    {/* <FileViewer
+                      {/* <FileViewer mode="edit" folderStructure={[]} /> */}
+                      Project:
+                      <select
+                        id="project"
+                        name="project"
+                        value={project?.name}
+                        onChange={handleChange}
+                        className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                      >
+                        {/* <option value={''}>Select a framework</option> */}
+                        {projects.map((project) => (
+                          <option key={project.name} value={project.name}>
+                            {project.name.replace(/\.[^/.]+$/, '')}
+                          </option>
+                        ))}
+                      </select>
+                      <FileViewer
+                        mode="edit"
+                        folderStructure={projectFiles}
+                        projectName={project?.name}
+                      />
+                      {/* <FileViewer
                       mode="view"
                       folderStructure={folderStructures[framework]}
                     />
@@ -703,10 +688,11 @@ function App() {
                       mode="view"
                       folderStructure={folderStructures.frontend}
                     /> */}
-                  </>
-                );
-              })()}
-            </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         </div>
         <br />

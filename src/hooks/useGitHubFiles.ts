@@ -85,10 +85,12 @@ const fetchGitHubFiles = async (
       timestamp: Date.now(),
     };
   } catch (error: unknown) {
-    if (typeof error === 'string') {
-      throw new Error(`There was an error: ${error}`);
-    }
     if (error instanceof Error) {
+      if (error.message === 'invalid zip data') {
+        throw new Error(
+          'The repository either does not exist, is not public, or lacks a valid file structure. See documentation for details.',
+        );
+      }
       throw new Error(`There was an error: ${error.message}`);
     }
     throw new Error(`Unknown error: ${String(error)}`);
@@ -129,7 +131,7 @@ export const useGitHubFiles = (
     // Common use cases: large or complex data where refetching too often is wasteful, but you still want quick reuse if the user navigates back.
 
     refetchOnWindowFocus: 'always', // Refetch on window focus — but only if stale
-    retry: 1,
+    retry: false,
 
     ...behavior, // This will override the default settings
   });
