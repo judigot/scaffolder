@@ -1,18 +1,11 @@
 import { IFile, IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { create } from 'zustand';
 import { useFormStore } from '@/useFormStore.ts';
 
 interface IStore {
   userFiles: IStructure;
   projects: IFile[];
-  setUserFiles: ({
-    userFiles,
-    schemaInfo,
-  }: {
-    userFiles: IStructure;
-    schemaInfo: ISchemaInfo[];
-  }) => void;
+  setUserFiles: ({ userFiles }: { userFiles: IStructure }) => void;
 }
 
 /*
