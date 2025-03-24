@@ -4,6 +4,7 @@ import scaffoldRouter from './scaffold.ts';
 import introspectRouter from './introspect.ts';
 import userFilesRouter from './userFiles.ts';
 import getUserFilesFromPublicRepoRouter from './getUserFilesFromPublicRepo.ts';
+import createLocalFilesRouter from './createLocalFiles.ts';
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use(scaffoldRouter);
 router.use(introspectRouter);
 router.use(userFilesRouter);
 router.use(getUserFilesFromPublicRepoRouter);
+router.use(createLocalFilesRouter);
 
 export default router;

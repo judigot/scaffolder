@@ -16,6 +16,8 @@ import Editor, { OnMount } from '@monaco-editor/react';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
 import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
 
 export interface IBase {
   name: string;
@@ -45,6 +47,26 @@ const createUniqueFileId = (path: string[], fileName: string): string => {
   return [...path, fileName].join('/');
 };
 
+interface ICreateLocalFilesResponse {
+  success: boolean;
+  error?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isCreateLocalFilesResponse(value: unknown): value is ICreateLocalFilesResponse {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const hasSuccess = 'success' in value && typeof value.success === 'boolean';
+  const hasError = !('error' in value) || typeof value.error === 'string';
+
+  return hasSuccess && hasError;
+}
+
 function FileViewer({
   folderStructure: initialFolderStructure,
   mode,
@@ -54,7 +76,9 @@ function FileViewer({
   mode: 'edit' | 'view';
   projectName?: string;
 }) {
+  const { schemaInfo } = useTransformationsStore();
   const { editValue, newValue, promptModal } = useModalStore();
+  const { backendDir, publicRepoURL } = useFormStore();
   const [folderStructure, setFolderStructure] = useState<IStructure>(
     initialFolderStructure,
   );
@@ -701,8 +725,72 @@ function FileViewer({
     }
   };
 
+  const handleCreateApp = async () => {
+    try {
+      // Show confirmation dialog
+      const result = await promptModal({
+        title: 'Create App',
+        description: `Do you want to create the app in ${backendDir}?`,
+        trueText: 'Create',
+        falseText: 'Cancel',
+      });
+
+      if (!result) {
+        return;
+      }
+
+      // Make API call to create files
+      const response = await fetch('http://localhost:5000/create-local-files', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectName: projectName ?? 'project',
+          publicRepoURL,
+          backendDir,
+          schemaInfo,
+        }),
+      });
+
+      const data: unknown = await response.json();
+
+      if (!isCreateLocalFilesResponse(data)) {
+        throw new Error('Invalid response from server');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error ?? 'Failed to create app');
+      }
+
+      // Show success message
+      void promptModal({
+        title: 'Success',
+        description: 'App created successfully!',
+        trueText: 'OK',
+        falseText: '',
+      });
+    } catch (error) {
+      console.error('Error creating app:', error);
+      void promptModal({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to create app',
+        trueText: 'OK',
+        falseText: '',
+      });
+    }
+  };
+
   return (
     <div className="h-96 p-2" ref={fileViewerRef}>
+      <button
+        type="button"
+        onClick={() => void handleCreateApp()}
+        className="mb-2 sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+      >
+        Create App!
+      </button>
+      <br />
       <div className="grid grid-cols-1 md:grid-cols-3 text-white">
         <div className="col-span-1 bg-gray-800 select-none mr-2">
           <div>
