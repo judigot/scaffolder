@@ -92,8 +92,8 @@ function App() {
       publicRepoURL,
     },
     {
-      refetchInterval: 1 * 1000, // 1 second
-      staleTime: 1 * 1000, // 1 second
+      refetchInterval: 5 * 60 * 1000, // 1 second
+      staleTime: 5 * 60 * 1000, // 1 second
       gcTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false, // Refetch on window focus — but only if stale
       enabled: !!publicRepoURL,

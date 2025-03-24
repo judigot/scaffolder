@@ -15,6 +15,7 @@ router.post(
         publicRepoURL: string;
         backendDir: string;
         schemaInfo: ISchemaInfo[];
+        projectFileName: string;
       }
     >,
     res: Response,
