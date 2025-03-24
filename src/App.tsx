@@ -13,9 +13,10 @@ import { CREATION_MODES } from '@/constants.ts';
 import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 import { useGitHubFiles } from '@/hooks/useGitHubFiles.ts';
+import { useProjectStore } from '@/useProjectStore.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
 function App() {
   const formData = useFormStore();
@@ -36,10 +37,6 @@ function App() {
     setCreationMode,
     publicRepoURL,
     setPublicRepoURL,
-    project,
-    setProject,
-    projectFiles,
-    projectBuildCache,
   } = formData;
 
   const {
@@ -55,7 +52,21 @@ function App() {
     setSchemaInfo,
   } = useTransformationsStore();
 
-  const { projects, setUserFiles } = useMockDatabaseStore();
+  // Use both stores
+  const { setUserFiles } = useMockDatabaseStore();
+
+  const {
+    projects,
+    selectedProject,
+    selectProject,
+    buildProjectFilesForProject,
+    projectBuildCache,
+  } = useProjectStore();
+
+  // Get the project files from the selected project
+  const builtProjectFiles = selectedProject
+    ? buildProjectFilesForProject(selectedProject, schemaInfo)
+    : [];
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -79,10 +90,11 @@ function App() {
   } = useGitHubFiles(
     {
       publicRepoURL,
+      schemaVersion: schemaInfo.length > 0 ? schemaInfo.length : 0,
     },
     {
-      refetchInterval: 10 * 1000, // 1 second
-      staleTime: 10 * 1000, // 1 second
+      refetchInterval: 1 * 1000, // 1 second
+      staleTime: 1 * 1000, // 1 second
       gcTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false, // Refetch on window focus — but only if stale
       enabled: !!publicRepoURL,
@@ -92,39 +104,26 @@ function App() {
   // Handle GitHub data changes
   useEffect(() => {
     if (githubData?.userFiles) {
-      // Log timestamp to monitor GitHub updates
-      console.warn(
-        `%c[GitHub Update] Received new data at ${new Date().toLocaleTimeString()}`,
-        'background: #4CAF50; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;',
-      );
-
-      console.warn(`Repo URL: ${publicRepoURL}`);
-      console.warn(`Files count: ${String(githubData.userFiles.length)}`);
-
-      // Show the notification
-      setShowGitHubUpdateNotification(true);
-
-      // Hide notification after 3 seconds
-      setTimeout(() => {
-        setShowGitHubUpdateNotification(false);
-      }, 3000);
-
       if (githubData.userFiles.length > 0) {
-        setUserFiles({ userFiles: githubData.userFiles });
-      }
-      if (project) {
-        setProject(project);
+        // Just set the userFiles in the mock database store
+        // The project store will handle detecting changes
+        setUserFiles({
+          userFiles: githubData.userFiles,
+        });
+
+        // Show notification for GitHub updates
+        setShowGitHubUpdateNotification(true);
+        setTimeout(() => {
+          setShowGitHubUpdateNotification(false);
+        }, 3000);
       }
     }
-  }, [githubData, setUserFiles, publicRepoURL, project, setProject]);
+  }, [githubData, setUserFiles, publicRepoURL]);
 
   // Track schema changes
   useEffect(() => {
-    console.warn(
-      `%c[Schema Update] Schema info changed at ${new Date().toLocaleTimeString()}`,
-      'background: #FF9800; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;',
-    );
-    console.warn(`Schema tables count: ${String(schemaInfo.length)}`);
+    // We don't need to rebuild files here - useTransformationsStore.setSchemaInfo already does this
+    // The project files are automatically rebuilt when schema info changes
 
     // Show the schema update notification
     setShowSchemaUpdateNotification(true);
@@ -142,11 +141,10 @@ function App() {
   ) => {
     const { name, value, type } = e.target;
     if (name === 'project') {
-      const selectedProject = projects.find((p) => p.name === value);
-      if (selectedProject) {
-        // Only update the project if it's different from the current one
-        if (project?.name !== selectedProject.name) {
-          setProject(selectedProject);
+      const selectedProjectOption = projects.find((p) => p.name === value);
+      if (selectedProjectOption) {
+        if (selectedProject?.name !== selectedProjectOption.name) {
+          selectProject(selectedProjectOption);
         }
       }
       return;
@@ -213,6 +211,16 @@ function App() {
     isFrontendDirValid: true,
     isDBConnectionValid: true,
   });
+
+  // Add a new effect for initial app startup
+  useEffect(() => {
+    // Check if we need to initialize on startup
+    // Trigger an immediate refetch when app starts if a URL is provided
+    if (publicRepoURL) {
+      // Force a refetch on every reload to detect remote changes
+      void refetchGitHubFiles();
+    }
+  }, [publicRepoURL, refetchGitHubFiles]);
 
   return (
     <div className="text-white bg-black">
@@ -469,7 +477,7 @@ function App() {
             {isLoading && 'Generating...'}
             {!isLoading && (
               <>
-                Create <strong>{project?.name}</strong> App
+                Create <strong>{selectedProject?.name ?? 'No'}</strong> App
                 <span className="text-2xl">🪄</span>
               </>
             )}
@@ -704,7 +712,7 @@ function App() {
                     );
                   }
 
-                  if (project !== undefined) {
+                  if (selectedProject !== null) {
                     return (
                       <>
                         {/* <div className="bg-blue-500  text-white font-bold">
@@ -720,21 +728,36 @@ function App() {
                         />
                       </div> */}
                         {/* <FileViewer mode="edit" folderStructure={[]} /> */}
-                        Project:
-                        <div>
-                          <code>
-                            Cached projects:
-                            {JSON.stringify(
-                              Object.keys(projectBuildCache),
-                              null,
-                              4,
-                            )}
-                          </code>
-                        </div>
+                        {process.env.NODE_ENV === 'development' && (
+                          <>
+                            <div>
+                              <code>
+                                Cached projects:
+                                {JSON.stringify(
+                                  Object.keys(projectBuildCache),
+                                  null,
+                                  4,
+                                )}
+                              </code>
+                            </div>
+                            <br />
+                            <code>
+                              Selected project:
+                              <br />
+                              {selectedProject.name}
+                              <br />
+                              {String(selectedProject.content).substring(0, 20)}
+                              ...
+                              <br />
+                              <br />
+                            </code>
+                          </>
+                        )}
+                        <label htmlFor="project">Project:</label>
                         <select
                           id="project"
                           name="project"
-                          value={project.name}
+                          value={selectedProject.name}
                           onChange={handleChange}
                           className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                         >
@@ -747,8 +770,8 @@ function App() {
                         </select>
                         <FileViewer
                           mode="edit"
-                          folderStructure={projectFiles}
-                          projectName={project.name}
+                          folderStructure={builtProjectFiles}
+                          projectName={selectedProject.name}
                         />
                         {/* <FileViewer
                         mode="view"

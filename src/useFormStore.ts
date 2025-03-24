@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, PersistOptions } from 'zustand/middleware';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
-import { DBTypes, IJSONSchema, ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { DBTypes, IJSONSchema } from '@/interfaces/interfaces.ts';
 import { SQLQueries } from '@/utils/mappings.ts';
 import { CREATION_MODES } from '@/constants.ts';
 import { oneToOne, oneToMany, manyToMany } from '@/schema-infos/index.ts';
@@ -14,29 +14,12 @@ import {
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
-import { IFile, IStructure } from '@/components/FileViewer.tsx';
-import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
-import equal from 'fast-deep-equal';
 
 export const frameworks = {
   LARAVEL: 'Laravel',
   NEXTJS: 'Next.js',
   // SPRING_BOOT: 'Spring Boot',
 } as const;
-
-// export interface IFormData {
-//   schemaInput: IJSONSchema;
-//   backendUrl: string;
-//   backendDir: string;
-//   frontendDir: string;
-//   dbConnection: string;
-//   framework: (typeof frameworks)[keyof typeof frameworks] | '';
-//   includeInsertData: boolean;
-//   insertOption: 'SQLInsertQueries' | 'SQLInsertQueriesFromMockData';
-//   includeTypeGuards: boolean;
-//   outputOnSingleFile: boolean;
-// }
 
 export interface IFormStore extends Record<PropertyKey, unknown> {
   schemaInput: IJSONSchema;
@@ -63,15 +46,7 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   setOneToMany: () => void;
   setManyToMany: () => void;
   setDBType: (dbType: DBTypes) => void;
-  project: IFile | undefined;
-  projectFiles: IStructure;
-  projectBuildCache: Record<string, IStructure | null>;
-  previousUserFiles: IStructure | null;
-  previousSchemaInfo: ISchemaInfo[] | null;
-  setProjectName: (projectName: string) => void;
   setPublicRepoURL: (url: string) => void;
-  setProject: (project: IFile) => void;
-  invalidateProjectCache: () => void;
 }
 
 function determineSQLDatabaseType(dbConnection: string): DBTypes {
@@ -85,7 +60,7 @@ const persistConfig: PersistOptions<IFormStore, unknown> = {
 };
 
 export const useFormStore = create<IFormStore>()(
-  persist((rawSet, get) => {
+  persist((rawSet) => {
     const set = createTabSync<IFormStore>('scaffolder-sync')(rawSet);
 
     const initialDbType = determineSQLDatabaseType(
@@ -112,11 +87,6 @@ export const useFormStore = create<IFormStore>()(
       clientID: '',
       clientSecret: '',
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
-      projectFiles: [],
-      project: undefined,
-      projectBuildCache: {},
-      previousUserFiles: null,
-      previousSchemaInfo: null,
       setCreationMode: (creationMode) => {
         set({ creationMode });
       },
@@ -165,90 +135,9 @@ export const useFormStore = create<IFormStore>()(
           };
         });
       },
-      setProjectName: (projectName: string) => {
-        set({
-          publicRepoURL: `https://github.com/laravel/${projectName}`,
-        });
-      },
       setPublicRepoURL: (url: string) => {
         set({
           publicRepoURL: url,
-        });
-      },
-      invalidateProjectCache: () => {
-        // Reset the entire project cache
-        const { schemaInfo } = useTransformationsStore.getState();
-        const { userFiles } = useMockDatabaseStore.getState();
-
-        set({
-          previousUserFiles: userFiles,
-          projectBuildCache: {},
-          previousSchemaInfo: schemaInfo,
-        });
-      },
-      setProject: (project: IFile) => {
-        const { schemaInfo } = useTransformationsStore.getState();
-        const { userFiles } = useMockDatabaseStore.getState();
-        const state = get();
-
-        // Check if userFiles have changed
-        const hasUserFilesChanged = !equal(state.previousUserFiles, userFiles);
-
-        // Invalidate cache if userFiles has changed
-        if (hasUserFilesChanged) {
-          // Store the new values and clear cache when changes are detected
-          state.invalidateProjectCache();
-        }
-
-        set((state) => {
-          // Check if we have a cached version of this project's file structure
-          const cachedProjectFiles = state.projectBuildCache[project.name];
-
-          let projectFiles: IStructure;
-
-          if (cachedProjectFiles) {
-            // Use cached version if available
-            projectFiles = cachedProjectFiles;
-          } else {
-            // Calculate new structure if not in cache
-            projectFiles = buildProjectFiles(
-              `/Projects/${project.name}`,
-              userFiles,
-              schemaInfo,
-            );
-
-            const newProjects = useMockDatabaseStore.getState().projects;
-
-            // Check if the selected project is still in the projects array
-            const isSelectedProjectInProjects = newProjects.some(
-              (p) => p.name === project.name,
-            );
-
-            if (!isSelectedProjectInProjects) {
-              // If the selected project is not in the projects array, use the first project in the array
-              const firstProject = newProjects[0];
-              projectFiles = buildProjectFiles(
-                `/Projects/${firstProject.name}`,
-                userFiles,
-                schemaInfo,
-              );
-
-              return {
-                projectFiles,
-                project: firstProject,
-                projectBuildCache: { [firstProject.name]: projectFiles },
-              };
-            }
-          }
-
-          return {
-            projectFiles,
-            project,
-            projectBuildCache: {
-              ...state.projectBuildCache,
-              [project.name]: projectFiles,
-            },
-          };
         });
       },
     };

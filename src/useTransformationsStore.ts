@@ -16,6 +16,7 @@ import masterSchema from '@/schema-infos/masterSchema.ts';
 import { IStructure } from '@/components/FileViewer.tsx';
 import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useProjectStore } from '@/useProjectStore.ts';
 
 interface ITransformations extends Record<PropertyKey, unknown> {
   schemaInfo: ISchemaInfo[];
@@ -64,24 +65,26 @@ export const useTransformationsStore = create<ITransformations>()(
       oneToOneJoins: [],
       aggregateJoins: [],
       setSchemaInfo: (schemaInfo) => {
-        const { project, invalidateProjectCache } = useFormStore.getState();
+        const { project } = useFormStore.getState();
+        const { invalidateProjectCache, selectedProject, projectBuildCache } =
+          useProjectStore.getState();
 
         // First update the schema info in our store
         set({ schemaInfo });
 
         // Invalidate the built project cache
-        invalidateProjectCache();
 
         // If we have a currently selected project, rebuild its files
-        if (project) {
+        if (selectedProject) {
+          invalidateProjectCache(selectedProject.name);
           const { userFiles } = useMockDatabaseStore.getState();
-          useFormStore.setState((state) => {
+          useFormStore.setState(() => {
             // Check if we have a cached version of this project's file structure
-            const cachedProjectFiles = state.projectBuildCache[project.name];
+            const cachedProjectFiles = projectBuildCache[selectedProject.name];
 
             let projectFiles: IStructure;
 
-            if (cachedProjectFiles) {
+            if (cachedProjectFiles.length > 0) {
               // Use cached version if available
 
               projectFiles = cachedProjectFiles;
@@ -89,21 +92,20 @@ export const useTransformationsStore = create<ITransformations>()(
               // Calculate new structure if not in cache
 
               projectFiles = buildProjectFiles(
-                `/Projects/${project.name}`,
+                `/Projects/${selectedProject.name}`,
                 userFiles,
                 schemaInfo,
               );
 
               // Update cache with the new structure
-              state.projectBuildCache[project.name] = projectFiles;
+              projectBuildCache[selectedProject.name] = projectFiles;
             }
 
             return {
               project,
               projectFiles,
               projectBuildCache: {
-                ...state.projectBuildCache,
-                [project.name]: projectFiles,
+                [selectedProject.name]: projectFiles,
               },
             };
           });
