@@ -189,6 +189,7 @@ function App() {
   useEffect(() => {
     setTransformations();
   }, [
+    dbType, // Don't remove! This changes the quote used in the database schema
     includeInsertData, // Don't remove! This toggles mock data generation
     includeTypeGuards, // Don't remove! This toggles type guards generation in the UI
     schemaInfo,

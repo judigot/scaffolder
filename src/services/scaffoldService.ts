@@ -1,7 +1,5 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import path from 'node:path';
-import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
-import { executeMySQL } from '@/utils/executeMySQL.ts';
 import createFolderStructure from '@/utils/createFolderStructure.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects.ts';
@@ -11,6 +9,8 @@ import fs from 'node:fs';
 import { IncomingMessage } from 'node:http';
 import { changeCase } from '@/utils/common.ts';
 import { IFormStore } from '@/useFormStore.ts';
+import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { createOrResetDatabase } from '@/utils/databaseOperations.ts';
 
 interface IScaffoldRequest {
   formData: IFormStore;
@@ -36,7 +36,6 @@ export const scaffoldService = async (
     frontendDir,
     dbConnection,
     backendUrl,
-    dbType,
   } = formData;
 
   const __dirname = path.dirname(new URL(import.meta.url).pathname);
@@ -52,39 +51,28 @@ export const scaffoldService = async (
   const isFrontendDirValid =
     frontendDir !== '' && fs.existsSync(frontendDirPath);
 
-  if (SQLSchema != null) {
+  if (SQLSchema !== null) {
     try {
-      if (dbType === 'postgresql') {
-        await executePostgreSQL(
-          dbConnection,
-          `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${SQLSchema}`,
-        );
+      // Extract database connection info to create database info object
+      const { username, password, host, port, dbName, dbType } = extractDBConnectionInfo(dbConnection);
+      
+      // Create database info object
+      const databaseInfo = {
+        name: dbName,
+        user: username,
+        password,
+        host,
+        port: String(port),
+        type: dbType
+      };
+      
+      // Use the utility function to reset the database
+      const dbResult = await createOrResetDatabase(databaseInfo, SQLSchema);
+      isDBConnectionValid = dbResult.success;
+      
+      if (!dbResult.success) {
+        console.error('Error executing database command:', dbResult.message);
       }
-      if (dbType === 'mysql') {
-        await executeMySQL(
-          dbConnection,
-          `
-            USE $DB_NAME;
-
-            SET FOREIGN_KEY_CHECKS = 0;
-
-            SET @tables = NULL;
-            SELECT GROUP_CONCAT('\`', table_name, '\`') INTO @tables
-            FROM information_schema.tables 
-            WHERE table_schema = (SELECT DATABASE());
-
-            SET @tables = IFNULL(@tables, 'dummy');
-            SET @sql = CONCAT('DROP TABLE IF EXISTS ', @tables);
-            PREPARE stmt FROM @sql;
-            EXECUTE stmt;
-            DEALLOCATE PREPARE stmt;
-
-            SET FOREIGN_KEY_CHECKS = 1;
-            ${SQLSchema}
-            `,
-        );
-      }
-      isDBConnectionValid = true;
     } catch (error: unknown) {
       console.error('Error executing database command:', error);
     }

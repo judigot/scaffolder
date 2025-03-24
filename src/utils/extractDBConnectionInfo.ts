@@ -9,7 +9,7 @@ interface IDBConnectionInfo {
   dbName: string;
 }
 
-function extractDBConnectionInfo(connectionString: string): IDBConnectionInfo {
+export function extractDBConnectionInfo(connectionString: string): IDBConnectionInfo {
   const regex =
     /^(?<dbType>[a-z]*):\/\/(?<username>[^:]*):(?<password>[^@]*)@(?<host>[^:]*):(?<port>\d*)\/(?<dbName>[^/]*)$/;
   const match = regex.exec(connectionString);

@@ -4,12 +4,18 @@ import { IStructure } from '@/components/FileViewer.tsx';
 import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { createFolderStructure } from '@/utils/createFolderStructure.ts';
+import { createOrResetDatabase } from '@/utils/databaseOperations.ts';
+import generateSQLSchema from '@/utils/generateSQLSchema.ts';
+import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables.ts';
+import { format as formatSQL } from 'sql-formatter';
+import generateSQLInserts from '@/utils/generateSQLInserts.ts';
+import generateMockData from '@/utils/generateMockData.ts';
+import { IFormStore } from '@/useFormStore.ts';
 
 interface ICreateLocalFilesRequest {
-  projectName: string;
-  publicRepoURL: string;
-  backendDir: string;
   schemaInfo: ISchemaInfo[];
+  SQLSchema: string | null;
+  formData: IFormStore;
 }
 
 interface ICreateLocalFilesResponse {
@@ -27,7 +33,25 @@ const isIStructure = (value: unknown): value is IStructure => {
 export const createLocalFilesService = async (
   data: ICreateLocalFilesRequest,
 ): Promise<ICreateLocalFilesResponse> => {
-  const { publicRepoURL, backendDir, schemaInfo, projectName } = data;
+  const { schemaInfo, SQLSchema, formData } = data;
+  const { publicRepoURL, backendDir, selectedProject } = formData;
+  
+  // Extract projectName from formData or use default
+  let projectName = 'my-app';
+  
+  if (typeof formData.projectName === 'string' && formData.projectName.trim() !== '') {
+    projectName = formData.projectName;
+  } else if (selectedProject !== null && selectedProject !== undefined) {
+    // Check if it's an object with a name property
+    if (
+      typeof selectedProject === 'object' && 
+      'name' in selectedProject && 
+      typeof selectedProject.name === 'string' &&
+      selectedProject.name.trim() !== ''
+    ) {
+      projectName = selectedProject.name;
+    }
+  }
 
   try {
     // Get user files from the public repo
@@ -38,7 +62,17 @@ export const createLocalFilesService = async (
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ publicRepoURL }),
+        body: JSON.stringify({ 
+          publicRepoURL,
+          // Include selected project info if available
+          selectedProject: (
+            selectedProject !== null &&
+            selectedProject !== undefined &&
+            typeof selectedProject === 'object' && 
+            'name' in selectedProject && 
+            typeof selectedProject.name === 'string'
+          ) ? { name: selectedProject.name } : undefined
+        }),
       },
     );
 
@@ -54,7 +88,7 @@ export const createLocalFilesService = async (
 
     // Build project files
     const projectFiles = buildProjectFiles(
-      `/Projects/${projectName}`,
+      `/Projects/${String(projectName)}`,
       userFiles,
       schemaInfo,
     );
@@ -70,6 +104,70 @@ export const createLocalFilesService = async (
       structure: projectFiles,
       targetDirectory: targetDir,
     });
+
+    // Configure database using the utility function
+    try {
+      // If SQLSchema is provided, use it; otherwise generate it
+      let fullSQLSchema: string;
+      
+      if (SQLSchema !== null) {
+        fullSQLSchema = SQLSchema;
+      } else {
+        // Generate SQL Schema - following the pattern from useTransformationsStore.ts
+        const deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
+        let sqlSchema = generateSQLSchema(schemaInfo);
+        
+        // Include insert data (mock data)
+        try {
+          const mockData = generateMockData({
+            mockDataRows: 5,
+            schemaInfo,
+          });
+          
+          const sqlInsertQueries = generateSQLInserts(mockData);
+          sqlSchema += `\n\n${sqlInsertQueries}`;
+        } catch (mockError) {
+          console.error('Error generating mock data:', mockError);
+        }
+        
+        // Format the full SQL schema with delete statements
+        fullSQLSchema = `${deleteTablesQueries.join('\n')}\n\n${formatSQL(sqlSchema)}`;
+      }
+      
+      // Log SQL schema length for debugging (using approved console method)
+      console.error(`Generated SQL schema with ${String(fullSQLSchema.length)} characters`);
+      
+      // Extract database info from formData.dbConnection for database creation
+      const { dbConnection } = formData;
+      
+      // Use database connection directly if available
+      if (dbConnection) {
+        try {
+          // Use the utility function to reset the database with the schema
+          const dbResult = await createOrResetDatabase(dbConnection, fullSQLSchema);
+          
+          if (!dbResult.success) {
+            console.error('Database creation failed:', dbResult.message);
+            return {
+              success: false,
+              message: `Created files in ${String(targetDir)}, but failed to set up database: ${dbResult.message}`,
+            };
+          }
+        } catch (connectionError) {
+          console.error('Error with database connection:', connectionError);
+          return {
+            success: false,
+            message: `Created files in ${String(targetDir)}, but database connection error: ${connectionError instanceof Error ? connectionError.message : 'Invalid connection string'}`,
+          };
+        }
+      } else {
+        console.error('No database connection provided in formData');
+        // Continue without database setup if no connection is provided
+      }
+    } catch (dbError) {
+      console.error('Error creating database:', dbError);
+      // Continue with file creation even if database creation fails
+    }
 
     return {
       success: true,
