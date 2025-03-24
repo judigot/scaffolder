@@ -6,7 +6,7 @@ import equal from 'fast-deep-equal';
 interface IStore {
   userFiles: IStructure;
   projects: IFile[];
-  setUserFiles: (params: { userFiles: IStructure }) => void;
+  setUserFiles: (userFiles: IStructure) => void;
 }
 
 /*
@@ -19,8 +19,7 @@ export const useMockDatabaseStore = create<IStore>()((_set, get) => ({
   /**
    * Updates user files and notifies useProjectStore
    */
-  setUserFiles: (params: { userFiles: IStructure }) => {
-    const { userFiles } = params;
+  setUserFiles: (userFiles) => {
     const currentUserFiles = get().userFiles;
     
     // Check if there are actual changes using fast-deep-equal

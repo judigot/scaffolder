@@ -106,9 +106,7 @@ function App() {
       if (githubData.userFiles.length > 0) {
         // Just set the userFiles in the mock database store
         // The project store will handle detecting changes
-        setUserFiles({
-          userFiles: githubData.userFiles,
-        });
+        setUserFiles(githubData.userFiles);
 
         // Show notification for GitHub updates
         setShowGitHubUpdateNotification(true);
