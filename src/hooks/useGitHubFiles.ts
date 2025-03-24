@@ -7,7 +7,6 @@ import { IStructure } from '@/components/FileViewer.tsx';
 
 interface IFetchGitHubFilesParams {
   publicRepoURL: string;
-  schemaVersion?: number;
 }
 
 export interface IFetchGitHubFilesResponse {
@@ -113,7 +112,7 @@ export const useGitHubFiles = (
   >,
 ): UseQueryResult<IFetchGitHubFilesResponse> => {
   return useQuery({
-    queryKey: ['userFiles', params.publicRepoURL, params.schemaVersion],
+    queryKey: ['userFiles', params.publicRepoURL],
     queryFn: () => fetchGitHubFiles({ publicRepoURL: params.publicRepoURL }),
 
     // Default settings that can be overridden by the behavior parameter

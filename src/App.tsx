@@ -90,7 +90,6 @@ function App() {
   } = useGitHubFiles(
     {
       publicRepoURL,
-      schemaVersion: schemaInfo.length > 0 ? schemaInfo.length : 0,
     },
     {
       refetchInterval: 1 * 1000, // 1 second
