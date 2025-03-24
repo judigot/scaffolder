@@ -717,7 +717,7 @@ function FileViewer({
                         }}
                         className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                       >
-                        Copy Folder Structure
+                        Copy Project Structure
                       </button>
                     </div>
                   )}
@@ -949,6 +949,67 @@ function FileViewer({
                     },
                   },
                 );
+
+                // Add Copy Folder Structure option only in development mode
+                if (process.env.NODE_ENV === 'development') {
+                  menuItems.push({
+                    id: 'copyFolderStructure',
+                    label: 'Copy Folder Structure',
+                    onClick: () => {
+                      if (
+                        contextMenu.item &&
+                        contextMenu.item.type === 'folder'
+                      ) {
+                        // Find the folder in the structure
+                        const findFolderInStructure = (
+                          items: IStructure,
+                          path: string[],
+                          folderName: string,
+                        ): IFolder | null => {
+                          if (path.length === 0) {
+                            const folderCandidate = items.find(
+                              (item) =>
+                                item.type === 'folder' &&
+                                item.name === folderName,
+                            );
+                            return folderCandidate &&
+                              folderCandidate.type === 'folder'
+                              ? folderCandidate
+                              : null;
+                          }
+
+                          const currentFolder = path[0];
+                          const remainingPath = path.slice(1);
+
+                          for (const item of items) {
+                            if (
+                              item.type === 'folder' &&
+                              item.name === currentFolder
+                            ) {
+                              return findFolderInStructure(
+                                item.children,
+                                remainingPath,
+                                folderName,
+                              );
+                            }
+                          }
+
+                          return null;
+                        };
+
+                        const folder = findFolderInStructure(
+                          folderStructure,
+                          contextMenu.parentPath ?? [],
+                          contextMenu.item.name,
+                        );
+
+                        if (folder) {
+                          handleCopy(JSON.stringify(folder, null, 4));
+                        }
+                      }
+                    },
+                  });
+                }
               }
             }
 
