@@ -529,24 +529,10 @@ function App() {
             <i className="text-xs">{dbConnection}</i>
           </button>
 
-          {/* <button
-            title={JSON.stringify(
-              schemaInfo.map(
-                ({
-                  requiredColumns: _1,
-                  columnsInfo: _2,
-                  foreignKeys: _3,
-                  ...newObject
-                }) => newObject,
-              ),
-              null,
-              4,
-            )}
-            onClick={(e) => {
-              e.preventDefault();
-
-              handleCopy(
-                JSON.stringify(
+          {process.env.NODE_ENV === 'development' && (
+            <>
+              <button
+                title={JSON.stringify(
                   schemaInfo.map(
                     ({
                       requiredColumns: _1,
@@ -557,24 +543,42 @@ function App() {
                   ),
                   null,
                   4,
-                ),
-              );
-            }}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          >
-            Copy Schema Info
-          </button> */}
+                )}
+                onClick={(e) => {
+                  e.preventDefault();
 
-          {/* <button
-            title={JSON.stringify(schemaInfo, null, 4)}
-            onClick={(e) => {
-              e.preventDefault();
-              handleCopy(JSON.stringify(schemaInfo, null, 4));
-            }}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          >
-            Copy Schema Info with Columns
-          </button> */}
+                  handleCopy(
+                    JSON.stringify(
+                      schemaInfo.map(
+                        ({
+                          requiredColumns: _1,
+                          columnsInfo: _2,
+                          foreignKeys: _3,
+                          ...newObject
+                        }) => newObject,
+                      ),
+                      null,
+                      4,
+                    ),
+                  );
+                }}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+              >
+                Copy Schema Info
+              </button>
+
+              <button
+                title={JSON.stringify(schemaInfo, null, 4)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCopy(JSON.stringify(schemaInfo, null, 4));
+                }}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+              >
+                Copy Schema Info with Columns
+              </button>
+            </>
+          )}
         </div>
       </nav>
 
