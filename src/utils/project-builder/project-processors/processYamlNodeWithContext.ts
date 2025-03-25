@@ -222,8 +222,8 @@ export const processYamlNodeWithContext = (
         },
       ];
     }
-    if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
-      const { command, options } = parseCommand(node.slice(21, -1));
+    if (node.startsWith('CREATE_RELATED_FILE(')) {
+      const { command, options } = parseCommand(node.slice(19, -1));
 
       // When inside a dynamic folder context (processYamlNodeWithContext) with --use-related-table flag,
       // use only the current table context rather than looping over all tables

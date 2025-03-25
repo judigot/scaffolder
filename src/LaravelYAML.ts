@@ -39,7 +39,7 @@ frontend:
   src:
     hooks:
       CREATE_DYNAMIC_FOLDERS({{tableNameKebabCaseSingular}}):
-        - CREATE_MULTIPLE_FILES(use{{tableNamePascalCaseSingular}}.ts --use-related-table --template /Templates/frontend/React-Hook.txt)
+        - CREATE_RELATED_FILE(use{{tableNamePascalCaseSingular}}.ts --use-related-table --template /Templates/frontend/React-Hook.txt)
         - CREATE_FILE(api.ts --template /Templates/backend/laravel/api.txt)
         - CREATE_MULTIPLE_FILES(use{{tableNamePascalCaseSingular}}.tsx --template /Templates/frontend/React-Hook.txt)
     interfaces:

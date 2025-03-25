@@ -19,6 +19,7 @@ export const processYamlNode = (
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
+  table?: ISchemaInfo,
 ): IStructure => {
   if (typeof node === 'string') {
     if (node.startsWith('CREATE_FILE(')) {
@@ -173,7 +174,7 @@ export const processYamlNode = (
         replacements,
         userFiles,
         schemaInfoParsed,
-        schemaInfoProcessed,
+        table,
       );
 
       // Extract just the filename portion if it contains slashes
