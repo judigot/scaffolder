@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
   UseQueryOptions,
   UseQueryResult,
@@ -13,6 +14,8 @@ interface IErrorResponse {
   message?: string;
   error?: string;
 }
+
+const isUsingLocalFiles = true;
 
 /**
  * Fetches project files from a public GitHub repository
@@ -30,13 +33,17 @@ const fetchGitHubFiles = async (
 
   try {
     const response = await fetch(
-      'http://localhost:5000/getUserFilesFromPublicRepo',
+      isUsingLocalFiles
+        ? 'http://localhost:5000/userFiles'
+        : 'http://localhost:5000/getUserFilesFromPublicRepo',
       {
-        method: 'POST',
+        method: isUsingLocalFiles ? 'GET' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ publicRepoURL: params.publicRepoURL }),
+        body: isUsingLocalFiles
+          ? undefined
+          : JSON.stringify({ publicRepoURL: params.publicRepoURL }),
       },
     );
 
