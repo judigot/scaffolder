@@ -1,18 +1,18 @@
 import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
-import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
-import { processDynamicFolders } from '@/utils/project-builder/project-processors/processDynamicFolders.ts';
-import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
-import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
-import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
-import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
-import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
-import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
-import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
-import { IStructure } from '@/components/FileViewer.tsx';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
+import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { IStructure } from '@/components/FileViewer.tsx';
+import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
+import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
+import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
+import { processDynamicFolders } from '@/utils/project-builder/project-processors/processDynamicFolders.ts';
+import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
+import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
+import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
+import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
 export const processYamlNode = (
   node: unknown,

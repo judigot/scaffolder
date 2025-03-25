@@ -25,10 +25,10 @@ export const processDynamicFolders = (
       // Process children with the current table context
       const processedChildren = processYamlNodeWithContext(
         children,
-        table,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
+        table,
       );
 
       return {

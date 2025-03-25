@@ -1,25 +1,25 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
-import { IStructure } from '@/components/FileViewer.tsx';
+import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
-import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
+import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { IStructure } from '@/components/FileViewer.tsx';
+import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
+import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
 import { processDynamicFolders } from '@/utils/project-builder/project-processors/processDynamicFolders.ts';
-import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
-import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
-import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
+import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
 export const processYamlNodeWithContext = (
   node: unknown,
-  table: ISchemaInfo,
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
+  table: ISchemaInfo,
 ): IStructure => {
   if (typeof node === 'string') {
     if (node.startsWith('CREATE_FILE(')) {
@@ -463,7 +463,13 @@ export const processYamlNodeWithContext = (
 
   if (Array.isArray(node)) {
     return node.flatMap((item) =>
-      processYamlNodeWithContext(item, table, schemaInfo, schemaInfoParsed, userFiles),
+      processYamlNodeWithContext(
+        item,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        table,
+      ),
     );
   }
 
@@ -500,10 +506,10 @@ export const processYamlNodeWithContext = (
           name: name.replace(/[()]/g, ''),
           children: processYamlNodeWithContext(
             value,
-            table,
             schemaInfo,
             schemaInfoParsed,
             userFiles,
+            table,
           ),
         },
       ];
