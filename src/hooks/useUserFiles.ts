@@ -104,7 +104,7 @@ const fetchGitHubFiles = async (
  * @param behavior Optional behavior configuration for the query
  * @returns Query result containing the GitHub files data, loading state, and error state
  */
-export const useGitHubFiles = (
+export const useUserFiles = (
   params: IFetchGitHubFilesParams,
   behavior?: Omit<
     UseQueryOptions<IFetchGitHubFilesResponse>,

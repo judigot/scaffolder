@@ -14,7 +14,7 @@ import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
-import { useGitHubFiles } from '@/hooks/useGitHubFiles.ts';
+import { useUserFiles } from '@/hooks/useUserFiles.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
@@ -87,7 +87,7 @@ function App() {
     refetch: refetchGitHubFiles,
     data: githubData,
     error: githubQueryError,
-  } = useGitHubFiles(
+  } = useUserFiles(
     {
       publicRepoURL,
     },
