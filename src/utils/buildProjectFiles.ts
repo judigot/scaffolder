@@ -9,10 +9,9 @@ import { checkConditions } from '@/utils/project-builder/project-processors/chec
 import { ICommandOptions } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
-import { processCommand } from '@/utils/project-builder/template-processors/processCommand.ts';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
-import { processIfConditions } from '@/utils/project-builder/template-processors/processIfConditions.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
+import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -32,48 +31,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  const replacePlaceholders = (
-    text: string,
-    replacements: Record<string, string | string[]>,
-    table?: ISchemaInfo,
-  ): string => {
-    // First process all commands
-    const processedText = processCommand(
-      text,
-      userFiles,
-      schemaInfoParsed,
-      table,
-    );
-
-    // Then process IF conditions
-    const processedConditions = processIfConditions(
-      processedText,
-      replacements,
-    );
-
-    // Then handle the regular placeholders
-    return processedConditions.replace(
-      /\$_([^_]+)_\$|\{\{([^}]+)\}\}/g,
-      (
-        _,
-        placeholder1: string | undefined,
-        placeholder2: string | undefined,
-      ) => {
-        const key = (placeholder2 ?? placeholder1 ?? '').trim();
-        if (key.length === 0) {
-          return '';
-        }
-        if (!(key in replacements)) {
-          console.warn(`No replacement found for placeholder: ${String(key)}`);
-          return key;
-        }
-        const value = replacements[key];
-        // Handle array values by joining them with commas
-        return Array.isArray(value) ? value.join(',') : value;
-      },
-    );
-  };
 
   // Add a function to process ITERATE commands in template content
   const processIterateInTemplate = (
@@ -156,6 +113,8 @@ export const buildProjectFiles = (
           const processedIncludeTable = replacePlaceholders(
             String(options.includeTable),
             replacements,
+            userFiles,
+            schemaInfoParsed,
             table,
           );
           // Skip if the current table doesn't match the include filter
@@ -196,6 +155,8 @@ export const buildProjectFiles = (
           const processedExcludeTable = replacePlaceholders(
             String(options.excludeTable),
             replacements,
+            userFiles,
+            schemaInfoParsed,
             table,
           );
           // Skip if the current table matches the exclude filter
@@ -211,7 +172,13 @@ export const buildProjectFiles = (
       })
       .map((table) => {
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        const processedName = replacePlaceholders(fileName, replacements);
+        const processedName = replacePlaceholders(
+          fileName,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          table,
+        );
 
         // Extract the base filename from the processed path if it contains slashes
         const outputFileName = processedName.includes('/')
@@ -231,6 +198,8 @@ export const buildProjectFiles = (
             modelSpecificRoutes: options.modelSpecificRoutes ?? '',
             baseRoutesForController: options.baseRoutesForController ?? '',
           },
+          userFiles,
+          schemaInfoParsed,
           table,
         );
 
@@ -257,7 +226,13 @@ export const buildProjectFiles = (
   ): IStructure => {
     return schemaInfo.map((table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
-      const processedName = replacePlaceholders(folderName, replacements);
+      const processedName = replacePlaceholders(
+        folderName,
+        replacements,
+        userFiles,
+        schemaInfoParsed,
+        table,
+      );
 
       // Process children with the current table context
       const processedChildren = processYamlNodeWithContext(children, table);
@@ -320,6 +295,8 @@ export const buildProjectFiles = (
               const processedIncludeTable = replacePlaceholders(
                 String(options.includeTable),
                 replacements,
+                userFiles,
+                schemaInfoParsed,
                 table,
               );
               if (table.tableName !== processedIncludeTable) {
@@ -338,6 +315,8 @@ export const buildProjectFiles = (
               const processedExcludeTable = replacePlaceholders(
                 String(options.excludeTable),
                 replacements,
+                userFiles,
+                schemaInfoParsed,
                 table,
               );
               if (table.tableName === processedExcludeTable) {
@@ -368,7 +347,13 @@ export const buildProjectFiles = (
               }
             }
 
-            const processedName = replacePlaceholders(command, replacements);
+            const processedName = replacePlaceholders(
+              command,
+              replacements,
+              userFiles,
+              schemaInfoParsed,
+              table,
+            );
             const outputFileName = processedName.includes('/')
               ? extractFileNameFromPath(processedName)
               : processedName.replace(/[()]/g, '');
@@ -388,6 +373,8 @@ export const buildProjectFiles = (
                 userFiles,
               ),
               replacements,
+              userFiles,
+              schemaInfoParsed,
               table,
             );
 
@@ -415,7 +402,13 @@ export const buildProjectFiles = (
           schemaInfoProcessed,
           schemaInfoParsed,
         );
-        const processedName = replacePlaceholders(command, replacements);
+        const processedName = replacePlaceholders(
+          command,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          table,
+        );
 
         // Extract just the filename portion if it contains slashes
         const outputFileName = processedName.includes('/')
@@ -437,6 +430,8 @@ export const buildProjectFiles = (
             userFiles,
           ),
           replacements,
+          userFiles,
+          schemaInfoParsed,
           schemaInfoProcessed,
         );
 
@@ -500,7 +495,13 @@ export const buildProjectFiles = (
 
           // Process the file with the current table context only
           const replacements = getReplacementsForTable(table, schemaInfoParsed);
-          const processedName = replacePlaceholders(command, replacements);
+          const processedName = replacePlaceholders(
+            command,
+            replacements,
+            userFiles,
+            schemaInfoParsed,
+            table,
+          );
 
           // Extract the base filename from the processed path if it contains slashes
           const outputFileName = processedName.includes('/')
@@ -520,6 +521,8 @@ export const buildProjectFiles = (
               modelSpecificRoutes: options.modelSpecificRoutes ?? '',
               baseRoutesForController: options.baseRoutesForController ?? '',
             },
+            userFiles,
+            schemaInfoParsed,
             table,
           );
 
@@ -547,6 +550,8 @@ export const buildProjectFiles = (
           const processedIncludeTable = replacePlaceholders(
             String(options.includeTable),
             replacements,
+            userFiles,
+            schemaInfoParsed,
             table,
           );
 
@@ -585,6 +590,8 @@ export const buildProjectFiles = (
           const processedExcludeTable = replacePlaceholders(
             String(options.excludeTable),
             replacements,
+            userFiles,
+            schemaInfoParsed,
             table,
           );
 
@@ -634,6 +641,8 @@ export const buildProjectFiles = (
             userFiles,
           ),
           replacements,
+          userFiles,
+          schemaInfoParsed,
           schemaInfoProcessed,
         );
 
@@ -751,6 +760,8 @@ export const buildProjectFiles = (
               const processedIncludeTable = replacePlaceholders(
                 String(options.includeTable),
                 replacements,
+                userFiles,
+                schemaInfoParsed,
                 table,
               );
               if (table.tableName !== processedIncludeTable) {
@@ -769,6 +780,8 @@ export const buildProjectFiles = (
               const processedExcludeTable = replacePlaceholders(
                 String(options.excludeTable),
                 replacements,
+                userFiles,
+                schemaInfoParsed,
                 table,
               );
               if (table.tableName === processedExcludeTable) {
@@ -799,7 +812,13 @@ export const buildProjectFiles = (
               }
             }
 
-            const processedName = replacePlaceholders(command, replacements);
+            const processedName = replacePlaceholders(
+              command,
+              replacements,
+              userFiles,
+              schemaInfoParsed,
+              table,
+            );
             const outputFileName = processedName.includes('/')
               ? extractFileNameFromPath(processedName)
               : processedName.replace(/[()]/g, '');
@@ -819,6 +838,8 @@ export const buildProjectFiles = (
                 userFiles,
               ),
               replacements,
+              userFiles,
+              schemaInfoParsed,
               table,
             );
 
@@ -846,7 +867,13 @@ export const buildProjectFiles = (
           schemaInfoProcessed,
           schemaInfoParsed,
         );
-        const processedName = replacePlaceholders(command, replacements);
+        const processedName = replacePlaceholders(
+          command,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          schemaInfoProcessed,
+        );
 
         // Extract just the filename portion if it contains slashes
         const outputFileName = processedName.includes('/')
@@ -868,6 +895,8 @@ export const buildProjectFiles = (
             userFiles,
           ),
           replacements,
+          userFiles,
+          schemaInfoParsed,
           schemaInfoProcessed,
         );
 
@@ -926,6 +955,8 @@ export const buildProjectFiles = (
             userFiles,
           ),
           replacements,
+          userFiles,
+          schemaInfoParsed,
           schemaInfoProcessed,
         );
 
