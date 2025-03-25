@@ -12,6 +12,7 @@ import { parseConditionalFolder } from '@/utils/project-builder/project-processo
 import { processCommand } from '@/utils/project-builder/template-processors/processCommand.ts';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { processIfConditions } from '@/utils/project-builder/template-processors/processIfConditions.ts';
+import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -31,23 +32,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  const processLoopTables = (content: string): string => {
-    // Handle regular table loops
-    const loopRegex = /\[\[LOOP_TABLES\s+([^\]]+)\]\]/g;
-    return content.replace(loopRegex, (_match: string, loopContent: string) => {
-      return schemaInfo
-        .map((table) => {
-          const replacements = getReplacementsForTable(table, schemaInfoParsed);
-          return replacePlaceholders(
-            String(loopContent).trim(),
-            replacements,
-            table,
-          );
-        })
-        .join('\n    '); // Add proper indentation for PHP files
-    });
-  };
 
   const replacePlaceholders = (
     text: string,
@@ -236,7 +220,12 @@ export const buildProjectFiles = (
 
         let content = '';
         content = replacePlaceholders(
-          processLoopTables(templateContent),
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+          ),
           {
             ...replacements,
             modelSpecificRoutes: options.modelSpecificRoutes ?? '',
@@ -392,7 +381,12 @@ export const buildProjectFiles = (
 
             // Process the template with all replacements
             let processedContent = replacePlaceholders(
-              processLoopTables(templateContent),
+              processLoopTables(
+                templateContent,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+              ),
               replacements,
               table,
             );
@@ -436,7 +430,12 @@ export const buildProjectFiles = (
 
         // Process the template with all replacements
         let processedContent = replacePlaceholders(
-          processLoopTables(templateContent),
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+          ),
           replacements,
           schemaInfoProcessed,
         );
@@ -510,7 +509,12 @@ export const buildProjectFiles = (
 
           let content = '';
           content = replacePlaceholders(
-            processLoopTables(templateContent),
+            processLoopTables(
+              templateContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+            ),
             {
               ...replacements,
               modelSpecificRoutes: options.modelSpecificRoutes ?? '',
@@ -623,7 +627,12 @@ export const buildProjectFiles = (
 
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
-          processLoopTables(templateContent),
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+          ),
           replacements,
           schemaInfoProcessed,
         );
@@ -803,7 +812,12 @@ export const buildProjectFiles = (
 
             // Process the template with all replacements
             let processedContent = replacePlaceholders(
-              processLoopTables(templateContent),
+              processLoopTables(
+                templateContent,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+              ),
               replacements,
               table,
             );
@@ -847,7 +861,12 @@ export const buildProjectFiles = (
 
         // Process the template with all replacements
         let processedContent = replacePlaceholders(
-          processLoopTables(templateContent),
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+          ),
           replacements,
           schemaInfoProcessed,
         );
@@ -900,7 +919,12 @@ export const buildProjectFiles = (
 
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
-          processLoopTables(templateContent),
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+          ),
           replacements,
           schemaInfoProcessed,
         );
