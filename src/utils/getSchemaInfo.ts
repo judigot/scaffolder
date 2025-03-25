@@ -12,7 +12,7 @@ interface IRelationships {
   }[];
 }
 
-interface ISchemaInfoResult {
+export interface ISchemaInfoResult {
   schema: ISchemaInfo[];
   tableNames: string[];
   pivotTables: string[];

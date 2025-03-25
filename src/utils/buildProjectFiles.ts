@@ -6,13 +6,14 @@ import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
+import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
   userFiles: IStructure,
   schemaInfo: ISchemaInfo[],
 ): IStructure => {
-  const schemaInfoProcessed = getSchemaInfo(schemaInfo);
+  const schemaInfoParsed = getSchemaInfo(schemaInfo);
   interface ICommandOptions {
     conditions?: string[];
     template?: string;
@@ -35,47 +36,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  // Update the type to handle string arrays
-  type ReplacementValue = string | string[];
-  type Replacements = Record<string, ReplacementValue>;
-
-  const getReplacementsForTable = (table: ISchemaInfo): Replacements => {
-    const tableName = table.tableName;
-    const caseFormats = changeCase(tableName);
-
-    return {
-      tableNamePascalCase: caseFormats.pascalCase,
-      tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
-      tableNameKebabCasePlural: caseFormats.kebabCasePlural,
-      tableNamePlural: caseFormats.plural,
-      tableNameSnakeCaseSingular: caseFormats.snakeCaseSingular,
-      tableName,
-      tableNameSingular: caseFormats.singular,
-      tableNameTitleCase: caseFormats.titleCase,
-      tableNameSentenceCase: caseFormats.sentenceCase,
-      tableNamePhraseCase: caseFormats.phraseCase,
-      tableNameCamelCase: caseFormats.camelCase,
-      tableNameKebabCase: caseFormats.kebabCase,
-      tableNameSnakeCase: caseFormats.snakeCase,
-      tableNameTitleCasePlural: caseFormats.titleCasePlural,
-      tableNameSentenceCasePlural: caseFormats.sentenceCasePlural,
-      tableNamePhraseCasePlural: caseFormats.phraseCasePlural,
-      tableNamePascalCasePlural: caseFormats.pascalCasePlural,
-      tableNameCamelCasePlural: caseFormats.camelCasePlural,
-      tableNameTitleCaseSingular: caseFormats.titleCaseSingular,
-      tableNameSentenceCaseSingular: caseFormats.sentenceCaseSingular,
-      tableNamePhraseCaseSingular: caseFormats.phraseCaseSingular,
-      tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
-      tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
-      // Add primary key and required columns with matching template syntax
-      'getPrimaryKey()': schemaInfoProcessed.getPrimaryKey(table.tableName),
-      'getRequiredColumns()': schemaInfoProcessed.getRequiredColumns(
-        table.tableName,
-      ),
-      'getAllColumns()': schemaInfoProcessed.getAllColumns(table.tableName),
-    };
-  };
 
   const checkConditions = (conditions: string[]): boolean => {
     return conditions.every((condition) => {
@@ -184,7 +144,7 @@ export const buildProjectFiles = (
     return content.replace(loopRegex, (_match: string, loopContent: string) => {
       return schemaInfo
         .map((table) => {
-          const replacements = getReplacementsForTable(table);
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
           return replacePlaceholders(
             String(loopContent).trim(),
             replacements,
@@ -255,7 +215,7 @@ export const buildProjectFiles = (
 
       // Then process placeholders if table is provided
       if (table) {
-        const replacements = getReplacementsForTable(table);
+        const replacements = getReplacementsForTable(table, schemaInfoParsed);
         return rawValues.map((value) =>
           replacePlaceholders(value, replacements, table),
         );
@@ -365,7 +325,7 @@ export const buildProjectFiles = (
               return loadConstant(constantMatch[1]);
             }
             // For non-constant values, still process any placeholders they might have
-            const replacements = getReplacementsForTable(table);
+            const replacements = getReplacementsForTable(table, schemaInfoParsed);
             return replacePlaceholders(trimmed, replacements, table);
           })
           .flat()
@@ -383,7 +343,7 @@ export const buildProjectFiles = (
             return loadConstant(constantMatch[1], table);
           }
           // For non-constant values, still process any placeholders they might have
-          const replacements = getReplacementsForTable(table);
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
           return replacePlaceholders(trimmed, replacements, table);
         })
       : [];
@@ -608,19 +568,19 @@ export const buildProjectFiles = (
 
         switch (functionName) {
           case 'getAllColumns': {
-            const values = schemaInfoProcessed.getAllColumns(table.tableName);
+            const values = schemaInfoParsed.getAllColumns(table.tableName);
             allValues.push(...values);
             continue;
           }
           case 'getRequiredColumns': {
-            const values = schemaInfoProcessed.getRequiredColumns(
+            const values = schemaInfoParsed.getRequiredColumns(
               table.tableName,
             );
             allValues.push(...values);
             continue;
           }
           case 'getPrimaryKey': {
-            const value = schemaInfoProcessed.getPrimaryKey(table.tableName);
+            const value = schemaInfoParsed.getPrimaryKey(table.tableName);
             if (value) {
               allValues.push(value);
             }
@@ -711,7 +671,7 @@ export const buildProjectFiles = (
         valueKebabCaseSingular: caseFormats.kebabCaseSingular,
         valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
         // Add table replacements for other placeholders that might be in the template
-        ...getReplacementsForTable(table),
+        ...getReplacementsForTable(table, schemaInfoParsed),
       };
 
       // Add all placeholders found in the YAML file for this value
@@ -840,7 +800,7 @@ export const buildProjectFiles = (
           options.useRelatedTable === true
         ) {
           // Process placeholders in the includeTable value
-          const replacements = getReplacementsForTable(table);
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
           const processedIncludeTable = replacePlaceholders(
             String(options.includeTable),
             replacements,
@@ -880,7 +840,7 @@ export const buildProjectFiles = (
           options.excludeTable.trim().length > 0
         ) {
           // Process placeholders in the excludeTable value
-          const replacements = getReplacementsForTable(table);
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
           const processedExcludeTable = replacePlaceholders(
             String(options.excludeTable),
             replacements,
@@ -898,7 +858,7 @@ export const buildProjectFiles = (
         return true;
       })
       .map((table) => {
-        const replacements = getReplacementsForTable(table);
+        const replacements = getReplacementsForTable(table, schemaInfoParsed);
         const processedName = replacePlaceholders(fileName, replacements);
 
         // Extract the base filename from the processed path if it contains slashes
@@ -939,7 +899,7 @@ export const buildProjectFiles = (
     children: unknown,
   ): IStructure => {
     return schemaInfo.map((table) => {
-      const replacements = getReplacementsForTable(table);
+      const replacements = getReplacementsForTable(table, schemaInfoParsed);
       const processedName = replacePlaceholders(folderName, replacements);
 
       // Process children with the current table context
@@ -1018,7 +978,7 @@ export const buildProjectFiles = (
         foreign_column: column.foreign_key?.foreign_column_name ?? '',
         has_foreign_key: column.foreign_key !== undefined ? 'true' : 'false',
         // Add table replacements for other placeholders that might be in the template
-        ...getReplacementsForTable(tableObj),
+        ...getReplacementsForTable(tableObj, schemaInfoParsed),
       };
 
       // Replace placeholders
@@ -1083,7 +1043,7 @@ export const buildProjectFiles = (
           const filteredResults: IStructure = [];
 
           for (const table of schemaInfo) {
-            const replacements = getReplacementsForTable(table);
+            const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
             // Check include filter
             if (
@@ -1179,7 +1139,7 @@ export const buildProjectFiles = (
         }
 
         // Original behavior for backward compatibility (no include/exclude filters)
-        const replacements = getReplacementsForTable(schemaInfoProcessed);
+        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
@@ -1259,7 +1219,7 @@ export const buildProjectFiles = (
           }
 
           // Process the file with the current table context only
-          const replacements = getReplacementsForTable(table);
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
           const processedName = replacePlaceholders(command, replacements);
 
           // Extract the base filename from the processed path if it contains slashes
@@ -1298,7 +1258,7 @@ export const buildProjectFiles = (
           options.includeTable !== undefined &&
           options.includeTable.trim().length > 0
         ) {
-          const replacements = getReplacementsForTable(table);
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
           const processedIncludeTable = replacePlaceholders(
             String(options.includeTable),
             replacements,
@@ -1336,7 +1296,7 @@ export const buildProjectFiles = (
           options.excludeTable !== undefined &&
           options.excludeTable.trim().length > 0
         ) {
-          const replacements = getReplacementsForTable(table);
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
           const processedExcludeTable = replacePlaceholders(
             String(options.excludeTable),
             replacements,
@@ -1375,7 +1335,7 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfoProcessed);
+        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
 
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
@@ -1638,7 +1598,7 @@ export const buildProjectFiles = (
           const filteredResults: IStructure = [];
 
           for (const table of schemaInfo) {
-            const replacements = getReplacementsForTable(table);
+            const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
             // Check include filter
             if (
@@ -1734,7 +1694,7 @@ export const buildProjectFiles = (
         }
 
         // Original behavior for backward compatibility (no include/exclude filters)
-        const replacements = getReplacementsForTable(schemaInfoProcessed);
+        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
@@ -1796,7 +1756,7 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfoProcessed);
+        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
 
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
