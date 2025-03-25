@@ -13,6 +13,7 @@ import { processLoopTables } from '@/utils/project-builder/template-processors/p
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
+import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -30,12 +31,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  // Add a helper function to extract filename from path
-  const extractFileNameFromPath = (path: string): string => {
-    const pathComponents = path.split('/');
-    return pathComponents[pathComponents.length - 1];
-  };
 
   // Update the processMultipleFiles function
   const processMultipleFiles = (
