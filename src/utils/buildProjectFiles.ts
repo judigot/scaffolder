@@ -24,7 +24,7 @@ export const buildProjectFiles = (
 
   type IYamlObject = Record<string, unknown>;
 
-  const _isYamlObject = (value: unknown): value is IYamlObject => {
+  const isYamlObject = (value: unknown): value is IYamlObject => {
     return value !== null && typeof value === 'object';
   };
 
@@ -2034,7 +2034,7 @@ export const buildProjectFiles = (
 
   try {
     const parsedYaml: unknown = parse(yamlContent);
-    if (!_isYamlObject(parsedYaml)) {
+    if (!isYamlObject(parsedYaml)) {
       throw new Error('Invalid YAML content');
     }
     return processYamlNode(parsedYaml);
