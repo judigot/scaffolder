@@ -9,6 +9,7 @@ import { getReplacementsForTable } from '@/utils/project-builder/template-proces
 import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
 import { ICommandOptions } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
+import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -28,21 +29,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  const parseConditionalFolder = (
-    folderName: string,
-  ): { name: string; conditions?: string[] } => {
-    const match = /^(.+?)\(--condition\s+(.+?)\)$/.exec(folderName);
-    if (!match) {
-      return { name: folderName };
-    }
-
-    const [, name, condition] = match;
-    return {
-      name: name.trim(),
-      conditions: [condition.trim()],
-    };
-  };
 
   const processLoopTables = (content: string): string => {
     // Handle regular table loops
