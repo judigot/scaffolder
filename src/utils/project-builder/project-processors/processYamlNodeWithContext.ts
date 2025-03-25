@@ -38,197 +38,10 @@ export const processYamlNodeWithContext = (
         return [];
       }
 
-      // Apply table filtering for CREATE_FILE
-      if (
-        (options.includeTable !== undefined &&
-          options.includeTable.trim().length > 0) ||
-        (options.excludeTable !== undefined &&
-          options.excludeTable.trim().length > 0) ||
-        options.useRelatedTable === true
-      ) {
-        const filteredResults: IStructure = [];
-
-        for (const table of schemaInfo) {
-          const replacements = getReplacementsForTable(table, schemaInfoParsed);
-
-          // Check include filter
-          if (
-            options.includeTable !== undefined &&
-            options.includeTable.trim().length > 0
-          ) {
-            const processedIncludeTable = replacePlaceholders(
-              String(options.includeTable),
-              replacements,
-              userFiles,
-              schemaInfoParsed,
-              table,
-            );
-            if (table.tableName !== processedIncludeTable) {
-              console.warn(
-                `Skipping CREATE_FILE for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
-              );
-              continue;
-            }
-          }
-
-          // Check exclude filter
-          if (
-            options.excludeTable !== undefined &&
-            options.excludeTable.trim().length > 0
-          ) {
-            const processedExcludeTable = replacePlaceholders(
-              String(options.excludeTable),
-              replacements,
-              userFiles,
-              schemaInfoParsed,
-              table,
-            );
-            if (table.tableName === processedExcludeTable) {
-              console.warn(
-                `Skipping CREATE_FILE for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
-              );
-              continue;
-            }
-          }
-
-          // Check useRelatedTable flag
-          if (options.useRelatedTable === true) {
-            // Check for related tables in any of the relationship types
-            const hasRelationships =
-              [
-                ...(table.hasMany ?? []),
-                ...(table.hasOne ?? []),
-                ...(table.belongsTo ?? []),
-                ...(table.belongsToMany ?? []),
-              ].length > 0;
-
-            // Skip if there are no relationships
-            if (!hasRelationships) {
-              console.warn(
-                `Skipping CREATE_FILE for table ${String(table.tableName)}: has no relationships`,
-              );
-              continue;
-            }
-          }
-
-          const processedName = replacePlaceholders(
-            command,
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-          );
-          const outputFileName = processedName.includes('/')
-            ? extractFileNameFromPath(processedName)
-            : processedName.replace(/[()]/g, '');
-
-          // Load and process template content
-          const templateContent = loadTemplateContent(
-            userFiles,
-            options.template ?? processedName,
-          );
-
-          // Process the template with all replacements
-          let processedContent = replacePlaceholders(
-            processLoopTables(
-              templateContent,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-            ),
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-          );
-
-          // Process ITERATE commands explicitly
-          processedContent = processIterateInTemplate(
-            processedContent,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            table,
-          );
-
-          // Format the final content with proper character replacements
-          const finalContent = formatFileContent(processedContent);
-
-          filteredResults.push({
-            type: 'file',
-            name: outputFileName,
-            content: finalContent,
-          });
-        }
-
-        return filteredResults;
-      }
-
-      // Original behavior for backward compatibility (no include/exclude filters)
-      const replacements = getReplacementsForTable(
-        schemaInfoProcessed,
-        schemaInfoParsed,
-      );
-      const processedName = replacePlaceholders(
-        command,
-        replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-      );
-
-      // Extract just the filename portion if it contains slashes
-      const outputFileName = processedName.includes('/')
-        ? extractFileNameFromPath(processedName)
-        : processedName.replace(/[()]/g, '');
-
-      // Load and process template content
-      const templateContent = loadTemplateContent(
-        userFiles,
-        options.template ?? processedName,
-      );
-
-      // Process the template with all replacements
-      let processedContent = replacePlaceholders(
-        processLoopTables(
-          templateContent,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-        ),
-        replacements,
-        userFiles,
-        schemaInfoParsed,
-        schemaInfoProcessed,
-      );
-
-      // Process ITERATE commands explicitly
-      processedContent = processIterateInTemplate(
-        processedContent,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
-        schemaInfoProcessed,
-      );
-
-      // Format the final content with proper character replacements
-      const finalContent = formatFileContent(processedContent);
-
-      return [
-        {
-          type: 'file',
-          name: outputFileName,
-          content: finalContent,
-        },
-      ];
-    }
-    if (node.startsWith('CREATE_RELATED_FILE(')) {
-      const { command, options } = parseCommand(node.slice(19, -1));
-
-      // When inside a dynamic folder context (processYamlNodeWithContext) with --use-related-table flag,
+      // When inside a dynamic folder context with --use-related-table flag,
       // use only the current table context rather than looping over all tables
       if (options.useRelatedTable ?? false) {
-        // First check if the current table has relationships if that's required
+        // First check if the current table has relationships
         const hasRelationships =
           [
             ...(table.hasMany ?? []),
@@ -317,67 +130,177 @@ export const processYamlNodeWithContext = (
         ];
       }
 
-      // Skip generation if the current table doesn't match include table filter
+      // Apply table filtering for CREATE_FILE
       if (
-        options.includeTable !== undefined &&
-        options.includeTable.trim().length > 0
+        (options.includeTable !== undefined &&
+          options.includeTable.trim().length > 0) ||
+        (options.excludeTable !== undefined &&
+          options.excludeTable.trim().length > 0) ||
+        Boolean(options.useRelatedTable)
       ) {
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        const processedIncludeTable = replacePlaceholders(
-          String(options.includeTable),
-          replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-        );
+        const filteredResults: IStructure = [];
 
-        if (table.tableName !== processedIncludeTable) {
-          console.warn(
-            `Skipping ${String(command)} for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
+        for (const table of schemaInfo) {
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
+
+          // Check include filter
+          if (
+            options.includeTable !== undefined &&
+            options.includeTable.trim().length > 0
+          ) {
+            const processedIncludeTable = replacePlaceholders(
+              String(options.includeTable),
+              replacements,
+              userFiles,
+              schemaInfoParsed,
+              table,
+            );
+            if (table.tableName !== processedIncludeTable) {
+              console.warn(
+                `Skipping CREATE_FILE for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
+              );
+              continue;
+            }
+          }
+
+          // Check exclude filter
+          if (
+            options.excludeTable !== undefined &&
+            options.excludeTable.trim().length > 0
+          ) {
+            const processedExcludeTable = replacePlaceholders(
+              String(options.excludeTable),
+              replacements,
+              userFiles,
+              schemaInfoParsed,
+              table,
+            );
+            if (table.tableName === processedExcludeTable) {
+              console.warn(
+                `Skipping CREATE_FILE for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
+              );
+              continue;
+            }
+          }
+
+          const processedName = replacePlaceholders(
+            command,
+            replacements,
+            userFiles,
+            schemaInfoParsed,
+            table,
           );
-          return [];
-        }
-      }
+          const outputFileName = processedName.includes('/')
+            ? extractFileNameFromPath(processedName)
+            : processedName.replace(/[()]/g, '');
 
-      // Check useRelatedTable flag (legacy behavior outside dynamic folders)
-      // Check for related tables in any of the relationship types
-      const hasRelationships =
-        [
-          ...(table.hasMany ?? []),
-          ...(table.hasOne ?? []),
-          ...(table.belongsTo ?? []),
-          ...(table.belongsToMany ?? []),
-        ].length > 0;
-
-      // Skip if there are no relationships
-      if (!hasRelationships) {
-        console.warn(
-          `Skipping ${String(command)} for table ${String(table.tableName)}: has no relationships`,
-        );
-        return [];
-      }
-
-      // Skip generation if the current table matches exclude table filter
-      if (
-        options.excludeTable !== undefined &&
-        options.excludeTable.trim().length > 0
-      ) {
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        const processedExcludeTable = replacePlaceholders(
-          String(options.excludeTable),
-          replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-        );
-
-        if (table.tableName === processedExcludeTable) {
-          console.warn(
-            `Skipping ${String(command)} for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
+          // Load and process template content
+          const templateContent = loadTemplateContent(
+            userFiles,
+            options.template ?? processedName,
           );
-          return [];
+
+          // Process the template with all replacements
+          let processedContent = replacePlaceholders(
+            processLoopTables(
+              templateContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+            ),
+            {
+              ...replacements,
+              modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+              baseRoutesForController: options.baseRoutesForController ?? '',
+            },
+            userFiles,
+            schemaInfoParsed,
+            table,
+          );
+
+          // Process ITERATE commands explicitly
+          processedContent = processIterateInTemplate(
+            processedContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            table,
+          );
+
+          // Format the final content with proper character replacements
+          const finalContent = formatFileContent(processedContent);
+
+          filteredResults.push({
+            type: 'file',
+            name: outputFileName,
+            content: finalContent,
+          });
         }
+
+        return filteredResults;
       }
+
+      // Original behavior for backward compatibility (no include/exclude filters)
+      const replacements = getReplacementsForTable(
+        schemaInfoProcessed,
+        schemaInfoParsed,
+      );
+      const processedName = replacePlaceholders(
+        command,
+        replacements,
+        userFiles,
+        schemaInfoParsed,
+        table,
+      );
+
+      // Extract just the filename portion if it contains slashes
+      const outputFileName = processedName.includes('/')
+        ? extractFileNameFromPath(processedName)
+        : processedName.replace(/[()]/g, '');
+
+      // Load and process template content
+      const templateContent = loadTemplateContent(
+        userFiles,
+        options.template ?? processedName,
+      );
+
+      // Process the template with all replacements
+      let processedContent = replacePlaceholders(
+        processLoopTables(
+          templateContent,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+        ),
+        {
+          ...replacements,
+          modelSpecificRoutes: options.modelSpecificRoutes ?? '',
+          baseRoutesForController: options.baseRoutesForController ?? '',
+        },
+        userFiles,
+        schemaInfoParsed,
+        schemaInfoProcessed,
+      );
+
+      // Process ITERATE commands explicitly
+      processedContent = processIterateInTemplate(
+        processedContent,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        schemaInfoProcessed,
+      );
+
+      // Format the final content with proper character replacements
+      const finalContent = formatFileContent(processedContent);
+
+      return [
+        {
+          type: 'file',
+          name: outputFileName,
+          content: finalContent,
+        },
+      ];
     }
     if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
       const { command, options } = parseCommand(node.slice(21, -1));

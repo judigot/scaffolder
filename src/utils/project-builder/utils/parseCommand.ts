@@ -30,24 +30,6 @@ export const parseCommand = (
       if (trimmedTemplate.length > 0) {
         options.template = trimmedTemplate;
       }
-    } else if (key === 'related-files' && value && value.trim().length > 0) {
-      // Parse the related files array (e.g., [ CREATE_FILE(...), CREATE_FILE(...) ])
-      const trimmedValue = value.trim();
-      if (trimmedValue.startsWith('[') && trimmedValue.endsWith(']')) {
-        // Extract the array content and split by commas that are not inside parentheses
-        const relatedFilesContent = trimmedValue.slice(1, -1).trim();
-
-        // Use regex to split by commas not inside parentheses
-        const splitRelatedFiles = relatedFilesContent.split(/,(?![^(]*\))/);
-
-        options.relatedFiles = splitRelatedFiles
-          .map((cmd) => cmd.trim())
-          .filter((cmd) => cmd.length > 0);
-      } else {
-        console.warn(
-          `Invalid related-files format: ${value}. Expected format: [ CREATE_FILE(...), ... ]`,
-        );
-      }
     } else if (key === 'use-related-table') {
       // Boolean flag without value
       options.useRelatedTable = true;
