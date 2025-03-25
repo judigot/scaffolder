@@ -2,13 +2,13 @@ src:
     app:
         api:
             - CREATE_FILE(staticFile.ts --template /Templates/backend/nextjs/app/{{table}}/route.txt)
-            - CREATE_DYNAMIC_FOLDERS({{tableNameKebabCasePlural}}):
+            - FOR_EACH_TABLE({{tableNameKebabCasePlural}}):
                 - CREATE_FILE(route.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/route.txt)
                 - CREATE_FILE(GET.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/GET.txt)
                 - CREATE_FILE(POST.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/POST.txt)
                 - CREATE_FILE(PATCH.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/PATCH.txt)
                 - CREATE_FILE(DELETE.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/DELETE.txt)
-        CREATE_DYNAMIC_FOLDERS({{tableNameKebabCasePlural}}):
+        FOR_EACH_TABLE({{tableNameKebabCasePlural}}):
             - CREATE_FILE(page.tsx --scoped --template /Templates/frontend/react/components/page.txt)
             - CREATE_FILE({{tableNamePascalCaseSingular}}Component.tsx --scoped --template /Templates/frontend/react/components/EntityComponent.txt)
     prisma:
@@ -26,7 +26,7 @@ src:
             - CREATE_FILE(useCreate.ts --template /Templates/frontend/nextjs/hooks/shared/useCreate.txt)
             - CREATE_FILE(useUpdate.ts --template /Templates/frontend/nextjs/hooks/shared/useUpdate.txt)
             - CREATE_FILE(useDelete.ts --template /Templates/frontend/nextjs/hooks/shared/useDelete.txt)
-        CREATE_DYNAMIC_FOLDERS({{tableNameKebabCaseSingular}}):
+        FOR_EACH_TABLE({{tableNameKebabCaseSingular}}):
             - CREATE_FILE(useIndex{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useIndexEntity.txt)
             - CREATE_FILE(useFindById{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useFindByIdEntity.txt)
             - CREATE_FILE(useCreate{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useCreateEntity.txt)
@@ -34,7 +34,7 @@ src:
             - CREATE_FILE(useDelete{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useDeleteEntity.txt)
     lib:
         api:
-            CREATE_DYNAMIC_FOLDERS({{tableNameKebabCaseSingular}}):
+            FOR_EACH_TABLE({{tableNameKebabCaseSingular}}):
                 - CREATE_FILE(fetch{{tableNamePascalCasePlural}}.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/fetchManyEntity.txt)
                 - CREATE_FILE(fetch{{tableNamePascalCaseSingular}}ById.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/fetchEntityById.txt)
                 - CREATE_FILE(create{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/createEntity.txt)

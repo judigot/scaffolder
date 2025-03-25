@@ -38,7 +38,7 @@ routes:
 frontend:
   src:
     hooks:
-      CREATE_DYNAMIC_FOLDERS({{tableNameKebabCaseSingular}}):
+      FOR_EACH_TABLE({{tableNameKebabCaseSingular}}):
         - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/React-Hook.txt)
         - CREATE_FILE(api.ts --template /Templates/backend/laravel/api.txt)
         - CREATE_MULTIPLE_FILES(use{{tableNamePascalCaseSingular}}.tsx --template /Templates/frontend/React-Hook.txt)

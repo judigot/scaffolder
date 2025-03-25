@@ -72,7 +72,7 @@ routes:
 frontend:
   src:
     hooks:
-      CREATE_DYNAMIC_FOLDERS(__tableNameSnakeCaseSingular__):
+      FOR_EACH_TABLE(__tableNameSnakeCaseSingular__):
         - CREATE_FILE(use__tableNamePascalCaseSingular__.ts)
     interfaces:
       - CREATE_MULTIPLE_FILES(I__tableNamePascalCaseSingular__.ts)
@@ -85,7 +85,7 @@ A project using dynamic folder structure using MULTIPLE_FOLDERS() generator.
 ```yaml
 src:
   hooks:
-    CREATE_DYNAMIC_FOLDERS(__tableNameSnakeCaseSingular__):
+    FOR_EACH_TABLE(__tableNameSnakeCaseSingular__):
       - CREATE_FILE(use__tableNamePascalCaseSingular__.ts)
   interfaces:
     - CREATE_MULTIPLE_FILES(I__tableNamePascalCaseSingular__.ts)

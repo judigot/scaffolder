@@ -373,7 +373,7 @@ export const processYamlStructure = (
 
   if (Array.isArray(node)) {
     return node.flatMap((item) => {
-      // Check if the array item is an object with a CREATE_DYNAMIC_FOLDERS key
+      // Check if the array item is an object with a FOR_EACH_TABLE key
       if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
         // Define type predicate for Record
         const isRecordWithDynamicFolder = (
@@ -384,11 +384,11 @@ export const processYamlStructure = (
         if (isRecordWithDynamicFolder(item)) {
           // Get the keys of the object
           const keys = Object.keys(item);
-          // Check if the first (and likely only) key is a CREATE_DYNAMIC_FOLDERS command
+          // Check if the first (and likely only) key is a FOR_EACH_TABLE command
           if (
             keys.length > 0 &&
             keys[0].startsWith(
-              `${String(PROJECT_ACTIONS.CREATE_DYNAMIC_FOLDERS)}(`,
+              `${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`,
             )
           ) {
             const key = keys[0];
@@ -396,7 +396,7 @@ export const processYamlStructure = (
 
             // Extract folder name by removing the function name and parentheses
             const folderName = key.slice(
-              String(PROJECT_ACTIONS.CREATE_DYNAMIC_FOLDERS).length + 1,
+              String(PROJECT_ACTIONS.FOR_EACH_TABLE).length + 1,
               -1,
             );
 
@@ -446,11 +446,11 @@ export const processYamlStructure = (
       }
 
       if (
-        key.startsWith(`${String(PROJECT_ACTIONS.CREATE_DYNAMIC_FOLDERS)}(`)
+        key.startsWith(`${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`)
       ) {
         // Extract folder name and remove parentheses
         const folderName = key
-          .slice(String(PROJECT_ACTIONS.CREATE_DYNAMIC_FOLDERS).length + 1, -1)
+          .slice(String(PROJECT_ACTIONS.FOR_EACH_TABLE).length + 1, -1)
           .replace(/[()]/g, '');
         // Return the dynamic folders directly without an extra parent folder
         return processDynamicFolders(
