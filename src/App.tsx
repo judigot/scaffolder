@@ -61,6 +61,7 @@ function App() {
     selectProject,
     buildProjectFilesForProject,
     projectBuildCache,
+    invalidateProjectCache,
   } = useProjectStore();
 
   // Get the project files from the selected project
@@ -729,6 +730,16 @@ function App() {
                         {process.env.NODE_ENV === 'development' && (
                           <>
                             <div>
+                              <button
+                                type="button"
+                                className="bg-gray-500 text-white px-2 py-1 rounded-md"
+                                onClick={() => {
+                                  invalidateProjectCache(selectedProject.name);
+                                }}
+                              >
+                                Clear Project Cache
+                              </button>
+                              <br />
                               <code>
                                 Cached projects:
                                 {JSON.stringify(
