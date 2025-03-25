@@ -5,6 +5,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
+import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -22,41 +23,6 @@ export const buildProjectFiles = (
     useRelatedTable?: boolean;
     excludeTable?: string;
   }
-
-  // Find the YAML file in userFiles
-  const findFileInStructure = (
-    path: string,
-    structure: IStructure,
-  ): IFile | undefined => {
-    // Remove leading slash if present
-    const normPath = path.startsWith('/') ? path.substring(1) : path;
-
-    // Split the path into components
-    const pathComponents = normPath.split('/');
-    const fileName = pathComponents.pop() ?? '';
-
-    // Navigate through the directory structure
-    let currentItems: IStructure = structure;
-
-    for (const component of pathComponents) {
-      const folder = currentItems.find(
-        (item): item is IFolder =>
-          item.type === 'folder' && item.name === component,
-      );
-
-      if (!folder) {
-        console.warn(`Folder not found in path: ${String(component)}`);
-        return undefined;
-      }
-
-      currentItems = folder.children;
-    }
-
-    // Find the file in the final directory
-    return currentItems.find(
-      (item): item is IFile => item.type === 'file' && item.name === fileName,
-    );
-  };
 
   // Get the YAML content from the specified path
   const projectFile = findFileInStructure(projectYamlPath, userFiles);
@@ -1280,7 +1246,10 @@ export const buildProjectFiles = (
             typeof options.template === 'string' &&
             options.template.trim().length > 0
           ) {
-            const loadedContent = loadTemplateContent(userFiles, options.template);
+            const loadedContent = loadTemplateContent(
+              userFiles,
+              options.template,
+            );
             if (loadedContent.length > 0) {
               templateContent = loadedContent;
             }
