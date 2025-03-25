@@ -1,12 +1,12 @@
 import { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
-import config from '@/config/config.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
+import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -36,19 +36,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  const checkConditions = (conditions: string[]): boolean => {
-    return conditions.every((condition) => {
-      const [key, value] = condition.split('=');
-      if (key === 'hasUsers') {
-        return String(config.users.hasUsers) === value;
-      }
-      if (key === 'isMultiTenancyEnabled') {
-        return String(config.users.isMultiTenancyEnabled) === value;
-      }
-      return false;
-    });
-  };
 
   const parseCommand = (
     command: string,
@@ -325,7 +312,10 @@ export const buildProjectFiles = (
               return loadConstant(constantMatch[1]);
             }
             // For non-constant values, still process any placeholders they might have
-            const replacements = getReplacementsForTable(table, schemaInfoParsed);
+            const replacements = getReplacementsForTable(
+              table,
+              schemaInfoParsed,
+            );
             return replacePlaceholders(trimmed, replacements, table);
           })
           .flat()
@@ -573,9 +563,7 @@ export const buildProjectFiles = (
             continue;
           }
           case 'getRequiredColumns': {
-            const values = schemaInfoParsed.getRequiredColumns(
-              table.tableName,
-            );
+            const values = schemaInfoParsed.getRequiredColumns(table.tableName);
             allValues.push(...values);
             continue;
           }
@@ -1043,7 +1031,10 @@ export const buildProjectFiles = (
           const filteredResults: IStructure = [];
 
           for (const table of schemaInfo) {
-            const replacements = getReplacementsForTable(table, schemaInfoParsed);
+            const replacements = getReplacementsForTable(
+              table,
+              schemaInfoParsed,
+            );
 
             // Check include filter
             if (
@@ -1139,7 +1130,10 @@ export const buildProjectFiles = (
         }
 
         // Original behavior for backward compatibility (no include/exclude filters)
-        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          schemaInfoProcessed,
+          schemaInfoParsed,
+        );
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
@@ -1335,7 +1329,10 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          schemaInfoProcessed,
+          schemaInfoParsed,
+        );
 
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
@@ -1598,7 +1595,10 @@ export const buildProjectFiles = (
           const filteredResults: IStructure = [];
 
           for (const table of schemaInfo) {
-            const replacements = getReplacementsForTable(table, schemaInfoParsed);
+            const replacements = getReplacementsForTable(
+              table,
+              schemaInfoParsed,
+            );
 
             // Check include filter
             if (
@@ -1694,7 +1694,10 @@ export const buildProjectFiles = (
         }
 
         // Original behavior for backward compatibility (no include/exclude filters)
-        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          schemaInfoProcessed,
+          schemaInfoParsed,
+        );
         const processedName = replacePlaceholders(command, replacements);
 
         // Extract just the filename portion if it contains slashes
@@ -1756,7 +1759,10 @@ export const buildProjectFiles = (
           return [];
         }
 
-        const replacements = getReplacementsForTable(schemaInfoProcessed, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          schemaInfoProcessed,
+          schemaInfoParsed,
+        );
 
         // Process the template content with all replacements
         let processedContent = replacePlaceholders(
