@@ -9,9 +9,9 @@ import { checkConditions } from '@/utils/project-builder/project-processors/chec
 import { ICommandOptions } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
-import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
+import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -31,37 +31,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  // Add a function to process ITERATE commands in template content
-  const processIterateInTemplate = (
-    content: string,
-    table?: ISchemaInfo,
-  ): string => {
-    return content.replace(
-      /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
-      (fullMatch: string, propertyPathsStr: string, options: string) => {
-        // If no table context is provided, try to use the first schema
-        if (!table && schemaInfo.length > 0) {
-          table = schemaInfo[0];
-        }
-
-        // If we have a valid table context, process the ITERATE command
-        if (table) {
-          const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
-          const cmdResult = processIterateCommand(
-            `ITERATE(${propertyPathsStr})${options}`,
-            table,
-            schemaInfoParsed,
-            userFiles,
-          );
-          return cmdResult ? String(whitespace) + String(cmdResult) : '';
-        }
-
-        // If no valid table context is available, return the original match
-        return fullMatch;
-      },
-    );
-  };
 
   // Add this helper function right after formatFileContent
   const formatFileContent = (content: string): string => {
@@ -204,7 +173,13 @@ export const buildProjectFiles = (
         );
 
         // Process ITERATE commands
-        content = processIterateInTemplate(content, table);
+        content = processIterateInTemplate(
+          content,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          table,
+        );
 
         // Format with consistent character handling
         const finalContent = formatFileContent(content);
@@ -381,6 +356,9 @@ export const buildProjectFiles = (
             // Process ITERATE commands explicitly
             processedContent = processIterateInTemplate(
               processedContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
               table,
             );
 
@@ -438,6 +416,9 @@ export const buildProjectFiles = (
         // Process ITERATE commands explicitly
         processedContent = processIterateInTemplate(
           processedContent,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
           schemaInfoProcessed,
         );
 
@@ -527,7 +508,13 @@ export const buildProjectFiles = (
           );
 
           // Process ITERATE commands
-          content = processIterateInTemplate(content, table);
+          content = processIterateInTemplate(
+            content,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            table,
+          );
 
           // Format with consistent character handling
           const finalContent = formatFileContent(content);
@@ -649,7 +636,10 @@ export const buildProjectFiles = (
         // Process ITERATE commands explicitly
         processedContent = processIterateInTemplate(
           processedContent,
-          schemaInfoProcessed,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          table,
         );
 
         // Format the final content with proper character replacements
@@ -846,6 +836,9 @@ export const buildProjectFiles = (
             // Process ITERATE commands explicitly
             processedContent = processIterateInTemplate(
               processedContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
               table,
             );
 
@@ -903,6 +896,9 @@ export const buildProjectFiles = (
         // Process ITERATE commands explicitly
         processedContent = processIterateInTemplate(
           processedContent,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
           schemaInfoProcessed,
         );
 
@@ -963,6 +959,9 @@ export const buildProjectFiles = (
         // Process ITERATE commands explicitly
         processedContent = processIterateInTemplate(
           processedContent,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
           schemaInfoProcessed,
         );
 
