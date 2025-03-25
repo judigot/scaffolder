@@ -11,19 +11,15 @@ export const buildProjectFiles = (
   schemaInfo: ISchemaInfo[],
 ): IStructure => {
   const schemaInfoParsed = getSchemaInfo(schemaInfo);
-  const projectFile = findFileInStructure(projectYamlPath, userFiles);
+  const file = findFileInStructure(projectYamlPath, userFiles);
 
-  if (!projectFile) {
-    console.error(
-      `Project YAML file not found at path: ${String(projectYamlPath)}`,
-    );
+  if (!file) {
+    console.error(`File not found at path: ${String(projectYamlPath)}`);
     return [];
   }
 
-  const yamlContent = projectFile.content;
-
   try {
-    const parsedYaml: unknown = parse(yamlContent);
+    const parsedYaml: unknown = parse(file.content);
     if (!(parsedYaml !== null && typeof parsedYaml === 'object')) {
       throw new Error('Invalid YAML content');
     }

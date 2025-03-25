@@ -14,7 +14,12 @@ import { formatFileContent } from '@/utils/project-builder/helpers/formatFileCon
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 
-export const processYamlNode = (node: unknown, schemaInfo: ISchemaInfo[], schemaInfoParsed: ISchemaInfoResult, userFiles: IStructure): IStructure => {
+export const processYamlNode = (
+  node: unknown,
+  schemaInfo: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+): IStructure => {
   if (typeof node === 'string') {
     if (node.startsWith('CREATE_FILE(')) {
       const { command, options } = parseCommand(node.slice(12, -1));
@@ -299,7 +304,9 @@ export const processYamlNode = (node: unknown, schemaInfo: ISchemaInfo[], schema
   }
 
   if (Array.isArray(node)) {
-    return node.flatMap((item) => processYamlNode(item, schemaInfo, schemaInfoParsed, userFiles));
+    return node.flatMap((item) =>
+      processYamlNode(item, schemaInfo, schemaInfoParsed, userFiles),
+    );
   }
 
   if (typeof node === 'object' && node !== null) {
@@ -333,7 +340,12 @@ export const processYamlNode = (node: unknown, schemaInfo: ISchemaInfo[], schema
         {
           type: 'folder',
           name: name.replace(/[()]/g, ''),
-          children: processYamlNode(value, schemaInfo, schemaInfoParsed, userFiles),
+          children: processYamlNode(
+            value,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+          ),
         },
       ];
     });
