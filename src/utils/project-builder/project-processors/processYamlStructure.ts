@@ -15,12 +15,12 @@ import { processMultipleFiles } from '@/utils/project-builder/project-processors
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
 
-export const processYamlNodeWithContext = (
+export const processYamlStructure = (
   node: unknown,
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
-  table: ISchemaInfo,
+  table?: ISchemaInfo,
 ): IStructure => {
   if (typeof node === 'string') {
     if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
@@ -42,7 +42,7 @@ export const processYamlNodeWithContext = (
 
       // When inside a dynamic folder context with --use-related-table flag,
       // use only the current table context rather than looping over all tables
-      if (options.useRelatedTable ?? false) {
+      if (table && (options.useRelatedTable ?? false)) {
         // First check if the current table has relationships
         const hasRelationships =
           [
@@ -372,15 +372,18 @@ export const processYamlNodeWithContext = (
   }
 
   if (Array.isArray(node)) {
-    return node.flatMap((item) =>
-      processYamlNodeWithContext(
-        item,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
-        table,
-      ),
-    );
+    return node.flatMap((item) => {
+      if (table) {
+        return processYamlStructure(
+          item,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          table,
+        );
+      }
+      return processYamlStructure(item, schemaInfo, schemaInfoParsed, userFiles);
+    });
   }
 
   if (typeof node === 'object' && node !== null) {
@@ -410,16 +413,31 @@ export const processYamlNodeWithContext = (
         );
       }
 
+      if (table) {
+        return [
+          {
+            type: 'folder',
+            name: name.replace(/[()]/g, ''),
+            children: processYamlStructure(
+              value,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              table,
+            ),
+          },
+        ];
+      }
+
       return [
         {
           type: 'folder',
           name: name.replace(/[()]/g, ''),
-          children: processYamlNodeWithContext(
+          children: processYamlStructure(
             value,
             schemaInfo,
             schemaInfoParsed,
             userFiles,
-            table,
           ),
         },
       ];

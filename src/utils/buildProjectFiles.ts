@@ -3,7 +3,7 @@ import { parse } from 'yaml';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
-import { processYamlNode } from '@/utils/project-builder/project-processors/processYamlCode.ts';
+import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -23,7 +23,12 @@ export const buildProjectFiles = (
     if (!(parsedYaml !== null && typeof parsedYaml === 'object')) {
       throw new Error('Invalid YAML content');
     }
-    return processYamlNode(parsedYaml, schemaInfo, schemaInfoParsed, userFiles);
+    return processYamlStructure(
+      parsedYaml,
+      schemaInfo,
+      schemaInfoParsed,
+      userFiles,
+    );
   } catch (error) {
     if (error instanceof Error) {
       console.error('Error parsing YAML:', error.message);
