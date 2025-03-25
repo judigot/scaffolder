@@ -43,7 +43,7 @@ export const parseCommand = (
         }
         break;
 
-      case ACTION_FLAGS.USE_RELATED_TABLE:
+      case ACTION_FLAGS.SCOPED:
         options.useRelatedTable = true;
         break;
 
