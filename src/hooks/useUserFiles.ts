@@ -9,11 +9,6 @@ interface IFetchGitHubFilesParams {
   publicRepoURL: string;
 }
 
-export interface IFetchGitHubFilesResponse {
-  userFiles: IStructure;
-  timestamp: number;
-}
-
 interface IErrorResponse {
   message?: string;
   error?: string;
@@ -27,10 +22,10 @@ interface IErrorResponse {
  */
 const fetchGitHubFiles = async (
   params: IFetchGitHubFilesParams,
-): Promise<IFetchGitHubFilesResponse> => {
+): Promise<IStructure> => {
   if (!params.publicRepoURL) {
     // Return empty structure if no repo URL provided
-    return { userFiles: [], timestamp: Date.now() };
+    return [];
   }
 
   try {
@@ -80,10 +75,7 @@ const fetchGitHubFiles = async (
 
     const userFiles = data;
 
-    return {
-      userFiles,
-      timestamp: Date.now(),
-    };
+    return userFiles;
   } catch (error: unknown) {
     if (error instanceof Error) {
       if (error.message === 'invalid zip data') {
@@ -106,11 +98,8 @@ const fetchGitHubFiles = async (
  */
 export const useUserFiles = (
   params: IFetchGitHubFilesParams,
-  behavior?: Omit<
-    UseQueryOptions<IFetchGitHubFilesResponse>,
-    'queryKey' | 'queryFn'
-  >,
-): UseQueryResult<IFetchGitHubFilesResponse> => {
+  behavior?: Omit<UseQueryOptions<IStructure>, 'queryKey' | 'queryFn'>,
+): UseQueryResult<IStructure> => {
   return useQuery({
     queryKey: ['userFiles', params.publicRepoURL],
     queryFn: () => fetchGitHubFiles({ publicRepoURL: params.publicRepoURL }),

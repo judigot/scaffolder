@@ -83,10 +83,10 @@ function App() {
 
   // Use TanStack Query to fetch GitHub files
   const {
-    isLoading: isGitHubLoading,
-    refetch: refetchGitHubFiles,
-    data: githubData,
-    error: githubQueryError,
+    isLoading: isUserFilesLoading,
+    refetch: refetchUserFiles,
+    data: userFiles,
+    error: userFilesQueryError,
   } = useUserFiles(
     {
       publicRepoURL,
@@ -102,11 +102,11 @@ function App() {
 
   // Handle GitHub data changes
   useEffect(() => {
-    if (githubData?.userFiles) {
-      if (githubData.userFiles.length > 0) {
+    if (userFiles) {
+      if (userFiles.length > 0) {
         // Just set the userFiles in the mock database store
         // The project store will handle detecting changes
-        setUserFiles(githubData.userFiles);
+        setUserFiles(userFiles);
 
         // Show notification for GitHub updates
         setShowGitHubUpdateNotification(true);
@@ -115,7 +115,7 @@ function App() {
         }, 3000);
       }
     }
-  }, [githubData, setUserFiles, publicRepoURL]);
+  }, [userFiles, setUserFiles, publicRepoURL]);
 
   // Track schema changes
   useEffect(() => {
@@ -176,14 +176,14 @@ function App() {
     setPublicRepoURL(inputRepoURL);
     if (inputRepoURL && debouncedRepoURL !== publicRepoURL) {
       // Trigger a refetch when the URL changes
-      void refetchGitHubFiles();
+      void refetchUserFiles();
     }
   }, [
     debouncedRepoURL,
     inputRepoURL,
     publicRepoURL,
     setPublicRepoURL,
-    refetchGitHubFiles,
+    refetchUserFiles,
   ]);
 
   useEffect(() => {
@@ -216,9 +216,9 @@ function App() {
     // Trigger an immediate refetch when app starts if a URL is provided
     if (publicRepoURL) {
       // Force a refetch on every reload to detect remote changes
-      void refetchGitHubFiles();
+      void refetchUserFiles();
     }
-  }, [publicRepoURL, refetchGitHubFiles]);
+  }, [publicRepoURL, refetchUserFiles]);
 
   return (
     <div className="text-white bg-black">
@@ -635,7 +635,7 @@ function App() {
                   if (inputRepoURL && e.key === 'Enter') {
                     e.preventDefault();
                     // Re-fetch when the user presses Enter
-                    void refetchGitHubFiles();
+                    void refetchUserFiles();
                   }
                 }}
               />
@@ -653,7 +653,7 @@ function App() {
             {inputRepoURL && isValidGitHubURL(inputRepoURL) && (
               <div>
                 {(() => {
-                  if (isGitHubLoading) {
+                  if (isUserFilesLoading) {
                     return (
                       <div className="flex items-center justify-center h-40 rounded-md">
                         <div className="text-white">
@@ -683,7 +683,7 @@ function App() {
                     );
                   }
 
-                  if (githubQueryError) {
+                  if (userFilesQueryError) {
                     return (
                       <div className="flex items-center justify-center h-40 rounded-md">
                         <div className="text-red-500 text-center p-4">
@@ -704,7 +704,7 @@ function App() {
                           <div className="font-bold mb-2">
                             Error Loading Repository Files
                           </div>
-                          <div>{githubQueryError.message}</div>
+                          <div>{userFilesQueryError.message}</div>
                         </div>
                       </div>
                     );
