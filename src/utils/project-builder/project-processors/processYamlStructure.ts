@@ -373,6 +373,43 @@ export const processYamlStructure = (
 
   if (Array.isArray(node)) {
     return node.flatMap((item) => {
+      // Check if the array item is an object with a CREATE_DYNAMIC_FOLDERS key
+      if (
+        typeof item === 'object' && 
+        item !== null && 
+        !Array.isArray(item)
+      ) {
+        // Define type predicate for Record
+        const isRecordWithDynamicFolder = (obj: unknown): obj is Record<string, unknown> => 
+          typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+        
+        if (isRecordWithDynamicFolder(item)) {
+          // Get the keys of the object
+          const keys = Object.keys(item);
+          // Check if the first (and likely only) key is a CREATE_DYNAMIC_FOLDERS command
+          if (keys.length > 0 && keys[0].startsWith(`${PROJECT_ACTIONS.CREATE_DYNAMIC_FOLDERS}(`)) {
+            const key = keys[0];
+            const value = item[key];
+            
+            // Extract folder name by removing the function name and parentheses
+            const folderName = key.slice(
+              PROJECT_ACTIONS.CREATE_DYNAMIC_FOLDERS.length + 1, 
+              -1
+            );
+            
+            // Process the dynamic folders directly
+            return processDynamicFolders(
+              folderName,
+              value,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles
+            );
+          }
+        }
+      }
+      
+      // Standard processing for non-dynamic-folder items
       if (table) {
         return processYamlStructure(
           item,

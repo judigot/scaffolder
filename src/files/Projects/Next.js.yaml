@@ -1,7 +1,8 @@
 src:
     app:
         api:
-            CREATE_DYNAMIC_FOLDERS({{tableNameKebabCasePlural}}):
+            - CREATE_FILE(staticFile.ts --template /Templates/backend/nextjs/app/{{table}}/route.txt)
+            - CREATE_DYNAMIC_FOLDERS({{tableNameKebabCasePlural}}):
                 - CREATE_FILE(route.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/route.txt)
                 - CREATE_FILE(GET.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/GET.txt)
                 - CREATE_FILE(POST.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/POST.txt)
