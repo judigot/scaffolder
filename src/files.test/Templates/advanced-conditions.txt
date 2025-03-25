@@ -1,0 +1,33 @@
+{{tableNamePascalCase}} Column Analysis:
+  [[ ITERATE(columnsInfo) --template="
+/* Column Information: {{valueCamelCase}} */
+Base Name: {{valueCamelCase}}
+Data Type: {{data_type}}
+Nullable: {{is_nullable}}
+Default Value: {{column_default}}
+Primary Key: {{is_primary_key}}
+Unique: {{is_unique}}
+Foreign Key: {{has_foreign_key}}
+{% IF foreign_key EXISTS %}References: {{foreign_table}}.{{foreign_column}}{% ENDIF %}
+
+/* Data Type Checks */
+{% IF data_type EQUALS string %}✓ This column is a STRING type.{% ENDIF %}
+{% IF data_type EQUALS number %}✓ This column is a NUMBER type.{% ENDIF %}
+{% IF data_type EQUALS boolean %}✓ This column is a BOOLEAN type.{% ENDIF %}
+{% IF data_type EQUALS Date %}✓ This column is a DATE/TIME type.{% ENDIF %}
+
+/* Constraint Checks */
+{% IF primary_key IS TRUE %}✓ This column is a PRIMARY KEY.{% ENDIF %}
+{% IF unique IS TRUE %}✓ This column has a UNIQUE constraint.{% ENDIF %}
+{% IF is_nullable EQUALS 'YES' %}✓ This column is NULLABLE.{% ENDIF %}
+{% IF is_nullable EQUALS 'NO' %}✓ This column is NOT NULL.{% ENDIF %}
+
+/* Foreign Key Checks */
+{% IF foreign_key EXISTS %}✓ This column is a FOREIGN KEY to {{foreign_table}}.{% ENDIF %}
+
+/* Special Columns */
+{% IF column_name EQUALS 'id' %}✓ This is an ID column.{% ENDIF %}
+{% IF column_name EQUALS 'password' %}⚠️ This is a PASSWORD column - extra security considerations required!{% ENDIF %}
+{% IF column_name CONTAINS 'date' %}⏰ This is a DATE related column.{% ENDIF %}
+{% IF column_name CONTAINS 'time' %}⏰ This is a TIME related column.{% ENDIF %}
+  " --separator="\n\n" ]] 

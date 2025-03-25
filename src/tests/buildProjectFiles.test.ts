@@ -723,7 +723,7 @@ describe('Build Project Files', () => {
     }
 ]
     `;
-    const userFiles = convertLocalFilesToIStructure('src/files');
+    const userFiles = convertLocalFilesToIStructure('src/files.test');
     const result = buildProjectFiles(
       '/Projects/Laravel.yaml',
       userFiles,
