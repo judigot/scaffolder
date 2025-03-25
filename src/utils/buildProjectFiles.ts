@@ -4,6 +4,7 @@ import config from '@/config/config.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
+import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -21,12 +22,6 @@ export const buildProjectFiles = (
     useRelatedTable?: boolean;
     excludeTable?: string;
   }
-
-  type IYamlObject = Record<string, unknown>;
-
-  const isYamlObject = (value: unknown): value is IYamlObject => {
-    return value !== null && typeof value === 'object';
-  };
 
   // Find the YAML file in userFiles
   const findFileInStructure = (
@@ -74,133 +69,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  const loadTemplateContent = (templatePath: string): string => {
-    const store = userFiles;
-
-    // Check if templatePath starts with a forward slash indicating an absolute path
-    if (templatePath.startsWith('/')) {
-      // Remove the leading slash
-      const normPath = templatePath.substring(1);
-
-      // Split the path into components
-      const pathComponents = normPath.split('/');
-      const lastComponent = pathComponents.pop();
-      const templateName = lastComponent ?? '';
-
-      // Navigate through the directory structure
-      let currentItems: IStructure = store;
-
-      for (const component of pathComponents) {
-        const folder = currentItems.find(
-          (item): item is IFolder =>
-            item.type === 'folder' && item.name === component,
-        );
-
-        if (!folder) {
-          console.warn(`Folder not found in path: ${component}`);
-          return '';
-        }
-
-        currentItems = folder.children;
-      }
-
-      // Find the template file in the final directory
-      const templateFile = currentItems.find(
-        (item): item is IFile =>
-          item.type === 'file' && item.name === templateName,
-      );
-
-      if (!templateFile) {
-        console.warn(
-          `Template file not found: ${templateName} in specified path`,
-        );
-        return '';
-      }
-
-      function replaceOutsideTemplateSeparator(input: string): string {
-        const placeholders: string[] = [];
-        let index = 0;
-
-        const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
-
-        // 1) Temporarily replace those segments with placeholders
-        let protectedString = input.replace(pattern, (match: string) => {
-          placeholders.push(match);
-          const placeholder = `__PLACEHOLDER_${String(index)}__`;
-          index += 1;
-          return placeholder;
-        });
-
-        // 2) Replace all remaining \n (i.e., \\n) with real newlines outside placeholders
-        protectedString = protectedString.replace(/\\n/g, '\n');
-
-        // 3) Restore protected segments so that \\n in them remains intact
-        protectedString = protectedString.replace(
-          /__PLACEHOLDER_(\d+)__/g,
-          (_: string, p1: string) => {
-            const i = parseInt(p1, 10);
-            return placeholders[i] ?? '';
-          },
-        );
-
-        return protectedString;
-      }
-
-      return replaceOutsideTemplateSeparator(
-        templateFile.content
-          .replace(/\r\n/g, '\n') // Normalize line endings first
-          .replace(/\n/g, '\\n'),
-      );
-    } else {
-      // Handle the original case (just the filename without path)
-      // Look only in the root for the template file
-      const templateFile = store.find(
-        (item): item is IFile =>
-          item.type === 'file' && item.name === templatePath,
-      );
-
-      if (templateFile) {
-        function replaceOutsideTemplateSeparator(input: string): string {
-          const placeholders: string[] = [];
-          let index = 0;
-
-          const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
-
-          // 1) Temporarily replace those segments with placeholders
-          let protectedString = input.replace(pattern, (match: string) => {
-            placeholders.push(match);
-            const placeholder = `__PLACEHOLDER_${String(index)}__`;
-            index += 1;
-            return placeholder;
-          });
-
-          // 2) Replace all remaining \n (i.e., \\n) with real newlines outside placeholders
-          protectedString = protectedString.replace(/\\n/g, '\n');
-
-          // 3) Restore protected segments so that \\n in them remains intact
-          protectedString = protectedString.replace(
-            /__PLACEHOLDER_(\d+)__/g,
-            (_: string, p1: string) => {
-              const i = parseInt(p1, 10);
-              return placeholders[i] ?? '';
-            },
-          );
-
-          return protectedString;
-        }
-
-        return replaceOutsideTemplateSeparator(
-          templateFile.content
-            .replace(/\r\n/g, '\n') // Normalize line endings first
-            .replace(/\n/g, '\\n'),
-        );
-      }
-
-      console.warn(`Template file not found in root: ${templatePath}`);
-      return '';
-    }
-  };
 
   // Update the type to handle string arrays
   type ReplacementValue = string | string[];
@@ -986,13 +854,13 @@ export const buildProjectFiles = (
       typeof options.template === 'string' &&
       options.template.trim().length > 0
     ) {
-      const loadedContent = loadTemplateContent(options.template);
+      const loadedContent = loadTemplateContent(userFiles, options.template);
       if (loadedContent.length > 0) {
         templateContent = loadedContent;
       }
     } else {
       // Try to load template based on filename if no template option provided
-      templateContent = loadTemplateContent(fileName);
+      templateContent = loadTemplateContent(userFiles, fileName);
     }
 
     const files: IFile[] = schemaInfo
@@ -1314,6 +1182,7 @@ export const buildProjectFiles = (
 
             // Load and process template content
             const templateContent = loadTemplateContent(
+              userFiles,
               options.template ?? processedName,
             );
 
@@ -1354,6 +1223,7 @@ export const buildProjectFiles = (
 
         // Load and process template content
         const templateContent = loadTemplateContent(
+          userFiles,
           options.template ?? processedName,
         );
 
@@ -1410,13 +1280,13 @@ export const buildProjectFiles = (
             typeof options.template === 'string' &&
             options.template.trim().length > 0
           ) {
-            const loadedContent = loadTemplateContent(options.template);
+            const loadedContent = loadTemplateContent(userFiles, options.template);
             if (loadedContent.length > 0) {
               templateContent = loadedContent;
             }
           } else {
             // Try to load template based on filename if no template option provided
-            templateContent = loadTemplateContent(command);
+            templateContent = loadTemplateContent(userFiles, command);
           }
 
           // Process the file with the current table context only
@@ -1527,7 +1397,7 @@ export const buildProjectFiles = (
       }
 
       // Handle bare filenames by looking for templates
-      const templateContent = loadTemplateContent(node);
+      const templateContent = loadTemplateContent(userFiles, node);
       if (templateContent.length > 0) {
         const schemaInfoProcessed =
           schemaInfo.length > 0 ? schemaInfo[0] : undefined;
@@ -1864,6 +1734,7 @@ export const buildProjectFiles = (
 
             // Load and process template content
             const templateContent = loadTemplateContent(
+              userFiles,
               options.template ?? processedName,
             );
 
@@ -1904,6 +1775,7 @@ export const buildProjectFiles = (
 
         // Load and process template content
         const templateContent = loadTemplateContent(
+          userFiles,
           options.template ?? processedName,
         );
 
@@ -1946,7 +1818,7 @@ export const buildProjectFiles = (
       }
 
       // Handle bare filenames by looking for templates
-      const templateContent = loadTemplateContent(node);
+      const templateContent = loadTemplateContent(userFiles, node);
       if (templateContent.length > 0) {
         const schemaInfoProcessed =
           schemaInfo.length > 0 ? schemaInfo[0] : undefined;
@@ -2034,7 +1906,7 @@ export const buildProjectFiles = (
 
   try {
     const parsedYaml: unknown = parse(yamlContent);
-    if (!isYamlObject(parsedYaml)) {
+    if (!(parsedYaml !== null && typeof parsedYaml === 'object')) {
       throw new Error('Invalid YAML content');
     }
     return processYamlNode(parsedYaml);
