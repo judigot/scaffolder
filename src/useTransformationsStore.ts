@@ -14,7 +14,7 @@ import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
 import { IStructure } from '@/components/FileViewer.tsx';
-import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 

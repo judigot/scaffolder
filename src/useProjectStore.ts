@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { IFile, IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import equal from 'fast-deep-equal';
 

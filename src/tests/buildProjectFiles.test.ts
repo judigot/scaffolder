@@ -1,5 +1,5 @@
 import masterSchema from '@/schema-infos/masterSchema.ts';
-import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
 
 describe('Build Project Files', () => {

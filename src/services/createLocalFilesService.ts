@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { IStructure } from '@/components/FileViewer.tsx';
-import { buildProjectFiles } from '@/utils/buildProjectFiles.ts';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { createFolderStructure } from '@/utils/createFolderStructure.ts';
 import { createOrResetDatabase } from '@/utils/databaseOperations.ts';
