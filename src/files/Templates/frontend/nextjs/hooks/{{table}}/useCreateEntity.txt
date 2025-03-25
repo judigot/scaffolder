@@ -1,0 +1,20 @@
+import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
+import { create{{tableNamePascalCaseSingular}} } from '@/lib/api/{{tableNameKebabCaseSingular}}/create{{tableNamePascalCaseSingular}}.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+export const useCreate{{tableNamePascalCaseSingular}} = (
+  options?: Omit<
+    UseMutationOptions<I{{tableNamePascalCaseSingular}}, Error, Omit<I{{tableNamePascalCaseSingular}}, 'id'>>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: create{{tableNamePascalCaseSingular}},
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+    },
+    ...options,
+  });
+};

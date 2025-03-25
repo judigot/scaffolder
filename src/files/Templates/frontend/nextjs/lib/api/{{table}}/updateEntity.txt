@@ -1,0 +1,23 @@
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { axiosInstance } from '@/vendor/axiosInstance.ts';
+
+/**
+ * Updates a {{tableNamePascalCaseSingular}} by ID
+ * @param id The ID of the {{tableNamePascalCaseSingular}} to update
+ * @param data Partial data to update
+ * @returns Promise resolving to the updated {{tableNamePascalCaseSingular}} object
+ */
+export const update{{tableNamePascalCaseSingular}} = async (id: number | string, data: Partial<I{{tableNamePascalCaseSingular}}> ): Promise<I{{tableNamePascalCaseSingular}}> => {
+  try {
+    const response = await axiosInstance.put(`/{{tableNameKebabCasePlural}}/${id}`, data);
+    return response.data.data;
+  } catch (error: unknown) {
+    if (typeof error === 'string') {
+      throw new Error(`Failed to update {{tableNameCamelCaseSingular}}: ${error}`);
+    }
+    if (error instanceof Error) {
+      throw new Error(`Failed to update {{tableNameCamelCaseSingular}}: ${String(error.message)}`);
+    }
+    throw new Error('An unknown error occurred');
+  }
+};

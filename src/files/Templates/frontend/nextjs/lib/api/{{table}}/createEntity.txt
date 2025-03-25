@@ -1,0 +1,22 @@
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { axiosInstance } from '@/vendor/axiosInstance.ts';
+
+/**
+ * Creates a new {{tableNamePascalCaseSingular}} in the API
+ * @param data The data for the new {{tableNamePascalCaseSingular}}
+ * @returns Promise resolving to the created {{tableNamePascalCaseSingular}} object
+ */
+export const create{{tableNamePascalCaseSingular}} = async (data: Omit<I{{tableNamePascalCaseSingular}}, 'id'>): Promise<I{{tableNamePascalCaseSingular}}> => {
+  try {
+    const response = await axiosInstance.post('/{{tableNameKebabCasePlural}}', data);
+    return response.data.data;
+  } catch (error: unknown) {
+    if (typeof error === 'string') {
+      throw new Error(`Failed to create {{tableNameCamelCaseSingular}}: ${error}`);
+    }
+    if (error instanceof Error) {
+      throw new Error(`Failed to create {{tableNameCamelCaseSingular}}: ${String(error.message)}`);
+    }
+    throw new Error('An unknown error occurred');
+  }
+};

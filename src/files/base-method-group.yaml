@@ -1,6 +1,0 @@
-CRUD:
-  methods:
-    - create
-Advanced Operations:
-  methods:
-    - chunk

@@ -1,0 +1,12 @@
+import { useQueryInstance } from '@/vendor/useQueryInstance';
+import { fetch{{tableNamePascalCasePlural}} } from '@/lib/api/{{tableNameKebabCaseSingular}}/fetch{{tableNamePascalCasePlural}}.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+
+export const useIndex{{tableNamePascalCaseSingular}} = (
+  options?: Parameters<typeof useQueryInstance<I{{tableNamePascalCaseSingular}}[]>>[2],
+) =>
+  useQueryInstance<I{{tableNamePascalCaseSingular}}[]>(
+    '{{tableNameCamelCasePlural}}',
+    fetch{{tableNamePascalCasePlural}},
+    options,
+  );
