@@ -13,15 +13,8 @@ export const processIfConditions = (
       value: string,
       ifContent: string,
     ) => {
-      console.warn(
-        `Processing IF condition: ${String(variableName)} EQUALS "${String(value)}" with content length ${String(ifContent.length)}`,
-      );
-
       // Check if the variable exists
       if (!(variableName in replacements)) {
-        console.warn(
-          `Variable ${String(variableName)} not found in replacements`,
-        );
         return '';
       }
 
@@ -29,10 +22,6 @@ export const processIfConditions = (
         typeof replacements[variableName] === 'string'
           ? String(replacements[variableName])
           : '';
-
-      console.warn(
-        `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
-      );
 
       return variableValue === value ? ifContent : '';
     },
@@ -49,15 +38,8 @@ export const processIfConditions = (
       value: string,
       ifContent: string,
     ) => {
-      console.warn(
-        `Processing complex IF condition: ${String(variableName)} EQUALS "${String(value)}" with content length ${String(ifContent.length)}`,
-      );
-
       // Check if the variable exists
       if (!(variableName in replacements)) {
-        console.warn(
-          `Variable ${String(variableName)} not found in replacements`,
-        );
         return '';
       }
 
@@ -65,10 +47,6 @@ export const processIfConditions = (
         typeof replacements[variableName] === 'string'
           ? String(replacements[variableName])
           : '';
-
-      console.warn(
-        `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
-      );
 
       return variableValue === value ? ifContent : '';
     },
@@ -85,15 +63,8 @@ export const processIfConditions = (
       value: string,
       ifContent: string,
     ) => {
-      console.warn(
-        `Processing NOT EQUAL condition: ${String(variableName)} NOT EQUAL "${String(value)}" with content length ${String(ifContent.length)}`,
-      );
-
       // Check if the variable exists
       if (!(variableName in replacements)) {
-        console.warn(
-          `Variable ${String(variableName)} not found in replacements`,
-        );
         return '';
       }
 
@@ -101,10 +72,6 @@ export const processIfConditions = (
         typeof replacements[variableName] === 'string'
           ? String(replacements[variableName])
           : '';
-
-      console.warn(
-        `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
-      );
 
       return variableValue !== value ? ifContent : '';
     },
@@ -122,15 +89,8 @@ export const processIfConditions = (
       ifContent: string,
       elseContent: string,
     ) => {
-      console.warn(
-        `Processing IF/ELSE condition: ${String(variableName)} EQUALS "${String(value)}"`,
-      );
-
       // Check if the variable exists
       if (!(variableName in replacements)) {
-        console.warn(
-          `Variable ${String(variableName)} not found in replacements`,
-        );
         return elseContent; // Use else content if variable isn't found
       }
 
@@ -138,10 +98,6 @@ export const processIfConditions = (
         typeof replacements[variableName] === 'string'
           ? String(replacements[variableName])
           : '';
-
-      console.warn(
-        `Variable ${String(variableName)} has value "${String(variableValue)}", comparing with "${String(value)}"`,
-      );
 
       return variableValue === value ? ifContent : elseContent;
     },

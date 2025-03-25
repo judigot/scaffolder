@@ -23,7 +23,6 @@ export const loadTemplateContent = (userFiles: IStructure,templatePath: string):
       );
 
       if (!folder) {
-        console.warn(`Folder not found in path: ${component}`);
         return '';
       }
 
@@ -37,9 +36,6 @@ export const loadTemplateContent = (userFiles: IStructure,templatePath: string):
     );
 
     if (!templateFile) {
-      console.warn(
-        `Template file not found: ${templateName} in specified path`,
-      );
       return '';
     }
 
@@ -122,7 +118,6 @@ export const loadTemplateContent = (userFiles: IStructure,templatePath: string):
       );
     }
 
-    console.warn(`Template file not found in root: ${templatePath}`);
     return '';
   }
 };

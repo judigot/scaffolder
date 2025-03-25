@@ -31,7 +31,6 @@ export const replacePlaceholders = (
         return '';
       }
       if (!(key in replacements)) {
-        console.warn(`No replacement found for placeholder: ${String(key)}`);
         return key;
       }
       const value = replacements[key];

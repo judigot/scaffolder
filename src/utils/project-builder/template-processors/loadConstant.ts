@@ -18,7 +18,6 @@ export const loadConstant = (
   );
 
   if (!constantsFolder) {
-    console.warn('Constants folder not found');
     return [];
   }
 
@@ -28,7 +27,6 @@ export const loadConstant = (
   );
 
   if (!constantFile) {
-    console.warn(`Constant file not found: ${constantName}.yaml`);
     return [];
   }
 
@@ -74,8 +72,7 @@ export const loadConstant = (
     }
 
     return rawValues;
-  } catch (error) {
-    console.warn(`Error parsing constant file ${constantName}.yaml:`, error);
+  } catch {
     return [];
   }
 };

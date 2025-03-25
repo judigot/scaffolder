@@ -196,8 +196,6 @@ export const processIterateCommand = (
     const folderMatch = folderPathPattern.exec(path);
     if (folderMatch) {
       const [, folderPath] = folderMatch;
-      console.warn(`Processing folder path: ${String(folderPath)}`);
-
       // Navigate through the folder structure
       const pathParts = folderPath.split('/').filter(Boolean);
       let currentFolder: IFolder | undefined;
@@ -223,10 +221,6 @@ export const processIterateCommand = (
       }
 
       if (currentFolder) {
-        console.warn(
-          `Found folder: ${String(currentFolder.name)} with ${String(currentFolder.children.length)} children`,
-        );
-
         // Process all files in the folder
         currentFolder.children.forEach((item) => {
           if (item.type === 'file') {
@@ -244,79 +238,63 @@ export const processIterateCommand = (
 
             // Skip this file if it doesn't meet the include/exclude criteria
             if (!shouldInclude || shouldExclude) {
-              console.warn(
-                `Skipping file ${fileName} based on include/exclude filters`,
-              );
               return;
             }
 
-            console.warn(
-              `Processing file ${fileName} that matches include/exclude filters`,
-            );
-
             // For YAML files, try to extract structured data
             if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) {
-              try {
-                // Safely try to parse YAML content
-                const content = item.content;
-                const parsedContent: unknown = parse(content);
+              // Safely try to parse YAML content
+              const content = item.content;
+              const parsedContent: unknown = parse(content);
 
-                // Process YAML content if it's a valid object
-                if (
-                  parsedContent !== null &&
-                  typeof parsedContent === 'object' &&
-                  !Array.isArray(parsedContent)
-                ) {
-                  const extractedValues: Record<string, string> = {};
-                  const recordContent = parsedContent;
+              // Process YAML content if it's a valid object
+              if (
+                parsedContent !== null &&
+                typeof parsedContent === 'object' &&
+                !Array.isArray(parsedContent)
+              ) {
+                const extractedValues: Record<string, string> = {};
+                const recordContent = parsedContent;
 
-                  // Process all properties in the object
-                  Object.entries(recordContent).forEach(([key, value]) => {
-                    if (typeof value === 'string') {
-                      extractedValues[key] = value;
-                    } else if (
-                      typeof value === 'number' ||
-                      typeof value === 'boolean'
-                    ) {
-                      extractedValues[key] = String(value);
-                    } else if (Array.isArray(value)) {
-                      extractedValues[key] = value
-                        .map((item) => String(item))
-                        .join(',');
-                    }
-                  });
-
-                  if (Object.keys(extractedValues).length > 0) {
-                    // If we have at least one valid property, ensure 'value' is set
-                    if (!('value' in extractedValues)) {
-                      extractedValues.value = fileBaseName;
-                    }
-
-                    // Determine primary value to use for the iteration
-                    let primaryValue = extractedValues.value || fileBaseName;
-
-                    // Try common identifier properties first
-                    const identifiers = ['id', 'name', 'key', 'identifier'];
-                    for (const id of identifiers) {
-                      if (id in extractedValues) {
-                        primaryValue = extractedValues[id];
-                        break;
-                      }
-                    }
-
-                    allValues.push(primaryValue);
-                    allPlaceholderValues.set(primaryValue, extractedValues);
-                    fileNameMap.set(primaryValue, fileName);
-                    console.warn(
-                      `Added values from YAML: ${String(primaryValue)} with ${String(Object.keys(extractedValues).length)} properties`,
-                    );
-                    return; // Skip to next file
+                // Process all properties in the object
+                Object.entries(recordContent).forEach(([key, value]) => {
+                  if (typeof value === 'string') {
+                    extractedValues[key] = value;
+                  } else if (
+                    typeof value === 'number' ||
+                    typeof value === 'boolean'
+                  ) {
+                    extractedValues[key] = String(value);
+                  } else if (Array.isArray(value)) {
+                    extractedValues[key] = value
+                      .map((item) => String(item))
+                      .join(',');
                   }
+                });
+
+                if (Object.keys(extractedValues).length > 0) {
+                  // If we have at least one valid property, ensure 'value' is set
+                  if (!('value' in extractedValues)) {
+                    extractedValues.value = fileBaseName;
+                  }
+
+                  // Determine primary value to use for the iteration
+                  let primaryValue = extractedValues.value || fileBaseName;
+
+                  // Try common identifier properties first
+                  const identifiers = ['id', 'name', 'key', 'identifier'];
+                  for (const id of identifiers) {
+                    if (id in extractedValues) {
+                      primaryValue = extractedValues[id];
+                      break;
+                    }
+                  }
+
+                  allValues.push(primaryValue);
+                  allPlaceholderValues.set(primaryValue, extractedValues);
+                  fileNameMap.set(primaryValue, fileName);
+                  return; // Skip to next file
                 }
-              } catch (error) {
-                console.warn(
-                  `Error processing YAML file ${String(fileName)}: ${String(error instanceof Error ? error.message : 'Unknown error')}`,
-                );
               }
             }
 
@@ -324,11 +302,8 @@ export const processIterateCommand = (
             allValues.push(fileBaseName);
             allPlaceholderValues.set(fileBaseName, { value: fileBaseName });
             fileNameMap.set(fileBaseName, fileName);
-            console.warn(`Added filename as value: ${String(fileBaseName)}`);
           }
         });
-      } else {
-        console.warn(`Folder not found: ${String(folderPath)}`);
       }
     }
   }

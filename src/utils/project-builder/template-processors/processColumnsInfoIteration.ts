@@ -12,23 +12,12 @@ export const processColumnsInfoIteration = (
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
 ): string => {
-  console.warn(
-    `Processing columnsInfo iteration for table: ${String(tableObj.tableName)}`,
-  );
-  console.warn(
-    `Template string length: ${String(templateStr.length)} characters`,
-  );
-
   // Process each column individually
   const results: string[] = [];
 
   for (const column of tableObj.columnsInfo) {
     // Create a copy of the template for this column
     const processedTemplate = templateStr;
-
-    console.warn(
-      `Processing column: ${String(column.column_name)}, type: ${String(column.data_type)}, nullable: ${String(column.is_nullable)}`,
-    );
 
     // Get case variations for the column name
     const caseFormats = changeCase(column.column_name);
@@ -84,19 +73,9 @@ export const processColumnsInfoIteration = (
     );
     if (result.trim()) {
       results.push(result);
-      console.warn(
-        `Added processed result for column: ${String(column.column_name)}`,
-      );
-    } else {
-      console.warn(
-        `Empty result for column: ${String(column.column_name)}, skipping`,
-      );
     }
   }
 
   const finalContent = results.join(separatorStr);
-  console.warn(
-    `Final columnsInfo iteration result length: ${String(finalContent.length)} characters`,
-  );
   return finalContent;
 };

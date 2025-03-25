@@ -53,9 +53,6 @@ export const processMultipleFiles = (
         );
         // Skip if the current table doesn't match the include filter
         if (table.tableName !== processedIncludeTable) {
-          console.warn(
-            `Skipping ${String(fileName)} for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
-          );
           return false;
         }
       }
@@ -73,9 +70,6 @@ export const processMultipleFiles = (
 
         // Skip if there are no relationships
         if (!hasRelationships) {
-          console.warn(
-            `Skipping ${String(fileName)} for table ${String(table.tableName)}: has no relationships`,
-          );
           return false;
         }
       }
@@ -95,9 +89,6 @@ export const processMultipleFiles = (
         );
         // Skip if the current table matches the exclude filter
         if (table.tableName === processedExcludeTable) {
-          console.warn(
-            `Skipping ${String(fileName)} for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
-          );
           return false;
         }
       }

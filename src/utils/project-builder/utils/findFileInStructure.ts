@@ -21,7 +21,6 @@ export const findFileInStructure = (
     );
 
     if (!folder) {
-      console.warn(`Folder not found in path: ${String(component)}`);
       return undefined;
     }
 

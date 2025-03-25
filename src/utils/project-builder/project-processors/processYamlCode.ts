@@ -34,7 +34,6 @@ export const processYamlNode = (
       const schemaInfoProcessed =
         schemaInfo.length > 0 ? schemaInfo[0] : undefined;
       if (!schemaInfoProcessed) {
-        console.warn('No schema information available for replacements.');
         return [];
       }
 
@@ -64,9 +63,6 @@ export const processYamlNode = (
               table,
             );
             if (table.tableName !== processedIncludeTable) {
-              console.warn(
-                `Skipping CREATE_FILE for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
-              );
               continue;
             }
           }
@@ -84,9 +80,6 @@ export const processYamlNode = (
               table,
             );
             if (table.tableName === processedExcludeTable) {
-              console.warn(
-                `Skipping CREATE_FILE for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
-              );
               continue;
             }
           }
@@ -104,9 +97,6 @@ export const processYamlNode = (
 
             // Skip if there are no relationships
             if (!hasRelationships) {
-              console.warn(
-                `Skipping CREATE_FILE for table ${String(table.tableName)}: has no relationships`,
-              );
               continue;
             }
           }
@@ -248,7 +238,6 @@ export const processYamlNode = (
       const schemaInfoProcessed =
         schemaInfo.length > 0 ? schemaInfo[0] : undefined;
       if (!schemaInfoProcessed) {
-        console.warn('No schema information available for replacements.');
         return [];
       }
 
