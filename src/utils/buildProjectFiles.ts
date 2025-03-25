@@ -7,6 +7,7 @@ import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateC
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
+import { ICommandOptions } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -14,16 +15,6 @@ export const buildProjectFiles = (
   schemaInfo: ISchemaInfo[],
 ): IStructure => {
   const schemaInfoParsed = getSchemaInfo(schemaInfo);
-  interface ICommandOptions {
-    conditions?: string[];
-    template?: string;
-    modelSpecificRoutes?: string;
-    baseRoutesForController?: string;
-    relatedFiles?: string[];
-    includeTable?: string;
-    useRelatedTable?: boolean;
-    excludeTable?: string;
-  }
 
   // Get the YAML content from the specified path
   const projectFile = findFileInStructure(projectYamlPath, userFiles);
