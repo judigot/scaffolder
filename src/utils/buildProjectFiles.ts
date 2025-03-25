@@ -12,6 +12,7 @@ import { parseConditionalFolder } from '@/utils/project-builder/project-processo
 import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
+import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -19,8 +20,6 @@ export const buildProjectFiles = (
   schemaInfo: ISchemaInfo[],
 ): IStructure => {
   const schemaInfoParsed = getSchemaInfo(schemaInfo);
-
-  // Get the YAML content from the specified path
   const projectFile = findFileInStructure(projectYamlPath, userFiles);
 
   if (!projectFile) {
@@ -31,15 +30,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  // Add this helper function right after formatFileContent
-  const formatFileContent = (content: string): string => {
-    return content
-      .replace(/\\n/g, '\n') // Replace \n with actual newlines
-      .replace(/\\t/g, '    ') // Replace \t with four spaces
-      .replace(/\t/g, '    ') // Replace tab characters with four spaces
-      .trim();
-  };
 
   // Add a helper function to extract filename from path
   const extractFileNameFromPath = (path: string): string => {
