@@ -1,4 +1,4 @@
-import { IStructure, IFile } from '@/components/FileViewer.tsx';
+import { IStructure } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
@@ -6,7 +6,6 @@ import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateC
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
-import { ICommandOptions } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
@@ -14,6 +13,7 @@ import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceh
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
+import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -31,154 +31,6 @@ export const buildProjectFiles = (
   }
 
   const yamlContent = projectFile.content;
-
-  // Update the processMultipleFiles function
-  const processMultipleFiles = (
-    fileName: string,
-    options: ICommandOptions = {},
-  ): IFile[] => {
-    // Get the template content once
-    let templateContent = '';
-    if (
-      typeof options.template === 'string' &&
-      options.template.trim().length > 0
-    ) {
-      const loadedContent = loadTemplateContent(userFiles, options.template);
-      if (loadedContent.length > 0) {
-        templateContent = loadedContent;
-      }
-    } else {
-      // Try to load template based on filename if no template option provided
-      templateContent = loadTemplateContent(userFiles, fileName);
-    }
-
-    const files: IFile[] = schemaInfo
-      .filter((table) => {
-        // Apply table filtering for include/exclude table flags
-        if (
-          (options.includeTable !== undefined &&
-            options.includeTable.trim().length > 0) ||
-          (options.excludeTable !== undefined &&
-            options.excludeTable.trim().length > 0) ||
-          options.useRelatedTable === true
-        ) {
-          // Process placeholders in the includeTable value
-          const replacements = getReplacementsForTable(table, schemaInfoParsed);
-          const processedIncludeTable = replacePlaceholders(
-            String(options.includeTable),
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-          );
-          // Skip if the current table doesn't match the include filter
-          if (table.tableName !== processedIncludeTable) {
-            console.warn(
-              `Skipping ${String(fileName)} for table ${String(table.tableName)}: doesn't match include filter ${String(processedIncludeTable)}`,
-            );
-            return false;
-          }
-        }
-
-        // Process the new useRelatedTable flag
-        if (options.useRelatedTable === true) {
-          // Check for related tables in any of the relationship types
-          const hasRelationships =
-            [
-              ...(table.hasMany ?? []),
-              ...(table.hasOne ?? []),
-              ...(table.belongsTo ?? []),
-              ...(table.belongsToMany ?? []),
-            ].length > 0;
-
-          // Skip if there are no relationships
-          if (!hasRelationships) {
-            console.warn(
-              `Skipping ${String(fileName)} for table ${String(table.tableName)}: has no relationships`,
-            );
-            return false;
-          }
-        }
-
-        if (
-          options.excludeTable !== undefined &&
-          options.excludeTable.trim().length > 0
-        ) {
-          // Process placeholders in the excludeTable value
-          const replacements = getReplacementsForTable(table, schemaInfoParsed);
-          const processedExcludeTable = replacePlaceholders(
-            String(options.excludeTable),
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-          );
-          // Skip if the current table matches the exclude filter
-          if (table.tableName === processedExcludeTable) {
-            console.warn(
-              `Skipping ${String(fileName)} for table ${String(table.tableName)}: matches exclude filter ${String(processedExcludeTable)}`,
-            );
-            return false;
-          }
-        }
-
-        return true;
-      })
-      .map((table) => {
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        const processedName = replacePlaceholders(
-          fileName,
-          replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-        );
-
-        // Extract the base filename from the processed path if it contains slashes
-        const outputFileName = processedName.includes('/')
-          ? extractFileNameFromPath(processedName)
-          : processedName;
-
-        let content = '';
-        content = replacePlaceholders(
-          processLoopTables(
-            templateContent,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-          ),
-          {
-            ...replacements,
-            modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-            baseRoutesForController: options.baseRoutesForController ?? '',
-          },
-          userFiles,
-          schemaInfoParsed,
-          table,
-        );
-
-        // Process ITERATE commands
-        content = processIterateInTemplate(
-          content,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-          table,
-        );
-
-        // Format with consistent character handling
-        const finalContent = formatFileContent(content);
-
-        return {
-          type: 'file',
-          name: outputFileName,
-          content: finalContent,
-        };
-      });
-
-    // Filter out any empty files
-    return files;
-  };
 
   const processDynamicFolders = (
     folderName: string,
@@ -577,7 +429,13 @@ export const buildProjectFiles = (
       }
       if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
         const { command, options } = parseCommand(node.slice(21, -1));
-        return processMultipleFiles(command, options);
+        return processMultipleFiles(
+          command,
+          options,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+        );
       }
       if (node.startsWith('@LOOP_TABLES(')) {
         return [
@@ -900,7 +758,13 @@ export const buildProjectFiles = (
       }
       if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
         const { command, options } = parseCommand(node.slice(21, -1));
-        return processMultipleFiles(command, options);
+        return processMultipleFiles(
+          command,
+          options,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+        );
       }
       if (node.startsWith('@LOOP_TABLES(')) {
         return [
