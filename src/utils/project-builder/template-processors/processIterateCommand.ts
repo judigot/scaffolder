@@ -2,6 +2,7 @@ import { IFolder, IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
@@ -16,7 +17,10 @@ export const processIterateCommand = (
 ): string => {
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
-  const match = /ITERATE\((.*?)(?:\)(\s*.*))?$/.exec(command);
+  const iterateRegex = new RegExp(
+    `${TEMPLATE_ACTIONS.ITERATE}\\((.*?)(?:\\)(\\s*.*))?$`,
+  );
+  const match = iterateRegex.exec(command);
   if (!match || !table) {
     return '';
   }

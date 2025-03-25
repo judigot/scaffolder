@@ -13,6 +13,7 @@ import { processIterateInTemplate } from '@/utils/project-builder/template-proce
 import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
+import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
 
 export const processYamlNode = (
   node: unknown,
@@ -22,8 +23,10 @@ export const processYamlNode = (
   table?: ISchemaInfo,
 ): IStructure => {
   if (typeof node === 'string') {
-    if (node.startsWith('CREATE_FILE(')) {
-      const { command, options } = parseCommand(node.slice(12, -1));
+    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
+      const { command, options } = parseCommand(
+        node.slice(PROJECT_ACTIONS.CREATE_FILE.length + 1, -1),
+      );
 
       // Skip file if conditions are not met
       const conditions = options.conditions;
@@ -212,8 +215,12 @@ export const processYamlNode = (
         },
       ];
     }
-    if (node.startsWith('CREATE_MULTIPLE_FILES(')) {
-      const { command, options } = parseCommand(node.slice(21, -1));
+
+    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_MULTIPLE_FILES}(`)) {
+      const { command, options } = parseCommand(
+        node.slice(PROJECT_ACTIONS.CREATE_MULTIPLE_FILES.length + 1, -1),
+      );
+
       return processMultipleFiles(
         command,
         options,
@@ -221,15 +228,6 @@ export const processYamlNode = (
         schemaInfoParsed,
         userFiles,
       );
-    }
-    if (node.startsWith('@LOOP_TABLES(')) {
-      return [
-        {
-          type: 'file',
-          name: 'template.tmp',
-          content: `@loop: tables\n${node}`,
-        },
-      ];
     }
 
     // Handle bare filenames by looking for templates
@@ -313,7 +311,7 @@ export const processYamlNode = (
         ];
       }
 
-      if (key.startsWith('CREATE_DYNAMIC_FOLDERS(')) {
+      if (key.startsWith(`${PROJECT_ACTIONS.CREATE_DYNAMIC_FOLDERS}(`)) {
         // Extract folder name and remove parentheses
         const folderName = key.slice(22, -1).replace(/[()]/g, '');
         // Return the dynamic folders directly without an extra parent folder

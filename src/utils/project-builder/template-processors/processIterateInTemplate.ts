@@ -1,6 +1,7 @@
 import { IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 
 export const processIterateInTemplate = (
@@ -10,19 +11,23 @@ export const processIterateInTemplate = (
   userFiles: IStructure,
   table?: ISchemaInfo,
 ): string => {
+  const iterateRegex = new RegExp(
+    `\\[\\[\\s*${TEMPLATE_ACTIONS.ITERATE}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
+    'g',
+  );
+
   return content.replace(
-    /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
+    iterateRegex,
     (fullMatch: string, propertyPathsStr: string, options: string) => {
       // If no table context is provided, try to use the first schema
       if (!table && schemaInfo.length > 0) {
         table = schemaInfo[0];
       }
 
-      // If we have a valid table context, process the ITERATE command
       if (table) {
         const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
         const cmdResult = processIterateCommand(
-          `ITERATE(${propertyPathsStr})${options}`,
+          `${TEMPLATE_ACTIONS.ITERATE}(${propertyPathsStr})${options}`,
           table,
           schemaInfoParsed,
           userFiles,

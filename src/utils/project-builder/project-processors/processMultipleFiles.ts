@@ -128,7 +128,6 @@ export const processMultipleFiles = (
         table,
       );
 
-      // Process ITERATE commands
       content = processIterateInTemplate(
         content,
         schemaInfo,

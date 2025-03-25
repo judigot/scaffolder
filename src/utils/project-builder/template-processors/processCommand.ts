@@ -3,6 +3,7 @@ import { loadConstant } from '@/utils/project-builder/template-processors/loadCo
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { IStructure } from '@/components/FileViewer.tsx';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
 
 export const processCommand = (
   text: string,
@@ -14,8 +15,13 @@ export const processCommand = (
   let result = text;
 
   // First, process USE_CONSTANT commands
+  const useConstantRegex = new RegExp(
+    `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_CONSTANT}\\(([^)]+)\\)\\s*\\]\\]`,
+    'g',
+  );
+
   result = result.replace(
-    /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/g,
+    useConstantRegex,
     (_match: string, group1: string) => {
       if (!table) {
         return '';
@@ -30,8 +36,13 @@ export const processCommand = (
     },
   );
 
+  const iterateRegex = new RegExp(
+    `\\[\\[\\s*${TEMPLATE_ACTIONS.ITERATE}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
+    'g',
+  );
+
   result = result.replace(
-    /\[\[\s*ITERATE\(([^[\]]*?(?:\{\{[^}]*\}\})?[^[\]]*)\)([^\]]*)\]\]/g,
+    iterateRegex,
     (fullMatch: string, group1: string, group2: string) => {
       if (!table) {
         return '';
@@ -40,7 +51,7 @@ export const processCommand = (
       const propertyPaths = String(group1);
       const options = String(group2);
       const cmdResult = processIterateCommand(
-        `ITERATE(${propertyPaths})${options}`,
+        `${TEMPLATE_ACTIONS.ITERATE}(${propertyPaths})${options}`,
         table,
         schemaInfoParsed,
         userFiles,
