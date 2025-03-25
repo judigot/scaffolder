@@ -40,7 +40,7 @@ export const processYamlStructure = (
         return [];
       }
 
-      // When inside a dynamic folder context with --use-related-table flag,
+      // When inside a dynamic folder context with --scoped flag,
       // use only the current table context rather than looping over all tables
       if (table && (options.useRelatedTable ?? false)) {
         // First check if the current table has relationships

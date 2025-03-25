@@ -1,7 +1,7 @@
 export const ACTION_FLAGS = {
   ITERATE: 'conditions',
   TEMPLATE: 'template',
-  USE_RELATED_TABLE: 'use-related-table',
+  USE_RELATED_TABLE: 'scoped',
   INCLUDE_TABLE: 'include-table',
   EXCLUDE_TABLE: 'exclude-table',
 } as const;
