@@ -13,7 +13,7 @@ src:
     prisma:
         - CREATE_FILE(DatabaseClient.ts --template /Templates/backend/nextjs/prisma/DatabaseClient.txt)
     Controllers:
-        - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Controller.ts --template /Templates/backend/nextjs/Controllers/EntityController.txt)
+        - FILE_LOOP({{tableNamePascalCaseSingular}}Controller.ts --template /Templates/backend/nextjs/Controllers/EntityController.txt)
     utils:
         - CREATE_FILE(DataTypeParser.ts --template /Templates/backend/nextjs/utils/DataTypeParser.txt)
     components:
@@ -43,4 +43,4 @@ src:
         - CREATE_FILE(axiosInstance.ts --template /Templates/frontend/nextjs/vendor/axiosInstance.txt)
         - CREATE_FILE(useQueryInstance.ts --template /Templates/frontend/nextjs/vendor/useQueryInstance.txt)
     interfaces:
-        - CREATE_MULTIPLE_FILES(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
+        - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)

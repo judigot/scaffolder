@@ -284,9 +284,9 @@ export const processYamlStructure = (
       );
     }
 
-    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_MULTIPLE_FILES}(`)) {
+    if (node.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
       const { command, options } = parseCommand(
-        node.slice(PROJECT_ACTIONS.CREATE_MULTIPLE_FILES.length + 1, -1),
+        node.slice(PROJECT_ACTIONS.FILE_LOOP.length + 1, -1),
       );
 
       return processMultipleFiles(
