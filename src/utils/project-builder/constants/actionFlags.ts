@@ -6,4 +6,5 @@ export const ACTION_FLAGS = {
   EXCLUDE_TABLE: 'exclude-table',
 } as const;
 
-export type ProjectActionFlag = (typeof ACTION_FLAGS)[keyof typeof ACTION_FLAGS];
+export type ProjectActionFlag =
+  (typeof ACTION_FLAGS)[keyof typeof ACTION_FLAGS];

@@ -1,9 +1,10 @@
 import { IFile, IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
-import { ICommandOptions } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { IActionFlags } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
@@ -12,54 +13,54 @@ import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceh
 
 export const processMultipleFiles = (
   fileName: string,
-  options: ICommandOptions = {},
+  options: IActionFlags = {},
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
 ): IFile[] => {
-  // Get the template content once
   let templateContent = '';
-  if (
-    typeof options.template === 'string' &&
-    options.template.trim().length > 0
-  ) {
-    const loadedContent = loadTemplateContent(userFiles, options.template);
+
+  const templateOption = options[ACTION_FLAGS.TEMPLATE];
+  if (typeof templateOption === 'string' && templateOption.trim().length > 0) {
+    const loadedContent = loadTemplateContent(userFiles, templateOption);
     if (loadedContent.length > 0) {
       templateContent = loadedContent;
     }
   } else {
-    // Try to load template based on filename if no template option provided
     templateContent = loadTemplateContent(userFiles, fileName);
   }
 
   const files: IFile[] = schemaInfo
     .filter((table) => {
-      // Apply table filtering for include/exclude table flags
+      const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
+      const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
+      const scopedOption = options[ACTION_FLAGS.SCOPED];
+
       if (
-        (options.includeTable !== undefined &&
-          options.includeTable.trim().length > 0) ||
-        (options.excludeTable !== undefined &&
-          options.excludeTable.trim().length > 0) ||
-        options.scoped === true
+        (includeTableOption?.trim().length ?? 0) > 0 ||
+        (excludeTableOption?.trim().length ?? 0) > 0 ||
+        scopedOption === true
       ) {
-        // Process placeholders in the includeTable value
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        const processedIncludeTable = replacePlaceholders(
-          String(options.includeTable),
-          replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-        );
-        // Skip if the current table doesn't match the include filter
-        if (table.tableName !== processedIncludeTable) {
-          return false;
+
+        if (
+          includeTableOption != null &&
+          includeTableOption.trim().length > 0
+        ) {
+          const processedIncludeTable = replacePlaceholders(
+            includeTableOption,
+            replacements,
+            userFiles,
+            schemaInfoParsed,
+            table,
+          );
+          if (table.tableName !== processedIncludeTable) {
+            return false;
+          }
         }
       }
 
-      // Process the new scoped flag
-      if (options.scoped === true) {
-        // Check for related tables in any of the relationship types
+      if (scopedOption === true) {
         const hasRelationships =
           [
             ...(table.hasMany ?? []),
@@ -67,27 +68,20 @@ export const processMultipleFiles = (
             ...(table.belongsTo ?? []),
             ...(table.belongsToMany ?? []),
           ].length > 0;
-
-        // Skip if there are no relationships
         if (!hasRelationships) {
           return false;
         }
       }
 
-      if (
-        options.excludeTable !== undefined &&
-        options.excludeTable.trim().length > 0
-      ) {
-        // Process placeholders in the excludeTable value
+      if (excludeTableOption != null && excludeTableOption.trim().length > 0) {
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
         const processedExcludeTable = replacePlaceholders(
-          String(options.excludeTable),
+          excludeTableOption,
           replacements,
           userFiles,
           schemaInfoParsed,
           table,
         );
-        // Skip if the current table matches the exclude filter
         if (table.tableName === processedExcludeTable) {
           return false;
         }
@@ -105,25 +99,24 @@ export const processMultipleFiles = (
         table,
       );
 
-      // Extract the base filename from the processed path if it contains slashes
       const outputFileName = processedName.includes('/')
         ? extractFileNameFromPath(processedName)
         : processedName;
 
-      let content = '';
+      let content = processLoopTables(
+        templateContent,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+      );
+
       content = replacePlaceholders(
-        processLoopTables(
-          templateContent,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-        ),
+        content,
         replacements,
         userFiles,
         schemaInfoParsed,
         table,
       );
-
       content = processIterateInTemplate(
         content,
         schemaInfo,
@@ -132,7 +125,6 @@ export const processMultipleFiles = (
         table,
       );
 
-      // Format with consistent character handling
       const finalContent = formatFileContent(content);
 
       return {
@@ -142,6 +134,5 @@ export const processMultipleFiles = (
       };
     });
 
-  // Filter out any empty files
-  return files;
+  return files.filter((file) => file.content.trim().length > 0);
 };

@@ -1,9 +1,9 @@
-import { IStructure } from "@/components/FileViewer.tsx";
-import { ISchemaInfo } from "@/interfaces/interfaces.ts";
-import { ISchemaInfoResult } from "@/utils/getSchemaInfo.ts";
-import { processYamlStructure } from "@/utils/project-builder/project-processors/processYamlStructure";
-import { getReplacementsForTable } from "@/utils/project-builder/template-processors/getReplacementsForTable.ts";
-import { replacePlaceholders } from "@/utils/project-builder/utils/replacePlaceholders.ts";
+import { IStructure } from '@/components/FileViewer.tsx';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
+import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
+import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
 export const processDynamicFolders = (
   folderName: string,
@@ -14,27 +14,27 @@ export const processDynamicFolders = (
 ): IStructure => {
   return schemaInfo.map((table) => {
     const replacements = getReplacementsForTable(table, schemaInfoParsed);
-      const processedName = replacePlaceholders(
-        folderName,
-        replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-      );
+    const processedName = replacePlaceholders(
+      folderName,
+      replacements,
+      userFiles,
+      schemaInfoParsed,
+      table,
+    );
 
-      // Process children with the current table context
-      const processedChildren = processYamlStructure(
-        children,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
-        table,
-      );
+    // Process children with the current table context
+    const processedChildren = processYamlStructure(
+      children,
+      schemaInfo,
+      schemaInfoParsed,
+      userFiles,
+      table,
+    );
 
-      return {
-        type: 'folder',
-        name: processedName,
-        children: processedChildren,
-      };
-    });
-  };
+    return {
+      type: 'folder',
+      name: processedName,
+      children: processedChildren,
+    };
+  });
+};

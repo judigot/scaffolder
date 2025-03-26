@@ -1,5 +1,5 @@
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
-import { ICommandOptions } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { IActionFlags } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 const parseConditions = (value: string): string[] => {
   const trimmedValue = value.trim();
@@ -21,10 +21,10 @@ const parseQuotedOrRawValue = (value: string): string => {
 
 export const parseCommand = (
   command: string,
-): { command: string; options: ICommandOptions } => {
+): { command: string; options: IActionFlags } => {
   const [mainCommandPart, ...optionParts] = command.split('--');
   const mainCommand = mainCommandPart.trim().replace(/[()]/g, '');
-  const options: ICommandOptions = {};
+  const options: IActionFlags = {};
 
   optionParts.forEach((part) => {
     const [key, ...valueParts] = part.trim().split(' ');
@@ -33,29 +33,29 @@ export const parseCommand = (
     switch (key) {
       case ACTION_FLAGS.CONDITIONS:
         if (value) {
-          options.conditions = parseConditions(value);
+          options[ACTION_FLAGS.CONDITIONS] = parseConditions(value);
         }
         break;
 
       case ACTION_FLAGS.TEMPLATE:
         if (value) {
-          options.template = value;
+          options[ACTION_FLAGS.TEMPLATE] = value;
         }
         break;
 
       case ACTION_FLAGS.SCOPED:
-        options.scoped = true;
+        options[ACTION_FLAGS.SCOPED] = true;
         break;
 
       case ACTION_FLAGS.INCLUDE_TABLE:
         if (value) {
-          options.includeTable = parseQuotedOrRawValue(value);
+          options[ACTION_FLAGS.INCLUDE_TABLE] = parseQuotedOrRawValue(value);
         }
         break;
 
       case ACTION_FLAGS.EXCLUDE_TABLE:
         if (value) {
-          options.excludeTable = parseQuotedOrRawValue(value);
+          options[ACTION_FLAGS.EXCLUDE_TABLE] = parseQuotedOrRawValue(value);
         }
         break;
 

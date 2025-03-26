@@ -14,6 +14,7 @@ import { processLoopTables } from '@/utils/project-builder/template-processors/p
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
+import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 
 export const processYamlStructure = (
   node: unknown,
@@ -29,7 +30,7 @@ export const processYamlStructure = (
       );
 
       // Skip file if conditions are not met
-      const conditions = options.conditions;
+      const conditions = options[ACTION_FLAGS.CONDITIONS];
       if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
         return [];
       }
@@ -42,7 +43,8 @@ export const processYamlStructure = (
 
       // When inside a dynamic folder context with --scoped flag,
       // use only the current table context rather than looping over all tables
-      if (table && (options.scoped ?? false)) {
+      const scopedOption = options[ACTION_FLAGS.SCOPED];
+      if (table && (scopedOption ?? false)) {
         // First check if the current table has relationships
         const hasRelationships =
           [
@@ -59,14 +61,12 @@ export const processYamlStructure = (
 
         // Get the template content
         let templateContent = '';
+        const templateOption = options[ACTION_FLAGS.TEMPLATE];
         if (
-          typeof options.template === 'string' &&
-          options.template.trim().length > 0
+          typeof templateOption === 'string' &&
+          templateOption.trim().length > 0
         ) {
-          const loadedContent = loadTemplateContent(
-            userFiles,
-            options.template,
-          );
+          const loadedContent = loadTemplateContent(userFiles, templateOption);
           if (loadedContent.length > 0) {
             templateContent = loadedContent;
           }
@@ -124,14 +124,14 @@ export const processYamlStructure = (
           },
         ];
       }
+      const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
+      const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
 
       // Apply table filtering for CREATE_FILE
       if (
-        (options.includeTable !== undefined &&
-          options.includeTable.trim().length > 0) ||
-        (options.excludeTable !== undefined &&
-          options.excludeTable.trim().length > 0) ||
-        Boolean(options.scoped)
+        (includeTableOption != null && includeTableOption.trim().length > 0) ||
+        (excludeTableOption != null && excludeTableOption.trim().length > 0) ||
+        Boolean(options[ACTION_FLAGS.SCOPED])
       ) {
         const filteredResults: IStructure = [];
 
@@ -140,11 +140,11 @@ export const processYamlStructure = (
 
           // Check include filter
           if (
-            options.includeTable !== undefined &&
-            options.includeTable.trim().length > 0
+            includeTableOption != null &&
+            includeTableOption.trim().length > 0
           ) {
             const processedIncludeTable = replacePlaceholders(
-              String(options.includeTable),
+              String(options[ACTION_FLAGS.INCLUDE_TABLE]),
               replacements,
               userFiles,
               schemaInfoParsed,
@@ -157,11 +157,11 @@ export const processYamlStructure = (
 
           // Check exclude filter
           if (
-            options.excludeTable !== undefined &&
-            options.excludeTable.trim().length > 0
+            excludeTableOption != null &&
+            excludeTableOption.trim().length > 0
           ) {
             const processedExcludeTable = replacePlaceholders(
-              String(options.excludeTable),
+              String(options[ACTION_FLAGS.EXCLUDE_TABLE]),
               replacements,
               userFiles,
               schemaInfoParsed,
@@ -184,9 +184,10 @@ export const processYamlStructure = (
             : processedName.replace(/[()]/g, '');
 
           // Load and process template content
+          const templateOption = options[ACTION_FLAGS.TEMPLATE];
           const templateContent = loadTemplateContent(
             userFiles,
-            options.template ?? processedName,
+            templateOption ?? processedName,
           );
 
           // Process the template with all replacements
@@ -244,9 +245,10 @@ export const processYamlStructure = (
         : processedName.replace(/[()]/g, '');
 
       // Load and process template content
+      const templateOption = options[ACTION_FLAGS.TEMPLATE];
       const templateContent = loadTemplateContent(
         userFiles,
-        options.template ?? processedName,
+        templateOption ?? processedName,
       );
 
       // Process the template with all replacements
@@ -375,9 +377,7 @@ export const processYamlStructure = (
           // Check if the first (and likely only) key is a FOR_EACH_TABLE command
           if (
             keys.length > 0 &&
-            keys[0].startsWith(
-              `${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`,
-            )
+            keys[0].startsWith(`${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`)
           ) {
             const key = keys[0];
             const value = item[key];
@@ -433,9 +433,7 @@ export const processYamlStructure = (
         ];
       }
 
-      if (
-        key.startsWith(`${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`)
-      ) {
+      if (key.startsWith(`${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`)) {
         // Extract folder name and remove parentheses
         const folderName = key
           .slice(String(PROJECT_ACTIONS.FOR_EACH_TABLE).length + 1, -1)
