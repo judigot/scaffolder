@@ -2,7 +2,7 @@ import { IFolder, IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import { ITERATE_COMMAND_REGEX, ITERATE_TABLES_REGEX, TEMPLATE_MATCH_REGEX, SEPARATOR_MATCH_REGEX, FILTER_MATCH_REGEX, IGNORE_MATCH_REGEX, INCLUDE_FILES_MATCH_REGEX, EXCLUDE_FILES_MATCH_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import { ITERATE_COMMAND_REGEX, ITERATE_TABLES_REGEX, TEMPLATE_MATCH_REGEX, SEPARATOR_MATCH_REGEX, FILTER_MATCH_REGEX, IGNORE_MATCH_REGEX, INCLUDE_FILES_MATCH_REGEX, EXCLUDE_FILES_MATCH_REGEX, REMOVE_DUPLICATES_REGEX, USE_CONSTANT_REGEX, FOLDER_PATH_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
@@ -55,7 +55,7 @@ export const processIterateCommand = (
   // Parse options
   const templateMatch = TEMPLATE_MATCH_REGEX.exec(options);
   const separatorMatch = SEPARATOR_MATCH_REGEX.exec(options);
-  const removeDuplicates = options.includes('--removeDuplicates');
+  const removeDuplicates = REMOVE_DUPLICATES_REGEX.test(options);
   const ignoreMatch = IGNORE_MATCH_REGEX.exec(options);
   const filterMatch = FILTER_MATCH_REGEX.exec(options);
   const includedFilesMatch = INCLUDE_FILES_MATCH_REGEX.exec(options);
@@ -92,9 +92,7 @@ export const processIterateCommand = (
         .split(',')
         .map((item) => {
           const trimmed = item.trim();
-          const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(
-            trimmed,
-          );
+          const constantMatch = USE_CONSTANT_REGEX.exec(trimmed);
           if (constantMatch) {
             // Get raw values from constant file without any processing
             return loadConstant(
@@ -121,9 +119,7 @@ export const processIterateCommand = (
   const filterList = filterMatch
     ? filterMatch[1].split(',').map((item) => {
         const trimmed = item.trim();
-        const constantMatch = /\[\[\s*USE_CONSTANT\(([^)]+)\)\s*\]\]/.exec(
-          trimmed,
-        );
+        const constantMatch = USE_CONSTANT_REGEX.exec(trimmed);
         if (constantMatch) {
           // Get raw values from constant file and return as an array
           return loadConstant(
@@ -222,7 +218,6 @@ export const processIterateCommand = (
   const allValues: string[] = [];
 
   // Special handling for user folder paths (starting with /)
-  const folderPathPattern = /^\/(.+)$/;
   // Create a map to store all placeholder values for each method/value
   const allPlaceholderValues = new Map<string, Record<string, string>>();
 
@@ -230,7 +225,7 @@ export const processIterateCommand = (
   const fileNameMap = new Map<string, string>();
 
   for (const path of propertyPaths) {
-    const folderMatch = folderPathPattern.exec(path);
+    const folderMatch = FOLDER_PATH_REGEX.exec(path);
     if (folderMatch) {
       const [, folderPath] = folderMatch;
       // Navigate through the folder structure
