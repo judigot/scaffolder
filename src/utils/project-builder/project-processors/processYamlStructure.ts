@@ -372,14 +372,14 @@ export const processYamlStructure = (
           const keys = Object.keys(item);
           if (
             keys.length > 0 &&
-            keys[0].startsWith(`${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`)
+            keys[0].startsWith(`${String(PROJECT_ACTIONS.FOLDER_LOOP)}(`)
           ) {
             const key = keys[0];
             const value = item[key];
 
             // Extract folder name by removing the function name and parentheses
             const folderName = key.slice(
-              String(PROJECT_ACTIONS.FOR_EACH_TABLE).length + 1,
+              String(PROJECT_ACTIONS.FOLDER_LOOP).length + 1,
               -1,
             );
 
@@ -463,10 +463,10 @@ export const processYamlStructure = (
         ];
       }
 
-      if (key.startsWith(`${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`)) {
+      if (key.startsWith(`${String(PROJECT_ACTIONS.FOLDER_LOOP)}(`)) {
         // Extract folder name and remove parentheses
         const folderName = key
-          .slice(String(PROJECT_ACTIONS.FOR_EACH_TABLE).length + 1, -1)
+          .slice(String(PROJECT_ACTIONS.FOLDER_LOOP).length + 1, -1)
           .replace(/[()]/g, '');
         // Return the dynamic folders directly without an extra parent folder
         return processDynamicFolders(

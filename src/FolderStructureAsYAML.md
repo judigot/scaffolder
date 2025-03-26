@@ -72,7 +72,7 @@ routes:
 frontend:
   src:
     hooks:
-      FOR_EACH_TABLE(__tableNameSnakeCaseSingular__):
+      FOLDER_LOOP(__tableNameSnakeCaseSingular__):
         - CREATE_FILE(use__tableNamePascalCaseSingular__.ts)
     interfaces:
       - FILE_LOOP(I__tableNamePascalCaseSingular__.ts)
@@ -85,7 +85,7 @@ A project using dynamic folder structure using MULTIPLE_FOLDERS() generator.
 ```yaml
 src:
   hooks:
-    FOR_EACH_TABLE(__tableNameSnakeCaseSingular__):
+    FOLDER_LOOP(__tableNameSnakeCaseSingular__):
       - CREATE_FILE(use__tableNamePascalCaseSingular__.ts)
   interfaces:
     - FILE_LOOP(I__tableNamePascalCaseSingular__.ts)

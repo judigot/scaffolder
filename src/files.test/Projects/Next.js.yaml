@@ -2,7 +2,7 @@ src:
   app:
     - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
   hooks:
-      FOR_EACH_TABLE({{tableNameKebabCaseSingular}}):
+      FOLDER_LOOP({{tableNameKebabCaseSingular}}):
         - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/React-Hook.txt)
         - CREATE_FILE(api.ts --template /Templates/backend/laravel/api.txt)
         - FILE_LOOP(use{{tableNamePascalCaseSingular}}.tsx --template /Templates/frontend/React-Hook.txt)
