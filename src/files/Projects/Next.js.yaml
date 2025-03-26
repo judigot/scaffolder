@@ -1,7 +1,6 @@
 src:
     app:
         api:
-            - CREATE_FILE(staticFile.ts --template /Templates/backend/nextjs/app/{{table}}/route.txt)
             - FOR_EACH_TABLE({{tableNameKebabCasePlural}}):
                 - CREATE_FILE(route.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/route.txt)
                 - CREATE_FILE(GET.ts --scoped --template /Templates/backend/nextjs/app/{{table}}/GET.txt)
