@@ -12,6 +12,7 @@ import { processDynamicFolders } from '@/utils/project-builder/project-processor
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
+import { importProject } from '@/utils/project-builder/project-processors/importProject.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
@@ -271,6 +272,18 @@ export const processYamlStructure = (
       ];
     }
 
+    if (node.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
+      // Extract the command string, removing the IMPORT_PROJECT prefix and closing parenthesis
+      const commandString = node.slice(PROJECT_ACTIONS.IMPORT_PROJECT.length + 1, -1);
+      return importProject(
+        commandString,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        table,
+      );
+    }
+
     if (node.startsWith(`${PROJECT_ACTIONS.CREATE_MULTIPLE_FILES}(`)) {
       const { command, options } = parseCommand(
         node.slice(PROJECT_ACTIONS.CREATE_MULTIPLE_FILES.length + 1, -1),
@@ -403,6 +416,41 @@ export const processYamlStructure = (
 
   if (typeof node === 'object' && node !== null) {
     return Object.entries(node).flatMap(([key, value]): IStructure => {
+      // Special handling for IMPORT_PROJECT keys with colons
+      if (key.startsWith(`${String(PROJECT_ACTIONS.IMPORT_PROJECT)}(`)) {
+        // Extract the command string
+        const commandString = key.slice(
+          String(PROJECT_ACTIONS.IMPORT_PROJECT).length + 1, 
+          key.length - (key.endsWith(':') ? 2 : 1)  // Remove both the closing parenthesis and colon if present
+        );
+        
+        // Process the import
+        const importResult = importProject(
+          commandString,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          table
+        );
+        
+        // If this is just an import without creating a folder (when it has a colon at the end)
+        if (key.endsWith(':') && value !== null && typeof value === 'object') {
+          // Process the value structure with the same context
+          const childStructure = processYamlStructure(
+            value,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            table
+          );
+          
+          return [...importResult, ...childStructure];
+        }
+        
+        // Return the import result directly without creating a folder
+        return importResult;
+      }
+
       // Handle conditional folders
       const { name, conditions } = parseConditionalFolder(key);
       if (conditions && !checkConditions(conditions)) {

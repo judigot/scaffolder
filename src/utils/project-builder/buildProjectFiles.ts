@@ -26,12 +26,20 @@ export const buildProjectFiles = (
 
   try {
     const parsedYaml: unknown = parse(file.content);
-    return processYamlStructure(
+    
+    // Process the YAML structure to build the project files
+    const result = processYamlStructure(
       parsedYaml,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
     );
+    
+    // Note: We've moved the IMPORT_PROJECT key handling to processYamlStructure.ts
+    // to handle both array items and keys with colons consistently.
+    // This avoids duplicate processing and the issue with table name extraction.
+    
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       console.error('Error parsing YAML:', error.message);

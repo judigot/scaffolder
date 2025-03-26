@@ -1,6 +1,7 @@
 app:
     Http:
         Controllers:
+            - IMPORT_PROJECT(Projects/Next.js.yaml)
             - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
             - CREATE_FILE(AuthController.php --conditions hasUsers=true --template /Templates/backend/laravel/AuthController.txt)
             - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}Controller.php --template /Templates/backend/laravel/Controller.txt)
@@ -20,3 +21,4 @@ app:
 routes:
     - CREATE_FILE(api.php --template /Templates/backend/laravel/api.txt)
     - CREATE_MULTIPLE_FILES({{tableNameKebabCasePlural}}.php --template /Templates/backend/laravel/Route.txt)
+IMPORT_PROJECT(Projects/Next.js.yaml):
