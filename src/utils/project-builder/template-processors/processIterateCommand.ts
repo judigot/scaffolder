@@ -2,7 +2,19 @@ import { IFolder, IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import { ITERATE_COMMAND_REGEX, ITERATE_TABLES_REGEX, TEMPLATE_MATCH_REGEX, SEPARATOR_MATCH_REGEX, FILTER_MATCH_REGEX, IGNORE_MATCH_REGEX, INCLUDE_FILES_MATCH_REGEX, EXCLUDE_FILES_MATCH_REGEX, REMOVE_DUPLICATES_REGEX, USE_CONSTANT_REGEX, FOLDER_PATH_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import {
+  ITERATE_COMMAND_REGEX,
+  ITERATE_TABLES_REGEX,
+  TEMPLATE_MATCH_REGEX,
+  SEPARATOR_MATCH_REGEX,
+  FILTER_MATCH_REGEX,
+  IGNORE_MATCH_REGEX,
+  INCLUDE_FILES_MATCH_REGEX,
+  EXCLUDE_FILES_MATCH_REGEX,
+  REMOVE_DUPLICATES_REGEX,
+  USE_CONSTANT_REGEX,
+  FOLDER_PATH_REGEX,
+} from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
