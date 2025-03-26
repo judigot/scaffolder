@@ -3,8 +3,8 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import {
-  ITERATE_COMMAND_REGEX,
-  ITERATE_TABLES_REGEX,
+  LOOP_COMMAND_REGEX,
+  LOOP_TABLES_REGEX,
   TEMPLATE_MATCH_REGEX,
   SEPARATOR_MATCH_REGEX,
   FILTER_MATCH_REGEX,
@@ -28,7 +28,7 @@ export const processLoopTables = (
   userFiles: IStructure,
 ): string => {
   return content.replace(
-    ITERATE_TABLES_REGEX,
+    LOOP_TABLES_REGEX,
     (_match: string, templateContent: string) => {
       return schemaInfo
         .map((table) => {
@@ -54,7 +54,7 @@ export const processIterateCommand = (
 ): string => {
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
-  const match = ITERATE_COMMAND_REGEX.exec(command);
+  const match = LOOP_COMMAND_REGEX.exec(command);
   if (!match || !table) {
     return '';
   }
@@ -189,7 +189,7 @@ export const processIterateCommand = (
     return values.filter((value) => flattenedFilterList.includes(value));
   };
 
-  // Special handling for ITERATE(tables) command
+  // Special handling for LOOP(tables) command
   if (propertyPathsStr.trim() === 'tables') {
     // This is where we integrate processLoopTables functionality
     // It doesn't actually use the current table, but rather processes all tables

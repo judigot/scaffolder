@@ -1,5 +1,5 @@
 {{tableNamePascalCase}} Conditions Test:
-  [[ ITERATE(columnsInfo) --template="
+  [[ LOOP(columnsInfo) --template="
   Column: {{valueCamelCase}} | Type: {{data_type}} | TS Type: {{data_type}}
   
   /* Boolean Condition Results */

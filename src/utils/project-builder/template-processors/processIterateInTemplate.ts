@@ -12,7 +12,7 @@ export const processIterateInTemplate = (
   table?: ISchemaInfo,
 ): string => {
   const iterateRegex = new RegExp(
-    `\\[\\[\\s*${TEMPLATE_ACTIONS.ITERATE}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
+    `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
     'g',
   );
 
@@ -27,7 +27,7 @@ export const processIterateInTemplate = (
       if (table) {
         const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
         const cmdResult = processIterateCommand(
-          `${TEMPLATE_ACTIONS.ITERATE}(${propertyPathsStr})${options}`,
+          `${TEMPLATE_ACTIONS.LOOP}(${propertyPathsStr})${options}`,
           table,
           schemaInfoParsed,
           userFiles,

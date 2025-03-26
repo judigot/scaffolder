@@ -1,1 +1,1 @@
-[[ITERATE(/BaseMethodsNew/advanced-operations) --include-files="chunk" --exclude-files="next" --template="{{methodName}}\n{{route}}"]]
+[[LOOP(/BaseMethodsNew/advanced-operations) --include-files="chunk" --exclude-files="next" --template="{{methodName}}\n{{route}}"]]

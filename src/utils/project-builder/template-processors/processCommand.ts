@@ -37,7 +37,7 @@ export const processCommand = (
   );
 
   const iterateRegex = new RegExp(
-    `\\[\\[\\s*${TEMPLATE_ACTIONS.ITERATE}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
+    `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
     'g',
   );
 
@@ -51,7 +51,7 @@ export const processCommand = (
       const propertyPaths = String(group1);
       const options = String(group2);
       const cmdResult = processIterateCommand(
-        `${TEMPLATE_ACTIONS.ITERATE}(${propertyPaths})${options}`,
+        `${TEMPLATE_ACTIONS.LOOP}(${propertyPaths})${options}`,
         table,
         schemaInfoParsed,
         userFiles,

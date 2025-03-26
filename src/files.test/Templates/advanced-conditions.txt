@@ -1,5 +1,5 @@
 {{tableNamePascalCase}} Column Analysis:
-  [[ ITERATE(columnsInfo) --template="
+  [[ LOOP(columnsInfo) --template="
 /* Column Information: {{valueCamelCase}} */
 Base Name: {{valueCamelCase}}
 Data Type: {{data_type}}

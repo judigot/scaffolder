@@ -359,7 +359,6 @@ export const processYamlStructure = (
 
   if (Array.isArray(node)) {
     return node.flatMap((item) => {
-      // Check if the array item is an object with a FOR_EACH_TABLE key
       if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
         // Define type predicate for Record
         const isRecordWithDynamicFolder = (
@@ -370,7 +369,6 @@ export const processYamlStructure = (
         if (isRecordWithDynamicFolder(item)) {
           // Get the keys of the object
           const keys = Object.keys(item);
-          // Check if the first (and likely only) key is a FOR_EACH_TABLE command
           if (
             keys.length > 0 &&
             keys[0].startsWith(`${String(PROJECT_ACTIONS.FOR_EACH_TABLE)}(`)
