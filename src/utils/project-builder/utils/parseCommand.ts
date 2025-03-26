@@ -44,7 +44,7 @@ export const parseCommand = (
         break;
 
       case ACTION_FLAGS.SCOPED:
-        options.useRelatedTable = true;
+        options.scoped = true;
         break;
 
       case ACTION_FLAGS.INCLUDE_TABLE:

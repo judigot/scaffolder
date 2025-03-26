@@ -8,6 +8,6 @@ export interface ICommandOptions {
   baseRoutesForController?: string;
   relatedFiles?: string[];
   includeTable?: string;
-  useRelatedTable?: boolean;
+  scoped?: boolean;
   excludeTable?: string;
 }

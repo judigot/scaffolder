@@ -40,7 +40,7 @@ export const processMultipleFiles = (
           options.includeTable.trim().length > 0) ||
         (options.excludeTable !== undefined &&
           options.excludeTable.trim().length > 0) ||
-        options.useRelatedTable === true
+        options.scoped === true
       ) {
         // Process placeholders in the includeTable value
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
@@ -57,8 +57,8 @@ export const processMultipleFiles = (
         }
       }
 
-      // Process the new useRelatedTable flag
-      if (options.useRelatedTable === true) {
+      // Process the new scoped flag
+      if (options.scoped === true) {
         // Check for related tables in any of the relationship types
         const hasRelationships =
           [

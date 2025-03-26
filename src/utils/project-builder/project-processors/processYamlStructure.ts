@@ -42,7 +42,7 @@ export const processYamlStructure = (
 
       // When inside a dynamic folder context with --scoped flag,
       // use only the current table context rather than looping over all tables
-      if (table && (options.useRelatedTable ?? false)) {
+      if (table && (options.scoped ?? false)) {
         // First check if the current table has relationships
         const hasRelationships =
           [
@@ -135,7 +135,7 @@ export const processYamlStructure = (
           options.includeTable.trim().length > 0) ||
         (options.excludeTable !== undefined &&
           options.excludeTable.trim().length > 0) ||
-        Boolean(options.useRelatedTable)
+        Boolean(options.scoped)
       ) {
         const filteredResults: IStructure = [];
 
