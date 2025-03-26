@@ -118,11 +118,7 @@ export const processMultipleFiles = (
           schemaInfoParsed,
           userFiles,
         ),
-        {
-          ...replacements,
-          modelSpecificRoutes: options.modelSpecificRoutes ?? '',
-          baseRoutesForController: options.baseRoutesForController ?? '',
-        },
+        replacements,
         userFiles,
         schemaInfoParsed,
         table,
