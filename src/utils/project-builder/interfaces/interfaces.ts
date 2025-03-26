@@ -4,7 +4,6 @@ export type Replacements = Record<string, ReplacementValue>;
 export interface ICommandOptions {
   conditions?: string[];
   template?: string;
-  relatedFiles?: string[];
   includeTable?: string;
   scoped?: boolean;
   excludeTable?: string;
