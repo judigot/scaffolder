@@ -1,5 +1,5 @@
 export const ACTION_FLAGS = {
-  ITERATE: 'conditions',
+  CONDITIONS: 'conditions',
   TEMPLATE: 'template',
   SCOPED: 'scoped',
   INCLUDE_TABLE: 'include-table',

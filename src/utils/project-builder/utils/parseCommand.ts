@@ -31,7 +31,7 @@ export const parseCommand = (
     const value = valueParts.join(' ').trim();
 
     switch (key) {
-      case ACTION_FLAGS.ITERATE:
+      case ACTION_FLAGS.CONDITIONS:
         if (value) {
           options.conditions = parseConditions(value);
         }
