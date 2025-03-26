@@ -104,7 +104,6 @@ export const processYamlStructure = (
           table,
         );
 
-        // Process ITERATE commands
         content = processIterateInTemplate(
           content,
           schemaInfo,
@@ -204,7 +203,6 @@ export const processYamlStructure = (
             table,
           );
 
-          // Process ITERATE commands explicitly
           processedContent = processIterateInTemplate(
             processedContent,
             schemaInfo,
@@ -265,7 +263,6 @@ export const processYamlStructure = (
         schemaInfoProcessed,
       );
 
-      // Process ITERATE commands explicitly
       processedContent = processIterateInTemplate(
         processedContent,
         schemaInfo,
@@ -328,7 +325,6 @@ export const processYamlStructure = (
         schemaInfoProcessed,
       );
 
-      // Process ITERATE commands explicitly
       processedContent = processIterateInTemplate(
         processedContent,
         schemaInfo,

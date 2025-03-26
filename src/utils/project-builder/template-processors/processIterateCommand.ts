@@ -9,9 +9,6 @@ import { processColumnsInfoIteration } from '@/utils/project-builder/template-pr
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
 
-/**
- * Process loop tables content by replacing ITERATE(tables) tags with their processed templates
- */
 export const processLoopTables = (
   content: string,
   schemaInfo: ISchemaInfo[],
