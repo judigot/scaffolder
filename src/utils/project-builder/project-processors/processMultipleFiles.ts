@@ -7,7 +7,7 @@ import { formatFileContent } from '@/utils/project-builder/helpers/formatFileCon
 import { IActionFlags } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
-import { processLoopTables } from '@/utils/project-builder/template-processors/processLoopTables.ts';
+import { processLoopTables } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 

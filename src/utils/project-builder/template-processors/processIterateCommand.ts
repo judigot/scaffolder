@@ -2,12 +2,40 @@ import { IFolder, IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
+import { ITERATE_COMMAND_REGEX, ITERATE_TABLES_REGEX, TEMPLATE_MATCH_REGEX, SEPARATOR_MATCH_REGEX, FILTER_MATCH_REGEX, IGNORE_MATCH_REGEX, INCLUDE_FILES_MATCH_REGEX, EXCLUDE_FILES_MATCH_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
+
+/**
+ * Process loop tables content by replacing ITERATE(tables) tags with their processed templates
+ */
+export const processLoopTables = (
+  content: string,
+  schemaInfo: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+): string => {
+  return content.replace(
+    ITERATE_TABLES_REGEX,
+    (_match: string, templateContent: string) => {
+      return schemaInfo
+        .map((table) => {
+          const replacements = getReplacementsForTable(table, schemaInfoParsed);
+          return replacePlaceholders(
+            String(templateContent).trim(),
+            replacements,
+            userFiles,
+            schemaInfoParsed,
+            table,
+          );
+        })
+        .join('\n    '); // Add proper indentation for PHP files
+    },
+  );
+};
 
 export const processIterateCommand = (
   command: string,
@@ -17,10 +45,7 @@ export const processIterateCommand = (
 ): string => {
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
-  const iterateRegex = new RegExp(
-    `${TEMPLATE_ACTIONS.ITERATE}\\((.*?)(?:\\)(\\s*.*))?$`,
-  );
-  const match = iterateRegex.exec(command);
+  const match = ITERATE_COMMAND_REGEX.exec(command);
   if (!match || !table) {
     return '';
   }
@@ -28,13 +53,13 @@ export const processIterateCommand = (
   const [, propertyPathsStr, options = ''] = match;
 
   // Parse options
-  const templateMatch = /--template="([^"]+)"/.exec(options);
-  const separatorMatch = /--separator="([^"]+)"/.exec(options);
+  const templateMatch = TEMPLATE_MATCH_REGEX.exec(options);
+  const separatorMatch = SEPARATOR_MATCH_REGEX.exec(options);
   const removeDuplicates = options.includes('--removeDuplicates');
-  const ignoreMatch = /--ignore="([^"]+)"/.exec(options);
-  const filterMatch = /--filter="([^"]+)"/.exec(options);
-  const includedFilesMatch = /--include-files="([^"]+)"/.exec(options);
-  const excludedFilesMatch = /--exclude-files="([^"]+)"/.exec(options);
+  const ignoreMatch = IGNORE_MATCH_REGEX.exec(options);
+  const filterMatch = FILTER_MATCH_REGEX.exec(options);
+  const includedFilesMatch = INCLUDE_FILES_MATCH_REGEX.exec(options);
+  const excludedFilesMatch = EXCLUDE_FILES_MATCH_REGEX.exec(options);
 
   // Process escape sequences in template
   const template = templateMatch
@@ -158,6 +183,14 @@ export const processIterateCommand = (
 
     return values.filter((value) => flattenedFilterList.includes(value));
   };
+
+  // Special handling for ITERATE(tables) command
+  if (propertyPathsStr.trim() === 'tables') {
+    // This is where we integrate processLoopTables functionality
+    // It doesn't actually use the current table, but rather processes all tables
+    // The tables need to be provided via a parameter
+    return ''; // This is a placeholder, will be handled by the external processLoopTables function
+  }
 
   // Split property paths and clean whitespace
   const propertyPaths = propertyPathsStr.split(',').map((p) => {
