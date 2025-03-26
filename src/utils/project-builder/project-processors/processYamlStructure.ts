@@ -45,19 +45,7 @@ export const processYamlStructure = (
       // use only the current table context rather than looping over all tables
       const scopedOption = options[ACTION_FLAGS.SCOPED];
       if (table && (scopedOption ?? false)) {
-        // First check if the current table has relationships
-        const hasRelationships =
-          [
-            ...(table.hasMany ?? []),
-            ...(table.hasOne ?? []),
-            ...(table.belongsTo ?? []),
-            ...(table.belongsToMany ?? []),
-          ].length > 0;
-
-        // Skip if there are no relationships
-        if (!hasRelationships) {
-          return [];
-        }
+        // The hasRelationships check is removed here to allow processing of all tables
 
         // Get the template content
         let templateContent = '';

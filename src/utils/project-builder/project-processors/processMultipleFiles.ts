@@ -60,19 +60,6 @@ export const processMultipleFiles = (
         }
       }
 
-      if (scopedOption === true) {
-        const hasRelationships =
-          [
-            ...(table.hasMany ?? []),
-            ...(table.hasOne ?? []),
-            ...(table.belongsTo ?? []),
-            ...(table.belongsToMany ?? []),
-          ].length > 0;
-        if (!hasRelationships) {
-          return false;
-        }
-      }
-
       if (excludeTableOption != null && excludeTableOption.trim().length > 0) {
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
         const processedExcludeTable = replacePlaceholders(
