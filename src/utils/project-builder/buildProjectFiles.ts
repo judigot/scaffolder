@@ -4,6 +4,7 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
+import { detectCircularImports } from '@/utils/project-builder/utils/detectCircularImports.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -18,15 +19,55 @@ export const buildProjectFiles = (
     return [
       {
         type: 'file',
-        name: 'Test5.txt',
-        content: 'Test5',
+        name: 'file-not-found.log',
+        content: [
+          '❌ FILE NOT FOUND',
+          '',
+          '📅 Timestamp:',
+          new Date().toISOString(),
+          '',
+        ].join('\n'),
+      },
+    ];
+  }
+
+  // Check for circular imports before processing
+  const circularImportCheck = detectCircularImports(projectYamlPath, userFiles);
+  if (circularImportCheck.hasCircularImport) {
+    console.error(
+      `Circular import detected: ${circularImportCheck.cycleChain}`,
+    );
+    return [
+      {
+        type: 'file',
+        name: 'circular-import-error.log',
+        content: [
+          '❌ CODE GENERATION FAILED: INFINITE IMPORT LOOP DETECTED',
+          '',
+          '📅 Timestamp:',
+          new Date().toISOString(),
+          '',
+          '🔎 Circular Import Chain Detected:',
+          '='.repeat(50),
+          circularImportCheck.cycleChain,
+          '='.repeat(50),
+          '',
+          '💡 Suggestion:',
+          'It looks like your YAML project files are importing each other in a cycle.',
+          'Please revise the IMPORT_PROJECT directives and ensure that each project import chain ends cleanly.',
+          '',
+          'Example of what to avoid:',
+          'A.yaml imports B.yaml, B.yaml imports C.yaml, and C.yaml imports A.yaml.',
+          '',
+          'If this persists, report the issue along with this log.',
+        ].join('\n'),
       },
     ];
   }
 
   try {
     const parsedYaml: unknown = parse(file.content);
-    
+
     // Process the YAML structure to build the project files
     const result = processYamlStructure(
       parsedYaml,
@@ -34,11 +75,11 @@ export const buildProjectFiles = (
       schemaInfoParsed,
       userFiles,
     );
-    
+
     // Note: We've moved the IMPORT_PROJECT key handling to processYamlStructure.ts
     // to handle both array items and keys with colons consistently.
     // This avoids duplicate processing and the issue with table name extraction.
-    
+
     return result;
   } catch (error) {
     if (error instanceof Error) {
@@ -49,7 +90,7 @@ export const buildProjectFiles = (
     return [
       {
         type: 'file',
-        name: 'error.log',
+        name: 'invalid-yaml-structure.log',
         content: [
           '❌ CODE GENERATION FAILED',
           '',

@@ -1,0 +1,10 @@
+app:
+    Http:
+        Controllers:
+            - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
+    Models:
+        - CREATE_MULTIPLE_FILES({{tableNamePascalCaseSingular}}.php --template /Templates/backend/laravel/Model.txt)
+routes:
+    - CREATE_FILE(api.php --template /Templates/backend/laravel/api.txt)
+    - CREATE_MULTIPLE_FILES({{tableNameKebabCasePlural}}.php --template /Templates/backend/laravel/Route.txt)
+IMPORT_PROJECT(Projects/CircularB.yaml): 
