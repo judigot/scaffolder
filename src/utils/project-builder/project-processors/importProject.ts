@@ -12,14 +12,16 @@ import { parse } from 'yaml';
 /**
  * Type guard to check if a value is a valid project structure object
  */
-function isValidProjectStructure(value: unknown): value is Record<string, unknown> {
+function isValidProjectStructure(
+  value: unknown,
+): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
  * Processes an IMPORT_PROJECT command by loading and processing a project structure
  * from another file and including it in the current structure.
- * 
+ *
  * @param command The command string containing the file path to import
  * @param schemaInfo The schema information for all tables
  * @param schemaInfoParsed The parsed schema info object
@@ -36,34 +38,34 @@ export const importProject = (
 ): IStructure => {
   // Clean up the command string to handle cases where it might have trailing characters
   const cleanCommand = command.trim();
-  
+
   const { command: path, options } = parseCommand(cleanCommand);
-  
+
   // Find the imported project file in the structure using the existing utility
   const projectFile = findFileInStructure(path, userFiles);
-  
+
   if (!projectFile) {
     return [];
   }
-  
+
   // Try to parse the project structure from the file
   try {
     // Parse the YAML file content with unknow type first
     const parsedContent: unknown = parse(projectFile.content);
-    
+
     // Check that the parsed content is a valid object using type guard
     if (!isValidProjectStructure(parsedContent)) {
       return [];
     }
-    
+
     // Now we can safely use the validated object
     const parsedYaml: Record<string, unknown> = parsedContent;
-    
+
     // Check if we should process with specific table context
     const scopedOption = options[ACTION_FLAGS.SCOPED] === true;
     const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
     const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
-    
+
     // If a specific table is provided or we have table filtering options
     if (table && scopedOption) {
       // Process with the current table context
@@ -72,20 +74,28 @@ export const importProject = (
         schemaInfo,
         schemaInfoParsed,
         userFiles,
-        table
+        table,
       );
     } else if (
-      (includeTableOption != null && includeTableOption.trim().length > 0) ||
-      (excludeTableOption != null && excludeTableOption.trim().length > 0)
+      (includeTableOption != null &&
+        String(includeTableOption).trim().length > 0) ||
+      (excludeTableOption != null &&
+        String(excludeTableOption).trim().length > 0)
     ) {
       // Apply table filtering
       const filteredResults: IStructure = [];
-      
+
       for (const currentTable of schemaInfo) {
-        const replacements = getReplacementsForTable(currentTable, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          currentTable,
+          schemaInfoParsed,
+        );
 
         // Check include filter
-        if (includeTableOption != null && includeTableOption.trim().length > 0) {
+        if (
+          includeTableOption != null &&
+          includeTableOption.trim().length > 0
+        ) {
           const processedIncludeTable = replacePlaceholders(
             String(options[ACTION_FLAGS.INCLUDE_TABLE]),
             replacements,
@@ -99,7 +109,10 @@ export const importProject = (
         }
 
         // Check exclude filter
-        if (excludeTableOption != null && excludeTableOption.trim().length > 0) {
+        if (
+          excludeTableOption != null &&
+          excludeTableOption.trim().length > 0
+        ) {
           const processedExcludeTable = replacePlaceholders(
             String(options[ACTION_FLAGS.EXCLUDE_TABLE]),
             replacements,
@@ -111,30 +124,30 @@ export const importProject = (
             continue;
           }
         }
-        
+
         // Process the structure with this table
         const processedStructure = processYamlStructure(
           parsedYaml,
           schemaInfo,
           schemaInfoParsed,
           userFiles,
-          currentTable
+          currentTable,
         );
-        
+
         filteredResults.push(...processedStructure);
       }
-      
+
       return filteredResults;
     }
-    
+
     // Default behavior: process without table-specific context
     return processYamlStructure(
       parsedYaml,
       schemaInfo,
       schemaInfoParsed,
-      userFiles
+      userFiles,
     );
-  } catch (error) {
+  } catch {
     return [];
   }
-}; 
+};

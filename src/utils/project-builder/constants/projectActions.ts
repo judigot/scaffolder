@@ -7,3 +7,7 @@ export const PROJECT_ACTIONS = {
 
 export type ProjectAction =
   (typeof PROJECT_ACTIONS)[keyof typeof PROJECT_ACTIONS];
+
+export const IMPORT_PROJECT_REGEX = new RegExp(
+  `${PROJECT_ACTIONS.IMPORT_PROJECT}\\((.*?)\\)$`,
+);

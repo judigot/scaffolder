@@ -1,6 +1,9 @@
 import { IStructure } from '@/components/FileViewer.tsx';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
-import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
+import {
+  IMPORT_PROJECT_REGEX,
+  PROJECT_ACTIONS,
+} from '@/utils/project-builder/constants/projectActions.ts';
 import { parse } from 'yaml';
 
 interface ICircularImportResult {
@@ -30,7 +33,7 @@ function extractImportPaths(content: string): string[] {
   if (isRecord(parsedYaml)) {
     // Handle root level import keys (IMPORT_PROJECT(path):)
     const rootImportKeys = Object.keys(parsedYaml).filter((key) =>
-      key.startsWith(PROJECT_ACTIONS.IMPORT_PROJECT),
+      key.startsWith(String(PROJECT_ACTIONS.IMPORT_PROJECT)),
     );
 
     // Process each import key to extract the path
@@ -52,10 +55,9 @@ function extractImportPaths(content: string): string[] {
         for (const item of node) {
           if (
             typeof item === 'string' &&
-            item.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)
+            item.startsWith(`${String(PROJECT_ACTIONS.IMPORT_PROJECT)}(`)
           ) {
-            const importPathRegex = /IMPORT_PROJECT\((.*?)\)$/;
-            const execResult = importPathRegex.exec(item);
+            const execResult = IMPORT_PROJECT_REGEX.exec(item);
 
             // Get the captured path if it exists and ensure it's not empty
             const capturedPath = execResult?.[1] ?? '';
