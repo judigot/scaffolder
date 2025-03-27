@@ -30,8 +30,8 @@ export const buildProjectFiles = (
     ];
   }
 
-  // Check for circular imports before processing
   const circularImportCheck = detectCircularImports(projectYamlPath, userFiles);
+
   if (circularImportCheck.hasCircularImport) {
     return [
       {
@@ -64,19 +64,14 @@ export const buildProjectFiles = (
   try {
     const parsedYaml: unknown = parse(file.content);
 
-    // Process the YAML structure to build the project files
-    const result = processYamlStructure(
+    const projectFiles = processYamlStructure(
       parsedYaml,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
     );
 
-    // Note: We've moved the IMPORT_PROJECT key handling to processYamlStructure.ts
-    // to handle both array items and keys with colons consistently.
-    // This avoids duplicate processing and the issue with table name extraction.
-
-    return result;
+    return projectFiles;
   } catch (error) {
     return [
       {
