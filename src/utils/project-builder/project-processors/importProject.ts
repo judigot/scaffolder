@@ -43,7 +43,6 @@ export const importProject = (
   const projectFile = findFileInStructure(path, userFiles);
   
   if (!projectFile) {
-    console.warn(`Project file not found: ${path}`);
     return [];
   }
   
@@ -54,7 +53,6 @@ export const importProject = (
     
     // Check that the parsed content is a valid object using type guard
     if (!isValidProjectStructure(parsedContent)) {
-      console.warn('Imported project structure is not a valid object');
       return [];
     }
     
@@ -137,7 +135,6 @@ export const importProject = (
       userFiles
     );
   } catch (error) {
-    console.error(`Error processing imported project structure: ${String(error)}`);
     return [];
   }
 }; 

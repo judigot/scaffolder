@@ -15,7 +15,6 @@ export const buildProjectFiles = (
   const file = findFileInStructure(projectYamlPath, userFiles);
 
   if (!file) {
-    console.error(`File not found at path: ${String(projectYamlPath)}`);
     return [
       {
         type: 'file',
@@ -34,9 +33,6 @@ export const buildProjectFiles = (
   // Check for circular imports before processing
   const circularImportCheck = detectCircularImports(projectYamlPath, userFiles);
   if (circularImportCheck.hasCircularImport) {
-    console.error(
-      `Circular import detected: ${circularImportCheck.cycleChain}`,
-    );
     return [
       {
         type: 'file',
@@ -82,11 +78,6 @@ export const buildProjectFiles = (
 
     return result;
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error parsing YAML:', error.message);
-    } else {
-      console.error('Unknown error parsing YAML');
-    }
     return [
       {
         type: 'file',
