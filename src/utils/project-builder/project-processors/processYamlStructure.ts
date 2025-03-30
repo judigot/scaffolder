@@ -2,8 +2,6 @@ import { checkConditions } from '@/utils/project-builder/project-processors/chec
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { IStructure } from '@/components/FileViewer.tsx';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
@@ -16,14 +14,16 @@ import { importProject } from '@/utils/project-builder/project-processors/import
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
+import { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 
-export const processYamlStructure = (
-  node: unknown,
-  schemaInfo: ISchemaInfo[],
-  schemaInfoParsed: ISchemaInfoResult,
-  userFiles: IStructure,
-  table?: ISchemaInfo,
-): IStructure => {
+export const processYamlStructure = ({
+  node,
+  schemaInfo,
+  schemaInfoParsed,
+  userFiles,
+  projectYamlPath,
+  table,
+}: IBuildContext): IStructure => {
   if (typeof node === 'string') {
     if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
       const { command, options } = parseCommand(
@@ -274,14 +274,18 @@ export const processYamlStructure = (
 
     if (node.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
       // Extract the command string, removing the IMPORT_PROJECT prefix and closing parenthesis
-      const commandString = node.slice(PROJECT_ACTIONS.IMPORT_PROJECT.length + 1, -1);
-      return importProject(
-        commandString,
+      const commandString = node.slice(
+        PROJECT_ACTIONS.IMPORT_PROJECT.length + 1,
+        -1,
+      );
+      return importProject({
+        command: commandString,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
+        projectYamlPath,
         table,
-      );
+      });
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
@@ -377,6 +381,10 @@ export const processYamlStructure = (
             const key = keys[0];
             const value = item[key];
 
+            if (value == null) {
+              return [];
+            }
+
             // Extract folder name by removing the function name and parentheses
             const folderName = key.slice(
               String(PROJECT_ACTIONS.FOLDER_LOOP).length + 1,
@@ -384,33 +392,36 @@ export const processYamlStructure = (
             );
 
             // Process the dynamic folders directly
-            return processDynamicFolders(
+            return processDynamicFolders({
               folderName,
-              value,
+              children: value,
               schemaInfo,
               schemaInfoParsed,
               userFiles,
-            );
+              projectYamlPath,
+            });
           }
         }
       }
 
       // Standard processing for non-dynamic-folder items
       if (table) {
-        return processYamlStructure(
-          item,
+        return processYamlStructure({
+          node: item,
           schemaInfo,
           schemaInfoParsed,
           userFiles,
+          projectYamlPath,
           table,
-        );
+        });
       }
-      return processYamlStructure(
-        item,
+      return processYamlStructure({
+        node: item,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
-      );
+        projectYamlPath,
+      });
     });
   }
 
@@ -420,33 +431,35 @@ export const processYamlStructure = (
       if (key.startsWith(`${String(PROJECT_ACTIONS.IMPORT_PROJECT)}(`)) {
         // Extract the command string
         const commandString = key.slice(
-          String(PROJECT_ACTIONS.IMPORT_PROJECT).length + 1, 
-          key.length - (key.endsWith(':') ? 2 : 1)  // Remove both the closing parenthesis and colon if present
+          String(PROJECT_ACTIONS.IMPORT_PROJECT).length + 1,
+          key.length - (key.endsWith(':') ? 2 : 1), // Remove both the closing parenthesis and colon if present
         );
-        
+
         // Process the import
-        const importResult = importProject(
-          commandString,
+        const importResult = importProject({
+          command: commandString,
           schemaInfo,
           schemaInfoParsed,
           userFiles,
-          table
-        );
-        
+          projectYamlPath,
+          table,
+        });
+
         // If this is just an import without creating a folder (when it has a colon at the end)
         if (key.endsWith(':') && value !== null && typeof value === 'object') {
           // Process the value structure with the same context
-          const childStructure = processYamlStructure(
-            value,
+          const childStructure = processYamlStructure({
+            node: value,
             schemaInfo,
             schemaInfoParsed,
             userFiles,
-            table
-          );
-          
+            projectYamlPath,
+            table,
+          });
+
           return [...importResult, ...childStructure];
         }
-        
+
         // Return the import result directly without creating a folder
         return importResult;
       }
@@ -469,13 +482,14 @@ export const processYamlStructure = (
           .slice(String(PROJECT_ACTIONS.FOLDER_LOOP).length + 1, -1)
           .replace(/[()]/g, '');
         // Return the dynamic folders directly without an extra parent folder
-        return processDynamicFolders(
+        return processDynamicFolders({
           folderName,
-          value,
+          children: value,
           schemaInfo,
           schemaInfoParsed,
           userFiles,
-        );
+          projectYamlPath,
+        });
       }
 
       if (table) {
@@ -483,13 +497,14 @@ export const processYamlStructure = (
           {
             type: 'folder',
             name: name.replace(/[()]/g, ''),
-            children: processYamlStructure(
-              value,
+            children: processYamlStructure({
+              node: value,
               schemaInfo,
               schemaInfoParsed,
               userFiles,
+              projectYamlPath,
               table,
-            ),
+            }),
           },
         ];
       }
@@ -498,12 +513,13 @@ export const processYamlStructure = (
         {
           type: 'folder',
           name: name.replace(/[()]/g, ''),
-          children: processYamlStructure(
-            value,
+          children: processYamlStructure({
+            node: value,
             schemaInfo,
             schemaInfoParsed,
             userFiles,
-          ),
+            projectYamlPath,
+          }),
         },
       ];
     });

@@ -64,12 +64,13 @@ export const buildProjectFiles = (
   try {
     const parsedYaml: unknown = parse(file.content);
 
-    const projectFiles = processYamlStructure(
-      parsedYaml,
+    const projectFiles = processYamlStructure({
+      node: parsedYaml,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
-    );
+      projectYamlPath,
+    });
 
     return projectFiles;
   } catch (error) {

@@ -1,19 +1,24 @@
 import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
-export const processDynamicFolders = (
-  folderName: string,
-  children: unknown,
-  schemaInfo: ISchemaInfo[],
-  schemaInfoParsed: ISchemaInfoResult,
-  userFiles: IStructure,
-): IStructure => {
+export const processDynamicFolders = ({
+  folderName,
+  children,
+  schemaInfo,
+  schemaInfoParsed,
+  userFiles,
+  projectYamlPath,
+}: IBuildContext): IStructure => {
   return schemaInfo.map((table) => {
     const replacements = getReplacementsForTable(table, schemaInfoParsed);
+
+    if (typeof folderName !== 'string') {
+      throw new Error('Folder name is not a string');
+    }
+
     const processedName = replacePlaceholders(
       folderName,
       replacements,
@@ -23,13 +28,14 @@ export const processDynamicFolders = (
     );
 
     // Process children with the current table context
-    const processedChildren = processYamlStructure(
-      children,
+    const processedChildren = processYamlStructure({
+      node: children,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
+      projectYamlPath,
       table,
-    );
+    });
 
     return {
       type: 'folder',

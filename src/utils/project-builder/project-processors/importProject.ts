@@ -1,5 +1,3 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { IStructure } from '@/components/FileViewer.tsx';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
@@ -8,6 +6,7 @@ import { getReplacementsForTable } from '@/utils/project-builder/template-proces
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { parse } from 'yaml';
+import { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 /**
  * Type guard to check if a value is a valid project structure object
@@ -29,15 +28,20 @@ function isValidProjectStructure(
  * @param table Optional table context for scoped imports
  * @returns An array of structure items to be included
  */
-export const importProject = (
-  command: string,
-  schemaInfo: ISchemaInfo[],
-  schemaInfoParsed: ISchemaInfoResult,
-  userFiles: IStructure,
-  table?: ISchemaInfo,
-): IStructure => {
+export const importProject = ({
+  command,
+  schemaInfo,
+  schemaInfoParsed,
+  userFiles,
+  projectYamlPath,
+  table,
+}: IBuildContext): IStructure => {
   // Clean up the command string to handle cases where it might have trailing characters
-  const cleanCommand = command.trim();
+  const cleanCommand = command?.trim();
+
+  if (cleanCommand == null) {
+    return [];
+  }
 
   const { command: path, options } = parseCommand(cleanCommand);
 
@@ -69,13 +73,14 @@ export const importProject = (
     // If a specific table is provided or we have table filtering options
     if (table && scopedOption) {
       // Process with the current table context
-      return processYamlStructure(
-        parsedYaml,
+      return processYamlStructure({
+        node: parsedYaml,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
+        projectYamlPath,
         table,
-      );
+      });
     } else if (
       (includeTableOption != null &&
         String(includeTableOption).trim().length > 0) ||
@@ -126,13 +131,14 @@ export const importProject = (
         }
 
         // Process the structure with this table
-        const processedStructure = processYamlStructure(
-          parsedYaml,
+        const processedStructure = processYamlStructure({
+          node: parsedYaml,
           schemaInfo,
           schemaInfoParsed,
           userFiles,
-          currentTable,
-        );
+          projectYamlPath,
+          table: currentTable,
+        });
 
         filteredResults.push(...processedStructure);
       }
@@ -141,12 +147,13 @@ export const importProject = (
     }
 
     // Default behavior: process without table-specific context
-    return processYamlStructure(
-      parsedYaml,
+    return processYamlStructure({
+      node: parsedYaml,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
-    );
+      projectYamlPath,
+    });
   } catch {
     return [];
   }
