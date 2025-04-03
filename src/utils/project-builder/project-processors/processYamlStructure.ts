@@ -25,11 +25,51 @@ export const processYamlStructure = ({
   table,
 }: IBuildContext): IStructure => {
   if (typeof node === 'string') {
-    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
-      const { command, options } = parseCommand(
-        node.slice(PROJECT_ACTIONS.CREATE_FILE.length + 1, -1),
+    const nodeParams = /\(([^)]+)\)/.exec(node);
+
+    if (!nodeParams) {
+      throw new Error('No node params found');
+    }
+
+    const extractedParams = nodeParams[1];
+
+    const { command, options } = parseCommand(extractedParams);
+
+    let templatePath = options[ACTION_FLAGS.TEMPLATE];
+
+    // Check if the template path is marked as relative and present
+    let templatePathRelative = null;
+    const hasRelativeTemplatePath =
+      ACTION_FLAGS.IS_RELATIVE_PATH in options &&
+      options[ACTION_FLAGS.IS_RELATIVE_PATH] === true &&
+      typeof templatePath === 'string';
+
+    if (hasRelativeTemplatePath) {
+      if (templatePath == null) {
+        throw new Error('Template path is missing.');
+      }
+
+      // Remove the filename from the full YAML path to get the base project path
+      const projectDirectory = projectYamlPath.replace(
+        extractFileNameFromPath(projectYamlPath),
+        '',
       );
 
+      // Clean the template path: remove any leading './'
+      let cleanedTemplatePath = templatePath;
+      if (cleanedTemplatePath.startsWith('./')) {
+        cleanedTemplatePath = cleanedTemplatePath.slice(2);
+      }
+
+      // Clean the project directory: remove any trailing slash
+      const normalizedProjectDirectory = projectDirectory.replace(/\/+$/, '');
+
+      // Combine the base project directory with the cleaned template path
+      templatePathRelative = `${normalizedProjectDirectory}/${cleanedTemplatePath}`;
+    }
+    templatePath = templatePathRelative ?? templatePath;
+
+    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
       // Skip file if conditions are not met
       const conditions = options[ACTION_FLAGS.CONDITIONS];
       if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
@@ -50,18 +90,14 @@ export const processYamlStructure = ({
 
         // Get the template content
         let templateContent = '';
-        const templateOption = options[ACTION_FLAGS.TEMPLATE];
         if (
-          typeof templateOption === 'string' &&
-          templateOption.trim().length > 0
+          typeof templatePath === 'string' &&
+          templatePath.trim().length > 0
         ) {
-          const loadedContent = loadTemplateContent(userFiles, templateOption);
+          const loadedContent = loadTemplateContent(userFiles, templatePath);
           if (loadedContent.length > 0) {
             templateContent = loadedContent;
           }
-        } else {
-          // Try to load template based on filename if no template option provided
-          templateContent = loadTemplateContent(userFiles, command);
         }
 
         // Process the file with the current table context only
@@ -172,10 +208,9 @@ export const processYamlStructure = ({
             : processedName.replace(/[()]/g, '');
 
           // Load and process template content
-          const templateOption = options[ACTION_FLAGS.TEMPLATE];
           const templateContent = loadTemplateContent(
             userFiles,
-            templateOption ?? processedName,
+            templatePath ?? processedName,
           );
 
           // Process the template with all replacements
@@ -232,10 +267,9 @@ export const processYamlStructure = ({
         : processedName.replace(/[()]/g, '');
 
       // Load and process template content
-      const templateOption = options[ACTION_FLAGS.TEMPLATE];
       const templateContent = loadTemplateContent(
         userFiles,
-        templateOption ?? processedName,
+        templatePath ?? processedName,
       );
 
       // Process the template with all replacements
@@ -273,13 +307,8 @@ export const processYamlStructure = ({
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
-      // Extract the command string, removing the IMPORT_PROJECT prefix and closing parenthesis
-      const commandString = node.slice(
-        PROJECT_ACTIONS.IMPORT_PROJECT.length + 1,
-        -1,
-      );
       return importProject({
-        command: commandString,
+        command,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
@@ -289,10 +318,6 @@ export const processYamlStructure = ({
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
-      const { command, options } = parseCommand(
-        node.slice(PROJECT_ACTIONS.FILE_LOOP.length + 1, -1),
-      );
-
       return processMultipleFiles(
         command,
         options,

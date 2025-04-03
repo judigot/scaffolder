@@ -40,6 +40,11 @@ export const parseCommand = (
       case ACTION_FLAGS.TEMPLATE:
         if (value) {
           options[ACTION_FLAGS.TEMPLATE] = value;
+
+          // Check if the template path is a relative path
+          if (!value.startsWith('/')) {
+            options[ACTION_FLAGS.IS_RELATIVE_PATH] = true;
+          }
         }
         break;
 
