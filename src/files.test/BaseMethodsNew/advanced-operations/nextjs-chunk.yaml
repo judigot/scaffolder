@@ -1,4 +1,4 @@
-methodName: chunkN
+methodName: chunk
 route: chunk nextjs
 description: Chunk records for processing
 repositoryMethod: 'chunk(int $size, callable $callback): bool'
