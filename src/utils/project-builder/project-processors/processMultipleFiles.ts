@@ -1,33 +1,44 @@
-import { IFile, IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { IFile } from '@/components/FileViewer.tsx';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
-import { IActionFlags } from '@/utils/project-builder/interfaces/interfaces.ts';
+import {
+  IActionFlags,
+  IBuildContext,
+} from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
-export const processMultipleFiles = (
-  fileName: string,
-  options: IActionFlags = {},
-  schemaInfo: ISchemaInfo[],
-  schemaInfoParsed: ISchemaInfoResult,
-  userFiles: IStructure,
-): IFile[] => {
+interface IMultipleFilesContext extends Omit<IBuildContext, 'table'> {
+  command: string;
+  options?: IActionFlags;
+}
+
+export const processMultipleFiles = ({
+  command: fileName,
+  options = {},
+  schemaInfo,
+  schemaInfoParsed,
+  userFiles,
+  projectYamlPath,
+}: IMultipleFilesContext): IFile[] => {
   let templateContent = '';
 
   const templateOption = options[ACTION_FLAGS.TEMPLATE];
   if (typeof templateOption === 'string' && templateOption.trim().length > 0) {
-    const loadedContent = loadTemplateContent(userFiles, templateOption);
+    const loadedContent = loadTemplateContent(
+      userFiles,
+      templateOption,
+      projectYamlPath,
+    );
     if (loadedContent.length > 0) {
       templateContent = loadedContent;
     }
   } else {
-    templateContent = loadTemplateContent(userFiles, fileName);
+    templateContent = loadTemplateContent(userFiles, fileName, projectYamlPath);
   }
 
   const files: IFile[] = schemaInfo
@@ -44,7 +55,7 @@ export const processMultipleFiles = (
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
         if (
-          includeTableOption != null &&
+          includeTableOption !== undefined &&
           includeTableOption.trim().length > 0
         ) {
           const processedIncludeTable = replacePlaceholders(
@@ -60,7 +71,10 @@ export const processMultipleFiles = (
         }
       }
 
-      if (excludeTableOption != null && excludeTableOption.trim().length > 0) {
+      if (
+        excludeTableOption !== undefined &&
+        excludeTableOption.trim().length > 0
+      ) {
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
         const processedExcludeTable = replacePlaceholders(
           excludeTableOption,

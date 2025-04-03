@@ -15,6 +15,7 @@ import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceh
 import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { processTemplatePathWithFlag } from '@/utils/project-builder/utils/processRelativePath.ts';
 
 export const processYamlStructure = ({
   node,
@@ -38,36 +39,19 @@ export const processYamlStructure = ({
     let templatePath = options[ACTION_FLAGS.TEMPLATE];
 
     // Check if the template path is marked as relative and present
-    let templatePathRelative = null;
     const hasRelativeTemplatePath =
       ACTION_FLAGS.IS_RELATIVE_PATH in options &&
       options[ACTION_FLAGS.IS_RELATIVE_PATH] === true &&
       typeof templatePath === 'string';
 
+    // Process the template path if it's marked as relative
     if (hasRelativeTemplatePath) {
-      if (templatePath == null) {
-        throw new Error('Template path is missing.');
-      }
-
-      // Remove the filename from the full YAML path to get the base project path
-      const projectDirectory = projectYamlPath.replace(
-        extractFileNameFromPath(projectYamlPath),
-        '',
+      templatePath = processTemplatePathWithFlag(
+        templatePath, 
+        projectYamlPath, 
+        true
       );
-
-      // Clean the template path: remove any leading './'
-      let cleanedTemplatePath = templatePath;
-      if (cleanedTemplatePath.startsWith('./')) {
-        cleanedTemplatePath = cleanedTemplatePath.slice(2);
-      }
-
-      // Clean the project directory: remove any trailing slash
-      const normalizedProjectDirectory = projectDirectory.replace(/\/+$/, '');
-
-      // Combine the base project directory with the cleaned template path
-      templatePathRelative = `${normalizedProjectDirectory}/${cleanedTemplatePath}`;
     }
-    templatePath = templatePathRelative ?? templatePath;
 
     if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
       // Skip file if conditions are not met
@@ -94,10 +78,13 @@ export const processYamlStructure = ({
           typeof templatePath === 'string' &&
           templatePath.trim().length > 0
         ) {
-          const loadedContent = loadTemplateContent(userFiles, templatePath);
+          const loadedContent = loadTemplateContent(userFiles, templatePath, projectYamlPath);
           if (loadedContent.length > 0) {
             templateContent = loadedContent;
           }
+        } else {
+          // Try to load template based on filename if no template option provided
+          templateContent = loadTemplateContent(userFiles, command, projectYamlPath);
         }
 
         // Process the file with the current table context only
@@ -211,6 +198,7 @@ export const processYamlStructure = ({
           const templateContent = loadTemplateContent(
             userFiles,
             templatePath ?? processedName,
+            projectYamlPath
           );
 
           // Process the template with all replacements
@@ -270,6 +258,7 @@ export const processYamlStructure = ({
       const templateContent = loadTemplateContent(
         userFiles,
         templatePath ?? processedName,
+        projectYamlPath
       );
 
       // Process the template with all replacements
@@ -318,17 +307,18 @@ export const processYamlStructure = ({
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
-      return processMultipleFiles(
+      return processMultipleFiles({
         command,
         options,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
-      );
+        projectYamlPath
+      });
     }
 
     // Handle bare filenames by looking for templates
-    const templateContent = loadTemplateContent(userFiles, node);
+    const templateContent = loadTemplateContent(userFiles, node, projectYamlPath);
     if (templateContent.length > 0) {
       const schemaInfoProcessed =
         schemaInfo.length > 0 ? schemaInfo[0] : undefined;
