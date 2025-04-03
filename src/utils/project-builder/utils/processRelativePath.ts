@@ -19,7 +19,7 @@ export const getProjectDirectory = (filePath: string): string => {
   if (!filePath || filePath.length === 0) {
     return '';
   }
-  
+
   const pathComponents = filePath.split('/');
   // Remove the file name to get just the directory path
   pathComponents.pop();
@@ -34,29 +34,27 @@ export const getProjectDirectory = (filePath: string): string => {
  */
 export const processRelativePath = (
   path: string,
-  projectFilePath?: string
+  projectFilePath?: string,
 ): string => {
   // If no project file path is provided or path is absolute, return as is
-  if (projectFilePath === undefined || projectFilePath.length === 0 || !isPathRelative(path)) {
+  if (
+    projectFilePath === undefined ||
+    projectFilePath.length === 0 ||
+    !isPathRelative(path)
+  ) {
     return path;
   }
-  
+
   // Remove './' prefix if it exists
-  const normalizedPath = path.startsWith('./') 
-    ? path.substring(2) 
-    : path;
-  
+  const normalizedPath = path.startsWith('./') ? path.substring(2) : path;
+
   // Get the directory of the project file
   const projectDir = getProjectDirectory(projectFilePath);
-  
+
   // Combine project directory with the relative path
-  const absolutePath = projectDir.length > 0
-    ? `${projectDir}/${normalizedPath}`
-    : normalizedPath;
-  
-  console.warn(`[Path] Relative path detected: ${String(path)}`);
-  console.warn(`[Path] Resolved to: ${String(absolutePath)}`);
-  
+  const absolutePath =
+    projectDir.length > 0 ? `${projectDir}/${normalizedPath}` : normalizedPath;
+
   return absolutePath;
 };
 
@@ -71,9 +69,13 @@ export const processRelativePath = (
 export const processTemplatePathWithFlag = (
   templatePath: string | undefined,
   projectYamlPath: string,
-  isRelativeFlag: boolean
+  isRelativeFlag: boolean,
 ): string | undefined => {
-  if (templatePath === undefined || templatePath.length === 0 || !isRelativeFlag) {
+  if (
+    templatePath === undefined ||
+    templatePath.length === 0 ||
+    !isRelativeFlag
+  ) {
     return templatePath;
   }
 
@@ -94,9 +96,6 @@ export const processTemplatePathWithFlag = (
 
   // Combine the base project directory with the cleaned template path
   const resolvedPath = `${normalizedProjectDirectory}/${cleanedTemplatePath}`;
-  
-  console.warn(`[Template Path] Relative path detected: ${String(templatePath)}`);
-  console.warn(`[Template Path] Resolved to: ${String(resolvedPath)}`);
-  
+
   return resolvedPath;
 };
