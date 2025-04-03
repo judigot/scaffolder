@@ -1,0 +1,2 @@
+        $item = $this->service->create($request->all());
+        return response()->json($item, 201);
