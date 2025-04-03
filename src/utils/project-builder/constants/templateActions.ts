@@ -88,3 +88,8 @@ export const USE_CONSTANT_REGEX = new RegExp(REGEX_PATTERNS.USE_CONSTANT);
 
 // Folder path regex for directory navigation
 export const FOLDER_PATH_REGEX = new RegExp(REGEX_PATTERNS.FOLDER_PATH);
+
+// File-based flag regex for file-based template processing
+export const FILE_BASED_REGEX = new RegExp(
+  REGEX_PATTERNS.BOOLEAN_FLAG(ACTION_FLAGS.FILE_BASED)
+);

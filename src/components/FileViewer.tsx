@@ -19,6 +19,7 @@ import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
 export interface IBase {
   name: string;
@@ -58,13 +59,10 @@ function FileViewer({
   projectName?: string;
 }) {
   const { schemaInfo, SQLSchema } = useTransformationsStore();
-  const {
-    backendDir,
-    publicRepoURL,
-    dbConnection,
-  } = useFormStore();
+  const { backendDir, publicRepoURL, dbConnection } = useFormStore();
   const { editValue, newValue, promptModal } = useModalStore();
   const { selectedProject } = useProjectStore();
+  const { userFiles } = useMockDatabaseStore();
   const [folderStructure, setFolderStructure] = useState<IStructure>(
     initialFolderStructure,
   );
@@ -719,11 +717,13 @@ function FileViewer({
         publicRepoURL,
         dbConnection,
         projectName,
-        selectedProject: selectedProject ? {
-          name: selectedProject.name,
-          content: selectedProject.content,
-          type: selectedProject.type,
-        } : null,
+        selectedProject: selectedProject
+          ? {
+              name: selectedProject.name,
+              content: selectedProject.content,
+              type: selectedProject.type,
+            }
+          : null,
       };
 
       // Make API call to create files
@@ -735,7 +735,7 @@ function FileViewer({
         body: JSON.stringify({
           schemaInfo,
           SQLSchema,
-          formData
+          formData,
         }),
       });
 
@@ -780,16 +780,30 @@ function FileViewer({
               {mode === 'edit' && (
                 <div className="flex items-center justify-between w-full">
                   {process.env.NODE_ENV === 'development' && (
-                    <div>
-                      <button
-                        onClick={() => {
-                          handleCopy(JSON.stringify(folderStructure, null, 4));
-                        }}
-                        className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                      >
-                        Copy Project Structure
-                      </button>
-                    </div>
+                    <>
+                      <div>
+                        <button
+                          onClick={() => {
+                            handleCopy(JSON.stringify(userFiles, null, 4));
+                          }}
+                          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                        >
+                          Copy User Files
+                        </button>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => {
+                            handleCopy(
+                              JSON.stringify(folderStructure, null, 4),
+                            );
+                          }}
+                          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                        >
+                          Copy Project Structure
+                        </button>
+                      </div>
+                    </>
                   )}
                   <button
                     onClick={() => {

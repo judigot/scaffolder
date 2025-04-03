@@ -14,10 +14,12 @@ import {
   REMOVE_DUPLICATES_REGEX,
   USE_CONSTANT_REGEX,
   FOLDER_PATH_REGEX,
+  FILE_BASED_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
+import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
 
@@ -69,6 +71,7 @@ export const processIterateCommand = (
   const filterMatch = FILTER_MATCH_REGEX.exec(options);
   const includedFilesMatch = INCLUDE_FILES_MATCH_REGEX.exec(options);
   const excludedFilesMatch = EXCLUDE_FILES_MATCH_REGEX.exec(options);
+  const isFileBased = FILE_BASED_REGEX.test(options);
 
   // Process escape sequences in template
   const template = templateMatch
@@ -94,6 +97,19 @@ export const processIterateCommand = (
   const excludedFiles = excludedFilesMatch
     ? excludedFilesMatch[1].split(',').map((item) => item.trim())
     : [];
+
+  // Check if this is a file-based iteration
+  if (isFileBased) {
+    return processFileBasedTemplate(
+      propertyPathsStr,
+      userFiles,
+      schemaInfoParsed,
+      table,
+      template,
+      includedFiles,
+      excludedFiles,
+    );
+  }
 
   // Parse ignore list with flexible whitespace and handle USE_CONSTANT
   const ignoreList = ignoreMatch
