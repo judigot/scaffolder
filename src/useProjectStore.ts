@@ -31,6 +31,8 @@ const persistConfig = {
   }),
 };
 
+const isUseCache = false;
+
 export const useProjectStore = create<IProjectStore>()(
   persist(
     (set, get) => ({
@@ -43,6 +45,12 @@ export const useProjectStore = create<IProjectStore>()(
        */
       selectProject: (project: IFile) => {
         const currentProject = get().selectedProject;
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!isUseCache) {
+          // Invalidate the cache for the current project
+          get().invalidateProjectCache(currentProject?.name ?? '');
+        }
 
         // Only update if there's an actual change
         if (!currentProject || !equal(currentProject, project)) {
