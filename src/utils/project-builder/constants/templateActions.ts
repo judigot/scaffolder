@@ -44,56 +44,44 @@ export const LOOP_COLUMNS_REGEX = new RegExp(
   'g',
 );
 
-// New regex for the iterate command with more flexibility
 export const LOOP_COMMAND_REGEX = new RegExp(
   `${TEMPLATE_ACTIONS.LOOP}\\((.*?)(?:\\)(\\s*.*))?$`,
 );
 
-// Template match regex for extracting template from options
 export const TEMPLATE_MATCH_REGEX = new RegExp(
   REGEX_PATTERNS.TEMPLATE_OPTION(ACTION_FLAGS.TEMPLATE),
 );
 
-// Separator match regex for extracting separator from options
 export const SEPARATOR_MATCH_REGEX = new RegExp(
   REGEX_PATTERNS.TEMPLATE_OPTION(TEMPLATE_OPTIONS.SEPARATOR),
 );
 
-// Filter match regex for extracting filter from options
 export const FILTER_MATCH_REGEX = new RegExp(
   REGEX_PATTERNS.TEMPLATE_OPTION(TEMPLATE_OPTIONS.FILTER),
 );
 
-// Ignore match regex for extracting ignore list from options
 export const IGNORE_MATCH_REGEX = new RegExp(
   REGEX_PATTERNS.TEMPLATE_OPTION(TEMPLATE_OPTIONS.IGNORE),
 );
 
-// Include files match regex for extracting files to include
 export const INCLUDE_FILES_MATCH_REGEX = new RegExp(
   REGEX_PATTERNS.TEMPLATE_OPTION(TEMPLATE_OPTIONS.INCLUDE_FILES),
 );
 
-// Exclude files match regex for extracting files to exclude
 export const EXCLUDE_FILES_MATCH_REGEX = new RegExp(
   REGEX_PATTERNS.TEMPLATE_OPTION(TEMPLATE_OPTIONS.EXCLUDE_FILES),
 );
 
-// Remove duplicates flag regex
 export const REMOVE_DUPLICATES_REGEX = new RegExp(
   REGEX_PATTERNS.BOOLEAN_FLAG(TEMPLATE_OPTIONS.REMOVE_DUPLICATES),
 );
 
-// USE_CONSTANT regex for extracting constant references
 export const USE_CONSTANT_REGEX = new RegExp(REGEX_PATTERNS.USE_CONSTANT);
 
-// Folder path regex for directory navigation
 export const FOLDER_PATH_REGEX = new RegExp(REGEX_PATTERNS.FOLDER_PATH);
 
-// Recursive wildcard pattern for deep directory traversal
 export const RECURSIVE_WILDCARD_REGEX = new RegExp(REGEX_PATTERNS.RECURSIVE_WILDCARD_PATH);
 
-// File-based flag regex for file-based template processing
 export const FILE_BASED_REGEX = new RegExp(
   REGEX_PATTERNS.BOOLEAN_FLAG(ACTION_FLAGS.FILE_BASED)
 );
