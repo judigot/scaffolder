@@ -2,6 +2,25 @@ export type DBTypes = 'postgresql' | 'mysql';
 
 export type IJSONSchema = Record<string, Record<string, unknown>[]>;
 
+export interface IColumnInfoSlim {
+  name: string;
+  type: string;
+  nullable?: true;
+  default?: string | null;
+  primaryKey?: true;
+  unique?: true;
+  foreignTable?: {
+    table: string;
+    column: string;
+  };
+}
+
+export type ISchemaInfoSlim = {
+  tableName: string;
+  columns: IColumnInfoSlim[];
+  isPivot?: true;
+}[];
+
 export interface IColumnInfo {
   column_name: string;
   data_type: string;
