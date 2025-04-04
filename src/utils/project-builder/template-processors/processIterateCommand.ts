@@ -23,7 +23,7 @@ import { processColumnsInfoIteration } from '@/utils/project-builder/template-pr
 import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import {
   findFoldersWithWildcard,
-  buildFolderPath
+  buildFolderPath,
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
@@ -104,22 +104,23 @@ export const processIterateCommand = (
     : [];
 
   // Check if this is a file-based iteration with recursive wildcard pattern
-  const recursiveWildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
+  const recursiveWildcardMatch =
+    RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
   if (recursiveWildcardMatch) {
     // Get the wildcard pattern
     const [, wildcardPath] = recursiveWildcardMatch;
-    
+
     // Process all matching folders using the wildcard pattern
     const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
-    
+
     if (isFileBased) {
       // Process as file-based template (each subfolder is an item)
       const results: string[] = [];
-      
+
       for (const folder of matchingFolders) {
         // Construct the full path to this folder
         const fullPath = buildFolderPath(folder, userFiles);
-        
+
         // Process this folder using the standard file-based template processor
         const processedTemplate = processFileBasedTemplate(
           fullPath,
@@ -128,14 +129,14 @@ export const processIterateCommand = (
           table,
           template,
           includedFiles,
-          excludedFiles
+          excludedFiles,
         );
-        
+
         if (processedTemplate) {
           results.push(processedTemplate);
         }
       }
-      
+
       return results.join('\n');
     }
     // For non-file-based approach, continue with normal processing but use files from all matching folders
@@ -150,7 +151,7 @@ export const processIterateCommand = (
       table,
       template,
       includedFiles,
-      excludedFiles
+      excludedFiles,
     );
   }
 
@@ -300,8 +301,11 @@ export const processIterateCommand = (
         // If we're processing a recursive wildcard but not in file-based mode,
         // we need to collect files from all matching folders
         const [, wildcardPath] = recursiveWildcardMatch;
-        const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
-        
+        const matchingFolders = findFoldersWithWildcard(
+          userFiles,
+          wildcardPath,
+        );
+
         // Process files from each matching folder
         for (const folder of matchingFolders) {
           processFilesInFolder(
@@ -310,13 +314,13 @@ export const processIterateCommand = (
             excludedFiles,
             allValues,
             allPlaceholderValues,
-            fileNameMap
+            fileNameMap,
           );
         }
-        
+
         continue; // Skip the standard folder processing below
       }
-      
+
       const [, folderPath] = folderMatch;
       // Navigate through the folder structure
       const pathParts = folderPath.split('/').filter(Boolean);
@@ -350,7 +354,7 @@ export const processIterateCommand = (
           excludedFiles,
           allValues,
           allPlaceholderValues,
-          fileNameMap
+          fileNameMap,
         );
       }
     }
@@ -417,6 +421,12 @@ export const processIterateCommand = (
       case 'pivotRelationships.relatedTable': {
         const pivotTables =
           table.pivotRelationships?.map((rel) => rel.relatedTable) ?? [];
+        allValues.push(...pivotTables);
+        break;
+      }
+      case 'pivotRelationships.pivotTable': {
+        const pivotTables =
+          table.pivotRelationships?.map((rel) => rel.pivotTable) ?? [];
         allValues.push(...pivotTables);
         break;
       }
@@ -498,7 +508,7 @@ const processFilesInFolder = (
   excludedFiles: string[],
   allValues: string[],
   allPlaceholderValues: Map<string, Record<string, string>>,
-  fileNameMap: Map<string, string>
+  fileNameMap: Map<string, string>,
 ): void => {
   folder.children.forEach((item) => {
     if (item.type === 'file') {
