@@ -31,6 +31,7 @@ export const REGEX_PATTERNS = {
   BOOLEAN_FLAG: (flag: string) => `--${flag}`,
   USE_CONSTANT: '\\[\\[\\s*USE_CONSTANT\\(([^)]+)\\)\\s*\\]\\]',
   FOLDER_PATH: '^\\/(.*?)$',
+  RECURSIVE_WILDCARD_PATH: '^\\/(.+\\*\\*.+)$',
 } as const;
 
 export const LOOP_TABLES_REGEX = new RegExp(
@@ -88,6 +89,9 @@ export const USE_CONSTANT_REGEX = new RegExp(REGEX_PATTERNS.USE_CONSTANT);
 
 // Folder path regex for directory navigation
 export const FOLDER_PATH_REGEX = new RegExp(REGEX_PATTERNS.FOLDER_PATH);
+
+// Recursive wildcard pattern for deep directory traversal
+export const RECURSIVE_WILDCARD_REGEX = new RegExp(REGEX_PATTERNS.RECURSIVE_WILDCARD_PATH);
 
 // File-based flag regex for file-based template processing
 export const FILE_BASED_REGEX = new RegExp(
