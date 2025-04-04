@@ -29,7 +29,7 @@ export type TemplateOption =
 export const REGEX_PATTERNS = {
   TEMPLATE_OPTION: (flag: string) => `--${flag}="([^"]+)"`,
   BOOLEAN_FLAG: (flag: string) => `--${flag}`,
-  USE_CONSTANT: '\\[\\[\\s*USE_CONSTANT\\(([^)]+)\\)\\s*\\]\\]',
+  USE_CONSTANT: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_CONSTANT}\\(([^)]+)\\)\\s*\\]\\]`,
   FOLDER_PATH: '^\\/(.*?)$',
   RECURSIVE_WILDCARD_PATH: '^\\/(.*(\\*\\*).*)$',
 } as const;
