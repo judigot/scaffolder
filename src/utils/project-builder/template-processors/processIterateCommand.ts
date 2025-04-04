@@ -15,11 +15,16 @@ import {
   USE_CONSTANT_REGEX,
   FOLDER_PATH_REGEX,
   FILE_BASED_REGEX,
+  RECURSIVE_WILDCARD_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
 import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
+import {
+  findFoldersWithWildcard,
+  buildFolderPath
+} from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
 
@@ -98,7 +103,45 @@ export const processIterateCommand = (
     ? excludedFilesMatch[1].split(',').map((item) => item.trim())
     : [];
 
-  // Check if this is a file-based iteration
+  // Check if this is a file-based iteration with recursive wildcard pattern
+  const recursiveWildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
+  if (recursiveWildcardMatch) {
+    // Get the wildcard pattern
+    const [, wildcardPath] = recursiveWildcardMatch;
+    
+    // Process all matching folders using the wildcard pattern
+    const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
+    
+    if (isFileBased) {
+      // Process as file-based template (each subfolder is an item)
+      const results: string[] = [];
+      
+      for (const folder of matchingFolders) {
+        // Construct the full path to this folder
+        const fullPath = buildFolderPath(folder, userFiles);
+        
+        // Process this folder using the standard file-based template processor
+        const processedTemplate = processFileBasedTemplate(
+          fullPath,
+          userFiles,
+          schemaInfoParsed,
+          table,
+          template,
+          includedFiles,
+          excludedFiles
+        );
+        
+        if (processedTemplate) {
+          results.push(processedTemplate);
+        }
+      }
+      
+      return results.join('\n');
+    }
+    // For non-file-based approach, continue with normal processing but use files from all matching folders
+  }
+
+  // Check if this is a regular file-based iteration
   if (isFileBased) {
     return processFileBasedTemplate(
       propertyPathsStr,
@@ -107,7 +150,7 @@ export const processIterateCommand = (
       table,
       template,
       includedFiles,
-      excludedFiles,
+      excludedFiles
     );
   }
 
@@ -252,6 +295,28 @@ export const processIterateCommand = (
   for (const path of propertyPaths) {
     const folderMatch = FOLDER_PATH_REGEX.exec(path);
     if (folderMatch) {
+      // If we've already processed this path as a recursive wildcard, skip it
+      if (recursiveWildcardMatch && path === propertyPathsStr) {
+        // If we're processing a recursive wildcard but not in file-based mode,
+        // we need to collect files from all matching folders
+        const [, wildcardPath] = recursiveWildcardMatch;
+        const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
+        
+        // Process files from each matching folder
+        for (const folder of matchingFolders) {
+          processFilesInFolder(
+            folder,
+            includedFiles,
+            excludedFiles,
+            allValues,
+            allPlaceholderValues,
+            fileNameMap
+          );
+        }
+        
+        continue; // Skip the standard folder processing below
+      }
+      
       const [, folderPath] = folderMatch;
       // Navigate through the folder structure
       const pathParts = folderPath.split('/').filter(Boolean);
@@ -279,88 +344,14 @@ export const processIterateCommand = (
 
       if (currentFolder) {
         // Process all files in the folder
-        currentFolder.children.forEach((item) => {
-          if (item.type === 'file') {
-            const fileName = item.name;
-            const fileBaseName = fileName.replace(/\.[^.]+$/, '');
-
-            // Apply include/exclude filters based on the filename
-            const shouldInclude =
-              includedFiles.length === 0 ||
-              includedFiles.some((pattern) => fileName.includes(pattern));
-
-            const shouldExclude =
-              excludedFiles.length > 0 &&
-              excludedFiles.some((pattern) => fileName.includes(pattern));
-
-            // Skip this file if it doesn't meet the include/exclude criteria
-            if (!shouldInclude || shouldExclude) {
-              return;
-            }
-
-            // For YAML files, try to extract structured data
-            if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) {
-              // Safely try to parse YAML content
-              const content = item.content;
-              const parsedContent: unknown = parse(content);
-
-              // Process YAML content if it's a valid object
-              if (
-                parsedContent !== null &&
-                typeof parsedContent === 'object' &&
-                !Array.isArray(parsedContent)
-              ) {
-                const extractedValues: Record<string, string> = {};
-                const recordContent = parsedContent;
-
-                // Process all properties in the object
-                Object.entries(recordContent).forEach(([key, value]) => {
-                  if (typeof value === 'string') {
-                    extractedValues[key] = value;
-                  } else if (
-                    typeof value === 'number' ||
-                    typeof value === 'boolean'
-                  ) {
-                    extractedValues[key] = String(value);
-                  } else if (Array.isArray(value)) {
-                    extractedValues[key] = value
-                      .map((item) => String(item))
-                      .join(',');
-                  }
-                });
-
-                if (Object.keys(extractedValues).length > 0) {
-                  // If we have at least one valid property, ensure 'value' is set
-                  if (!('value' in extractedValues)) {
-                    extractedValues.value = fileBaseName;
-                  }
-
-                  // Determine primary value to use for the iteration
-                  let primaryValue = extractedValues.value || fileBaseName;
-
-                  // Try common identifier properties first
-                  const identifiers = ['id', 'name', 'key', 'identifier'];
-                  for (const id of identifiers) {
-                    if (id in extractedValues) {
-                      primaryValue = extractedValues[id];
-                      break;
-                    }
-                  }
-
-                  allValues.push(primaryValue);
-                  allPlaceholderValues.set(primaryValue, extractedValues);
-                  fileNameMap.set(primaryValue, fileName);
-                  return; // Skip to next file
-                }
-              }
-            }
-
-            // Fallback for non-YAML files or if YAML processing failed
-            allValues.push(fileBaseName);
-            allPlaceholderValues.set(fileBaseName, { value: fileBaseName });
-            fileNameMap.set(fileBaseName, fileName);
-          }
-        });
+        processFilesInFolder(
+          currentFolder,
+          includedFiles,
+          excludedFiles,
+          allValues,
+          allPlaceholderValues,
+          fileNameMap
+        );
       }
     }
   }
@@ -496,4 +487,113 @@ export const processIterateCommand = (
   });
 
   return joinWithSeparator(lines);
+};
+
+/**
+ * Helper function to process all files in a folder
+ */
+const processFilesInFolder = (
+  folder: IFolder,
+  includedFiles: string[],
+  excludedFiles: string[],
+  allValues: string[],
+  allPlaceholderValues: Map<string, Record<string, string>>,
+  fileNameMap: Map<string, string>
+): void => {
+  folder.children.forEach((item) => {
+    if (item.type === 'file') {
+      const fileName = item.name;
+      const fileBaseName = fileName.replace(/\.[^.]+$/, '');
+
+      // Apply include/exclude filters based on the filename
+      const shouldInclude =
+        includedFiles.length === 0 ||
+        includedFiles.some((pattern) => fileName.includes(pattern));
+
+      const shouldExclude =
+        excludedFiles.length > 0 &&
+        excludedFiles.some((pattern) => fileName.includes(pattern));
+
+      // Skip this file if it doesn't meet the include/exclude criteria
+      if (!shouldInclude || shouldExclude) {
+        return;
+      }
+
+      // For YAML files, try to extract structured data
+      if (fileName.endsWith('.yaml') || fileName.endsWith('.yml')) {
+        // Safely try to parse YAML content
+        const content = item.content;
+        try {
+          // Fix unsafe assignment of any value
+          const parsedContent: unknown = parse(content);
+
+          // Process YAML content if it's a valid object
+          if (
+            parsedContent !== null &&
+            typeof parsedContent === 'object' &&
+            !Array.isArray(parsedContent)
+          ) {
+            const extractedValues: Record<string, string> = {};
+            // Use type assertion function to safely convert to Record type
+            const recordContent = objectToRecord(parsedContent);
+
+            // Process all properties in the object
+            Object.entries(recordContent).forEach(([key, value]) => {
+              if (typeof value === 'string') {
+                extractedValues[key] = value;
+              } else if (
+                typeof value === 'number' ||
+                typeof value === 'boolean'
+              ) {
+                extractedValues[key] = String(value);
+              } else if (Array.isArray(value)) {
+                extractedValues[key] = value
+                  .map((item) => String(item))
+                  .join(',');
+              }
+            });
+
+            if (Object.keys(extractedValues).length > 0) {
+              // If we have at least one valid property, ensure 'value' is set
+              if (!('value' in extractedValues)) {
+                extractedValues.value = fileBaseName;
+              }
+
+              // Determine primary value to use for the iteration
+              let primaryValue = extractedValues.value || fileBaseName;
+
+              // Try common identifier properties first
+              const identifiers = ['id', 'name', 'key', 'identifier'];
+              for (const id of identifiers) {
+                if (id in extractedValues) {
+                  primaryValue = extractedValues[id];
+                  break;
+                }
+              }
+
+              allValues.push(primaryValue);
+              allPlaceholderValues.set(primaryValue, extractedValues);
+              fileNameMap.set(primaryValue, fileName);
+              return; // Skip to next file
+            }
+          }
+        } catch {
+          // YAML parsing failed, fall back to treating as regular file
+          // Don't throw, just silently continue with fallback
+        }
+      }
+
+      // Fallback for non-YAML files or if YAML processing failed
+      allValues.push(fileBaseName);
+      allPlaceholderValues.set(fileBaseName, { value: fileBaseName });
+      fileNameMap.set(fileBaseName, fileName);
+    }
+  });
+};
+
+/**
+ * Helper function to safely convert an object to Record<string, unknown>
+ */
+const objectToRecord = (obj: object): Record<string, unknown> => {
+  return { ...obj };
 };

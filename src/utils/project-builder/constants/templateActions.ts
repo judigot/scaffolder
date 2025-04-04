@@ -31,7 +31,7 @@ export const REGEX_PATTERNS = {
   BOOLEAN_FLAG: (flag: string) => `--${flag}`,
   USE_CONSTANT: '\\[\\[\\s*USE_CONSTANT\\(([^)]+)\\)\\s*\\]\\]',
   FOLDER_PATH: '^\\/(.*?)$',
-  RECURSIVE_WILDCARD_PATH: '^\\/(.+\\*\\*.+)$',
+  RECURSIVE_WILDCARD_PATH: '^\\/(.*(\\*\\*).*)$',
 } as const;
 
 export const LOOP_TABLES_REGEX = new RegExp(
