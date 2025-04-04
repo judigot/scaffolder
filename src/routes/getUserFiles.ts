@@ -4,7 +4,7 @@ import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure
 const router = Router();
 
 router.get(
-  '/userFiles',
+  '/getUserFiles',
   (
     _req: Request<
       unknown,

@@ -34,7 +34,7 @@ const fetchGitHubFiles = async (
   try {
     const response = await fetch(
       isUsingLocalFiles
-        ? 'http://localhost:5000/userFiles'
+        ? 'http://localhost:5000/getUserFiles'
         : 'http://localhost:5000/getUserFilesFromPublicRepo',
       {
         method: isUsingLocalFiles ? 'GET' : 'POST',
