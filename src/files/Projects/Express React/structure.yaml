@@ -1,21 +1,4 @@
 src:
-  app:
-    api:
-      - FOLDER_LOOP({{tableNameKebabCasePlural}}):
-          - CREATE_FILE(route.ts --scoped --template ./templates/app/{{table}}/route.txt)
-          - CREATE_FILE(GET.ts --scoped --template ./templates/app/{{table}}/GET.txt)
-          - CREATE_FILE(POST.ts --scoped --template ./templates/app/{{table}}/POST.txt)
-          - CREATE_FILE(PATCH.ts --scoped --template ./templates/app/{{table}}/PATCH.txt)
-          - CREATE_FILE(DELETE.ts --scoped --template ./templates/app/{{table}}/DELETE.txt)
-    FOLDER_LOOP({{tableNameKebabCasePlural}}):
-      - CREATE_FILE(page.tsx --scoped --template /Templates/frontend/react/components/page.txt)
-      - CREATE_FILE({{tableNamePascalCaseSingular}}Component.tsx --scoped --template /Templates/frontend/react/components/EntityComponent.txt)
-  prisma:
-    - CREATE_FILE(DatabaseClient.ts --template /Templates/backend/nextjs/prisma/DatabaseClient.txt)
-  Controllers:
-    - FILE_LOOP({{tableNamePascalCaseSingular}}Controller.ts --template ./templates/Controllers/EntityController.txt)
-  utils:
-    - CREATE_FILE(DataTypeParser.ts --template ./templates/utils/DataTypeParser.txt)
+  IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
   components:
     - CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt)
-  IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
