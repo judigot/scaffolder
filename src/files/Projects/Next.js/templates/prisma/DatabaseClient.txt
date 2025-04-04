@@ -1,0 +1,50 @@
+import { PrismaClient } from '@prisma/client';
+
+/* Singleton instance of PrismaClient, used to manage database connections. */
+let prismaInstance: PrismaClient | undefined;
+
+/**
+ * Retrieves the singleton PrismaClient instance.
+ * If the instance does not exist, it initializes and returns it.
+ * This ensures that only one PrismaClient instance is active throughout the application lifecycle.
+ *
+ * @returns {PrismaClient} - The PrismaClient instance.
+ */
+export const getPrismaInstance = (): PrismaClient => {
+    if (!prismaInstance) {
+        prismaInstance = new PrismaClient();
+    }
+    return prismaInstance;
+};
+
+/**
+ * Exported PrismaClient singleton for application-wide use.
+ * This simplifies database operations by providing a consistent, shared instance.
+ */
+export const prisma = getPrismaInstance();
+
+/**
+ * Disconnects the PrismaClient instance.
+ * Ensures that all database connections are properly closed when the application shuts down or Prisma is no longer needed.
+ * After disconnection, the singleton instance is reset, allowing reinitialization if required.
+ *
+ * @returns {Promise<void>} - Resolves when the PrismaClient has successfully disconnected.
+ */
+export const disconnectPrisma = async (): Promise<void> => {
+    if (prismaInstance) {
+        await prismaInstance.$disconnect();
+        prismaInstance = undefined; // Resets the instance for potential reinitialization.
+    }
+};
+
+/**
+ * Handles graceful shutdown for Node.js applications.
+ * Listens to the SIGINT signal (triggered by Ctrl+C) and ensures Prisma connections
+ * are closed properly before the application exits.
+ */
+process.on('SIGINT', () => {
+    void (async () => {
+        await disconnectPrisma();
+        process.exit(0); // Ensures the application exits cleanly.
+    })();
+});
