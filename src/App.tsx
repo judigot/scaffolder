@@ -773,7 +773,7 @@ function App() {
                           {/* <option value={''}>Select a framework</option> */}
                           {projects.map((project) => (
                             <option key={project.name} value={project.name}>
-                              {project.name.replace(/\.[^/.]+$/, '')}
+                              {project.name}
                             </option>
                           ))}
                         </select>

@@ -166,7 +166,11 @@ export const useProjectStore = create<IProjectStore>()(
         const { userFiles: allUserFiles } = useMockDatabaseStore.getState();
 
         // Build project files using the project path
-        const projectPath = `/Projects/${project.name}`;
+        // Use uniqueId if available, otherwise use the folder-based path
+        const projectPath =
+          project.uniqueId != null && String(project.uniqueId).length > 0
+            ? String(project.uniqueId)
+            : `/Projects/${String(project.name)}/structure.yaml`;
         const builtFiles = buildProjectFiles(
           projectPath,
           allUserFiles,
