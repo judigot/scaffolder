@@ -6,7 +6,7 @@ import { axiosInstance } from '@/vendor/axiosInstance.ts';
  * @param id The ID of the resource to fetch
  * @returns Promise resolving to the resource object
  */
-export const fetchById = async <T>(endpoint: string, id: number | string): Promise<T> => {
+export const useFindById = async <T>(endpoint: string, id: number | string): Promise<T> => {
   try {
     const response = await axiosInstance.get(`${endpoint}/${id}`);
     return response.data.data;

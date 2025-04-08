@@ -1,5 +1,5 @@
 import { useQueryInstance } from '@/vendor/useQueryInstance';
-import { useResource } from '@/hooks/shared/useResource.ts';
+import { useIndex } from '@/hooks/shared/useIndex.ts';
 import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
 
 export const use{{tableNamePascalCaseSingular}} = (
@@ -7,6 +7,6 @@ export const use{{tableNamePascalCaseSingular}} = (
 ) =>
   useQueryInstance<I{{tableNamePascalCaseSingular}}[]>(
     '{{tableNameCamelCasePlural}}',
-    useResource,
+    useIndex,
     options,
   );

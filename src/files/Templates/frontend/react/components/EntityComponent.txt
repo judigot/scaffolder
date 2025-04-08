@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import DataTable from '@components/DataTable.tsx';
-import { useIndex{{tableNamePascalCaseSingular}} } from '@/hooks/{{tableNameKebabCaseSingular}}/useIndex{{tableNamePascalCaseSingular}}.ts';
+import { use{{tableNamePascalCaseSingular}} } from '@/hooks/{{tableNameKebabCaseSingular}}/use{{tableNamePascalCaseSingular}}.ts';
 import { useCreate{{tableNamePascalCaseSingular}} } from '@/hooks/{{tableNameKebabCaseSingular}}/useCreate{{tableNamePascalCaseSingular}}.ts';
 import { useUpdate{{tableNamePascalCaseSingular}} } from '@/hooks/{{tableNameKebabCaseSingular}}/useUpdate{{tableNamePascalCaseSingular}}.ts';
 import { useDelete{{tableNamePascalCaseSingular}} } from '@/hooks/{{tableNameKebabCaseSingular}}/useDelete{{tableNamePascalCaseSingular}}.ts';
 import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 export default function {{tableNamePascalCaseSingular}}Component() {
-  const { data = [], isLoading, refetch } = useIndex{{tableNamePascalCaseSingular}}();
+  const { data = [], isLoading, refetch } = use{{tableNamePascalCaseSingular}}();
   const { mutate: createRecord } = useCreate{{tableNamePascalCaseSingular}}({ onSuccess: refetch });
   const { mutate: updateRecord } = useUpdate{{tableNamePascalCaseSingular}}();
   const { mutate: deleteRecord } = useDelete{{tableNamePascalCaseSingular}}({ onSuccess: refetch });

@@ -9,6 +9,7 @@ import {
   RECURSIVE_WILDCARD_REGEX, FOLDER_PATH_REGEX
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
+import { changeCase } from '@/utils/common.ts';
 
 interface ICreateBaseMethodFileOptions {
   template: string;
@@ -79,7 +80,31 @@ const extractFileNameReplacements = (files: IFile[]): Record<string, string> => 
     }
     
     // Store the file content for this file name
-    replacements[nameWithoutExtension.toLowerCase()] = file.content.trim();
+    const content = file.content.trim();
+    const baseKey = nameWithoutExtension.toLowerCase();
+    replacements[baseKey] = content;
+    
+    // Generate case format variants for this file
+    const caseFormats = changeCase(content);
+    
+    // Add all case formats as replacements with the original filename as prefix
+    replacements[`${baseKey}camelcase`] = caseFormats.camelCase;
+    replacements[`${baseKey}pascalcase`] = caseFormats.pascalCase;
+    replacements[`${baseKey}kebabcase`] = caseFormats.kebabCase;
+    replacements[`${baseKey}snakecase`] = caseFormats.snakeCase;
+    replacements[`${baseKey}phrasecase`] = caseFormats.phraseCase;
+    replacements[`${baseKey}titlecase`] = caseFormats.titleCase;
+    replacements[`${baseKey}sentencecase`] = caseFormats.sentenceCase;
+    
+    // Add singular and plural variants for each case
+    replacements[`${baseKey}camelcasesingular`] = caseFormats.camelCaseSingular;
+    replacements[`${baseKey}pascalcasesingular`] = caseFormats.pascalCaseSingular;
+    replacements[`${baseKey}kebabcasesingular`] = caseFormats.kebabCaseSingular;
+    replacements[`${baseKey}snakecasesingular`] = caseFormats.snakeCaseSingular;
+    replacements[`${baseKey}camelcaseplural`] = caseFormats.camelCasePlural;
+    replacements[`${baseKey}pascalcaseplural`] = caseFormats.pascalCasePlural;
+    replacements[`${baseKey}kebabcaseplural`] = caseFormats.kebabCasePlural;
+    replacements[`${baseKey}snakecaseplural`] = caseFormats.snakeCasePlural;
   }
   
   return replacements;
@@ -101,11 +126,18 @@ const applyReplacements = (
       result = result.replace(new RegExp(placeholder, 'g'), value);
     }
     
-    // Also try case-insensitive match for methodName->methodname
-    if (key === 'methodname') {
-      const methodNamePlaceholder = '{{methodName}}';
-      if (result.includes(methodNamePlaceholder)) {
-        result = result.replace(new RegExp(methodNamePlaceholder, 'g'), value);
+    // Also try case-insensitive match
+    const placeholderRegex = new RegExp(`\\{\\{${key}\\}\\}`, 'gi');
+    if (placeholderRegex.test(result)) {
+      result = result.replace(placeholderRegex, value);
+    }
+    
+    // Handle PascalCase variants where the key is lowercase but the template uses PascalCase
+    const lowercaseKey = key.toLowerCase();
+    if (lowercaseKey !== key) {
+      const camelPlaceholder = `{{${lowercaseKey}}}`;
+      if (result.includes(camelPlaceholder)) {
+        result = result.replace(new RegExp(camelPlaceholder, 'g'), value);
       }
     }
   }

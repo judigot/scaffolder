@@ -8,6 +8,6 @@ export const useFindById{{tableNamePascalCaseSingular}} = (
 ) =>
   useQueryInstance<I{{tableNamePascalCaseSingular}}>(
     ['{{tableNameCamelCaseSingular}}', id],
-    () => fetch{{tableNamePascalCaseSingular}}ById(id),
+    () => useFindById(id),
     options,
   );

@@ -5,7 +5,7 @@ import { axiosInstance } from '@/vendor/axiosInstance.ts';
  * Fetches all {{tableNamePascalCasePlural}} from the API
  * @returns Promise resolving to an array of {{tableNamePascalCaseSingular}} objects
  */
-export const fetch{{tableNamePascalCasePlural}} = async (): Promise<I{{tableNamePascalCaseSingular}}[]> => {
+export const useResource = async (): Promise<I{{tableNamePascalCaseSingular}}[]> => {
   try {
     const response = await axiosInstance.get('/{{tableNameKebabCasePlural}}');
 
