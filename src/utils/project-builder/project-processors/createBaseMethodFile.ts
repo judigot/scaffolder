@@ -1,13 +1,9 @@
 import { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
-import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { findFolderByPath } from '@/utils/project-builder/utils/folderUtils.ts';
 import {
-    findFoldersWithWildcard
+  findFoldersWithWildcard
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
 import { RECURSIVE_WILDCARD_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 
@@ -15,9 +11,6 @@ interface ICreateBaseMethodFileOptions {
   template: string;
   outputFile: string;
 }
-
-// Look for files containing method name information
-const METHOD_NAME_PATTERN = /methodName/i;
 
 /**
  * Parses the command string to extract options for CREATE_BASE_METHOD_FILE
@@ -40,17 +33,76 @@ const parseCreateBaseMethodFileOptions = (
 };
 
 /**
- * Find all files in a folder and its subfolders
+ * Extracts the template file name from a template path
  */
-const findAllFiles = (currentFolder: IFolder): IFile[] => {
-  const result: IFile[] = [];
+const extractTemplateFileName = (templatePath: string): string => {
+  // Check if it's a wildcard path with /**/ pattern
+  const wildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(templatePath);
+  if (wildcardMatch) {
+    // Extract the last segment after the last slash
+    const segments = templatePath.split('/');
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment.toLowerCase();
+  }
   
-  for (const child of currentFolder.children) {
-    if (child.type === 'file') {
-      result.push(child);
-    } else {
-      // If not a file, it must be a folder
-      result.push(...findAllFiles(child));
+  // For direct file paths, just get the file name after the last slash
+  const segments = templatePath.split('/');
+  return segments[segments.length - 1].toLowerCase();
+};
+
+/**
+ * Extracts file names without extensions from all text files in a folder
+ * and creates a mapping of placeholder names to file contents
+ */
+const extractFileNameReplacements = (files: IFile[]): Record<string, string> => {
+  const replacements: Record<string, string> = {};
+  
+  for (const file of files) {
+    // Skip non-text files or files without extensions
+    if (!file.name.includes('.')) {
+      continue;
+    }
+    
+    // Extract the file name without extension
+    const nameParts = file.name.split('.');
+    // Remove the extension (last part)
+    nameParts.pop();
+    const nameWithoutExtension = nameParts.join('.');
+    
+    // Skip empty file names
+    if (nameWithoutExtension.length === 0) {
+      continue;
+    }
+    
+    // Store the file content for this file name
+    replacements[nameWithoutExtension.toLowerCase()] = file.content.trim();
+  }
+  
+  return replacements;
+};
+
+/**
+ * Process a string by replacing placeholders with values from the replacements map
+ */
+const applyReplacements = (
+  input: string,
+  replacements: Record<string, string>
+): string => {
+  let result = input;
+  
+  // Replace all {{placeholder}} patterns with their values
+  for (const [key, value] of Object.entries(replacements)) {
+    const placeholder = `{{${key}}}`;
+    if (result.includes(placeholder)) {
+      result = result.replace(new RegExp(placeholder, 'g'), value);
+    }
+    
+    // Also try case-insensitive match for methodName->methodname
+    if (key === 'methodname') {
+      const methodNamePlaceholder = '{{methodName}}';
+      if (result.includes(methodNamePlaceholder)) {
+        result = result.replace(new RegExp(methodNamePlaceholder, 'g'), value);
+      }
     }
   }
   
@@ -63,9 +115,6 @@ const findAllFiles = (currentFolder: IFolder): IFile[] => {
 export const createBaseMethodFile = (
   command: string,
   userFiles: IStructure,
-  _schemaInfo: ISchemaInfo[],
-  schemaInfoParsed: ISchemaInfoResult,
-  table: ISchemaInfo,
   projectYamlPath: string,
 ): IStructure => {
   // Parse options from command
@@ -79,11 +128,11 @@ export const createBaseMethodFile = (
   
   // Validate required parameters
   if (outputFilePattern.trim() === '' || templatePath.trim() === '') {
-    console.warn('Missing required parameters (output file or template)');
     return [];
   }
   
-  console.warn(`Processing template path: "${String(templatePath)}", output pattern: "${String(outputFilePattern)}"`);
+  // Extract the template file name we're looking for
+  const templateFileName = extractTemplateFileName(templatePath);
   
   // Check if using a wildcard pattern
   const recursiveWildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(templatePath);
@@ -93,20 +142,16 @@ export const createBaseMethodFile = (
   
   if (recursiveWildcardMatch) {
     // ----- Wildcard path handling -----
-    const [, wildcardPath] = recursiveWildcardMatch;
-    console.warn(`Using wildcard path: "${String(wildcardPath)}"`);
+    const wildcardPath = recursiveWildcardMatch[1] || '';
     
     // Normalize wildcard path if needed
     const normalizedPath = wildcardPath.startsWith('/') ? wildcardPath : `/${wildcardPath}`;
     
     // Find matching folders
     const matchingFolders = findFoldersWithWildcard(userFiles, normalizedPath);
-    console.warn(`Found ${String(matchingFolders.length)} matching folders`);
     
     // If no matches, try more fallback approaches
     if (matchingFolders.length === 0) {
-      console.warn(`No direct matches, trying fallbacks...`);
-      
       // Find all folders in the project
       const allFolders: IFolder[] = [];
       const collectFolders = (folder: IFolder): void => {
@@ -120,18 +165,30 @@ export const createBaseMethodFile = (
       const rootFolders = userFiles.filter((item): item is IFolder => item.type === 'folder');
       rootFolders.forEach(collectFolders);
       
-      // Find folders with method name files
-      const foldersWithMethodFiles = allFolders.filter(folder => 
-        folder.children.some(child => 
+      // Find folders with template file
+      const foldersWithTemplateFiles = allFolders.filter(folder => {
+        const hasTemplateFile = folder.children.some(child =>
           child.type === 'file' && 
-          (child.name.toLowerCase() === 'methodname.txt' || METHOD_NAME_PATTERN.test(child.name))
-        )
-      );
+          child.name.toLowerCase() === templateFileName
+        );
+        
+        return hasTemplateFile;
+      });
       
-      console.warn(`Found ${String(foldersWithMethodFiles.length)} folders with method name files`);
-      foldersToProcess.push(...foldersWithMethodFiles);
+      foldersToProcess.push(...foldersWithTemplateFiles);
     } else {
-      foldersToProcess.push(...matchingFolders);
+      // Filter for only folders that contain the template file
+      const foldersWithTemplate = matchingFolders.filter(folder => {
+        // Check for template file directly in this folder
+        const hasTemplateFile = folder.children.some(child =>
+          child.type === 'file' && 
+          child.name.toLowerCase() === templateFileName
+        );
+        
+        return hasTemplateFile;
+      });
+      
+      foldersToProcess.push(...foldersWithTemplate);
     }
   } else {
     // ----- Direct path handling -----
@@ -139,153 +196,99 @@ export const createBaseMethodFile = (
     const folderMatch = /^\/(.+)$/.exec(templatePath);
     
     if (folderMatch) {
-      const [, folderPath] = folderMatch;
+      const folderPath = folderMatch[1] || '';
       const folder = findFolderByPath(folderPath, userFiles);
       
       if (folder) {
-        console.warn(`Found exact folder path: "${String(folderPath)}"`);
-        foldersToProcess.push(folder);
+        // Only process if the folder contains the template file
+        const hasTemplateFile = folder.children.some(child =>
+          child.type === 'file' && 
+          child.name.toLowerCase() === templateFileName
+        );
+        
+        if (hasTemplateFile) {
+          foldersToProcess.push(folder);
+        }
       }
     } else {
       // It's a direct template file - we'll handle it separately
-      console.warn(`Using direct template file: "${String(templatePath)}"`);
       const templateContent = loadTemplateContent(userFiles, templatePath, projectYamlPath);
       
       if (templateContent.length > 0) {
-        // Extract method name from filename
-        const filename = templatePath.split('/').pop() ?? '';
-        const methodNameMatch = /^(\w+)\./.exec(filename);
-        const methodName = methodNameMatch?.[1] ?? 'default';
+        // For direct files, we don't have a folder context for replacements
+        // Just use the filename or parent folder as a simple fallback
+        const pathSegments = templatePath.split('/');
+        const filename = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
         
-        console.warn(`Using method name from filename: "${String(methodName)}"`);
+        // Extract just the name without extension
+        const fileBaseName = filename.split('.')[0].toLowerCase();
         
-        // Create custom replacements
-        const customReplacements = {
-          ...getReplacementsForTable(table, schemaInfoParsed),
-          methodName,
+        // Create a simple replacement mapping
+        const replacements: Record<string, string> = {
+          [fileBaseName]: fileBaseName,
         };
         
-        // Process the filename with methodName placeholders
-        let processedPattern = outputFilePattern;
-        if (outputFilePattern.includes('{{methodName}}') || outputFilePattern.includes('{{methodname}}')) {
-          processedPattern = outputFilePattern
-            .replace(/\{\{methodName\}\}/g, methodName)
-            .replace(/\{\{methodname\}\}/g, methodName.toLowerCase());
-        }
-        
-        // Process template pattern
-        const outputFileName = replacePlaceholders(
-          processedPattern,
-          customReplacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-        );
-        
+        // Process the filename with replacements
+        const outputFileName = applyReplacements(outputFilePattern, replacements);
         const lowercaseName = outputFileName.toLowerCase();
         
         // Check for duplicates
         if (!processedFiles.has(lowercaseName)) {
           processedFiles.add(lowercaseName);
           
-          // Process template content
-          const processedContent = replacePlaceholders(
-            templateContent,
-            customReplacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-          );
-          
           // Add to result
           result.push({
             type: 'file',
             name: outputFileName,
-            content: formatFileContent(processedContent),
+            content: formatFileContent(templateContent),
           });
-          
-          console.warn(`Added file from direct template: "${String(outputFileName)}"`);
         }
       }
     }
   }
   
   // Process all collected folders
-  console.warn(`Processing ${String(foldersToProcess.length)} folders`);
+  const uniqueFolderPathsProcessed = new Set<string>();
   
   for (const folder of foldersToProcess) {
-    // Find all files in this folder and subfolders
-    const files = findAllFiles(folder);
-    
-    // Find method name file
-    const methodNameFile = files.find(file => 
-      file.name.toLowerCase() === 'methodname.txt' || 
-      METHOD_NAME_PATTERN.test(file.name)
-    );
-    
-    if (!methodNameFile) {
-      console.warn(`No method name file found in folder: "${String(folder.name)}"`);
+    // Avoid processing the same folder path multiple times
+    const folderPath = folder.name;
+    if (uniqueFolderPathsProcessed.has(folderPath)) {
       continue;
     }
+    uniqueFolderPathsProcessed.add(folderPath);
     
-    // Get method name
-    const methodName = methodNameFile.content.trim();
-    if (!methodName) {
-      console.warn(`Empty method name in folder: "${String(folder.name)}"`);
-      continue;
-    }
+    // Find all files in this folder
+    const files = folder.children.filter((child): child is IFile => child.type === 'file');
     
-    // Find template file (sharedHook.txt)
-    const templateFile = files.find(file => file.name.toLowerCase() === 'sharedhook.txt');
+    // Find template file using the extracted name
+    const templateFile = files.find(file => file.name.toLowerCase() === templateFileName);
     if (!templateFile) {
-      console.warn(`No sharedHook.txt found in folder: "${String(folder.name)}"`);
       continue;
     }
     
-    console.warn(`Found method "${String(methodName)}" with template in folder: "${String(folder.name)}"`);
+    // Extract all file name replacements from the current directory
+    const replacements = extractFileNameReplacements(files);
     
-    // Create custom replacements for this method
-    const customReplacements = {
-      ...getReplacementsForTable(table, schemaInfoParsed),
-      methodName,
-    };
-    
-    // Process the filename with methodName placeholders
-    let processedPattern = outputFilePattern;
-    if (outputFilePattern.includes('{{methodName}}') || outputFilePattern.includes('{{methodname}}')) {
-      processedPattern = outputFilePattern
-        .replace(/\{\{methodName\}\}/g, methodName)
-        .replace(/\{\{methodname\}\}/g, methodName.toLowerCase());
+    // Skip folders with no valid replacements
+    if (Object.keys(replacements).length === 0) {
+      continue;
     }
     
-    // Process output filename
-    const outputFileName = replacePlaceholders(
-      processedPattern,
-      customReplacements,
-      userFiles,
-      schemaInfoParsed,
-      table,
-    );
-    
+    // Process the filename with replacements
+    const outputFileName = applyReplacements(outputFilePattern, replacements);
     const lowercaseName = outputFileName.toLowerCase();
     
     // Check for duplicates
     if (processedFiles.has(lowercaseName)) {
-      console.warn(`Skipping duplicate file: "${String(outputFileName)}"`);
       continue;
     }
     
     // Mark as processed
     processedFiles.add(lowercaseName);
     
-    // Process template content
-    const processedContent = replacePlaceholders(
-      templateFile.content,
-      customReplacements,
-      userFiles,
-      schemaInfoParsed,
-      table,
-    );
+    // Process template content with replacements
+    const processedContent = applyReplacements(templateFile.content, replacements);
     
     // Add to result
     result.push({
@@ -293,11 +296,7 @@ export const createBaseMethodFile = (
       name: outputFileName,
       content: formatFileContent(processedContent),
     });
-    
-    console.warn(`Added file: "${String(outputFileName)}" with method: "${String(methodName)}"`);
   }
-  
-  console.warn(`Created ${String(result.length)} total files`);
   
   return result;
 };

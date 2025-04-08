@@ -48,9 +48,9 @@ export const processYamlStructure = ({
     // Process the template path if it's marked as relative
     if (hasRelativeTemplatePath) {
       templatePath = processTemplatePathWithFlag(
-        templatePath, 
-        projectYamlPath, 
-        true
+        templatePath,
+        projectYamlPath,
+        true,
       );
     }
 
@@ -60,103 +60,7 @@ export const processYamlStructure = ({
       if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
         return [];
       }
-
-      const schemaInfoProcessed =
-        schemaInfo.length > 0 ? schemaInfo[0] : undefined;
-      if (!schemaInfoProcessed) {
-        return [];
-      }
-
-      // When inside a dynamic folder context with --scoped flag,
-      // use only the current table context rather than looping over all tables
-      const scopedOption = options[ACTION_FLAGS.SCOPED];
-      if (table && (scopedOption ?? false)) {
-        return createBaseMethodFile(
-          extractedParams,
-          userFiles,
-          schemaInfo,
-          schemaInfoParsed,
-          table,
-          projectYamlPath
-        );
-      }
-
-      const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
-      const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
-
-      if (
-        (includeTableOption != null && includeTableOption.trim().length > 0) ||
-        (excludeTableOption != null && excludeTableOption.trim().length > 0) ||
-        Boolean(options[ACTION_FLAGS.SCOPED])
-      ) {
-        const filteredResults: IStructure = [];
-
-        for (const currentTable of schemaInfo) {
-          const replacements = getReplacementsForTable(currentTable, schemaInfoParsed);
-
-          // Check include filter
-          if (
-            includeTableOption != null &&
-            includeTableOption.trim().length > 0
-          ) {
-            const processedIncludeTable = replacePlaceholders(
-              String(options[ACTION_FLAGS.INCLUDE_TABLE]),
-              replacements,
-              userFiles,
-              schemaInfoParsed,
-              currentTable,
-            );
-            if (currentTable.tableName !== processedIncludeTable) {
-              continue;
-            }
-          }
-
-          // Check exclude filter
-          if (
-            excludeTableOption != null &&
-            excludeTableOption.trim().length > 0
-          ) {
-            const processedExcludeTable = replacePlaceholders(
-              String(options[ACTION_FLAGS.EXCLUDE_TABLE]),
-              replacements,
-              userFiles,
-              schemaInfoParsed,
-              currentTable,
-            );
-            if (currentTable.tableName === processedExcludeTable) {
-              continue;
-            }
-          }
-
-          const files = createBaseMethodFile(
-            extractedParams,
-            userFiles,
-            schemaInfo,
-            schemaInfoParsed,
-            currentTable,
-            projectYamlPath
-          );
-
-          filteredResults.push(...files);
-        }
-
-        return filteredResults;
-      }
-
-      // Default processing for all tables
-      const allResults: IStructure = [];
-      for (const currentTable of schemaInfo) {
-        const files = createBaseMethodFile(
-          extractedParams,
-          userFiles,
-          schemaInfo,
-          schemaInfoParsed,
-          currentTable,
-          projectYamlPath
-        );
-        allResults.push(...files);
-      }
-      return allResults;
+      return createBaseMethodFile(extractedParams, userFiles, projectYamlPath);
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
@@ -184,13 +88,21 @@ export const processYamlStructure = ({
           typeof templatePath === 'string' &&
           templatePath.trim().length > 0
         ) {
-          const loadedContent = loadTemplateContent(userFiles, templatePath, projectYamlPath);
+          const loadedContent = loadTemplateContent(
+            userFiles,
+            templatePath,
+            projectYamlPath,
+          );
           if (loadedContent.length > 0) {
             templateContent = loadedContent;
           }
         } else {
           // Try to load template based on filename if no template option provided
-          templateContent = loadTemplateContent(userFiles, command, projectYamlPath);
+          templateContent = loadTemplateContent(
+            userFiles,
+            command,
+            projectYamlPath,
+          );
         }
 
         // Process the file with the current table context only
@@ -241,106 +153,6 @@ export const processYamlStructure = ({
           },
         ];
       }
-      const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
-      const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
-
-      // Apply table filtering for CREATE_FILE
-      if (
-        (includeTableOption != null && includeTableOption.trim().length > 0) ||
-        (excludeTableOption != null && excludeTableOption.trim().length > 0) ||
-        Boolean(options[ACTION_FLAGS.SCOPED])
-      ) {
-        const filteredResults: IStructure = [];
-
-        for (const table of schemaInfo) {
-          const replacements = getReplacementsForTable(table, schemaInfoParsed);
-
-          // Check include filter
-          if (
-            includeTableOption != null &&
-            includeTableOption.trim().length > 0
-          ) {
-            const processedIncludeTable = replacePlaceholders(
-              String(options[ACTION_FLAGS.INCLUDE_TABLE]),
-              replacements,
-              userFiles,
-              schemaInfoParsed,
-              table,
-            );
-            if (table.tableName !== processedIncludeTable) {
-              continue;
-            }
-          }
-
-          // Check exclude filter
-          if (
-            excludeTableOption != null &&
-            excludeTableOption.trim().length > 0
-          ) {
-            const processedExcludeTable = replacePlaceholders(
-              String(options[ACTION_FLAGS.EXCLUDE_TABLE]),
-              replacements,
-              userFiles,
-              schemaInfoParsed,
-              table,
-            );
-            if (table.tableName === processedExcludeTable) {
-              continue;
-            }
-          }
-
-          const processedName = replacePlaceholders(
-            command,
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-          );
-          const outputFileName = processedName.includes('/')
-            ? extractFileNameFromPath(processedName)
-            : processedName.replace(/[()]/g, '');
-
-          // Load and process template content
-          const templateContent = loadTemplateContent(
-            userFiles,
-            templatePath ?? processedName,
-            projectYamlPath
-          );
-
-          // Process the template with all replacements
-          let processedContent = replacePlaceholders(
-            processLoopTables(
-              templateContent,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-            ),
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-          );
-
-          processedContent = processIterateInTemplate(
-            processedContent,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            table,
-          );
-
-          // Format the final content with proper character replacements
-          const finalContent = formatFileContent(processedContent);
-
-          filteredResults.push({
-            type: 'file',
-            name: outputFileName,
-            content: finalContent,
-          });
-        }
-
-        return filteredResults;
-      }
 
       // Original behavior for backward compatibility (no include/exclude filters)
       const replacements = getReplacementsForTable(
@@ -364,7 +176,7 @@ export const processYamlStructure = ({
       const templateContent = loadTemplateContent(
         userFiles,
         templatePath ?? processedName,
-        projectYamlPath
+        projectYamlPath,
       );
 
       // Process the template with all replacements
@@ -419,12 +231,16 @@ export const processYamlStructure = ({
         schemaInfo,
         schemaInfoParsed,
         userFiles,
-        projectYamlPath
+        projectYamlPath,
       });
     }
 
     // Handle bare filenames by looking for templates
-    const templateContent = loadTemplateContent(userFiles, node, projectYamlPath);
+    const templateContent = loadTemplateContent(
+      userFiles,
+      node,
+      projectYamlPath,
+    );
     if (templateContent.length > 0) {
       const schemaInfoProcessed =
         schemaInfo.length > 0 ? schemaInfo[0] : undefined;
