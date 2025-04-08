@@ -1,1 +1,1 @@
-Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.count');
+Route::get('{{tableNameKebabCasePlural}}/{{methodName}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');

@@ -3,5 +3,5 @@
         $callback = function ($items) {
             return response()->json($items);
         };
-        $this->service->chunk($size, $callback);
+        $this->service->{{methodName}}($size, $callback);
       

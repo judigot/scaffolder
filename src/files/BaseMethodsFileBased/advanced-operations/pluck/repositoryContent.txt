@@ -1,1 +1,1 @@
-return $this->model->pluck($column, $key);
+return $this->model->{{methodName}}($column, $key);

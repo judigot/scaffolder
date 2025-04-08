@@ -1,6 +1,6 @@
 
         $column = $request->input('column');
         $key = $request->input('key', null);
-        $values = $this->service->pluck($column, $key);
+        $values = $this->service->{{methodName}}($column, $key);
         return response()->json($values);
       

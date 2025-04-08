@@ -1,1 +1,1 @@
-chunk(int $size, callable $callback): bool
+{{methodName}}(int $size, callable $callback): bool

@@ -1,1 +1,1 @@
-return $this->model->whereNotIn($column, $values)->get();
+return $this->model->{{methodName}}($column, $values)->get();

@@ -1,1 +1,1 @@
-return $this->model->where($criteria)->count();
+return $this->model->where($criteria)->{{methodName}}();

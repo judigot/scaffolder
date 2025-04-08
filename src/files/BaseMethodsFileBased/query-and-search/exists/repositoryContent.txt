@@ -1,1 +1,1 @@
-return $this->model->where($criteria)->exists();
+return $this->model->where($criteria)->{{methodName}}();

@@ -1,1 +1,1 @@
-chunk(Request $request)
+{{methodName}}(Request $request)

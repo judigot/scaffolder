@@ -1,1 +1,1 @@
-return $this->model->each($callback);
+return $this->model->{{methodName}}($callback);

@@ -1,1 +1,1 @@
-return $this->model->oldest($column)->first();
+return $this->model->{{methodName}}($column)->first();

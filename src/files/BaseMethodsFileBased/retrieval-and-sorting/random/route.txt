@@ -1,1 +1,1 @@
-Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.random');
+Route::get('{{tableNameKebabCasePlural}}/{{methodName}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');

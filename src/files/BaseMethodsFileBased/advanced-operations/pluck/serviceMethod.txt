@@ -1,1 +1,1 @@
-pluck(string $column, string $key = null): Collection
+{{methodName}}(string $column, string $key = null): Collection

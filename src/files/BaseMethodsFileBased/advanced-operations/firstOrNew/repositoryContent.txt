@@ -1,1 +1,1 @@
-return $this->model->firstOrNew($attributes, $values);
+return $this->model->{{methodName}}($attributes, $values);

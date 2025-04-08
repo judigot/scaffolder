@@ -1,1 +1,1 @@
-return $this->model->whereBetween($column, $range)->get();
+return $this->model->{{methodName}}($column, $range)->get();

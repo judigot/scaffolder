@@ -1,1 +1,1 @@
-return $this->model->findOrFail($id);
+return $this->model->{{methodName}}($id);

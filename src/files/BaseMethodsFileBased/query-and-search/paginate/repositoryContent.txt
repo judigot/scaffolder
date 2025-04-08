@@ -1,1 +1,1 @@
-return $this->model->paginate($perPage);
+return $this->model->{{methodName}}($perPage);

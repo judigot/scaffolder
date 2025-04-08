@@ -1,1 +1,1 @@
-firstOrNew(Request $request)
+{{methodName}}(Request $request)

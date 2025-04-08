@@ -1,1 +1,1 @@
-return $this->model->chunk($size, $callback);
+return $this->model->{{methodName}}($size, $callback);

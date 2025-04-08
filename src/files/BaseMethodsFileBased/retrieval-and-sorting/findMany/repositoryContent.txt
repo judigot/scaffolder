@@ -1,1 +1,1 @@
-return $this->model->findMany($ids);
+return $this->model->{{methodName}}($ids);

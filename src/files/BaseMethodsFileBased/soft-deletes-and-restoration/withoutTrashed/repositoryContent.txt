@@ -1,1 +1,1 @@
-return $this->model->withoutTrashed()->get();
+return $this->model->{{methodName}}()->get();
