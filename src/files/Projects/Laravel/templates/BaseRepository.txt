@@ -16,4 +16,7 @@ abstract class BaseRepository implements BaseInterface
     }
 
     // Base Methods
+[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="    public function {{repositoryMethod}}
+    {
+        {{repositoryContent}}\n    }"]]
 }

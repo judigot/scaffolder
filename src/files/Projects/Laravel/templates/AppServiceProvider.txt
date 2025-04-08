@@ -1,3 +1,33 @@
 <?php
 
-// Please add template content
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+// Import start
+[[LOOP(tables) --template="
+use App\Repositories\{{tableNamePascalCase}}Repository;
+use App\Repositories\{{tableNamePascalCase}}Interface;
+"]]
+// Import end
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        // Bind start
+        [[LOOP(tables) --template="$this->app->bind({{tableNamePascalCase}}Interface::class, {{tableNamePascalCase}}Repository::class);"]]
+// Bind end
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}

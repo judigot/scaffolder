@@ -12,8 +12,8 @@ app:
     Providers:
         - CREATE_FILE(AppServiceProvider.php --template ./templates/AppServiceProvider.txt)
     Repositories:
-        - CREATE_FILE(BaseRepository.php --template ./templates/BaseRepository.txt)
         - CREATE_FILE(BaseInterface.php --template ./templates/BaseInterface.txt)
+        - CREATE_FILE(BaseRepository.php --template ./templates/BaseRepository.txt)
         - FILE_LOOP({{tableNamePascalCaseSingular}}Repository.php --template ./templates/Repository.txt)
         - FILE_LOOP({{tableNamePascalCaseSingular}}Interface.php --template ./templates/Interface.txt)
     Services:

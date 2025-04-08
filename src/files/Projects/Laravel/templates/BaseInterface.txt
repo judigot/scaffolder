@@ -7,5 +7,5 @@ use Illuminate\Database\Eloquent\Model;
 
 interface BaseInterface
 {
-[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n" --template="    public function {{controllerMethod}};"]]
+[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n" --template="    public function {{repositoryMethod}};"]]
 }
