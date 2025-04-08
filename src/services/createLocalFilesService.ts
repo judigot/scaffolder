@@ -144,11 +144,6 @@ export const createLocalFilesService = async (
         fullSQLSchema = `${deleteTablesQueries.join('\n')}\n\n${formatSQL(sqlSchema)}`;
       }
 
-      // Log SQL schema length for debugging (using approved console method)
-      console.error(
-        `Generated SQL schema with ${String(fullSQLSchema.length)} characters`,
-      );
-
       // Extract database info from formData.dbConnection for database creation
       const { dbConnection } = formData;
 
