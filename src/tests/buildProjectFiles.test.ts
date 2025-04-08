@@ -21,7 +21,7 @@ describe('Build Project Files', () => {
                             {
                                 "type": "file",
                                 "name": "BaseController.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Controllers;\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Routing\\Controller;\n\nabstract class BaseController extends Controller\n{\n    protected $service;\n\n    public function __construct($service)\n    {\n        $this->service = $service;\n    }\n\n    // CRUD\n    public function store(Request $request)\n    {\n        $item = $this->service->methodName($request->all());\n        return response()->json($item, 201);\n    }\n\n    // Advanced Operations\n    public function chunk(Request $request)\n    {\n        $size = $request->input('size', 100);\n        $callback = function ($items) {\n            return response()->json($items);\n        };\n        $this->service->chunk($size, $callback);\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Controllers;\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Routing\\Controller;\n\nabstract class BaseController extends Controller\n{\n    protected $service;\n\n    public function __construct($service)\n    {\n        $this->service = $service;\n    }\n\n    // CRUD\n    public function store(Request $request)\n    {\n        $item = $this->service->create($request->all());\n        return response()->json($item, 201);\n    }\n\n    // Advanced Operations\n    public function chunk(Request $request)\n    {\n        $size = $request->input('size', 100);\n        $callback = function ($items) {\n            return response()->json($items);\n        };\n        $this->service->chunk($size, $callback);\n    }\n}"
                             },
                             {
                                 "type": "file",
@@ -72,37 +72,37 @@ describe('Build Project Files', () => {
                             {
                                 "type": "file",
                                 "name": "ProductResource.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass classNameResource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\nattributes\n        ];\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass {{className}}Resource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\n{{attributes}}\n        ];\n    }\n}"
                             },
                             {
                                 "type": "file",
                                 "name": "CustomerResource.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass classNameResource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\nattributes\n        ];\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass {{className}}Resource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\n{{attributes}}\n        ];\n    }\n}"
                             },
                             {
                                 "type": "file",
                                 "name": "OrderResource.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass classNameResource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\nattributes\n        ];\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass {{className}}Resource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\n{{attributes}}\n        ];\n    }\n}"
                             },
                             {
                                 "type": "file",
                                 "name": "OrderProductResource.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass classNameResource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\nattributes\n        ];\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass {{className}}Resource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\n{{attributes}}\n        ];\n    }\n}"
                             },
                             {
                                 "type": "file",
                                 "name": "UserResource.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass classNameResource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\nattributes\n        ];\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass {{className}}Resource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\n{{attributes}}\n        ];\n    }\n}"
                             },
                             {
                                 "type": "file",
                                 "name": "ProfileResource.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass classNameResource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\nattributes\n        ];\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass {{className}}Resource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\n{{attributes}}\n        ];\n    }\n}"
                             },
                             {
                                 "type": "file",
                                 "name": "PostResource.php",
-                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass classNameResource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\nattributes\n        ];\n    }\n}"
+                                "content": "<?php\n\nnamespace App\\Http\\Resources;\n\nuse Illuminate\\Http\\Resources\\Json\\JsonResource;\n\nclass {{className}}Resource extends JsonResource\n{\n    /**\n     * Transform the resource into an array.\n     *\n     * @param \\Illuminate\\Http\\Request $request\n     * @return array\n     */\n    public function toArray($request)\n    {\n        return [\n{{attributes}}\n        ];\n    }\n}"
                             }
                         ]
                     }
@@ -125,37 +125,37 @@ describe('Build Project Files', () => {
                     {
                         "type": "file",
                         "name": "ProductRepository.php",
-                        "content": "<?php\n\nnamespace App\\Repositories;\n\nmodelImports\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Product;\nuse App\\Repositories\\BaseRepository;\n\nclass ProductRepository extends BaseRepository implements ProductInterface\n{\n    public function __construct(Product $model)\n    {\n        parent::__construct($model);\n    }\nmodelSpecificMethods\n}"
+                        "content": "<?php\n\nnamespace App\\Repositories;\n\n{{modelImports}}\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Product;\nuse App\\Repositories\\BaseRepository;\n\nclass ProductRepository extends BaseRepository implements ProductInterface\n{\n    public function __construct(Product $model)\n    {\n        parent::__construct($model);\n    }\n{{modelSpecificMethods}}\n}"
                     },
                     {
                         "type": "file",
                         "name": "CustomerRepository.php",
-                        "content": "<?php\n\nnamespace App\\Repositories;\n\nmodelImports\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Customer;\nuse App\\Repositories\\BaseRepository;\n\nclass CustomerRepository extends BaseRepository implements CustomerInterface\n{\n    public function __construct(Customer $model)\n    {\n        parent::__construct($model);\n    }\nmodelSpecificMethods\n}"
+                        "content": "<?php\n\nnamespace App\\Repositories;\n\n{{modelImports}}\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Customer;\nuse App\\Repositories\\BaseRepository;\n\nclass CustomerRepository extends BaseRepository implements CustomerInterface\n{\n    public function __construct(Customer $model)\n    {\n        parent::__construct($model);\n    }\n{{modelSpecificMethods}}\n}"
                     },
                     {
                         "type": "file",
                         "name": "OrderRepository.php",
-                        "content": "<?php\n\nnamespace App\\Repositories;\n\nmodelImports\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Order;\nuse App\\Repositories\\BaseRepository;\n\nclass OrderRepository extends BaseRepository implements OrderInterface\n{\n    public function __construct(Order $model)\n    {\n        parent::__construct($model);\n    }\nmodelSpecificMethods\n}"
+                        "content": "<?php\n\nnamespace App\\Repositories;\n\n{{modelImports}}\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Order;\nuse App\\Repositories\\BaseRepository;\n\nclass OrderRepository extends BaseRepository implements OrderInterface\n{\n    public function __construct(Order $model)\n    {\n        parent::__construct($model);\n    }\n{{modelSpecificMethods}}\n}"
                     },
                     {
                         "type": "file",
                         "name": "OrderProductRepository.php",
-                        "content": "<?php\n\nnamespace App\\Repositories;\n\nmodelImports\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\OrderProduct;\nuse App\\Repositories\\BaseRepository;\n\nclass OrderProductRepository extends BaseRepository implements OrderProductInterface\n{\n    public function __construct(OrderProduct $model)\n    {\n        parent::__construct($model);\n    }\nmodelSpecificMethods\n}"
+                        "content": "<?php\n\nnamespace App\\Repositories;\n\n{{modelImports}}\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\OrderProduct;\nuse App\\Repositories\\BaseRepository;\n\nclass OrderProductRepository extends BaseRepository implements OrderProductInterface\n{\n    public function __construct(OrderProduct $model)\n    {\n        parent::__construct($model);\n    }\n{{modelSpecificMethods}}\n}"
                     },
                     {
                         "type": "file",
                         "name": "UserRepository.php",
-                        "content": "<?php\n\nnamespace App\\Repositories;\n\nmodelImports\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\User;\nuse App\\Repositories\\BaseRepository;\n\nclass UserRepository extends BaseRepository implements UserInterface\n{\n    public function __construct(User $model)\n    {\n        parent::__construct($model);\n    }\nmodelSpecificMethods\n}"
+                        "content": "<?php\n\nnamespace App\\Repositories;\n\n{{modelImports}}\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\User;\nuse App\\Repositories\\BaseRepository;\n\nclass UserRepository extends BaseRepository implements UserInterface\n{\n    public function __construct(User $model)\n    {\n        parent::__construct($model);\n    }\n{{modelSpecificMethods}}\n}"
                     },
                     {
                         "type": "file",
                         "name": "ProfileRepository.php",
-                        "content": "<?php\n\nnamespace App\\Repositories;\n\nmodelImports\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Profile;\nuse App\\Repositories\\BaseRepository;\n\nclass ProfileRepository extends BaseRepository implements ProfileInterface\n{\n    public function __construct(Profile $model)\n    {\n        parent::__construct($model);\n    }\nmodelSpecificMethods\n}"
+                        "content": "<?php\n\nnamespace App\\Repositories;\n\n{{modelImports}}\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Profile;\nuse App\\Repositories\\BaseRepository;\n\nclass ProfileRepository extends BaseRepository implements ProfileInterface\n{\n    public function __construct(Profile $model)\n    {\n        parent::__construct($model);\n    }\n{{modelSpecificMethods}}\n}"
                     },
                     {
                         "type": "file",
                         "name": "PostRepository.php",
-                        "content": "<?php\n\nnamespace App\\Repositories;\n\nmodelImports\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Posts;\nuse App\\Repositories\\BaseRepository;\n\nclass PostsRepository extends BaseRepository implements PostsInterface\n{\n    public function __construct(Posts $model)\n    {\n        parent::__construct($model);\n    }\nmodelSpecificMethods\n}"
+                        "content": "<?php\n\nnamespace App\\Repositories;\n\n{{modelImports}}\nuse Illuminate\\Support\\Collection;\nuse App\\Models\\Posts;\nuse App\\Repositories\\BaseRepository;\n\nclass PostsRepository extends BaseRepository implements PostsInterface\n{\n    public function __construct(Posts $model)\n    {\n        parent::__construct($model);\n    }\n{{modelSpecificMethods}}\n}"
                     }
                 ]
             },

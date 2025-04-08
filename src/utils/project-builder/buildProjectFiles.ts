@@ -5,6 +5,8 @@ import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
 import { detectCircularImports } from '@/utils/project-builder/utils/detectCircularImports.ts';
+import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
+import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/detectCircularPlaceholderImports.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -63,6 +65,39 @@ export const buildProjectFiles = (
 
   try {
     const parsedYaml: unknown = parse(file.content);
+    
+    const placeholders = extractPlaceholdersFromYaml(parsedYaml);
+    const circularPlaceholderCheck = detectCircularPlaceholderImports(placeholders);
+    
+    if (circularPlaceholderCheck.hasCircularReference) {
+      return [
+        {
+          type: 'file',
+          name: 'circular-placeholder-error.log',
+          content: [
+            '❌ CODE GENERATION FAILED: CIRCULAR PLACEHOLDER REFERENCES DETECTED',
+            '',
+            '📅 Timestamp:',
+            new Date().toISOString(),
+            '',
+            '🔎 Circular Placeholder Chain Detected:',
+            '='.repeat(50),
+            circularPlaceholderCheck.circularPath,
+            '='.repeat(50),
+            '',
+            '💡 Suggestion:',
+            'Your YAML file contains placeholders that reference each other in a circular way.',
+            'For example, if property A references property B, and property B references property A,',
+            'this creates an infinite loop that cannot be resolved.',
+            '',
+            'Please check your placeholders in the form {{propertyName}} and ensure they',
+            'do not create circular dependencies.',
+            '',
+            'If this persists, report the issue along with this log.',
+          ].join('\n'),
+        },
+      ];
+    }
 
     const projectFiles = processYamlStructure({
       node: parsedYaml,
