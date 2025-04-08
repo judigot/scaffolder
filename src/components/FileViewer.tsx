@@ -673,8 +673,8 @@ function FileViewer({
     // Get the base name (remove file extension if present)
     let baseName = 'project';
     if (typeof projectName === 'string' && projectName !== '') {
-      // Remove file extension if present
-      baseName = projectName.replace(/\.[^/.]+$/, '');
+      // Convert to kebab case but preserve the original case
+      baseName = projectName.replace(/\s+/g, '-');
     }
 
     // Generate timestamp
