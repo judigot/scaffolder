@@ -1,0 +1,1 @@
+Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.search');

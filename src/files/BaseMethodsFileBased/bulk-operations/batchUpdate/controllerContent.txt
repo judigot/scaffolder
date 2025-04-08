@@ -1,0 +1,6 @@
+
+      $criteria = $request->input('criteria', []);
+      $data = $request->input('data', []);
+      $updated = $this->service->{{methodName}}($criteria, $data);
+      return response()->json(['updated' => $updated]);
+      

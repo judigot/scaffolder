@@ -1,0 +1,6 @@
+
+        $callback = function ($item) {
+            return response()->json($item);
+        };
+        $this->service->each($callback);
+      

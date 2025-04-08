@@ -1,0 +1,1 @@
+Retrieve only soft-deleted records

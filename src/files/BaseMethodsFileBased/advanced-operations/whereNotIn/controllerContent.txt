@@ -1,0 +1,6 @@
+
+        $column = $request->input('column');
+        $values = $request->input('values', []);
+        $items = $this->service->whereNotIn($column, $values);
+        return response()->json($items);
+      

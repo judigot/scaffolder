@@ -1,0 +1,5 @@
+
+        $criteria = $request->all();
+        $exists = $this->service->{{methodName}}($criteria);
+        return response()->json(['exists' => $exists]);
+      

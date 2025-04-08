@@ -1,0 +1,5 @@
+
+      $attributes = $request->all();
+      $item = $this->service->{{methodName}}($attributes);
+      return $item ? response()->json($item) : response()->json(['message' => 'Resource not found'], 404);
+      

@@ -1,0 +1,1 @@
+Route::post('{{tableNameKebabCasePlural}}/where-not-in', [{{tableNamePascalCase}}Controller::class, 'whereNotIn'])->name('{{tableNameKebabCasePlural}}.where-not-in');

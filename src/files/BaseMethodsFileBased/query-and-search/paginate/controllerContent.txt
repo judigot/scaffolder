@@ -1,0 +1,5 @@
+
+        $perPage = $request->input('per_page', 15);
+        $items = $this->service->{{methodName}}($perPage);
+        return response()->json($items);
+      

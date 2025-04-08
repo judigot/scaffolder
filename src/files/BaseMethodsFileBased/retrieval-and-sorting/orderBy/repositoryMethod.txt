@@ -1,0 +1,1 @@
+{{methodName}}(string $column, string $direction = 'asc'): Collection

@@ -1,0 +1,6 @@
+
+      $softDeleted = $this->service->{{methodName}}($id);
+      return $softDeleted
+            ? response()->json(['message' => 'Resource soft-deleted'])
+            : response()->json(['message' => 'Resource not found'], 404);
+      

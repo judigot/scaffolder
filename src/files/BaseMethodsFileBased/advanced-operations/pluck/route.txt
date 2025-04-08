@@ -1,0 +1,1 @@
+Route::get('{{tableNameKebabCasePlural}}/pluck', [{{tableNamePascalCase}}Controller::class, 'pluck'])->name('{{tableNameKebabCasePlural}}.pluck');

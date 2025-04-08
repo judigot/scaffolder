@@ -1,0 +1,5 @@
+
+      $column = $request->input('column');
+      $items = $this->service->{{methodName}}($column);
+      return response()->json($items);
+      

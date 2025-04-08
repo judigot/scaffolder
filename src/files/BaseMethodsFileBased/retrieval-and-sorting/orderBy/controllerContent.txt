@@ -1,0 +1,6 @@
+
+      $column = $request->input('column');
+      $direction = $request->input('direction', 'asc');
+      $items = $this->service->{{methodName}}($column, $direction);
+      return response()->json($items);
+      

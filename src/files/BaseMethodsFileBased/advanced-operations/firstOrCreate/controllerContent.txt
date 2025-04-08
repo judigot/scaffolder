@@ -1,0 +1,6 @@
+
+        $attributes = $request->input('attributes', []);
+        $values = $request->input('values', []);
+        $item = $this->service->firstOrCreate($attributes, $values);
+        return response()->json($item);
+      

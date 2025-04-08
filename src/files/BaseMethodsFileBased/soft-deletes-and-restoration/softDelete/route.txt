@@ -1,0 +1,1 @@
+Route::delete('{{tableNameKebabCasePlural}}/{id}/soft-delete', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.soft-delete');
