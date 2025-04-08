@@ -1,6 +1,7 @@
 hooks:
   shared:
     - CREATE_BASE_METHOD_FILE(use{{methodNamePascalCase}}.ts --template /BaseMethodsFileBased/**/**/baseHook.txt)
+    - CREATE_FILE(handleError.ts --template ./Templates/handleError.txt)
   FOLDER_LOOP({{tableNameKebabCaseSingular}}):
     - CREATE_FILE(useCreate{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/crud/create/resourceHook.txt)
     - CREATE_FILE(useDelete{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/crud/destroy/resourceHook.txt)

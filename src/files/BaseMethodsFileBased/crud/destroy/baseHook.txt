@@ -1,4 +1,5 @@
 import { axiosInstance } from '@/vendor/axiosInstance.ts';
+import { handleError } from './handleError.ts';
 
 /**
  * Deletes a resource by ID from the API
@@ -10,12 +11,6 @@ export const deleteResource = async (endpoint: string, id: number | string): Pro
   try {
     await axiosInstance.delete(`${endpoint}/${id}`);
   } catch (error: unknown) {
-    if (typeof error === 'string') {
-      throw new Error(`Failed to delete resource: ${error}`);
-    }
-    if (error instanceof Error) {
-      throw new Error(`Failed to delete resource: ${String(error.message)}`);
-    }
-    throw new Error('An unknown error occurred');
+    handleError(error, 'Failed to delete resource');
   }
 };

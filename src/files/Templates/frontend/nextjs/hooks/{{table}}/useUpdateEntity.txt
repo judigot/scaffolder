@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
-import { useUpdate } from '@/hooks/shared/useuseUpdate.ts';
+import { useUpdate } from '@/hooks/shared/useUpdate.ts';
 import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 export const useuseUpdate = (

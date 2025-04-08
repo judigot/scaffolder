@@ -1,4 +1,5 @@
 import { axiosInstance } from '@/vendor/axiosInstance.ts';
+import { handleError } from './handleError.ts';
 
 /**
  * Updates a resource by ID by sending data to the API
@@ -12,12 +13,6 @@ export const updateResource = async <T, D = Partial<T>>(endpoint: string, id: nu
     const response = await axiosInstance.put(`${endpoint}/${id}`, data);
     return response.data.data;
   } catch (error: unknown) {
-    if (typeof error === 'string') {
-      throw new Error(`Failed to update resource: ${error}`);
-    }
-    if (error instanceof Error) {
-      throw new Error(`Failed to update resource: ${String(error.message)}`);
-    }
-    throw new Error('An unknown error occurred');
+    handleError(error, 'Failed to update resource');
   }
 };
