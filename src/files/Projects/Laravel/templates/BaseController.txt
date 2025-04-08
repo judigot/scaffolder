@@ -14,7 +14,7 @@ abstract class BaseController extends Controller
         $this->service = $service;
     }
 
-[[LOOP(/BaseMethodsFileBased/**/**) --file-based --template="    public function {{controllerMethod}}
+[[LOOP(/BaseMethodsFileBased/**/**) --file-based --separator="\n\n" --template="    public function {{controllerMethod}}
     {
-{{controllerContent}}    }"]]
+{{controllerContent}}\n    }"]]
 }

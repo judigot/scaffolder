@@ -17,6 +17,7 @@ export const TEMPLATE_OPTIONS = {
   INCLUDE_FILES: 'include-files',
   EXCLUDE_FILES: 'exclude-files',
   REMOVE_DUPLICATES: 'removeDuplicates',
+  FILE_BASED: 'file-based',
 } as const;
 
 export type ProjectAction =
@@ -83,5 +84,5 @@ export const FOLDER_PATH_REGEX = new RegExp(REGEX_PATTERNS.FOLDER_PATH);
 export const RECURSIVE_WILDCARD_REGEX = new RegExp(REGEX_PATTERNS.RECURSIVE_WILDCARD_PATH);
 
 export const FILE_BASED_REGEX = new RegExp(
-  REGEX_PATTERNS.BOOLEAN_FLAG(ACTION_FLAGS.FILE_BASED)
+  REGEX_PATTERNS.BOOLEAN_FLAG(TEMPLATE_OPTIONS.FILE_BASED)
 );

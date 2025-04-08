@@ -103,7 +103,6 @@ export const processIterateCommand = (
     ? excludedFilesMatch[1].split(',').map((item) => item.trim())
     : [];
 
-  // Check if this is a file-based iteration with recursive wildcard pattern
   const recursiveWildcardMatch =
     RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
   if (recursiveWildcardMatch) {
@@ -114,14 +113,12 @@ export const processIterateCommand = (
     const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
 
     if (isFileBased) {
-      // Process as file-based template (each subfolder is an item)
       const results: string[] = [];
 
       for (const folder of matchingFolders) {
         // Construct the full path to this folder
         const fullPath = buildFolderPath(folder, userFiles);
 
-        // Process this folder using the standard file-based template processor
         const processedTemplate = processFileBasedTemplate(
           fullPath,
           userFiles,
@@ -130,6 +127,7 @@ export const processIterateCommand = (
           template,
           includedFiles,
           excludedFiles,
+          separator
         );
 
         if (processedTemplate) {
@@ -139,10 +137,8 @@ export const processIterateCommand = (
 
       return results.join('\n');
     }
-    // For non-file-based approach, continue with normal processing but use files from all matching folders
   }
 
-  // Check if this is a regular file-based iteration
   if (isFileBased) {
     return processFileBasedTemplate(
       propertyPathsStr,
@@ -152,6 +148,7 @@ export const processIterateCommand = (
       template,
       includedFiles,
       excludedFiles,
+      separator
     );
   }
 
@@ -298,7 +295,6 @@ export const processIterateCommand = (
     if (folderMatch) {
       // If we've already processed this path as a recursive wildcard, skip it
       if (recursiveWildcardMatch && path === propertyPathsStr) {
-        // If we're processing a recursive wildcard but not in file-based mode,
         // we need to collect files from all matching folders
         const [, wildcardPath] = recursiveWildcardMatch;
         const matchingFolders = findFoldersWithWildcard(

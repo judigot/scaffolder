@@ -1,12 +1,12 @@
 methodName: create
 route: Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');
 description: Create a new record
-repositoryMethod: 'create(array $data): Model'
-repositoryContent: return $this->model->create(array $data);
-serviceMethod: 'create(array $data)'
+repositoryMethod: '{{methodName}}(array $data): Model'
+repositoryContent: return $this->model->{{methodName}}(array $data);
+serviceMethod: '{{methodName}}(array $data)'
 serviceContent: |
-  return $this->repository->create(array $data);
+  return $this->repository->{{methodName}}(array $data);
 controllerMethod: store(Request $request)
 controllerContent: |
-  \t\t$item = $this->service->create($request->all());
+  \t\t$item = $this->service->{{methodName}}($request->all());
   \t\treturn response()->json($item, 201);

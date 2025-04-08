@@ -4,11 +4,8 @@ import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
+import { importTemplateAsPlaceholder } from '@/utils/project-builder/template-processors/importTemplateAsPlaceholder.ts';
 
-/**
- * Processes a file-based template structure and converts it to a format
- * that can be used for iteration and template generation.
- */
 export const processFileBasedTemplate = (
   folderPath: string,
   userFiles: IStructure,
@@ -16,7 +13,8 @@ export const processFileBasedTemplate = (
   table: ISchemaInfo,
   template: string,
   includedFiles: string[] = [],
-  excludedFiles: string[] = []
+  excludedFiles: string[] = [],
+  separator = '\n'
 ): string => {
   // Navigate to the specified folder path
   const pathParts = folderPath.split('/').filter(Boolean);
@@ -119,24 +117,61 @@ export const processFileBasedTemplate = (
         }
       });
 
-      // Add table replacements for other placeholders that might be in the template
-      const replacements = {
-        ...getReplacementsForTable(table, schemaInfoParsed),
-        ...folderValues,
-      };
+      // Process nested placeholders within folder values
+      // This allows properties to reference each other
+      try {
+        // First, process any placeholders within the folder values
+        const processedFolderValues = { ...folderValues };
+        for (const [key, value] of Object.entries(folderValues)) {
+          if (typeof value === 'string' && value.includes('{{')) {
+            const processed = importTemplateAsPlaceholder(value, folderValues);
+            processedFolderValues[key] = typeof processed === 'string' 
+              ? processed 
+              : Array.isArray(processed) 
+                ? processed.join(', ') 
+                : String(processed);
+          }
+        }
 
-      // Apply template with replacements
-      const processedTemplate = replacePlaceholders(
-        template,
-        replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-      );
+        // Add table replacements for other placeholders that might be in the template
+        const replacements = {
+          ...getReplacementsForTable(table, schemaInfoParsed),
+          ...processedFolderValues,
+        };
 
-      results.push(processedTemplate);
+        // Apply template with replacements
+        const processedTemplate = replacePlaceholders(
+          template,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          table,
+        );
+
+        results.push(processedTemplate);
+      } catch {
+        // If there's an error in processing nested placeholders, fall back to the original behavior
+        
+        // Add table replacements for other placeholders that might be in the template
+        const replacements = {
+          ...getReplacementsForTable(table, schemaInfoParsed),
+          ...folderValues,
+        };
+
+        // Apply template with replacements without trying to resolve nested placeholders
+        const processedTemplate = replacePlaceholders(
+          template,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          table,
+        );
+
+        results.push(processedTemplate);
+      }
     }
   });
 
-  return results.join('\n');
+  // Join results with the specified separator
+  return results.join(separator);
 };

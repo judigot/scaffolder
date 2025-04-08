@@ -13,7 +13,6 @@ export interface IActionFlags {
   [ACTION_FLAGS.SCOPED]?: boolean;
   [ACTION_FLAGS.EXCLUDE_TABLE]?: string;
   [ACTION_FLAGS.IS_RELATIVE_PATH]?: boolean;
-  [ACTION_FLAGS.FILE_BASED]?: boolean;
 }
 
 export interface IBuildContext {

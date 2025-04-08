@@ -1,4 +1,4 @@
-methodName: create
+methodName: createNextJS
 route: create nextjs
 description: Create a new record
 repositoryMethod: '{{methodName}}(array $data): Model'
