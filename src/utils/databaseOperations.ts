@@ -33,9 +33,7 @@ export const createOrResetDatabase = async (
       
       // Log for debugging (using allowed console method and redacting password)
       try {
-        const { username, host, port, dbName, dbType } = extractDBConnectionInfo(connectionString);
-        console.error('Using connection string (credentials redacted):', 
-          `${dbType}://${username}:***@${host}:${String(port)}/${dbName}`);
+        const { dbType } = extractDBConnectionInfo(connectionString);
         extractedDbType = dbType;
       } catch (error) {
         return {
@@ -65,10 +63,6 @@ export const createOrResetDatabase = async (
       
       // Construct connection string
       connectionString = `${type}://${user}:${password}@${host}:${port}/${name}`;
-      
-      // Log for debugging (using allowed console method)
-      console.error('Using connection string (credentials redacted):', 
-        `${type}://${user}:***@${host}:${port}/${name}`);
 
       // Try to extract database connection info to verify the format is correct
       try {
