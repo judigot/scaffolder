@@ -1,6 +1,4 @@
-
-      ${{methodName}}d = $this->service->{{methodName}}($id);
-      return ${{methodName}}d
+      $result = $this->service->{{methodName}}($id);
+      return $result
             ? response()->json(['message' => 'Resource {{methodName}}d'])
             : response()->json(['message' => 'Resource not found'], 404);
-      

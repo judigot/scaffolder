@@ -1,5 +1,3 @@
-
         $criteria = $request->all();
         ${{methodName}} = $this->service->{{methodName}}($criteria);
         return response()->json(['{{methodName}}' => ${{methodName}}]);
-      

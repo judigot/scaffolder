@@ -1,4 +1,2 @@
-
       $item = $this->service->{{methodName}}($id);
       return response()->json($item);
-      

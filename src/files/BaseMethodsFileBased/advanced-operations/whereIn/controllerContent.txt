@@ -1,6 +1,4 @@
-
         $column = $request->input('column');
         $values = $request->input('values', []);
         $items = $this->service->{{methodName}}($column, $values);
         return response()->json($items);
-      

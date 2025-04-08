@@ -1,6 +1,4 @@
-
         $callback = function ($item) {
             return response()->json($item);
         };
         $this->service->{{methodName}}($callback);
-      

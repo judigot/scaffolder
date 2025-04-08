@@ -1,6 +1,4 @@
-
         $column = $request->input('column');
         $range = $request->input('range', []);
         $items = $this->service->{{methodName}}($column, $range);
         return response()->json($items);
-      
