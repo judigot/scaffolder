@@ -35,12 +35,12 @@ export const REGEX_PATTERNS = {
 } as const;
 
 export const LOOP_TABLES_REGEX = new RegExp(
-  `\\[\\[${TEMPLATE_ACTIONS.LOOP_TABLES.replace('(', '\\(').replace(')', '\\)')}\\s+--${ACTION_FLAGS.TEMPLATE}="([^"]+)"\\]\\]`,
+  `\\[\\[${TEMPLATE_ACTIONS.LOOP_TABLES.replace('(', '\\(').replace(')', '\\)')}(\\s+.*)\\]\\]`,
   'g',
 );
 
 export const LOOP_COLUMNS_REGEX = new RegExp(
-  `\\[\\[${TEMPLATE_ACTIONS.LOOP_COLUMNS.replace('(', '\\(').replace(')', '\\)')}\\s+--${ACTION_FLAGS.TEMPLATE}="([^"]+)"\\]\\]`,
+  `\\[\\[${TEMPLATE_ACTIONS.LOOP_COLUMNS.replace('(', '\\(').replace(')', '\\)')}(\\s+.*)\\]\\]`,
   'g',
 );
 

@@ -76,7 +76,29 @@ export const processLoopTables = (
 ): string => {
   return content.replace(
     LOOP_TABLES_REGEX,
-    (_match: string, templateContent: string) => {
+    (_match: string, options: string) => {
+      // Parse options
+      const templateMatch = TEMPLATE_MATCH_REGEX.exec(options);
+      const separatorMatch = SEPARATOR_MATCH_REGEX.exec(options);
+      
+      if (!templateMatch) {
+        return ''; // No template provided, cannot proceed
+      }
+      
+      // Get template content
+      const templateContent = templateMatch[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\s/g, ' ');
+      
+      // Get separator if provided, or use default indent
+      const separator = separatorMatch
+        ? separatorMatch[1]
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\s/g, ' ')
+        : '\n    '; // Default separator for PHP files with indentation
+      
       return schemaInfo
         .map((table) => {
           const replacements = getReplacementsForTable(table, schemaInfoParsed);
@@ -88,7 +110,7 @@ export const processLoopTables = (
             table,
           );
         })
-        .join('\n    '); // Add proper indentation for PHP files
+        .join(separator);
     },
   );
 };
