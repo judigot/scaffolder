@@ -1,10 +1,11 @@
 hooks:
   shared:
-    - CREATE_FILE(useIndex.ts --template /Templates/frontend/nextjs/hooks/shared/useIndex.txt)
-    - CREATE_FILE(useFindById.ts --template /Templates/frontend/nextjs/hooks/shared/useFindById.txt)
-    - CREATE_FILE(useCreate.ts --template /Templates/frontend/nextjs/hooks/shared/useCreate.txt)
-    - CREATE_FILE(useUpdate.ts --template /Templates/frontend/nextjs/hooks/shared/useUpdate.txt)
-    - CREATE_FILE(useDelete.ts --template /Templates/frontend/nextjs/hooks/shared/useDelete.txt)
+    - CREATE_BASE_METHOD_FILE(use{{methodName}}.ts --template /BaseMethodsFileBased/**/**/sharedHook.txt)
+    # - CREATE_FILE(useIndex.ts --template /Templates/frontend/nextjs/hooks/shared/useIndex.txt)
+    # - CREATE_FILE(useFindById.ts --template /Templates/frontend/nextjs/hooks/shared/useFindById.txt)
+    # - CREATE_FILE(useCreate.ts --template /Templates/frontend/nextjs/hooks/shared/useCreate.txt)
+    # - CREATE_FILE(useUpdate.ts --template /Templates/frontend/nextjs/hooks/shared/useUpdate.txt)
+    # - CREATE_FILE(useDelete.ts --template /Templates/frontend/nextjs/hooks/shared/useDelete.txt)
   FOLDER_LOOP({{tableNameKebabCaseSingular}}):
     - CREATE_FILE(useIndex{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useIndexEntity.txt)
     - CREATE_FILE(useFindById{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useFindByIdEntity.txt)

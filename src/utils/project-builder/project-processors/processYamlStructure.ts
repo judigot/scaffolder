@@ -11,6 +11,7 @@ import { processIterateInTemplate } from '@/utils/project-builder/template-proce
 import { processLoopTables } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
 import { importProject } from '@/utils/project-builder/project-processors/importProject.ts';
+import { createBaseMethodFile } from '@/utils/project-builder/project-processors/createBaseMethodFile.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
@@ -51,6 +52,111 @@ export const processYamlStructure = ({
         projectYamlPath, 
         true
       );
+    }
+
+    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_BASE_METHOD_FILE}(`)) {
+      // Skip file if conditions are not met
+      const conditions = options[ACTION_FLAGS.CONDITIONS];
+      if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
+        return [];
+      }
+
+      const schemaInfoProcessed =
+        schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+      if (!schemaInfoProcessed) {
+        return [];
+      }
+
+      // When inside a dynamic folder context with --scoped flag,
+      // use only the current table context rather than looping over all tables
+      const scopedOption = options[ACTION_FLAGS.SCOPED];
+      if (table && (scopedOption ?? false)) {
+        return createBaseMethodFile(
+          extractedParams,
+          userFiles,
+          schemaInfo,
+          schemaInfoParsed,
+          table,
+          projectYamlPath
+        );
+      }
+
+      const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
+      const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
+
+      if (
+        (includeTableOption != null && includeTableOption.trim().length > 0) ||
+        (excludeTableOption != null && excludeTableOption.trim().length > 0) ||
+        Boolean(options[ACTION_FLAGS.SCOPED])
+      ) {
+        const filteredResults: IStructure = [];
+
+        for (const currentTable of schemaInfo) {
+          const replacements = getReplacementsForTable(currentTable, schemaInfoParsed);
+
+          // Check include filter
+          if (
+            includeTableOption != null &&
+            includeTableOption.trim().length > 0
+          ) {
+            const processedIncludeTable = replacePlaceholders(
+              String(options[ACTION_FLAGS.INCLUDE_TABLE]),
+              replacements,
+              userFiles,
+              schemaInfoParsed,
+              currentTable,
+            );
+            if (currentTable.tableName !== processedIncludeTable) {
+              continue;
+            }
+          }
+
+          // Check exclude filter
+          if (
+            excludeTableOption != null &&
+            excludeTableOption.trim().length > 0
+          ) {
+            const processedExcludeTable = replacePlaceholders(
+              String(options[ACTION_FLAGS.EXCLUDE_TABLE]),
+              replacements,
+              userFiles,
+              schemaInfoParsed,
+              currentTable,
+            );
+            if (currentTable.tableName === processedExcludeTable) {
+              continue;
+            }
+          }
+
+          const files = createBaseMethodFile(
+            extractedParams,
+            userFiles,
+            schemaInfo,
+            schemaInfoParsed,
+            currentTable,
+            projectYamlPath
+          );
+
+          filteredResults.push(...files);
+        }
+
+        return filteredResults;
+      }
+
+      // Default processing for all tables
+      const allResults: IStructure = [];
+      for (const currentTable of schemaInfo) {
+        const files = createBaseMethodFile(
+          extractedParams,
+          userFiles,
+          schemaInfo,
+          schemaInfoParsed,
+          currentTable,
+          projectYamlPath
+        );
+        allResults.push(...files);
+      }
+      return allResults;
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
