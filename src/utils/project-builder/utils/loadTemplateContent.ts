@@ -1,5 +1,7 @@
 import { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { processRelativePath } from '@/utils/project-builder/utils/processRelativePath.ts';
+import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
+import { TEMPLATE_OPTIONS } from '@/utils/project-builder/constants/templateActions.ts';
 
 export const loadTemplateContent = (
   userFiles: IStructure,
@@ -75,7 +77,10 @@ const processTemplateContent = (content: string): string => {
     const placeholders: string[] = [];
     let index = 0;
 
-    const pattern = /(--template="[^"]*"|--separator="[^"]*")/g;
+    // Create the pattern using object literal constants instead of hardcoded flags
+    const templateFlag = `--${ACTION_FLAGS.TEMPLATE}`;
+    const separatorFlag = `--${TEMPLATE_OPTIONS.SEPARATOR}`;
+    const pattern = new RegExp(`(${templateFlag}="[^"]*"|${separatorFlag}="[^"]*")`, 'g');
 
     // 1) Temporarily replace those segments with placeholders
     let protectedString = input.replace(pattern, (match: string) => {

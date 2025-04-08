@@ -5,7 +5,10 @@ import { findFolderByPath } from '@/utils/project-builder/utils/folderUtils.ts';
 import {
   findFoldersWithWildcard
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
-import { RECURSIVE_WILDCARD_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import {
+  RECURSIVE_WILDCARD_REGEX, FOLDER_PATH_REGEX
+} from '@/utils/project-builder/constants/templateActions.ts';
+import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 
 interface ICreateBaseMethodFileOptions {
   template: string;
@@ -18,8 +21,9 @@ interface ICreateBaseMethodFileOptions {
 const parseCreateBaseMethodFileOptions = (
   command: string
 ): ICreateBaseMethodFileOptions => {
-  // Extract template option (--template=...)
-  const templateMatch = /--template[= ]([^\s]+)/.exec(command);
+  // Extract template option using the constants
+  const templateRegex = new RegExp(`--${ACTION_FLAGS.TEMPLATE}[= ]([^\\s]+)`);
+  const templateMatch = templateRegex.exec(command);
   const templatePath = templateMatch ? String(templateMatch[1] || '') : '';
   
   // Extract the file name before any options
@@ -192,8 +196,8 @@ export const createBaseMethodFile = (
     }
   } else {
     // ----- Direct path handling -----
-    // Check if it's a folder path
-    const folderMatch = /^\/(.+)$/.exec(templatePath);
+    // Check if it's a folder path using the constants
+    const folderMatch = FOLDER_PATH_REGEX.exec(templatePath);
     
     if (folderMatch) {
       const folderPath = folderMatch[1] || '';

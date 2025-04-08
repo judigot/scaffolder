@@ -1,6 +1,9 @@
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { IActionFlags } from '@/utils/project-builder/interfaces/interfaces.ts';
 
+// Flag prefix used for all command options
+const FLAG_PREFIX = '--';
+
 const parseConditions = (value: string): string[] => {
   const trimmedValue = value.trim();
   if (trimmedValue.startsWith('[') && trimmedValue.endsWith(']')) {
@@ -22,7 +25,7 @@ const parseQuotedOrRawValue = (value: string): string => {
 export const parseCommand = (
   command: string,
 ): { command: string; options: IActionFlags } => {
-  const [mainCommandPart, ...optionParts] = command.split('--');
+  const [mainCommandPart, ...optionParts] = command.split(FLAG_PREFIX);
   const mainCommand = mainCommandPart.trim().replace(/[()]/g, '');
   const options: IActionFlags = {};
 
