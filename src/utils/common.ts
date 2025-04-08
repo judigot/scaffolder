@@ -22,9 +22,9 @@ export function changeCase(input: string): TableCaseFormatsObject {
   ];
 
   const capitalize = (str: string) =>
-    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    str.charAt(0).toUpperCase() + str.slice(1);
   const joinWords = (arr: string[], separator: string) =>
-    arr.join(separator).toLowerCase();
+    arr.join(separator);
   const titleCase = (arr: string[]) => arr.map(capitalize).join(' ');
 
   /* prettier-ignore */
