@@ -18,7 +18,7 @@ class {{tableNamePascalCase}}Controller extends BaseController
         $this->repository = ${{tableName}}Repository;
     }
 
-[[LOOP(/BaseMethodsNew/crud-file-based) --file-based --template="    public function {{controllerMethod}}
+[[LOOP(/BaseMethodsNew/crud-file-based) --template="    public function {{controllerMethod}}
     {
 {{controllerContent}}    }"]]
 

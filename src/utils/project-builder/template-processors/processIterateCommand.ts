@@ -14,7 +14,6 @@ import {
   REMOVE_DUPLICATES_REGEX,
   USE_CONSTANT_REGEX,
   FOLDER_PATH_REGEX,
-  FILE_BASED_REGEX,
   RECURSIVE_WILDCARD_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
@@ -27,6 +26,47 @@ import {
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
+
+/**
+ * Find a folder in the file structure given a path
+ */
+const findFolderByPath = (path: string, userFiles: IStructure): IFolder | undefined => {
+  const pathParts = path.split('/').filter(Boolean);
+  let currentFolder: IFolder | undefined;
+
+  // Start from root
+  const store = userFiles;
+
+  // If no path parts, return undefined as we're at root level
+  if (pathParts.length === 0) {
+    return undefined;
+  }
+  
+  // Find the first level folder
+  currentFolder = store.find(
+    (item): item is IFolder =>
+      item.type === 'folder' && item.name === pathParts[0],
+  );
+
+  // Navigate through the rest of the path
+  for (let i = 1; i < pathParts.length && currentFolder; i++) {
+    currentFolder = currentFolder.children.find(
+      (item): item is IFolder =>
+        item.type === 'folder' && item.name === pathParts[i],
+    );
+  }
+
+  return currentFolder;
+};
+
+/**
+ * Check if a folder contains any YAML files
+ */
+const folderContainsYamlFiles = (folder: IFolder): boolean => {
+  return folder.children.some(item => 
+    item.type === 'file' && (item.name.endsWith('.yml') || item.name.endsWith('.yaml'))
+  );
+};
 
 export const processLoopTables = (
   content: string,
@@ -76,7 +116,6 @@ export const processIterateCommand = (
   const filterMatch = FILTER_MATCH_REGEX.exec(options);
   const includedFilesMatch = INCLUDE_FILES_MATCH_REGEX.exec(options);
   const excludedFilesMatch = EXCLUDE_FILES_MATCH_REGEX.exec(options);
-  const isFileBased = FILE_BASED_REGEX.test(options);
 
   // Process escape sequences in template
   const template = templateMatch
@@ -103,16 +142,26 @@ export const processIterateCommand = (
     ? excludedFilesMatch[1].split(',').map((item) => item.trim())
     : [];
 
-  const recursiveWildcardMatch =
-    RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
+  // Check for recursive wildcard path
+  const recursiveWildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
+  
   if (recursiveWildcardMatch) {
     // Get the wildcard pattern
     const [, wildcardPath] = recursiveWildcardMatch;
 
     // Process all matching folders using the wildcard pattern
     const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
+    
+    // For wildcard paths, check if any of the matching folders contain YAML files
+    let shouldBeFileBased = false;
+    
+    if (matchingFolders.length > 0) {
+      // If none of the folders contain YAML files, use file-based mode
+      const anyFolderHasYaml = matchingFolders.some(folder => folderContainsYamlFiles(folder));
+      shouldBeFileBased = !anyFolderHasYaml;
+    }
 
-    if (isFileBased) {
+    if (shouldBeFileBased) {
       const results: string[] = [];
 
       for (const folder of matchingFolders) {
@@ -137,19 +186,34 @@ export const processIterateCommand = (
 
       return results.join('\n');
     }
+    // For non-file-based approach, continue with normal processing
   }
 
-  if (isFileBased) {
-    return processFileBasedTemplate(
-      propertyPathsStr,
-      userFiles,
-      schemaInfoParsed,
-      table,
-      template,
-      includedFiles,
-      excludedFiles,
-      separator
-    );
+  // For regular folder paths, check if we should auto-detect file-based mode
+  const folderPathMatch = FOLDER_PATH_REGEX.exec(propertyPathsStr);
+  if (folderPathMatch) {
+    const [, folderPath] = folderPathMatch;
+    const targetFolder = findFolderByPath(folderPath, userFiles);
+    
+    let shouldBeFileBased = false;
+    
+    if (targetFolder) {
+      // If the folder doesn't contain any YAML files, use file-based mode
+      shouldBeFileBased = !folderContainsYamlFiles(targetFolder);
+    }
+    
+    if (shouldBeFileBased) {
+      return processFileBasedTemplate(
+        propertyPathsStr,
+        userFiles,
+        schemaInfoParsed,
+        table,
+        template,
+        includedFiles,
+        excludedFiles,
+        separator
+      );
+    }
   }
 
   // Parse ignore list with flexible whitespace and handle USE_CONSTANT
