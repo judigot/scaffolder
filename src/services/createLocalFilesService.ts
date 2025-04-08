@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import path from 'node:path';
 import fs from 'node:fs';
 import { IStructure } from '@/components/FileViewer.tsx';
@@ -11,6 +12,7 @@ import { format as formatSQL } from 'sql-formatter';
 import generateSQLInserts from '@/utils/generateSQLInserts.ts';
 import generateMockData from '@/utils/generateMockData.ts';
 import { IFormStore } from '@/useFormStore.ts';
+import { isUsingLocalFiles } from '@/hooks/useUserFiles.ts';
 
 interface ICreateLocalFilesRequest {
   schemaInfo: ISchemaInfo[];
@@ -35,17 +37,20 @@ export const createLocalFilesService = async (
 ): Promise<ICreateLocalFilesResponse> => {
   const { schemaInfo, SQLSchema, formData } = data;
   const { publicRepoURL, backendDir, selectedProject } = formData;
-  
+
   // Extract projectName from formData or use default
   let projectName = 'my-app';
-  
-  if (typeof formData.projectName === 'string' && formData.projectName.trim() !== '') {
+
+  if (
+    typeof formData.projectName === 'string' &&
+    formData.projectName.trim() !== ''
+  ) {
     projectName = formData.projectName;
   } else if (selectedProject !== null && selectedProject !== undefined) {
     // Check if it's an object with a name property
     if (
-      typeof selectedProject === 'object' && 
-      'name' in selectedProject && 
+      typeof selectedProject === 'object' &&
+      'name' in selectedProject &&
       typeof selectedProject.name === 'string' &&
       selectedProject.name.trim() !== ''
     ) {
@@ -56,23 +61,28 @@ export const createLocalFilesService = async (
   try {
     // Get user files from the public repo
     const response = await fetch(
-      'http://localhost:5000/getUserFilesFromPublicRepo',
+      isUsingLocalFiles
+        ? 'http://localhost:5000/getUserFiles'
+        : 'http://localhost:5000/getUserFilesFromPublicRepo',
       {
-        method: 'POST',
+        method: isUsingLocalFiles ? 'GET' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          publicRepoURL,
-          // Include selected project info if available
-          selectedProject: (
-            selectedProject !== null &&
-            selectedProject !== undefined &&
-            typeof selectedProject === 'object' && 
-            'name' in selectedProject && 
-            typeof selectedProject.name === 'string'
-          ) ? { name: selectedProject.name } : undefined
-        }),
+        body: isUsingLocalFiles
+          ? undefined
+          : JSON.stringify({
+              publicRepoURL,
+              // Include selected project info if available
+              selectedProject:
+                selectedProject !== null &&
+                selectedProject !== undefined &&
+                typeof selectedProject === 'object' &&
+                'name' in selectedProject &&
+                typeof selectedProject.name === 'string'
+                  ? { name: selectedProject.name }
+                  : undefined,
+            }),
       },
     );
 
@@ -88,7 +98,7 @@ export const createLocalFilesService = async (
 
     // Build project files
     const projectFiles = buildProjectFiles(
-      `/Projects/${String(projectName)}`,
+      `/Projects/${String(projectName)}/structure.yaml`,
       userFiles,
       schemaInfo,
     );
@@ -109,43 +119,48 @@ export const createLocalFilesService = async (
     try {
       // If SQLSchema is provided, use it; otherwise generate it
       let fullSQLSchema: string;
-      
+
       if (SQLSchema !== null) {
         fullSQLSchema = SQLSchema;
       } else {
         // Generate SQL Schema - following the pattern from useTransformationsStore.ts
         const deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
         let sqlSchema = generateSQLSchema(schemaInfo);
-        
+
         // Include insert data (mock data)
         try {
           const mockData = generateMockData({
             mockDataRows: 5,
             schemaInfo,
           });
-          
+
           const sqlInsertQueries = generateSQLInserts(mockData);
           sqlSchema += `\n\n${sqlInsertQueries}`;
         } catch (mockError) {
           console.error('Error generating mock data:', mockError);
         }
-        
+
         // Format the full SQL schema with delete statements
         fullSQLSchema = `${deleteTablesQueries.join('\n')}\n\n${formatSQL(sqlSchema)}`;
       }
-      
+
       // Log SQL schema length for debugging (using approved console method)
-      console.error(`Generated SQL schema with ${String(fullSQLSchema.length)} characters`);
-      
+      console.error(
+        `Generated SQL schema with ${String(fullSQLSchema.length)} characters`,
+      );
+
       // Extract database info from formData.dbConnection for database creation
       const { dbConnection } = formData;
-      
+
       // Use database connection directly if available
       if (dbConnection) {
         try {
           // Use the utility function to reset the database with the schema
-          const dbResult = await createOrResetDatabase(dbConnection, fullSQLSchema);
-          
+          const dbResult = await createOrResetDatabase(
+            dbConnection,
+            fullSQLSchema,
+          );
+
           if (!dbResult.success) {
             console.error('Database creation failed:', dbResult.message);
             return {

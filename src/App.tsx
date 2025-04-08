@@ -17,6 +17,7 @@ import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 import { useUserFiles } from '@/hooks/useUserFiles.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 
 function App() {
   const formData = useFormStore();
@@ -51,6 +52,11 @@ function App() {
     setTransformations,
     setSchemaInfo,
   } = useTransformationsStore();
+
+  const folderStructures = useFolderStructures({
+    schemaInfo,
+    formData,
+  });
 
   // Use both stores
   const { setUserFiles } = useMockDatabaseStore();
@@ -782,11 +788,11 @@ function App() {
                           folderStructure={builtProjectFiles}
                           projectName={selectedProject.name}
                         />
-                        {/* <FileViewer
-                        mode="view"
-                        folderStructure={folderStructures[framework]}
-                      />
-                      <FileViewer
+                        <FileViewer
+                          mode="view"
+                          folderStructure={folderStructures.Laravel}
+                        />
+                      {/* <FileViewer
                         mode="view"
                         folderStructure={folderStructures.frontend}
                       /> */}

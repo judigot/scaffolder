@@ -1,0 +1,11 @@
+<?php
+
+namespace App\Repositories;
+
+use App\Models\{{tableNamePascalCase}};
+use Illuminate\Support\Collection;
+use App\Repositories\BaseInterface;
+
+interface {{tableNamePascalCase}}Interface extends BaseInterface
+{
+}

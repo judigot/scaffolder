@@ -15,7 +15,7 @@ interface IErrorResponse {
   error?: string;
 }
 
-const isUsingLocalFiles = true;
+export const isUsingLocalFiles = true;
 
 /**
  * Fetches project files from a public GitHub repository

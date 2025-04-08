@@ -2,7 +2,6 @@
 
 namespace App\Repositories;
 
-{{modelImports}}
 use Illuminate\Support\Collection;
 use App\Models\{{tableNamePascalCase}};
 use App\Repositories\BaseRepository;
@@ -13,5 +12,4 @@ class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tabl
     {
         parent::__construct($model);
     }
-{{modelSpecificMethods}}
 }

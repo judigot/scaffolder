@@ -6,6 +6,7 @@ use App\Http\Controllers\{{tableNamePascalCase}}Controller;
 // Custom routes for {{tableNamePascalCase}}
 
 // Base routes
+[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n" --template="// {{description}}\n{{route}}"]]
 
 // Resource routes for {{tableNamePascalCase}}
 Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
