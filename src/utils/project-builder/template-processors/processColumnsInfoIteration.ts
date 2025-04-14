@@ -72,6 +72,7 @@ export const processColumnsInfoIteration = (
       schemaInfoParsed,
       tableObj,
       projectFilePath,
+      processedTemplate
     );
     if (result.trim()) {
       results.push(result);

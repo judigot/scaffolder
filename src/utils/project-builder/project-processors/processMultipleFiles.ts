@@ -70,6 +70,7 @@ export const processMultipleFiles = ({
             schemaInfoParsed,
             table,
             projectYamlPath,
+            fileName
           );
           if (table.tableName !== processedIncludeTable) {
             return false;
@@ -89,6 +90,7 @@ export const processMultipleFiles = ({
           schemaInfoParsed,
           table,
           projectYamlPath,
+          fileName
         );
         if (table.tableName === processedExcludeTable) {
           return false;
@@ -106,6 +108,7 @@ export const processMultipleFiles = ({
         schemaInfoParsed,
         table,
         projectYamlPath,
+        fileName
       );
 
       const outputFileName = processedName.includes('/')
@@ -126,6 +129,7 @@ export const processMultipleFiles = ({
         schemaInfoParsed,
         table,
         projectYamlPath,
+        typeof templateOption === 'string' && templateOption.length > 0 ? templateOption : fileName
       );
       content = processIterateInTemplate(
         content,

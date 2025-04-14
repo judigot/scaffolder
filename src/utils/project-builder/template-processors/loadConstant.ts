@@ -68,7 +68,15 @@ export const loadConstant = (
     if (table) {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
       return rawValues.map((value) =>
-        replacePlaceholders(value, replacements, userFiles, schemaInfoParsed, table, projectFilePath),
+        replacePlaceholders(
+          value, 
+          replacements, 
+          userFiles, 
+          schemaInfoParsed, 
+          table, 
+          projectFilePath,
+          constantName
+        ),
       );
     }
 

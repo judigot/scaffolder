@@ -148,6 +148,7 @@ export const processFileBasedTemplate = (
           schemaInfoParsed,
           table,
           projectFilePath,
+          folderPath
         );
 
         results.push(processedTemplate);
@@ -168,6 +169,7 @@ export const processFileBasedTemplate = (
           schemaInfoParsed,
           table,
           projectFilePath,
+          folderPath
         );
 
         results.push(processedTemplate);

@@ -578,6 +578,7 @@ export const processIterateCommand = (
       schemaInfoParsed,
       table,
       projectFilePath,
+      template
     );
   });
 

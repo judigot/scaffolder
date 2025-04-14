@@ -11,6 +11,7 @@ export const processCommand = (
   userFiles: IStructure,
   schemaInfoParsed: ISchemaInfoResult,
   table?: ISchemaInfo,
+  templateFilePath?: string,
   projectFilePath?: string,
 ): string => {
   // Process all commands in order of specificity
@@ -40,7 +41,8 @@ export const processCommand = (
   );
 
   // Then, process USE_TEMPLATE commands to include other templates
-  result = processUseTemplate(result, userFiles, schemaInfoParsed, projectFilePath, table);
+  // Pass both templateFilePath and projectFilePath to properly handle relative paths
+  result = processUseTemplate(result, userFiles, schemaInfoParsed, templateFilePath, projectFilePath, table);
 
   const iterateRegex = new RegExp(
     `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,

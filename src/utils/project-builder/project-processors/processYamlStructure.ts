@@ -114,6 +114,7 @@ export const processYamlStructure = ({
           schemaInfoParsed,
           table,
           projectYamlPath,
+          command
         );
 
         // Extract the base filename from the processed path if it contains slashes
@@ -134,6 +135,7 @@ export const processYamlStructure = ({
           schemaInfoParsed,
           table,
           projectYamlPath,
+          typeof templatePath === 'string' && templatePath.length > 0 ? templatePath : command
         );
 
         content = processIterateInTemplate(
@@ -195,6 +197,7 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         schemaInfoProcessed,
         projectYamlPath,
+        node
       );
 
       processedContent = processIterateInTemplate(
