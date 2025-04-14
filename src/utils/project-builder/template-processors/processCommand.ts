@@ -4,12 +4,14 @@ import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { IStructure } from '@/components/FileViewer.tsx';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
+import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
 
 export const processCommand = (
   text: string,
   userFiles: IStructure,
   schemaInfoParsed: ISchemaInfoResult,
   table?: ISchemaInfo,
+  projectFilePath?: string,
 ): string => {
   // Process all commands in order of specificity
   let result = text;
@@ -32,9 +34,13 @@ export const processCommand = (
         userFiles,
         schemaInfoParsed,
         table,
+        projectFilePath,
       ).join(',');
     },
   );
+
+  // Then, process USE_TEMPLATE commands to include other templates
+  result = processUseTemplate(result, userFiles, schemaInfoParsed, projectFilePath, table);
 
   const iterateRegex = new RegExp(
     `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
@@ -55,6 +61,7 @@ export const processCommand = (
         table,
         schemaInfoParsed,
         userFiles,
+        projectFilePath,
       );
       return cmdResult ? String(whitespace) + String(cmdResult) : '';
     },

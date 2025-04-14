@@ -3,26 +3,26 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import {
-  LOOP_COMMAND_REGEX,
-  LOOP_TABLES_REGEX,
-  TEMPLATE_MATCH_REGEX,
-  SEPARATOR_MATCH_REGEX,
-  FILTER_MATCH_REGEX,
-  IGNORE_MATCH_REGEX,
-  INCLUDE_FILES_MATCH_REGEX,
-  EXCLUDE_FILES_MATCH_REGEX,
-  REMOVE_DUPLICATES_REGEX,
-  USE_CONSTANT_REGEX,
-  FOLDER_PATH_REGEX,
-  RECURSIVE_WILDCARD_REGEX,
+    LOOP_COMMAND_REGEX,
+    LOOP_TABLES_REGEX,
+    TEMPLATE_MATCH_REGEX,
+    SEPARATOR_MATCH_REGEX,
+    FILTER_MATCH_REGEX,
+    IGNORE_MATCH_REGEX,
+    INCLUDE_FILES_MATCH_REGEX,
+    EXCLUDE_FILES_MATCH_REGEX,
+    REMOVE_DUPLICATES_REGEX,
+    USE_CONSTANT_REGEX,
+    FOLDER_PATH_REGEX,
+    RECURSIVE_WILDCARD_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
 import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import {
-  findFoldersWithWildcard,
-  buildFolderPath,
+    findFoldersWithWildcard,
+    buildFolderPath,
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
@@ -120,6 +120,7 @@ export const processIterateCommand = (
   table: ISchemaInfo | undefined,
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
+  projectFilePath?: string,
 ): string => {
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
@@ -362,6 +363,7 @@ export const processIterateCommand = (
       separator,
       schemaInfoParsed,
       userFiles,
+      projectFilePath,
     );
   }
 
@@ -575,6 +577,7 @@ export const processIterateCommand = (
       userFiles,
       schemaInfoParsed,
       table,
+      projectFilePath,
     );
   });
 

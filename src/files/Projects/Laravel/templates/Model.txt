@@ -22,20 +22,5 @@ class {{tableNamePascalCase}} extends Model
         [[ LOOP(requiredColumns) --template="'{{value}}'" --separator=",\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
     ];
 
-    [[ LOOP(hasOne) --template="public function {{valueSingular}}() {
-    return $this->hasOne({{valuePascalCaseSingular}}::class);
-    }" --separator="\n\n" ]]
-
-    [[ LOOP(hasMany) --template="public function {{valuePlural}}() {
-        return $this->hasMany({{valuePascalCaseSingular}}::class);
-    }" --separator="\n\n" ]]
-
-    [[ LOOP(pivotRelationships.relatedTable) --template="public function {{valuePlural}}() {
-        return $this->belongsToMany({{valuePascalCaseSingular}}::class);
-    }" --separator="\n\n" ]]
-
-    [[ LOOP(belongsTo) --template="public function {{valueSingular}}() {
-        return $this->belongsTo({{valuePascalCaseSingular}}::class);
-    }" --separator="\n\n" ]]
-
+[[USE_TEMPLATE(/DomainMethods/laravel/model.txt)]]
 }

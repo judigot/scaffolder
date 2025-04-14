@@ -11,6 +11,7 @@ export const processColumnsInfoIteration = (
   separatorStr: string,
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
+  projectFilePath?: string,
 ): string => {
   // Process each column individually
   const results: string[] = [];
@@ -70,6 +71,7 @@ export const processColumnsInfoIteration = (
       userFiles,
       schemaInfoParsed,
       tableObj,
+      projectFilePath,
     );
     if (result.trim()) {
       results.push(result);

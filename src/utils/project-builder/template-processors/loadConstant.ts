@@ -10,6 +10,7 @@ export const loadConstant = (
   userFiles: IStructure,
   schemaInfoParsed: ISchemaInfoResult,
   table?: ISchemaInfo,
+  projectFilePath?: string,
 ): string[] => {
   const store = userFiles;
   const constantsFolder = store.find(
@@ -67,7 +68,7 @@ export const loadConstant = (
     if (table) {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
       return rawValues.map((value) =>
-        replacePlaceholders(value, replacements, userFiles, schemaInfoParsed, table),
+        replacePlaceholders(value, replacements, userFiles, schemaInfoParsed, table, projectFilePath),
       );
     }
 

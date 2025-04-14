@@ -25,18 +25,23 @@ export const processMultipleFiles = ({
   userFiles,
   projectYamlPath,
 }: IMultipleFilesContext): IFile[] => {
+  if (!fileName || fileName.length === 0) {
+    return [];
+  }
+
+  // If the command was a parameter such as command(param), extracting just the command
+  const _fileNameWithoutParams = fileName.replace(/\([^)]*\)/g, '');
+
+  // Get the template name from either the explicit template option or use the filename
+  const templateOption = options[ACTION_FLAGS.TEMPLATE];
   let templateContent = '';
 
-  const templateOption = options[ACTION_FLAGS.TEMPLATE];
-  if (typeof templateOption === 'string' && templateOption.trim().length > 0) {
-    const loadedContent = loadTemplateContent(
+  if (templateOption !== undefined && templateOption.trim().length > 0) {
+    templateContent = loadTemplateContent(
       userFiles,
       templateOption,
       projectYamlPath,
     );
-    if (loadedContent.length > 0) {
-      templateContent = loadedContent;
-    }
   } else {
     templateContent = loadTemplateContent(userFiles, fileName, projectYamlPath);
   }
@@ -64,6 +69,7 @@ export const processMultipleFiles = ({
             userFiles,
             schemaInfoParsed,
             table,
+            projectYamlPath,
           );
           if (table.tableName !== processedIncludeTable) {
             return false;
@@ -82,6 +88,7 @@ export const processMultipleFiles = ({
           userFiles,
           schemaInfoParsed,
           table,
+          projectYamlPath,
         );
         if (table.tableName === processedExcludeTable) {
           return false;
@@ -98,6 +105,7 @@ export const processMultipleFiles = ({
         userFiles,
         schemaInfoParsed,
         table,
+        projectYamlPath,
       );
 
       const outputFileName = processedName.includes('/')
@@ -117,6 +125,7 @@ export const processMultipleFiles = ({
         userFiles,
         schemaInfoParsed,
         table,
+        projectYamlPath,
       );
       content = processIterateInTemplate(
         content,

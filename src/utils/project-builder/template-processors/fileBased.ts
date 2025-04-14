@@ -14,7 +14,8 @@ export const processFileBasedTemplate = (
   template: string,
   includedFiles: string[] = [],
   excludedFiles: string[] = [],
-  separator = '\n'
+  separator = '\n',
+  projectFilePath?: string,
 ): string => {
   // Navigate to the specified folder path
   const pathParts = folderPath.split('/').filter(Boolean);
@@ -146,6 +147,7 @@ export const processFileBasedTemplate = (
           userFiles,
           schemaInfoParsed,
           table,
+          projectFilePath,
         );
 
         results.push(processedTemplate);
@@ -165,6 +167,7 @@ export const processFileBasedTemplate = (
           userFiles,
           schemaInfoParsed,
           table,
+          projectFilePath,
         );
 
         results.push(processedTemplate);

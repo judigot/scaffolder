@@ -12,6 +12,7 @@ export const replacePlaceholders = (
   userFiles: IStructure,
   schemaInfoParsed: ISchemaInfoResult,
   table?: ISchemaInfo,
+  projectFilePath?: string,
 ): string => {
   // Process all commands
   const processedText = processCommand(
@@ -19,6 +20,7 @@ export const replacePlaceholders = (
     userFiles,
     schemaInfoParsed,
     table,
+    projectFilePath,
   );
 
   // Process IF conditions
