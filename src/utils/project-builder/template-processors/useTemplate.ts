@@ -69,7 +69,6 @@ export const processUseTemplate = (
       );
       
       if (!templateContent || templateContent.length === 0) {
-        console.warn(`Template not found: ${String(cleanPath)}`);
         return `<!-- Template not found: ${String(cleanPath)} -->`;
       }
       

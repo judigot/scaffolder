@@ -32,22 +32,23 @@ export const replacePlaceholders = (
   try {
     const processedPlaceholders = importTemplateAsPlaceholder(
       processedConditions,
-      replacements
+      replacements,
     );
-    
+
     return typeof processedPlaceholders === 'string'
       ? processedPlaceholders
       : Array.isArray(processedPlaceholders)
         ? processedPlaceholders.join(',')
         : String(processedPlaceholders);
-  } catch (error) {
-    // If there's an error in placeholder processing, fall back to the original behavior
-    console.error('Error processing nested placeholders:', error);
-    
+  } catch {
     // Original placeholder processing for backward compatibility
     return processedConditions.replace(
       /\$_([^_]+)_\$|\{\{([^}]+)\}\}/g,
-      (_, placeholder1: string | undefined, placeholder2: string | undefined) => {
+      (
+        _,
+        placeholder1: string | undefined,
+        placeholder2: string | undefined,
+      ) => {
         const key = (placeholder2 ?? placeholder1 ?? '').trim();
         if (key.length === 0) {
           return '';
