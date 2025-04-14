@@ -17,4 +17,6 @@ class {{tableNamePascalCase}}Controller extends BaseController
         parent::__construct(${{tableName}}Service);
         $this->repository = ${{tableName}}Repository;
     }
+
+[[USE_TEMPLATE(/DomainMethods/laravel/controller.txt)]]
 }

@@ -1,0 +1,9 @@
+[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?Model;" --separator="\n" ]]
+
+[[ LOOP(pivotRelationships.pivotTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection;
+    public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection;" --separator="\n" ]]
+
+[[ LOOP(pivotRelationships.relatedTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection;
+    public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection;" --separator="\n" ]]
+
+[[ LOOP(belongsTo) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?Model;" --separator="\n" ]]

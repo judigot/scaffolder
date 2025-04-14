@@ -8,4 +8,5 @@ use App\Repositories\BaseInterface;
 
 interface {{tableNamePascalCase}}Interface extends BaseInterface
 {
+[[USE_TEMPLATE(/DomainMethods/laravel/interface.txt)]]
 }

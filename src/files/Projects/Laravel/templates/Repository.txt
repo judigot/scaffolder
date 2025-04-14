@@ -12,4 +12,6 @@ class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tabl
     {
         parent::__construct($model);
     }
+
+[[USE_TEMPLATE(/DomainMethods/laravel/repository.txt)]]
 }
