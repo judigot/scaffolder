@@ -15,6 +15,11 @@ abstract class BaseService
         $this->repository = $repository;
     }
 
+    public function getSortedQuery(?string $column = 'id', string $direction = 'asc'): \Illuminate\Database\Eloquent\Builder 
+    {
+        return $this->repository->getSortedQuery ($column, $direction); 
+    }
+
     // Base Service Methods
 [[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="    public function {{serviceMethod}}
     {

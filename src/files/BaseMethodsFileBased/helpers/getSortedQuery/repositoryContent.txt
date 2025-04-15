@@ -1,4 +1,0 @@
-        $query = $this->model->query();
-        $column ??= $this->model->getKeyName(); // Use model's primary key if column is null
-
-        return $query->orderBy($column, $direction);

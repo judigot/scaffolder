@@ -15,6 +15,14 @@ abstract class BaseRepository implements BaseInterface
         $this->model = $model;
     }
 
+    public function getSortedQuery(?string $column = null, string $direction = 'asc'): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = $this->model->query();
+        $column ??= $this->model->getKeyName(); // Use model's primary key if column is null
+
+        return $query->orderBy($column, $direction);
+    }
+
     // Base Methods
 [[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="    public function {{repositoryMethod}}
     {
