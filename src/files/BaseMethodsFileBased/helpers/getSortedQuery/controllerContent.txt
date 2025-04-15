@@ -1,0 +1,2 @@
+// This method is not directly exposed in the controller as it's an internal utility method.
+// It is used by other controller methods that need sorted query results. 

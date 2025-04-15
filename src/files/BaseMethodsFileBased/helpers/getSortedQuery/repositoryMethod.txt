@@ -1,0 +1,1 @@
+{{methodName}}(?string $column = null, string $direction = 'asc'): \Illuminate\Database\Eloquent\Builder

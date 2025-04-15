@@ -1,1 +1,1 @@
-return $this->model->all();
+return $this->getSortedQuery($column, $direction)->get();

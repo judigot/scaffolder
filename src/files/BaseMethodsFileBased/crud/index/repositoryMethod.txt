@@ -1,1 +1,1 @@
-{{methodName}}(): Collection
+{{methodName}}(?string $column = null, string $direction = 'asc'): Collection

@@ -1,4 +1,2 @@
-
         $record = $this->model->find($id);
         return $record ? $record->{{methodName}}() : false;
-      

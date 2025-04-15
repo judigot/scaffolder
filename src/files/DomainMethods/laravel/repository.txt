@@ -18,12 +18,9 @@
 
     public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
     {
-        $query = $this->model->query();
+        $query = QueryHelper::getSortedQuery($this->model, $column, $direction);
         if ($includeRelated) {
-            $query->with('{{valuePlural}}');
-        }
-        if ($column) {
-            $query->orderBy($column, $direction);
+            $query->with('orders');
         }
         return $query->get();
     }" --separator="\n\n" ]]
@@ -39,12 +36,9 @@
 
     public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
     {
-        $query = $this->model->query();
+        $query = QueryHelper::getSortedQuery($this->model, $column, $direction);
         if ($includeRelated) {
-            $query->with('{{valuePlural}}');
-        }
-        if ($column) {
-            $query->orderBy($column, $direction);
+            $query->with('orders');
         }
         return $query->get();
     }" --separator="\n\n" ]]
