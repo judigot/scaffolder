@@ -28,7 +28,7 @@ export type TemplateOption =
 
 // Regex pattern helper functions
 export const REGEX_PATTERNS = {
-  TEMPLATE_OPTION: (flag: string) => `--${flag}="([^"]+)"`,
+  TEMPLATE_OPTION: (flag: string) => `--${flag}="(.*?)"`,
   BOOLEAN_FLAG: (flag: string) => `--${flag}`,
   USE_CONSTANT: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_CONSTANT}\\(([^)]+)\\)\\s*\\]\\]`,
   USE_TEMPLATE: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_TEMPLATE}\\(([^)]+)\\)\\s*\\]\\]`,
@@ -47,7 +47,7 @@ export const LOOP_COLUMNS_REGEX = new RegExp(
 );
 
 export const LOOP_COMMAND_REGEX = new RegExp(
-  `${TEMPLATE_ACTIONS.LOOP}\\((.*?)(?:\\)(\\s*.*))?$`,
+  `${TEMPLATE_ACTIONS.LOOP}\\((.*?)\\)(.*)$`,
 );
 
 export const TEMPLATE_MATCH_REGEX = new RegExp(

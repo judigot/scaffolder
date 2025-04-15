@@ -44,8 +44,9 @@ export const processCommand = (
   // Pass both templateFilePath and projectFilePath to properly handle relative paths
   result = processUseTemplate(result, userFiles, schemaInfoParsed, templateFilePath, projectFilePath, table);
 
+  // Modified regex to handle square brackets in template strings
   const iterateRegex = new RegExp(
-    `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
+    `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^)]*?)\\)(.*?)\\]\\]`,
     'g',
   );
 
