@@ -3,15 +3,15 @@
 namespace App\Repositories;
 
 [[ LOOP(hasMany, pivotRelationships.relatedTable) --template="use App\Models\{{valuePascalCase}};" --separator="\n" ]]
-use App\Models\{{tableNamePascalCase}};
+use App\Models\{{tableNamePascalCaseSingular}};
 use Illuminate\Support\Collection;
 use App\Repositories\BaseRepository;
 
-class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tableNamePascalCase}}Interface
+class {{tableNamePascalCaseSingular}}Repository extends BaseRepository implements {{tableNamePascalCaseSingular}}Interface
 {
-    public function __construct({{tableNamePascalCase}} $model)
+    public function __construct({{tableNamePascalCaseSingular}} ${{tableNameSingular}})
     {
-        parent::__construct($model);
+        parent::__construct(${{tableNameSingular}});
     }
 
 [[USE_TEMPLATE(/DomainMethods/laravel/repository.txt)]]

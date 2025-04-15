@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{{tableNamePascalCase}};
-use App\Repositories\{{tableNamePascalCase}}Interface;
-use App\Services\{{tableNamePascalCase}}Service;
+use App\Models\{{tableNamePascalCaseSingular}};
+use App\Repositories\{{tableNamePascalCaseSingular}}Interface;
+use App\Services\{{tableNamePascalCaseSingular}}Service;
 use Illuminate\Http\Request;
 use App\Http\Controllers\BaseController;
 
-class {{tableNamePascalCase}}Controller extends BaseController
+class {{tableNamePascalCaseSingular}}Controller extends BaseController
 {
     protected $repository;
 
-    public function __construct({{tableNamePascalCase}}Interface ${{tableName}}Repository, {{tableNamePascalCase}}Service ${{tableName}}Service)
+    public function __construct({{tableNamePascalCaseSingular}}Interface ${{tableNameSingular}}Repository, {{tableNamePascalCaseSingular}}Service ${{tableNameSingular}}Service)
     {
-        parent::__construct(${{tableName}}Service);
-        $this->repository = ${{tableName}}Repository;
+        parent::__construct(${{tableNameSingular}}Service);
+        $this->repository = ${{tableNameSingular}}Repository;
     }
 
 [[USE_TEMPLATE(/DomainMethods/laravel/controller.txt)]]

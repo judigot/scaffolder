@@ -3,11 +3,11 @@
 namespace App\Repositories;
 
 [[ LOOP(hasMany, pivotRelationships.relatedTable) --template="use App\Models\{{valuePascalCase}};" --separator="\n" ]]
-use App\Models\{{tableNamePascalCase}};
+use App\Models\{{tableNamePascalCaseSingular}};
 use Illuminate\Support\Collection;
 use App\Repositories\BaseInterface;
 
-interface {{tableNamePascalCase}}Interface extends BaseInterface
+interface {{tableNamePascalCaseSingular}}Interface extends BaseInterface
 {
 [[USE_TEMPLATE(/DomainMethods/laravel/interface.txt)]]
 }

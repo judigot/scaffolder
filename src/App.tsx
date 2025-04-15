@@ -789,7 +789,7 @@ function App() {
                           projectName={selectedProject.name}
                         />
                         <FileViewer
-                          mode="view"
+                          mode="edit"
                           folderStructure={folderStructures.Laravel}
                         />
                       {/* <FileViewer
