@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="use App\Models\{{valuePascalCase}};" --separator="\n" ]]
 use App\Models\{{tableNamePascalCase}};
 use Illuminate\Support\Collection;
 use App\Repositories\BaseInterface;
