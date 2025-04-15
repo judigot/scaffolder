@@ -4,6 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{{tableNamePascalCaseSingular}}Controller;
 
 // Custom routes for {{tableNamePascalCaseSingular}}
+[[ LOOP(hasOne) --template="Route::get('{{tableNamePlural}}/{id}/{{valueSingular}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCaseSingular}}'])->name('{{tableNamePlural}}.{{valueSingular}}');" --separator="\n" ]]
+
+[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="Route::get('{{tableNamePlural}}/{id}/{{valuePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCasePlural}}'])->name('{{tableNamePlural}}.{{valuePlural}}');" --separator="\n" ]]
+
+[[ LOOP(belongsTo) --template="Route::get('{{tableNamePlural}}/{id}/{{valueSingular}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCaseSingular}}'])->name('{{tableNamePlural}}.{{valueSingular}}');" --separator="\n" ]]
 
 // Base routes
 [[LOOP(/BaseMethodsFileBased/**/**) --separator="\n" --template="// {{description}}\n{{route}}"]]
