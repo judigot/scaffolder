@@ -1,1 +1,1 @@
-Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-trashed');
+Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-trashed');

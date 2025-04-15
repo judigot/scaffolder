@@ -1,12 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{{tableNamePascalCase}}Controller;
+use App\Http\Controllers\{{tableNamePascalCaseSingular}}Controller;
 
-// Custom routes for {{tableNamePascalCase}}
+// Custom routes for {{tableNamePascalCaseSingular}}
 
 // Base routes
 [[LOOP(/BaseMethodsFileBased/**/**) --separator="\n" --template="// {{description}}\n{{route}}"]]
 
-// Resource routes for {{tableNamePascalCase}}
-Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
+// Resource routes for {{tableNamePascalCaseSingular}}
+Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCaseSingular}}Controller::class);

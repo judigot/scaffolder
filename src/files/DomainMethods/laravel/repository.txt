@@ -1,4 +1,4 @@
-[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?Model
+[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?{{valuePascalCaseSingular}}
     {
         $query = $this->model->findOrFail($id)->{{valueSingular}}();
         if ($column) {
@@ -7,7 +7,7 @@
         return $query->first();
     }" --separator="\n\n" ]]
 
-[[ LOOP(pivotRelationships.pivotTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
+[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
     {
         $query = $this->model->findOrFail($id)->{{valuePlural}}();
         if ($column) {
@@ -18,25 +18,7 @@
 
     public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
     {
-        $query = QueryHelper::getSortedQuery($this->model, $column, $direction);
-        if ($includeRelated) {
-            $query->with('orders');
-        }
-        return $query->get();
-    }" --separator="\n\n" ]]
-
-[[ LOOP(pivotRelationships.relatedTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
-    {
-        $query = $this->model->findOrFail($id)->{{valuePlural}}();
-        if ($column) {
-            $query->orderBy($column, $direction);
-        }
-        return $query->get();
-    }
-
-    public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
-    {
-        $query = QueryHelper::getSortedQuery($this->model, $column, $direction);
+        $query = $this->getSortedQuery($this->model, $column, $direction);
         if ($includeRelated) {
             $query->with('orders');
         }

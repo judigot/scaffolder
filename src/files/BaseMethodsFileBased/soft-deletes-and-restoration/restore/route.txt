@@ -1,1 +1,1 @@
-Route::put('{{tableNameKebabCasePlural}}/{id}/{{methodName}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');
+Route::put('{{tableNameKebabCasePlural}}/{id}/{{methodName}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');

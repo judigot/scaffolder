@@ -1,1 +1,1 @@
-Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.batch-update');
+Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.batch-update');
