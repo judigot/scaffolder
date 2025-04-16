@@ -10,6 +10,7 @@ import {
   getForeignTables,
   getRequiredColumns,
 } from '@/utils/convertIntrospectedStructure.ts';
+import { sortTablesBasedOnHierarchy } from '@/utils/sortTablesBasedOnHierarchy.ts';
 
 /* Relationship Rules:
 
@@ -314,61 +315,6 @@ export const addAssociations = (
   });
 
   return tempSchemaInfo;
-};
-
-/*
-  Sort tables topologically, so that parent tables appear before child tables.
-*/
-export const sortTablesBasedOnHierarchy = (
-  schemaInfo: ISchemaInfo[],
-): ISchemaInfo[] => {
-  if (isAlreadySorted(schemaInfo)) {
-    return schemaInfo; /* Return original if already sorted */
-  }
-
-  const sorted: ISchemaInfo[] = [];
-  const visited = new Set<string>();
-
-  const visit = (table: ISchemaInfo) => {
-    if (visited.has(table.tableName)) {
-      return;
-    }
-    visited.add(table.tableName);
-
-    if (table.childTables != null) {
-      table.childTables.forEach((childTable) => {
-        const childRelationship = schemaInfo.find(
-          (r) => r.tableName === childTable,
-        );
-        if (childRelationship) {
-          visit(childRelationship);
-        }
-      });
-    }
-
-    sorted.push(table);
-  };
-
-  schemaInfo.forEach((table) => {
-    visit(table);
-  });
-
-  return sorted.reverse();
-};
-
-/*
-  Check whether schemaInfo is already sorted: 
-  Each table's childTables (if any) should appear only after the current table.
-*/
-export const isAlreadySorted = (schemaInfo: ISchemaInfo[]): boolean => {
-  return schemaInfo.every(
-    (relationship, i) =>
-      relationship.childTables == null ||
-      relationship.childTables.every(
-        (childTable) =>
-          schemaInfo.findIndex((r) => r.tableName === childTable) > i,
-      ),
-  );
 };
 
 /*
