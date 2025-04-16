@@ -17,6 +17,7 @@ import { IStructure } from '@/components/FileViewer.tsx';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
+import { sortTablesBasedOnHierarchy } from '@/utils/sortTablesBasedOnHierarchy.ts';
 
 interface ITransformations extends Record<PropertyKey, unknown> {
   schemaInfo: ISchemaInfo[];
@@ -69,8 +70,10 @@ export const useTransformationsStore = create<ITransformations>()(
         const { invalidateProjectCache, selectedProject, projectBuildCache } =
           useProjectStore.getState();
 
+        const sortedSchemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
+
         // First update the schema info in our store
-        set({ schemaInfo });
+        set({ schemaInfo: sortedSchemaInfo });
 
         // Invalidate the built project cache
 
