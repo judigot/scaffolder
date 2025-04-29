@@ -22,5 +22,10 @@ class {{tableNamePascalCaseSingular}} extends Model
         [[ LOOP(requiredColumns) --template="'{{value}}'" --separator=",\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
     ];
 
+    public function getForeignKey()
+    {
+        return $this->primaryKey;
+    }
+
 [[USE_TEMPLATE(/DomainMethods/laravel/model.txt)]]
 }
