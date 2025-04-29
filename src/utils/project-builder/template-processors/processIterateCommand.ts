@@ -3,26 +3,26 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import {
-    LOOP_COMMAND_REGEX,
-    LOOP_TABLES_REGEX,
-    TEMPLATE_MATCH_REGEX,
-    SEPARATOR_MATCH_REGEX,
-    FILTER_MATCH_REGEX,
-    IGNORE_MATCH_REGEX,
-    INCLUDE_FILES_MATCH_REGEX,
-    EXCLUDE_FILES_MATCH_REGEX,
-    REMOVE_DUPLICATES_REGEX,
-    USE_CONSTANT_REGEX,
-    FOLDER_PATH_REGEX,
-    RECURSIVE_WILDCARD_REGEX,
+  LOOP_COMMAND_REGEX,
+  LOOP_TABLES_REGEX,
+  TEMPLATE_MATCH_REGEX,
+  SEPARATOR_MATCH_REGEX,
+  FILTER_MATCH_REGEX,
+  IGNORE_MATCH_REGEX,
+  INCLUDE_FILES_MATCH_REGEX,
+  EXCLUDE_FILES_MATCH_REGEX,
+  REMOVE_DUPLICATES_REGEX,
+  USE_CONSTANT_REGEX,
+  FOLDER_PATH_REGEX,
+  RECURSIVE_WILDCARD_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
 import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import {
-    findFoldersWithWildcard,
-    buildFolderPath,
+  findFoldersWithWildcard,
+  buildFolderPath,
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
@@ -165,80 +165,6 @@ export const processIterateCommand = (
     ? excludedFilesMatch[1].split(',').map((item) => item.trim())
     : [];
 
-  // Check for recursive wildcard path
-  const recursiveWildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
-  
-  if (recursiveWildcardMatch) {
-    // Get the wildcard pattern
-    const [, wildcardPath] = recursiveWildcardMatch;
-
-    // Process all matching folders using the wildcard pattern
-    const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
-    
-    // For wildcard paths, check if any of the matching folders contain YAML files
-    let shouldBeFileBased = false;
-    
-    if (matchingFolders.length > 0) {
-      // If none of the folders contain YAML files, use file-based mode
-      const anyFolderHasYaml = matchingFolders.some(folder => folderContainsYamlFiles(folder));
-      shouldBeFileBased = !anyFolderHasYaml;
-    }
-
-    if (shouldBeFileBased) {
-      const results: string[] = [];
-
-      for (const folder of matchingFolders) {
-        // Construct the full path to this folder
-        const fullPath = buildFolderPath(folder, userFiles);
-
-        const processedTemplate = processFileBasedTemplate(
-          fullPath,
-          userFiles,
-          schemaInfoParsed,
-          table,
-          template,
-          includedFiles,
-          excludedFiles,
-          separator
-        );
-
-        if (processedTemplate) {
-          results.push(processedTemplate);
-        }
-      }
-
-      return results.join('\n');
-    }
-    // For non-file-based approach, continue with normal processing
-  }
-
-  // For regular folder paths, check if we should auto-detect file-based mode
-  const folderPathMatch = FOLDER_PATH_REGEX.exec(propertyPathsStr);
-  if (folderPathMatch) {
-    const [, folderPath] = folderPathMatch;
-    const targetFolder = findFolderByPath(folderPath, userFiles);
-    
-    let shouldBeFileBased = false;
-    
-    if (targetFolder) {
-      // If the folder doesn't contain any YAML files, use file-based mode
-      shouldBeFileBased = !folderContainsYamlFiles(targetFolder);
-    }
-    
-    if (shouldBeFileBased) {
-      return processFileBasedTemplate(
-        propertyPathsStr,
-        userFiles,
-        schemaInfoParsed,
-        table,
-        template,
-        includedFiles,
-        excludedFiles,
-        separator
-      );
-    }
-  }
-
   // Parse ignore list with flexible whitespace and handle USE_CONSTANT
   const ignoreList = ignoreMatch
     ? ignoreMatch[1]
@@ -267,6 +193,117 @@ export const processIterateCommand = (
         })
         .flat()
     : [];
+
+  // Helper function to check if a folder should be ignored based on its path
+  const shouldIgnoreFolder = (folderPath: string): boolean => {
+    // Check if the folder path matches any of the ignore patterns
+    return ignoreList.some(ignorePath => {
+      if (typeof ignorePath !== 'string') {
+        return false;
+      }
+      
+      // Handle directory wildcards in ignore pattern
+      if (ignorePath.endsWith('/**')) {
+        // Remove the trailing /** for direct path prefix matching
+        const pathPrefix = ignorePath.replace(/\/\*\*$/, '');
+        return folderPath === pathPrefix || folderPath.startsWith(`${pathPrefix}/`);
+      }
+      
+      // Handle exact directory matches
+      if (ignorePath.startsWith('/')) {
+        return folderPath === ignorePath || folderPath.startsWith(`${ignorePath}/`);
+      }
+      
+      // For patterns, check if the folder path includes the pattern
+      return folderPath.includes(ignorePath);
+    });
+  };
+
+  // Check for recursive wildcard path
+  const recursiveWildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
+  
+  if (recursiveWildcardMatch) {
+    // Get the wildcard pattern
+    const [, wildcardPath] = recursiveWildcardMatch;
+
+    // Process all matching folders using the wildcard pattern
+    const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
+    
+    // Filter out folders that should be ignored
+    const filteredFolders = matchingFolders.filter(folder => {
+      const fullPath = buildFolderPath(folder, userFiles);
+      return !shouldIgnoreFolder(fullPath);
+    });
+    
+    // For wildcard paths, check if any of the matching folders contain YAML files
+    let shouldBeFileBased = false;
+    
+    if (filteredFolders.length > 0) {
+      // If none of the folders contain YAML files, use file-based mode
+      const anyFolderHasYaml = filteredFolders.some(folder => folderContainsYamlFiles(folder));
+      shouldBeFileBased = !anyFolderHasYaml;
+    }
+
+    if (shouldBeFileBased) {
+      const results: string[] = [];
+
+      for (const folder of filteredFolders) {
+        // Construct the full path to this folder
+        const fullPath = buildFolderPath(folder, userFiles);
+
+        const processedTemplate = processFileBasedTemplate(
+          fullPath,
+          userFiles,
+          schemaInfoParsed,
+          table,
+          template,
+          includedFiles,
+          excludedFiles,
+          separator
+        );
+
+        if (processedTemplate) {
+          results.push(processedTemplate);
+        }
+      }
+
+      return results.join('\n');
+    }
+    // For non-file-based approach, continue with normal processing
+  }
+
+  // For regular folder paths, check if we should auto-detect file-based mode
+  const folderPathMatch = FOLDER_PATH_REGEX.exec(propertyPathsStr);
+  if (folderPathMatch) {
+    const [, folderPath] = folderPathMatch;
+    
+    // Check if this folder should be ignored
+    if (shouldIgnoreFolder(`/${folderPath}`)) {
+      return ''; // Skip this folder
+    }
+    
+    const targetFolder = findFolderByPath(folderPath, userFiles);
+    
+    let shouldBeFileBased = false;
+    
+    if (targetFolder) {
+      // If the folder doesn't contain any YAML files, use file-based mode
+      shouldBeFileBased = !folderContainsYamlFiles(targetFolder);
+    }
+    
+    if (shouldBeFileBased) {
+      return processFileBasedTemplate(
+        propertyPathsStr,
+        userFiles,
+        schemaInfoParsed,
+        table,
+        template,
+        includedFiles,
+        excludedFiles,
+        separator
+      );
+    }
+  }
 
   // Parse filter list with flexible whitespace and handle USE_CONSTANT
   const filterList = filterMatch
@@ -390,8 +427,14 @@ export const processIterateCommand = (
           wildcardPath,
         );
 
+        // Filter out folders that should be ignored
+        const filteredFolders = matchingFolders.filter(folder => {
+          const fullPath = buildFolderPath(folder, userFiles);
+          return !shouldIgnoreFolder(fullPath);
+        });
+
         // Process files from each matching folder
-        for (const folder of matchingFolders) {
+        for (const folder of filteredFolders) {
           processFilesInFolder(
             folder,
             includedFiles,
@@ -406,6 +449,12 @@ export const processIterateCommand = (
       }
 
       const [, folderPath] = folderMatch;
+      
+      // Check if this folder should be ignored
+      if (shouldIgnoreFolder(`/${folderPath}`)) {
+        continue; // Skip this folder
+      }
+      
       // Navigate through the folder structure
       const pathParts = folderPath.split('/').filter(Boolean);
       let currentFolder: IFolder | undefined;

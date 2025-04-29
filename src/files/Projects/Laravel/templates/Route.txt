@@ -11,7 +11,7 @@ use App\Http\Controllers\{{tableNamePascalCaseSingular}}Controller;
 [[ LOOP(belongsTo) --template="Route::get('{{tableNamePlural}}/{id}/{{valueSingular}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCaseSingular}}'])->name('{{tableNamePlural}}.{{valueSingular}}');" --separator="\n" ]]
 
 // Base routes
-[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n" --template="// {{description}}\n{{route}}"]]
+[[LOOP(/BaseMethodsFileBased/**/**) --ignore="/BaseMethodsFileBased/crud/**" --separator="\n" --template="// {{description}}\n{{route}}"]]
 
 // Resource routes for {{tableNamePascalCaseSingular}}
 Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCaseSingular}}Controller::class);
