@@ -1,35 +1,25 @@
-[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?{{valuePascalCaseSingular}}
+[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id): ?{{valuePascalCaseSingular}}
     {
-        $query = $this->model->findOrFail($id)->{{valueSingular}}();
-        if ($column) {
-            $query->orderBy($column, $direction);
-        }
-        return $query->first();
+        return $this->model->findOrFail($id)->{{valueSingular}};
     }" --separator="\n\n" ]]
 
 [[ LOOP(hasMany, pivotRelationships.relatedTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
     {
         $query = $this->model->findOrFail($id)->{{valuePlural}}();
-        if ($column) {
-            $query->orderBy($column, $direction);
-        }
-        return $query->get();
+        $column ??= $query->getModel()->getKeyName();
+        return $query->orderBy($column, $direction)->get();
     }
 
     public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
     {
-        $query = $this->getSortedQuery($this->model, $column, $direction);
+        $query = $this->getSortedQuery($column, $direction);
         if ($includeRelated) {
-            $query->with('orders');
+            $query->with('{{valuePlural}}');
         }
         return $query->get();
     }" --separator="\n\n" ]]
 
-[[ LOOP(belongsTo) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?Model
+[[ LOOP(belongsTo) --template="    public function get{{valuePascalCaseSingular}}(int $id): ?Model
     {
-        $query = $this->model->findOrFail($id)->{{valueSingular}}();
-        if ($column) {
-            $query->orderBy($column, $direction);
-        }
-        return $query->first();
+        return $this->model->findOrFail($id)->{{valueSingular}};
     }" --separator="\n\n" ]]

@@ -1,6 +1,6 @@
-[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?Model
+[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id): ?Model
     {
-        return $this->repository->get{{valuePascalCaseSingular}}($id, $column, $direction);
+        return $this->repository->get{{valuePascalCaseSingular}}($id);
     }" --separator="\n\n" ]]
 
 [[ LOOP(pivotRelationships.pivotTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
@@ -23,7 +23,7 @@
         return $this->repository->getAllWithRelated{{valuePascalCasePlural}}($includeRelated, $column, $direction);
     }" --separator="\n\n" ]]
 
-[[ LOOP(belongsTo) --template="    public function get{{valuePascalCaseSingular}}(int $id, ?string $column = null, string $direction = 'asc'): ?Model
+[[ LOOP(belongsTo) --template="    public function get{{valuePascalCaseSingular}}(int $id): ?Model
     {
-        return $this->repository->get{{valuePascalCaseSingular}}($id, $column, $direction);
+        return $this->repository->get{{valuePascalCaseSingular}}($id);
     }" --separator="\n\n" ]]
