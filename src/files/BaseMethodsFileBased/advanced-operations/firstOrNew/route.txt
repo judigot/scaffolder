@@ -1,1 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/first-or-new - Finds a {{tableNamePascalCaseSingular}} record or returns a new instance if not found
 Route::post('{{tableNameKebabCasePlural}}/first-or-new', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.first-or-new');

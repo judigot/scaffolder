@@ -1,1 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/with-relations - Retrieves {{tableNamePascalCaseSingular}} resources with their related models
 Route::get('{{tableNameKebabCasePlural}}/with-relations', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-relations');

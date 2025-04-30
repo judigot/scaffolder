@@ -1,1 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodName}} - Retrieves random {{tableNamePascalCaseSingular}} resources
 Route::get('{{tableNameKebabCasePlural}}/{{methodName}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');

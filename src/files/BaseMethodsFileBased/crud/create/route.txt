@@ -1,1 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}} - Creates a new {{tableNamePascalCaseSingular}} resource
 Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');

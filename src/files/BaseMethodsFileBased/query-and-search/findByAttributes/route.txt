@@ -1,1 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/find-by-attributes?{{getAllColumns()}}=1 - Finds {{tableNamePascalCaseSingular}} resources matching specific attributes
 Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');

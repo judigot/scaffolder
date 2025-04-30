@@ -1,1 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{id} - Updates an existing {{tableNamePascalCaseSingular}} resource by ID
 Route::put('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');

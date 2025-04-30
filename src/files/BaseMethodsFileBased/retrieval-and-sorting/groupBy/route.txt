@@ -1,1 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/group-by - Groups {{tableNamePascalCaseSingular}} resources by a specified column
 Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.group-by');
