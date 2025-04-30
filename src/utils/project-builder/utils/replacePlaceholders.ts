@@ -5,7 +5,12 @@ import { processCommand } from '@/utils/project-builder/template-processors/proc
 import { processIfConditions } from '@/utils/project-builder/template-processors/processIfConditions.ts';
 import { importTemplateAsPlaceholder } from '@/utils/project-builder/template-processors/importTemplateAsPlaceholder.ts';
 import { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
 
+/**
+ * Replaces placeholders in a template with values from the replacements object
+ * Enhanced version that properly handles dynamic properties like array separators and indexed access
+ */
 export const replacePlaceholders = (
   text: string,
   replacements: Replacements,
@@ -35,31 +40,17 @@ export const replacePlaceholders = (
       replacements,
     );
 
-    return typeof processedPlaceholders === 'string'
+    // Convert result to string
+    const processedResult = typeof processedPlaceholders === 'string'
       ? processedPlaceholders
       : Array.isArray(processedPlaceholders)
         ? processedPlaceholders.join(',')
         : String(processedPlaceholders);
+    
+    // Process any remaining dynamic properties
+    return processDynamicProperties(processedResult, replacements);
   } catch {
-    // Original placeholder processing for backward compatibility
-    return processedConditions.replace(
-      /\$_([^_]+)_\$|\{\{([^}]+)\}\}/g,
-      (
-        _,
-        placeholder1: string | undefined,
-        placeholder2: string | undefined,
-      ) => {
-        const key = (placeholder2 ?? placeholder1 ?? '').trim();
-        if (key.length === 0) {
-          return '';
-        }
-        if (!(key in replacements)) {
-          return key;
-        }
-        const value = replacements[key];
-        // Handle array values by joining them with commas
-        return Array.isArray(value) ? value.join(',') : value;
-      },
-    );
+    // If there was an error in the template processing, fall back to direct dynamic property processing
+    return processDynamicProperties(processedConditions, replacements);
   }
 };
