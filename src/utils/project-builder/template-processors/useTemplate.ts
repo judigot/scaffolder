@@ -7,7 +7,6 @@ import { USE_TEMPLATE_REGEX } from '@/utils/project-builder/constants/templateAc
 import { isPathRelative, getProjectDirectory } from '@/utils/project-builder/utils/processRelativePath.ts';
 
 /**
- * Processes the USE_TEMPLATE command in a template.
  * This command allows including the content of another template file, supporting both
  * absolute and relative paths.
  * 
@@ -33,8 +32,11 @@ export const processUseTemplate = (
   projectFilePath?: string,
   table?: ISchemaInfo,
 ): string => {
+  // Create a new RegExp with the global flag to match all occurrences
+  const globalUseTemplateRegex = new RegExp(USE_TEMPLATE_REGEX.source, 'g');
+  
   return text.replace(
-    USE_TEMPLATE_REGEX,
+    globalUseTemplateRegex,
     (_match: string, importPath: string) => {
       // Trim whitespace and quotes
       const cleanPath = String(importPath).trim().replace(/^['"]|['"]$/g, '');

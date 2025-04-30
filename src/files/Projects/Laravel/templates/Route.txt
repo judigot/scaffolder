@@ -4,10 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{{tableNamePascalCaseSingular}}Controller;
 
 // Custom routes for {{tableNamePascalCaseSingular}}
-[[ LOOP(hasOne) --template="Route::get('{{tableNamePlural}}/{id}/{{valueSingular}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCaseSingular}}'])->name('{{tableNamePlural}}.{{valueSingular}}');" --separator="\n" ]]
-[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="Route::get('{{tableNamePlural}}/{id}/{{valuePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCasePlural}}'])->name('{{tableNamePlural}}.{{valuePlural}}');
-Route::get('{{tableNamePlural}}/get-all-with-related-{{valuePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'getAllWithRelated{{valuePascalCasePlural}}'])->name('{{tableNamePlural}}.get-all-with-related-{{valuePlural}}');" --separator="\n" ]]
-[[ LOOP(belongsTo) --template="Route::get('{{tableNamePlural}}/{id}/{{valueSingular}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCaseSingular}}'])->name('{{tableNamePlural}}.{{valueSingular}}');" --separator="\n" ]]
+[[ LOOP(hasOne) --template="[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]" --separator="\n" ]]
+[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="[[USE_TEMPLATE(/DomainMethods/hasMany/laravel/route.txt)]]\n[[USE_TEMPLATE(/DomainMethods/getAllWithRelated/laravel/route.txt)]]" --separator="\n" ]]
+[[ LOOP(belongsTo) --template="[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]" --separator="\n" ]]
 
 // Base routes
 [[LOOP(/BaseMethodsFileBased/**/**) --ignore="/BaseMethodsFileBased/crud/**" --separator="\n" --template="// {{description}}\n{{route}}"]]
