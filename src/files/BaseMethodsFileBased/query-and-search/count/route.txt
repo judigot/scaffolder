@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodName}} - Counts {{tableNamePascalCaseSingular}} resources matching specified criteria
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodName}}?{{getAllColumns()[0]}}=value&{{getAllColumns()[1]}}=value - Counts {{tableNamePascalCaseSingular}} resources matching specified criteria
 Route::get('{{tableNameKebabCasePlural}}/{{methodName}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');

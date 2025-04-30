@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodName}} - Searches for {{tableNamePascalCaseSingular}} resources based on provided criteria
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodName}}?query=value&columns[]={{getAllColumns()[0]}}&columns[]={{getAllColumns()[1]}} - Searches for {{tableNamePascalCaseSingular}} resources based on provided criteria
 Route::get('{{tableNameKebabCasePlural}}/{{methodName}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');
