@@ -1,0 +1,9 @@
+export const {{methodName}} = async (id) => {
+  try {
+    const response = await axiosInstance.delete(`{{tableNameKebabCasePlural}}/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error in {{methodName}} operation:', error);
+    throw error;
+  }
+}; 

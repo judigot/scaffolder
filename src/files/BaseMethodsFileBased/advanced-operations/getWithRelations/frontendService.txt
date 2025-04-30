@@ -1,0 +1,11 @@
+export const {{methodName}} = async (relations = []) => {
+  try {
+    const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/with-relations`, {
+      params: { relations }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error in {{methodName}} operation:', error);
+    throw error;
+  }
+}; 

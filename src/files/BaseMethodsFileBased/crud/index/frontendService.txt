@@ -1,0 +1,9 @@
+export const {{methodName}} = async (params = {}) => {
+  try {
+    const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error in {{methodName}} operation:', error);
+    throw error;
+  }
+}; 

@@ -1,0 +1,12 @@
+export const {{methodName}} = async (data, callback, chunkSize = 100) => {
+  try {
+    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/{{methodName}}`, {
+      data,
+      chunkSize
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error in {{methodName}} operation:', error);
+    throw error;
+  }
+}; 

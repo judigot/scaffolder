@@ -1,0 +1,11 @@
+export const {{methodName}} = async (records) => {
+  try {
+    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/batch-update`, {
+      records
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error in {{methodName}} operation:', error);
+    throw error;
+  }
+}; 
