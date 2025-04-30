@@ -5,7 +5,12 @@ import { {{tableNamePascalCase}} } from '@/interfaces/I{{tableNamePascalCaseSing
 /**
  * {{description}}
  */
-export const {{methodName}} = async (...args: unknown[]): Promise<unknown> => {
-  // {{frontendService}}
+export const {{methodName}} = async {{frontendServiceMethod}} => {
+  try {
+{{frontendServiceContent}}
+  } catch (error) {
+    console.error('Error in {{methodName}} operation:', error);
+    throw error;
+  }
 };
 "]]

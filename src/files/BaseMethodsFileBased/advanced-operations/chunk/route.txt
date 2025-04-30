@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodName}} - Processes data in chunks for better performance and memory usage
-Route::post('{{tableNameKebabCasePlural}}/{{methodName}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');
+// http://127.0.0.1:8000/api/{{url}} - Processes data in chunks for better performance and memory usage
+Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');
