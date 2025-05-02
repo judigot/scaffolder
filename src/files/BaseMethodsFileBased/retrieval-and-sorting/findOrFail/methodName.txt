@@ -1,1 +1,1 @@
-findOrFail
+find or fail

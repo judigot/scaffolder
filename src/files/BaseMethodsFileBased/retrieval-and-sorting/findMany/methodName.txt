@@ -1,1 +1,1 @@
-findMany
+find many

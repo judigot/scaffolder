@@ -1,1 +1,1 @@
-softDelete
+soft delete
