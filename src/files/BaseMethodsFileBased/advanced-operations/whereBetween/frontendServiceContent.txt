@@ -1,13 +1,6 @@
-export const {{methodNameCamelCase}} = async (column, min, max) => {
-  try {
-    const response = await axiosInstance.post(`{{url}}`, {
-      column,
-      min, 
-      max
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error in {{methodName}} operation:', error);
-    throw error;
-  }
-}; 
+const response = await axiosInstance.post(`{{url}}`, {
+  column,
+  min, 
+  max
+});
+return response.data; 

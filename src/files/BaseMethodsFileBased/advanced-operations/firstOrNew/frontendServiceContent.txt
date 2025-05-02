@@ -1,12 +1,6 @@
-export const {{methodNameCamelCase}} = async (searchCriteria, values = {}) => {
-  try {
-    const response = await axiosInstance.post(`{{url}}`, {
-      searchCriteria,
-      values
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error in {{methodName}} operation:', error);
-    throw error;
-  }
-}; 
+const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/first-or-new`, {
+  data,
+  callback: callback?.toString(),
+  chunkSize
+});
+return response.data; 

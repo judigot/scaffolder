@@ -1,11 +1,4 @@
-export const {{methodNameCamelCase}} = async (column, key = null) => {
-  try {
-    const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}`, {
-      params: { column, key }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error in {{methodName}} operation:', error);
-    throw error;
-  }
-}; 
+const response = await axiosInstance.get(`{{url}}`, {
+  params: { column, key }
+});
+return response.data; 
