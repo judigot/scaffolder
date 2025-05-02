@@ -1,6 +1,6 @@
 export const {{methodNameCamelCase}} = async (column, min, max) => {
   try {
-    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/where-between`, {
+    const response = await axiosInstance.post(`{{url}}`, {
       column,
       min, 
       max

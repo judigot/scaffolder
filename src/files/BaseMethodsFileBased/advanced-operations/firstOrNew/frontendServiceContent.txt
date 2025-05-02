@@ -1,6 +1,6 @@
 export const {{methodNameCamelCase}} = async (searchCriteria, values = {}) => {
   try {
-    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/first-or-new`, {
+    const response = await axiosInstance.post(`{{url}}`, {
       searchCriteria,
       values
     });

@@ -1,6 +1,6 @@
 export const {{methodNameCamelCase}} = async (records) => {
   try {
-    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/update-or-create`, {
+    const response = await axiosInstance.post(`{{url}}`, {
       records
     });
     return response.data;

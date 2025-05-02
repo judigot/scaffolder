@@ -1,6 +1,6 @@
 export const {{methodNameCamelCase}} = async (column, values) => {
   try {
-    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/where-not-in`, {
+    const response = await axiosInstance.post(`{{url}}`, {
       column,
       values
     });

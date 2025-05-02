@@ -1,6 +1,6 @@
 export const {{methodNameCamelCase}} = async (relations = []) => {
   try {
-    const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/with-relations`, {
+    const response = await axiosInstance.get(`{{url}}`, {
       params: { relations }
     });
     return response.data;
