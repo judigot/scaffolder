@@ -1,1 +1,1 @@
-{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}
+{{tableNameKebabCasePlural}}/{id}

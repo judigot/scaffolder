@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{id}/{{methodName}} - Restores a soft-deleted {{tableNamePascalCaseSingular}} resource by ID
-Route::put('{{tableNameKebabCasePlural}}/{id}/{{methodName}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');
+// http://127.0.0.1:8000/api/{{url}}/{{methodName}} - Restores a soft-deleted {{tableNamePascalCaseSingular}} resource by ID
+Route::put('{{url}}/{{methodName}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');
