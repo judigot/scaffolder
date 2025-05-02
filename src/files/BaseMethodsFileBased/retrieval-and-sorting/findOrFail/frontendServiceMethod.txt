@@ -1,0 +1,1 @@
+(data, callback, chunkSize = 100): Promise<unknown>
