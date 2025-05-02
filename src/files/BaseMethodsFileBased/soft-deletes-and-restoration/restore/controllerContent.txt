@@ -1,4 +1,4 @@
-      $result = $this->service->{{methodName}}($id);
+      $result = $this->service->{{methodNameCamelCase}}($id);
       return $result
-            ? response()->json(['message' => 'Resource {{methodName}}d'])
+            ? response()->json(['message' => 'Resource {{methodNameCamelCase}}d'])
             : response()->json(['message' => 'Resource not found'], 404);

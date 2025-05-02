@@ -1,2 +1,2 @@
 // http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/order-by - Retrieves {{tableNamePascalCaseSingular}} resources ordered by a specified column and direction
-Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.order-by');
+Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.order-by');

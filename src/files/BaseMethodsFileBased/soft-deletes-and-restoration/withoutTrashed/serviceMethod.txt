@@ -1,1 +1,1 @@
-{{methodName}}(): Collection
+{{methodNameCamelCase}}(): Collection

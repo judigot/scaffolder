@@ -1,1 +1,1 @@
-return $this->model->{{methodName}}($size, $callback);
+return $this->model->{{methodNameCamelCase}}($size, $callback);

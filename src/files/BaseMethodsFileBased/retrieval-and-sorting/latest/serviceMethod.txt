@@ -1,1 +1,1 @@
-{{methodName}}(string $column = 'created_at'): ?Model
+{{methodNameCamelCase}}(string $column = 'created_at'): ?Model

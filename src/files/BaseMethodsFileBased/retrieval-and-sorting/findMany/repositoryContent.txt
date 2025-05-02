@@ -1,1 +1,1 @@
-return $this->model->{{methodName}}($ids);
+return $this->model->{{methodNameCamelCase}}($ids);

@@ -1,11 +1,11 @@
-export const {{methodName}} = async (callback) => {
+export const {{methodNameCamelCase}} = async (callback) => {
   try {
-    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/{{methodName}}`, {
+    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}`, {
       callback: callback.toString()
     });
     return response.data;
   } catch (error) {
-    console.error('Error in {{methodName}} operation:', error);
+    console.error('Error in "{{methodName}}" operation:', error);
     throw error;
   }
 }; 

@@ -1,2 +1,2 @@
 // http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/without-trashed - Retrieves {{tableNamePascalCaseSingular}} resources excluding soft-deleted ones
-Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.without-trashed');
+Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.without-trashed');

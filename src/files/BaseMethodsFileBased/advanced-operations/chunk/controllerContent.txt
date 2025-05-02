@@ -2,4 +2,4 @@
         $callback = function ($items) {
             return response()->json($items);
         };
-        $this->service->{{methodName}}($size, $callback);
+        $this->service->{{methodNameCamelCase}}($size, $callback);

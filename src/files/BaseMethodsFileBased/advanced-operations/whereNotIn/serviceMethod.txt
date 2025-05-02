@@ -1,1 +1,1 @@
-{{methodName}}(string $column, array $values): Collection
+{{methodNameCamelCase}}(string $column, array $values): Collection

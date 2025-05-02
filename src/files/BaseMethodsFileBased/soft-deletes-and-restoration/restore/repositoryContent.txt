@@ -1,4 +1,4 @@
 
       $record = $this->model->onlyTrashed()->find($id);
-      return $record ? $record->{{methodName}}() : false;
+      return $record ? $record->{{methodNameCamelCase}}() : false;
       

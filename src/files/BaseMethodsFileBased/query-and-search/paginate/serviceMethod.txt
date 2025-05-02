@@ -1,1 +1,1 @@
-{{methodName}}(int $perPage = 15)
+{{methodNameCamelCase}}(int $perPage = 15)

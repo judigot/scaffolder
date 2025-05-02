@@ -1,2 +1,2 @@
-        $result = $this->service->{{methodName}}($id, $request->all());
-        return $result ? response()->json(['message' => 'Resource {{methodName}}d']) : response()->json(['message' => 'Resource not found'], 404);
+        $result = $this->service->{{methodNameCamelCase}}($id, $request->all());
+        return $result ? response()->json(['message' => 'Resource {{methodNameCamelCase}}d']) : response()->json(['message' => 'Resource not found'], 404);

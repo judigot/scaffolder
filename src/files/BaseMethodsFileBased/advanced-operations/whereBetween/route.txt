@@ -1,2 +1,2 @@
 // http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/where-between - Filters {{tableNamePascalCaseSingular}} resources where a column's value is between two specified values
-Route::post('{{tableNameKebabCasePlural}}/where-between', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.where-between');
+Route::post('{{tableNameKebabCasePlural}}/where-between', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.where-between');

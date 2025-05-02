@@ -1,2 +1,2 @@
 // http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/where-not-in - Retrieves {{tableNamePascalCaseSingular}} resources where a column's value is not in a given array
-Route::post('{{tableNameKebabCasePlural}}/where-not-in', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.where-not-in');
+Route::post('{{tableNameKebabCasePlural}}/where-not-in', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.where-not-in');

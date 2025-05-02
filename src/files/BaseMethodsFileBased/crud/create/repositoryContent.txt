@@ -1,1 +1,1 @@
-return $this->model->{{methodName}}($data);
+return $this->model->{{methodNameCamelCase}}($data);

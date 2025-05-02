@@ -1,2 +1,2 @@
-        $item = $this->service->{{methodName}}($request->all());
+        $item = $this->service->{{methodNameCamelCase}}($request->all());
         return response()->json($item, 201);

@@ -1,1 +1,1 @@
-{{methodName}}(array $relations): Collection
+{{methodNameCamelCase}}(array $relations): Collection

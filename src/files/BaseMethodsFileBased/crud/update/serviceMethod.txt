@@ -1,1 +1,1 @@
-{{methodName}}($id, array $data)
+{{methodNameCamelCase}}($id, array $data)

@@ -1,1 +1,1 @@
-{{methodName}}(int $id): ?Model
+{{methodNameCamelCase}}(int $id): ?Model

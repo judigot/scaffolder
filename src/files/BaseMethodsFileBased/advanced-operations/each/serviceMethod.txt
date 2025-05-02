@@ -1,1 +1,1 @@
-{{methodName}}(callable $callback): bool
+{{methodNameCamelCase}}(callable $callback): bool

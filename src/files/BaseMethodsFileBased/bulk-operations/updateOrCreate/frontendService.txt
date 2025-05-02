@@ -1,11 +1,11 @@
-export const {{methodName}} = async (records) => {
+export const {{methodNameCamelCase}} = async (records) => {
   try {
     const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/update-or-create`, {
       records
     });
     return response.data;
   } catch (error) {
-    console.error('Error in {{methodName}} operation:', error);
+    console.error('Error in "{{methodName}}" operation:', error);
     throw error;
   }
 }; 

@@ -1,1 +1,1 @@
-{{methodName}}(array $criteria = []): int
+{{methodNameCamelCase}}(array $criteria = []): int

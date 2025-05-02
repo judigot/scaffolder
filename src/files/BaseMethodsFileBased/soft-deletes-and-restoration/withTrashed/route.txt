@@ -1,2 +1,2 @@
 // http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/with-trashed - Retrieves all {{tableNamePascalCaseSingular}} resources including soft-deleted ones
-Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-trashed');
+Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.with-trashed');

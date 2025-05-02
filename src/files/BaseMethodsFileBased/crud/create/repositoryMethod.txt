@@ -1,1 +1,1 @@
-{{methodName}}(array $data): Model
+{{methodNameCamelCase}}(array $data): Model

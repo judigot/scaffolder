@@ -1,1 +1,1 @@
-return $this->model->{{methodName}}($column, $range)->get();
+return $this->model->{{methodNameCamelCase}}($column, $range)->get();

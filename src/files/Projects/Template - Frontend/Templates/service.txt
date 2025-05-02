@@ -5,11 +5,11 @@ import { {{tableNamePascalCase}} } from '@/interfaces/I{{tableNamePascalCaseSing
 /**
  * {{description}}
  */
-export const {{methodName}} = async {{frontendServiceMethod}} => {
+export const {{methodNameCamelCase}} = async {{frontendServiceMethod}} => {
   try {
 {{frontendServiceContent}}
   } catch (error) {
-    console.error('Error in {{methodName}} operation:', error);
+    console.error('Error in "{{methodName}}" operation:', error);
     throw error;
   }
 };

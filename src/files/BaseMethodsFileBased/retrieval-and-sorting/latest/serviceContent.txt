@@ -1,3 +1,3 @@
 
-      return $this->repository->{{methodName}}($column);
+      return $this->repository->{{methodNameCamelCase}}($column);
       

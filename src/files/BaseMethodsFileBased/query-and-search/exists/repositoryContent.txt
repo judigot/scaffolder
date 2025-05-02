@@ -1,1 +1,1 @@
-return $this->model->where($criteria)->{{methodName}}();
+return $this->model->where($criteria)->{{methodNameCamelCase}}();

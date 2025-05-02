@@ -1,2 +1,2 @@
         $record = $this->model->find($id);
-        return $record ? $record->{{methodName}}() : false;
+        return $record ? $record->{{methodNameCamelCase}}() : false;
