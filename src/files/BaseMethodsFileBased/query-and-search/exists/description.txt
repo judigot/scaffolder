@@ -1,1 +1,1 @@
-Check if a record "{{methodName}}"
+Check if a record {{methodName}}

@@ -3,7 +3,7 @@ export const {{methodNameCamelCase}} = async (id, data) => {
     const response = await axiosInstance.put(`{{tableNameKebabCasePlural}}/${id}`, data);
     return response.data;
   } catch (error) {
-    console.error('Error in "{{methodName}}" operation:', error);
+    console.error('Error in {{methodName}} operation:', error);
     throw error;
   }
 }; 

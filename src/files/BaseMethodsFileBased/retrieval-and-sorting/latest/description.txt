@@ -1,1 +1,1 @@
-Retrieve the "{{methodName}}" record based on a column
+Retrieve the {{methodName}} record based on a column

@@ -5,7 +5,7 @@ export const {{methodNameCamelCase}} = async (records) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Error in "{{methodName}}" operation:', error);
+    console.error('Error in {{methodName}} operation:', error);
     throw error;
   }
 }; 
