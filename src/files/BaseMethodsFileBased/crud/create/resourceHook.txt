@@ -11,7 +11,11 @@ export const useCreate{{tableNamePascalCaseSingular}} = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createResource,
+    mutationFn: (data: Omit<I{{tableNamePascalCaseSingular}}, 'id'>) =>
+      createResource<I{{tableNamePascalCaseSingular}}, Omit<I{{tableNamePascalCaseSingular}}, 'id'>>(
+        '/{{tableNameCamelCasePlural}}',
+        data
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
     },

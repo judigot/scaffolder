@@ -2,7 +2,7 @@ import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react
 import { useUpdate } from '@/hooks/shared/useUpdate.ts';
 import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
-export const useuseUpdate = (
+export const useUpdate{{tableNamePascalCaseSingular}} = (
   id: number | string,
   options?: Omit<
     UseMutationOptions<I{{tableNamePascalCaseSingular}}, Error, Partial<I{{tableNamePascalCaseSingular}}>>,
@@ -13,7 +13,11 @@ export const useuseUpdate = (
 
   return useMutation({
     mutationFn: (data: Partial<I{{tableNamePascalCaseSingular}}>) =>
-      useUpdate(id, data),
+      useUpdate<I{{tableNamePascalCaseSingular}}, Partial<I{{tableNamePascalCaseSingular}}>>(
+        '/{{tableNameCamelCasePlural}}',
+        id,
+        data
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
       queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCaseSingular}}', id] });

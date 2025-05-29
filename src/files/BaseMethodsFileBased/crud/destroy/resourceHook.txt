@@ -7,7 +7,8 @@ export const useDelete{{tableNamePascalCaseSingular}} = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteResource,
+    mutationFn: (id: number | string) =>
+      deleteResource('/{{tableNameCamelCasePlural}}', id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
       queryClient.removeQueries({ queryKey: ['{{tableNameCamelCaseSingular}}', id] });

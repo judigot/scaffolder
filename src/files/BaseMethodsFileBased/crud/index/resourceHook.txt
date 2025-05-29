@@ -7,6 +7,6 @@ export const use{{tableNamePascalCaseSingular}} = (
 ) =>
   useQueryInstance<I{{tableNamePascalCaseSingular}}[]>(
     '{{tableNameCamelCasePlural}}',
-    useIndex,
+    () => useIndex('{{tableNameCamelCasePlural}}'),
     options,
   );
