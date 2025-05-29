@@ -13,10 +13,12 @@ import { changeCase } from '@/utils/common.ts';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
+import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 
 interface ICreateBaseMethodFileOptions {
   template: string;
   outputFile: string;
+  scoped?: boolean;
 }
 
 /**
@@ -25,18 +27,15 @@ interface ICreateBaseMethodFileOptions {
 const parseCreateBaseMethodFileOptions = (
   command: string
 ): ICreateBaseMethodFileOptions => {
-  // Extract template option using the constants
-  const templateRegex = new RegExp(`--${ACTION_FLAGS.TEMPLATE}[= ]([^\\s]+)`);
-  const templateMatch = templateRegex.exec(command);
-  const templatePath = templateMatch ? String(templateMatch[1] || '') : '';
+  const { command: mainCommand, options } = parseCommand(command);
   
-  // Extract the file name before any options
-  const fileNameMatch = /^([^\s]+)/.exec(command);
-  const outputFile = fileNameMatch ? String(fileNameMatch[1] || '') : '';
+  const templatePath = options[ACTION_FLAGS.TEMPLATE] ?? '';
+  const scoped = options[ACTION_FLAGS.SCOPED] ?? false;
 
   return {
-    template: templatePath,
-    outputFile,
+    template: typeof templatePath === 'string' ? templatePath : '',
+    outputFile: mainCommand,
+    scoped: Boolean(scoped),
   };
 };
 
@@ -163,6 +162,7 @@ export const createBaseMethodFile = (
   const options = parseCreateBaseMethodFileOptions(command);
   const outputFilePattern = options.outputFile;
   const templatePath = options.template;
+  const isScoped = options.scoped;
   
   // Create result array and deduplication tracking
   const result: IStructure = [];
@@ -172,10 +172,10 @@ export const createBaseMethodFile = (
   if (outputFilePattern.trim() === '' || templatePath.trim() === '') {
     return [];
   }
-  
-  // Get table replacements if table context is available
+
+  // Get table replacements only if --scoped flag is used and table context is available
   const tableReplacements: Record<string, string> = {};
-  if (table && schemaInfoParsed) {
+  if (isScoped === true && table && schemaInfoParsed) {
     const rawTableReplacements = getReplacementsForTable(table, schemaInfoParsed);
     // Convert to string format for compatibility with applyReplacements
     for (const [key, value] of Object.entries(rawTableReplacements)) {
@@ -280,8 +280,11 @@ export const createBaseMethodFile = (
           [fileBaseName]: fileBaseName,
         };
         
+        // Combine with table replacements if scoped
+        const combinedReplacements = { ...replacements, ...tableReplacements };
+        
         // Process the filename with replacements
-        const outputFileName = applyReplacements(outputFilePattern, replacements);
+        const outputFileName = applyReplacements(outputFilePattern, combinedReplacements);
         const lowercaseName = outputFileName.toLowerCase();
         
         // Check for duplicates
