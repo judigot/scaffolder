@@ -60,7 +60,14 @@ export const processYamlStructure = ({
       if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
         return [];
       }
-      return createBaseMethodFile(extractedParams, userFiles, projectYamlPath);
+      return createBaseMethodFile(
+        extractedParams, 
+        userFiles, 
+        projectYamlPath, 
+        schemaInfo, 
+        schemaInfoParsed, 
+        table
+      );
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {

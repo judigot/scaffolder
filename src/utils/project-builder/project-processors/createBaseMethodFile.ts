@@ -10,6 +10,9 @@ import {
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { changeCase } from '@/utils/common.ts';
+import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 
 interface ICreateBaseMethodFileOptions {
   template: string;
@@ -152,6 +155,9 @@ export const createBaseMethodFile = (
   command: string,
   userFiles: IStructure,
   projectYamlPath: string,
+  _schemaInfo?: ISchemaInfo[],
+  schemaInfoParsed?: ISchemaInfoResult,
+  table?: ISchemaInfo,
 ): IStructure => {
   // Parse options from command
   const options = parseCreateBaseMethodFileOptions(command);
@@ -165,6 +171,16 @@ export const createBaseMethodFile = (
   // Validate required parameters
   if (outputFilePattern.trim() === '' || templatePath.trim() === '') {
     return [];
+  }
+  
+  // Get table replacements if table context is available
+  const tableReplacements: Record<string, string> = {};
+  if (table && schemaInfoParsed) {
+    const rawTableReplacements = getReplacementsForTable(table, schemaInfoParsed);
+    // Convert to string format for compatibility with applyReplacements
+    for (const [key, value] of Object.entries(rawTableReplacements)) {
+      tableReplacements[key] = Array.isArray(value) ? value.join(', ') : String(value);
+    }
   }
   
   // Extract the template file name we're looking for
@@ -306,13 +322,16 @@ export const createBaseMethodFile = (
     // Extract all file name replacements from the current directory
     const replacements = extractFileNameReplacements(files);
     
+    // Combine with table replacements if available (table replacements take precedence)
+    const combinedReplacements = { ...replacements, ...tableReplacements };
+    
     // Skip folders with no valid replacements
-    if (Object.keys(replacements).length === 0) {
+    if (Object.keys(combinedReplacements).length === 0) {
       continue;
     }
     
     // Process the filename with replacements
-    const outputFileName = applyReplacements(outputFilePattern, replacements);
+    const outputFileName = applyReplacements(outputFilePattern, combinedReplacements);
     const lowercaseName = outputFileName.toLowerCase();
     
     // Check for duplicates
@@ -324,7 +343,7 @@ export const createBaseMethodFile = (
     processedFiles.add(lowercaseName);
     
     // Process template content with replacements
-    const processedContent = applyReplacements(templateFile.content, replacements);
+    const processedContent = applyReplacements(templateFile.content, combinedReplacements);
     
     // Add to result
     result.push({
