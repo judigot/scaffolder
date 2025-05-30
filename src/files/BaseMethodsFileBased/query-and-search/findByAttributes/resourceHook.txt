@@ -1,0 +1,32 @@
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { findByAttributesResources } from '@/hooks/shared/useFindByAttributes.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IFindByAttributesParams {
+  attributes: Record<string, unknown>;
+  limit?: number;
+  orderBy?: string;
+  orderDirection?: 'asc' | 'desc';
+}
+
+export const useFindByAttributes{{tableNamePascalCasePlural}} = (
+  params: IFindByAttributesParams,
+  options?: Omit<
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    'queryKey' | 'queryFn'
+  >,
+) => {
+  return useQuery({
+    queryKey: ['{{tableNameCamelCasePlural}}', 'findByAttributes', params.attributes, params.limit, params.orderBy, params.orderDirection],
+    queryFn: () =>
+      findByAttributesResources<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/find-by-attributes',
+        params.attributes,
+        params.limit,
+        params.orderBy,
+        params.orderDirection
+      ),
+    enabled: Boolean(params.attributes && Object.keys(params.attributes).length > 0),
+    ...options,
+  });
+}; 
