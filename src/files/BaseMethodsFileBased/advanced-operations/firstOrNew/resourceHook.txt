@@ -1,0 +1,27 @@
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { firstOrNewResource } from '@/hooks/shared/useFirstOrNew.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IFirstOrNewParams {
+  searchCriteria: Partial<I{{tableNamePascalCaseSingular}}>;
+  defaults?: Partial<I{{tableNamePascalCaseSingular}}>;
+}
+
+export const useFirstOrNew{{tableNamePascalCaseSingular}} = (
+  params: IFirstOrNewParams,
+  options?: Omit<
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}, Error>,
+    'queryKey' | 'queryFn'
+  >,
+) => {
+  return useQuery({
+    queryKey: ['{{tableNameCamelCasePlural}}', 'firstOrNew', params.searchCriteria, params.defaults],
+    queryFn: () =>
+      firstOrNewResource<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/first-or-new',
+        params.searchCriteria,
+        params.defaults
+      ),
+    ...options,
+  });
+}; 

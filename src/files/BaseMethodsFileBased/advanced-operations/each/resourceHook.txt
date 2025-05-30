@@ -1,0 +1,32 @@
+import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
+import { eachResource } from '@/hooks/shared/useEach.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IEachParams {
+  batchSize?: number;
+  filters?: Record<string, unknown>;
+  callback: (item: I{{tableNamePascalCaseSingular}}) => void | Promise<void>;
+}
+
+export const useEach{{tableNamePascalCasePlural}} = (
+  options?: Omit<
+    UseMutationOptions<void, Error, IEachParams>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ batchSize, filters, callback }: IEachParams) =>
+      eachResource<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/each',
+        callback,
+        batchSize,
+        filters
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+    },
+    ...options,
+  });
+}; 

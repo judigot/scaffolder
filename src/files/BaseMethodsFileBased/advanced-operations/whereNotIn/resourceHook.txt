@@ -1,0 +1,27 @@
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { whereNotInResources } from '@/hooks/shared/useWhereNotIn.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IWhereNotInParams {
+  column: string;
+  values: (string | number)[];
+}
+
+export const useWhereNotIn{{tableNamePascalCasePlural}} = (
+  params: IWhereNotInParams,
+  options?: Omit<
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    'queryKey' | 'queryFn'
+  >,
+) => {
+  return useQuery({
+    queryKey: ['{{tableNameCamelCasePlural}}', 'whereNotIn', params.column, params.values],
+    queryFn: () =>
+      whereNotInResources<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/where-not-in',
+        params.column,
+        params.values
+      ),
+    ...options,
+  });
+}; 
