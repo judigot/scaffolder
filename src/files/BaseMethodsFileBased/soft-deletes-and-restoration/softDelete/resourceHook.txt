@@ -1,0 +1,23 @@
+import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
+import { softDeleteResource } from '@/hooks/shared/useSoftDelete.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+export const useSoftDelete{{tableNamePascalCaseSingular}} = (
+  options?: Omit<
+    UseMutationOptions<I{{tableNamePascalCaseSingular}}, Error, string | number>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string | number) =>
+      softDeleteResource<I{{tableNamePascalCaseSingular}}>(
+        `/{{tableNameCamelCasePlural}}/${String(id)}/soft-delete`
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+    },
+    ...options,
+  });
+}; 

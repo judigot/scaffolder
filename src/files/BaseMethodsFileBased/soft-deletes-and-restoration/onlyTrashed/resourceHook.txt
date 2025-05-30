@@ -1,0 +1,31 @@
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { getOnlyTrashedResources } from '@/hooks/shared/useOnlyTrashed.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IOnlyTrashedParams {
+  filters?: Record<string, unknown>;
+  limit?: number;
+  orderBy?: string;
+  orderDirection?: 'asc' | 'desc';
+}
+
+export const useOnlyTrashed{{tableNamePascalCasePlural}} = (
+  params: IOnlyTrashedParams = {},
+  options?: Omit<
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    'queryKey' | 'queryFn'
+  >,
+) => {
+  return useQuery({
+    queryKey: ['{{tableNameCamelCasePlural}}', 'onlyTrashed', params.filters, params.limit, params.orderBy, params.orderDirection],
+    queryFn: () =>
+      getOnlyTrashedResources<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/only-trashed',
+        params.filters,
+        params.limit,
+        params.orderBy,
+        params.orderDirection
+      ),
+    ...options,
+  });
+}; 

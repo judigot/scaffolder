@@ -1,0 +1,23 @@
+import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
+import { restoreResource } from '@/hooks/shared/useRestore.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+export const useRestore{{tableNamePascalCaseSingular}} = (
+  options?: Omit<
+    UseMutationOptions<I{{tableNamePascalCaseSingular}}, Error, string | number>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string | number) =>
+      restoreResource<I{{tableNamePascalCaseSingular}}>(
+        `/{{tableNameCamelCasePlural}}/${String(id)}/restore`
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+    },
+    ...options,
+  });
+}; 
