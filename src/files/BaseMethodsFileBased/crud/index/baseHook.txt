@@ -5,7 +5,7 @@ import { handleError } from './handleError.ts';
  * Fetches all resources from the API
  * @returns Promise resolving to an array of resource objects
  */
-export const useResource = async (resource: string): Promise<unknown> => {
+export const useIndex = async (resource: string): Promise<unknown> => {
   try {
     const response = await axiosInstance.get(`/${resource}`);
 

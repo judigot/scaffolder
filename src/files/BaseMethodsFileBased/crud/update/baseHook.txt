@@ -8,7 +8,7 @@ import { handleError } from './handleError.ts';
  * @param data The partial data to update
  * @returns Promise resolving to the updated resource object
  */
-export const updateResource = async <T, D = Partial<T>>(endpoint: string, id: number | string, data: D): Promise<T> => {
+export const useUpdate = async <T, D = Partial<T>>(endpoint: string, id: number | string, data: D): Promise<T> => {
   try {
     const response = await axiosInstance.put(`${endpoint}/${id}`, data);
     return response.data.data;
