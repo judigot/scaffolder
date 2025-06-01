@@ -1,0 +1,1 @@
+createAuditLog(string $action, string $entityType, $entityId, ?array $oldValues = null, ?array $newValues = null, ?int $userId = null, ?array $metadata = null): Model 

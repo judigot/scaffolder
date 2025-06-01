@@ -1,0 +1,1 @@
+validateData(array $data, ?array $rules = null): array 

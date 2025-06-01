@@ -1,0 +1,13 @@
+        $query = {{tableNamePascalCaseSingular}}::query();
+        
+        if ($filters) {
+            foreach ($filters as $field => $value) {
+                $query->where($field, 'like', '%' . $value . '%');
+            }
+        }
+        
+        if ($columns) {
+            $query->select($columns);
+        }
+        
+        return $query->get(); 

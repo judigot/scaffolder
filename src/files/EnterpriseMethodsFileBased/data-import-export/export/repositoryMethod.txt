@@ -1,0 +1,1 @@
+getFilteredData(?array $filters = null, ?array $columns = null): Collection 

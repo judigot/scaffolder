@@ -1,0 +1,8 @@
+return apiClient.post('/{{tableNameKebabCasePlural}}/export', {
+  format,
+  filters,
+  columns,
+  filename
+}, { 
+  responseType: 'blob' 
+}); 

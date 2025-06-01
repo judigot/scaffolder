@@ -1,0 +1,4 @@
+return apiClient.post('/{{tableNameKebabCasePlural}}/validate', {
+  data,
+  rules
+}); 

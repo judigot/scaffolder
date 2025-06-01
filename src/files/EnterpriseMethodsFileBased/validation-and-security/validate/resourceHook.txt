@@ -1,0 +1,27 @@
+import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
+import { validateAndSanitize } from '@/hooks/shared/useValidation.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IValidationData {
+  data: Partial<I{{tableNamePascalCaseSingular}}>;
+  rules?: Record<string, unknown>;
+}
+
+export const useValidate{{tableNamePascalCaseSingular}} = (
+  options?: Omit<
+    UseMutationOptions<I{{tableNamePascalCaseSingular}}, Error, IValidationData>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ data, rules }: IValidationData) =>
+      validateAndSanitize<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}',
+        data,
+        rules
+      ),
+    ...options,
+  });
+}; 

@@ -1,0 +1,1 @@
+        return AuditLog::create($data); 

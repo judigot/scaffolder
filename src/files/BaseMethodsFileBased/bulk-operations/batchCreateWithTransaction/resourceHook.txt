@@ -1,0 +1,38 @@
+import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
+import { batchCreateWithTransaction } from '@/hooks/shared/useBatchCreateWithTransaction.ts';
+import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IBatchCreateData {
+  dataArray: Omit<I{{tableNamePascalCaseSingular}}, 'id'>[];
+  options?: {
+    batchSize?: number;
+    rollbackOnError?: boolean;
+    continueOnError?: boolean;
+  };
+}
+
+export const useBatchCreateWithTransaction{{tableNamePascalCaseSingular}} = (
+  options?: Omit<
+    UseMutationOptions<{
+      success: I{{tableNamePascalCaseSingular}}[];
+      failed: { data: Omit<I{{tableNamePascalCaseSingular}}, 'id'>; error: string; index: number }[];
+      transactionId?: string;
+    }, Error, IBatchCreateData>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ dataArray, options: batchOptions }: IBatchCreateData) =>
+      batchCreateWithTransaction<I{{tableNamePascalCaseSingular}}, Omit<I{{tableNamePascalCaseSingular}}, 'id'>>(
+        '/{{tableNameCamelCasePlural}}',
+        dataArray,
+        batchOptions
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+    },
+    ...options,
+  });
+}; 
