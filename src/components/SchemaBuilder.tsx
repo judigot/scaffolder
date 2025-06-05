@@ -423,98 +423,138 @@ function SchemaBuilder() {
 
   return (
     <div className="text-white">
-      <button
-        className="float-right sm:mb-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
-        onClick={() => {
-          void (async () => {
-            const result = await promptModal({
-              title: 'Delete All Tables',
-              description:
-                'Are you sure you want to delete all tables? This action cannot be undone.',
-              trueText: 'Yes',
-              falseText: 'No',
-            });
-            if (result) {
-              setSchemaInfo([]); // Clear all tables
-            }
-          })();
-        }}
-      >
-        Delete Tables
-      </button>
+      {schemaInfo.length > 0 && (
+        <button
+          className="float-right sm:mb-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
+          onClick={() => {
+            void (async () => {
+              const result = await promptModal({
+                title: 'Delete All Tables',
+                description:
+                  'Are you sure you want to delete all tables? This action cannot be undone.',
+                trueText: 'Yes',
+                falseText: 'No',
+              });
+              if (result) {
+                setSchemaInfo([]); // Clear all tables
+              }
+            })();
+          }}
+        >
+          Delete Tables
+        </button>
+      )}
       <TableAdder />
-      <div className="flex flex-col md:flex-row">
-        <div className="pr-4 w-full md:w-auto">
-          <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
-          <ul className="space-y-2">
-            {schemaInfo
-              .filter((table) => table.isPivot !== true)
-              .map((tableInfo) => {
-                const { tableName } = tableInfo;
-
-                return (
-                  <li key={tableName}>
-                    <div
-                      role="button"
-                      onKeyDown={() => {
-                        return;
-                      }}
-                      tabIndex={-1} // -1 means it cannot be tabbed
-                      className="cursor-pointer hover:text-indigo-400"
-                      onClick={() => {
-                        const pivotTableIndex = schemaInfo.findIndex(
-                          ({ tableName: currentTable }) => {
-                            return currentTable === tableName;
-                          },
-                        );
-                        setSelectedTableIndex(pivotTableIndex);
-                      }} // Set the selected table index on click
-                    >
-                      {tableName}
-                    </div>
-                  </li>
-                );
-              })}
-          </ul>
-
-          {pivotTables.length > 0 && (
-            <>
-              <br />
-              <br />
-              <h2 className="text-xl font-semibold mb-4">Pivot Tables</h2>
-              <ul className="space-y-2">
-                {schemaInfo
-                  .filter((table) => table.isPivot === true)
-                  .map((tableInfo) => {
-                    const { tableName } = tableInfo;
-
-                    return (
-                      <li key={tableName}>
-                        <div
-                          role="button"
-                          onKeyDown={() => {
-                            return;
-                          }}
-                          tabIndex={-1} // -1 means it cannot be tabbed
-                          className="cursor-pointer hover:text-indigo-400"
-                          onClick={() => {
-                            const pivotTableIndex = schemaInfo.findIndex(
-                              ({ tableName: currentTable }) => {
-                                return currentTable === tableName;
-                              },
-                            );
-                            setSelectedTableIndex(pivotTableIndex);
-                          }}
-                        >
-                          {tableName}
-                        </div>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </>
-          )}
+      
+      {schemaInfo.length === 0 ? (
+        /* Empty State */
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+          <div className="bg-gray-800/50 rounded-lg p-8 max-w-md mx-auto border border-gray-700">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">No Tables Created</h3>
+            <p className="text-gray-400 mb-6 leading-relaxed">
+                             Get started by creating your first database table. Define your schema structure and relationships to build your application&apos;s data model.
+            </p>
+            <div className="space-y-3 text-sm text-gray-300">
+              <div className="flex items-center justify-start text-left">
+                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <span className="text-blue-400 text-xs font-bold">1</span>
+                </div>
+                <span>Enter a table name in the field above</span>
+              </div>
+              <div className="flex items-center justify-start text-left">
+                <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <span className="text-green-400 text-xs font-bold">2</span>
+                </div>
+                                 <span>Click &quot;Add Table&quot; to create your first table</span>
+              </div>
+              <div className="flex items-center justify-start text-left">
+                <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <span className="text-purple-400 text-xs font-bold">3</span>
+                </div>
+                <span>Add columns and define relationships</span>
+              </div>
+            </div>
+          </div>
         </div>
+      ) : (
+        /* Tables List */
+        <div className="flex flex-col md:flex-row">
+          <div className="pr-4 w-full md:w-auto">
+            <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
+            <ul className="space-y-2">
+              {schemaInfo
+                .filter((table) => table.isPivot !== true)
+                .map((tableInfo) => {
+                  const { tableName } = tableInfo;
+
+                  return (
+                    <li key={tableName}>
+                      <div
+                        role="button"
+                        onKeyDown={() => {
+                          return;
+                        }}
+                        tabIndex={-1} // -1 means it cannot be tabbed
+                        className="cursor-pointer hover:text-indigo-400"
+                        onClick={() => {
+                          const pivotTableIndex = schemaInfo.findIndex(
+                            ({ tableName: currentTable }) => {
+                              return currentTable === tableName;
+                            },
+                          );
+                          setSelectedTableIndex(pivotTableIndex);
+                        }} // Set the selected table index on click
+                      >
+                        {tableName}
+                      </div>
+                    </li>
+                  );
+                })}
+            </ul>
+
+            {pivotTables.length > 0 && (
+              <>
+                <br />
+                <br />
+                <h2 className="text-xl font-semibold mb-4">Pivot Tables</h2>
+                <ul className="space-y-2">
+                  {schemaInfo
+                    .filter((table) => table.isPivot === true)
+                    .map((tableInfo) => {
+                      const { tableName } = tableInfo;
+
+                      return (
+                        <li key={tableName}>
+                          <div
+                            role="button"
+                            onKeyDown={() => {
+                              return;
+                            }}
+                            tabIndex={-1} // -1 means it cannot be tabbed
+                            className="cursor-pointer hover:text-indigo-400"
+                            onClick={() => {
+                              const pivotTableIndex = schemaInfo.findIndex(
+                                ({ tableName: currentTable }) => {
+                                  return currentTable === tableName;
+                                },
+                              );
+                              setSelectedTableIndex(pivotTableIndex);
+                            }}
+                          >
+                            {tableName}
+                          </div>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </>
+            )}
+          </div>
 
         <div className="w-full p-4 sm:w-full md:w-full lg:w-full">
           {selectedTableIndex !== null &&
@@ -1041,8 +1081,9 @@ function SchemaBuilder() {
                 </>
               </div>
             )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
