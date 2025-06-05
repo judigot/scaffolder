@@ -2,15 +2,15 @@
 import { useState } from 'react';
 import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 import {
-    addRelationship,
-    purgeForeignKeyTraces,
+  addRelationship,
+  purgeForeignKeyTraces,
 } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import {
-    Edit as EditIcon,
-    Add as AddIcon,
-    Close as CloseIcon,
-    Save as SaveIcon,
+  Edit as EditIcon,
+  Add as AddIcon,
+  Close as CloseIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
@@ -52,6 +52,7 @@ function SchemaBuilder() {
     });
 
   const [selectedParentTable, setSelectedParentTable] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -485,6 +486,22 @@ function SchemaBuilder() {
                 /* Tables List */
          <div className="flex flex-col md:flex-row">
           <div className="pr-6 w-full md:w-80 flex-shrink-0 max-h-screen overflow-y-auto">
+            {/* Search/Filter Input */}
+            <div className="mb-4">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search tables..."
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); }}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
             <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
               <div className="flex items-center mb-4">
                 <svg className="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,6 +515,7 @@ function SchemaBuilder() {
               <div className="space-y-1 max-h-64 overflow-y-auto pr-2 -mr-2">
                 {schemaInfo
                   .filter((table) => table.isPivot !== true)
+                  .filter((table) => table.tableName.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map((tableInfo) => {
                     const { tableName } = tableInfo;
                     const tableIndex = schemaInfo.findIndex(
@@ -533,11 +551,8 @@ function SchemaBuilder() {
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           )}
+                                                  </div>
                         </div>
-                        <div className={`text-xs mt-1 ${isSelected ? 'text-indigo-400' : 'text-gray-500'}`}>
-                          {tableInfo.columnsInfo.length} columns
-                        </div>
-                      </div>
                     );
                   })}
               </div>
@@ -557,6 +572,7 @@ function SchemaBuilder() {
                                  <div className="space-y-1 max-h-64 overflow-y-auto pr-2 -mr-2">
                   {schemaInfo
                     .filter((table) => table.isPivot === true)
+                    .filter((table) => table.tableName.toLowerCase().includes(searchTerm.toLowerCase()))
                     .map((tableInfo) => {
                       const { tableName } = tableInfo;
                       const tableIndex = schemaInfo.findIndex(
@@ -591,11 +607,8 @@ function SchemaBuilder() {
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                               </svg>
                             )}
-                          </div>
-                          <div className={`text-xs mt-1 ${isSelected ? 'text-purple-400' : 'text-gray-500'}`}>
-                            {tableInfo.columnsInfo.length} columns
-                          </div>
-                        </div>
+                                                     </div>
+                         </div>
                       );
                     })}
                 </div>
@@ -857,10 +870,12 @@ function SchemaBuilder() {
                     )}
                 </div>
 
-                <>
+                                  <>
                   <br />
                   <div className="flex justify-between items-center">
-                    <h3 className="font-semibold mb-2 inline-block">Columns</h3>
+                    <h3 className="font-semibold mb-2 inline-block">
+                      Columns ({schemaInfo[selectedTableIndex].columnsInfo.length})
+                    </h3>
                     {(schemaInfo[selectedTableIndex].isPivot !== true ||
                       isPivotTableColumnsEditable) && (
                       <div
