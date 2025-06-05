@@ -2,15 +2,15 @@
 import { useState } from 'react';
 import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 import {
-  addRelationship,
-  purgeForeignKeyTraces,
+    addRelationship,
+    purgeForeignKeyTraces,
 } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import {
-  Edit as EditIcon,
-  Add as AddIcon,
-  Close as CloseIcon,
-  Save as SaveIcon,
+    Edit as EditIcon,
+    Add as AddIcon,
+    Close as CloseIcon,
+    Save as SaveIcon,
 } from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
@@ -482,81 +482,128 @@ function SchemaBuilder() {
           </div>
         </div>
       ) : (
-        /* Tables List */
-        <div className="flex flex-col md:flex-row">
-          <div className="pr-4 w-full md:w-auto">
-            <h2 className="text-xl font-semibold mb-4">Main Tables</h2>
-            <ul className="space-y-2">
-              {schemaInfo
-                .filter((table) => table.isPivot !== true)
-                .map((tableInfo) => {
-                  const { tableName } = tableInfo;
+                /* Tables List */
+         <div className="flex flex-col md:flex-row">
+          <div className="pr-6 w-full md:w-80 flex-shrink-0">
+            <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
+              <div className="flex items-center mb-4">
+                <svg className="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h2 className="text-lg font-semibold text-white">Main Tables</h2>
+                <span className="ml-auto bg-blue-500/20 text-blue-300 text-xs px-2 py-1 rounded-full">
+                  {schemaInfo.filter((table) => table.isPivot !== true).length}
+                </span>
+              </div>
+              <div className="space-y-1">
+                {schemaInfo
+                  .filter((table) => table.isPivot !== true)
+                  .map((tableInfo) => {
+                    const { tableName } = tableInfo;
+                    const tableIndex = schemaInfo.findIndex(
+                      ({ tableName: currentTable }) => currentTable === tableName
+                    );
+                    const isSelected = selectedTableIndex === tableIndex;
 
-                  return (
-                    <li key={tableName}>
+                    return (
                       <div
+                        key={tableName}
                         role="button"
                         onKeyDown={() => {
                           return;
                         }}
-                        tabIndex={-1} // -1 means it cannot be tabbed
-                        className="cursor-pointer hover:text-indigo-400"
+                        tabIndex={-1}
+                        className={`p-3 rounded-md cursor-pointer transition-all duration-200 group ${
+                          isSelected
+                            ? 'bg-indigo-500/20 border border-indigo-500/30 text-indigo-300'
+                            : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
+                        }`}
                         onClick={() => {
-                          const pivotTableIndex = schemaInfo.findIndex(
-                            ({ tableName: currentTable }) => {
-                              return currentTable === tableName;
-                            },
-                          );
-                          setSelectedTableIndex(pivotTableIndex);
-                        }} // Set the selected table index on click
+                          setSelectedTableIndex(tableIndex);
+                        }}
                       >
-                        {tableName}
+                        <div className="flex items-center">
+                          <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-indigo-400' : 'text-gray-500 group-hover:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h2a2 2 0 012 2v0H8v0z" />
+                          </svg>
+                          <span className="font-medium">{tableName}</span>
+                          {isSelected && (
+                            <svg className="w-3 h-3 ml-auto text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className={`text-xs mt-1 ${isSelected ? 'text-indigo-400' : 'text-gray-500'}`}>
+                          {tableInfo.columnsInfo.length} columns
+                        </div>
                       </div>
-                    </li>
-                  );
-                })}
-            </ul>
+                    );
+                  })}
+              </div>
+            </div>
 
             {pivotTables.length > 0 && (
-              <>
-                <br />
-                <br />
-                <h2 className="text-xl font-semibold mb-4">Pivot Tables</h2>
-                <ul className="space-y-2">
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mt-4">
+                <div className="flex items-center mb-4">
+                  <svg className="w-5 h-5 text-purple-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <h2 className="text-lg font-semibold text-white">Pivot Tables</h2>
+                  <span className="ml-auto bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded-full">
+                    {pivotTables.length}
+                  </span>
+                </div>
+                <div className="space-y-1">
                   {schemaInfo
                     .filter((table) => table.isPivot === true)
                     .map((tableInfo) => {
                       const { tableName } = tableInfo;
+                      const tableIndex = schemaInfo.findIndex(
+                        ({ tableName: currentTable }) => currentTable === tableName
+                      );
+                      const isSelected = selectedTableIndex === tableIndex;
 
                       return (
-                        <li key={tableName}>
-                          <div
-                            role="button"
-                            onKeyDown={() => {
-                              return;
-                            }}
-                            tabIndex={-1} // -1 means it cannot be tabbed
-                            className="cursor-pointer hover:text-indigo-400"
-                            onClick={() => {
-                              const pivotTableIndex = schemaInfo.findIndex(
-                                ({ tableName: currentTable }) => {
-                                  return currentTable === tableName;
-                                },
-                              );
-                              setSelectedTableIndex(pivotTableIndex);
-                            }}
-                          >
-                            {tableName}
+                        <div
+                          key={tableName}
+                          role="button"
+                          onKeyDown={() => {
+                            return;
+                          }}
+                          tabIndex={-1}
+                          className={`p-3 rounded-md cursor-pointer transition-all duration-200 group ${
+                            isSelected
+                              ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                              : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
+                          }`}
+                          onClick={() => {
+                            setSelectedTableIndex(tableIndex);
+                          }}
+                        >
+                          <div className="flex items-center">
+                            <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-purple-400' : 'text-gray-500 group-hover:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span className="font-medium">{tableName}</span>
+                            {isSelected && (
+                              <svg className="w-3 h-3 ml-auto text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
                           </div>
-                        </li>
+                          <div className={`text-xs mt-1 ${isSelected ? 'text-purple-400' : 'text-gray-500'}`}>
+                            {tableInfo.columnsInfo.length} columns
+                          </div>
+                        </div>
                       );
                     })}
-                </ul>
-              </>
+                </div>
+              </div>
             )}
           </div>
 
-        <div className="w-full p-4 sm:w-full md:w-full lg:w-full">
+        <div className="flex-1 p-4 min-w-0">
           {selectedTableIndex !== null &&
             Boolean(schemaInfo[selectedTableIndex]) && (
               <div key={schemaInfo[selectedTableIndex].tableName}>
@@ -1014,8 +1061,9 @@ function SchemaBuilder() {
                       </>
                     )}
 
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left border-collapse border border-gray-600">
+                  <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
                       <thead>
                         <tr>
                           <th className="border border-gray-600 px-2 py-1">
@@ -1076,7 +1124,8 @@ function SchemaBuilder() {
                           ),
                         )}
                       </tbody>
-                    </table>
+                      </table>
+                    </div>
                   </div>
                 </>
               </div>
