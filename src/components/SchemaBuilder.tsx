@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 import {
   addRelationship,
@@ -7,14 +7,10 @@ import {
 } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import {
-  Edit as EditIcon,
-  Add as AddIcon,
-  Close as CloseIcon,
-  Save as SaveIcon,
+  Edit as EditIcon, Close as CloseIcon
 } from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
-import { changeCase } from '@/utils/common.ts';
 import TableAdder from '@/components/TableAdder.tsx';
 import renameTable from '@/utils/renameTable.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
@@ -51,8 +47,20 @@ function SchemaBuilder() {
       foreignKey: null,
     });
 
-  const [selectedParentTable, setSelectedParentTable] = useState<string>('');
+  const [_selectedParentTable, setSelectedParentTable] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const columnNameInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.ctrlKey && e.key === 'Enter' && isFormValid()) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (form) {
+        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -205,7 +213,7 @@ function SchemaBuilder() {
 
   const pivotTables = schemaInfo.filter((table) => table.isPivot === true);
 
-  const [isAddColumnFormVisible, setIsAddColumnFormVisible] = useState(false);
+
 
   const addNewColumnToTable = (columnData: INewColumnFormData): void => {
     if (selectedTableIndex === null) {
@@ -288,7 +296,6 @@ function SchemaBuilder() {
     }
 
     setSchemaInfo(updatedSchema);
-    setIsAddColumnFormVisible(false);
     // Reset form
     setNewColumnFormData({
       columnName: '',
@@ -347,6 +354,11 @@ function SchemaBuilder() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     addNewColumnToTable(newColumnFormData);
+    
+    // Focus the column name input after successful submission
+    setTimeout(() => {
+      columnNameInputRef.current?.focus();
+    }, 100);
   };
 
   const getAvailableForeignTables = (currentTable: ITableInfo): string[] => {
@@ -876,205 +888,7 @@ function SchemaBuilder() {
                     <h3 className="font-semibold mb-2 inline-block">
                       Columns ({schemaInfo[selectedTableIndex].columnsInfo.length})
                     </h3>
-                    {(schemaInfo[selectedTableIndex].isPivot !== true ||
-                      isPivotTableColumnsEditable) && (
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setIsAddColumnFormVisible((prev: boolean) => !prev);
-                          }
-                        }}
-                        className="cursor-pointer"
-                      >
-                        {isAddColumnFormVisible ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsAddColumnFormVisible(false);
-                            }}
-                          >
-                            <span className="ml-1">Save</span>
-                            <SaveIcon fontSize="medium" />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsAddColumnFormVisible(true);
-                            }}
-                          >
-                            <span className="ml-1">Add Columns</span>
-                            <AddIcon fontSize="medium" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {isAddColumnFormVisible && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAddColumnFormVisible(false);
-                        }}
-                      >
-                        <span className="ml-1">Cancel</span>
-                        <CloseIcon fontSize="medium" />
-                      </button>
-                    )}
                   </div>
-
-                  {isAddColumnFormVisible &&
-                    (schemaInfo[selectedTableIndex].isPivot !== true ||
-                      isPivotTableColumnsEditable) && (
-                      <>
-                        <br />
-                        <form
-                          id="schemaBuilderForm"
-                          name="schemaBuilderForm"
-                          className="mb-2 bg-gray-800 rounded shadow overflow-x-auto"
-                          onSubmit={handleSubmit}
-                        >
-                          <div className="flex items-center border-b border-gray-600 p-2">
-                            <input
-                              name="columnName"
-                              type="text"
-                              value={newColumnFormData.columnName}
-                              onChange={handleInputChange}
-                              placeholder="Column Name"
-                              className={`border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1`}
-                              required
-                            />
-                            <select
-                              name="dataType"
-                              value={newColumnFormData.dataType}
-                              onChange={handleInputChange}
-                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mr-1"
-                              required
-                            >
-                              <option value="">Select Type</option>
-                              <option value="string">String</option>
-                              <option value="number">Number</option>
-                              <option value="Date">Date</option>
-                              <option value="boolean">Boolean</option>
-                            </select>
-                            <select
-                              name="foreignKey"
-                              value={
-                                newColumnFormData.foreignKey?.tableName ?? ''
-                              }
-                              onChange={handleForeignKeyChange}
-                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
-                            >
-                              <option value="">Foreign Key</option>
-                              {selectedTableIndex &&
-                                getAvailableForeignTables(
-                                  schemaInfo[selectedTableIndex],
-                                ).map((tableName) => (
-                                  <option key={tableName} value={tableName}>
-                                    {tableName}
-                                  </option>
-                                ))}
-                            </select>
-                            {newColumnFormData.foreignKey && (
-                              <select
-                                name="relationType"
-                                value={
-                                  newColumnFormData.foreignKey.relationType
-                                }
-                                onChange={handleRelationTypeChange}
-                                className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[150px] mr-1"
-                                required
-                              >
-                                <option value="">Select Relationship</option>
-                                <option value="oneToOne">
-                                  One-to-One (
-                                  {changeCase(selectedParentTable).pascalCase}{' '}
-                                  can only have one{' '}
-                                  {
-                                    changeCase(
-                                      schemaInfo[selectedTableIndex]?.tableName,
-                                    ).singular
-                                  }
-                                  )
-                                </option>
-                                <option value="oneToMany">
-                                  One-to-Many (
-                                  {changeCase(selectedParentTable).pascalCase}{' '}
-                                  can have many{' '}
-                                  {
-                                    changeCase(
-                                      schemaInfo[selectedTableIndex]?.tableName,
-                                    ).plural
-                                  }
-                                  )
-                                </option>
-                              </select>
-                            )}
-                            <input
-                              name="defaultValue"
-                              type="text"
-                              value={newColumnFormData.defaultValue}
-                              onChange={handleInputChange}
-                              placeholder="Default"
-                              className="border border-gray-600 bg-gray-700 text-white px-1 py-0.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-[100px] mx-1"
-                            />
-                            <div className="flex items-center ml-auto">
-                              <input
-                                name="isNullable"
-                                type="checkbox"
-                                checked={newColumnFormData.isNullable}
-                                onChange={handleInputChange}
-                                className="mr-1 text-indigo-500"
-                              />
-                              <span className="text-gray-300 text-sm">
-                                Nullable
-                              </span>
-                            </div>
-                            <div className="flex items-center ml-auto">
-                              <input
-                                name="isPrimary"
-                                type="checkbox"
-                                checked={newColumnFormData.isPrimary}
-                                onChange={handleInputChange}
-                                className="mr-1 text-indigo-500"
-                              />
-                              <span className="text-gray-300 text-sm">
-                                Primary
-                              </span>
-                            </div>
-                            <div className="flex items-center ml-auto">
-                              <input
-                                name="isUnique"
-                                type="checkbox"
-                                checked={newColumnFormData.isUnique}
-                                onChange={handleInputChange}
-                                className="mr-1 text-indigo-500"
-                              />
-                              <span className="text-gray-300 text-sm">
-                                Unique
-                              </span>
-                            </div>
-                            <button
-                              type="submit"
-                              disabled={!isFormValid()}
-                              className={`ml-2 px-3 py-1 font-bold rounded transition-colors duration-200 ${
-                                isFormValid()
-                                  ? 'bg-green-500 hover:bg-green-600 text-black'
-                                  : 'bg-gray-500 cursor-not-allowed text-gray-300'
-                              }`}
-                              title={
-                                !isFormValid()
-                                  ? 'Please fill in required fields (Column Name and Data Type)'
-                                  : 'Add column'
-                              }
-                            >
-                              Add
-                            </button>
-                          </div>
-                        </form>
-                      </>
-                    )}
 
                   <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
                     <div className="overflow-x-auto">
@@ -1142,6 +956,168 @@ function SchemaBuilder() {
                       </table>
                     </div>
                   </div>
+
+                  {/* Add Column Form - Always Visible - Below Table */}
+                  {(schemaInfo[selectedTableIndex].isPivot !== true ||
+                    isPivotTableColumnsEditable) && (
+                    <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mt-4">
+                      <h4 className="text-lg font-medium text-white mb-4 flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add New Column
+                      </h4>
+                      
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label htmlFor="columnName" className="block text-sm font-medium text-gray-300 mb-1">
+                                Column Name <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                ref={columnNameInputRef}
+                                id="columnName"
+                                name="columnName"
+                                type="text"
+                                value={newColumnFormData.columnName}
+                                onChange={handleInputChange}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Enter name"
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                required
+                              />
+                            </div>
+                            
+                            <div>
+                              <label htmlFor="dataType" className="block text-sm font-medium text-gray-300 mb-1">
+                                Data Type <span className="text-red-400">*</span>
+                              </label>
+                              <select
+                                id="dataType"
+                                name="dataType"
+                                value={newColumnFormData.dataType}
+                                onChange={handleInputChange}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                required
+                              >
+                                <option value="">Type</option>
+                                <option value="string">String</option>
+                                <option value="number">Number</option>
+                                <option value="Date">Date</option>
+                                <option value="boolean">Boolean</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label htmlFor="defaultValue" className="block text-sm font-medium text-gray-300 mb-1">
+                                Default Value
+                              </label>
+                              <input
+                                id="defaultValue"
+                                name="defaultValue"
+                                type="text"
+                                value={newColumnFormData.defaultValue}
+                                onChange={handleInputChange}
+                                placeholder="Optional"
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                              />
+                            </div>
+
+                            <div>
+                              <label htmlFor="foreignKey" className="block text-sm font-medium text-gray-300 mb-1">
+                                Foreign Key
+                              </label>
+                              <select
+                                id="foreignKey"
+                                name="foreignKey"
+                                value={newColumnFormData.foreignKey?.tableName ?? ''}
+                                onChange={handleForeignKeyChange}
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                              >
+                                <option value="">None</option>
+                                {selectedTableIndex &&
+                                  getAvailableForeignTables(schemaInfo[selectedTableIndex]).map((tableName) => (
+                                    <option key={tableName} value={tableName}>
+                                      {tableName}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="flex items-center gap-4">
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                name="isNullable"
+                                type="checkbox"
+                                checked={newColumnFormData.isNullable}
+                                onChange={handleInputChange}
+                                className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
+                              />
+                              <span className="text-sm text-gray-300">Nullable</span>
+                            </label>
+
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                name="isPrimary"
+                                type="checkbox"
+                                checked={newColumnFormData.isPrimary}
+                                onChange={handleInputChange}
+                                className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
+                              />
+                              <span className="text-sm text-gray-300">Primary</span>
+                            </label>
+
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                name="isUnique"
+                                type="checkbox"
+                                checked={newColumnFormData.isUnique}
+                                onChange={handleInputChange}
+                                className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
+                              />
+                              <span className="text-sm text-gray-300">Unique</span>
+                            </label>
+                          </div>
+
+                          {newColumnFormData.foreignKey && (
+                            <div>
+                              <select
+                                id="relationType"
+                                name="relationType"
+                                value={newColumnFormData.foreignKey.relationType}
+                                onChange={handleRelationTypeChange}
+                                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                required
+                              >
+                                <option value="">Relationship</option>
+                                <option value="oneToOne">One-to-One</option>
+                                <option value="oneToMany">One-to-Many</option>
+                              </select>
+                            </div>
+                          )}
+
+                          {isFormValid() && (
+                            <div className="ml-auto flex items-center gap-3">
+                              <span className="text-xs text-gray-400">Ctrl + Enter</span>
+                              <button
+                                type="submit"
+                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                              >
+                                Add Column
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </form>
+                    </div>
+                  )}
                 </>
               </div>
             )}
