@@ -6,7 +6,6 @@ import { useModalStore } from '@/useModalStore.ts';
 
 import { consolidateInterfaces } from '@/utils/common.ts';
 import FileViewer from '@/components/FileViewer.tsx';
-import AdditionalSchemaSettings from '@/components/AdditionalSchemaSettings.tsx';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
 import { CREATION_MODES } from '@/constants.ts';
@@ -611,12 +610,12 @@ function App() {
                 <JSONSchemaEditor />
               </>
             )}
-            <div>
+            {/* <div>
               <div className="block text-sm font-medium">
                 Additional Schema Settings:
                 <AdditionalSchemaSettings />
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div className="bg-gray-800 p-4 shadow-md rounded-md">
