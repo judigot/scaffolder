@@ -50,6 +50,9 @@ function SchemaBuilder() {
   const [_selectedParentTable, setSelectedParentTable] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [columnSearchTerm, setColumnSearchTerm] = useState<string>('');
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; field: string } | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
+  const [editingCellPosition, setEditingCellPosition] = useState<{ top: number; left: number } | null>(null);
   const columnNameInputRef = useRef<HTMLInputElement>(null);
 
   // Handle keyboard shortcuts
@@ -407,6 +410,72 @@ function SchemaBuilder() {
         (!newColumnFormData.foreignKey ||
           newColumnFormData.foreignKey.relationType),
     );
+  };
+
+  const handleCellEdit = (rowIndex: number, field: string, currentValue: string | boolean, event: React.MouseEvent | React.KeyboardEvent): void => {
+    setEditingCell({ rowIndex, field });
+    setEditingValue(String(currentValue));
+    
+    const target = event.currentTarget;
+    const rect = target.getBoundingClientRect();
+    setEditingCellPosition({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX
+    });
+  };
+
+  const handleCellSave = (tableIndex: number, columnIndex: number, field: string): void => {
+    if (!editingCell) {
+      return;
+    }
+
+    const updatedSchemaInfo = [...schemaInfo];
+    const column = updatedSchemaInfo[tableIndex].columnsInfo[columnIndex];
+
+    switch (field) {
+      case 'column_name':
+        column.column_name = editingValue;
+        break;
+      case 'data_type':
+        column.data_type = editingValue;
+        break;
+      case 'is_nullable':
+        column.is_nullable = editingValue;
+        break;
+      case 'column_default':
+        column.column_default = editingValue || null;
+        break;
+      case 'primary_key':
+        column.primary_key = editingValue === 'true' ? true : undefined;
+        break;
+      case 'unique':
+        column.unique = editingValue === 'true' ? true : undefined;
+        break;
+    }
+
+    setSchemaInfo(updatedSchemaInfo);
+    setEditingCell(null);
+    setEditingValue('');
+    setEditingCellPosition(null);
+  };
+
+  const handleCellCancel = (): void => {
+    setEditingCell(null);
+    setEditingValue('');
+    setEditingCellPosition(null);
+  };
+
+  const getExistingPrimaryKeyColumn = (tableIndex: number, excludeColumnName?: string): string | null => {
+    const table = schemaInfo[tableIndex];
+    const primaryKeyColumn = table.columnsInfo.find(col => 
+      col.primary_key === true && col.column_name !== excludeColumnName
+    );
+    return primaryKeyColumn ? primaryKeyColumn.column_name : null;
+  };
+
+  const canEditPrimaryKey = (tableIndex: number, columnName: string): boolean => {
+    const existingPrimaryKey = getExistingPrimaryKeyColumn(tableIndex, columnName);
+    return existingPrimaryKey === null;
   };
 
   if (selectedTableIndex === null) {
@@ -1008,6 +1077,9 @@ function SchemaBuilder() {
                       <table className="w-full text-left border-collapse">
                       <thead className="sticky top-0 bg-gray-700/90 backdrop-blur-sm">
                         <tr>
+                          <th className="border border-gray-600 px-2 py-1 w-12 text-center">
+                            #
+                          </th>
                           <th className="border border-gray-600 px-2 py-1">
                             Column Name
                           </th>
@@ -1037,41 +1109,375 @@ function SchemaBuilder() {
                             column.column_name.toLowerCase().includes(columnSearchTerm.toLowerCase()) ||
                             column.data_type.toLowerCase().includes(columnSearchTerm.toLowerCase())
                           )
-                          .map((column) => (
-                            <tr key={column.column_name}>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.column_name}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.data_type}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.is_nullable}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {getColumnDefaultDisplay({
-                                  isPrimaryKey: column.primary_key ?? false,
-                                  isNullable: column.is_nullable,
-                                  columnDefault: column.column_default,
-                                })}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.primary_key ? 'Yes' : 'No'}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.unique ? 'Yes' : 'No'}
-                              </td>
-                              <td className="border border-gray-600 px-2 py-1">
-                                {column.foreign_key
-                                  ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
-                                  : 'None'}
-                              </td>
-                            </tr>
-                          ))}
+                          .map((column, filteredIndex) => {
+                            const originalIndex = schemaInfo[selectedTableIndex].columnsInfo.findIndex(
+                              col => col.column_name === column.column_name
+                            );
+                            return (
+                              <tr key={column.column_name}>
+                                {/* Icons Column */}
+                                <td className="border border-gray-600 px-2 py-1 text-center">
+                                  <div className="flex items-center justify-center space-x-1">
+                                    {column.primary_key && (
+                                      <span 
+                                        className="text-yellow-400 text-sm" 
+                                        title="Primary Key"
+                                      >
+                                        🔑
+                                      </span>
+                                    )}
+                                    {column.unique && !column.primary_key && (
+                                      <span 
+                                        className="text-blue-400 text-sm" 
+                                        title="Unique"
+                                      >
+                                        ⭐
+                                      </span>
+                                    )}
+                                    {column.foreign_key && (
+                                      <span 
+                                        className="text-green-400 text-sm" 
+                                        title={`Foreign Key: ${column.foreign_key.foreign_table_name}.${column.foreign_key.foreign_column_name}`}
+                                      >
+                                        🔗
+                                      </span>
+                                    )}
+                                    {column.is_nullable === 'NO' && !column.primary_key && (
+                                      <span 
+                                        className="text-red-400 text-xs" 
+                                        title="Not Nullable"
+                                      >
+                                        !
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                {/* Column Name */}
+                                <td className="border border-gray-600 px-2 py-1 relative">
+                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'column_name' ? (
+                                    <input
+                                      type="text"
+                                      value={editingValue}
+                                      onChange={(e) => { setEditingValue(e.target.value); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleCellSave(selectedTableIndex, originalIndex, 'column_name');
+                                        } else if (e.key === 'Escape') {
+                                          handleCellCancel();
+                                        }
+                                      }}
+                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                  ) : (
+                                    <div 
+                                      role="button"
+                                      tabIndex={0}
+                                      className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                      onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'column_name', column.column_name, e); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          handleCellEdit(filteredIndex, 'column_name', column.column_name, e);
+                                        }
+                                      }}
+                                    >
+                                      {column.column_name}
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Data Type */}
+                                <td className="border border-gray-600 px-2 py-1 relative">
+                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'data_type' ? (
+                                    <select
+                                      value={editingValue}
+                                      onChange={(e) => { setEditingValue(e.target.value); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleCellSave(selectedTableIndex, originalIndex, 'data_type');
+                                        } else if (e.key === 'Escape') {
+                                          handleCellCancel();
+                                        }
+                                      }}
+                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    >
+                                      <option value="string">String</option>
+                                      <option value="number">Number</option>
+                                      <option value="Date">Date</option>
+                                      <option value="boolean">Boolean</option>
+                                    </select>
+                                  ) : (
+                                    <div 
+                                      role="button"
+                                      tabIndex={0}
+                                      className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                      onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'data_type', column.data_type, e); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          handleCellEdit(filteredIndex, 'data_type', column.data_type, e);
+                                        }
+                                      }}
+                                    >
+                                      {column.data_type}
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Nullable */}
+                                <td className="border border-gray-600 px-2 py-1 relative">
+                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'is_nullable' ? (
+                                    <select
+                                      value={editingValue}
+                                      onChange={(e) => { setEditingValue(e.target.value); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleCellSave(selectedTableIndex, originalIndex, 'is_nullable');
+                                        } else if (e.key === 'Escape') {
+                                          handleCellCancel();
+                                        }
+                                      }}
+                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    >
+                                      <option value="YES">YES</option>
+                                      <option value="NO">NO</option>
+                                    </select>
+                                  ) : (
+                                    (() => {
+                                      if (column.primary_key === true) {
+                                        return (
+                                          <div 
+                                            className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
+                                            title="Primary keys are automatically NOT NULL"
+                                          >
+                                            NO
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      return (
+                                        <div 
+                                          role="button"
+                                          tabIndex={0}
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                          onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'is_nullable', column.is_nullable, e); }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                              handleCellEdit(filteredIndex, 'is_nullable', column.is_nullable, e);
+                                            }
+                                          }}
+                                        >
+                                          {column.is_nullable}
+                                        </div>
+                                      );
+                                    })()
+                                  )}
+                                </td>
+
+                                {/* Default Value */}
+                                <td className="border border-gray-600 px-2 py-1 relative">
+                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'column_default' ? (
+                                    <input
+                                      type="text"
+                                      value={editingValue}
+                                      onChange={(e) => { setEditingValue(e.target.value); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleCellSave(selectedTableIndex, originalIndex, 'column_default');
+                                        } else if (e.key === 'Escape') {
+                                          handleCellCancel();
+                                        }
+                                      }}
+                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                  ) : (
+                                    <div 
+                                      role="button"
+                                      tabIndex={0}
+                                      className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                      onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'column_default', getColumnDefaultDisplay({
+                                        isPrimaryKey: column.primary_key ?? false,
+                                        isNullable: column.is_nullable,
+                                        columnDefault: column.column_default,
+                                      }), e); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          handleCellEdit(filteredIndex, 'column_default', getColumnDefaultDisplay({
+                                            isPrimaryKey: column.primary_key ?? false,
+                                            isNullable: column.is_nullable,
+                                            columnDefault: column.column_default,
+                                          }), e);
+                                        }
+                                      }}
+                                    >
+                                      {getColumnDefaultDisplay({
+                                        isPrimaryKey: column.primary_key ?? false,
+                                        isNullable: column.is_nullable,
+                                        columnDefault: column.column_default,
+                                      })}
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Primary Key */}
+                                <td className="border border-gray-600 px-2 py-1 relative">
+                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'primary_key' ? (
+                                    <select
+                                      value={editingValue}
+                                      onChange={(e) => { setEditingValue(e.target.value); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleCellSave(selectedTableIndex, originalIndex, 'primary_key');
+                                        } else if (e.key === 'Escape') {
+                                          handleCellCancel();
+                                        }
+                                      }}
+                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    >
+                                      <option value="true">Yes</option>
+                                      <option value="false">No</option>
+                                    </select>
+                                  ) : (
+                                    (() => {
+                                      const canEdit = canEditPrimaryKey(selectedTableIndex, column.column_name);
+                                      const isCurrentPrimaryKey = column.primary_key === true;
+                                      const existingPrimaryKey = getExistingPrimaryKeyColumn(selectedTableIndex, column.column_name);
+                                      
+                                      if (!canEdit && !isCurrentPrimaryKey) {
+                                        return (
+                                          <div 
+                                            className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
+                                            title={`Cannot set as primary key. "${String(existingPrimaryKey)}" is already the primary key.`}
+                                          >
+                                            No
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      return (
+                                        <div 
+                                          role="button"
+                                          tabIndex={0}
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                          onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'primary_key', column.primary_key ? 'true' : 'false', e); }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                              handleCellEdit(filteredIndex, 'primary_key', column.primary_key ? 'true' : 'false', e);
+                                            }
+                                          }}
+                                        >
+                                          {column.primary_key ? 'Yes' : 'No'}
+                                        </div>
+                                      );
+                                    })()
+                                  )}
+                                </td>
+
+                                {/* Unique */}
+                                <td className="border border-gray-600 px-2 py-1 relative">
+                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'unique' ? (
+                                    <select
+                                      value={editingValue}
+                                      onChange={(e) => { setEditingValue(e.target.value); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleCellSave(selectedTableIndex, originalIndex, 'unique');
+                                        } else if (e.key === 'Escape') {
+                                          handleCellCancel();
+                                        }
+                                      }}
+                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    >
+                                      <option value="true">Yes</option>
+                                      <option value="false">No</option>
+                                    </select>
+                                  ) : (
+                                    (() => {
+                                      if (column.primary_key === true) {
+                                        return (
+                                          <div 
+                                            className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
+                                            title="Primary keys are automatically UNIQUE"
+                                          >
+                                            Yes
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      return (
+                                        <div 
+                                          role="button"
+                                          tabIndex={0}
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                          onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'unique', column.unique ? 'true' : 'false', e); }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                              handleCellEdit(filteredIndex, 'unique', column.unique ? 'true' : 'false', e);
+                                            }
+                                          }}
+                                        >
+                                          {column.unique ? 'Yes' : 'No'}
+                                        </div>
+                                      );
+                                    })()
+                                  )}
+                                </td>
+
+                                {/* Foreign Key - Read Only for now */}
+                                <td className="border border-gray-600 px-2 py-1">
+                                  <div className="text-gray-400">
+                                    {column.foreign_key
+                                      ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
+                                      : 'None'}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                       </table>
                     </div>
                   </div>
+
+                  {/* Floating Edit Controls */}
+                  {editingCell && editingCellPosition && (
+                    <div
+                      className="fixed z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-2 flex gap-2"
+                      style={{
+                        top: `${String(editingCellPosition.top)}px`,
+                        left: `${String(editingCellPosition.left)}px`,
+                      }}
+                    >
+                      <button
+                        onClick={() => { 
+                          if (selectedTableIndex !== null) {
+                            const originalIndex = schemaInfo[selectedTableIndex].columnsInfo.findIndex(
+                              col => col.column_name === schemaInfo[selectedTableIndex].columnsInfo
+                                .filter(column => 
+                                  column.column_name.toLowerCase().includes(columnSearchTerm.toLowerCase()) ||
+                                  column.data_type.toLowerCase().includes(columnSearchTerm.toLowerCase())
+                                )[editingCell.rowIndex]?.column_name
+                            );
+                            if (originalIndex !== -1) {
+                              handleCellSave(selectedTableIndex, originalIndex, editingCell.field);
+                            }
+                          }
+                        }}
+                        className="flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-500 text-white rounded transition-colors duration-200"
+                        title="Save changes"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={handleCellCancel}
+                        className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
+                        title="Cancel changes"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+
 
                   {/* Add Column Form - Always Visible - Below Table */}
                   {(schemaInfo[selectedTableIndex].isPivot !== true ||
