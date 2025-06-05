@@ -49,6 +49,7 @@ function SchemaBuilder() {
 
   const [_selectedParentTable, setSelectedParentTable] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [columnSearchTerm, setColumnSearchTerm] = useState<string>('');
   const columnNameInputRef = useRef<HTMLInputElement>(null);
 
   // Handle keyboard shortcuts
@@ -978,16 +979,34 @@ function SchemaBuilder() {
 
                                   <>
                   <br />
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold mb-2 inline-block">
-                      Columns ({schemaInfo[selectedTableIndex].columnsInfo.length})
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">
+                      Columns ({schemaInfo[selectedTableIndex].columnsInfo.filter(column => 
+                        column.column_name.toLowerCase().includes(columnSearchTerm.toLowerCase()) ||
+                        column.data_type.toLowerCase().includes(columnSearchTerm.toLowerCase())
+                      ).length})
                     </h3>
+                    
+                    <div className="flex-1 max-w-xs ml-4">
+                      <div className="relative">
+                        <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                          type="text"
+                          placeholder="Search columns..."
+                          value={columnSearchTerm}
+                          onChange={(e) => { setColumnSearchTerm(e.target.value); }}
+                          className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
                       <table className="w-full text-left border-collapse">
-                      <thead>
+                      <thead className="sticky top-0 bg-gray-700/90 backdrop-blur-sm">
                         <tr>
                           <th className="border border-gray-600 px-2 py-1">
                             Column Name
@@ -1013,8 +1032,12 @@ function SchemaBuilder() {
                         </tr>
                       </thead>
                       <tbody>
-                        {schemaInfo[selectedTableIndex].columnsInfo.map(
-                          (column) => (
+                        {schemaInfo[selectedTableIndex].columnsInfo
+                          .filter(column => 
+                            column.column_name.toLowerCase().includes(columnSearchTerm.toLowerCase()) ||
+                            column.data_type.toLowerCase().includes(columnSearchTerm.toLowerCase())
+                          )
+                          .map((column) => (
                             <tr key={column.column_name}>
                               <td className="border border-gray-600 px-2 py-1">
                                 {column.column_name}
@@ -1044,8 +1067,7 @@ function SchemaBuilder() {
                                   : 'None'}
                               </td>
                             </tr>
-                          ),
-                        )}
+                          ))}
                       </tbody>
                       </table>
                     </div>
