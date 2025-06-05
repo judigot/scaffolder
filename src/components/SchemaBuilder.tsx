@@ -738,148 +738,242 @@ function SchemaBuilder() {
                 <h3 className="font-semibold mt-4 mb-2">Relationships</h3>
                 <div className="space-y-4">
                   {/* One-to-One Relationships */}
-                  {schemaInfo[selectedTableIndex].hasOne &&
-                    schemaInfo[selectedTableIndex].hasOne.length > 0 && (
-                      <div className="bg-blue-500/10 p-4 rounded-lg">
-                        <h4 className="font-semibold text-blue-400 mb-2">
-                          One-to-One Relationships
-                        </h4>
-                        <ul className="space-y-2">
-                          {schemaInfo[selectedTableIndex].hasOne.map(
-                            (table) => (
-                              <li key={table} className="flex items-center">
-                                <span className="text-blue-300">Has One:</span>
-                                <span className="ml-2 font-medium">
-                                  {table}
-                                </span>
-                              </li>
-                            ),
-                          )}
-                          {schemaInfo[selectedTableIndex].belongsTo &&
-                            schemaInfo[selectedTableIndex].belongsTo.length >
-                              0 &&
-                            schemaInfo[selectedTableIndex].belongsTo.map(
-                              (table) => (
-                                <li key={table} className="flex items-center">
-                                  <span className="text-blue-300">
-                                    Belongs To:
-                                  </span>
-                                  <span className="ml-2 font-medium">
-                                    {table}
-                                  </span>
-                                </li>
-                              ),
+                                            {schemaInfo[selectedTableIndex].hasOne &&
+                            schemaInfo[selectedTableIndex].hasOne.length > 0 && (
+                              <div className="bg-blue-500/10 p-4 rounded-lg">
+                                <h4 className="font-semibold text-blue-400 mb-2">
+                                  One-to-One Relationships
+                                </h4>
+                                <ul className="space-y-2">
+                                  {schemaInfo[selectedTableIndex].hasOne.map(
+                                    (table) => (
+                                      <li key={table} className="flex items-center">
+                                        <span className="text-blue-300">Has One:</span>
+                                        <button
+                                          onClick={() => {
+                                            const tableIndex = schemaInfo.findIndex(
+                                              (t) => t.tableName === table
+                                            );
+                                            if (tableIndex !== -1) {
+                                              setSelectedTableIndex(tableIndex);
+                                            }
+                                          }}
+                                          className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
+                                        >
+                                          {table}
+                                        </button>
+                                      </li>
+                                    ),
+                                  )}
+                                  {schemaInfo[selectedTableIndex].belongsTo &&
+                                    schemaInfo[selectedTableIndex].belongsTo.length >
+                                      0 &&
+                                    schemaInfo[selectedTableIndex].belongsTo.map(
+                                      (table) => (
+                                        <li key={table} className="flex items-center">
+                                          <span className="text-blue-300">
+                                            Belongs To:
+                                          </span>
+                                          <button
+                                            onClick={() => {
+                                              const tableIndex = schemaInfo.findIndex(
+                                                (t) => t.tableName === table
+                                              );
+                                              if (tableIndex !== -1) {
+                                                setSelectedTableIndex(tableIndex);
+                                              }
+                                            }}
+                                            className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
+                                          >
+                                            {table}
+                                          </button>
+                                        </li>
+                                      ),
+                                    )}
+                                </ul>
+                              </div>
                             )}
-                        </ul>
-                      </div>
-                    )}
 
                   {/* One-to-Many Relationships */}
-                  {schemaInfo[selectedTableIndex].hasMany &&
-                    schemaInfo[selectedTableIndex].hasMany.length > 0 && (
-                      <div className="bg-green-500/10 p-4 rounded-lg">
-                        <h4 className="font-semibold text-green-400 mb-2">
-                          One-to-Many Relationships
-                        </h4>
-                        <ul className="space-y-2">
-                          {schemaInfo[selectedTableIndex].hasMany.map(
-                            (table) => (
-                              <li key={table} className="flex items-center">
-                                <span className="text-green-300">
-                                  Has Many:
-                                </span>
-                                <span className="ml-2 font-medium">
-                                  {table}
-                                </span>
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                      </div>
-                    )}
+                                            {schemaInfo[selectedTableIndex].hasMany &&
+                            schemaInfo[selectedTableIndex].hasMany.length > 0 && (
+                              <div className="bg-green-500/10 p-4 rounded-lg">
+                                <h4 className="font-semibold text-green-400 mb-2">
+                                  One-to-Many Relationships
+                                </h4>
+                                <ul className="space-y-2">
+                                  {schemaInfo[selectedTableIndex].hasMany.map(
+                                    (table) => (
+                                      <li key={table} className="flex items-center">
+                                        <span className="text-green-300">
+                                          Has Many:
+                                        </span>
+                                        <button
+                                          onClick={() => {
+                                            const tableIndex = schemaInfo.findIndex(
+                                              (t) => t.tableName === table
+                                            );
+                                            if (tableIndex !== -1) {
+                                              setSelectedTableIndex(tableIndex);
+                                            }
+                                          }}
+                                          className="ml-2 font-medium text-green-200 hover:text-green-100 hover:underline cursor-pointer transition-colors duration-200"
+                                        >
+                                          {table}
+                                        </button>
+                                      </li>
+                                    ),
+                                  )}
+                                </ul>
+                              </div>
+                            )}
 
                   {/* Many-to-Many Relationships */}
-                  {schemaInfo[selectedTableIndex].belongsToMany &&
-                    schemaInfo[selectedTableIndex].belongsToMany.length > 0 &&
-                    schemaInfo[selectedTableIndex].pivotRelationships &&
-                    schemaInfo[selectedTableIndex].pivotRelationships.length >
-                      0 && (
-                      <div className="bg-purple-500/10 p-4 rounded-lg">
-                        <h4 className="font-semibold text-purple-400 mb-2">
-                          Many-to-Many Relationships
-                        </h4>
-                        <ul className="space-y-2">
-                          {schemaInfo[selectedTableIndex].belongsToMany.map(
-                            (table) => (
-                              <li key={table} className="flex items-center">
-                                <span className="text-purple-300">
-                                  Belongs To Many:
-                                </span>
-                                <span className="ml-2 font-medium">
-                                  {table}
-                                </span>
-                              </li>
-                            ),
-                          )}
-                          {schemaInfo[
-                            selectedTableIndex
-                          ].pivotRelationships.map((rel, idx) => (
-                            <li key={idx} className="flex items-center">
-                              <span className="text-purple-300">
-                                Through Pivot:
-                              </span>
-                              <span className="ml-2 font-medium">
-                                {rel.relatedTable}
-                                <span className="text-purple-300 mx-2">
-                                  via
-                                </span>
-                                {rel.pivotTable}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                                            {schemaInfo[selectedTableIndex].belongsToMany &&
+                            schemaInfo[selectedTableIndex].belongsToMany.length > 0 &&
+                            schemaInfo[selectedTableIndex].pivotRelationships &&
+                            schemaInfo[selectedTableIndex].pivotRelationships.length >
+                              0 && (
+                              <div className="bg-purple-500/10 p-4 rounded-lg">
+                                <h4 className="font-semibold text-purple-400 mb-2">
+                                  Many-to-Many Relationships
+                                </h4>
+                                <ul className="space-y-2">
+                                  {schemaInfo[selectedTableIndex].belongsToMany.map(
+                                    (table) => (
+                                      <li key={table} className="flex items-center">
+                                        <span className="text-purple-300">
+                                          Belongs To Many:
+                                        </span>
+                                        <button
+                                          onClick={() => {
+                                            const tableIndex = schemaInfo.findIndex(
+                                              (t) => t.tableName === table
+                                            );
+                                            if (tableIndex !== -1) {
+                                              setSelectedTableIndex(tableIndex);
+                                            }
+                                          }}
+                                          className="ml-2 font-medium text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                        >
+                                          {table}
+                                        </button>
+                                      </li>
+                                    ),
+                                  )}
+                                  {schemaInfo[
+                                    selectedTableIndex
+                                  ].pivotRelationships.map((rel, idx) => (
+                                    <li key={idx} className="flex items-center">
+                                      <span className="text-purple-300">
+                                        Through Pivot:
+                                      </span>
+                                      <span className="ml-2 font-medium">
+                                        <button
+                                          onClick={() => {
+                                            const tableIndex = schemaInfo.findIndex(
+                                              (t) => t.tableName === rel.relatedTable
+                                            );
+                                            if (tableIndex !== -1) {
+                                              setSelectedTableIndex(tableIndex);
+                                            }
+                                          }}
+                                          className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                        >
+                                          {rel.relatedTable}
+                                        </button>
+                                        <span className="text-purple-300 mx-2">
+                                          via
+                                        </span>
+                                        <button
+                                          onClick={() => {
+                                            const tableIndex = schemaInfo.findIndex(
+                                              (t) => t.tableName === rel.pivotTable
+                                            );
+                                            if (tableIndex !== -1) {
+                                              setSelectedTableIndex(tableIndex);
+                                            }
+                                          }}
+                                          className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                        >
+                                          {rel.pivotTable}
+                                        </button>
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
 
                   {/* Table References */}
-                  {schemaInfo[selectedTableIndex].foreignTables &&
-                    schemaInfo[selectedTableIndex].foreignTables.length > 0 &&
-                    schemaInfo[selectedTableIndex].childTables &&
-                    schemaInfo[selectedTableIndex].childTables.length > 0 && (
-                      <div className="bg-gray-500/10 p-4 rounded-lg">
-                        <h4 className="font-semibold text-gray-400 mb-2">
-                          Table References
-                        </h4>
-                        <ul className="space-y-2">
-                          {schemaInfo[selectedTableIndex].foreignTables.length >
-                            0 && (
-                            <li className="flex items-center">
-                              <span className="text-gray-300">
-                                Foreign Tables:
-                              </span>
-                              <span className="ml-2 font-medium">
-                                {schemaInfo[
-                                  selectedTableIndex
-                                ].foreignTables.join(', ')}
-                              </span>
-                            </li>
-                          )}
-                          {schemaInfo[selectedTableIndex].childTables.length >
-                            0 && (
-                            <li className="flex items-center">
-                              <span className="text-gray-300">
-                                Child Tables:
-                              </span>
-                              <span className="ml-2 font-medium">
-                                {schemaInfo[
-                                  selectedTableIndex
-                                ].childTables.join(', ')}
-                              </span>
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
+                                            {schemaInfo[selectedTableIndex].foreignTables &&
+                            schemaInfo[selectedTableIndex].foreignTables.length > 0 &&
+                            schemaInfo[selectedTableIndex].childTables &&
+                            schemaInfo[selectedTableIndex].childTables.length > 0 && (
+                              <div className="bg-gray-500/10 p-4 rounded-lg">
+                                <h4 className="font-semibold text-gray-400 mb-2">
+                                  Table References
+                                </h4>
+                                <ul className="space-y-2">
+                                  {schemaInfo[selectedTableIndex].foreignTables.length >
+                                    0 && (
+                                    <li className="flex items-center">
+                                      <span className="text-gray-300">
+                                        Foreign Tables:
+                                      </span>
+                                      <span className="ml-2 font-medium">
+                                        {schemaInfo[selectedTableIndex].foreignTables?.map((table, index) => (
+                                          <span key={table}>
+                                            <button
+                                              onClick={() => {
+                                                const tableIndex = schemaInfo.findIndex(
+                                                  (t) => t.tableName === table
+                                                );
+                                                if (tableIndex !== -1) {
+                                                  setSelectedTableIndex(tableIndex);
+                                                }
+                                              }}
+                                              className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
+                                            >
+                                              {table}
+                                            </button>
+                                            {index < (schemaInfo[selectedTableIndex].foreignTables?.length ?? 0) - 1 && ', '}
+                                          </span>
+                                        ))}
+                                      </span>
+                                    </li>
+                                  )}
+                                  {schemaInfo[selectedTableIndex].childTables.length >
+                                    0 && (
+                                    <li className="flex items-center">
+                                      <span className="text-gray-300">
+                                        Child Tables:
+                                      </span>
+                                      <span className="ml-2 font-medium">
+                                        {schemaInfo[selectedTableIndex].childTables?.map((table, index) => (
+                                          <span key={table}>
+                                            <button
+                                              onClick={() => {
+                                                const tableIndex = schemaInfo.findIndex(
+                                                  (t) => t.tableName === table
+                                                );
+                                                if (tableIndex !== -1) {
+                                                  setSelectedTableIndex(tableIndex);
+                                                }
+                                              }}
+                                              className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
+                                            >
+                                              {table}
+                                            </button>
+                                            {index < (schemaInfo[selectedTableIndex].childTables?.length ?? 0) - 1 && ', '}
+                                          </span>
+                                        ))}
+                                      </span>
+                                    </li>
+                                  )}
+                                </ul>
+                              </div>
+                            )}
                 </div>
 
                                   <>
