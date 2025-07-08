@@ -2399,18 +2399,22 @@ function SchemaBuilder() {
                               id="yamlSeedData"
                               value={yamlSeedData}
                               onChange={handleYamlChange}
-                              placeholder={`- user_id: 1
-  first_name: "John"
-  last_name: "Doe"
-  email: "john@example.com"
-  role: "admin"
-  created_at: "2024-01-01T00:00:00.000Z"
-- user_id: 2
-  first_name: "Jane"
-  last_name: "Smith"
-  email: "jane@example.com"
-  role: "user"
-  created_at: "2024-01-02T00:00:00.000Z"`}
+                              placeholder={(() => {
+                                const table = schemaInfo[selectedTableIndex];
+                                if (table.columnsInfo.length === 0) {
+                                  return '- column1: value1\n  column2: value2\n- column1: value3\n  column2: value4';
+                                }
+                                
+                                const sampleRows = [1, 2].map(() => {
+                                  const row = table.columnsInfo.map((col: IColumnInfo) => {
+                                    const indent = '  ';
+                                    return `${indent}${col.column_name}: `;
+                                  }).join('\n');
+                                  return `- ${row.replace(/^ {2}/, '')}`;
+                                }).join('\n');
+                                
+                                return sampleRows;
+                              })()}
                               className="w-full h-40 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm font-mono resize-vertical"
                               style={{ minHeight: '160px' }}
                             />
