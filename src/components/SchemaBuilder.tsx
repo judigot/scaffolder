@@ -143,6 +143,32 @@ function SchemaBuilder() {
     }
   };
 
+  // Add new empty row to YAML
+  const handleAddNewRow = (): void => {
+    if (selectedTableIndex === null) {
+      return;
+    }
+
+    const table = schemaInfo[selectedTableIndex];
+    if (table.columnsInfo.length === 0) {
+      return;
+    }
+
+    // Create empty row with all column names
+    const emptyRow = table.columnsInfo.map((col: IColumnInfo) => {
+      return `  ${col.column_name}: `;
+    }).join('\n');
+
+    const newRowYaml = `- ${emptyRow.replace(/^ {2}/, '')}`;
+    
+    // Add to existing YAML or create new
+    const updatedYaml = yamlSeedData.trim() 
+      ? `${yamlSeedData}\n${newRowYaml}`
+      : newRowYaml;
+    
+    setYamlSeedData(updatedYaml);
+  };
+
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.ctrlKey && e.key === 'Enter' && isFormValid()) {
@@ -2421,6 +2447,14 @@ function SchemaBuilder() {
                           </div>
 
                           <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={handleAddNewRow}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                            >
+                              New Row
+                            </button>
+
                             <button
                               type="button"
                               onClick={handleSaveSeedData}
