@@ -362,6 +362,29 @@ export default [
         pivotTable: 'user_user_types',
       },
     ],
+    data: [
+      {
+        user_types_id: 1,
+        name: 'superadmin',
+        created_at: '2024-11-19T10:10:55.906Z',
+        updated_at: '2024-11-19T10:10:55.906Z',
+        deleted_at: '2024-11-19T10:10:55.906Z',
+      },
+      {
+        user_types_id: 2,
+        name: 'admin',
+        created_at: '2024-11-19T10:10:55.906Z',
+        updated_at: '2024-11-19T10:10:55.906Z',
+        deleted_at: '2024-11-19T10:10:55.906Z',
+      },
+      {
+        user_types_id: 3,
+        name: 'user',
+        created_at: '2024-11-19T10:10:55.906Z',
+        updated_at: '2024-11-19T10:10:55.906Z',
+        deleted_at: '2024-11-19T10:10:55.906Z',
+      },
+    ],
   },
   {
     tableName: 'user_user_types',

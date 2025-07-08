@@ -147,51 +147,46 @@ export const useTransformationsStore = create<ITransformations>()(
               .map(table => [table.tableName, table.data])
           );
           
-          // Helper function to adjust primary keys and limit total records
-          const adjustMockDataForSeed = (
-            tableName: string,
-            seedRecords: Record<string, unknown>[],
-            mockRecords: Record<string, unknown>[]
-          ): Record<string, unknown>[] => {
-            const table = schemaInfo.find(t => t.tableName === tableName);
-            if (!table) {
-              return mockRecords;
-            }
-            
-            // Calculate how many mock records we need to stay within MAX_MOCK_DATA_ROWS
-            const remainingSlots = Math.max(0, MAX_MOCK_DATA_ROWS - seedRecords.length);
-            const limitedMockRecords = mockRecords.slice(0, remainingSlots);
-            
-            // Find primary key column
-            const primaryKeyColumn = table.columnsInfo.find(col => Boolean(col.primary_key));
-            if (!primaryKeyColumn) {
-              return limitedMockRecords;
-            }
-            
-            const pkFieldName = primaryKeyColumn.column_name;
-            
-            // Find the highest primary key value in seed data
-            const maxSeedPK = Math.max(
-              ...seedRecords.map(record => 
-                typeof record[pkFieldName] === 'number' ? record[pkFieldName] : 0
-              )
-            );
-            
-            // Adjust mock data primary keys to start after seed data
-            return limitedMockRecords.map((record, index) => ({
-              ...record,
-              [pkFieldName]: maxSeedPK + index + 1
-            }));
-          };
-          
-          const finalParsedSchema: ParsedJSONSchema = Object.fromEntries(
-            Object.entries(parsedSchema).map(([key, value]) => [
-              key,
-              key in seedData 
-                ? [...seedData[key], ...adjustMockDataForSeed(key, seedData[key], value)]
-                : value
-            ])
+          // Fix foreign key references in mock data to only use seed data IDs
+          const fixedParsedSchema = Object.fromEntries(
+            Object.entries(parsedSchema).map(([tableName, records]) => {
+              if (tableName in seedData) {
+                // If table has seed data, use only seed data
+                return [tableName, seedData[tableName]];
+              }
+              
+              // For tables without seed data, fix foreign key references
+              const table = schemaInfo.find(t => t.tableName === tableName);
+              if (!table) {
+                return [tableName, records];
+              }
+              
+              const fixedRecords = records.map(record => {
+                const fixedRecord = { ...record };
+                
+                // Fix foreign key values to only reference seed data
+                table.columnsInfo.forEach(col => {
+                  if (col.foreign_key) {
+                    const foreignTableName = col.foreign_key.foreign_table_name;
+                    const foreignColumnName = col.foreign_key.foreign_column_name;
+                    const foreignSeedData = seedData[foreignTableName];
+                    
+                    if (Array.isArray(foreignSeedData) && foreignSeedData.length > 0) {
+                      // Only use seed data values for foreign keys
+                      const randomSeedRecord = foreignSeedData[Math.floor(Math.random() * foreignSeedData.length)];
+                      fixedRecord[col.column_name] = randomSeedRecord[foreignColumnName];
+                    }
+                  }
+                });
+                
+                return fixedRecord;
+              });
+              
+              return [tableName, fixedRecords];
+            })
           );
+          
+          const finalParsedSchema: ParsedJSONSchema = fixedParsedSchema;
           
           useFormStore.setState({ schemaInput: finalParsedSchema });
         } catch {
@@ -244,53 +239,46 @@ export const useTransformationsStore = create<ITransformations>()(
               .map(table => [table.tableName, table.data])
           );
           
-
-          
-          // Helper function to adjust primary keys and limit total records
-          const adjustMockDataForSeed = (
-            tableName: string,
-            seedRecords: Record<string, unknown>[],
-            mockRecords: Record<string, unknown>[]
-          ): Record<string, unknown>[] => {
-            const table = schemaInfo.find(t => t.tableName === tableName);
-            if (!table) {
-              return mockRecords;
-            }
-            
-            // Calculate how many mock records we need to stay within MAX_MOCK_DATA_ROWS
-            const remainingSlots = Math.max(0, MAX_MOCK_DATA_ROWS - seedRecords.length);
-            const limitedMockRecords = mockRecords.slice(0, remainingSlots);
-            
-            // Find primary key column
-            const primaryKeyColumn = table.columnsInfo.find(col => Boolean(col.primary_key));
-            if (!primaryKeyColumn) {
-              return limitedMockRecords;
-            }
-            
-            const pkFieldName = primaryKeyColumn.column_name;
-            
-            // Find the highest primary key value in seed data
-            const maxSeedPK = Math.max(
-              ...seedRecords.map(record => 
-                typeof record[pkFieldName] === 'number' ? record[pkFieldName] : 0
-              )
-            );
-            
-            // Adjust mock data primary keys to start after seed data
-            return limitedMockRecords.map((record, index) => ({
-              ...record,
-              [pkFieldName]: maxSeedPK + index + 1
-            }));
-          };
-          
-          finalMockData = Object.fromEntries(
-            Object.entries(mockData).map(([key, value]) => [
-              key,
-              key in seedData 
-                ? [...seedData[key], ...adjustMockDataForSeed(key, seedData[key], value)]
-                : value
-            ])
+          // Fix foreign key references in mock data to only use seed data IDs
+          const fixedMockData = Object.fromEntries(
+            Object.entries(mockData).map(([tableName, records]) => {
+              if (tableName in seedData) {
+                // If table has seed data, use only seed data
+                return [tableName, seedData[tableName]];
+              }
+              
+              // For tables without seed data, fix foreign key references
+              const table = schemaInfo.find(t => t.tableName === tableName);
+              if (!table) {
+                return [tableName, records];
+              }
+              
+              const fixedRecords = records.map(record => {
+                const fixedRecord = { ...record };
+                
+                // Fix foreign key values to only reference seed data
+                table.columnsInfo.forEach(col => {
+                  if (col.foreign_key) {
+                    const foreignTableName = col.foreign_key.foreign_table_name;
+                    const foreignColumnName = col.foreign_key.foreign_column_name;
+                    const foreignSeedData = seedData[foreignTableName];
+                    
+                    if (Array.isArray(foreignSeedData) && foreignSeedData.length > 0) {
+                      // Only use seed data values for foreign keys
+                      const randomSeedRecord = foreignSeedData[Math.floor(Math.random() * foreignSeedData.length)];
+                      fixedRecord[col.column_name] = randomSeedRecord[foreignColumnName];
+                    }
+                  }
+                });
+                
+                return fixedRecord;
+              });
+              
+              return [tableName, fixedRecords];
+            })
           );
+          
+          finalMockData = fixedMockData;
           
           set({ mockData: finalMockData });
         } catch {
