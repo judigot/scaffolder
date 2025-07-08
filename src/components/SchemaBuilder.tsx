@@ -39,7 +39,7 @@ function SchemaBuilder() {
   const [newColumnFormData, setNewColumnFormData] =
     useState<INewColumnFormData>({
       columnName: '',
-      dataType: '',
+      dataType: 'string',
       isNullable: false,
       defaultValue: '',
       isPrimary: false,
@@ -317,7 +317,7 @@ function SchemaBuilder() {
     // Reset form
     setNewColumnFormData({
       columnName: '',
-      dataType: '',
+      dataType: 'string',
       isNullable: false,
       defaultValue: '',
       isPrimary: false,
@@ -490,6 +490,64 @@ function SchemaBuilder() {
   const canEditPrimaryKey = (tableIndex: number, columnName: string): boolean => {
     const existingPrimaryKey = getExistingPrimaryKeyColumn(tableIndex, columnName);
     return existingPrimaryKey === null;
+  };
+
+  const handleRemoveColumn = async (tableIndex: number, columnIndex: number) => {
+    const table = schemaInfo[tableIndex];
+    const column = table.columnsInfo[columnIndex];
+
+    const result = await promptModal({
+      title: `Remove "${column.column_name}" column?`,
+      description: `Are you sure you want to remove the "${column.column_name}" column from the "${table.tableName}" table?`,
+      trueText: 'Yes',
+      falseText: 'No',
+    });
+
+    if (!result) {
+      return;
+    }
+
+    const updatedSchema = [...schemaInfo];
+    const updatedTable = { ...updatedSchema[tableIndex] };
+    
+    // Remove the column from the table
+    updatedTable.columnsInfo = updatedTable.columnsInfo.filter((_, index) => index !== columnIndex);
+    
+    // If this column was a foreign key, clean up relationships
+    if (column.foreign_key) {
+      const foreignTableName = column.foreign_key.foreign_table_name;
+      
+      // Find the parent table
+      const parentTableIndex = updatedSchema.findIndex(t => t.tableName === foreignTableName);
+      
+      if (parentTableIndex !== -1) {
+        const parentTable = { ...updatedSchema[parentTableIndex] };
+        
+        // Remove this table from parent's hasOne/hasMany arrays
+        if (parentTable.hasOne) {
+          parentTable.hasOne = parentTable.hasOne.filter(t => t !== table.tableName);
+        }
+        if (parentTable.hasMany) {
+          parentTable.hasMany = parentTable.hasMany.filter(t => t !== table.tableName);
+        }
+        if (parentTable.childTables) {
+          parentTable.childTables = parentTable.childTables.filter(t => t !== table.tableName);
+        }
+        
+        updatedSchema[parentTableIndex] = parentTable;
+      }
+      
+      // Remove foreign table from this table's relationships
+      if (updatedTable.belongsTo) {
+        updatedTable.belongsTo = updatedTable.belongsTo.filter(t => t !== foreignTableName);
+      }
+      if (updatedTable.foreignTables) {
+        updatedTable.foreignTables = updatedTable.foreignTables.filter(t => t !== foreignTableName);
+      }
+    }
+    
+    updatedSchema[tableIndex] = updatedTable;
+    setSchemaInfo(updatedSchema);
   };
 
   if (selectedTableIndex === null) {
@@ -1170,6 +1228,9 @@ function SchemaBuilder() {
                           <th className="border border-gray-600 px-2 py-1">
                             Foreign Key
                           </th>
+                          <th className="border border-gray-600 px-2 py-1 w-16 text-center">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1499,6 +1560,23 @@ function SchemaBuilder() {
                                       : 'None'}
                                   </div>
                                 </td>
+
+                                {/* Actions - Delete Column */}
+                                <td className="border border-gray-600 px-2 py-1 text-center">
+                                  <button
+                                    onClick={() => {
+                                      void (async () => {
+                                        await handleRemoveColumn(selectedTableIndex, originalIndex);
+                                      })();
+                                    }}
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded p-1 transition-colors duration-200"
+                                    title={`Remove ${column.column_name} column`}
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
@@ -1582,7 +1660,8 @@ function SchemaBuilder() {
                             
                             <div>
                               <label htmlFor="dataType" className="block text-sm font-medium text-gray-300 mb-1">
-                                Data Type <span className="text-red-400">*</span>
+                                Data Type
+                                {/* Data Type <span className="text-red-400">*</span> */}
                               </label>
                               <select
                                 id="dataType"
@@ -1593,7 +1672,7 @@ function SchemaBuilder() {
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                                 required
                               >
-                                <option value="">Type</option>
+                                {/* <option value="">Type</option> */}
                                 <option value="string">String</option>
                                 <option value="number">Number</option>
                                 <option value="Date">Date</option>
@@ -1613,6 +1692,7 @@ function SchemaBuilder() {
                                 type="text"
                                 value={newColumnFormData.defaultValue}
                                 onChange={handleInputChange}
+                                onKeyDown={handleKeyDown}
                                 placeholder="Optional"
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                               />
@@ -1627,6 +1707,7 @@ function SchemaBuilder() {
                                 name="foreignKey"
                                 value={newColumnFormData.foreignKey?.tableName ?? ''}
                                 onChange={handleForeignKeyChange}
+                                onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                               >
                                 <option value="">None</option>
@@ -1649,6 +1730,7 @@ function SchemaBuilder() {
                                 type="checkbox"
                                 checked={newColumnFormData.isNullable}
                                 onChange={handleInputChange}
+                                onKeyDown={handleKeyDown}
                                 className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
                               />
                               <span className="text-sm text-gray-300">Nullable</span>
@@ -1660,6 +1742,7 @@ function SchemaBuilder() {
                                 type="checkbox"
                                 checked={newColumnFormData.isPrimary}
                                 onChange={handleInputChange}
+                                onKeyDown={handleKeyDown}
                                 className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
                               />
                               <span className="text-sm text-gray-300">Primary</span>
@@ -1671,6 +1754,7 @@ function SchemaBuilder() {
                                 type="checkbox"
                                 checked={newColumnFormData.isUnique}
                                 onChange={handleInputChange}
+                                onKeyDown={handleKeyDown}
                                 className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
                               />
                               <span className="text-sm text-gray-300">Unique</span>
@@ -1684,6 +1768,7 @@ function SchemaBuilder() {
                                 name="relationType"
                                 value={newColumnFormData.foreignKey.relationType}
                                 onChange={handleRelationTypeChange}
+                                onKeyDown={handleKeyDown}
                                 className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                                 required
                               >
