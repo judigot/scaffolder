@@ -51,6 +51,7 @@ export interface ITableInfo {
 
 export interface ISchemaInfo extends ITableInfo {
   columnsInfo: IColumnInfo[];
+  data?: Record<string, unknown>[];
   requiredColumns?: string[]; // One or none
   foreignKeys?: string[]; // One or none
 }

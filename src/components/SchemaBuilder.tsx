@@ -1,19 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 import {
   addRelationship,
   purgeForeignKeyTraces,
 } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
-import {
-  Edit as EditIcon, Close as CloseIcon
-} from '@mui/icons-material';
+import { Edit as EditIcon, Close as CloseIcon } from '@mui/icons-material';
 import { getColumnDefaultDisplay } from '@/utils/common.ts';
 import { getPrimaryKey } from '@/utils/common.ts';
 import TableAdder from '@/components/TableAdder.tsx';
 import renameTable from '@/utils/renameTable.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
+import yaml from 'yaml';
 
 interface INewColumnFormData {
   columnName: string;
@@ -50,10 +49,99 @@ function SchemaBuilder() {
   const [_selectedParentTable, setSelectedParentTable] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [columnSearchTerm, setColumnSearchTerm] = useState<string>('');
-  const [editingCell, setEditingCell] = useState<{ rowIndex: number; field: string } | null>(null);
+  const [editingCell, setEditingCell] = useState<{
+    rowIndex: number;
+    field: string;
+  } | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
-  const [editingCellPosition, setEditingCellPosition] = useState<{ top: number; left: number } | null>(null);
+  const [editingCellPosition, setEditingCellPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const columnNameInputRef = useRef<HTMLInputElement>(null);
+
+  // YAML Seed Data state
+  const [yamlSeedData, setYamlSeedData] = useState<string>('');
+  const [showSeedDataSuccess, setShowSeedDataSuccess] = useState<boolean>(false);
+
+  // Parse YAML to JSON
+  const parseYamlToJson = (
+    yamlString: string,
+  ): Record<string, unknown>[] | null => {
+    try {
+      if (!yamlString.trim()) {
+        return null;
+      }
+
+      // Parse YAML using the yaml package
+      const parsedData: unknown = yaml.parse(yamlString);
+
+      if (!Array.isArray(parsedData)) {
+        console.error('YAML data must be an array of records');
+        return null;
+      }
+
+      // Validate that all items are objects
+      const records = parsedData.filter(
+        (item): item is Record<string, unknown> =>
+          typeof item === 'object' && item !== null && !Array.isArray(item),
+      );
+
+      if (records.length !== parsedData.length) {
+        console.error('All YAML items must be objects');
+        return null;
+      }
+
+      return records;
+    } catch (error) {
+      console.error('Error parsing YAML:', error);
+      return null;
+    }
+  };
+
+  // Handle YAML input change
+  const handleYamlChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>,
+  ): void => {
+    setYamlSeedData(e.target.value);
+  };
+
+  // Save seed data to table
+  const handleSaveSeedData = (): void => {
+    if (selectedTableIndex === null) {
+      return;
+    }
+
+    const parsedData = parseYamlToJson(yamlSeedData);
+    if (parsedData) {
+      const updatedSchema = [...schemaInfo];
+      updatedSchema[selectedTableIndex] = {
+        ...updatedSchema[selectedTableIndex],
+        data: parsedData,
+      };
+      setSchemaInfo(updatedSchema);
+      
+      // Show success indicator and hide after 2 seconds
+      setShowSeedDataSuccess(true);
+      setTimeout(() => {
+        setShowSeedDataSuccess(false);
+      }, 2000);
+    } else {
+      // Handle empty YAML - clear the data
+      const updatedSchema = [...schemaInfo];
+      updatedSchema[selectedTableIndex] = {
+        ...updatedSchema[selectedTableIndex],
+        data: undefined,
+      };
+      setSchemaInfo(updatedSchema);
+      
+      // Show success indicator and hide after 2 seconds
+      setShowSeedDataSuccess(true);
+      setTimeout(() => {
+        setShowSeedDataSuccess(false);
+      }, 2000);
+    }
+  };
 
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent): void => {
@@ -61,7 +149,9 @@ function SchemaBuilder() {
       e.preventDefault();
       const form = e.currentTarget.closest('form');
       if (form) {
-        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        form.dispatchEvent(
+          new Event('submit', { cancelable: true, bubbles: true }),
+        );
       }
     }
   };
@@ -215,6 +305,24 @@ function SchemaBuilder() {
     0,
   );
 
+  // Update YAML textarea when selected table changes
+  useEffect(() => {
+    if (
+      selectedTableIndex !== null &&
+      schemaInfo[selectedTableIndex] !== undefined
+    ) {
+      const table = schemaInfo[selectedTableIndex];
+      if (table.data && Array.isArray(table.data)) {
+        // Convert existing seed data back to YAML format
+        const yamlString = yaml.stringify(table.data);
+        setYamlSeedData(yamlString);
+      } else {
+        // Clear YAML textarea if no seed data exists
+        setYamlSeedData('');
+      }
+    }
+  }, [selectedTableIndex, schemaInfo]);
+
   const pivotTables = schemaInfo.filter((table) => table.isPivot === true);
 
   const isStandaloneTable = (table: ITableInfo): boolean => {
@@ -231,7 +339,9 @@ function SchemaBuilder() {
   };
 
   const standaloneTables = schemaInfo.filter(isStandaloneTable);
-  const mainTables = schemaInfo.filter((table) => !table.isPivot && !isStandaloneTable(table));
+  const mainTables = schemaInfo.filter(
+    (table) => !table.isPivot && !isStandaloneTable(table),
+  );
 
   const addNewColumnToTable = (columnData: INewColumnFormData): void => {
     if (selectedTableIndex === null) {
@@ -372,7 +482,7 @@ function SchemaBuilder() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     addNewColumnToTable(newColumnFormData);
-    
+
     // Focus the column name input after successful submission
     setTimeout(() => {
       columnNameInputRef.current?.focus();
@@ -426,19 +536,28 @@ function SchemaBuilder() {
     );
   };
 
-  const handleCellEdit = (rowIndex: number, field: string, currentValue: string | boolean, event: React.MouseEvent | React.KeyboardEvent): void => {
+  const handleCellEdit = (
+    rowIndex: number,
+    field: string,
+    currentValue: string | boolean,
+    event: React.MouseEvent | React.KeyboardEvent,
+  ): void => {
     setEditingCell({ rowIndex, field });
     setEditingValue(String(currentValue));
-    
+
     const target = event.currentTarget;
     const rect = target.getBoundingClientRect();
     setEditingCellPosition({
       top: rect.bottom + window.scrollY + 8,
-      left: rect.left + window.scrollX
+      left: rect.left + window.scrollX,
     });
   };
 
-  const handleCellSave = (tableIndex: number, columnIndex: number, field: string): void => {
+  const handleCellSave = (
+    tableIndex: number,
+    columnIndex: number,
+    field: string,
+  ): void => {
     if (!editingCell) {
       return;
     }
@@ -479,20 +598,33 @@ function SchemaBuilder() {
     setEditingCellPosition(null);
   };
 
-  const getExistingPrimaryKeyColumn = (tableIndex: number, excludeColumnName?: string): string | null => {
+  const getExistingPrimaryKeyColumn = (
+    tableIndex: number,
+    excludeColumnName?: string,
+  ): string | null => {
     const table = schemaInfo[tableIndex];
-    const primaryKeyColumn = table.columnsInfo.find(col => 
-      col.primary_key === true && col.column_name !== excludeColumnName
+    const primaryKeyColumn = table.columnsInfo.find(
+      (col) =>
+        col.primary_key === true && col.column_name !== excludeColumnName,
     );
     return primaryKeyColumn ? primaryKeyColumn.column_name : null;
   };
 
-  const canEditPrimaryKey = (tableIndex: number, columnName: string): boolean => {
-    const existingPrimaryKey = getExistingPrimaryKeyColumn(tableIndex, columnName);
+  const canEditPrimaryKey = (
+    tableIndex: number,
+    columnName: string,
+  ): boolean => {
+    const existingPrimaryKey = getExistingPrimaryKeyColumn(
+      tableIndex,
+      columnName,
+    );
     return existingPrimaryKey === null;
   };
 
-  const handleRemoveColumn = async (tableIndex: number, columnIndex: number) => {
+  const handleRemoveColumn = async (
+    tableIndex: number,
+    columnIndex: number,
+  ) => {
     const table = schemaInfo[tableIndex];
     const column = table.columnsInfo[columnIndex];
 
@@ -509,43 +641,57 @@ function SchemaBuilder() {
 
     const updatedSchema = [...schemaInfo];
     const updatedTable = { ...updatedSchema[tableIndex] };
-    
+
     // Remove the column from the table
-    updatedTable.columnsInfo = updatedTable.columnsInfo.filter((_, index) => index !== columnIndex);
-    
+    updatedTable.columnsInfo = updatedTable.columnsInfo.filter(
+      (_, index) => index !== columnIndex,
+    );
+
     // If this column was a foreign key, clean up relationships
     if (column.foreign_key) {
       const foreignTableName = column.foreign_key.foreign_table_name;
-      
+
       // Find the parent table
-      const parentTableIndex = updatedSchema.findIndex(t => t.tableName === foreignTableName);
-      
+      const parentTableIndex = updatedSchema.findIndex(
+        (t) => t.tableName === foreignTableName,
+      );
+
       if (parentTableIndex !== -1) {
         const parentTable = { ...updatedSchema[parentTableIndex] };
-        
+
         // Remove this table from parent's hasOne/hasMany arrays
         if (parentTable.hasOne) {
-          parentTable.hasOne = parentTable.hasOne.filter(t => t !== table.tableName);
+          parentTable.hasOne = parentTable.hasOne.filter(
+            (t) => t !== table.tableName,
+          );
         }
         if (parentTable.hasMany) {
-          parentTable.hasMany = parentTable.hasMany.filter(t => t !== table.tableName);
+          parentTable.hasMany = parentTable.hasMany.filter(
+            (t) => t !== table.tableName,
+          );
         }
         if (parentTable.childTables) {
-          parentTable.childTables = parentTable.childTables.filter(t => t !== table.tableName);
+          parentTable.childTables = parentTable.childTables.filter(
+            (t) => t !== table.tableName,
+          );
         }
-        
+
         updatedSchema[parentTableIndex] = parentTable;
       }
-      
+
       // Remove foreign table from this table's relationships
       if (updatedTable.belongsTo) {
-        updatedTable.belongsTo = updatedTable.belongsTo.filter(t => t !== foreignTableName);
+        updatedTable.belongsTo = updatedTable.belongsTo.filter(
+          (t) => t !== foreignTableName,
+        );
       }
       if (updatedTable.foreignTables) {
-        updatedTable.foreignTables = updatedTable.foreignTables.filter(t => t !== foreignTableName);
+        updatedTable.foreignTables = updatedTable.foreignTables.filter(
+          (t) => t !== foreignTableName,
+        );
       }
     }
-    
+
     updatedSchema[tableIndex] = updatedTable;
     setSchemaInfo(updatedSchema);
   };
@@ -600,19 +746,33 @@ function SchemaBuilder() {
         </button>
       )}
       <TableAdder />
-      
+
       {schemaInfo.length === 0 ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
           <div className="bg-gray-800/50 rounded-lg p-8 max-w-md mx-auto border border-gray-700">
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <svg
+                className="w-8 h-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No Tables Created</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              No Tables Created
+            </h3>
             <p className="text-gray-400 mb-6 leading-relaxed">
-                             Get started by creating your first database table. Define your schema structure and relationships to build your application&apos;s data model.
+              Get started by creating your first database table. Define your
+              schema structure and relationships to build your
+              application&apos;s data model.
             </p>
             <div className="space-y-3 text-sm text-gray-300">
               <div className="flex items-center justify-start text-left">
@@ -625,7 +785,9 @@ function SchemaBuilder() {
                 <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                   <span className="text-green-400 text-xs font-bold">2</span>
                 </div>
-                                 <span>Click &quot;Add Table&quot; to create your first table</span>
+                <span>
+                  Click &quot;Add Table&quot; to create your first table
+                </span>
               </div>
               <div className="flex items-center justify-start text-left">
                 <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
@@ -637,42 +799,71 @@ function SchemaBuilder() {
           </div>
         </div>
       ) : (
-                /* Tables List */
-         <div className="flex flex-col md:flex-row">
+        /* Tables List */
+        <div className="flex flex-col md:flex-row">
           <div className="pr-6 w-full md:w-80 flex-shrink-0 max-h-screen overflow-y-auto">
             {/* Search/Filter Input */}
             <div className="mb-4">
               <div className="relative">
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
                 <input
                   type="text"
                   placeholder="Search tables..."
                   value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); }}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                  }}
                   className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
             </div>
-            
+
             <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
               <div className="flex items-center mb-4">
-                <svg className="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <svg
+                  className="w-5 h-5 text-blue-400 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
                 </svg>
-                <h2 className="text-lg font-semibold text-white">Main Tables</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  Main Tables
+                </h2>
                 <span className="ml-auto bg-blue-500/20 text-blue-300 text-xs px-2 py-1 rounded-full">
                   {mainTables.length}
                 </span>
               </div>
               <div className="space-y-1 max-h-64 overflow-y-auto pr-2 -mr-2">
                 {mainTables
-                  .filter((table) => table.tableName.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .filter((table) =>
+                    table.tableName
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase()),
+                  )
                   .map((tableInfo) => {
                     const { tableName } = tableInfo;
                     const tableIndex = schemaInfo.findIndex(
-                      ({ tableName: currentTable }) => currentTable === tableName
+                      ({ tableName: currentTable }) =>
+                        currentTable === tableName,
                     );
                     const isSelected = selectedTableIndex === tableIndex;
 
@@ -694,18 +885,41 @@ function SchemaBuilder() {
                         }}
                       >
                         <div className="flex items-center">
-                          <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-indigo-400' : 'text-gray-500 group-hover:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h2a2 2 0 012 2v0H8v0z" />
+                          <svg
+                            className={`w-4 h-4 mr-2 ${isSelected ? 'text-indigo-400' : 'text-gray-500 group-hover:text-gray-400'}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 5a2 2 0 012-2h2a2 2 0 012 2v0H8v0z"
+                            />
                           </svg>
                           <span className="font-medium">{tableName}</span>
                           {isSelected && (
-                            <svg className="w-3 h-3 ml-auto text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            <svg
+                              className="w-3 h-3 ml-auto text-indigo-400"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
                             </svg>
                           )}
-                                                  </div>
                         </div>
+                      </div>
                     );
                   })}
               </div>
@@ -714,21 +928,38 @@ function SchemaBuilder() {
             {standaloneTables.length > 0 && (
               <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mt-4">
                 <div className="flex items-center mb-4">
-                  <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-5 h-5 text-yellow-400 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
-                  <h2 className="text-lg font-semibold text-white">Standalone Tables</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    Standalone Tables
+                  </h2>
                   <span className="ml-auto bg-yellow-500/20 text-yellow-300 text-xs px-2 py-1 rounded-full">
                     {standaloneTables.length}
                   </span>
                 </div>
                 <div className="space-y-1 max-h-64 overflow-y-auto pr-2 -mr-2">
                   {standaloneTables
-                    .filter((table) => table.tableName.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .filter((table) =>
+                      table.tableName
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()),
+                    )
                     .map((tableInfo) => {
                       const { tableName } = tableInfo;
                       const tableIndex = schemaInfo.findIndex(
-                        ({ tableName: currentTable }) => currentTable === tableName
+                        ({ tableName: currentTable }) =>
+                          currentTable === tableName,
                       );
                       const isSelected = selectedTableIndex === tableIndex;
 
@@ -750,13 +981,31 @@ function SchemaBuilder() {
                           }}
                         >
                           <div className="flex items-center">
-                            <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-yellow-400' : 'text-gray-500 group-hover:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <svg
+                              className={`w-4 h-4 mr-2 ${isSelected ? 'text-yellow-400' : 'text-gray-500 group-hover:text-gray-400'}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
                             </svg>
                             <span className="font-medium">{tableName}</span>
                             {isSelected && (
-                              <svg className="w-3 h-3 ml-auto text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              <svg
+                                className="w-3 h-3 ml-auto text-yellow-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                             )}
                           </div>
@@ -770,22 +1019,39 @@ function SchemaBuilder() {
             {pivotTables.length > 0 && (
               <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mt-4">
                 <div className="flex items-center mb-4">
-                  <svg className="w-5 h-5 text-purple-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  <svg
+                    className="w-5 h-5 text-purple-400 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
                   </svg>
-                  <h2 className="text-lg font-semibold text-white">Pivot Tables</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    Pivot Tables
+                  </h2>
                   <span className="ml-auto bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded-full">
                     {pivotTables.length}
                   </span>
                 </div>
-                                 <div className="space-y-1 max-h-64 overflow-y-auto pr-2 -mr-2">
+                <div className="space-y-1 max-h-64 overflow-y-auto pr-2 -mr-2">
                   {schemaInfo
                     .filter((table) => table.isPivot === true)
-                    .filter((table) => table.tableName.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .filter((table) =>
+                      table.tableName
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()),
+                    )
                     .map((tableInfo) => {
                       const { tableName } = tableInfo;
                       const tableIndex = schemaInfo.findIndex(
-                        ({ tableName: currentTable }) => currentTable === tableName
+                        ({ tableName: currentTable }) =>
+                          currentTable === tableName,
                       );
                       const isSelected = selectedTableIndex === tableIndex;
 
@@ -807,17 +1073,35 @@ function SchemaBuilder() {
                           }}
                         >
                           <div className="flex items-center">
-                            <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-purple-400' : 'text-gray-500 group-hover:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            <svg
+                              className={`w-4 h-4 mr-2 ${isSelected ? 'text-purple-400' : 'text-gray-500 group-hover:text-gray-400'}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
                             </svg>
                             <span className="font-medium">{tableName}</span>
                             {isSelected && (
-                              <svg className="w-3 h-3 ml-auto text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              <svg
+                                className="w-3 h-3 ml-auto text-purple-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                             )}
-                                                     </div>
-                         </div>
+                          </div>
+                        </div>
                       );
                     })}
                 </div>
@@ -825,85 +1109,85 @@ function SchemaBuilder() {
             )}
           </div>
 
-        <div className="flex-1 p-4 min-w-0">
-          {selectedTableIndex !== null &&
-            Boolean(schemaInfo[selectedTableIndex]) && (
-              <div key={schemaInfo[selectedTableIndex].tableName}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">
-                    {schemaInfo[selectedTableIndex].tableName}
-                    {schemaInfo[selectedTableIndex].isPivot !== true && (
-                      <>
-                        &nbsp;
-                        <EditIcon
+          <div className="flex-1 p-4 min-w-0">
+            {selectedTableIndex !== null &&
+              Boolean(schemaInfo[selectedTableIndex]) && (
+                <div key={schemaInfo[selectedTableIndex].tableName}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">
+                      {schemaInfo[selectedTableIndex].tableName}
+                      {schemaInfo[selectedTableIndex].isPivot !== true && (
+                        <>
+                          &nbsp;
+                          <EditIcon
+                            onClick={() => {
+                              void (async () => {
+                                await handleRenameTable(selectedTableIndex);
+                              })();
+                            }}
+                            fontSize="small"
+                            className={`text-white-500 cursor-pointer`}
+                          />
+                          &nbsp;
+                          <CloseIcon
+                            onClick={() => {
+                              void (async () => {
+                                await handleRemoveRelationship(
+                                  selectedTableIndex,
+                                );
+                              })();
+                            }}
+                            fontSize="medium"
+                            className={`text-white-500 cursor-pointer`}
+                          />
+                        </>
+                      )}
+                    </h2>
+                  </div>
+
+                  {schemaInfo[selectedTableIndex].isPivot !== true && (
+                    <>
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <button
                           onClick={() => {
                             void (async () => {
-                              await handleRenameTable(selectedTableIndex);
-                            })();
-                          }}
-                          fontSize="small"
-                          className={`text-white-500 cursor-pointer`}
-                        />
-                        &nbsp;
-                        <CloseIcon
-                          onClick={() => {
-                            void (async () => {
-                              await handleRemoveRelationship(
+                              await handleAddRelationship(
                                 selectedTableIndex,
+                                'hasOne',
                               );
                             })();
                           }}
-                          fontSize="medium"
-                          className={`text-white-500 cursor-pointer`}
-                        />
-                      </>
-                    )}
-                  </h2>
-                </div>
-
-                {schemaInfo[selectedTableIndex].isPivot !== true && (
-                  <>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <button
-                        onClick={() => {
-                          void (async () => {
-                            await handleAddRelationship(
-                              selectedTableIndex,
-                              'hasOne',
-                            );
-                          })();
-                        }}
-                        className="px-3 py-1 bg-blue-500 text-black font-bold rounded"
-                      >
-                        Add One-to-One
-                      </button>
-                      <button
-                        onClick={() => {
-                          void (async () => {
-                            await handleAddRelationship(
-                              selectedTableIndex,
-                              'hasMany',
-                            );
-                          })();
-                        }}
-                        className="px-3 py-1 bg-green-500 text-black font-bold rounded"
-                      >
-                        Add One-to-Many
-                      </button>
-                      <button
-                        onClick={() => {
-                          void (async () => {
-                            await handleAddRelationship(
-                              selectedTableIndex,
-                              'belongsToMany',
-                            );
-                          })();
-                        }}
-                        className="px-3 py-1 bg-purple-500 text-black font-bold rounded"
-                      >
-                        Add Many-to-Many
-                      </button>
-                      {/* <button className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
+                          className="px-3 py-1 bg-blue-500 text-black font-bold rounded"
+                        >
+                          Add One-to-One
+                        </button>
+                        <button
+                          onClick={() => {
+                            void (async () => {
+                              await handleAddRelationship(
+                                selectedTableIndex,
+                                'hasMany',
+                              );
+                            })();
+                          }}
+                          className="px-3 py-1 bg-green-500 text-black font-bold rounded"
+                        >
+                          Add One-to-Many
+                        </button>
+                        <button
+                          onClick={() => {
+                            void (async () => {
+                              await handleAddRelationship(
+                                selectedTableIndex,
+                                'belongsToMany',
+                              );
+                            })();
+                          }}
+                          className="px-3 py-1 bg-purple-500 text-black font-bold rounded"
+                        >
+                          Add Many-to-Many
+                        </button>
+                        {/* <button className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
                         Add Self-Referencing Relationship
                       </button>
                       <button className="px-3 py-1 bg-red-500 text-black font-bold rounded">
@@ -927,876 +1211,1235 @@ function SchemaBuilder() {
                       <button className="px-3 py-1 bg-lime-500 text-black font-bold rounded">
                         Add Optional Relationship
                       </button> */}
-                    </div>
-                    <br />
-                  </>
-                )}
-
-                <h3 className="font-semibold mt-4 mb-2">Relationships</h3>
-                <div className="space-y-4">
-                  {/* One-to-One Relationships */}
-                                            {schemaInfo[selectedTableIndex].hasOne &&
-                            schemaInfo[selectedTableIndex].hasOne.length > 0 && (
-                              <div className="bg-blue-500/10 p-4 rounded-lg">
-                                <h4 className="font-semibold text-blue-400 mb-2">
-                                  One-to-One Relationships
-                                </h4>
-                                <ul className="space-y-2">
-                                  {schemaInfo[selectedTableIndex].hasOne.map(
-                                    (table) => (
-                                      <li key={table} className="flex items-center">
-                                        <span className="text-blue-300">Has One:</span>
-                                        <button
-                                          onClick={() => {
-                                            const tableIndex = schemaInfo.findIndex(
-                                              (t) => t.tableName === table
-                                            );
-                                            if (tableIndex !== -1) {
-                                              setSelectedTableIndex(tableIndex);
-                                            }
-                                          }}
-                                          className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
-                                        >
-                                          {table}
-                                        </button>
-                                      </li>
-                                    ),
-                                  )}
-                                  {schemaInfo[selectedTableIndex].belongsTo &&
-                                    schemaInfo[selectedTableIndex].belongsTo.length >
-                                      0 &&
-                                    schemaInfo[selectedTableIndex].belongsTo.map(
-                                      (table) => (
-                                        <li key={table} className="flex items-center">
-                                          <span className="text-blue-300">
-                                            Belongs To:
-                                          </span>
-                                          <button
-                                            onClick={() => {
-                                              const tableIndex = schemaInfo.findIndex(
-                                                (t) => t.tableName === table
-                                              );
-                                              if (tableIndex !== -1) {
-                                                setSelectedTableIndex(tableIndex);
-                                              }
-                                            }}
-                                            className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
-                                          >
-                                            {table}
-                                          </button>
-                                        </li>
-                                      ),
-                                    )}
-                                </ul>
-                              </div>
-                            )}
-
-                  {/* One-to-Many Relationships */}
-                                            {schemaInfo[selectedTableIndex].hasMany &&
-                            schemaInfo[selectedTableIndex].hasMany.length > 0 && (
-                              <div className="bg-green-500/10 p-4 rounded-lg">
-                                <h4 className="font-semibold text-green-400 mb-2">
-                                  One-to-Many Relationships
-                                </h4>
-                                <ul className="space-y-2">
-                                  {schemaInfo[selectedTableIndex].hasMany.map(
-                                    (table) => (
-                                      <li key={table} className="flex items-center">
-                                        <span className="text-green-300">
-                                          Has Many:
-                                        </span>
-                                        <button
-                                          onClick={() => {
-                                            const tableIndex = schemaInfo.findIndex(
-                                              (t) => t.tableName === table
-                                            );
-                                            if (tableIndex !== -1) {
-                                              setSelectedTableIndex(tableIndex);
-                                            }
-                                          }}
-                                          className="ml-2 font-medium text-green-200 hover:text-green-100 hover:underline cursor-pointer transition-colors duration-200"
-                                        >
-                                          {table}
-                                        </button>
-                                      </li>
-                                    ),
-                                  )}
-                                </ul>
-                              </div>
-                            )}
-
-                  {/* Many-to-Many Relationships */}
-                                            {schemaInfo[selectedTableIndex].belongsToMany &&
-                            schemaInfo[selectedTableIndex].belongsToMany.length > 0 &&
-                            schemaInfo[selectedTableIndex].pivotRelationships &&
-                            schemaInfo[selectedTableIndex].pivotRelationships.length >
-                              0 && (
-                              <div className="bg-purple-500/10 p-4 rounded-lg">
-                                <h4 className="font-semibold text-purple-400 mb-2">
-                                  Many-to-Many Relationships
-                                </h4>
-                                <ul className="space-y-2">
-                                  {schemaInfo[selectedTableIndex].belongsToMany.map(
-                                    (table) => (
-                                      <li key={table} className="flex items-center">
-                                        <span className="text-purple-300">
-                                          Belongs To Many:
-                                        </span>
-                                        <button
-                                          onClick={() => {
-                                            const tableIndex = schemaInfo.findIndex(
-                                              (t) => t.tableName === table
-                                            );
-                                            if (tableIndex !== -1) {
-                                              setSelectedTableIndex(tableIndex);
-                                            }
-                                          }}
-                                          className="ml-2 font-medium text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
-                                        >
-                                          {table}
-                                        </button>
-                                      </li>
-                                    ),
-                                  )}
-                                  {schemaInfo[
-                                    selectedTableIndex
-                                  ].pivotRelationships.map((rel, idx) => (
-                                    <li key={idx} className="flex items-center">
-                                      <span className="text-purple-300">
-                                        Through Pivot:
-                                      </span>
-                                      <span className="ml-2 font-medium">
-                                        <button
-                                          onClick={() => {
-                                            const tableIndex = schemaInfo.findIndex(
-                                              (t) => t.tableName === rel.relatedTable
-                                            );
-                                            if (tableIndex !== -1) {
-                                              setSelectedTableIndex(tableIndex);
-                                            }
-                                          }}
-                                          className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
-                                        >
-                                          {rel.relatedTable}
-                                        </button>
-                                        <span className="text-purple-300 mx-2">
-                                          via
-                                        </span>
-                                        <button
-                                          onClick={() => {
-                                            const tableIndex = schemaInfo.findIndex(
-                                              (t) => t.tableName === rel.pivotTable
-                                            );
-                                            if (tableIndex !== -1) {
-                                              setSelectedTableIndex(tableIndex);
-                                            }
-                                          }}
-                                          className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
-                                        >
-                                          {rel.pivotTable}
-                                        </button>
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                  {/* Table References */}
-                                            {schemaInfo[selectedTableIndex].foreignTables &&
-                            schemaInfo[selectedTableIndex].foreignTables.length > 0 &&
-                            schemaInfo[selectedTableIndex].childTables &&
-                            schemaInfo[selectedTableIndex].childTables.length > 0 && (
-                              <div className="bg-gray-500/10 p-4 rounded-lg">
-                                <h4 className="font-semibold text-gray-400 mb-2">
-                                  Table References
-                                </h4>
-                                <ul className="space-y-2">
-                                  {schemaInfo[selectedTableIndex].foreignTables.length >
-                                    0 && (
-                                    <li className="flex items-center">
-                                      <span className="text-gray-300">
-                                        Foreign Tables:
-                                      </span>
-                                      <span className="ml-2 font-medium">
-                                        {schemaInfo[selectedTableIndex].foreignTables?.map((table, index) => (
-                                          <span key={table}>
-                                            <button
-                                              onClick={() => {
-                                                const tableIndex = schemaInfo.findIndex(
-                                                  (t) => t.tableName === table
-                                                );
-                                                if (tableIndex !== -1) {
-                                                  setSelectedTableIndex(tableIndex);
-                                                }
-                                              }}
-                                              className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
-                                            >
-                                              {table}
-                                            </button>
-                                            {index < (schemaInfo[selectedTableIndex].foreignTables?.length ?? 0) - 1 && ', '}
-                                          </span>
-                                        ))}
-                                      </span>
-                                    </li>
-                                  )}
-                                  {schemaInfo[selectedTableIndex].childTables.length >
-                                    0 && (
-                                    <li className="flex items-center">
-                                      <span className="text-gray-300">
-                                        Child Tables:
-                                      </span>
-                                      <span className="ml-2 font-medium">
-                                        {schemaInfo[selectedTableIndex].childTables?.map((table, index) => (
-                                          <span key={table}>
-                                            <button
-                                              onClick={() => {
-                                                const tableIndex = schemaInfo.findIndex(
-                                                  (t) => t.tableName === table
-                                                );
-                                                if (tableIndex !== -1) {
-                                                  setSelectedTableIndex(tableIndex);
-                                                }
-                                              }}
-                                              className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
-                                            >
-                                              {table}
-                                            </button>
-                                            {index < (schemaInfo[selectedTableIndex].childTables?.length ?? 0) - 1 && ', '}
-                                          </span>
-                                        ))}
-                                      </span>
-                                    </li>
-                                  )}
-                                </ul>
-                              </div>
-                            )}
-                </div>
-
-                                  <>
-                  <br />
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold">
-                      Columns ({schemaInfo[selectedTableIndex].columnsInfo.filter(column => 
-                        column.column_name.toLowerCase().includes(columnSearchTerm.toLowerCase()) ||
-                        column.data_type.toLowerCase().includes(columnSearchTerm.toLowerCase())
-                      ).length})
-                    </h3>
-                    
-                    <div className="flex-1 max-w-xs ml-4">
-                      <div className="relative">
-                        <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input
-                          type="text"
-                          placeholder="Search columns..."
-                          value={columnSearchTerm}
-                          onChange={(e) => { setColumnSearchTerm(e.target.value); }}
-                          className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                        />
                       </div>
-                    </div>
-                  </div>
+                      <br />
+                    </>
+                  )}
 
-                  <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
-                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                      <table className="w-full text-left border-collapse">
-                      <thead className="sticky top-0 bg-gray-700/90 backdrop-blur-sm">
-                        <tr>
-                          <th className="border border-gray-600 px-2 py-1 w-12 text-center">
-                            #
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Column Name
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Data Type
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Nullable
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Default
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Primary
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Unique
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1">
-                            Foreign Key
-                          </th>
-                          <th className="border border-gray-600 px-2 py-1 w-16 text-center">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {schemaInfo[selectedTableIndex].columnsInfo
-                          .filter(column => 
-                            column.column_name.toLowerCase().includes(columnSearchTerm.toLowerCase()) ||
-                            column.data_type.toLowerCase().includes(columnSearchTerm.toLowerCase())
-                          )
-                          .map((column, filteredIndex) => {
-                            const originalIndex = schemaInfo[selectedTableIndex].columnsInfo.findIndex(
-                              col => col.column_name === column.column_name
-                            );
-                            return (
-                              <tr key={column.column_name}>
-                                {/* Icons Column */}
-                                <td className="border border-gray-600 px-2 py-1 text-center">
-                                  <div className="flex items-center justify-center space-x-1">
-                                    {column.primary_key && (
-                                      <span 
-                                        className="text-yellow-400 text-sm" 
-                                        title="Primary Key"
-                                      >
-                                        🔑
-                                      </span>
-                                    )}
-                                    {column.unique && !column.primary_key && (
-                                      <span 
-                                        className="text-blue-400 text-sm" 
-                                        title="Unique"
-                                      >
-                                        ⭐
-                                      </span>
-                                    )}
-                                    {column.foreign_key && (
-                                      <span 
-                                        className="text-green-400 text-sm" 
-                                        title={`Foreign Key: ${column.foreign_key.foreign_table_name}.${column.foreign_key.foreign_column_name}`}
-                                      >
-                                        🔗
-                                      </span>
-                                    )}
-                                    {column.is_nullable === 'NO' && !column.primary_key && (
-                                      <span 
-                                        className="text-red-400 text-xs" 
-                                        title="Not Nullable"
-                                      >
-                                        !
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-
-                                {/* Column Name */}
-                                <td className="border border-gray-600 px-2 py-1 relative">
-                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'column_name' ? (
-                                    <input
-                                      type="text"
-                                      value={editingValue}
-                                      onChange={(e) => { setEditingValue(e.target.value); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleCellSave(selectedTableIndex, originalIndex, 'column_name');
-                                        } else if (e.key === 'Escape') {
-                                          handleCellCancel();
-                                        }
-                                      }}
-                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    />
-                                  ) : (
-                                    <div 
-                                      role="button"
-                                      tabIndex={0}
-                                      className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
-                                      onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'column_name', column.column_name, e); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          handleCellEdit(filteredIndex, 'column_name', column.column_name, e);
-                                        }
-                                      }}
-                                    >
-                                      {column.column_name}
-                                    </div>
-                                  )}
-                                </td>
-
-                                {/* Data Type */}
-                                <td className="border border-gray-600 px-2 py-1 relative">
-                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'data_type' ? (
-                                    <select
-                                      value={editingValue}
-                                      onChange={(e) => { setEditingValue(e.target.value); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleCellSave(selectedTableIndex, originalIndex, 'data_type');
-                                        } else if (e.key === 'Escape') {
-                                          handleCellCancel();
-                                        }
-                                      }}
-                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    >
-                                      <option value="string">String</option>
-                                      <option value="number">Number</option>
-                                      <option value="Date">Date</option>
-                                      <option value="boolean">Boolean</option>
-                                    </select>
-                                  ) : (
-                                    <div 
-                                      role="button"
-                                      tabIndex={0}
-                                      className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
-                                      onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'data_type', column.data_type, e); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          handleCellEdit(filteredIndex, 'data_type', column.data_type, e);
-                                        }
-                                      }}
-                                    >
-                                      {column.data_type}
-                                    </div>
-                                  )}
-                                </td>
-
-                                {/* Nullable */}
-                                <td className="border border-gray-600 px-2 py-1 relative">
-                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'is_nullable' ? (
-                                    <select
-                                      value={editingValue}
-                                      onChange={(e) => { setEditingValue(e.target.value); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleCellSave(selectedTableIndex, originalIndex, 'is_nullable');
-                                        } else if (e.key === 'Escape') {
-                                          handleCellCancel();
-                                        }
-                                      }}
-                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    >
-                                      <option value="YES">YES</option>
-                                      <option value="NO">NO</option>
-                                    </select>
-                                  ) : (
-                                    (() => {
-                                      if (column.primary_key === true) {
-                                        return (
-                                          <div 
-                                            className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
-                                            title="Primary keys are automatically NOT NULL"
-                                          >
-                                            NO
-                                          </div>
-                                        );
-                                      }
-                                      
-                                      return (
-                                        <div 
-                                          role="button"
-                                          tabIndex={0}
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
-                                          onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'is_nullable', column.is_nullable, e); }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                              handleCellEdit(filteredIndex, 'is_nullable', column.is_nullable, e);
-                                            }
-                                          }}
-                                        >
-                                          {column.is_nullable}
-                                        </div>
-                                      );
-                                    })()
-                                  )}
-                                </td>
-
-                                {/* Default Value */}
-                                <td className="border border-gray-600 px-2 py-1 relative">
-                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'column_default' ? (
-                                    <input
-                                      type="text"
-                                      value={editingValue}
-                                      onChange={(e) => { setEditingValue(e.target.value); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleCellSave(selectedTableIndex, originalIndex, 'column_default');
-                                        } else if (e.key === 'Escape') {
-                                          handleCellCancel();
-                                        }
-                                      }}
-                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    />
-                                  ) : (
-                                    <div 
-                                      role="button"
-                                      tabIndex={0}
-                                      className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
-                                      onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'column_default', getColumnDefaultDisplay({
-                                        isPrimaryKey: column.primary_key ?? false,
-                                        isNullable: column.is_nullable,
-                                        columnDefault: column.column_default,
-                                      }), e); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          handleCellEdit(filteredIndex, 'column_default', getColumnDefaultDisplay({
-                                            isPrimaryKey: column.primary_key ?? false,
-                                            isNullable: column.is_nullable,
-                                            columnDefault: column.column_default,
-                                          }), e);
-                                        }
-                                      }}
-                                    >
-                                      {getColumnDefaultDisplay({
-                                        isPrimaryKey: column.primary_key ?? false,
-                                        isNullable: column.is_nullable,
-                                        columnDefault: column.column_default,
-                                      })}
-                                    </div>
-                                  )}
-                                </td>
-
-                                {/* Primary Key */}
-                                <td className="border border-gray-600 px-2 py-1 relative">
-                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'primary_key' ? (
-                                    <select
-                                      value={editingValue}
-                                      onChange={(e) => { setEditingValue(e.target.value); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleCellSave(selectedTableIndex, originalIndex, 'primary_key');
-                                        } else if (e.key === 'Escape') {
-                                          handleCellCancel();
-                                        }
-                                      }}
-                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    >
-                                      <option value="true">Yes</option>
-                                      <option value="false">No</option>
-                                    </select>
-                                  ) : (
-                                    (() => {
-                                      const canEdit = canEditPrimaryKey(selectedTableIndex, column.column_name);
-                                      const isCurrentPrimaryKey = column.primary_key === true;
-                                      const existingPrimaryKey = getExistingPrimaryKeyColumn(selectedTableIndex, column.column_name);
-                                      
-                                      if (!canEdit && !isCurrentPrimaryKey) {
-                                        return (
-                                          <div 
-                                            className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
-                                            title={`Cannot set as primary key. "${String(existingPrimaryKey)}" is already the primary key.`}
-                                          >
-                                            No
-                                          </div>
-                                        );
-                                      }
-                                      
-                                      return (
-                                        <div 
-                                          role="button"
-                                          tabIndex={0}
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
-                                          onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'primary_key', column.primary_key ? 'true' : 'false', e); }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                              handleCellEdit(filteredIndex, 'primary_key', column.primary_key ? 'true' : 'false', e);
-                                            }
-                                          }}
-                                        >
-                                          {column.primary_key ? 'Yes' : 'No'}
-                                        </div>
-                                      );
-                                    })()
-                                  )}
-                                </td>
-
-                                {/* Unique */}
-                                <td className="border border-gray-600 px-2 py-1 relative">
-                                  {editingCell?.rowIndex === filteredIndex && editingCell?.field === 'unique' ? (
-                                    <select
-                                      value={editingValue}
-                                      onChange={(e) => { setEditingValue(e.target.value); }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleCellSave(selectedTableIndex, originalIndex, 'unique');
-                                        } else if (e.key === 'Escape') {
-                                          handleCellCancel();
-                                        }
-                                      }}
-                                      className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    >
-                                      <option value="true">Yes</option>
-                                      <option value="false">No</option>
-                                    </select>
-                                  ) : (
-                                    (() => {
-                                      if (column.primary_key === true) {
-                                        return (
-                                          <div 
-                                            className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
-                                            title="Primary keys are automatically UNIQUE"
-                                          >
-                                            Yes
-                                          </div>
-                                        );
-                                      }
-                                      
-                                      return (
-                                        <div 
-                                          role="button"
-                                          tabIndex={0}
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
-                                          onDoubleClick={(e) => { handleCellEdit(filteredIndex, 'unique', column.unique ? 'true' : 'false', e); }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                              handleCellEdit(filteredIndex, 'unique', column.unique ? 'true' : 'false', e);
-                                            }
-                                          }}
-                                        >
-                                          {column.unique ? 'Yes' : 'No'}
-                                        </div>
-                                      );
-                                    })()
-                                  )}
-                                </td>
-
-                                {/* Foreign Key - Read Only for now */}
-                                <td className="border border-gray-600 px-2 py-1">
-                                  <div className="text-gray-400">
-                                    {column.foreign_key
-                                      ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
-                                      : 'None'}
-                                  </div>
-                                </td>
-
-                                {/* Actions - Delete Column */}
-                                <td className="border border-gray-600 px-2 py-1 text-center">
+                  <h3 className="font-semibold mt-4 mb-2">Relationships</h3>
+                  <div className="space-y-4">
+                    {/* One-to-One Relationships */}
+                    {schemaInfo[selectedTableIndex].hasOne &&
+                      schemaInfo[selectedTableIndex].hasOne.length > 0 && (
+                        <div className="bg-blue-500/10 p-4 rounded-lg">
+                          <h4 className="font-semibold text-blue-400 mb-2">
+                            One-to-One Relationships
+                          </h4>
+                          <ul className="space-y-2">
+                            {schemaInfo[selectedTableIndex].hasOne.map(
+                              (table) => (
+                                <li key={table} className="flex items-center">
+                                  <span className="text-blue-300">
+                                    Has One:
+                                  </span>
                                   <button
                                     onClick={() => {
-                                      void (async () => {
-                                        await handleRemoveColumn(selectedTableIndex, originalIndex);
-                                      })();
+                                      const tableIndex = schemaInfo.findIndex(
+                                        (t) => t.tableName === table,
+                                      );
+                                      if (tableIndex !== -1) {
+                                        setSelectedTableIndex(tableIndex);
+                                      }
                                     }}
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded p-1 transition-colors duration-200"
-                                    title={`Remove ${column.column_name} column`}
+                                    className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
+                                    {table}
                                   </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                      </tbody>
-                      </table>
-                    </div>
+                                </li>
+                              ),
+                            )}
+                            {schemaInfo[selectedTableIndex].belongsTo &&
+                              schemaInfo[selectedTableIndex].belongsTo.length >
+                                0 &&
+                              schemaInfo[selectedTableIndex].belongsTo.map(
+                                (table) => (
+                                  <li key={table} className="flex items-center">
+                                    <span className="text-blue-300">
+                                      Belongs To:
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        const tableIndex = schemaInfo.findIndex(
+                                          (t) => t.tableName === table,
+                                        );
+                                        if (tableIndex !== -1) {
+                                          setSelectedTableIndex(tableIndex);
+                                        }
+                                      }}
+                                      className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
+                                    >
+                                      {table}
+                                    </button>
+                                  </li>
+                                ),
+                              )}
+                          </ul>
+                        </div>
+                      )}
+
+                    {/* One-to-Many Relationships */}
+                    {schemaInfo[selectedTableIndex].hasMany &&
+                      schemaInfo[selectedTableIndex].hasMany.length > 0 && (
+                        <div className="bg-green-500/10 p-4 rounded-lg">
+                          <h4 className="font-semibold text-green-400 mb-2">
+                            One-to-Many Relationships
+                          </h4>
+                          <ul className="space-y-2">
+                            {schemaInfo[selectedTableIndex].hasMany.map(
+                              (table) => (
+                                <li key={table} className="flex items-center">
+                                  <span className="text-green-300">
+                                    Has Many:
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const tableIndex = schemaInfo.findIndex(
+                                        (t) => t.tableName === table,
+                                      );
+                                      if (tableIndex !== -1) {
+                                        setSelectedTableIndex(tableIndex);
+                                      }
+                                    }}
+                                    className="ml-2 font-medium text-green-200 hover:text-green-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  >
+                                    {table}
+                                  </button>
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        </div>
+                      )}
+
+                    {/* Many-to-Many Relationships */}
+                    {schemaInfo[selectedTableIndex].belongsToMany &&
+                      schemaInfo[selectedTableIndex].belongsToMany.length > 0 &&
+                      schemaInfo[selectedTableIndex].pivotRelationships &&
+                      schemaInfo[selectedTableIndex].pivotRelationships.length >
+                        0 && (
+                        <div className="bg-purple-500/10 p-4 rounded-lg">
+                          <h4 className="font-semibold text-purple-400 mb-2">
+                            Many-to-Many Relationships
+                          </h4>
+                          <ul className="space-y-2">
+                            {schemaInfo[selectedTableIndex].belongsToMany.map(
+                              (table) => (
+                                <li key={table} className="flex items-center">
+                                  <span className="text-purple-300">
+                                    Belongs To Many:
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const tableIndex = schemaInfo.findIndex(
+                                        (t) => t.tableName === table,
+                                      );
+                                      if (tableIndex !== -1) {
+                                        setSelectedTableIndex(tableIndex);
+                                      }
+                                    }}
+                                    className="ml-2 font-medium text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  >
+                                    {table}
+                                  </button>
+                                </li>
+                              ),
+                            )}
+                            {schemaInfo[
+                              selectedTableIndex
+                            ].pivotRelationships.map((rel, idx) => (
+                              <li key={idx} className="flex items-center">
+                                <span className="text-purple-300">
+                                  Through Pivot:
+                                </span>
+                                <span className="ml-2 font-medium">
+                                  <button
+                                    onClick={() => {
+                                      const tableIndex = schemaInfo.findIndex(
+                                        (t) => t.tableName === rel.relatedTable,
+                                      );
+                                      if (tableIndex !== -1) {
+                                        setSelectedTableIndex(tableIndex);
+                                      }
+                                    }}
+                                    className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  >
+                                    {rel.relatedTable}
+                                  </button>
+                                  <span className="text-purple-300 mx-2">
+                                    via
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const tableIndex = schemaInfo.findIndex(
+                                        (t) => t.tableName === rel.pivotTable,
+                                      );
+                                      if (tableIndex !== -1) {
+                                        setSelectedTableIndex(tableIndex);
+                                      }
+                                    }}
+                                    className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  >
+                                    {rel.pivotTable}
+                                  </button>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                    {/* Table References */}
+                    {schemaInfo[selectedTableIndex].foreignTables &&
+                      schemaInfo[selectedTableIndex].foreignTables.length > 0 &&
+                      schemaInfo[selectedTableIndex].childTables &&
+                      schemaInfo[selectedTableIndex].childTables.length > 0 && (
+                        <div className="bg-gray-500/10 p-4 rounded-lg">
+                          <h4 className="font-semibold text-gray-400 mb-2">
+                            Table References
+                          </h4>
+                          <ul className="space-y-2">
+                            {schemaInfo[selectedTableIndex].foreignTables
+                              .length > 0 && (
+                              <li className="flex items-center">
+                                <span className="text-gray-300">
+                                  Foreign Tables:
+                                </span>
+                                <span className="ml-2 font-medium">
+                                  {schemaInfo[
+                                    selectedTableIndex
+                                  ].foreignTables?.map((table, index) => (
+                                    <span key={table}>
+                                      <button
+                                        onClick={() => {
+                                          const tableIndex =
+                                            schemaInfo.findIndex(
+                                              (t) => t.tableName === table,
+                                            );
+                                          if (tableIndex !== -1) {
+                                            setSelectedTableIndex(tableIndex);
+                                          }
+                                        }}
+                                        className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
+                                      >
+                                        {table}
+                                      </button>
+                                      {index <
+                                        (schemaInfo[selectedTableIndex]
+                                          .foreignTables?.length ?? 0) -
+                                          1 && ', '}
+                                    </span>
+                                  ))}
+                                </span>
+                              </li>
+                            )}
+                            {schemaInfo[selectedTableIndex].childTables.length >
+                              0 && (
+                              <li className="flex items-center">
+                                <span className="text-gray-300">
+                                  Child Tables:
+                                </span>
+                                <span className="ml-2 font-medium">
+                                  {schemaInfo[
+                                    selectedTableIndex
+                                  ].childTables?.map((table, index) => (
+                                    <span key={table}>
+                                      <button
+                                        onClick={() => {
+                                          const tableIndex =
+                                            schemaInfo.findIndex(
+                                              (t) => t.tableName === table,
+                                            );
+                                          if (tableIndex !== -1) {
+                                            setSelectedTableIndex(tableIndex);
+                                          }
+                                        }}
+                                        className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
+                                      >
+                                        {table}
+                                      </button>
+                                      {index <
+                                        (schemaInfo[selectedTableIndex]
+                                          .childTables?.length ?? 0) -
+                                          1 && ', '}
+                                    </span>
+                                  ))}
+                                </span>
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
                   </div>
 
-                  {/* Floating Edit Controls */}
-                  {editingCell && editingCellPosition && (
-                    <div
-                      className="fixed z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-2 flex gap-2"
-                      style={{
-                        top: `${String(editingCellPosition.top)}px`,
-                        left: `${String(editingCellPosition.left)}px`,
-                      }}
-                    >
-                      <button
-                        onClick={() => { 
-                          if (selectedTableIndex !== null) {
-                            const originalIndex = schemaInfo[selectedTableIndex].columnsInfo.findIndex(
-                              col => col.column_name === schemaInfo[selectedTableIndex].columnsInfo
-                                .filter(column => 
-                                  column.column_name.toLowerCase().includes(columnSearchTerm.toLowerCase()) ||
-                                  column.data_type.toLowerCase().includes(columnSearchTerm.toLowerCase())
-                                )[editingCell.rowIndex]?.column_name
-                            );
-                            if (originalIndex !== -1) {
-                              handleCellSave(selectedTableIndex, originalIndex, editingCell.field);
-                            }
-                          }
-                        }}
-                        className="flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-500 text-white rounded transition-colors duration-200"
-                        title="Save changes"
-                      >
-                        ✓
-                      </button>
-                      <button
-                        onClick={handleCellCancel}
-                        className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
-                        title="Cancel changes"
-                      >
-                        ✕
-                      </button>
+                  <>
+                    <br />
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold">
+                        Columns (
+                        {
+                          schemaInfo[selectedTableIndex].columnsInfo.filter(
+                            (column) =>
+                              column.column_name
+                                .toLowerCase()
+                                .includes(columnSearchTerm.toLowerCase()) ||
+                              column.data_type
+                                .toLowerCase()
+                                .includes(columnSearchTerm.toLowerCase()),
+                          ).length
+                        }
+                        )
+                      </h3>
+
+                      <div className="flex-1 max-w-xs ml-4">
+                        <div className="relative">
+                          <svg
+                            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                          </svg>
+                          <input
+                            type="text"
+                            placeholder="Search columns..."
+                            value={columnSearchTerm}
+                            onChange={(e) => {
+                              setColumnSearchTerm(e.target.value);
+                            }}
+                            className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  )}
 
-
-
-                  {/* Add Column Form - Always Visible - Below Table */}
-                  {(schemaInfo[selectedTableIndex].isPivot !== true ||
-                    isPivotTableColumnsEditable) && (
-                    <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mt-4">
-                      <h4 className="text-lg font-medium text-white mb-4 flex items-center">
-                        <svg className="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Add New Column
-                      </h4>
-                      
-                      <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label htmlFor="columnName" className="block text-sm font-medium text-gray-300 mb-1">
-                                Column Name <span className="text-red-400">*</span>
-                              </label>
-                              <input
-                                ref={columnNameInputRef}
-                                id="columnName"
-                                name="columnName"
-                                type="text"
-                                value={newColumnFormData.columnName}
-                                onChange={handleInputChange}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Enter name"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                required
-                              />
-                            </div>
-                            
-                            <div>
-                              <label htmlFor="dataType" className="block text-sm font-medium text-gray-300 mb-1">
+                    <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
+                      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead className="sticky top-0 bg-gray-700/90 backdrop-blur-sm">
+                            <tr>
+                              <th className="border border-gray-600 px-2 py-1 w-12 text-center">
+                                #
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1">
+                                Column Name
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1">
                                 Data Type
-                                {/* Data Type <span className="text-red-400">*</span> */}
-                              </label>
-                              <select
-                                id="dataType"
-                                name="dataType"
-                                value={newColumnFormData.dataType}
-                                onChange={handleInputChange}
-                                onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                required
-                              >
-                                {/* <option value="">Type</option> */}
-                                <option value="string">String</option>
-                                <option value="number">Number</option>
-                                <option value="Date">Date</option>
-                                <option value="boolean">Boolean</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label htmlFor="defaultValue" className="block text-sm font-medium text-gray-300 mb-1">
-                                Default Value
-                              </label>
-                              <input
-                                id="defaultValue"
-                                name="defaultValue"
-                                type="text"
-                                value={newColumnFormData.defaultValue}
-                                onChange={handleInputChange}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Optional"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                              />
-                            </div>
-
-                            <div>
-                              <label htmlFor="foreignKey" className="block text-sm font-medium text-gray-300 mb-1">
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1">
+                                Nullable
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1">
+                                Default
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1">
+                                Primary
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1">
+                                Unique
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1">
                                 Foreign Key
-                              </label>
-                              <select
-                                id="foreignKey"
-                                name="foreignKey"
-                                value={newColumnFormData.foreignKey?.tableName ?? ''}
-                                onChange={handleForeignKeyChange}
-                                onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                              >
-                                <option value="">None</option>
-                                {selectedTableIndex &&
-                                  getAvailableForeignTables(schemaInfo[selectedTableIndex]).map((tableName) => (
-                                    <option key={tableName} value={tableName}>
-                                      {tableName}
-                                    </option>
-                                  ))}
-                              </select>
-                            </div>
-                          </div>
-                        </div>
+                              </th>
+                              <th className="border border-gray-600 px-2 py-1 w-16 text-center">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {schemaInfo[selectedTableIndex].columnsInfo
+                              .filter(
+                                (column) =>
+                                  column.column_name
+                                    .toLowerCase()
+                                    .includes(columnSearchTerm.toLowerCase()) ||
+                                  column.data_type
+                                    .toLowerCase()
+                                    .includes(columnSearchTerm.toLowerCase()),
+                              )
+                              .map((column, filteredIndex) => {
+                                const originalIndex = schemaInfo[
+                                  selectedTableIndex
+                                ].columnsInfo.findIndex(
+                                  (col) =>
+                                    col.column_name === column.column_name,
+                                );
+                                return (
+                                  <tr key={column.column_name}>
+                                    {/* Icons Column */}
+                                    <td className="border border-gray-600 px-2 py-1 text-center">
+                                      <div className="flex items-center justify-center space-x-1">
+                                        {column.primary_key && (
+                                          <span
+                                            className="text-yellow-400 text-sm"
+                                            title="Primary Key"
+                                          >
+                                            🔑
+                                          </span>
+                                        )}
+                                        {column.unique &&
+                                          !column.primary_key && (
+                                            <span
+                                              className="text-blue-400 text-sm"
+                                              title="Unique"
+                                            >
+                                              ⭐
+                                            </span>
+                                          )}
+                                        {column.foreign_key && (
+                                          <span
+                                            className="text-green-400 text-sm"
+                                            title={`Foreign Key: ${column.foreign_key.foreign_table_name}.${column.foreign_key.foreign_column_name}`}
+                                          >
+                                            🔗
+                                          </span>
+                                        )}
+                                        {column.is_nullable === 'NO' &&
+                                          !column.primary_key && (
+                                            <span
+                                              className="text-red-400 text-xs"
+                                              title="Not Nullable"
+                                            >
+                                              !
+                                            </span>
+                                          )}
+                                      </div>
+                                    </td>
 
-                        <div className="flex flex-wrap items-center gap-4">
-                          <div className="flex items-center gap-4">
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                name="isNullable"
-                                type="checkbox"
-                                checked={newColumnFormData.isNullable}
-                                onChange={handleInputChange}
-                                onKeyDown={handleKeyDown}
-                                className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
-                              />
-                              <span className="text-sm text-gray-300">Nullable</span>
-                            </label>
+                                    {/* Column Name */}
+                                    <td className="border border-gray-600 px-2 py-1 relative">
+                                      {editingCell?.rowIndex ===
+                                        filteredIndex &&
+                                      editingCell?.field === 'column_name' ? (
+                                        <input
+                                          type="text"
+                                          value={editingValue}
+                                          onChange={(e) => {
+                                            setEditingValue(e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleCellSave(
+                                                selectedTableIndex,
+                                                originalIndex,
+                                                'column_name',
+                                              );
+                                            } else if (e.key === 'Escape') {
+                                              handleCellCancel();
+                                            }
+                                          }}
+                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                      ) : (
+                                        <div
+                                          role="button"
+                                          tabIndex={0}
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                          onDoubleClick={(e) => {
+                                            handleCellEdit(
+                                              filteredIndex,
+                                              'column_name',
+                                              column.column_name,
+                                              e,
+                                            );
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (
+                                              e.key === 'Enter' ||
+                                              e.key === ' '
+                                            ) {
+                                              handleCellEdit(
+                                                filteredIndex,
+                                                'column_name',
+                                                column.column_name,
+                                                e,
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          {column.column_name}
+                                        </div>
+                                      )}
+                                    </td>
 
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                name="isPrimary"
-                                type="checkbox"
-                                checked={newColumnFormData.isPrimary}
-                                onChange={handleInputChange}
-                                onKeyDown={handleKeyDown}
-                                className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
-                              />
-                              <span className="text-sm text-gray-300">Primary</span>
-                            </label>
+                                    {/* Data Type */}
+                                    <td className="border border-gray-600 px-2 py-1 relative">
+                                      {editingCell?.rowIndex ===
+                                        filteredIndex &&
+                                      editingCell?.field === 'data_type' ? (
+                                        <select
+                                          value={editingValue}
+                                          onChange={(e) => {
+                                            setEditingValue(e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleCellSave(
+                                                selectedTableIndex,
+                                                originalIndex,
+                                                'data_type',
+                                              );
+                                            } else if (e.key === 'Escape') {
+                                              handleCellCancel();
+                                            }
+                                          }}
+                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        >
+                                          <option value="string">String</option>
+                                          <option value="number">Number</option>
+                                          <option value="Date">Date</option>
+                                          <option value="boolean">
+                                            Boolean
+                                          </option>
+                                        </select>
+                                      ) : (
+                                        <div
+                                          role="button"
+                                          tabIndex={0}
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                          onDoubleClick={(e) => {
+                                            handleCellEdit(
+                                              filteredIndex,
+                                              'data_type',
+                                              column.data_type,
+                                              e,
+                                            );
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (
+                                              e.key === 'Enter' ||
+                                              e.key === ' '
+                                            ) {
+                                              handleCellEdit(
+                                                filteredIndex,
+                                                'data_type',
+                                                column.data_type,
+                                                e,
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          {column.data_type}
+                                        </div>
+                                      )}
+                                    </td>
 
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                name="isUnique"
-                                type="checkbox"
-                                checked={newColumnFormData.isUnique}
-                                onChange={handleInputChange}
-                                onKeyDown={handleKeyDown}
-                                className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
-                              />
-                              <span className="text-sm text-gray-300">Unique</span>
-                            </label>
-                          </div>
+                                    {/* Nullable */}
+                                    <td className="border border-gray-600 px-2 py-1 relative">
+                                      {editingCell?.rowIndex ===
+                                        filteredIndex &&
+                                      editingCell?.field === 'is_nullable' ? (
+                                        <select
+                                          value={editingValue}
+                                          onChange={(e) => {
+                                            setEditingValue(e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleCellSave(
+                                                selectedTableIndex,
+                                                originalIndex,
+                                                'is_nullable',
+                                              );
+                                            } else if (e.key === 'Escape') {
+                                              handleCellCancel();
+                                            }
+                                          }}
+                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        >
+                                          <option value="YES">YES</option>
+                                          <option value="NO">NO</option>
+                                        </select>
+                                      ) : (
+                                        (() => {
+                                          if (column.primary_key === true) {
+                                            return (
+                                              <div
+                                                className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
+                                                title="Primary keys are automatically NOT NULL"
+                                              >
+                                                NO
+                                              </div>
+                                            );
+                                          }
 
-                          {newColumnFormData.foreignKey && (
-                            <div>
-                              <select
-                                id="relationType"
-                                name="relationType"
-                                value={newColumnFormData.foreignKey.relationType}
-                                onChange={handleRelationTypeChange}
-                                onKeyDown={handleKeyDown}
-                                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                required
-                              >
-                                <option value="">Relationship</option>
-                                <option value="oneToOne">One-to-One</option>
-                                <option value="oneToMany">One-to-Many</option>
-                              </select>
-                            </div>
-                          )}
+                                          return (
+                                            <div
+                                              role="button"
+                                              tabIndex={0}
+                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                              onDoubleClick={(e) => {
+                                                handleCellEdit(
+                                                  filteredIndex,
+                                                  'is_nullable',
+                                                  column.is_nullable,
+                                                  e,
+                                                );
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (
+                                                  e.key === 'Enter' ||
+                                                  e.key === ' '
+                                                ) {
+                                                  handleCellEdit(
+                                                    filteredIndex,
+                                                    'is_nullable',
+                                                    column.is_nullable,
+                                                    e,
+                                                  );
+                                                }
+                                              }}
+                                            >
+                                              {column.is_nullable}
+                                            </div>
+                                          );
+                                        })()
+                                      )}
+                                    </td>
 
-                          {isFormValid() && (
-                            <div className="ml-auto flex items-center gap-3">
-                              <span className="text-xs text-gray-400">Ctrl + Enter</span>
-                              <button
-                                type="submit"
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-                              >
-                                Add Column
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </form>
+                                    {/* Default Value */}
+                                    <td className="border border-gray-600 px-2 py-1 relative">
+                                      {editingCell?.rowIndex ===
+                                        filteredIndex &&
+                                      editingCell?.field ===
+                                        'column_default' ? (
+                                        <input
+                                          type="text"
+                                          value={editingValue}
+                                          onChange={(e) => {
+                                            setEditingValue(e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleCellSave(
+                                                selectedTableIndex,
+                                                originalIndex,
+                                                'column_default',
+                                              );
+                                            } else if (e.key === 'Escape') {
+                                              handleCellCancel();
+                                            }
+                                          }}
+                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                      ) : (
+                                        <div
+                                          role="button"
+                                          tabIndex={0}
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                          onDoubleClick={(e) => {
+                                            handleCellEdit(
+                                              filteredIndex,
+                                              'column_default',
+                                              getColumnDefaultDisplay({
+                                                isPrimaryKey:
+                                                  column.primary_key ?? false,
+                                                isNullable: column.is_nullable,
+                                                columnDefault:
+                                                  column.column_default,
+                                              }),
+                                              e,
+                                            );
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (
+                                              e.key === 'Enter' ||
+                                              e.key === ' '
+                                            ) {
+                                              handleCellEdit(
+                                                filteredIndex,
+                                                'column_default',
+                                                getColumnDefaultDisplay({
+                                                  isPrimaryKey:
+                                                    column.primary_key ?? false,
+                                                  isNullable:
+                                                    column.is_nullable,
+                                                  columnDefault:
+                                                    column.column_default,
+                                                }),
+                                                e,
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          {getColumnDefaultDisplay({
+                                            isPrimaryKey:
+                                              column.primary_key ?? false,
+                                            isNullable: column.is_nullable,
+                                            columnDefault:
+                                              column.column_default,
+                                          })}
+                                        </div>
+                                      )}
+                                    </td>
+
+                                    {/* Primary Key */}
+                                    <td className="border border-gray-600 px-2 py-1 relative">
+                                      {editingCell?.rowIndex ===
+                                        filteredIndex &&
+                                      editingCell?.field === 'primary_key' ? (
+                                        <select
+                                          value={editingValue}
+                                          onChange={(e) => {
+                                            setEditingValue(e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleCellSave(
+                                                selectedTableIndex,
+                                                originalIndex,
+                                                'primary_key',
+                                              );
+                                            } else if (e.key === 'Escape') {
+                                              handleCellCancel();
+                                            }
+                                          }}
+                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        >
+                                          <option value="true">Yes</option>
+                                          <option value="false">No</option>
+                                        </select>
+                                      ) : (
+                                        (() => {
+                                          const canEdit = canEditPrimaryKey(
+                                            selectedTableIndex,
+                                            column.column_name,
+                                          );
+                                          const isCurrentPrimaryKey =
+                                            column.primary_key === true;
+                                          const existingPrimaryKey =
+                                            getExistingPrimaryKeyColumn(
+                                              selectedTableIndex,
+                                              column.column_name,
+                                            );
+
+                                          if (
+                                            !canEdit &&
+                                            !isCurrentPrimaryKey
+                                          ) {
+                                            return (
+                                              <div
+                                                className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
+                                                title={`Cannot set as primary key. "${String(existingPrimaryKey)}" is already the primary key.`}
+                                              >
+                                                No
+                                              </div>
+                                            );
+                                          }
+
+                                          return (
+                                            <div
+                                              role="button"
+                                              tabIndex={0}
+                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                              onDoubleClick={(e) => {
+                                                handleCellEdit(
+                                                  filteredIndex,
+                                                  'primary_key',
+                                                  column.primary_key
+                                                    ? 'true'
+                                                    : 'false',
+                                                  e,
+                                                );
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (
+                                                  e.key === 'Enter' ||
+                                                  e.key === ' '
+                                                ) {
+                                                  handleCellEdit(
+                                                    filteredIndex,
+                                                    'primary_key',
+                                                    column.primary_key
+                                                      ? 'true'
+                                                      : 'false',
+                                                    e,
+                                                  );
+                                                }
+                                              }}
+                                            >
+                                              {column.primary_key
+                                                ? 'Yes'
+                                                : 'No'}
+                                            </div>
+                                          );
+                                        })()
+                                      )}
+                                    </td>
+
+                                    {/* Unique */}
+                                    <td className="border border-gray-600 px-2 py-1 relative">
+                                      {editingCell?.rowIndex ===
+                                        filteredIndex &&
+                                      editingCell?.field === 'unique' ? (
+                                        <select
+                                          value={editingValue}
+                                          onChange={(e) => {
+                                            setEditingValue(e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleCellSave(
+                                                selectedTableIndex,
+                                                originalIndex,
+                                                'unique',
+                                              );
+                                            } else if (e.key === 'Escape') {
+                                              handleCellCancel();
+                                            }
+                                          }}
+                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        >
+                                          <option value="true">Yes</option>
+                                          <option value="false">No</option>
+                                        </select>
+                                      ) : (
+                                        (() => {
+                                          if (column.primary_key === true) {
+                                            return (
+                                              <div
+                                                className="px-1 py-0.5 text-gray-500 cursor-not-allowed rounded"
+                                                title="Primary keys are automatically UNIQUE"
+                                              >
+                                                Yes
+                                              </div>
+                                            );
+                                          }
+
+                                          return (
+                                            <div
+                                              role="button"
+                                              tabIndex={0}
+                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                              onDoubleClick={(e) => {
+                                                handleCellEdit(
+                                                  filteredIndex,
+                                                  'unique',
+                                                  column.unique
+                                                    ? 'true'
+                                                    : 'false',
+                                                  e,
+                                                );
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (
+                                                  e.key === 'Enter' ||
+                                                  e.key === ' '
+                                                ) {
+                                                  handleCellEdit(
+                                                    filteredIndex,
+                                                    'unique',
+                                                    column.unique
+                                                      ? 'true'
+                                                      : 'false',
+                                                    e,
+                                                  );
+                                                }
+                                              }}
+                                            >
+                                              {column.unique ? 'Yes' : 'No'}
+                                            </div>
+                                          );
+                                        })()
+                                      )}
+                                    </td>
+
+                                    {/* Foreign Key - Read Only for now */}
+                                    <td className="border border-gray-600 px-2 py-1">
+                                      <div className="text-gray-400">
+                                        {column.foreign_key
+                                          ? `${column.foreign_key.foreign_column_name} (${column.foreign_key.foreign_table_name})`
+                                          : 'None'}
+                                      </div>
+                                    </td>
+
+                                    {/* Actions - Delete Column */}
+                                    <td className="border border-gray-600 px-2 py-1 text-center">
+                                      <button
+                                        onClick={() => {
+                                          void (async () => {
+                                            await handleRemoveColumn(
+                                              selectedTableIndex,
+                                              originalIndex,
+                                            );
+                                          })();
+                                        }}
+                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded p-1 transition-colors duration-200"
+                                        title={`Remove ${column.column_name} column`}
+                                      >
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  )}
-                </>
-              </div>
-            )}
+
+                    {/* Floating Edit Controls */}
+                    {editingCell && editingCellPosition && (
+                      <div
+                        className="fixed z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-2 flex gap-2"
+                        style={{
+                          top: `${String(editingCellPosition.top)}px`,
+                          left: `${String(editingCellPosition.left)}px`,
+                        }}
+                      >
+                        <button
+                          onClick={() => {
+                            if (selectedTableIndex !== null) {
+                              const originalIndex = schemaInfo[
+                                selectedTableIndex
+                              ].columnsInfo.findIndex(
+                                (col) =>
+                                  col.column_name ===
+                                  schemaInfo[
+                                    selectedTableIndex
+                                  ].columnsInfo.filter(
+                                    (column) =>
+                                      column.column_name
+                                        .toLowerCase()
+                                        .includes(
+                                          columnSearchTerm.toLowerCase(),
+                                        ) ||
+                                      column.data_type
+                                        .toLowerCase()
+                                        .includes(
+                                          columnSearchTerm.toLowerCase(),
+                                        ),
+                                  )[editingCell.rowIndex]?.column_name,
+                              );
+                              if (originalIndex !== -1) {
+                                handleCellSave(
+                                  selectedTableIndex,
+                                  originalIndex,
+                                  editingCell.field,
+                                );
+                              }
+                            }
+                          }}
+                          className="flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-500 text-white rounded transition-colors duration-200"
+                          title="Save changes"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={handleCellCancel}
+                          className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
+                          title="Cancel changes"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Add Column Form - Always Visible - Below Table */}
+                    {(schemaInfo[selectedTableIndex].isPivot !== true ||
+                      isPivotTableColumnsEditable) && (
+                      <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mt-4">
+                        <h4 className="text-lg font-medium text-white mb-4 flex items-center">
+                          <svg
+                            className="w-5 h-5 mr-2 text-indigo-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                            />
+                          </svg>
+                          Add New Column
+                        </h4>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label
+                                  htmlFor="columnName"
+                                  className="block text-sm font-medium text-gray-300 mb-1"
+                                >
+                                  Column Name{' '}
+                                  <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                  ref={columnNameInputRef}
+                                  id="columnName"
+                                  name="columnName"
+                                  type="text"
+                                  value={newColumnFormData.columnName}
+                                  onChange={handleInputChange}
+                                  onKeyDown={handleKeyDown}
+                                  placeholder="Enter name"
+                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <label
+                                  htmlFor="dataType"
+                                  className="block text-sm font-medium text-gray-300 mb-1"
+                                >
+                                  Data Type
+                                  {/* Data Type <span className="text-red-400">*</span> */}
+                                </label>
+                                <select
+                                  id="dataType"
+                                  name="dataType"
+                                  value={newColumnFormData.dataType}
+                                  onChange={handleInputChange}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                  required
+                                >
+                                  {/* <option value="">Type</option> */}
+                                  <option value="string">String</option>
+                                  <option value="number">Number</option>
+                                  <option value="Date">Date</option>
+                                  <option value="boolean">Boolean</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label
+                                  htmlFor="defaultValue"
+                                  className="block text-sm font-medium text-gray-300 mb-1"
+                                >
+                                  Default Value
+                                </label>
+                                <input
+                                  id="defaultValue"
+                                  name="defaultValue"
+                                  type="text"
+                                  value={newColumnFormData.defaultValue}
+                                  onChange={handleInputChange}
+                                  onKeyDown={handleKeyDown}
+                                  placeholder="Optional"
+                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                />
+                              </div>
+
+                              <div>
+                                <label
+                                  htmlFor="foreignKey"
+                                  className="block text-sm font-medium text-gray-300 mb-1"
+                                >
+                                  Foreign Key
+                                </label>
+                                <select
+                                  id="foreignKey"
+                                  name="foreignKey"
+                                  value={
+                                    newColumnFormData.foreignKey?.tableName ??
+                                    ''
+                                  }
+                                  onChange={handleForeignKeyChange}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                >
+                                  <option value="">None</option>
+                                  {selectedTableIndex &&
+                                    getAvailableForeignTables(
+                                      schemaInfo[selectedTableIndex],
+                                    ).map((tableName) => (
+                                      <option key={tableName} value={tableName}>
+                                        {tableName}
+                                      </option>
+                                    ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex items-center gap-4">
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  name="isNullable"
+                                  type="checkbox"
+                                  checked={newColumnFormData.isNullable}
+                                  onChange={handleInputChange}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
+                                />
+                                <span className="text-sm text-gray-300">
+                                  Nullable
+                                </span>
+                              </label>
+
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  name="isPrimary"
+                                  type="checkbox"
+                                  checked={newColumnFormData.isPrimary}
+                                  onChange={handleInputChange}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
+                                />
+                                <span className="text-sm text-gray-300">
+                                  Primary
+                                </span>
+                              </label>
+
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  name="isUnique"
+                                  type="checkbox"
+                                  checked={newColumnFormData.isUnique}
+                                  onChange={handleInputChange}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-4 h-4 text-indigo-600 bg-gray-600 border-gray-500 rounded focus:ring-indigo-500"
+                                />
+                                <span className="text-sm text-gray-300">
+                                  Unique
+                                </span>
+                              </label>
+                            </div>
+
+                            {newColumnFormData.foreignKey && (
+                              <div>
+                                <select
+                                  id="relationType"
+                                  name="relationType"
+                                  value={
+                                    newColumnFormData.foreignKey.relationType
+                                  }
+                                  onChange={handleRelationTypeChange}
+                                  onKeyDown={handleKeyDown}
+                                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                  required
+                                >
+                                  <option value="">Relationship</option>
+                                  <option value="oneToOne">One-to-One</option>
+                                  <option value="oneToMany">One-to-Many</option>
+                                </select>
+                              </div>
+                            )}
+
+                            {isFormValid() && (
+                              <div className="ml-auto flex items-center gap-3">
+                                <span className="text-xs text-gray-400">
+                                  Ctrl + Enter
+                                </span>
+                                <button
+                                  type="submit"
+                                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                                >
+                                  Add Column
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    {/* Seed Data Section */}
+                    {(schemaInfo[selectedTableIndex].isPivot !== true ||
+                      isPivotTableColumnsEditable) && (
+                      <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mt-4">
+                        <h4 className="text-lg font-medium text-white mb-4 flex items-center">
+                          <svg
+                            className="w-5 h-5 mr-2 text-green-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 7v10c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V7M4 7h16M4 7l1-4h14l1 4M9 11v6m6-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          Seed Data (YAML)
+                        </h4>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label
+                              htmlFor="yamlSeedData"
+                              className="block text-sm font-medium text-gray-300 mb-2"
+                            >
+                              Sample Data for{' '}
+                              {schemaInfo[selectedTableIndex].tableName} table
+                            </label>
+                            <p className="text-xs text-gray-400 mb-3">
+                              Enter sample data in YAML format. Example: user
+                              types (superadmin, admin, user), product
+                              categories, etc.
+                            </p>
+                            <textarea
+                              id="yamlSeedData"
+                              value={yamlSeedData}
+                              onChange={handleYamlChange}
+                              placeholder={`- user_id: 1
+  first_name: "John"
+  last_name: "Doe"
+  email: "john@example.com"
+  role: "admin"
+  created_at: "2024-01-01T00:00:00.000Z"
+- user_id: 2
+  first_name: "Jane"
+  last_name: "Smith"
+  email: "jane@example.com"
+  role: "user"
+  created_at: "2024-01-02T00:00:00.000Z"`}
+                              className="w-full h-40 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm font-mono resize-vertical"
+                              style={{ minHeight: '160px' }}
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={handleSaveSeedData}
+                              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                            >
+                              Save Seed Data
+                            </button>
+
+                            {showSeedDataSuccess && schemaInfo[selectedTableIndex].data && (
+                              <span className="text-sm text-green-400">
+                                ✓ Seed data saved (
+                                {schemaInfo[selectedTableIndex].data.length ||
+                                  0}{' '}
+                                records)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                </div>
+              )}
           </div>
         </div>
       )}

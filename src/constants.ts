@@ -12,6 +12,8 @@ export const APP_SETTINGS = {
   excludePivotTableFiles: !true,
 } as const;
 
+export const MAX_MOCK_DATA_ROWS = 5;
+
 export const frameworkDirectories: Record<
   string,
   {

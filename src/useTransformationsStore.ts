@@ -18,6 +18,7 @@ import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts'
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { sortTablesBasedOnHierarchy } from '@/utils/sortTablesBasedOnHierarchy.ts';
+import { MAX_MOCK_DATA_ROWS } from '@/constants.ts';
 
 interface ITransformations extends Record<PropertyKey, unknown> {
   schemaInfo: ISchemaInfo[];
@@ -115,7 +116,7 @@ export const useTransformationsStore = create<ITransformations>()(
         }
 
         // Run transformations on the schema
-        get().setTransformations(schemaInfo);
+        get().setTransformations(sortedSchemaInfo);
       },
       setIntrospectedSchema: (schemaInfo) => {
         if (schemaInfo.length === 0) {
@@ -136,7 +137,63 @@ export const useTransformationsStore = create<ITransformations>()(
             mockDataRows: 2,
             schemaInfo,
           });
-          useFormStore.setState({ schemaInput: parsedSchema });
+          
+          // Create a new variable that combines mock data with seed data using map
+          const seedData: ParsedJSONSchema = Object.fromEntries(
+            schemaInfo
+              .filter((table): table is ISchemaInfo & { data: Record<string, unknown>[] } => 
+                Boolean(table.data && Array.isArray(table.data) && table.data.length > 0)
+              )
+              .map(table => [table.tableName, table.data])
+          );
+          
+          // Helper function to adjust primary keys and limit total records
+          const adjustMockDataForSeed = (
+            tableName: string,
+            seedRecords: Record<string, unknown>[],
+            mockRecords: Record<string, unknown>[]
+          ): Record<string, unknown>[] => {
+            const table = schemaInfo.find(t => t.tableName === tableName);
+            if (!table) {
+              return mockRecords;
+            }
+            
+            // Calculate how many mock records we need to stay within MAX_MOCK_DATA_ROWS
+            const remainingSlots = Math.max(0, MAX_MOCK_DATA_ROWS - seedRecords.length);
+            const limitedMockRecords = mockRecords.slice(0, remainingSlots);
+            
+            // Find primary key column
+            const primaryKeyColumn = table.columnsInfo.find(col => Boolean(col.primary_key));
+            if (!primaryKeyColumn) {
+              return limitedMockRecords;
+            }
+            
+            const pkFieldName = primaryKeyColumn.column_name;
+            
+            // Find the highest primary key value in seed data
+            const maxSeedPK = Math.max(
+              ...seedRecords.map(record => 
+                typeof record[pkFieldName] === 'number' ? record[pkFieldName] : 0
+              )
+            );
+            
+            // Adjust mock data primary keys to start after seed data
+            return limitedMockRecords.map((record, index) => ({
+              ...record,
+              [pkFieldName]: maxSeedPK + index + 1
+            }));
+          };
+          
+          const finalParsedSchema: ParsedJSONSchema = Object.fromEntries(
+            Object.entries(parsedSchema).map(([key, value]) => [
+              key,
+              key in seedData 
+                ? [...seedData[key], ...adjustMockDataForSeed(key, seedData[key], value)]
+                : value
+            ])
+          );
+          
+          useFormStore.setState({ schemaInput: finalParsedSchema });
         } catch {
           set({
             interfaces: { errorMessage },
@@ -171,13 +228,73 @@ export const useTransformationsStore = create<ITransformations>()(
         }
 
         let mockData: ParsedJSONSchema = {};
+        let finalMockData: ParsedJSONSchema = {};
         try {
           mockData = generateMockData({
-            mockDataRows: 5,
+            mockDataRows: MAX_MOCK_DATA_ROWS,
             schemaInfo,
           });
-          set({ mockData });
+          
+                    // Create a new variable that combines mock data with seed data using map
+          const seedData: ParsedJSONSchema = Object.fromEntries(
+            schemaInfo
+              .filter((table): table is ISchemaInfo & { data: Record<string, unknown>[] } => 
+                Boolean(table.data && Array.isArray(table.data) && table.data.length > 0)
+              )
+              .map(table => [table.tableName, table.data])
+          );
+          
+
+          
+          // Helper function to adjust primary keys and limit total records
+          const adjustMockDataForSeed = (
+            tableName: string,
+            seedRecords: Record<string, unknown>[],
+            mockRecords: Record<string, unknown>[]
+          ): Record<string, unknown>[] => {
+            const table = schemaInfo.find(t => t.tableName === tableName);
+            if (!table) {
+              return mockRecords;
+            }
+            
+            // Calculate how many mock records we need to stay within MAX_MOCK_DATA_ROWS
+            const remainingSlots = Math.max(0, MAX_MOCK_DATA_ROWS - seedRecords.length);
+            const limitedMockRecords = mockRecords.slice(0, remainingSlots);
+            
+            // Find primary key column
+            const primaryKeyColumn = table.columnsInfo.find(col => Boolean(col.primary_key));
+            if (!primaryKeyColumn) {
+              return limitedMockRecords;
+            }
+            
+            const pkFieldName = primaryKeyColumn.column_name;
+            
+            // Find the highest primary key value in seed data
+            const maxSeedPK = Math.max(
+              ...seedRecords.map(record => 
+                typeof record[pkFieldName] === 'number' ? record[pkFieldName] : 0
+              )
+            );
+            
+            // Adjust mock data primary keys to start after seed data
+            return limitedMockRecords.map((record, index) => ({
+              ...record,
+              [pkFieldName]: maxSeedPK + index + 1
+            }));
+          };
+          
+          finalMockData = Object.fromEntries(
+            Object.entries(mockData).map(([key, value]) => [
+              key,
+              key in seedData 
+                ? [...seedData[key], ...adjustMockDataForSeed(key, seedData[key], value)]
+                : value
+            ])
+          );
+          
+          set({ mockData: finalMockData });
         } catch {
+          finalMockData = {};
           set({ mockData: {} });
         }
 
@@ -202,7 +319,7 @@ export const useTransformationsStore = create<ITransformations>()(
 
         let SQLInsertQueriesFromMockData = '';
         try {
-          SQLInsertQueriesFromMockData = generateSQLInserts(mockData);
+          SQLInsertQueriesFromMockData = generateSQLInserts(finalMockData);
           set({
             SQLInsertQueriesFromMockData: formatSQL(
               SQLInsertQueriesFromMockData,
