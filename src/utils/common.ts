@@ -263,26 +263,7 @@ export const generateColumnDefinition = ({
   return definition.trim();
 };
 
-export const getForeignKeyConstraints = (
-  tableName: string,
-  schemaInfo: ISchemaInfo[],
-): string[] => {
-  const quote = useFormStore.getState().quote;
-  const tableInfo = schemaInfo.find((rel) => rel.tableName === tableName);
-  if (!tableInfo) {
-    return [];
-  }
 
-  return tableInfo.columnsInfo
-    .filter((col) => col.foreign_key != null)
-    .map((col) => {
-      const fk = col.foreign_key;
-      if (!fk) {
-        return '';
-      }
-      return `CONSTRAINT ${quote}FK_${tableName}_${col.column_name}${quote} FOREIGN KEY (${quote}${col.column_name}${quote}) REFERENCES ${quote}${fk.foreign_table_name}${quote}(${quote}${fk.foreign_column_name}${quote})`;
-    });
-};
 
 export function addPrimaryKeys(schema: IJSONSchema): IJSONSchema {
   const newSchema: IJSONSchema = {};

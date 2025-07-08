@@ -3,7 +3,6 @@ import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
   determineSQLDatabaseType,
   generateColumnDefinition,
-  getForeignKeyConstraints,
 } from '@/utils/common.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { APP_SETTINGS } from '@/constants.ts';
@@ -13,25 +12,40 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
 
   // Function to generate foreign key constraints with ON DELETE CASCADE where applicable
   const generateForeignKeyConstraint = (
-    table: string,
+    tableName: string,
     schemaInfo: ISchemaInfo[],
   ): string[] => {
-    return getForeignKeyConstraints(table, schemaInfo).map((constraint) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (APP_SETTINGS.onDeleteCascade) {
-        const relatedTable = /REFERENCES\s+"(\w+)"/.exec(constraint)?.[1];
-        const parentTable = schemaInfo.find(
-          (t) => t.tableName === relatedTable,
-        );
-        const hasOneRelationship = parentTable?.hasOne?.includes(table) ?? false;
+    const quote = useFormStore.getState().quote;
+    const tableInfo = schemaInfo.find((rel) => rel.tableName === tableName);
+    if (!tableInfo) {
+      return [];
+    }
 
-        if (hasOneRelationship) {
-          return constraint.replace(/;?$/, ' ON DELETE CASCADE');
+    return tableInfo.columnsInfo
+      .filter((col) => col.foreign_key != null)
+      .map((col) => {
+        const fk = col.foreign_key;
+        if (!fk) {
+          return '';
         }
-      }
+        let constraint = `CONSTRAINT ${quote}FK_${tableName}_${col.column_name}${quote} FOREIGN KEY (${quote}${col.column_name}${quote}) REFERENCES ${quote}${fk.foreign_table_name}${quote}(${quote}${fk.foreign_column_name}${quote})`;
+        
+        // Add ON DELETE CASCADE where applicable
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (APP_SETTINGS.onDeleteCascade) {
+          const parentTable = schemaInfo.find(
+            (t) => t.tableName === fk.foreign_table_name,
+          );
+          const hasOneRelationship = parentTable?.hasOne?.includes(tableName) ?? false;
 
-      return constraint;
-    });
+          if (hasOneRelationship) {
+            constraint += ' ON DELETE CASCADE';
+          }
+        }
+
+        return constraint;
+      })
+      .filter(Boolean);
   };
 
   return formatSQL(
