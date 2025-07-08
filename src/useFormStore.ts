@@ -83,7 +83,7 @@ export const useFormStore = create<IFormStore>()(
       outputOnSingleFile: false,
       dbType: initialDbType,
       quote: initialQuote,
-      publicRepoURL: '',
+      publicRepoURL: 'https://github.com/judigot/scaffolder-files',
       clientID: '',
       clientSecret: '',
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
