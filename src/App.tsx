@@ -328,7 +328,7 @@ function App() {
                 Backend URL:
                 {!generationStatus.isBackendUrlValid && (
                   <i className="block text-red-500">
-                    &nbsp;Invalid backend URL
+                    &nbsp;Backend URL not available
                   </i>
                 )}
                 <input
