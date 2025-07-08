@@ -23,8 +23,7 @@ export function changeCase(input: string): TableCaseFormatsObject {
 
   const capitalize = (str: string) =>
     str.charAt(0).toUpperCase() + str.slice(1);
-  const joinWords = (arr: string[], separator: string) =>
-    arr.join(separator);
+  const joinWords = (arr: string[], separator: string) => arr.join(separator);
   const titleCase = (arr: string[]) => arr.map(capitalize).join(' ');
 
   /* prettier-ignore */
@@ -269,23 +268,20 @@ export const getForeignKeyConstraints = (
   schemaInfo: ISchemaInfo[],
 ): string[] => {
   const quote = useFormStore.getState().quote;
-  const tableInfo =
-    schemaInfo.find((rel) => rel.tableName === tableName) ?? null;
-
-  if (tableInfo?.foreignKeys) {
-    return tableInfo.foreignKeys.map((key) => {
-      const referencedTable =
-        tableInfo.foreignTables?.find((table) => key.startsWith(table)) ??
-        key.slice(0, -3);
-      const primaryKeyColumn = getPrimaryKey({
-        tableName: referencedTable,
-        schemaInfo,
-      });
-      return `CONSTRAINT ${quote}FK_${tableName}_${key}${quote} FOREIGN KEY (${quote}${key}${quote}) REFERENCES ${quoteTableName(referencedTable)}(${quote}${primaryKeyColumn}${quote})`;
-    });
-  } else {
+  const tableInfo = schemaInfo.find((rel) => rel.tableName === tableName);
+  if (!tableInfo) {
     return [];
   }
+
+  return tableInfo.columnsInfo
+    .filter((col) => col.foreign_key != null)
+    .map((col) => {
+      const fk = col.foreign_key;
+      if (!fk) {
+        return '';
+      }
+      return `CONSTRAINT ${quote}FK_${tableName}_${col.column_name}${quote} FOREIGN KEY (${quote}${col.column_name}${quote}) REFERENCES ${quote}${fk.foreign_table_name}${quote}(${quote}${fk.foreign_column_name}${quote})`;
+    });
 };
 
 export function addPrimaryKeys(schema: IJSONSchema): IJSONSchema {
