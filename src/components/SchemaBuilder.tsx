@@ -62,7 +62,8 @@ function SchemaBuilder() {
 
   // YAML Seed Data state
   const [yamlSeedData, setYamlSeedData] = useState<string>('');
-  const [showSeedDataSuccess, setShowSeedDataSuccess] = useState<boolean>(false);
+  const [showSeedDataSuccess, setShowSeedDataSuccess] =
+    useState<boolean>(false);
 
   // Parse YAML to JSON
   const parseYamlToJson = (
@@ -120,7 +121,7 @@ function SchemaBuilder() {
         data: parsedData,
       };
       setSchemaInfo(updatedSchema);
-      
+
       // Show success indicator and hide after 2 seconds
       setShowSeedDataSuccess(true);
       setTimeout(() => {
@@ -134,7 +135,7 @@ function SchemaBuilder() {
         data: undefined,
       };
       setSchemaInfo(updatedSchema);
-      
+
       // Show success indicator and hide after 2 seconds
       setShowSeedDataSuccess(true);
       setTimeout(() => {
@@ -155,17 +156,19 @@ function SchemaBuilder() {
     }
 
     // Create empty row with all column names
-    const emptyRow = table.columnsInfo.map((col: IColumnInfo) => {
-      return `  ${col.column_name}: `;
-    }).join('\n');
+    const emptyRow = table.columnsInfo
+      .map((col: IColumnInfo) => {
+        return `  ${col.column_name}: `;
+      })
+      .join('\n');
 
     const newRowYaml = `- ${emptyRow.replace(/^ {2}/, '')}`;
-    
+
     // Add to existing YAML or create new
-    const updatedYaml = yamlSeedData.trim() 
+    const updatedYaml = yamlSeedData.trim()
       ? `${yamlSeedData}\n${newRowYaml}`
       : newRowYaml;
-    
+
     setYamlSeedData(updatedYaml);
   };
 
@@ -2430,15 +2433,19 @@ function SchemaBuilder() {
                                 if (table.columnsInfo.length === 0) {
                                   return '- column1: value1\n  column2: value2\n- column1: value3\n  column2: value4';
                                 }
-                                
-                                const sampleRows = [1, 2].map(() => {
-                                  const row = table.columnsInfo.map((col: IColumnInfo) => {
-                                    const indent = '  ';
-                                    return `${indent}${col.column_name}: `;
-                                  }).join('\n');
-                                  return `- ${row.replace(/^ {2}/, '')}`;
-                                }).join('\n');
-                                
+
+                                const sampleRows = [1, 2]
+                                  .map(() => {
+                                    const row = table.columnsInfo
+                                      .map((col: IColumnInfo) => {
+                                        const indent = '  ';
+                                        return `${indent}${col.column_name}: `;
+                                      })
+                                      .join('\n');
+                                    return `- ${row.replace(/^ {2}/, '')}`;
+                                  })
+                                  .join('\n');
+
                                 return sampleRows;
                               })()}
                               className="w-full h-40 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm font-mono resize-vertical"
@@ -2463,14 +2470,15 @@ function SchemaBuilder() {
                               Save Seed Data
                             </button>
 
-                            {showSeedDataSuccess && schemaInfo[selectedTableIndex].data && (
-                              <span className="text-sm text-green-400">
-                                ✓ Seed data saved (
-                                {schemaInfo[selectedTableIndex].data.length ||
-                                  0}{' '}
-                                records)
-                              </span>
-                            )}
+                            {showSeedDataSuccess &&
+                              schemaInfo[selectedTableIndex].data && (
+                                <span className="text-sm text-green-400">
+                                  ✓ Seed data saved (
+                                  {schemaInfo[selectedTableIndex].data.length ||
+                                    0}{' '}
+                                  records)
+                                </span>
+                              )}
                           </div>
                         </div>
                       </div>
