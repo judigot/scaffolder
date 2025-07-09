@@ -1,4 +1,6 @@
 primaryKey:
+  info:
+    group: "Templates"
   mysql: "BIGINT PRIMARY KEY AUTO_INCREMENT"
   postgresql: "BIGSERIAL PRIMARY KEY"
   typescript: "number"
@@ -20,6 +22,8 @@ primaryKey:
     - "tinyint"
 
 password:
+  info:
+    group: "Templates"
   mysql: "CHAR(60)"
   postgresql: "CHAR(60)"
   typescript: "string"
@@ -30,6 +34,8 @@ password:
     - "char(60)"
 
 deleted_at:
+  info:
+    group: "Templates"
   mysql: "TIMESTAMP(6)"
   postgresql: "TIMESTAMPTZ(6)"
   typescript: "Date"
@@ -52,6 +58,8 @@ deleted_at:
     - "year"
 
 number:
+  info:
+    group: "Common Types"
   mysql: "BIGINT"
   postgresql: "BIGINT"
   typescript: "number"
@@ -76,6 +84,8 @@ number:
     - "decimal"
 
 float:
+  info:
+    group: "Common Types"
   mysql: "DECIMAL(10, 2)"
   postgresql: "NUMERIC(10, 2)"
   typescript: "number"
@@ -95,6 +105,8 @@ float:
     - "dec"
 
 string:
+  info:
+    group: "Common Types"
   mysql: "VARCHAR (32)"
   postgresql: "TEXT"
   typescript: "string"
@@ -124,6 +136,8 @@ string:
     - "json"
 
 boolean:
+  info:
+    group: "Common Types"
   mysql: "BOOLEAN"
   postgresql: "BOOLEAN"
   typescript: "boolean"
@@ -135,6 +149,8 @@ boolean:
     - "bit"
 
 Date:
+  info:
+    group: "Common Types"
   mysql: "TIMESTAMP(6)"
   postgresql: "TIMESTAMPTZ(6)"
   typescript: "Date"
@@ -155,6 +171,122 @@ Date:
     - "time"
     - "datetime"
     - "year"
+
+email:
+  info:
+    group: "Templates"
+  mysql: "VARCHAR(255)"
+  postgresql: "VARCHAR(255)"
+  typescript: "string"
+  postgresql-introspected:
+    - "varchar"
+    - "character varying"
+    - "text"
+  mysql-introspected:
+    - "varchar"
+    - "text"
+
+phone:
+  info:
+    group: "Templates"
+  mysql: "VARCHAR(20)"
+  postgresql: "VARCHAR(20)"
+  typescript: "string"
+  postgresql-introspected:
+    - "varchar"
+    - "character varying"
+    - "text"
+  mysql-introspected:
+    - "varchar"
+    - "text"
+
+uuid:
+  info:
+    group: "Templates"
+  mysql: "CHAR(36)"
+  postgresql: "UUID"
+  typescript: "string"
+  postgresql-introspected:
+    - "uuid"
+    - "char"
+    - "character"
+  mysql-introspected:
+    - "char"
+    - "varchar"
+
+created_at:
+  info:
+    group: "Templates"
+  mysql: "TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)"
+  postgresql: "TIMESTAMPTZ(6) DEFAULT NOW()"
+  typescript: "Date"
+  postgresql-introspected:
+    - "timestamp with time zone"
+    - "timestamptz"
+    - "timestamp"
+    - "timestamp without time zone"
+  mysql-introspected:
+    - "timestamp"
+    - "datetime"
+
+updated_at:
+  info:
+    group: "Templates"
+  mysql: "TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)"
+  postgresql: "TIMESTAMPTZ(6) DEFAULT NOW()"
+  typescript: "Date"
+  postgresql-introspected:
+    - "timestamp with time zone"
+    - "timestamptz"
+    - "timestamp"
+    - "timestamp without time zone"
+  mysql-introspected:
+    - "timestamp"
+    - "datetime"
+
+slug:
+  info:
+    group: "Templates"
+  mysql: "VARCHAR(255)"
+  postgresql: "VARCHAR(255)"
+  typescript: "string"
+  postgresql-introspected:
+    - "varchar"
+    - "character varying"
+    - "text"
+  mysql-introspected:
+    - "varchar"
+    - "text"
+
+status:
+  info:
+    group: "Templates"
+  mysql: "ENUM('active', 'inactive', 'pending')"
+  postgresql: "VARCHAR(20) CHECK (status IN ('active', 'inactive', 'pending'))"
+  typescript: "string"
+  postgresql-introspected:
+    - "varchar"
+    - "character varying"
+    - "text"
+  mysql-introspected:
+    - "enum"
+    - "varchar"
+    - "text"
+
+monetary:
+  info:
+    group: "Templates"
+  mysql: "DECIMAL(19, 4)"
+  postgresql: "NUMERIC(19, 4)"
+  typescript: "number"
+  postgresql-introspected:
+    - "numeric"
+    - "decimal"
+    - "money"
+  mysql-introspected:
+    - "decimal"
+    - "numeric"
+
 # password:
 # hashed_password:
 # api_token:
