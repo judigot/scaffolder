@@ -1722,6 +1722,7 @@ function SchemaBuilder() {
                                         >
                                           <option value="string">String</option>
                                           <option value="number">Number</option>
+                                          <option value="float">Float</option>
                                           <option value="Date">Date</option>
                                           <option value="boolean">
                                             Boolean
@@ -2248,6 +2249,7 @@ function SchemaBuilder() {
                                   {/* <option value="">Type</option> */}
                                   <option value="string">String</option>
                                   <option value="number">Number</option>
+                                  <option value="float">Float</option>
                                   <option value="Date">Date</option>
                                   <option value="boolean">Boolean</option>
                                 </select>
