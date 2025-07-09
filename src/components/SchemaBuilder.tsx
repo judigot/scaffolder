@@ -13,6 +13,7 @@ import TableAdder from '@/components/TableAdder.tsx';
 import renameTable from '@/utils/renameTable.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 import yaml from 'yaml';
+import DataTypeSelector from '@/components/DataTypeSelector.tsx';
 
 interface INewColumnFormData {
   columnName: string;
@@ -1702,7 +1703,7 @@ function SchemaBuilder() {
                                       {editingCell?.rowIndex ===
                                         filteredIndex &&
                                       editingCell?.field === 'data_type' ? (
-                                        <select
+                                        <DataTypeSelector
                                           value={editingValue}
                                           onChange={(e) => {
                                             setEditingValue(e.target.value);
@@ -1719,15 +1720,7 @@ function SchemaBuilder() {
                                             }
                                           }}
                                           className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        >
-                                          <option value="string">String</option>
-                                          <option value="number">Number</option>
-                                          <option value="float">Float</option>
-                                          <option value="Date">Date</option>
-                                          <option value="boolean">
-                                            Boolean
-                                          </option>
-                                        </select>
+                                        />
                                       ) : (
                                         <div
                                           role="button"
@@ -2237,7 +2230,7 @@ function SchemaBuilder() {
                                   Data Type
                                   {/* Data Type <span className="text-red-400">*</span> */}
                                 </label>
-                                <select
+                                <DataTypeSelector
                                   id="dataType"
                                   name="dataType"
                                   value={newColumnFormData.dataType}
@@ -2245,14 +2238,7 @@ function SchemaBuilder() {
                                   onKeyDown={handleKeyDown}
                                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                                   required
-                                >
-                                  {/* <option value="">Type</option> */}
-                                  <option value="string">String</option>
-                                  <option value="number">Number</option>
-                                  <option value="float">Float</option>
-                                  <option value="Date">Date</option>
-                                  <option value="boolean">Boolean</option>
-                                </select>
+                                />
                               </div>
                             </div>
 
