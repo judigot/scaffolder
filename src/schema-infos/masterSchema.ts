@@ -284,7 +284,7 @@ export const masterSchema = [
   },
 ] satisfies ISchemaInfo[];
 
-// export default masterSchema;
+export default masterSchema;
 
-import pics from './pics.ts';
-export default pics;
+// import pics from './pics.ts';
+// export default pics;
