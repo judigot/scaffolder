@@ -14,7 +14,6 @@ describe('generateTypescriptInterfaces', () => {
     const tsInterfaces = generateTypescriptInterfaces({
       schemaInfo: userPostOneToOneSchemaInfo,
       includeTypeGuards: true,
-      outputOnSingleFile: true,
     });
 
     const expectedOutput = `
@@ -97,7 +96,6 @@ export function isIPostArray(data: unknown): data is IPost[] {
     const tsInterfaces = generateTypescriptInterfaces({
       schemaInfo: userPostsOneToManySchemaInfo,
       includeTypeGuards: true,
-      outputOnSingleFile: true,
     });
 
     const expectedOutput = `
@@ -180,7 +178,6 @@ export function isIPostArray(data: unknown): data is IPost[] {
     const tsInterfaces = generateTypescriptInterfaces({
       schemaInfo: POSSchemaInfo,
       includeTypeGuards: true,
-      outputOnSingleFile: true,
     });
 
     const expectedOutput = `
