@@ -1,6 +1,6 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
-export default [
+export const masterSchema = [
   // Product-Order-Customer (Many-to-Many)
   {
     tableName: 'product',
@@ -283,3 +283,8 @@ export default [
     belongsTo: ['user'],
   },
 ] satisfies ISchemaInfo[];
+
+// export default masterSchema;
+
+import pics from './pics.ts';
+export default pics;
