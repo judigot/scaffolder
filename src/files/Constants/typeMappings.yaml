@@ -1,292 +1,291 @@
-primaryKey:
+string:
   info:
-    group: "Templates"
-  mysql: "BIGINT PRIMARY KEY AUTO_INCREMENT"
-  postgresql: "BIGSERIAL PRIMARY KEY"
-  typescript: "number"
+    group: 'Common Types'
+  mysql: 'VARCHAR (32)'
+  postgresql: 'TEXT'
+  typescript: 'string'
   postgresql-introspected:
-    - "bigint"
-    - "serial"
-    - "serial8"
-    - "serial4"
-    - "uuid"
-    - "bigserial"
-    - "smallserial"
-    - "smallint"
-    - "integer"
+    - 'text'
+    - 'character varying'
+    - 'varchar'
+    - 'char'
+    - 'name'
+    - 'uuid'
+    - 'bpchar'
+    - 'character'
+    - 'varchar2'
+    - 'nvarchar'
+    - 'nvarchar2'
+    - 'citext'
+    - 'json'
+    - 'jsonb'
   mysql-introspected:
-    - "bigint"
-    - "uuid"
-    - "serial"
-    - "int"
-    - "tinyint"
-
-password:
-  info:
-    group: "Templates"
-  mysql: "CHAR(60)"
-  postgresql: "CHAR(60)"
-  typescript: "string"
-  postgresql-introspected:
-    - "character"
-    - "char"
-  mysql-introspected:
-    - "char(60)"
-
-deleted_at:
-  info:
-    group: "Templates"
-  mysql: "TIMESTAMP(6)"
-  postgresql: "TIMESTAMPTZ(6)"
-  typescript: "Date"
-  postgresql-introspected:
-    - "timestamp with time zone"
-    - "timestamptz"
-    - "timestamp"
-    - "timestamp without time zone"
-    - "date"
-    - "time"
-    - "timetz"
-    - "time with time zone"
-    - "time without time zone"
-    - "interval"
-  mysql-introspected:
-    - "timestamp"
-    - "date"
-    - "time"
-    - "datetime"
-    - "year"
+    - 'text'
+    - 'varchar'
+    - 'char'
+    - 'uuid'
+    - 'tinytext'
+    - 'mediumtext'
+    - 'longtext'
+    - 'json'
 
 number:
   info:
-    group: "Common Types"
-  mysql: "BIGINT"
-  postgresql: "BIGINT"
-  typescript: "number"
+    group: 'Common Types'
+  mysql: 'BIGINT'
+  postgresql: 'BIGINT'
+  typescript: 'number'
   postgresql-introspected:
-    - "bigint"
-    - "int8"
-    - "int4"
-    - "int2"
-    - "smallint"
-    - "integer"
-    - "smallserial"
-    - "serial2"
-    - "serial4"
-    - "serial8"
-    - "bigserial"
+    - 'bigint'
+    - 'int8'
+    - 'int4'
+    - 'int2'
+    - 'smallint'
+    - 'integer'
+    - 'smallserial'
+    - 'serial2'
+    - 'serial4'
+    - 'serial8'
+    - 'bigserial'
   mysql-introspected:
-    - "bigint"
-    - "int"
-    - "smallint"
-    - "tinyint"
-    - "mediumint"
-    - "decimal"
+    - 'bigint'
+    - 'int'
+    - 'smallint'
+    - 'tinyint'
+    - 'mediumint'
+    - 'decimal'
 
 float:
   info:
-    group: "Common Types"
-  mysql: "DECIMAL(10, 2)"
-  postgresql: "NUMERIC(10, 2)"
-  typescript: "number"
+    group: 'Common Types'
+  mysql: 'DECIMAL(10, 2)'
+  postgresql: 'NUMERIC(10, 2)'
+  typescript: 'number'
   postgresql-introspected:
-    - "numeric"
-    - "decimal"
-    - "real"
-    - "double precision"
-    - "float8"
-    - "float4"
-    - "double"
+    - 'numeric'
+    - 'decimal'
+    - 'real'
+    - 'double precision'
+    - 'float8'
+    - 'float4'
+    - 'double'
   mysql-introspected:
-    - "decimal(10,2)"
-    - "float"
-    - "double"
-    - "real"
-    - "dec"
-
-string:
-  info:
-    group: "Common Types"
-  mysql: "VARCHAR (32)"
-  postgresql: "TEXT"
-  typescript: "string"
-  postgresql-introspected:
-    - "text"
-    - "character varying"
-    - "varchar"
-    - "char"
-    - "name"
-    - "uuid"
-    - "bpchar"
-    - "character"
-    - "varchar2"
-    - "nvarchar"
-    - "nvarchar2"
-    - "citext"
-    - "json"
-    - "jsonb"
-  mysql-introspected:
-    - "text"
-    - "varchar"
-    - "char"
-    - "uuid"
-    - "tinytext"
-    - "mediumtext"
-    - "longtext"
-    - "json"
+    - 'decimal(10,2)'
+    - 'float'
+    - 'double'
+    - 'real'
+    - 'dec'
 
 boolean:
   info:
-    group: "Common Types"
-  mysql: "BOOLEAN"
-  postgresql: "BOOLEAN"
-  typescript: "boolean"
+    group: 'Common Types'
+  mysql: 'BOOLEAN'
+  postgresql: 'BOOLEAN'
+  typescript: 'boolean'
   postgresql-introspected:
-    - "boolean"
-    - "bool"
+    - 'boolean'
+    - 'bool'
   mysql-introspected:
-    - "tinyint(1)"
-    - "bit"
+    - 'tinyint(1)'
+    - 'bit'
 
 Date:
   info:
-    group: "Common Types"
-  mysql: "TIMESTAMP(6)"
-  postgresql: "TIMESTAMPTZ(6)"
-  typescript: "Date"
+    group: 'Common Types'
+  mysql: 'TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6)'
+  typescript: 'Date'
   postgresql-introspected:
-    - "timestamp with time zone"
-    - "timestamptz"
-    - "timestamp"
-    - "timestamp without time zone"
-    - "date"
-    - "time"
-    - "timetz"
-    - "time with time zone"
-    - "time without time zone"
-    - "interval"
+    - 'timestamp with time zone'
+    - 'timestamptz'
+    - 'timestamp'
+    - 'timestamp without time zone'
+    - 'date'
+    - 'time'
+    - 'timetz'
+    - 'time with time zone'
+    - 'time without time zone'
+    - 'interval'
   mysql-introspected:
-    - "timestamp"
-    - "date"
-    - "time"
-    - "datetime"
-    - "year"
+    - 'timestamp'
+    - 'date'
+    - 'time'
+    - 'datetime'
+    - 'year'
+
+primaryKey:
+  info:
+    group: 'Templates'
+  mysql: 'BIGINT PRIMARY KEY AUTO_INCREMENT'
+  postgresql: 'BIGSERIAL PRIMARY KEY'
+  typescript: 'number'
+  postgresql-introspected:
+    - 'bigint'
+    - 'serial'
+    - 'serial8'
+    - 'serial4'
+    - 'uuid'
+    - 'bigserial'
+    - 'smallserial'
+    - 'smallint'
+    - 'integer'
+  mysql-introspected:
+    - 'bigint'
+    - 'uuid'
+    - 'serial'
+    - 'int'
+    - 'tinyint'
+
+password:
+  info:
+    group: 'Templates'
+  mysql: 'CHAR(60)'
+  postgresql: 'CHAR(60)'
+  typescript: 'string'
+  postgresql-introspected:
+    - 'character'
+    - 'char'
+  mysql-introspected:
+    - 'char(60)'
+
+deleted_at:
+  info:
+    group: 'Templates'
+  mysql: 'TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6)'
+  typescript: 'Date'
+  postgresql-introspected:
+    - 'timestamp with time zone'
+    - 'timestamptz'
+    - 'timestamp'
+    - 'timestamp without time zone'
+    - 'date'
+    - 'time'
+    - 'timetz'
+    - 'time with time zone'
+    - 'time without time zone'
+    - 'interval'
+  mysql-introspected:
+    - 'timestamp'
+    - 'date'
+    - 'time'
+    - 'datetime'
+    - 'year'
 
 email:
   info:
-    group: "Templates"
-  mysql: "VARCHAR(255)"
-  postgresql: "VARCHAR(255)"
-  typescript: "string"
+    group: 'Templates'
+  mysql: 'VARCHAR(255)'
+  postgresql: 'VARCHAR(255)'
+  typescript: 'string'
   postgresql-introspected:
-    - "varchar"
-    - "character varying"
-    - "text"
+    - 'varchar'
+    - 'character varying'
+    - 'text'
   mysql-introspected:
-    - "varchar"
-    - "text"
+    - 'varchar'
+    - 'text'
 
 phone:
   info:
-    group: "Templates"
-  mysql: "VARCHAR(20)"
-  postgresql: "VARCHAR(20)"
-  typescript: "string"
+    group: 'Templates'
+  mysql: 'VARCHAR(20)'
+  postgresql: 'VARCHAR(20)'
+  typescript: 'string'
   postgresql-introspected:
-    - "varchar"
-    - "character varying"
-    - "text"
+    - 'varchar'
+    - 'character varying'
+    - 'text'
   mysql-introspected:
-    - "varchar"
-    - "text"
+    - 'varchar'
+    - 'text'
 
 uuid:
   info:
-    group: "Templates"
-  mysql: "CHAR(36)"
-  postgresql: "UUID"
-  typescript: "string"
+    group: 'Templates'
+  mysql: 'CHAR(36)'
+  postgresql: 'UUID'
+  typescript: 'string'
   postgresql-introspected:
-    - "uuid"
-    - "char"
-    - "character"
+    - 'uuid'
+    - 'char'
+    - 'character'
   mysql-introspected:
-    - "char"
-    - "varchar"
+    - 'char'
+    - 'varchar'
 
 created_at:
   info:
-    group: "Templates"
-  mysql: "TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)"
-  postgresql: "TIMESTAMPTZ(6) DEFAULT NOW()"
-  typescript: "Date"
+    group: 'Templates'
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
+  typescript: 'Date'
   postgresql-introspected:
-    - "timestamp with time zone"
-    - "timestamptz"
-    - "timestamp"
-    - "timestamp without time zone"
+    - 'timestamp with time zone'
+    - 'timestamptz'
+    - 'timestamp'
+    - 'timestamp without time zone'
   mysql-introspected:
-    - "timestamp"
-    - "datetime"
+    - 'timestamp'
+    - 'datetime'
 
 updated_at:
   info:
-    group: "Templates"
-  mysql: "TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)"
-  postgresql: "TIMESTAMPTZ(6) DEFAULT NOW()"
-  typescript: "Date"
+    group: 'Templates'
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
+  typescript: 'Date'
   postgresql-introspected:
-    - "timestamp with time zone"
-    - "timestamptz"
-    - "timestamp"
-    - "timestamp without time zone"
+    - 'timestamp with time zone'
+    - 'timestamptz'
+    - 'timestamp'
+    - 'timestamp without time zone'
   mysql-introspected:
-    - "timestamp"
-    - "datetime"
+    - 'timestamp'
+    - 'datetime'
 
 slug:
   info:
-    group: "Templates"
-  mysql: "VARCHAR(255)"
-  postgresql: "VARCHAR(255)"
-  typescript: "string"
+    group: 'Templates'
+  mysql: 'VARCHAR(255)'
+  postgresql: 'VARCHAR(255)'
+  typescript: 'string'
   postgresql-introspected:
-    - "varchar"
-    - "character varying"
-    - "text"
+    - 'varchar'
+    - 'character varying'
+    - 'text'
   mysql-introspected:
-    - "varchar"
-    - "text"
+    - 'varchar'
+    - 'text'
 
 status:
   info:
-    group: "Templates"
+    group: 'Templates'
   mysql: "ENUM('active', 'inactive', 'pending')"
   postgresql: "VARCHAR(20) CHECK (status IN ('active', 'inactive', 'pending'))"
-  typescript: "string"
+  typescript: 'string'
   postgresql-introspected:
-    - "varchar"
-    - "character varying"
-    - "text"
+    - 'varchar'
+    - 'character varying'
+    - 'text'
   mysql-introspected:
-    - "enum"
-    - "varchar"
-    - "text"
+    - 'enum'
+    - 'varchar'
+    - 'text'
 
 monetary:
   info:
-    group: "Templates"
-  mysql: "DECIMAL(19, 4)"
-  postgresql: "NUMERIC(19, 4)"
-  typescript: "number"
+    group: 'Templates'
+  mysql: 'DECIMAL(19, 4)'
+  postgresql: 'NUMERIC(19, 4)'
+  typescript: 'number'
   postgresql-introspected:
-    - "numeric"
-    - "decimal"
-    - "money"
+    - 'numeric'
+    - 'decimal'
+    - 'money'
   mysql-introspected:
-    - "decimal"
-    - "numeric"
-
+    - 'decimal'
+    - 'numeric'
 # password:
 # hashed_password:
 # api_token:
