@@ -446,7 +446,7 @@ function App() {
             type="button"
             onClick={() => {
               setIsLoading(true);
-              fetch(`http://localhost:5000/scaffold`, {
+              fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/scaffold`, {
                 method: 'POST',
                 headers: {
                   Accept: 'application/json',
@@ -489,7 +489,7 @@ function App() {
           <button
             type="button"
             onClick={() => {
-              fetch(`http://localhost:5000/introspect`, {
+              fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/introspect`, {
                 // *GET, POST, PATCH, PUT, DELETE
                 method: 'POST',
                 headers: {
@@ -791,7 +791,7 @@ function App() {
                           mode="edit"
                           folderStructure={folderStructures.Laravel}
                         />
-                      {/* <FileViewer
+                        {/* <FileViewer
                         mode="view"
                         folderStructure={folderStructures.frontend}
                       /> */}

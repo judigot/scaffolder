@@ -5,8 +5,8 @@ export default {
     appName: 'MyWebApp',
     version: '1.0.0',
     environment: 'development',
-    baseUrl: 'http://localhost:3000',
-    apiBaseUrl: 'http://localhost:5000/api',
+    baseUrl: String(import.meta.env.VITE_FRONTEND_URL),
+    apiBaseUrl: `${String(import.meta.env.VITE_BACKEND_URL)}/api`,
     defaultLanguage: 'english',
     supportedLanguages: [
       'english',
@@ -207,13 +207,13 @@ export default {
         google: {
           clientId: 'your-google-client-id',
           clientSecret: 'your-google-client-secret',
-          redirectUri: 'http://localhost:3000/auth/google/callback',
+          redirectUri: `${String(import.meta.env.VITE_FRONTEND_URL)}/auth/google/callback`,
           scopes: ['profile', 'email'],
         },
         github: {
           clientId: 'your-github-client-id',
           clientSecret: 'your-github-client-secret',
-          redirectUri: 'http://localhost:3000/auth/github/callback',
+          redirectUri: `${String(import.meta.env.VITE_FRONTEND_URL)}/auth/github/callback`,
           scopes: ['read:user', 'user:email'],
         },
       },
@@ -261,7 +261,7 @@ export default {
   security: {
     cors: {
       enabled: true,
-      allowedOrigins: ['http://localhost:3000'],
+      allowedOrigins: [String(import.meta.env.VITE_FRONTEND_URL)],
       allowedMethods: ['GET', 'POST', 'PUT', 'DELETE'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     },
@@ -298,7 +298,7 @@ export default {
       },
       elasticsearch: {
         enabled: true,
-        node: 'http://localhost:9200',
+        node: 'http://127.0.0.1:9200',
         auth: {
           username: 'elastic',
           password: 'changeme',

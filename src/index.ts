@@ -44,6 +44,6 @@ app.use(router);
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(
-    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on http://localhost:${PORT}`,
+    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on http://127.0.0.1:${PORT}`,
   );
 });

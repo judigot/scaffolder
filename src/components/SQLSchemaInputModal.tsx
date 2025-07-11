@@ -9,9 +9,7 @@ interface IForm {
 }
 
 function SQLSchemaInputModal() {
-  const {
-    dbConnection
-  } = useFormStore();
+  const { dbConnection } = useFormStore();
   const { isSQLSchemaModalOpen, setIsSQLSchemaModalOpen, SQLSchemaEditable } =
     useModalStore();
   const { setIntrospectedSchema } = useTransformationsStore();
@@ -46,7 +44,7 @@ function SQLSchemaInputModal() {
     }
 
     if (isSchemaInput(data)) {
-      fetch('http://localhost:5000/executeCustomSchema', {
+      fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/executeCustomSchema`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',

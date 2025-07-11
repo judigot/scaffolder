@@ -727,7 +727,7 @@ function FileViewer({
       };
 
       // Make API call to create files
-      const response = await fetch('http://localhost:5000/create-local-files', {
+      const response = await fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/create-local-files`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

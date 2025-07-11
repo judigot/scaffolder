@@ -70,7 +70,7 @@ export const useFormStore = create<IFormStore>()(
 
     return {
       schemaInput: masterJSONSchema,
-      backendUrl: 'http://localhost:8000/api',
+      backendUrl: String(import.meta.env.VITE_BACKEND_URL),
       backendDir: 'C:/Users/Jude/Desktop/laravel',
       // backendDir: 'C:/Users/Username/Desktop/app/backend',
       frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',
