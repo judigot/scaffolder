@@ -5,6 +5,7 @@ import { executeMySQL } from '@/utils/executeMySQL.ts';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import process from 'node:process';
 import { DBTypes } from '@/interfaces/interfaces.ts';
+import { IGNORED_TABLES_LARAVEL } from '@/constants.ts';
 
 const platform: string = process.platform;
 let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
@@ -16,31 +17,6 @@ if (platform === 'win32') {
 const readSqlFile = (filename: string): string => {
   return fs.readFileSync(path.join(__dirname, `../${filename}`), 'utf8');
 };
-
-const ignoredTables_laravel: string[] = [
-  'migrations',
-  'failed_jobs',
-  'password_resets',
-  'password_reset_tokens',
-  'cache_locks',
-  'personal_access_tokens',
-  'cache',
-  'jobs',
-  'job_batches',
-  'sessions',
-  'oauth_access_tokens',
-  'oauth_auth_codes',
-  'oauth_clients',
-  'oauth_personal_access_clients',
-  'oauth_refresh_tokens',
-  'telescope_entries',
-  'telescope_entries_tags',
-  'telescope_monitoring',
-  'horizon_jobs',
-  'horizon_monitoring',
-  'horizon_supervisor_commands',
-  'horizon_tags',
-];
 
 export const introspect = async (
   dbConnection: string,
@@ -71,7 +47,7 @@ export const introspect = async (
   // Filter out tables that are in the ignoredTables_laravel array
   const filteredResult = (Array.isArray(result) ? result : []).filter(
     (table: { table_name: string }) => {
-      return !ignoredTables_laravel.includes(table.table_name);
+      return !IGNORED_TABLES_LARAVEL.includes(table.table_name);
     },
   );
 

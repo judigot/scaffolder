@@ -1,5 +1,31 @@
 export const watermark = 'Owner: App Scaffolder';
 
+export const IGNORED_TABLES_LARAVEL: string[] = [
+  'migrations',
+  'failed_jobs',
+  'password_resets',
+  'password_reset_tokens',
+  'cache_locks',
+  'personal_access_tokens',
+  'cache',
+  'jobs',
+  'job_batches',
+  'sessions',
+  'oauth_access_tokens',
+  'oauth_auth_codes',
+  'oauth_clients',
+  'oauth_device_codes',
+  'oauth_refresh_tokens',
+  'oauth_personal_access_clients',
+  'telescope_entries',
+  'telescope_entries_tags',
+  'telescope_monitoring',
+  'horizon_jobs',
+  'horizon_monitoring',
+  'horizon_supervisor_commands',
+  'horizon_tags',
+];
+
 export const CREATION_MODES = {
   // JSON_SCHEMA: 'JSON Schema Builder',
   JUDAS: 'Judas',
