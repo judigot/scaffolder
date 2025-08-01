@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import process from 'node:process';
@@ -19,6 +20,7 @@ if (platform === 'win32') {
 const publicDirectory = path.join(__dirname, 'public');
 
 // Enable middleware
+app.use(compression());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
