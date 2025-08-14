@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 import {
   addRelationship,
@@ -14,6 +14,7 @@ import renameTable from '@/utils/renameTable.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 import yaml from 'yaml';
 import DataTypeSelector from '@/components/DataTypeSelector.tsx';
+import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 
 interface INewColumnFormData {
   columnName: string;
@@ -50,16 +51,23 @@ function SchemaBuilder() {
   const [_selectedParentTable, setSelectedParentTable] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [columnSearchTerm, setColumnSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm] = useDebouncedValue<string>(searchTerm, 250);
+  const [debouncedColumnSearchTerm] = useDebouncedValue<string>(
+    columnSearchTerm,
+    250,
+  );
   const [editingCell, setEditingCell] = useState<{
     rowIndex: number;
     field: string;
+    originalIndex: number;
   } | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
-  const [editingCellPosition, setEditingCellPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
+  
   const columnNameInputRef = useRef<HTMLInputElement>(null);
+
+  const [selectedTableIndex, setSelectedTableIndex] = useState<number | null>(
+    0,
+  );
 
   // YAML Seed Data state
   const [yamlSeedData, setYamlSeedData] = useState<string>('');
@@ -102,14 +110,14 @@ function SchemaBuilder() {
   };
 
   // Handle YAML input change
-  const handleYamlChange = (
+  const handleYamlChange = useCallback((
     e: React.ChangeEvent<HTMLTextAreaElement>,
   ): void => {
     setYamlSeedData(e.target.value);
-  };
+  }, []);
 
   // Save seed data to table
-  const handleSaveSeedData = (): void => {
+  const handleSaveSeedData = useCallback((): void => {
     if (selectedTableIndex === null) {
       return;
     }
@@ -143,10 +151,10 @@ function SchemaBuilder() {
         setShowSeedDataSuccess(false);
       }, 2000);
     }
-  };
+  }, [schemaInfo, selectedTableIndex, setSchemaInfo, yamlSeedData]);
 
   // Add new empty row to YAML
-  const handleAddNewRow = (): void => {
+  const handleAddNewRow = useCallback((): void => {
     if (selectedTableIndex === null) {
       return;
     }
@@ -171,11 +179,20 @@ function SchemaBuilder() {
       : newRowYaml;
 
     setYamlSeedData(updatedYaml);
-  };
+  }, [schemaInfo, selectedTableIndex, yamlSeedData]);
 
   // Handle keyboard shortcuts
-  const handleKeyDown = (e: React.KeyboardEvent): void => {
-    if (e.ctrlKey && e.key === 'Enter' && isFormValid()) {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent): void => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      const valid = Boolean(
+        newColumnFormData.columnName.trim() &&
+          newColumnFormData.dataType &&
+          (!newColumnFormData.foreignKey ||
+            newColumnFormData.foreignKey.relationType),
+      );
+      if (!valid) {
+        return;
+      }
       e.preventDefault();
       const form = e.currentTarget.closest('form');
       if (form) {
@@ -184,9 +201,9 @@ function SchemaBuilder() {
         );
       }
     }
-  };
+  }, [newColumnFormData]);
 
-  const handleInputChange = (
+  const handleInputChange = useCallback((
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >,
@@ -198,7 +215,7 @@ function SchemaBuilder() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
-  };
+  }, []);
 
   const handleRenameTable = async (index: number) => {
     const oldValue = schemaInfo[index].tableName;
@@ -331,9 +348,7 @@ function SchemaBuilder() {
     setSchemaInfo(purgeForeignKeyTraces(updatedSchema));
   };
 
-  const [selectedTableIndex, setSelectedTableIndex] = useState<number | null>(
-    0,
-  );
+  
 
   // Update YAML textarea when selected table changes
   useEffect(() => {
@@ -353,7 +368,9 @@ function SchemaBuilder() {
     }
   }, [selectedTableIndex, schemaInfo]);
 
-  const pivotTables = schemaInfo.filter((table) => table.isPivot === true);
+  const pivotTables = useMemo(() => {
+    return schemaInfo.filter((table) => table.isPivot === true);
+  }, [schemaInfo]);
 
   const isStandaloneTable = (table: ITableInfo): boolean => {
     return (
@@ -368,12 +385,14 @@ function SchemaBuilder() {
     );
   };
 
-  const standaloneTables = schemaInfo.filter(isStandaloneTable);
-  const mainTables = schemaInfo.filter(
-    (table) => !table.isPivot && !isStandaloneTable(table),
-  );
+  const standaloneTables = useMemo(() => {
+    return schemaInfo.filter(isStandaloneTable);
+  }, [schemaInfo]);
+  const mainTables = useMemo(() => {
+    return schemaInfo.filter((table) => !table.isPivot && !isStandaloneTable(table));
+  }, [schemaInfo]);
 
-  const addNewColumnToTable = (columnData: INewColumnFormData): void => {
+  const addNewColumnToTable = useCallback((columnData: INewColumnFormData): void => {
     if (selectedTableIndex === null) {
       return;
     }
@@ -464,9 +483,9 @@ function SchemaBuilder() {
       isUnique: false,
       foreignKey: null,
     });
-  };
+  }, [schemaInfo, selectedTableIndex, setSchemaInfo]);
 
-  const handleForeignKeyChange = (
+  const handleForeignKeyChange = useCallback((
     e: React.ChangeEvent<HTMLSelectElement>,
   ): void => {
     const { value } = e.target;
@@ -490,9 +509,9 @@ function SchemaBuilder() {
         console.error('Error setting foreign key:', error.message);
       }
     }
-  };
+  }, [schemaInfo]);
 
-  const handleRelationTypeChange = (
+  const handleRelationTypeChange = useCallback((
     e: React.ChangeEvent<HTMLSelectElement>,
   ): void => {
     const { value } = e.target;
@@ -507,9 +526,9 @@ function SchemaBuilder() {
           : null,
       }));
     }
-  };
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     addNewColumnToTable(newColumnFormData);
 
@@ -517,7 +536,7 @@ function SchemaBuilder() {
     setTimeout(() => {
       columnNameInputRef.current?.focus();
     }, 100);
-  };
+  }, [addNewColumnToTable, newColumnFormData]);
 
   const getAvailableForeignTables = (currentTable: ITableInfo): string[] => {
     const existingForeignTables = new Set<string>();
@@ -566,24 +585,18 @@ function SchemaBuilder() {
     );
   };
 
-  const handleCellEdit = (
+  const handleCellEdit = useCallback((
     rowIndex: number,
     field: string,
     currentValue: string | boolean,
-    event: React.MouseEvent | React.KeyboardEvent,
+    _event: React.MouseEvent | React.KeyboardEvent,
+    originalIndex: number,
   ): void => {
-    setEditingCell({ rowIndex, field });
+    setEditingCell({ rowIndex, field, originalIndex });
     setEditingValue(String(currentValue));
+  }, []);
 
-    const target = event.currentTarget;
-    const rect = target.getBoundingClientRect();
-    setEditingCellPosition({
-      top: rect.bottom + window.scrollY + 8,
-      left: rect.left + window.scrollX,
-    });
-  };
-
-  const handleCellSave = (
+  const handleCellSave = useCallback((
     tableIndex: number,
     columnIndex: number,
     field: string,
@@ -619,16 +632,45 @@ function SchemaBuilder() {
     setSchemaInfo(updatedSchemaInfo);
     setEditingCell(null);
     setEditingValue('');
-    setEditingCellPosition(null);
-  };
+  }, [editingCell, editingValue, schemaInfo, setSchemaInfo]);
 
-  const handleCellCancel = (): void => {
+  const handleCellCancel = useCallback((): void => {
     setEditingCell(null);
     setEditingValue('');
-    setEditingCellPosition(null);
+  }, []);
+
+  const InlineEditControls = ({
+    originalIndex,
+    field,
+  }: {
+    originalIndex: number;
+    field: string;
+  }) => {
+    return (
+      <div className="mt-2 flex gap-2">
+        <button
+          onClick={() => {
+            if (selectedTableIndex !== null) {
+              handleCellSave(selectedTableIndex, originalIndex, field);
+            }
+          }}
+          className="flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-500 text-white rounded transition-colors duration-200"
+          title="Save changes"
+        >
+          ✓
+        </button>
+        <button
+          onClick={handleCellCancel}
+          className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
+          title="Cancel changes"
+        >
+          ✕
+        </button>
+      </div>
+    );
   };
 
-  const getExistingPrimaryKeyColumn = (
+  const getExistingPrimaryKeyColumn = useCallback((
     tableIndex: number,
     excludeColumnName?: string,
   ): string | null => {
@@ -638,9 +680,9 @@ function SchemaBuilder() {
         col.primary_key === true && col.column_name !== excludeColumnName,
     );
     return primaryKeyColumn ? primaryKeyColumn.column_name : null;
-  };
+  }, [schemaInfo]);
 
-  const canEditPrimaryKey = (
+  const canEditPrimaryKey = useCallback((
     tableIndex: number,
     columnName: string,
   ): boolean => {
@@ -649,7 +691,7 @@ function SchemaBuilder() {
       columnName,
     );
     return existingPrimaryKey === null;
-  };
+  }, [getExistingPrimaryKeyColumn]);
 
   const handleRemoveColumn = async (
     tableIndex: number,
@@ -887,7 +929,7 @@ function SchemaBuilder() {
                   .filter((table) =>
                     table.tableName
                       .toLowerCase()
-                      .includes(searchTerm.toLowerCase()),
+                      .includes(debouncedSearchTerm.toLowerCase()),
                   )
                   .map((tableInfo) => {
                     const { tableName } = tableInfo;
@@ -983,7 +1025,7 @@ function SchemaBuilder() {
                     .filter((table) =>
                       table.tableName
                         .toLowerCase()
-                        .includes(searchTerm.toLowerCase()),
+                        .includes(debouncedSearchTerm.toLowerCase()),
                     )
                     .map((tableInfo) => {
                       const { tableName } = tableInfo;
@@ -1075,7 +1117,7 @@ function SchemaBuilder() {
                     .filter((table) =>
                       table.tableName
                         .toLowerCase()
-                        .includes(searchTerm.toLowerCase()),
+                        .includes(debouncedSearchTerm.toLowerCase()),
                     )
                     .map((tableInfo) => {
                       const { tableName } = tableInfo;
@@ -1588,10 +1630,10 @@ function SchemaBuilder() {
                                 (column) =>
                                   column.column_name
                                     .toLowerCase()
-                                    .includes(columnSearchTerm.toLowerCase()) ||
+                                    .includes(debouncedColumnSearchTerm.toLowerCase()) ||
                                   column.data_type
                                     .toLowerCase()
-                                    .includes(columnSearchTerm.toLowerCase()),
+                                    .includes(debouncedColumnSearchTerm.toLowerCase()),
                               )
                               .map((column, filteredIndex) => {
                                 const originalIndex = schemaInfo[
@@ -1647,7 +1689,8 @@ function SchemaBuilder() {
                                       {editingCell?.rowIndex ===
                                         filteredIndex &&
                                       editingCell?.field === 'column_name' ? (
-                                        <input
+                                        <div className="relative">
+                                          <input
                                           type="text"
                                           value={editingValue}
                                           onChange={(e) => {
@@ -1664,19 +1707,25 @@ function SchemaBuilder() {
                                               handleCellCancel();
                                             }
                                           }}
+                                          onFocus={(e) => {
+                                            const end = e.currentTarget.value.length;
+                                            e.currentTarget.setSelectionRange(end, end);
+                                          }}
                                           className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        />
+                                          />
+                                          <InlineEditControls originalIndex={originalIndex} field="column_name" />
+                                        </div>
                                       ) : (
-                                        <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                        <button
+                                          type="button"
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                           onDoubleClick={(e) => {
                                             handleCellEdit(
                                               filteredIndex,
                                               'column_name',
                                               column.column_name,
                                               e,
+                                              originalIndex,
                                             );
                                           }}
                                           onKeyDown={(e) => {
@@ -1689,12 +1738,13 @@ function SchemaBuilder() {
                                                 'column_name',
                                                 column.column_name,
                                                 e,
+                                                originalIndex,
                                               );
                                             }
                                           }}
                                         >
                                           {column.column_name}
-                                        </div>
+                                        </button>
                                       )}
                                     </td>
 
@@ -1703,7 +1753,8 @@ function SchemaBuilder() {
                                       {editingCell?.rowIndex ===
                                         filteredIndex &&
                                       editingCell?.field === 'data_type' ? (
-                                        <DataTypeSelector
+                                        <div className="relative">
+                                          <DataTypeSelector
                                           value={editingValue}
                                           onChange={(e) => {
                                             setEditingValue(e.target.value);
@@ -1719,19 +1770,22 @@ function SchemaBuilder() {
                                               handleCellCancel();
                                             }
                                           }}
+                                          id={`data-type-editor-${String(originalIndex)}`}
                                           className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        />
+                                          />
+                                          <InlineEditControls originalIndex={originalIndex} field="data_type" />
+                                        </div>
                                       ) : (
-                                        <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                        <button
+                                          type="button"
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                           onDoubleClick={(e) => {
                                             handleCellEdit(
                                               filteredIndex,
                                               'data_type',
                                               column.data_type,
                                               e,
+                                              originalIndex,
                                             );
                                           }}
                                           onKeyDown={(e) => {
@@ -1744,12 +1798,13 @@ function SchemaBuilder() {
                                                 'data_type',
                                                 column.data_type,
                                                 e,
+                                                originalIndex,
                                               );
                                             }
                                           }}
                                         >
                                           {column.data_type}
-                                        </div>
+                                        </button>
                                       )}
                                     </td>
 
@@ -1758,7 +1813,8 @@ function SchemaBuilder() {
                                       {editingCell?.rowIndex ===
                                         filteredIndex &&
                                       editingCell?.field === 'is_nullable' ? (
-                                        <select
+                                        <div className="relative">
+                                          <select
                                           value={editingValue}
                                           onChange={(e) => {
                                             setEditingValue(e.target.value);
@@ -1774,11 +1830,14 @@ function SchemaBuilder() {
                                               handleCellCancel();
                                             }
                                           }}
+                                          id={`nullable-editor-${String(originalIndex)}`}
                                           className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        >
+                                          >
                                           <option value="YES">YES</option>
                                           <option value="NO">NO</option>
-                                        </select>
+                                          </select>
+                                          <InlineEditControls originalIndex={originalIndex} field="is_nullable" />
+                                        </div>
                                       ) : (
                                         (() => {
                                           if (column.primary_key === true) {
@@ -1793,16 +1852,16 @@ function SchemaBuilder() {
                                           }
 
                                           return (
-                                            <div
-                                              role="button"
-                                              tabIndex={0}
-                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                            <button
+                                              type="button"
+                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                               onDoubleClick={(e) => {
                                                 handleCellEdit(
                                                   filteredIndex,
                                                   'is_nullable',
                                                   column.is_nullable,
                                                   e,
+                                                  originalIndex,
                                                 );
                                               }}
                                               onKeyDown={(e) => {
@@ -1815,12 +1874,13 @@ function SchemaBuilder() {
                                                     'is_nullable',
                                                     column.is_nullable,
                                                     e,
+                                                    originalIndex,
                                                   );
                                                 }
                                               }}
                                             >
                                               {column.is_nullable}
-                                            </div>
+                                            </button>
                                           );
                                         })()
                                       )}
@@ -1832,7 +1892,8 @@ function SchemaBuilder() {
                                         filteredIndex &&
                                       editingCell?.field ===
                                         'column_default' ? (
-                                        <input
+                                        <div className="relative">
+                                          <input
                                           type="text"
                                           value={editingValue}
                                           onChange={(e) => {
@@ -1849,13 +1910,18 @@ function SchemaBuilder() {
                                               handleCellCancel();
                                             }
                                           }}
+                                          onFocus={(e) => {
+                                            const end = e.currentTarget.value.length;
+                                            e.currentTarget.setSelectionRange(end, end);
+                                          }}
                                           className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        />
+                                          />
+                                          <InlineEditControls originalIndex={originalIndex} field="column_default" />
+                                        </div>
                                       ) : (
-                                        <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                        <button
+                                          type="button"
+                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                           onDoubleClick={(e) => {
                                             handleCellEdit(
                                               filteredIndex,
@@ -1868,6 +1934,7 @@ function SchemaBuilder() {
                                                   column.column_default,
                                               }),
                                               e,
+                                              originalIndex,
                                             );
                                           }}
                                           onKeyDown={(e) => {
@@ -1887,6 +1954,7 @@ function SchemaBuilder() {
                                                     column.column_default,
                                                 }),
                                                 e,
+                                                originalIndex,
                                               );
                                             }
                                           }}
@@ -1898,7 +1966,7 @@ function SchemaBuilder() {
                                             columnDefault:
                                               column.column_default,
                                           })}
-                                        </div>
+                                        </button>
                                       )}
                                     </td>
 
@@ -1907,7 +1975,8 @@ function SchemaBuilder() {
                                       {editingCell?.rowIndex ===
                                         filteredIndex &&
                                       editingCell?.field === 'primary_key' ? (
-                                        <select
+                                        <div className="relative">
+                                          <select
                                           value={editingValue}
                                           onChange={(e) => {
                                             setEditingValue(e.target.value);
@@ -1923,11 +1992,14 @@ function SchemaBuilder() {
                                               handleCellCancel();
                                             }
                                           }}
+                                          id={`pk-editor-${String(originalIndex)}`}
                                           className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        >
+                                          >
                                           <option value="true">Yes</option>
                                           <option value="false">No</option>
-                                        </select>
+                                          </select>
+                                          <InlineEditControls originalIndex={originalIndex} field="primary_key" />
+                                        </div>
                                       ) : (
                                         (() => {
                                           const canEdit = canEditPrimaryKey(
@@ -1957,10 +2029,9 @@ function SchemaBuilder() {
                                           }
 
                                           return (
-                                            <div
-                                              role="button"
-                                              tabIndex={0}
-                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                            <button
+                                              type="button"
+                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                               onDoubleClick={(e) => {
                                                 handleCellEdit(
                                                   filteredIndex,
@@ -1969,6 +2040,7 @@ function SchemaBuilder() {
                                                     ? 'true'
                                                     : 'false',
                                                   e,
+                                                  originalIndex,
                                                 );
                                               }}
                                               onKeyDown={(e) => {
@@ -1983,6 +2055,7 @@ function SchemaBuilder() {
                                                       ? 'true'
                                                       : 'false',
                                                     e,
+                                                    originalIndex,
                                                   );
                                                 }
                                               }}
@@ -1990,7 +2063,7 @@ function SchemaBuilder() {
                                               {column.primary_key
                                                 ? 'Yes'
                                                 : 'No'}
-                                            </div>
+                                            </button>
                                           );
                                         })()
                                       )}
@@ -2001,7 +2074,8 @@ function SchemaBuilder() {
                                       {editingCell?.rowIndex ===
                                         filteredIndex &&
                                       editingCell?.field === 'unique' ? (
-                                        <select
+                                        <div className="relative">
+                                          <select
                                           value={editingValue}
                                           onChange={(e) => {
                                             setEditingValue(e.target.value);
@@ -2017,11 +2091,14 @@ function SchemaBuilder() {
                                               handleCellCancel();
                                             }
                                           }}
+                                          id={`unique-editor-${String(originalIndex)}`}
                                           className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        >
+                                          >
                                           <option value="true">Yes</option>
                                           <option value="false">No</option>
-                                        </select>
+                                          </select>
+                                          <InlineEditControls originalIndex={originalIndex} field="unique" />
+                                        </div>
                                       ) : (
                                         (() => {
                                           if (column.primary_key === true) {
@@ -2036,10 +2113,9 @@ function SchemaBuilder() {
                                           }
 
                                           return (
-                                            <div
-                                              role="button"
-                                              tabIndex={0}
-                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5"
+                                            <button
+                                              type="button"
+                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                               onDoubleClick={(e) => {
                                                 handleCellEdit(
                                                   filteredIndex,
@@ -2048,6 +2124,7 @@ function SchemaBuilder() {
                                                     ? 'true'
                                                     : 'false',
                                                   e,
+                                                  originalIndex,
                                                 );
                                               }}
                                               onKeyDown={(e) => {
@@ -2062,12 +2139,13 @@ function SchemaBuilder() {
                                                       ? 'true'
                                                       : 'false',
                                                     e,
+                                                    originalIndex,
                                                   );
                                                 }
                                               }}
                                             >
                                               {column.unique ? 'Yes' : 'No'}
-                                            </div>
+                                            </button>
                                           );
                                         })()
                                       )}
@@ -2120,61 +2198,7 @@ function SchemaBuilder() {
                     </div>
 
                     {/* Floating Edit Controls */}
-                    {editingCell && editingCellPosition && (
-                      <div
-                        className="fixed z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-2 flex gap-2"
-                        style={{
-                          top: `${String(editingCellPosition.top)}px`,
-                          left: `${String(editingCellPosition.left)}px`,
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            if (selectedTableIndex !== null) {
-                              const originalIndex = schemaInfo[
-                                selectedTableIndex
-                              ].columnsInfo.findIndex(
-                                (col) =>
-                                  col.column_name ===
-                                  schemaInfo[
-                                    selectedTableIndex
-                                  ].columnsInfo.filter(
-                                    (column) =>
-                                      column.column_name
-                                        .toLowerCase()
-                                        .includes(
-                                          columnSearchTerm.toLowerCase(),
-                                        ) ||
-                                      column.data_type
-                                        .toLowerCase()
-                                        .includes(
-                                          columnSearchTerm.toLowerCase(),
-                                        ),
-                                  )[editingCell.rowIndex]?.column_name,
-                              );
-                              if (originalIndex !== -1) {
-                                handleCellSave(
-                                  selectedTableIndex,
-                                  originalIndex,
-                                  editingCell.field,
-                                );
-                              }
-                            }
-                          }}
-                          className="flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-500 text-white rounded transition-colors duration-200"
-                          title="Save changes"
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={handleCellCancel}
-                          className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
-                          title="Cancel changes"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
+                    {false}
 
                     {/* Add Column Form - Always Visible - Below Table */}
                     {(schemaInfo[selectedTableIndex].isPivot !== true ||
@@ -2281,7 +2305,7 @@ function SchemaBuilder() {
                                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                                 >
                                   <option value="">None</option>
-                                  {selectedTableIndex &&
+                                  {selectedTableIndex !== null &&
                                     getAvailableForeignTables(
                                       schemaInfo[selectedTableIndex],
                                     ).map((tableName) => (
