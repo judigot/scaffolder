@@ -58,7 +58,7 @@ export default [
       'react-hooks': fixupPluginRules(reactHooks),
       'jsx-a11y': fixupPluginRules(jsxA11Y),
       'no-type-assertion': noTypeAssertion,
-      import: importPlugin,
+      import: importPlugin, // Comment this out for Next.js since it's already imported in next/core-web-vitals
     },
 
     languageOptions: {
@@ -77,8 +77,8 @@ export default [
 
         project: [
           './tsconfig.json',
-          './tsconfig.app.json', // Comment this for Next.js
-          './tsconfig.node.json', // Comment this for Next.js
+          './tsconfig.app.json', // Comment this out for Next.js
+          './tsconfig.node.json', // Comment this out for Next.js
         ],
         tsconfigRootDir: __dirname,
       },
