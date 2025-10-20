@@ -30,6 +30,12 @@ export default [
       '**/vitest.config.ts',
       '**/tailwind.config.js',
       '**/postcss.config.js',
+
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'build/**',
+      'next-env.d.ts',
     ],
   },
   ...fixupConfigRules(
