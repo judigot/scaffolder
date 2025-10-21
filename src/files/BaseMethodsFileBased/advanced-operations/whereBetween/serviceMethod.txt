@@ -1,1 +1,0 @@
-{{methodNameCamelCase}}(string $column, array $range): Collection
