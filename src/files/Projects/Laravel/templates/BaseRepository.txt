@@ -2,9 +2,13 @@
 
 namespace App\Repositories;
 
-use Illuminate\Database\Eloquent\Model;
+use Exception;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
 use App\Repositories\BaseInterface;
+
 
 abstract class BaseRepository implements BaseInterface
 {

@@ -1,20 +1,3 @@
-<?php
 
-namespace App\Services\BaseMethodsFileBased\bulkOperations\batchCreateWithTransaction;
-
-use App\Repositories\BaseMethodsFileBased\bulkOperations\batchCreateWithTransaction\BaseMethodsFileBasedBulkOperationsBatchCreateWithTransactionRepository;
-
-class BaseMethodsFileBasedBulkOperationsBatchCreateWithTransactionService
-{
-    private $repository;
-
-    public function __construct(BaseMethodsFileBasedBulkOperationsBatchCreateWithTransactionRepository $repository)
-    {
-        $this->repository = $repository;
-    }
-
-    public function {{methodNameCamelCase}}(array $dataArray, array $options)
-    {
         return $this->repository->{{methodNameCamelCase}}($dataArray, $options);
-    }
-} 
+      

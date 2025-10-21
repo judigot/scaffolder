@@ -1,5 +1,5 @@
-        DB::beginTransaction();
-        
+DB::beginTransaction();
+
         try {
             $success = [];
             $failed = [];
@@ -9,7 +9,7 @@
             foreach (array_chunk($dataArray, $batchSize) as $chunkIndex => $chunk) {
                 foreach ($chunk as $index => $data) {
                     try {
-                        $success[] = {{tableNamePascalCaseSingular}}::create($data);
+                        $success[] = $this->model->create($data);
                     } catch (Exception $e) {
                         $failed[] = [
                             'data' => $data,
