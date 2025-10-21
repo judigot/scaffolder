@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "packageManager": "bun",
+  "packageManager": "pnpm@^10.18.3",
   "scripts": {
     "dev": "concurrently \"bunx --bun vite\" \"bun test --watch\" \"tsc --noEmit --watch\" \"bun --hot src/index.ts\"",
     "test": "bun test --watch",
