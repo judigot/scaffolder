@@ -25,7 +25,7 @@ function parseGitHubURL(url: string): { user: string; repository: string } | nul
     const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
     const match = githubRegex.exec(url);
     
-    if (match && match.length === 3) {
+    if (match?.length === 3) {
       return {
         user: match[1],
         repository: match[2],

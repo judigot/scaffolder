@@ -760,7 +760,7 @@ function App() {
                               <br />
                               {selectedProject.name}
                               <br />
-                              {String(selectedProject.content).substring(0, 20)}
+                              {selectedProject.content.substring(0, 20)}
                               ...
                               <br />
                               <br />

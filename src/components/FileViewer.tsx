@@ -299,8 +299,7 @@ function FileViewer({
     // add that folder to the parent path so the new item is created inside it
     if (
       (type === 'newFile' || type === 'newFolder') &&
-      contextMenu?.item &&
-      contextMenu.item.type === 'folder'
+      contextMenu?.item?.type === 'folder'
     ) {
       // Include the folder in the path
       parentPath = [...parentPath, contextMenu.item.name];
@@ -1022,8 +1021,7 @@ function FileViewer({
                     label: 'Download Selected Folder',
                     onClick: () => {
                       if (
-                        contextMenu.item &&
-                        contextMenu.item.type === 'folder'
+                        contextMenu.item?.type === 'folder'
                       ) {
                         downloadSelectedFolder(
                           contextMenu.item,
@@ -1041,8 +1039,7 @@ function FileViewer({
                     label: 'Copy Folder Structure',
                     onClick: () => {
                       if (
-                        contextMenu.item &&
-                        contextMenu.item.type === 'folder'
+                        contextMenu.item?.type === 'folder'
                       ) {
                         // Find the folder in the structure
                         const findFolderInStructure = (
@@ -1056,8 +1053,7 @@ function FileViewer({
                                 item.type === 'folder' &&
                                 item.name === folderName,
                             );
-                            return folderCandidate &&
-                              folderCandidate.type === 'folder'
+                            return folderCandidate?.type === 'folder'
                               ? folderCandidate
                               : null;
                           }

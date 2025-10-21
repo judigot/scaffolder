@@ -44,7 +44,7 @@ export const processCommand = (
       if (!table) {
         return '';
       }
-      const constantName = String(group1).trim();
+      const constantName = group1.trim();
       return loadConstant(
         constantName,
         userFiles,
@@ -91,8 +91,8 @@ export const processCommand = (
         loopTagRegex,
         (fullMatch: string, group1: string, group2: string) => {
           const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
-          const propertyPaths = String(group1);
-          const options = String(group2);
+          const propertyPaths = group1;
+          const options = group2;
           const cmdResult = processIterateCommand(
             `${TEMPLATE_ACTIONS.LOOP}(${propertyPaths})${options}`,
             table,
@@ -137,8 +137,8 @@ export const processCommand = (
         return '';
       }
       const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
-      const propertyPaths = String(group1);
-      const options = String(group2);
+      const propertyPaths = group1;
+      const options = group2;
       const cmdResult = processIterateCommand(
         `${TEMPLATE_ACTIONS.LOOP}(${propertyPaths})${options}`,
         table,

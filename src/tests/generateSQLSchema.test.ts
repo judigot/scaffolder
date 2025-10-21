@@ -16,7 +16,7 @@ describe('generateSQLSchema', () => {
     const deleteTablesQueries = generateSQLDeleteTables(
       userPostOneToOneSchemaInfo,
     );
-    const sqlSchema = `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(generateSQLSchema(userPostOneToOneSchemaInfo))}`;
+    const sqlSchema = `${deleteTablesQueries.join('\n')}\n\n${formatSQL(generateSQLSchema(userPostOneToOneSchemaInfo))}`;
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user";');
     expect(sqlSchema).toContain('CREATE TABLE "user" (');
     expect(sqlSchema).toContain('"user_id" BIGSERIAL PRIMARY KEY');
@@ -52,7 +52,7 @@ describe('generateSQLSchema', () => {
     const deleteTablesQueries = generateSQLDeleteTables(
       userPostsOneToManySchemaInfo,
     );
-    const sqlSchema = `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(generateSQLSchema(userPostsOneToManySchemaInfo))}`;
+    const sqlSchema = `${deleteTablesQueries.join('\n')}\n\n${formatSQL(generateSQLSchema(userPostsOneToManySchemaInfo))}`;
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "user";');
     expect(sqlSchema).toContain('CREATE TABLE "user" (');
     expect(sqlSchema).toContain('"user_id" BIGSERIAL PRIMARY KEY');
@@ -78,7 +78,7 @@ describe('generateSQLSchema', () => {
 
   it('should generate correct SQL schema for POS', () => {
     const deleteTablesQueries = generateSQLDeleteTables(POSSchemaInfo);
-    const sqlSchema = `${String(deleteTablesQueries.join('\n'))}\n\n${formatSQL(generateSQLSchema(POSSchemaInfo))}`;
+    const sqlSchema = `${deleteTablesQueries.join('\n')}\n\n${formatSQL(generateSQLSchema(POSSchemaInfo))}`;
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "order_product";');
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "order";');
     expect(sqlSchema).toContain('DROP TABLE IF EXISTS "customer";');

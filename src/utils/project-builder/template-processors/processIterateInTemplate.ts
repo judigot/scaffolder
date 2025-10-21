@@ -32,7 +32,7 @@ export const processIterateInTemplate = (
           schemaInfoParsed,
           userFiles,
         );
-        return cmdResult ? String(whitespace) + String(cmdResult) : '';
+        return cmdResult ? whitespace + cmdResult : '';
       }
 
       // If no valid table context is available, return the original match

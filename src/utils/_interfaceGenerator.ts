@@ -41,7 +41,7 @@ export function summarizeArrayOfObjectValueTypes(
  * @param arr - The array to check.
  * @returns A boolean indicating whether all items in the array are of the same type and structure.
  */
-export function haveSimilarObjects<T>(arr: T[]): boolean {
+export function haveSimilarObjects(arr: unknown[]): boolean {
   if (arr.length <= 1) {
     return true;
   }

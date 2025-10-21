@@ -168,9 +168,9 @@ export const useProjectStore = create<IProjectStore>()(
         // Build project files using the project path
         // Use uniqueId if available, otherwise use the folder-based path
         const projectPath =
-          project.uniqueId != null && String(project.uniqueId).length > 0
-            ? String(project.uniqueId)
-            : `/Projects/${String(project.name)}/structure.yaml`;
+          project.uniqueId != null && project.uniqueId.length > 0
+            ? project.uniqueId
+            : `/Projects/${project.name}/structure.yaml`;
         const builtFiles = buildProjectFiles(
           projectPath,
           allUserFiles,

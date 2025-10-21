@@ -26,8 +26,7 @@ export function convertPublicRepoFilesToStructure(
         );
 
         if (
-          existingFolderCandidate &&
-          existingFolderCandidate.type === 'folder'
+          existingFolderCandidate?.type === 'folder'
         ) {
           currentFolder = existingFolderCandidate;
         } else {

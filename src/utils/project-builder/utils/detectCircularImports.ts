@@ -33,7 +33,7 @@ function extractImportPaths(content: string): string[] {
   if (isRecord(parsedYaml)) {
     // Handle root level import keys (IMPORT_PROJECT(path):)
     const rootImportKeys = Object.keys(parsedYaml).filter((key) =>
-      key.startsWith(String(PROJECT_ACTIONS.IMPORT_PROJECT)),
+      key.startsWith(PROJECT_ACTIONS.IMPORT_PROJECT),
     );
 
     // Process each import key to extract the path
@@ -55,7 +55,7 @@ function extractImportPaths(content: string): string[] {
         for (const item of node) {
           if (
             typeof item === 'string' &&
-            item.startsWith(`${String(PROJECT_ACTIONS.IMPORT_PROJECT)}(`)
+            item.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)
           ) {
             const execResult = IMPORT_PROJECT_REGEX.exec(item);
 

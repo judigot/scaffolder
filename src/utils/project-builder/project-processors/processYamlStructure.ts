@@ -328,7 +328,7 @@ export const processYamlStructure = ({
           const keys = Object.keys(item);
           if (
             keys.length > 0 &&
-            keys[0].startsWith(`${String(PROJECT_ACTIONS.FOLDER_LOOP)}(`)
+            keys[0].startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)
           ) {
             const key = keys[0];
             const value = item[key];
@@ -339,7 +339,7 @@ export const processYamlStructure = ({
 
             // Extract folder name by removing the function name and parentheses
             const folderName = key.slice(
-              String(PROJECT_ACTIONS.FOLDER_LOOP).length + 1,
+              PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
               -1,
             );
 
@@ -380,10 +380,10 @@ export const processYamlStructure = ({
   if (typeof node === 'object' && node !== null) {
     return Object.entries(node).flatMap(([key, value]): IStructure => {
       // Special handling for IMPORT_PROJECT keys with colons
-      if (key.startsWith(`${String(PROJECT_ACTIONS.IMPORT_PROJECT)}(`)) {
+      if (key.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
         // Extract the command string
         const commandString = key.slice(
-          String(PROJECT_ACTIONS.IMPORT_PROJECT).length + 1,
+          PROJECT_ACTIONS.IMPORT_PROJECT.length + 1,
           key.length - (key.endsWith(':') ? 2 : 1), // Remove both the closing parenthesis and colon if present
         );
 
@@ -428,10 +428,10 @@ export const processYamlStructure = ({
         ];
       }
 
-      if (key.startsWith(`${String(PROJECT_ACTIONS.FOLDER_LOOP)}(`)) {
+      if (key.startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)) {
         // Extract folder name and remove parentheses
         const folderName = key
-          .slice(String(PROJECT_ACTIONS.FOLDER_LOOP).length + 1, -1)
+          .slice(PROJECT_ACTIONS.FOLDER_LOOP.length + 1, -1)
           .replace(/[()]/g, '');
         // Return the dynamic folders directly without an extra parent folder
         return processDynamicFolders({

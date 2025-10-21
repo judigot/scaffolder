@@ -98,7 +98,7 @@ export const createLocalFilesService = async (
 
     // Build project files
     const projectFiles = buildProjectFiles(
-      `/Projects/${String(projectName)}/structure.yaml`,
+      `/Projects/${projectName}/structure.yaml`,
       userFiles,
       schemaInfo,
     );
@@ -160,14 +160,14 @@ export const createLocalFilesService = async (
             console.error('Database creation failed:', dbResult.message);
             return {
               success: false,
-              message: `Created files in ${String(targetDir)}, but failed to set up database: ${dbResult.message}`,
+              message: `Created files in ${targetDir}, but failed to set up database: ${dbResult.message}`,
             };
           }
         } catch (connectionError) {
           console.error('Error with database connection:', connectionError);
           return {
             success: false,
-            message: `Created files in ${String(targetDir)}, but database connection error: ${connectionError instanceof Error ? connectionError.message : 'Invalid connection string'}`,
+            message: `Created files in ${targetDir}, but database connection error: ${connectionError instanceof Error ? connectionError.message : 'Invalid connection string'}`,
           };
         }
       } else {
@@ -181,7 +181,7 @@ export const createLocalFilesService = async (
 
     return {
       success: true,
-      message: `Successfully created files in ${String(targetDir)}`,
+      message: `Successfully created files in ${targetDir}`,
     };
   } catch (error) {
     return {

@@ -39,7 +39,7 @@ export const processUseTemplate = (
     globalUseTemplateRegex,
     (_match: string, importPath: string) => {
       // Trim whitespace and quotes
-      const cleanPath = String(importPath).trim().replace(/^['"]|['"]$/g, '');
+      const cleanPath = importPath.trim().replace(/^['"]|['"]$/g, '');
       
       // Determine which path to use for loading and processing
       let pathToUse = cleanPath;
@@ -71,7 +71,7 @@ export const processUseTemplate = (
       );
       
       if (!templateContent || templateContent.length === 0) {
-        return `<!-- Template not found: ${String(cleanPath)} -->`;
+        return `<!-- Template not found: ${cleanPath} -->`;
       }
       
       // Process commands in the loaded template, passing the resolved path

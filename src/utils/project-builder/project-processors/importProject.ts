@@ -83,9 +83,9 @@ export const importProject = ({
       });
     } else if (
       (includeTableOption != null &&
-        String(includeTableOption).trim().length > 0) ||
+        includeTableOption.trim().length > 0) ||
       (excludeTableOption != null &&
-        String(excludeTableOption).trim().length > 0)
+        excludeTableOption.trim().length > 0)
     ) {
       // Apply table filtering
       const filteredResults: IStructure = [];

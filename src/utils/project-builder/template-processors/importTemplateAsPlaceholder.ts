@@ -55,13 +55,13 @@ const processStringPlaceholders = (
     
     // Check if this key exists in the replacements
     if (!(key in replacements)) {
-      return `{{${String(key)}}}`;  // Keep the placeholder if not found
+      return `{{${key}}}`;  // Keep the placeholder if not found
     }
     
     // Prevent circular references
-    const newPath = path ? `${String(path)} -> ${String(key)}` : key;
+    const newPath = path ? `${path} -> ${key}` : key;
     if (processedKeys.has(key)) {
-      throw new Error(`Circular reference detected in template placeholders: ${String(newPath)}\nTo fix this issue, make sure properties don't reference each other in a circular way.`);
+      throw new Error(`Circular reference detected in template placeholders: ${newPath}\nTo fix this issue, make sure properties don't reference each other in a circular way.`);
     }
     
     // Mark this key as processed for this recursion path
@@ -93,6 +93,6 @@ const processStringPlaceholders = (
     // Convert array to string if needed
     return Array.isArray(processedValue)
       ? processedValue.join(', ')
-      : String(processedValue);
+      : processedValue;
   });
 };

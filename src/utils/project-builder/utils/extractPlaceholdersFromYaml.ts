@@ -35,14 +35,14 @@ export const extractPlaceholdersFromYaml = (yamlObj: unknown): Replacements => {
       
       // Continue processing each array item
       node.forEach((item, index) => {
-        processNode(item, `${String(path)}[${String(index)}]`, keyPath);
+        processNode(item, `${path}[${String(index)}]`, keyPath);
       });
     }
     // Process objects
     else if (isRecord(node)) {
       for (const [key, value] of Object.entries(node)) {
         const newKeyPath = [...keyPath, key];
-        const newPath = path ? `${String(path)}.${String(key)}` : key;
+        const newPath = path ? `${path}.${key}` : key;
         
         // For string values, add them to the placeholders
         if (typeof value === 'string') {

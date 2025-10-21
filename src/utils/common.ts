@@ -76,7 +76,7 @@ export const getColumnDefaultDisplay = ({
     }
 
     if (columnDefault !== undefined) {
-      return `'${String(columnDefault)}'`;
+      return `'${columnDefault}'`;
     }
 
     return 'No default';

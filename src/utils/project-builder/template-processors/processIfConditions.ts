@@ -20,7 +20,7 @@ export const processIfConditions = (
 
       const variableValue =
         typeof replacements[variableName] === 'string'
-          ? String(replacements[variableName])
+          ? replacements[variableName]
           : '';
 
       return variableValue === value ? ifContent : '';
@@ -45,7 +45,7 @@ export const processIfConditions = (
 
       const variableValue =
         typeof replacements[variableName] === 'string'
-          ? String(replacements[variableName])
+          ? replacements[variableName]
           : '';
 
       return variableValue === value ? ifContent : '';
@@ -70,7 +70,7 @@ export const processIfConditions = (
 
       const variableValue =
         typeof replacements[variableName] === 'string'
-          ? String(replacements[variableName])
+          ? replacements[variableName]
           : '';
 
       return variableValue !== value ? ifContent : '';
@@ -96,7 +96,7 @@ export const processIfConditions = (
 
       const variableValue =
         typeof replacements[variableName] === 'string'
-          ? String(replacements[variableName])
+          ? replacements[variableName]
           : '';
 
       return variableValue === value ? ifContent : elseContent;

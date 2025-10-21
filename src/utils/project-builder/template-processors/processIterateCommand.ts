@@ -103,7 +103,7 @@ export const processLoopTables = (
         .map((table) => {
           const replacements = getReplacementsForTable(table, schemaInfoParsed);
           return replacePlaceholders(
-            String(templateContent).trim(),
+            templateContent.trim(),
             replacements,
             userFiles,
             schemaInfoParsed,

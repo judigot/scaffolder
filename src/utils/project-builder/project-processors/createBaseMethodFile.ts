@@ -35,7 +35,7 @@ const parseCreateBaseMethodFileOptions = (
   return {
     template: typeof templatePath === 'string' ? templatePath : '',
     outputFile: mainCommand,
-    scoped: Boolean(scoped),
+    scoped,
   };
 };
 
@@ -179,7 +179,7 @@ export const createBaseMethodFile = (
     const rawTableReplacements = getReplacementsForTable(table, schemaInfoParsed);
     // Convert to string format for compatibility with applyReplacements
     for (const [key, value] of Object.entries(rawTableReplacements)) {
-      tableReplacements[key] = Array.isArray(value) ? value.join(', ') : String(value);
+      tableReplacements[key] = Array.isArray(value) ? value.join(', ') : value;
     }
   }
   

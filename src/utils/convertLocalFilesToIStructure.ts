@@ -42,11 +42,11 @@ function convertLocalFilesToIStructure(directoryPath: string): IStructure {
       }
     }
   } catch (error) {
-    console.error(`Error reading directory ${String(directoryPath)}:`, error);
+    console.error(`Error reading directory ${directoryPath}:`, error);
   }
 
   return result;
 }
 // const laravelFolderStructure = convertLocalFilesToIStructure('src/files');
- 
+
 export default convertLocalFilesToIStructure;

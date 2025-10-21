@@ -381,9 +381,7 @@ export function linkChildTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
           (r) => r.tableName === foreignTable,
         );
         if (foreignRelationship) {
-          if (!foreignRelationship.childTables) {
-            foreignRelationship.childTables = [];
-          }
+          foreignRelationship.childTables ??= [];
           foreignRelationship.childTables.push(relationship.tableName);
         }
       });
@@ -409,9 +407,7 @@ export function addParentRelationships(
             (table) => table !== parentTable,
           );
           if (partnerTable != null) {
-            if (!parentTableInfo.pivotRelationships) {
-              parentTableInfo.pivotRelationships = [];
-            }
+            parentTableInfo.pivotRelationships ??= [];
             parentTableInfo.pivotRelationships.push({
               relatedTable: partnerTable,
               pivotTable: info.tableName,

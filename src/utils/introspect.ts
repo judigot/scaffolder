@@ -28,7 +28,7 @@ export const introspect = async (
 
   const { dbName } = extractDBConnectionInfo(dbConnection);
 
-  const query = readSqlFile(`introspect_${String(dbType)}.sql`);
+  const query = readSqlFile(`introspect_${dbType}.sql`);
   let result: unknown;
 
   if (dbType === 'postgresql') {

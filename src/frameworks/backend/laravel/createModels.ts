@@ -87,7 +87,7 @@ const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
       const { pascalCase: className } = changeCase(tableName);
 
       const primaryKeyColumn = getPrimaryKey({ tableName, schemaInfo });
-      const primaryKey = `protected $primaryKey = '${String(primaryKeyColumn)}';`;
+      const primaryKey = `protected $primaryKey = '${primaryKeyColumn}';`;
 
       const hiddenColumns = columnsInfo
         .filter((column) => hiddenFields.includes(column.column_name))
