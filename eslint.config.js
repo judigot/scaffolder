@@ -136,6 +136,7 @@ export default [
       'react/react-in-jsx-scope': 'off',
       '@typescript-eslint/no-unnecessary-boolean-literal-compare': ['error'],
 
+      'no-unused-vars': 'off', // Disable this base rule in favor of @typescript-eslint/no-unused-vars (recommended)
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
