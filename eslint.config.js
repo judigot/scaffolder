@@ -12,6 +12,10 @@ import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
 import importPlugin from 'eslint-plugin-import';
+import { globalIgnores } from 'eslint/config';
+
+// import nextVitals from 'eslint-config-next/core-web-vitals'; // Uncomment this for Next.js
+// import nextTs from 'eslint-config-next/typescript'; // Uncomment this for Next.js
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,43 +26,46 @@ const compat = new FlatCompat({
 });
 
 export default [
-  {
-    ignores: [
-      '**/dist',
-      '**/eslint.config.js',
-      '**/vite.config.ts',
-      '**/vitest.config.ts',
-      '**/tailwind.config.js',
-      '**/postcss.config.js',
+  // ...nextVitals, // Uncomment this for Next.js
+  // ...nextTs, // Uncomment this for Next.js
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    '**/dist',
+    '**/eslint.config.js',
+    '**/vite.config.ts',
+    '**/vitest.config.ts',
+    '**/tailwind.config.js',
+    '**/postcss.config.js',
 
-      'node_modules/**',
-      '.next/**',
-      'out/**',
-      'build/**',
-      'next-env.d.ts',
-    ],
-  },
+    '.next/**',
+    'out/**',
+    'build/**',
+    'coverage/**',
+    'next-env.d.ts',
+  ]),
   ...fixupConfigRules(
     compat.extends(
       'eslint:recommended',
+      //=====COMMENT THESE OUT FOR NEXT.JS=====//
       'plugin:react-hooks/recommended',
       'plugin:@typescript-eslint/strict-type-checked',
       'plugin:@typescript-eslint/stylistic-type-checked',
       'plugin:react/recommended',
       'plugin:jsx-a11y/recommended',
-      // 'next/core-web-vitals', // Uncomment this for Next.js
-      // 'next/typescript', // Uncomment this for Next.js
+      //=====COMMENT THESE OUT FOR NEXT.JS=====//
     ),
   ),
   {
     plugins: {
       'react-refresh': reactRefresh,
+      'no-type-assertion': noTypeAssertion,
+      //=====COMMENT THESE OUT FOR NEXT.JS=====//
       react: fixupPluginRules(react),
       '@typescript-eslint': fixupPluginRules(typescriptEslint),
       'react-hooks': fixupPluginRules(reactHooks),
       'jsx-a11y': fixupPluginRules(jsxA11Y),
-      'no-type-assertion': noTypeAssertion,
       import: importPlugin, // Comment this out for Next.js since it's already imported in next/core-web-vitals
+      //=====COMMENT THESE OUT FOR NEXT.JS=====//
     },
 
     languageOptions: {
