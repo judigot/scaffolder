@@ -71,6 +71,16 @@ export default [
     languageOptions: {
       globals: {
         ...globals.browser,
+
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        test: 'readonly',
+        vi: 'readonly',
       },
 
       parser: tsParser,
