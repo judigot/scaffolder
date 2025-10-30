@@ -1,9 +1,8 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { generateModelImports } from '@/utils/common.ts';
+import { generateModelImports, changeCase } from '@/utils/common.ts';
 import { APP_SETTINGS } from '@/constants.ts';
 import { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
-import { changeCase } from '@/utils/common.ts';
 import generateDomainCode from '@/utils/generateDomainCode.ts';
 
 const template = `

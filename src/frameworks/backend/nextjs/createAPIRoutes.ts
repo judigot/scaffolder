@@ -1,9 +1,8 @@
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { APP_SETTINGS } from '@/constants.ts';
 import { IStructure } from '@/components/FileViewer.tsx';
-import { getPrimaryKey } from '@/utils/common.ts';
+import { getPrimaryKey, changeCase } from '@/utils/common.ts';
 import { createFile } from '@/helpers/stringHelper.ts';
-import { changeCase } from '@/utils/common.ts';
 
 const ROUTE_TEMPLATE = `
 import GetHandler from './GET';

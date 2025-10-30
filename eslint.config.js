@@ -1,33 +1,29 @@
-import { fixupConfigRules, fixupPluginRules } from '@eslint/compat';
 import reactRefresh from 'eslint-plugin-react-refresh';
-import react from 'eslint-plugin-react';
-import typescriptEslint from '@typescript-eslint/eslint-plugin';
+import importPlugin from 'eslint-plugin-import';
 import reactHooks from 'eslint-plugin-react-hooks';
-import jsxA11Y from 'eslint-plugin-jsx-a11y';
-import noTypeAssertion from 'eslint-plugin-no-type-assertion';
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
-import { FlatCompat } from '@eslint/eslintrc';
-import importPlugin from 'eslint-plugin-import';
-import { globalIgnores } from 'eslint/config';
+import tseslint from 'typescript-eslint';
+import noTypeAssertion from 'eslint-plugin-no-type-assertion';
+import react from 'eslint-plugin-react';
 
-// import nextVitals from 'eslint-config-next/core-web-vitals'; // Uncomment this for Next.js
-// import nextTs from 'eslint-config-next/typescript'; // Uncomment this for Next.js
+import { defineConfig, globalIgnores } from 'eslint/config';
+
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+
+// prettier-ignore
+const isNextJs = (() => { try { const p = require(`${process.cwd()}/package.json`); return ( 'next' in (p.dependencies ?? {}) || 'next' in (p.devDependencies ?? {}) || [ 'next.config.js', 'next.config.mjs', 'next.config.ts', 'next.config.cjs', ].some((f) => require('fs').existsSync(f)) ); } catch { return false; } })();
+// prettier-ignore
+const nextConfigs = (() => { if (!isNextJs) return []; try { const nextVitals = require('eslint-config-next/core-web-vitals'); const nextTs = require('eslint-config-next/typescript'); return [...nextVitals, ...nextTs]; } catch { return []; } })();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
 
-export default [
-  // ...nextVitals, // Uncomment this for Next.js
-  // ...nextTs, // Uncomment this for Next.js
+export default defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     '**/dist',
@@ -43,30 +39,26 @@ export default [
     'coverage/**',
     'next-env.d.ts',
   ]),
-  ...fixupConfigRules(
-    compat.extends(
-      'eslint:recommended',
-      //=====COMMENT THESE OUT FOR NEXT.JS=====//
-      'plugin:react-hooks/recommended',
-      'plugin:@typescript-eslint/strict-type-checked',
-      'plugin:@typescript-eslint/stylistic-type-checked',
-      'plugin:react/recommended',
-      'plugin:jsx-a11y/recommended',
-      //=====COMMENT THESE OUT FOR NEXT.JS=====//
-    ),
-  ),
   {
+    files: ['**/*.{ts,tsx}'],
     plugins: {
-      'react-refresh': reactRefresh,
+      react,
       'no-type-assertion': noTypeAssertion,
-      //=====COMMENT THESE OUT FOR NEXT.JS=====//
-      react: fixupPluginRules(react),
-      '@typescript-eslint': fixupPluginRules(typescriptEslint),
-      'react-hooks': fixupPluginRules(reactHooks),
-      'jsx-a11y': fixupPluginRules(jsxA11Y),
-      import: importPlugin, // Comment this out for Next.js since it's already imported in next/core-web-vitals
-      //=====COMMENT THESE OUT FOR NEXT.JS=====//
+      'react-hooks': reactHooks,
     },
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommendedTypeChecked,
+      tseslint.configs.strictTypeChecked,
+      tseslint.configs.stylisticTypeChecked,
+      ...(() =>
+        isNextJs
+          ? [reactRefresh.configs.next]
+          : [
+              importPlugin.flatConfigs.recommended,
+              reactRefresh.configs.vite,
+            ])(),
+    ],
 
     languageOptions: {
       globals: {
@@ -94,8 +86,12 @@ export default [
 
         project: [
           './tsconfig.json',
-          './tsconfig.app.json', // Comment this out for Next.js
-          './tsconfig.node.json', // Comment this out for Next.js
+          ...(() => {
+            if (!isNextJs) {
+              return ['./tsconfig.app.json', './tsconfig.node.json'];
+            }
+            return [];
+          })(),
         ],
         tsconfigRootDir: __dirname,
       },
@@ -205,4 +201,5 @@ export default [
       ],
     },
   },
-];
+  ...nextConfigs,
+]);

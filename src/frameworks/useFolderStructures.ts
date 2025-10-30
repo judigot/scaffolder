@@ -1,10 +1,9 @@
 import { IStructure } from '@/components/FileViewer.tsx';
 import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { frameworks } from '@/useFormStore.ts';
+import { frameworks, IFormStore } from '@/useFormStore.ts';
 import { useLaravel } from '@/frameworks/backend/laravel/useLaravel.ts';
 import { useNextJS } from '@/frameworks/backend/nextjs/useNextJS.ts';
 import { useFrontend } from '@/frameworks/frontend/useFrontend.ts';
-import { IFormStore } from '@/useFormStore.ts';
 
 export function getFolderStructures({
   schemaInfo,

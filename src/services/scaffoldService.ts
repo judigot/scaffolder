@@ -4,9 +4,8 @@ import createFolderStructure from '@/utils/createFolderStructure.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects.ts';
 import https from 'node:https';
-import http from 'node:http';
+import http, { IncomingMessage } from 'node:http';
 import fs from 'node:fs';
-import { IncomingMessage } from 'node:http';
 import { changeCase } from '@/utils/common.ts';
 import { IFormStore } from '@/useFormStore.ts';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
@@ -30,13 +29,8 @@ export const scaffoldService = async (
 ): Promise<IScaffoldResponse> => {
   const { schemaInfo, SQLSchema, formData } = data;
 
-  const {
-    framework,
-    backendDir,
-    frontendDir,
-    dbConnection,
-    backendUrl,
-  } = formData;
+  const { framework, backendDir, frontendDir, dbConnection, backendUrl } =
+    formData;
 
   const __dirname = path.dirname(new URL(import.meta.url).pathname);
   const backendDirPath = path.resolve(__dirname, backendDir);
@@ -54,8 +48,9 @@ export const scaffoldService = async (
   if (SQLSchema !== null) {
     try {
       // Extract database connection info to create database info object
-      const { username, password, host, port, dbName, dbType } = extractDBConnectionInfo(dbConnection);
-      
+      const { username, password, host, port, dbName, dbType } =
+        extractDBConnectionInfo(dbConnection);
+
       // Create database info object
       const databaseInfo = {
         name: dbName,
@@ -63,13 +58,13 @@ export const scaffoldService = async (
         password,
         host,
         port: String(port),
-        type: dbType
+        type: dbType,
       };
-      
+
       // Use the utility function to reset the database
       const dbResult = await createOrResetDatabase(databaseInfo, SQLSchema);
       isDBConnectionValid = dbResult.success;
-      
+
       if (!dbResult.success) {
         console.error('Error executing database command:', dbResult.message);
       }

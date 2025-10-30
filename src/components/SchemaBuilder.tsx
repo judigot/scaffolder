@@ -7,8 +7,7 @@ import {
 } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import { Edit as EditIcon, Close as CloseIcon } from '@mui/icons-material';
-import { getColumnDefaultDisplay } from '@/utils/common.ts';
-import { getPrimaryKey } from '@/utils/common.ts';
+import { getColumnDefaultDisplay, getPrimaryKey } from '@/utils/common.ts';
 import TableAdder from '@/components/TableAdder.tsx';
 import renameTable from '@/utils/renameTable.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
@@ -62,7 +61,7 @@ function SchemaBuilder() {
     originalIndex: number;
   } | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
-  
+
   const columnNameInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedTableIndex, setSelectedTableIndex] = useState<number | null>(
@@ -110,11 +109,12 @@ function SchemaBuilder() {
   };
 
   // Handle YAML input change
-  const handleYamlChange = useCallback((
-    e: React.ChangeEvent<HTMLTextAreaElement>,
-  ): void => {
-    setYamlSeedData(e.target.value);
-  }, []);
+  const handleYamlChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+      setYamlSeedData(e.target.value);
+    },
+    [],
+  );
 
   // Save seed data to table
   const handleSaveSeedData = useCallback((): void => {
@@ -182,40 +182,46 @@ function SchemaBuilder() {
   }, [schemaInfo, selectedTableIndex, yamlSeedData]);
 
   // Handle keyboard shortcuts
-  const handleKeyDown = useCallback((e: React.KeyboardEvent): void => {
-    if (e.ctrlKey && e.key === 'Enter') {
-      const valid = Boolean(
-        newColumnFormData.columnName.trim() &&
-          newColumnFormData.dataType &&
-          (!newColumnFormData.foreignKey ||
-            newColumnFormData.foreignKey.relationType),
-      );
-      if (!valid) {
-        return;
-      }
-      e.preventDefault();
-      const form = e.currentTarget.closest('form');
-      if (form) {
-        form.dispatchEvent(
-          new Event('submit', { cancelable: true, bubbles: true }),
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent): void => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        const valid = Boolean(
+          newColumnFormData.columnName.trim() &&
+            newColumnFormData.dataType &&
+            (!newColumnFormData.foreignKey ||
+              newColumnFormData.foreignKey.relationType),
         );
+        if (!valid) {
+          return;
+        }
+        e.preventDefault();
+        const form = e.currentTarget.closest('form');
+        if (form) {
+          form.dispatchEvent(
+            new Event('submit', { cancelable: true, bubbles: true }),
+          );
+        }
       }
-    }
-  }, [newColumnFormData]);
+    },
+    [newColumnFormData],
+  );
 
-  const handleInputChange = useCallback((
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ): void => {
-    const { name, value, type } = e.target;
-    const checked = e.target instanceof HTMLInputElement && e.target.checked;
+  const handleInputChange = useCallback(
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >,
+    ): void => {
+      const { name, value, type } = e.target;
+      const checked = e.target instanceof HTMLInputElement && e.target.checked;
 
-    setNewColumnFormData((prev: INewColumnFormData) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  }, []);
+      setNewColumnFormData((prev: INewColumnFormData) => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      }));
+    },
+    [],
+  );
 
   const handleRenameTable = async (index: number) => {
     const oldValue = schemaInfo[index].tableName;
@@ -348,8 +354,6 @@ function SchemaBuilder() {
     setSchemaInfo(purgeForeignKeyTraces(updatedSchema));
   };
 
-  
-
   // Update YAML textarea when selected table changes
   useEffect(() => {
     if (
@@ -389,154 +393,166 @@ function SchemaBuilder() {
     return schemaInfo.filter(isStandaloneTable);
   }, [schemaInfo]);
   const mainTables = useMemo(() => {
-    return schemaInfo.filter((table) => !table.isPivot && !isStandaloneTable(table));
+    return schemaInfo.filter(
+      (table) => !table.isPivot && !isStandaloneTable(table),
+    );
   }, [schemaInfo]);
 
-  const addNewColumnToTable = useCallback((columnData: INewColumnFormData): void => {
-    if (selectedTableIndex === null) {
-      return;
-    }
-    const updatedSchema = [...schemaInfo];
-    const table = updatedSchema[selectedTableIndex];
+  const addNewColumnToTable = useCallback(
+    (columnData: INewColumnFormData): void => {
+      if (selectedTableIndex === null) {
+        return;
+      }
+      const updatedSchema = [...schemaInfo];
+      const table = updatedSchema[selectedTableIndex];
 
-    // Create the new column
-    const newColumn: IColumnInfo = {
-      column_name: columnData.columnName,
-      data_type: columnData.dataType,
-      is_nullable: columnData.isNullable ? 'YES' : 'NO',
-      column_default:
-        columnData.defaultValue === '' ? undefined : columnData.defaultValue,
-      primary_key: columnData.isPrimary ? true : undefined,
-      unique: columnData.isUnique ? true : undefined,
-      foreign_key: columnData.foreignKey
-        ? {
-            foreign_table_name: columnData.foreignKey.tableName,
-            foreign_column_name: columnData.foreignKey.columnName,
-          }
-        : undefined,
-    };
+      // Create the new column
+      const newColumn: IColumnInfo = {
+        column_name: columnData.columnName,
+        data_type: columnData.dataType,
+        is_nullable: columnData.isNullable ? 'YES' : 'NO',
+        column_default:
+          columnData.defaultValue === '' ? undefined : columnData.defaultValue,
+        primary_key: columnData.isPrimary ? true : undefined,
+        unique: columnData.isUnique ? true : undefined,
+        foreign_key: columnData.foreignKey
+          ? {
+              foreign_table_name: columnData.foreignKey.tableName,
+              foreign_column_name: columnData.foreignKey.columnName,
+            }
+          : undefined,
+      };
 
-    // Add the column to the table
-    table.columnsInfo.push(newColumn);
+      // Add the column to the table
+      table.columnsInfo.push(newColumn);
 
-    // If this is a foreign key, update relationships
-    if (columnData.foreignKey) {
-      const parentTableIndex = updatedSchema.findIndex(
-        (t) => t.tableName === columnData.foreignKey?.tableName,
-      );
+      // If this is a foreign key, update relationships
+      if (columnData.foreignKey) {
+        const parentTableIndex = updatedSchema.findIndex(
+          (t) => t.tableName === columnData.foreignKey?.tableName,
+        );
 
-      if (parentTableIndex !== -1) {
-        if (
-          updatedSchema[parentTableIndex].hasOne &&
-          columnData.foreignKey.relationType === 'oneToOne'
-        ) {
+        if (parentTableIndex !== -1) {
           if (
-            !updatedSchema[parentTableIndex].hasOne.includes(table.tableName)
+            updatedSchema[parentTableIndex].hasOne &&
+            columnData.foreignKey.relationType === 'oneToOne'
           ) {
-            updatedSchema[parentTableIndex].hasOne.push(table.tableName);
+            if (
+              !updatedSchema[parentTableIndex].hasOne.includes(table.tableName)
+            ) {
+              updatedSchema[parentTableIndex].hasOne.push(table.tableName);
+            }
+            if (
+              table.belongsTo &&
+              !table.belongsTo.includes(columnData.foreignKey.tableName)
+            ) {
+              table.belongsTo.push(columnData.foreignKey.tableName);
+            }
+          } else {
+            if (
+              updatedSchema[parentTableIndex].hasMany &&
+              !updatedSchema[parentTableIndex].hasMany.includes(table.tableName)
+            ) {
+              updatedSchema[parentTableIndex].hasMany.push(table.tableName);
+            }
+            if (
+              table.belongsTo &&
+              !table.belongsTo.includes(columnData.foreignKey.tableName)
+            ) {
+              table.belongsTo.push(columnData.foreignKey.tableName);
+            }
           }
-          if (
-            table.belongsTo &&
-            !table.belongsTo.includes(columnData.foreignKey.tableName)
-          ) {
-            table.belongsTo.push(columnData.foreignKey.tableName);
-          }
-        } else {
-          if (
-            updatedSchema[parentTableIndex].hasMany &&
-            !updatedSchema[parentTableIndex].hasMany.includes(table.tableName)
-          ) {
-            updatedSchema[parentTableIndex].hasMany.push(table.tableName);
-          }
-          if (
-            table.belongsTo &&
-            !table.belongsTo.includes(columnData.foreignKey.tableName)
-          ) {
-            table.belongsTo.push(columnData.foreignKey.tableName);
-          }
-        }
 
-        if (
-          table.foreignTables &&
-          !table.foreignTables.includes(columnData.foreignKey.tableName)
-        ) {
-          table.foreignTables.push(columnData.foreignKey.tableName);
-        }
+          if (
+            table.foreignTables &&
+            !table.foreignTables.includes(columnData.foreignKey.tableName)
+          ) {
+            table.foreignTables.push(columnData.foreignKey.tableName);
+          }
 
-        if (
-          updatedSchema[parentTableIndex].childTables &&
-          !updatedSchema[parentTableIndex].childTables.includes(table.tableName)
-        ) {
-          updatedSchema[parentTableIndex].childTables.push(table.tableName);
+          if (
+            updatedSchema[parentTableIndex].childTables &&
+            !updatedSchema[parentTableIndex].childTables.includes(
+              table.tableName,
+            )
+          ) {
+            updatedSchema[parentTableIndex].childTables.push(table.tableName);
+          }
         }
       }
-    }
 
-    setSchemaInfo(updatedSchema);
-    // Reset form
-    setNewColumnFormData({
-      columnName: '',
-      dataType: 'string',
-      isNullable: false,
-      defaultValue: '',
-      isPrimary: false,
-      isUnique: false,
-      foreignKey: null,
-    });
-  }, [schemaInfo, selectedTableIndex, setSchemaInfo]);
+      setSchemaInfo(updatedSchema);
+      // Reset form
+      setNewColumnFormData({
+        columnName: '',
+        dataType: 'string',
+        isNullable: false,
+        defaultValue: '',
+        isPrimary: false,
+        isUnique: false,
+        foreignKey: null,
+      });
+    },
+    [schemaInfo, selectedTableIndex, setSchemaInfo],
+  );
 
-  const handleForeignKeyChange = useCallback((
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ): void => {
-    const { value } = e.target;
-    try {
-      setNewColumnFormData((prev: INewColumnFormData) => ({
-        ...prev,
-        foreignKey: value
-          ? {
-              tableName: value,
-              columnName: getPrimaryKey({
+  const handleForeignKeyChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>): void => {
+      const { value } = e.target;
+      try {
+        setNewColumnFormData((prev: INewColumnFormData) => ({
+          ...prev,
+          foreignKey: value
+            ? {
                 tableName: value,
-                schemaInfo,
-              }),
-              relationType: prev.foreignKey?.relationType ?? 'oneToOne',
-            }
-          : null,
-      }));
-      setSelectedParentTable(value);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Error setting foreign key:', error.message);
+                columnName: getPrimaryKey({
+                  tableName: value,
+                  schemaInfo,
+                }),
+                relationType: prev.foreignKey?.relationType ?? 'oneToOne',
+              }
+            : null,
+        }));
+        setSelectedParentTable(value);
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error('Error setting foreign key:', error.message);
+        }
       }
-    }
-  }, [schemaInfo]);
+    },
+    [schemaInfo],
+  );
 
-  const handleRelationTypeChange = useCallback((
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ): void => {
-    const { value } = e.target;
-    if (value === 'oneToOne' || value === 'oneToMany') {
-      setNewColumnFormData((prev: INewColumnFormData) => ({
-        ...prev,
-        foreignKey: prev.foreignKey
-          ? {
-              ...prev.foreignKey,
-              relationType: value,
-            }
-          : null,
-      }));
-    }
-  }, []);
+  const handleRelationTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>): void => {
+      const { value } = e.target;
+      if (value === 'oneToOne' || value === 'oneToMany') {
+        setNewColumnFormData((prev: INewColumnFormData) => ({
+          ...prev,
+          foreignKey: prev.foreignKey
+            ? {
+                ...prev.foreignKey,
+                relationType: value,
+              }
+            : null,
+        }));
+      }
+    },
+    [],
+  );
 
-  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    addNewColumnToTable(newColumnFormData);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>): void => {
+      e.preventDefault();
+      addNewColumnToTable(newColumnFormData);
 
-    // Focus the column name input after successful submission
-    setTimeout(() => {
-      columnNameInputRef.current?.focus();
-    }, 100);
-  }, [addNewColumnToTable, newColumnFormData]);
+      // Focus the column name input after successful submission
+      setTimeout(() => {
+        columnNameInputRef.current?.focus();
+      }, 100);
+    },
+    [addNewColumnToTable, newColumnFormData],
+  );
 
   const getAvailableForeignTables = (currentTable: ITableInfo): string[] => {
     const existingForeignTables = new Set<string>();
@@ -585,54 +601,56 @@ function SchemaBuilder() {
     );
   };
 
-  const handleCellEdit = useCallback((
-    rowIndex: number,
-    field: string,
-    currentValue: string | boolean,
-    _event: React.MouseEvent | React.KeyboardEvent,
-    originalIndex: number,
-  ): void => {
-    setEditingCell({ rowIndex, field, originalIndex });
-    setEditingValue(String(currentValue));
-  }, []);
+  const handleCellEdit = useCallback(
+    (
+      rowIndex: number,
+      field: string,
+      currentValue: string | boolean,
+      _event: React.MouseEvent | React.KeyboardEvent,
+      originalIndex: number,
+    ): void => {
+      setEditingCell({ rowIndex, field, originalIndex });
+      setEditingValue(String(currentValue));
+    },
+    [],
+  );
 
-  const handleCellSave = useCallback((
-    tableIndex: number,
-    columnIndex: number,
-    field: string,
-  ): void => {
-    if (!editingCell) {
-      return;
-    }
+  const handleCellSave = useCallback(
+    (tableIndex: number, columnIndex: number, field: string): void => {
+      if (!editingCell) {
+        return;
+      }
 
-    const updatedSchemaInfo = [...schemaInfo];
-    const column = updatedSchemaInfo[tableIndex].columnsInfo[columnIndex];
+      const updatedSchemaInfo = [...schemaInfo];
+      const column = updatedSchemaInfo[tableIndex].columnsInfo[columnIndex];
 
-    switch (field) {
-      case 'column_name':
-        column.column_name = editingValue;
-        break;
-      case 'data_type':
-        column.data_type = editingValue;
-        break;
-      case 'is_nullable':
-        column.is_nullable = editingValue;
-        break;
-      case 'column_default':
-        column.column_default = editingValue || null;
-        break;
-      case 'primary_key':
-        column.primary_key = editingValue === 'true' ? true : undefined;
-        break;
-      case 'unique':
-        column.unique = editingValue === 'true' ? true : undefined;
-        break;
-    }
+      switch (field) {
+        case 'column_name':
+          column.column_name = editingValue;
+          break;
+        case 'data_type':
+          column.data_type = editingValue;
+          break;
+        case 'is_nullable':
+          column.is_nullable = editingValue;
+          break;
+        case 'column_default':
+          column.column_default = editingValue || null;
+          break;
+        case 'primary_key':
+          column.primary_key = editingValue === 'true' ? true : undefined;
+          break;
+        case 'unique':
+          column.unique = editingValue === 'true' ? true : undefined;
+          break;
+      }
 
-    setSchemaInfo(updatedSchemaInfo);
-    setEditingCell(null);
-    setEditingValue('');
-  }, [editingCell, editingValue, schemaInfo, setSchemaInfo]);
+      setSchemaInfo(updatedSchemaInfo);
+      setEditingCell(null);
+      setEditingValue('');
+    },
+    [editingCell, editingValue, schemaInfo, setSchemaInfo],
+  );
 
   const handleCellCancel = useCallback((): void => {
     setEditingCell(null);
@@ -670,28 +688,28 @@ function SchemaBuilder() {
     );
   };
 
-  const getExistingPrimaryKeyColumn = useCallback((
-    tableIndex: number,
-    excludeColumnName?: string,
-  ): string | null => {
-    const table = schemaInfo[tableIndex];
-    const primaryKeyColumn = table.columnsInfo.find(
-      (col) =>
-        col.primary_key === true && col.column_name !== excludeColumnName,
-    );
-    return primaryKeyColumn ? primaryKeyColumn.column_name : null;
-  }, [schemaInfo]);
+  const getExistingPrimaryKeyColumn = useCallback(
+    (tableIndex: number, excludeColumnName?: string): string | null => {
+      const table = schemaInfo[tableIndex];
+      const primaryKeyColumn = table.columnsInfo.find(
+        (col) =>
+          col.primary_key === true && col.column_name !== excludeColumnName,
+      );
+      return primaryKeyColumn ? primaryKeyColumn.column_name : null;
+    },
+    [schemaInfo],
+  );
 
-  const canEditPrimaryKey = useCallback((
-    tableIndex: number,
-    columnName: string,
-  ): boolean => {
-    const existingPrimaryKey = getExistingPrimaryKeyColumn(
-      tableIndex,
-      columnName,
-    );
-    return existingPrimaryKey === null;
-  }, [getExistingPrimaryKeyColumn]);
+  const canEditPrimaryKey = useCallback(
+    (tableIndex: number, columnName: string): boolean => {
+      const existingPrimaryKey = getExistingPrimaryKeyColumn(
+        tableIndex,
+        columnName,
+      );
+      return existingPrimaryKey === null;
+    },
+    [getExistingPrimaryKeyColumn],
+  );
 
   const handleRemoveColumn = async (
     tableIndex: number,
@@ -1630,10 +1648,14 @@ function SchemaBuilder() {
                                 (column) =>
                                   column.column_name
                                     .toLowerCase()
-                                    .includes(debouncedColumnSearchTerm.toLowerCase()) ||
+                                    .includes(
+                                      debouncedColumnSearchTerm.toLowerCase(),
+                                    ) ||
                                   column.data_type
                                     .toLowerCase()
-                                    .includes(debouncedColumnSearchTerm.toLowerCase()),
+                                    .includes(
+                                      debouncedColumnSearchTerm.toLowerCase(),
+                                    ),
                               )
                               .map((column, filteredIndex) => {
                                 const originalIndex = schemaInfo[
@@ -1691,29 +1713,36 @@ function SchemaBuilder() {
                                       editingCell?.field === 'column_name' ? (
                                         <div className="relative">
                                           <input
-                                          type="text"
-                                          value={editingValue}
-                                          onChange={(e) => {
-                                            setEditingValue(e.target.value);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              handleCellSave(
-                                                selectedTableIndex,
-                                                originalIndex,
-                                                'column_name',
+                                            type="text"
+                                            value={editingValue}
+                                            onChange={(e) => {
+                                              setEditingValue(e.target.value);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                handleCellSave(
+                                                  selectedTableIndex,
+                                                  originalIndex,
+                                                  'column_name',
+                                                );
+                                              } else if (e.key === 'Escape') {
+                                                handleCellCancel();
+                                              }
+                                            }}
+                                            onFocus={(e) => {
+                                              const end =
+                                                e.currentTarget.value.length;
+                                              e.currentTarget.setSelectionRange(
+                                                end,
+                                                end,
                                               );
-                                            } else if (e.key === 'Escape') {
-                                              handleCellCancel();
-                                            }
-                                          }}
-                                          onFocus={(e) => {
-                                            const end = e.currentTarget.value.length;
-                                            e.currentTarget.setSelectionRange(end, end);
-                                          }}
-                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            }}
+                                            className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           />
-                                          <InlineEditControls originalIndex={originalIndex} field="column_name" />
+                                          <InlineEditControls
+                                            originalIndex={originalIndex}
+                                            field="column_name"
+                                          />
                                         </div>
                                       ) : (
                                         <button
@@ -1755,25 +1784,28 @@ function SchemaBuilder() {
                                       editingCell?.field === 'data_type' ? (
                                         <div className="relative">
                                           <DataTypeSelector
-                                          value={editingValue}
-                                          onChange={(e) => {
-                                            setEditingValue(e.target.value);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              handleCellSave(
-                                                selectedTableIndex,
-                                                originalIndex,
-                                                'data_type',
-                                              );
-                                            } else if (e.key === 'Escape') {
-                                              handleCellCancel();
-                                            }
-                                          }}
-                                          id={`data-type-editor-${String(originalIndex)}`}
-                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            value={editingValue}
+                                            onChange={(e) => {
+                                              setEditingValue(e.target.value);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                handleCellSave(
+                                                  selectedTableIndex,
+                                                  originalIndex,
+                                                  'data_type',
+                                                );
+                                              } else if (e.key === 'Escape') {
+                                                handleCellCancel();
+                                              }
+                                            }}
+                                            id={`data-type-editor-${String(originalIndex)}`}
+                                            className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           />
-                                          <InlineEditControls originalIndex={originalIndex} field="data_type" />
+                                          <InlineEditControls
+                                            originalIndex={originalIndex}
+                                            field="data_type"
+                                          />
                                         </div>
                                       ) : (
                                         <button
@@ -1815,28 +1847,31 @@ function SchemaBuilder() {
                                       editingCell?.field === 'is_nullable' ? (
                                         <div className="relative">
                                           <select
-                                          value={editingValue}
-                                          onChange={(e) => {
-                                            setEditingValue(e.target.value);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              handleCellSave(
-                                                selectedTableIndex,
-                                                originalIndex,
-                                                'is_nullable',
-                                              );
-                                            } else if (e.key === 'Escape') {
-                                              handleCellCancel();
-                                            }
-                                          }}
-                                          id={`nullable-editor-${String(originalIndex)}`}
-                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            value={editingValue}
+                                            onChange={(e) => {
+                                              setEditingValue(e.target.value);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                handleCellSave(
+                                                  selectedTableIndex,
+                                                  originalIndex,
+                                                  'is_nullable',
+                                                );
+                                              } else if (e.key === 'Escape') {
+                                                handleCellCancel();
+                                              }
+                                            }}
+                                            id={`nullable-editor-${String(originalIndex)}`}
+                                            className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           >
-                                          <option value="YES">YES</option>
-                                          <option value="NO">NO</option>
+                                            <option value="YES">YES</option>
+                                            <option value="NO">NO</option>
                                           </select>
-                                          <InlineEditControls originalIndex={originalIndex} field="is_nullable" />
+                                          <InlineEditControls
+                                            originalIndex={originalIndex}
+                                            field="is_nullable"
+                                          />
                                         </div>
                                       ) : (
                                         (() => {
@@ -1894,29 +1929,36 @@ function SchemaBuilder() {
                                         'column_default' ? (
                                         <div className="relative">
                                           <input
-                                          type="text"
-                                          value={editingValue}
-                                          onChange={(e) => {
-                                            setEditingValue(e.target.value);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              handleCellSave(
-                                                selectedTableIndex,
-                                                originalIndex,
-                                                'column_default',
+                                            type="text"
+                                            value={editingValue}
+                                            onChange={(e) => {
+                                              setEditingValue(e.target.value);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                handleCellSave(
+                                                  selectedTableIndex,
+                                                  originalIndex,
+                                                  'column_default',
+                                                );
+                                              } else if (e.key === 'Escape') {
+                                                handleCellCancel();
+                                              }
+                                            }}
+                                            onFocus={(e) => {
+                                              const end =
+                                                e.currentTarget.value.length;
+                                              e.currentTarget.setSelectionRange(
+                                                end,
+                                                end,
                                               );
-                                            } else if (e.key === 'Escape') {
-                                              handleCellCancel();
-                                            }
-                                          }}
-                                          onFocus={(e) => {
-                                            const end = e.currentTarget.value.length;
-                                            e.currentTarget.setSelectionRange(end, end);
-                                          }}
-                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            }}
+                                            className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           />
-                                          <InlineEditControls originalIndex={originalIndex} field="column_default" />
+                                          <InlineEditControls
+                                            originalIndex={originalIndex}
+                                            field="column_default"
+                                          />
                                         </div>
                                       ) : (
                                         <button
@@ -1977,28 +2019,31 @@ function SchemaBuilder() {
                                       editingCell?.field === 'primary_key' ? (
                                         <div className="relative">
                                           <select
-                                          value={editingValue}
-                                          onChange={(e) => {
-                                            setEditingValue(e.target.value);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              handleCellSave(
-                                                selectedTableIndex,
-                                                originalIndex,
-                                                'primary_key',
-                                              );
-                                            } else if (e.key === 'Escape') {
-                                              handleCellCancel();
-                                            }
-                                          }}
-                                          id={`pk-editor-${String(originalIndex)}`}
-                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            value={editingValue}
+                                            onChange={(e) => {
+                                              setEditingValue(e.target.value);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                handleCellSave(
+                                                  selectedTableIndex,
+                                                  originalIndex,
+                                                  'primary_key',
+                                                );
+                                              } else if (e.key === 'Escape') {
+                                                handleCellCancel();
+                                              }
+                                            }}
+                                            id={`pk-editor-${String(originalIndex)}`}
+                                            className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           >
-                                          <option value="true">Yes</option>
-                                          <option value="false">No</option>
+                                            <option value="true">Yes</option>
+                                            <option value="false">No</option>
                                           </select>
-                                          <InlineEditControls originalIndex={originalIndex} field="primary_key" />
+                                          <InlineEditControls
+                                            originalIndex={originalIndex}
+                                            field="primary_key"
+                                          />
                                         </div>
                                       ) : (
                                         (() => {
@@ -2076,28 +2121,31 @@ function SchemaBuilder() {
                                       editingCell?.field === 'unique' ? (
                                         <div className="relative">
                                           <select
-                                          value={editingValue}
-                                          onChange={(e) => {
-                                            setEditingValue(e.target.value);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              handleCellSave(
-                                                selectedTableIndex,
-                                                originalIndex,
-                                                'unique',
-                                              );
-                                            } else if (e.key === 'Escape') {
-                                              handleCellCancel();
-                                            }
-                                          }}
-                                          id={`unique-editor-${String(originalIndex)}`}
-                                          className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            value={editingValue}
+                                            onChange={(e) => {
+                                              setEditingValue(e.target.value);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                handleCellSave(
+                                                  selectedTableIndex,
+                                                  originalIndex,
+                                                  'unique',
+                                                );
+                                              } else if (e.key === 'Escape') {
+                                                handleCellCancel();
+                                              }
+                                            }}
+                                            id={`unique-editor-${String(originalIndex)}`}
+                                            className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           >
-                                          <option value="true">Yes</option>
-                                          <option value="false">No</option>
+                                            <option value="true">Yes</option>
+                                            <option value="false">No</option>
                                           </select>
-                                          <InlineEditControls originalIndex={originalIndex} field="unique" />
+                                          <InlineEditControls
+                                            originalIndex={originalIndex}
+                                            field="unique"
+                                          />
                                         </div>
                                       ) : (
                                         (() => {
