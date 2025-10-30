@@ -1,5 +1,5 @@
 import { methods } from '@/frameworks/backend/laravel/base-methods/index.ts';
-import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { changeCase } from '@/utils/common.ts';
 import fs from 'fs';
 import path from 'path';
@@ -57,7 +57,7 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
 
       // Track method for group index
       methodsByGroup.get(groupDirName)?.push(method.methodName);
-      
+
       // Create individual .txt files for each property
       const properties = [
         { name: 'methodName', value: method.methodName },
@@ -68,17 +68,17 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
         { name: 'serviceMethod', value: method.serviceMethod },
         { name: 'serviceContent', value: method.serviceContent },
         { name: 'controllerMethod', value: method.controllerMethod },
-        { name: 'controllerContent', value: method.controllerContent }
+        { name: 'controllerContent', value: method.controllerContent },
       ];
-      
+
       // Write each property to its own .txt file
-      properties.forEach(prop => {
+      properties.forEach((prop) => {
         const filePath = path.join(featureDir, `${prop.name}.txt`);
         fs.writeFileSync(filePath, prop.value, 'utf8');
         // eslint-disable-next-line no-console
         console.log(`✅ Created: ${filePath}`);
       });
-      
+
       // Create an index.ts file that loads all the txt files
       const indexContent = `import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import fs from 'fs';
@@ -98,7 +98,7 @@ export default {
   controllerContent: fs.readFileSync(path.join(currentDir, 'controllerContent.txt'), 'utf8'),
 } satisfies IMethod;
 `;
-      
+
       fs.writeFileSync(path.join(featureDir, 'index.ts'), indexContent, 'utf8');
       // eslint-disable-next-line no-console
       console.log(`✅ Created: ${path.join(featureDir, 'index.ts')}`);

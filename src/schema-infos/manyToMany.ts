@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 export default [
   {
@@ -10,13 +10,13 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true
+        primary_key: true,
       },
       {
         column_name: 'product_name',
         data_type: 'string',
-        is_nullable: 'NO'
-      }
+        is_nullable: 'NO',
+      },
     ],
     childTables: ['order_product'],
     hasMany: ['order_product'],
@@ -24,9 +24,9 @@ export default [
     pivotRelationships: [
       {
         relatedTable: 'order',
-        pivotTable: 'order_product'
-      }
-    ]
+        pivotTable: 'order_product',
+      },
+    ],
   },
   {
     tableName: 'customer',
@@ -37,16 +37,16 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true
+        primary_key: true,
       },
       {
         column_name: 'name',
         data_type: 'string',
-        is_nullable: 'NO'
-      }
+        is_nullable: 'NO',
+      },
     ],
     childTables: ['order'],
-    hasMany: ['order']
+    hasMany: ['order'],
   },
   {
     tableName: 'order',
@@ -57,7 +57,7 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true
+        primary_key: true,
       },
       {
         column_name: 'customer_id',
@@ -65,9 +65,9 @@ export default [
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'customer',
-          foreign_column_name: 'customer_id'
-        }
-      }
+          foreign_column_name: 'customer_id',
+        },
+      },
     ],
     foreignTables: ['customer'],
     foreignKeys: ['customer_id'],
@@ -78,9 +78,9 @@ export default [
     pivotRelationships: [
       {
         relatedTable: 'product',
-        pivotTable: 'order_product'
-      }
-    ]
+        pivotTable: 'order_product',
+      },
+    ],
   },
   {
     tableName: 'order_product',
@@ -91,7 +91,7 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true
+        primary_key: true,
       },
       {
         column_name: 'order_id',
@@ -99,8 +99,8 @@ export default [
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'order',
-          foreign_column_name: 'order_id'
-        }
+          foreign_column_name: 'order_id',
+        },
       },
       {
         column_name: 'product_id',
@@ -108,13 +108,13 @@ export default [
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'product',
-          foreign_column_name: 'product_id'
-        }
-      }
+          foreign_column_name: 'product_id',
+        },
+      },
     ],
     isPivot: true,
     foreignTables: ['order', 'product'],
     foreignKeys: ['order_id', 'product_id'],
-    belongsTo: ['order', 'product']
-  }
+    belongsTo: ['order', 'product'],
+  },
 ] satisfies ISchemaInfo[];

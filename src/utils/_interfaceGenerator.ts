@@ -327,7 +327,7 @@ export function generateInterface({
         const isValidMapping = (
           type: string,
         ): type is keyof typeof typeMappings => {
-          return Object.prototype.hasOwnProperty.call(typeMappings, type);
+          return Object.hasOwn(typeMappings, type);
         };
         const mappedType = isValidMapping(valueType)
           ? typeMappings[valueType].typescript

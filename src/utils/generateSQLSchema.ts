@@ -1,5 +1,5 @@
 import { format as formatSQL } from 'sql-formatter';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
   determineSQLDatabaseType,
   generateColumnDefinition,
@@ -29,14 +29,15 @@ const generateSQLSchema = (schemaInfo: ISchemaInfo[]): string => {
           return '';
         }
         let constraint = `CONSTRAINT ${quote}FK_${tableName}_${col.column_name}${quote} FOREIGN KEY (${quote}${col.column_name}${quote}) REFERENCES ${quote}${fk.foreign_table_name}${quote}(${quote}${fk.foreign_column_name}${quote})`;
-        
+
         // Add ON DELETE CASCADE where applicable
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (APP_SETTINGS.onDeleteCascade) {
           const parentTable = schemaInfo.find(
             (t) => t.tableName === fk.foreign_table_name,
           );
-          const hasOneRelationship = parentTable?.hasOne?.includes(tableName) ?? false;
+          const hasOneRelationship =
+            parentTable?.hasOne?.includes(tableName) ?? false;
 
           if (hasOneRelationship) {
             constraint += ' ON DELETE CASCADE';

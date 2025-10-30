@@ -1,7 +1,11 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, PersistOptions } from 'zustand/middleware';
+import {
+  persist,
+  createJSONStorage,
+  type PersistOptions,
+} from 'zustand/middleware';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
-import { DBTypes, IJSONSchema } from '@/interfaces/interfaces.ts';
+import type { DBTypes, IJSONSchema } from '@/interfaces/interfaces.ts';
 import { SQLQueries } from '@/utils/mappings.ts';
 import { CREATION_MODES } from '@/constants.ts';
 import { oneToOne, oneToMany, manyToMany } from '@/schema-infos/index.ts';

@@ -1,4 +1,4 @@
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import getWithRelations from './getWithRelations/laravel.ts';
 import pluck from './pluck/laravel.ts';
 import firstOrCreate from './firstOrCreate/laravel.ts';

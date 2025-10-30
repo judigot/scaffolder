@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import {
+import type {
   IIntrospectedSchemaInfo,
   ISchemaInfo,
 } from '@/interfaces/interfaces.ts';

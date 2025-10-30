@@ -1,4 +1,4 @@
-import { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
+import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
 import * as fs from 'fs';
 import * as path from 'path';
 

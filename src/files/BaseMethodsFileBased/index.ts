@@ -1,4 +1,4 @@
-import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 import CRUD from './crud/index.ts';
 import QueryAndSearch from './query-and-search/index.ts';
 import SoftDeletesAndRestoration from './soft-deletes-and-restoration/index.ts';

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import type React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 
 /**
@@ -41,22 +42,22 @@ export interface IContextMenuProps {
 
 /**
  * A reusable context menu component for displaying custom right-click menus
- * 
+ *
  * @example
  * ```tsx
  * // Basic usage
  * const [contextMenu, setContextMenu] = useState<{x: number, y: number} | null>(null);
- * 
+ *
  * const handleContextMenu = (e: React.MouseEvent) => {
  *   e.preventDefault();
  *   setContextMenu({ x: e.clientX, y: e.clientY });
  * };
- * 
+ *
  * const handleClose = () => setContextMenu(null);
- * 
+ *
  * // In your JSX:
  * <div onContextMenu={handleContextMenu}>Right-click me</div>
- * 
+ *
  * {contextMenu && (
  *   <ContextMenu
  *     x={contextMenu.x}
@@ -80,37 +81,40 @@ export const ContextMenu = ({
   className = '',
 }: IContextMenuProps): React.ReactElement => {
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   // Handle smart positioning to keep menu within viewport
-  const [position, setPosition] = useState({ left: String(x) + 'px', top: String(y) + 'px' });
-  
+  const [position, setPosition] = useState({
+    left: String(x) + 'px',
+    top: String(y) + 'px',
+  });
+
   // Calculate position to ensure menu stays within viewport
   useEffect(() => {
     if (menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      
+
       let left = x;
       let top = y;
-      
+
       // Adjust horizontal position if needed
       if (x + rect.width > viewportWidth) {
         left = x - rect.width;
       }
-      
+
       // Adjust vertical position if needed
       if (y + rect.height > viewportHeight) {
         top = y - rect.height;
       }
-      
-      setPosition({ 
-        left: String(Math.max(0, left)) + 'px', 
-        top: String(Math.max(0, top)) + 'px' 
+
+      setPosition({
+        left: String(Math.max(0, left)) + 'px',
+        top: String(Math.max(0, top)) + 'px',
       });
     }
   }, [x, y]);
-  
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -119,22 +123,22 @@ export const ContextMenu = ({
       if (!(targetNode instanceof Node)) {
         return;
       }
-      
+
       if (menuRef.current && !menuRef.current.contains(targetNode)) {
         onClose();
       }
     };
-    
+
     // Handle escape key
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
       }
     };
-    
+
     document.addEventListener('pointerdown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
-    
+
     return () => {
       document.removeEventListener('pointerdown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
@@ -159,6 +163,7 @@ export const ContextMenu = ({
           const isDisabled = Boolean(item.disabled);
           return (
             <button
+              type="button"
               key={item.id}
               className={`flex items-center px-3 py-2 hover:bg-gray-700 cursor-pointer w-full text-left ${
                 isDisabled ? 'opacity-50 cursor-not-allowed' : ''
@@ -172,7 +177,9 @@ export const ContextMenu = ({
               disabled={isDisabled}
               role="menuitem"
             >
-              {item.icon !== undefined && <div className="mr-2 text-yellow-500">{item.icon}</div>}
+              {item.icon !== undefined && (
+                <div className="mr-2 text-yellow-500">{item.icon}</div>
+              )}
               <span>{item.label}</span>
             </button>
           );
@@ -181,7 +188,9 @@ export const ContextMenu = ({
     );
 
     if (appendToBody) {
-      return typeof document !== 'undefined' ? ReactDOM.createPortal(menu, document.body) : menu;
+      return typeof document !== 'undefined'
+        ? ReactDOM.createPortal(menu, document.body)
+        : menu;
     }
 
     return menu;
@@ -192,16 +201,16 @@ export const ContextMenu = ({
 
 /**
  * Hook for handling context menu state and events
- * 
+ *
  * @returns Object containing context menu state and handlers
- * 
+ *
  * @example
  * ```tsx
  * const { contextMenuPosition, handleContextMenu, handleCloseContextMenu, isContextMenuOpen } = useContextMenu();
- * 
+ *
  * // In your JSX:
  * <div onContextMenu={handleContextMenu}>Right-click me</div>
- * 
+ *
  * {isContextMenuOpen && (
  *   <ContextMenu
  *     x={contextMenuPosition.x}
@@ -214,17 +223,17 @@ export const ContextMenu = ({
  */
 // export const useContextMenu = () => {
 //   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
-  
+
 //   const handleContextMenu = useCallback((event: React.MouseEvent) => {
 //     event.preventDefault();
 //     event.stopPropagation();
 //     setContextMenuPosition({ x: event.clientX, y: event.clientY });
 //   }, []);
-  
+
 //   const handleCloseContextMenu = useCallback(() => {
 //     setContextMenuPosition(null);
 //   }, []);
-  
+
 //   return {
 //     contextMenuPosition,
 //     handleContextMenu,
@@ -233,4 +242,4 @@ export const ContextMenu = ({
 //   };
 // };
 
-export default ContextMenu; 
+export default ContextMenu;

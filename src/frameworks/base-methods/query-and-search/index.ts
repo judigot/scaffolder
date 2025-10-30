@@ -1,4 +1,4 @@
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import findByAttributes from './findByAttributes/laravel.ts';
 import paginate from './paginate/laravel.ts';
 import search from './search/laravel.ts';

@@ -1,4 +1,4 @@
-import { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 /**
  * Type guard to check if a value is a non-null object
@@ -11,17 +11,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Extracts placeholders from a YAML structure for placeholder reference checking.
  * This traverses the YAML structure and collects all key-value pairs where the value
  * may contain placeholder references.
- * 
+ *
  * @param yamlObj The parsed YAML structure to extract placeholders from
  * @returns An object containing key-value pairs with potential placeholders
  */
 export const extractPlaceholdersFromYaml = (yamlObj: unknown): Replacements => {
   const placeholders: Replacements = {};
-  
+
   const processNode = (
     node: unknown,
     path = '',
-    keyPath: string[] = []
+    keyPath: string[] = [],
   ): void => {
     // Process arrays
     if (Array.isArray(node)) {
@@ -32,7 +32,7 @@ export const extractPlaceholdersFromYaml = (yamlObj: unknown): Replacements => {
           .filter((item): item is string => typeof item === 'string')
           .map(String);
       }
-      
+
       // Continue processing each array item
       node.forEach((item, index) => {
         processNode(item, `${path}[${String(index)}]`, keyPath);
@@ -43,7 +43,7 @@ export const extractPlaceholdersFromYaml = (yamlObj: unknown): Replacements => {
       for (const [key, value] of Object.entries(node)) {
         const newKeyPath = [...keyPath, key];
         const newPath = path ? `${path}.${key}` : key;
-        
+
         // For string values, add them to the placeholders
         if (typeof value === 'string') {
           placeholders[key] = value;
@@ -54,17 +54,17 @@ export const extractPlaceholdersFromYaml = (yamlObj: unknown): Replacements => {
             .filter((item): item is string => typeof item === 'string')
             .map(String);
         }
-        
+
         // Continue processing nested structures
         processNode(value, newPath, newKeyPath);
       }
     }
   };
-  
+
   // Start processing from the root
   if (isRecord(yamlObj)) {
     processNode(yamlObj);
   }
-  
+
   return placeholders;
-}; 
+};

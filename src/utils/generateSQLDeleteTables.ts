@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
 function generateSQLDeleteTables(schemaInfo: ISchemaInfo[]) {

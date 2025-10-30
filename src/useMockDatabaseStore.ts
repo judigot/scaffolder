@@ -1,4 +1,4 @@
-import { IFile, IStructure, IFolder } from '@/components/FileViewer.tsx';
+import type { IFile, IStructure, IFolder } from '@/components/FileViewer.tsx';
 import { create } from 'zustand';
 import { useProjectStore } from '@/useProjectStore.ts';
 import equal from 'fast-deep-equal';
@@ -33,13 +33,15 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
 
     // Find Constants folder and typeMappings.yaml file with proper type checking
     const constantsFolder = userFiles.find(
-      (item): item is IFolder => item.name === 'Constants' && item.type === 'folder'
+      (item): item is IFolder =>
+        item.name === 'Constants' && item.type === 'folder',
     );
 
     let typeMappings: Record<string, unknown> | undefined;
     if (constantsFolder) {
       const typeMappingsFile = constantsFolder.children.find(
-        (child): child is IFile => child.type === 'file' && child.name === 'typeMappings.yaml'
+        (child): child is IFile =>
+          child.type === 'file' && child.name === 'typeMappings.yaml',
       );
       if (typeMappingsFile && typeMappingsFile.content.trim() !== '') {
         try {
@@ -67,7 +69,8 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
 
     // Extract projects from the userFiles
     const projectsFolder = userFiles.find(
-      (item): item is IFolder => item.name === 'Projects' && item.type === 'folder',
+      (item): item is IFolder =>
+        item.name === 'Projects' && item.type === 'folder',
     );
 
     // Validate the Projects folder

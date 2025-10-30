@@ -1,13 +1,13 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import path from 'node:path';
 import createFolderStructure from '@/utils/createFolderStructure.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects.ts';
 import https from 'node:https';
-import http, { IncomingMessage } from 'node:http';
+import http, { type IncomingMessage } from 'node:http';
 import fs from 'node:fs';
 import { changeCase } from '@/utils/common.ts';
-import { IFormStore } from '@/useFormStore.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
 import { createOrResetDatabase } from '@/utils/databaseOperations.ts';
 

@@ -1,4 +1,4 @@
-import { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
+import type { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { processRelativePath } from '@/utils/project-builder/utils/processRelativePath.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { TEMPLATE_OPTIONS } from '@/utils/project-builder/constants/templateActions.ts';
@@ -6,13 +6,13 @@ import { TEMPLATE_OPTIONS } from '@/utils/project-builder/constants/templateActi
 export const loadTemplateContent = (
   userFiles: IStructure,
   templatePath: string,
-  projectFilePath?: string
+  projectFilePath?: string,
 ): string => {
   const store = userFiles;
-  
+
   // Process the template path - if it's relative, resolve it against the project directory
   const resolvedPath = processRelativePath(templatePath, projectFilePath);
-  
+
   // Check if templatePath starts with a forward slash indicating an absolute path
   if (resolvedPath.startsWith('/')) {
     // Remove the leading slash
@@ -28,8 +28,10 @@ export const loadTemplateContent = (
 
     for (const component of pathComponents) {
       // Skip empty components (from multiple slashes)
-      if (!component) {continue;}
-      
+      if (!component) {
+        continue;
+      }
+
       const folder = currentItems.find(
         (item): item is IFolder =>
           item.type === 'folder' && item.name === component,
@@ -80,7 +82,10 @@ const processTemplateContent = (content: string): string => {
     // Create the pattern using object literal constants instead of hardcoded flags
     const templateFlag = `--${ACTION_FLAGS.TEMPLATE}`;
     const separatorFlag = `--${TEMPLATE_OPTIONS.SEPARATOR}`;
-    const pattern = new RegExp(`(${templateFlag}="[^"]*"|${separatorFlag}="[^"]*")`, 'g');
+    const pattern = new RegExp(
+      `(${templateFlag}="[^"]*"|${separatorFlag}="[^"]*")`,
+      'g',
+    );
 
     // 1) Temporarily replace those segments with placeholders
     let protectedString = input.replace(pattern, (match: string) => {

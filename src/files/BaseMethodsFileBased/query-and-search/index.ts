@@ -1,4 +1,4 @@
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import findByAttributes from './findByAttributes/index.ts';
 import paginate from './paginate/index.ts';
 import search from './search/index.ts';

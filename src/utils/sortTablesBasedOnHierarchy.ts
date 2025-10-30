@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { isSchemaInfoAlreadySorted } from '@/utils/isSchemaInfoAlreadySorted.ts';
 
 /*

@@ -1,7 +1,7 @@
-import { IFile } from '@/components/FileViewer.tsx';
+import type { IFile } from '@/components/FileViewer.tsx';
 import { APP_SETTINGS } from '@/constants.ts';
 import { createFile } from '@/helpers/stringHelper.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import generateDomainCode from '@/utils/generateDomainCode.ts';
 

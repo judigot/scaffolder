@@ -1,7 +1,7 @@
-import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
@@ -72,7 +72,7 @@ export const processColumnsInfoIteration = (
       schemaInfoParsed,
       tableObj,
       projectFilePath,
-      processedTemplate
+      processedTemplate,
     );
     if (result.trim()) {
       results.push(result);

@@ -2,7 +2,7 @@ import { checkConditions } from '@/utils/project-builder/project-processors/chec
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
@@ -15,7 +15,7 @@ import { createBaseMethodFile } from '@/utils/project-builder/project-processors
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
-import { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processTemplatePathWithFlag } from '@/utils/project-builder/utils/processRelativePath.ts';
 
 export const processYamlStructure = ({
@@ -61,12 +61,12 @@ export const processYamlStructure = ({
         return [];
       }
       return createBaseMethodFile(
-        extractedParams, 
-        userFiles, 
-        projectYamlPath, 
-        schemaInfo, 
-        schemaInfoParsed, 
-        table
+        extractedParams,
+        userFiles,
+        projectYamlPath,
+        schemaInfo,
+        schemaInfoParsed,
+        table,
       );
     }
 
@@ -121,7 +121,7 @@ export const processYamlStructure = ({
           schemaInfoParsed,
           table,
           projectYamlPath,
-          command
+          command,
         );
 
         // Extract the base filename from the processed path if it contains slashes
@@ -142,7 +142,9 @@ export const processYamlStructure = ({
           schemaInfoParsed,
           table,
           projectYamlPath,
-          typeof templatePath === 'string' && templatePath.length > 0 ? templatePath : command
+          typeof templatePath === 'string' && templatePath.length > 0
+            ? templatePath
+            : command,
         );
 
         content = processIterateInTemplate(
@@ -204,7 +206,7 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         schemaInfoProcessed,
         projectYamlPath,
-        node
+        node,
       );
 
       processedContent = processIterateInTemplate(

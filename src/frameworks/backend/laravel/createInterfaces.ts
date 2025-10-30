@@ -1,7 +1,7 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { generateModelImports, changeCase } from '@/utils/common.ts';
 import { APP_SETTINGS } from '@/constants.ts';
-import { IFile } from '@/components/FileViewer.tsx';
+import type { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
 import generateDomainCode from '@/utils/generateDomainCode.ts';
 

@@ -1,4 +1,4 @@
-import { DBTypes } from '@/interfaces/interfaces.ts';
+import type { DBTypes } from '@/interfaces/interfaces.ts';
 
 interface IDBConnectionInfo {
   dbType: DBTypes;
@@ -9,7 +9,9 @@ interface IDBConnectionInfo {
   dbName: string;
 }
 
-export function extractDBConnectionInfo(connectionString: string): IDBConnectionInfo {
+export function extractDBConnectionInfo(
+  connectionString: string,
+): IDBConnectionInfo {
   const regex =
     /^(?<dbType>[a-z]*):\/\/(?<username>[^:]*):(?<password>[^@]*)@(?<host>[^:]*):(?<port>\d*)\/(?<dbName>[^/]*)$/;
   const match = regex.exec(connectionString);

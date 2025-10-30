@@ -1,4 +1,4 @@
-import { ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import type { ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { formatDateForMySQL } from '@/utils/common.ts';
 import dayjs from 'dayjs';

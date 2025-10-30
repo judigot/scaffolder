@@ -1,10 +1,10 @@
-import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { processCommand } from '@/utils/project-builder/template-processors/processCommand.ts';
 import { processIfConditions } from '@/utils/project-builder/template-processors/processIfConditions.ts';
 import { importTemplateAsPlaceholder } from '@/utils/project-builder/template-processors/importTemplateAsPlaceholder.ts';
-import { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
 
 /**
@@ -41,12 +41,13 @@ export const replacePlaceholders = (
     );
 
     // Convert result to string
-    const processedResult = typeof processedPlaceholders === 'string'
-      ? processedPlaceholders
-      : Array.isArray(processedPlaceholders)
-        ? processedPlaceholders.join(',')
-        : String(processedPlaceholders);
-    
+    const processedResult =
+      typeof processedPlaceholders === 'string'
+        ? processedPlaceholders
+        : Array.isArray(processedPlaceholders)
+          ? processedPlaceholders.join(',')
+          : String(processedPlaceholders);
+
     // Process any remaining dynamic properties
     return processDynamicProperties(processedResult, replacements);
   } catch {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { IFile, IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IFile, IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import equal from 'fast-deep-equal';
@@ -91,7 +91,7 @@ export const useProjectStore = create<IProjectStore>()(
       invalidateProjectCache: (projectName: string) => {
         set((state) => {
           const newCache = { ...state.projectBuildCache };
-          if (Object.prototype.hasOwnProperty.call(newCache, projectName)) {
+          if (Object.hasOwn(newCache, projectName)) {
             // Use a safe way to delete property
             const { [projectName]: _, ...rest } = newCache;
             return { projectBuildCache: rest };
@@ -157,9 +157,7 @@ export const useProjectStore = create<IProjectStore>()(
         const { projectBuildCache } = get();
 
         // Check if we have a cached version that matches the current schema version
-        if (
-          Object.prototype.hasOwnProperty.call(projectBuildCache, project.name)
-        ) {
+        if (Object.hasOwn(projectBuildCache, project.name)) {
           return projectBuildCache[project.name];
         }
         // Get all user files

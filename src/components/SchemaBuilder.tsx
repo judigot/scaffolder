@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import type { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
 import {
   addRelationship,
   purgeForeignKeyTraces,

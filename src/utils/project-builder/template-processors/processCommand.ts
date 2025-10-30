@@ -1,7 +1,7 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
 import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
@@ -57,13 +57,20 @@ export const processCommand = (
 
   // Then, process USE_TEMPLATE commands to include other templates
   // Pass both templateFilePath and projectFilePath to properly handle relative paths
-  result = processUseTemplate(result, userFiles, schemaInfoParsed, templateFilePath, projectFilePath, table);
+  result = processUseTemplate(
+    result,
+    userFiles,
+    schemaInfoParsed,
+    templateFilePath,
+    projectFilePath,
+    table,
+  );
 
   // Remove entire lines where LOOP tags produce empty results
   // Match the line containing a LOOP tag, capturing the newline character after it
   const lineWithLoopRegex = new RegExp(
     `^.*?\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\([^)]*?\\).*?\\]\\].*?(\r?\n)?`,
-    'gm'
+    'gm',
   );
 
   result = result.replace(
@@ -80,12 +87,12 @@ export const processCommand = (
       // Extract just the LOOP command portion
       const loopTagRegex = new RegExp(
         `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^)]*?)\\)(.*?)\\]\\]`,
-        'g'
+        'g',
       );
-      
+
       // We'll use this to track if any of the LOOP commands in the line produced content
       let lineHasContent = false;
-      
+
       // Process each LOOP tag in the line
       const processedLine = fullLine.replace(
         loopTagRegex,
@@ -100,34 +107,34 @@ export const processCommand = (
             userFiles,
             projectFilePath,
           );
-          
+
           // Only add whitespace if cmdResult has content
           let resultString = '';
           if (hasContent(cmdResult)) {
             resultString = whitespace + cmdResult;
             lineHasContent = true;
           }
-          
+
           return resultString;
-        }
+        },
       );
-      
+
       // If none of the LOOP tags produced content AND the line only has LOOP tags,
       // remove the entire line (including newline)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!lineHasContent && shouldRemoveWholeLine) {
         return '';
       }
-      
+
       return processedLine;
-    }
+    },
   );
 
   // Process any remaining LOOP tags not caught by the line processor
   // (This handles cases where LOOP tags are not on their own lines)
   const iterateRegex = new RegExp(
     `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^)]*?)\\)(.*?)\\]\\]`,
-    'g'
+    'g',
   );
 
   result = result.replace(
@@ -146,15 +153,15 @@ export const processCommand = (
         userFiles,
         projectFilePath,
       );
-      
+
       // Only add whitespace if cmdResult has content
       let resultString = '';
       if (hasContent(cmdResult)) {
         resultString = whitespace + cmdResult;
       }
-      
+
       return resultString;
-    }
+    },
   );
 
   // Clean up any extra blank lines that might have been created

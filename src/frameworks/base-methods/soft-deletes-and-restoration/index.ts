@@ -1,4 +1,4 @@
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import softDelete from './softDelete/laravel.ts';
 import restore from './restore/laravel.ts';
 import withTrashed from './withTrashed/laravel.ts';

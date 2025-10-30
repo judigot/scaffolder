@@ -1,7 +1,7 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { APP_SETTINGS } from '@/constants.ts';
 import { changeCase } from '@/utils/common.ts';
-import { IFile } from '@/components/FileViewer.tsx';
+import type { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
 
 /* Resource Generation Rules:
@@ -68,7 +68,12 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
       const relationName = relatedTable + 's';
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
-  } else if (hasMany && hasMany.length > 0 && childTables && childTables.length > 0) {
+  } else if (
+    hasMany &&
+    hasMany.length > 0 &&
+    childTables &&
+    childTables.length > 0
+  ) {
     // Generate attributes for hasMany and childTables if no pivotRelationships exist
     relationshipAttributes = hasMany.map((relatedTable) => {
       const relatedClass = changeCase(relatedTable).pascalCase;

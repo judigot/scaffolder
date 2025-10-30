@@ -3,7 +3,7 @@ import renameTable from '@/utils/renameTable.ts';
 import manyToManySchema from '@/schema-infos/manyToMany.ts';
 import oneToOneSchema from '@/schema-infos/oneToOne.ts';
 import oneToManySchema from '@/schema-infos/oneToMany.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 describe('renameTable', () => {
   test('should rename order table to orderz and update all related references', () => {

@@ -1,4 +1,4 @@
-import { RowDataPacket, FieldPacket } from 'mysql2';
+import type { RowDataPacket, FieldPacket } from 'mysql2';
 import mysql from 'mysql2/promise.js';
 
 export const executeMySQL = async (

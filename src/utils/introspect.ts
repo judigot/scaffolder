@@ -4,7 +4,7 @@ import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import process from 'node:process';
-import { DBTypes } from '@/interfaces/interfaces.ts';
+import type { DBTypes } from '@/interfaces/interfaces.ts';
 import { IGNORED_TABLES_LARAVEL } from '@/constants.ts';
 
 const platform: string = process.platform;

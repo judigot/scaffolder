@@ -1,5 +1,5 @@
-import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import createAPIRoutes from '@/frameworks/backend/laravel/createAPIRoutes.ts';
 import createAppServiceProviderScaffolding from '@/frameworks/backend/laravel/createAppServiceProviderScaffolding.ts';
 import createControllers from '@/frameworks/backend/laravel/createControllers.ts';

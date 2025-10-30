@@ -1,4 +1,4 @@
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import softDelete from './softDelete/index.ts';
 import restore from './restore/index.ts';
 import withTrashed from './withTrashed/index.ts';

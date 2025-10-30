@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
-  UseQueryOptions,
-  UseQueryResult,
+  type UseQueryOptions,
+  type UseQueryResult,
   useQuery,
 } from '@tanstack/react-query';
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 
 interface IFetchGitHubFilesParams {
   publicRepoURL: string;

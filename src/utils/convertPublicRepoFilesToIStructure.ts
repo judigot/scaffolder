@@ -1,5 +1,5 @@
-import { IStructure, IFolder } from '@/components/FileViewer.tsx';
-import { IExtractedFile } from '@/utils/downloadPublicRepoFiles.ts';
+import type { IStructure, IFolder } from '@/components/FileViewer.tsx';
+import type { IExtractedFile } from '@/utils/downloadPublicRepoFiles.ts';
 
 export function convertPublicRepoFilesToStructure(
   files: IExtractedFile[],
@@ -25,9 +25,7 @@ export function convertPublicRepoFilesToStructure(
           (child) => child.type === 'folder' && child.name === part,
         );
 
-        if (
-          existingFolderCandidate?.type === 'folder'
-        ) {
+        if (existingFolderCandidate?.type === 'folder') {
           currentFolder = existingFolderCandidate;
         } else {
           const newFolder: IFolder = {

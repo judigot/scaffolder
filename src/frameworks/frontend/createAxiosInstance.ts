@@ -1,4 +1,4 @@
-import { IFile } from '@/components/FileViewer.tsx';
+import type { IFile } from '@/components/FileViewer.tsx';
 import { createFile } from '@/helpers/stringHelper.ts';
 import { useFormStore } from '@/useFormStore.ts';
 

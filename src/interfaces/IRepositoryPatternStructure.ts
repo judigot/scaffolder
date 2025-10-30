@@ -1,4 +1,4 @@
-import { IDomainStatus } from '@/interfaces/IDomainStatus.ts';
+import type { IDomainStatus } from '@/interfaces/IDomainStatus.ts';
 
 type MethodGroups =
   | 'CRUD'

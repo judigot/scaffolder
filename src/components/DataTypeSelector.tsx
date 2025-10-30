@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
@@ -44,11 +44,11 @@ const DataTypeSelector: React.FC<IDataTypeSelectorProps> = ({
   const getGroupedDataTypeOptions = () => {
     if (typeMappings && dbType) {
       const groups: Record<string, { value: string; label: string }[]> = {};
-      
+
       Object.keys(typeMappings).forEach((key) => {
         const typeMapping = typeMappings[key];
         let groupName = 'Other';
-        
+
         // Check if typeMapping has info.group with proper type checking
         if (
           typeMapping !== null &&
@@ -61,26 +61,26 @@ const DataTypeSelector: React.FC<IDataTypeSelectorProps> = ({
         ) {
           groupName = typeMapping.info.group;
         }
-        
+
         // Get the database-specific type
         const dbSpecificType = getDbSpecificType(typeMapping, dbType);
-        
+
         if (!(groupName in groups)) {
           groups[groupName] = [];
         }
-        
+
         // Create label with database-specific type
         const label = dbSpecificType ? `${key} - ${dbSpecificType}` : key;
-        
+
         groups[groupName].push({
           value: key,
           label,
         });
       });
-      
+
       return groups;
     }
-    
+
     // Fallback to ungrouped options if typeMappings is not available
     return {
       'Basic Types': [
@@ -112,28 +112,22 @@ const DataTypeSelector: React.FC<IDataTypeSelectorProps> = ({
               // Split the label to identify the database type part
               const parts = option.label.split(' - ');
               const hasDbType = parts.length > 1;
-              
+
               if (hasDbType) {
                 const name = parts[0];
                 const dbType = parts[1];
                 // Use Unicode characters to create visual separation
                 const displayLabel = `${name} ⸺ ${dbType}`;
-                
+
                 return (
-                  <option 
-                    key={option.value} 
-                    value={option.value}
-                  >
+                  <option key={option.value} value={option.value}>
                     {displayLabel}
                   </option>
                 );
               }
-              
+
               return (
-                <option 
-                  key={option.value} 
-                  value={option.value}
-                >
+                <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               );

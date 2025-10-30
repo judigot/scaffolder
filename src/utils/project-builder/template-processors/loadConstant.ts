@@ -1,6 +1,6 @@
-import { IFolder, IFile, IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { IFolder, IFile, IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
@@ -69,13 +69,13 @@ export const loadConstant = (
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
       return rawValues.map((value) =>
         replacePlaceholders(
-          value, 
-          replacements, 
-          userFiles, 
-          schemaInfoParsed, 
-          table, 
+          value,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          table,
           projectFilePath,
-          constantName
+          constantName,
         ),
       );
     }

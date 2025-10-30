@@ -1,18 +1,23 @@
-import { IFolder, IStructure } from '@/components/FileViewer.tsx';
+import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
 
 /**
  * Check if a folder contains any YAML files
  */
 export const folderContainsYamlFiles = (folder: IFolder): boolean => {
-  return folder.children.some(item => 
-    item.type === 'file' && (item.name.endsWith('.yml') || item.name.endsWith('.yaml'))
+  return folder.children.some(
+    (item) =>
+      item.type === 'file' &&
+      (item.name.endsWith('.yml') || item.name.endsWith('.yaml')),
   );
 };
 
 /**
  * Find a folder in the file structure given a path
  */
-export const findFolderByPath = (path: string, userFiles: IStructure): IFolder | undefined => {
+export const findFolderByPath = (
+  path: string,
+  userFiles: IStructure,
+): IFolder | undefined => {
   const pathParts = path.split('/').filter(Boolean);
   let currentFolder: IFolder | undefined;
 
@@ -23,7 +28,7 @@ export const findFolderByPath = (path: string, userFiles: IStructure): IFolder |
   if (pathParts.length === 0) {
     return undefined;
   }
-  
+
   // Find the first level folder
   currentFolder = store.find(
     (item): item is IFolder =>
@@ -39,4 +44,4 @@ export const findFolderByPath = (path: string, userFiles: IStructure): IFolder |
   }
 
   return currentFolder;
-}; 
+};

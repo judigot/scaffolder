@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import type React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import JSON5 from 'json5';
 import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor.ts';
-import { IJSONSchema } from '@/interfaces/interfaces.ts';
+import type { IJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import TableAdder from '@/components/TableAdder.tsx';
 import { addPrimaryKeys } from '@/utils/common.ts';
@@ -46,7 +47,7 @@ function JSONSchemaEditor() {
     cursorPositionRef.current = e.target.selectionStart;
     const oldSchema: IJSONSchema = JSON5.parse(schemaStringBeforeEditing);
 
-    let updatedSchema: IJSONSchema | undefined = undefined;
+    let updatedSchema: IJSONSchema | undefined;
 
     try {
       updatedSchema = JSON5.parse(newSchemaString);

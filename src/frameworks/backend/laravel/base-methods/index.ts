@@ -1,4 +1,4 @@
-import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 import AdvancedOperations from './AdvancedOperations.ts';
 import BulkOperations from './BulkOperations.ts';
 import CRUD from './CRUD.ts';

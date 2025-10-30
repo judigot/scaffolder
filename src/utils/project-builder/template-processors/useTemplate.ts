@@ -1,21 +1,24 @@
-import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { processCommand } from '@/utils/project-builder/template-processors/processCommand.ts';
 import { USE_TEMPLATE_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
-import { isPathRelative, getProjectDirectory } from '@/utils/project-builder/utils/processRelativePath.ts';
+import {
+  isPathRelative,
+  getProjectDirectory,
+} from '@/utils/project-builder/utils/processRelativePath.ts';
 
 /**
  * This command allows including the content of another template file, supporting both
  * absolute and relative paths.
- * 
+ *
  * Example usage in a template:
  * [[USE_TEMPLATE(/path/to/template.txt)]]
- * 
+ *
  * For relative paths, the path is resolved relative to the parent template file:
  * [[USE_TEMPLATE(relative/path/to/template.txt)]]
- * 
+ *
  * @param text The template text containing USE_TEMPLATE commands
  * @param userFiles The file structure containing template files
  * @param schemaInfoParsed The parsed schema information
@@ -34,46 +37,47 @@ export const processUseTemplate = (
 ): string => {
   // Create a new RegExp with the global flag to match all occurrences
   const globalUseTemplateRegex = new RegExp(USE_TEMPLATE_REGEX.source, 'g');
-  
+
   return text.replace(
     globalUseTemplateRegex,
     (_match: string, importPath: string) => {
       // Trim whitespace and quotes
       const cleanPath = importPath.trim().replace(/^['"]|['"]$/g, '');
-      
+
       // Determine which path to use for loading and processing
       let pathToUse = cleanPath;
-      
+
       // Only attempt to resolve relative paths relative to the template
       const isRelative = isPathRelative(cleanPath);
-      const hasTemplatePath = typeof templatePath === 'string' && templatePath.length > 0;
-      
+      const hasTemplatePath =
+        typeof templatePath === 'string' && templatePath.length > 0;
+
       if (isRelative && hasTemplatePath) {
-        // Get the directory of the template 
+        // Get the directory of the template
         const templateDir = getProjectDirectory(templatePath);
-        
+
         if (templateDir.length > 0) {
           // Normalize the import path (remove leading ./)
-          const normalizedImportPath = cleanPath.startsWith('./') 
-            ? cleanPath.substring(2) 
+          const normalizedImportPath = cleanPath.startsWith('./')
+            ? cleanPath.substring(2)
             : cleanPath;
-            
+
           // Combine template directory with import path
           pathToUse = `${templateDir}/${normalizedImportPath}`;
         }
       }
-      
+
       // Load the template content
       const templateContent = loadTemplateContent(
-        userFiles, 
+        userFiles,
         pathToUse,
-        projectFilePath
+        projectFilePath,
       );
-      
+
       if (!templateContent || templateContent.length === 0) {
         return `<!-- Template not found: ${cleanPath} -->`;
       }
-      
+
       // Process commands in the loaded template, passing the resolved path
       // for proper handling of nested template imports
       const processedContent = processCommand(
@@ -82,9 +86,9 @@ export const processUseTemplate = (
         schemaInfoParsed,
         table,
         // Use the resolved path to ensure proper relative path resolution for nested imports
-        pathToUse
+        pathToUse,
       );
-      
+
       return processedContent;
     },
   );

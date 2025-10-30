@@ -1,11 +1,11 @@
 import { replacePlaceholder } from '@/helpers/stringHelper.ts';
-import {
+import type {
   DBTypes,
   IColumnInfo,
   ISchemaInfo,
   IJSONSchema,
 } from '@/interfaces/interfaces.ts';
-import { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
+import type { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
 import { typeMappings } from '@/utils/mappings.ts';
@@ -262,8 +262,6 @@ export const generateColumnDefinition = ({
 
   return definition.trim();
 };
-
-
 
 export function addPrimaryKeys(schema: IJSONSchema): IJSONSchema {
   const newSchema: IJSONSchema = {};

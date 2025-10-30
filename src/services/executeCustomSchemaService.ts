@@ -1,10 +1,10 @@
-import { ISchemaInfo, isITableArray } from '@/interfaces/interfaces.ts';
+import { type ISchemaInfo, isITableArray } from '@/interfaces/interfaces.ts';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
 import introspect from '@/utils/introspect.ts';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
-import { IExecuteCustomSchemaRequest } from '@/interfaces/IExecuteCustomSchemaRequest.ts';
+import type { IExecuteCustomSchemaRequest } from '@/interfaces/IExecuteCustomSchemaRequest.ts';
 
 export const executeCustomSchemaService = async (
   data: IExecuteCustomSchemaRequest,

@@ -1,4 +1,4 @@
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 // import { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 export const laravelStructure = () =>

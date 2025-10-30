@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 export default [
   {
@@ -10,57 +10,57 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true
+        primary_key: true,
       },
       {
         column_name: 'name',
         data_type: 'string',
-        is_nullable: 'NO'
+        is_nullable: 'NO',
       },
       {
         column_name: 'email',
         data_type: 'string',
         is_nullable: 'NO',
-        unique: true
+        unique: true,
       },
       {
         column_name: 'email_verified_at',
         data_type: 'Date',
-        is_nullable: 'YES'
+        is_nullable: 'YES',
       },
       {
         column_name: 'password',
         data_type: 'string',
-        is_nullable: 'NO'
+        is_nullable: 'NO',
       },
       {
         column_name: 'remember_token',
         data_type: 'string',
-        is_nullable: 'YES'
+        is_nullable: 'YES',
       },
       {
         column_name: 'created_at',
         data_type: 'Date',
-        is_nullable: 'YES'
+        is_nullable: 'YES',
       },
       {
         column_name: 'updated_at',
         data_type: 'Date',
-        is_nullable: 'YES'
+        is_nullable: 'YES',
       },
       {
         column_name: 'deleted_at',
         data_type: 'Date',
-        is_nullable: 'YES'
-      }
+        is_nullable: 'YES',
+      },
     ],
     childTables: ['user_user_type'],
     pivotRelationships: [
       {
         relatedTable: 'user_types',
-        pivotTable: 'user_user_type'
-      }
-    ]
+        pivotTable: 'user_user_type',
+      },
+    ],
   },
   {
     tableName: 'user_types',
@@ -71,37 +71,37 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true
+        primary_key: true,
       },
       {
         column_name: 'name',
         data_type: 'string',
         is_nullable: 'NO',
-        unique: true
+        unique: true,
       },
       {
         column_name: 'created_at',
         data_type: 'Date',
-        is_nullable: 'YES'
+        is_nullable: 'YES',
       },
       {
         column_name: 'updated_at',
         data_type: 'Date',
-        is_nullable: 'YES'
+        is_nullable: 'YES',
       },
       {
         column_name: 'deleted_at',
         data_type: 'Date',
-        is_nullable: 'YES'
-      }
+        is_nullable: 'YES',
+      },
     ],
     childTables: ['user_user_type'],
     pivotRelationships: [
       {
         relatedTable: 'users',
-        pivotTable: 'user_user_type'
-      }
-    ]
+        pivotTable: 'user_user_type',
+      },
+    ],
   },
   {
     tableName: 'user_user_type',
@@ -112,7 +112,7 @@ export default [
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
-        primary_key: true
+        primary_key: true,
       },
       {
         column_name: 'user_id',
@@ -120,14 +120,14 @@ export default [
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'users',
-          foreign_column_name: 'id'
-        }
+          foreign_column_name: 'id',
+        },
       },
       {
         column_name: 'user_type_id',
         data_type: 'number',
-        is_nullable: 'NO'
-      }
-    ]
-  }
+        is_nullable: 'NO',
+      },
+    ],
+  },
 ] satisfies ISchemaInfo[];

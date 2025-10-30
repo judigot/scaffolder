@@ -1,4 +1,4 @@
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
@@ -6,7 +6,7 @@ import { getReplacementsForTable } from '@/utils/project-builder/template-proces
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { parse } from 'yaml';
-import { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 /**
  * Type guard to check if a value is a valid project structure object
@@ -82,10 +82,8 @@ export const importProject = ({
         table,
       });
     } else if (
-      (includeTableOption != null &&
-        includeTableOption.trim().length > 0) ||
-      (excludeTableOption != null &&
-        excludeTableOption.trim().length > 0)
+      (includeTableOption != null && includeTableOption.trim().length > 0) ||
+      (excludeTableOption != null && excludeTableOption.trim().length > 0)
     ) {
       // Apply table filtering
       const filteredResults: IStructure = [];

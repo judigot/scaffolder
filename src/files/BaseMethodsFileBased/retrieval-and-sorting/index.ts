@@ -1,4 +1,4 @@
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import findOrFail from './findOrFail/index.ts';
 import findMany from './findMany/index.ts';
 import random from './random/index.ts';

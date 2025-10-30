@@ -1,6 +1,6 @@
-import { IFolder, IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { changeCase } from '@/utils/common.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
@@ -57,9 +57,9 @@ export const processFileBasedTemplate = (
         includedFiles.length === 0 ||
         includedFiles.some((pattern) => item.name.includes(pattern));
 
-      const shouldExclude =
-        excludedFiles.length > 0 &&
-        excludedFiles.some((pattern) => item.name.includes(pattern));
+      const shouldExclude = excludedFiles.some((pattern) =>
+        item.name.includes(pattern),
+      );
 
       // Skip this folder if it doesn't meet the include/exclude criteria
       if (!shouldInclude || shouldExclude) {
@@ -86,7 +86,7 @@ export const processFileBasedTemplate = (
       Object.entries(folderValues).forEach(([key, value]) => {
         if (key !== 'value') {
           const caseFormats = changeCase(value);
-          
+
           // Add case variations for this property
           folderValues[`${key}TitleCase`] = caseFormats.titleCase;
           folderValues[`${key}SentenceCase`] = caseFormats.sentenceCase;
@@ -95,26 +95,34 @@ export const processFileBasedTemplate = (
           folderValues[`${key}CamelCase`] = caseFormats.camelCase;
           folderValues[`${key}KebabCase`] = caseFormats.kebabCase;
           folderValues[`${key}SnakeCase`] = caseFormats.snakeCase;
-          
+
           // Plural variations
           folderValues[`${key}Plural`] = caseFormats.plural;
           folderValues[`${key}TitleCasePlural`] = caseFormats.titleCasePlural;
-          folderValues[`${key}SentenceCasePlural`] = caseFormats.sentenceCasePlural;
+          folderValues[`${key}SentenceCasePlural`] =
+            caseFormats.sentenceCasePlural;
           folderValues[`${key}PhraseCasePlural`] = caseFormats.phraseCasePlural;
           folderValues[`${key}PascalCasePlural`] = caseFormats.pascalCasePlural;
           folderValues[`${key}CamelCasePlural`] = caseFormats.camelCasePlural;
           folderValues[`${key}KebabCasePlural`] = caseFormats.kebabCasePlural;
           folderValues[`${key}SnakeCasePlural`] = caseFormats.snakeCasePlural;
-          
+
           // Singular variations
           folderValues[`${key}Singular`] = caseFormats.singular;
-          folderValues[`${key}TitleCaseSingular`] = caseFormats.titleCaseSingular;
-          folderValues[`${key}SentenceCaseSingular`] = caseFormats.sentenceCaseSingular;
-          folderValues[`${key}PhraseCaseSingular`] = caseFormats.phraseCaseSingular;
-          folderValues[`${key}PascalCaseSingular`] = caseFormats.pascalCaseSingular;
-          folderValues[`${key}CamelCaseSingular`] = caseFormats.camelCaseSingular;
-          folderValues[`${key}KebabCaseSingular`] = caseFormats.kebabCaseSingular;
-          folderValues[`${key}SnakeCaseSingular`] = caseFormats.snakeCaseSingular;
+          folderValues[`${key}TitleCaseSingular`] =
+            caseFormats.titleCaseSingular;
+          folderValues[`${key}SentenceCaseSingular`] =
+            caseFormats.sentenceCaseSingular;
+          folderValues[`${key}PhraseCaseSingular`] =
+            caseFormats.phraseCaseSingular;
+          folderValues[`${key}PascalCaseSingular`] =
+            caseFormats.pascalCaseSingular;
+          folderValues[`${key}CamelCaseSingular`] =
+            caseFormats.camelCaseSingular;
+          folderValues[`${key}KebabCaseSingular`] =
+            caseFormats.kebabCaseSingular;
+          folderValues[`${key}SnakeCaseSingular`] =
+            caseFormats.snakeCaseSingular;
         }
       });
 
@@ -126,11 +134,12 @@ export const processFileBasedTemplate = (
         for (const [key, value] of Object.entries(folderValues)) {
           if (typeof value === 'string' && value.includes('{{')) {
             const processed = importTemplateAsPlaceholder(value, folderValues);
-            processedFolderValues[key] = typeof processed === 'string' 
-              ? processed 
-              : Array.isArray(processed) 
-                ? processed.join(', ') 
-                : String(processed);
+            processedFolderValues[key] =
+              typeof processed === 'string'
+                ? processed
+                : Array.isArray(processed)
+                  ? processed.join(', ')
+                  : String(processed);
           }
         }
 
@@ -148,13 +157,13 @@ export const processFileBasedTemplate = (
           schemaInfoParsed,
           table,
           projectFilePath,
-          folderPath
+          folderPath,
         );
 
         results.push(processedTemplate);
       } catch {
         // If there's an error in processing nested placeholders, fall back to the original behavior
-        
+
         // Add table replacements for other placeholders that might be in the template
         const replacements = {
           ...getReplacementsForTable(table, schemaInfoParsed),
@@ -169,7 +178,7 @@ export const processFileBasedTemplate = (
           schemaInfoParsed,
           table,
           projectFilePath,
-          folderPath
+          folderPath,
         );
 
         results.push(processedTemplate);

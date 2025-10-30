@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import type React from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ICustomModalProps {
@@ -23,7 +24,7 @@ function CustomModal({
   const modalRoot = useStaticPortal
     ? document.getElementById('static-modal-root')
     : document.createElement('div');
-  
+
   // Store the element that had focus before modal opened
   const previousActiveElement = useRef<HTMLElement | null>(null);
 
@@ -38,10 +39,12 @@ function CustomModal({
   });
 
   const handleTabKey = useCallback((e: KeyboardEvent) => {
-    if (!modal.current) {return;}
+    if (!modal.current) {
+      return;
+    }
 
     const focusableElements = modal.current.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
 
     const firstElement = focusableElements[0];
@@ -64,7 +67,9 @@ function CustomModal({
   }, []);
 
   useEffect(() => {
-    if (!modalRoot || !isOpen) {return;}
+    if (!modalRoot || !isOpen) {
+      return;
+    }
 
     // Store current active element and ensure it's an HTMLElement
     const activeElement = document.activeElement;
@@ -84,14 +89,16 @@ function CustomModal({
     };
 
     // Check if scrollbar exists
-    const hasScrollbar = window.innerWidth > document.documentElement.clientWidth;
-    
+    const hasScrollbar =
+      window.innerWidth > document.documentElement.clientWidth;
+
     // Only add padding if scrollbar exists
     if (hasScrollbar) {
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      const scrollbarWidth =
+        window.innerWidth - document.documentElement.clientWidth;
       document.body.style.paddingRight = `${String(scrollbarWidth)}px`;
     }
-    
+
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
     document.body.classList.add('modal-open');
@@ -124,17 +131,29 @@ function CustomModal({
       document.body.style.overflow = originalStyles.current.overflow;
       document.body.style.paddingRight = originalStyles.current.paddingRight;
       document.body.classList.remove('modal-open');
-      
+
       // Return focus to previous element
-      if (previousActiveElement.current && 'focus' in previousActiveElement.current) {
+      if (
+        previousActiveElement.current &&
+        'focus' in previousActiveElement.current
+      ) {
         previousActiveElement.current.focus();
       }
-      
+
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [modalRoot, useStaticPortal, onClose, isOpen, handleTabKey, initialFocusRef]);
+  }, [
+    modalRoot,
+    useStaticPortal,
+    onClose,
+    isOpen,
+    handleTabKey,
+    initialFocusRef,
+  ]);
 
-  if (!modalRoot || !isOpen) {return null;}
+  if (!modalRoot || !isOpen) {
+    return null;
+  }
 
   return createPortal(
     <div
@@ -156,7 +175,10 @@ function CustomModal({
         className="relative bg-white dark:bg-gray-800 shadow-lg rounded-lg w-[90%] sm:w-[500px] p-6 animate-scale-up cursor-auto"
       >
         <div className="flex justify-between items-center">
-          <h2 id="modal-title" className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
+          <h2
+            id="modal-title"
+            className="text-2xl font-semibold text-gray-800 dark:text-gray-200"
+          >
             {title}
           </h2>
           <button

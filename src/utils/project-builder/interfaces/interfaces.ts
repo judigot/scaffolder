@@ -1,6 +1,6 @@
-import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 
 export type ReplacementValue = string | string[];

@@ -1,7 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { createLocalFilesService } from '@/services/createLocalFilesService.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { IFormStore } from '@/useFormStore.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 const router = Router();
 
@@ -34,4 +34,4 @@ router.post(
   },
 );
 
-export default router; 
+export default router;

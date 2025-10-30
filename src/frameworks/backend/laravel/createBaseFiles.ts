@@ -1,4 +1,4 @@
-import { IFile } from '@/components/FileViewer.tsx';
+import type { IFile } from '@/components/FileViewer.tsx';
 import baseMethods from '@/frameworks/base-methods/index.ts';
 import { createFile, replacePlaceholder } from '@/helpers/stringHelper.ts';
 
@@ -27,7 +27,10 @@ const createBaseFiles = (
               }
               case 'repository': {
                 const content = repositoryContent
-                  ? replacePlaceholder({ template: repositoryContent, replacements })
+                  ? replacePlaceholder({
+                      template: repositoryContent,
+                      replacements,
+                    })
                       .trim()
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
@@ -41,7 +44,10 @@ ${content}
               }
               case 'service': {
                 const content = serviceContent
-                  ? replacePlaceholder({ template: serviceContent, replacements })
+                  ? replacePlaceholder({
+                      template: serviceContent,
+                      replacements,
+                    })
                       .trim()
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
@@ -55,7 +61,10 @@ ${content}
               }
               case 'controller': {
                 const content = controllerContent
-                  ? replacePlaceholder({ template: controllerContent, replacements })
+                  ? replacePlaceholder({
+                      template: controllerContent,
+                      replacements,
+                    })
                       .trim()
                       .split('\n')
                       .map((line) => `        ${line.trim()}`)
@@ -156,13 +165,14 @@ ${methods}
 
   const content = createFile({ template, replacements: {} });
 
-  const fileName = type === 'interface' 
-    ? 'BaseInterface.php'
-    : type === 'repository'
-    ? 'BaseRepository.php'
-    : type === 'controller'
-    ? 'BaseController.php'
-    : 'BaseService.php';
+  const fileName =
+    type === 'interface'
+      ? 'BaseInterface.php'
+      : type === 'repository'
+        ? 'BaseRepository.php'
+        : type === 'controller'
+          ? 'BaseController.php'
+          : 'BaseService.php';
 
   return {
     type: 'file',

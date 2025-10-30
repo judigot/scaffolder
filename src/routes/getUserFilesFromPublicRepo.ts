@@ -1,10 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { fetchRepositoryFiles } from '@/utils/downloadPublicRepoFiles.ts';
 import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFilesToIStructure.ts';
 
 /**
  * Route that fetches files from a public GitHub repository and returns them in a structured format
- * 
+ *
  * This implementation:
  * 1. Receives publicRepoURL from the frontend
  * 2. Parses the URL to extract user and repository
@@ -12,19 +12,21 @@ import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFile
  * 4. Extracts and processes the ZIP archive in memory
  * 5. Converts the flat file list to a nested folder structure
  * 6. Returns the structured data to the frontend
- * 
+ *
  * This approach resolves CORS issues by handling the GitHub API requests
  * server-side rather than from the browser.
  */
 const router = Router();
 
 // Helper function to parse GitHub URL
-function parseGitHubURL(url: string): { user: string; repository: string } | null {
+function parseGitHubURL(
+  url: string,
+): { user: string; repository: string } | null {
   try {
     // Handle URLs like https://github.com/username/repository
     const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
     const match = githubRegex.exec(url);
-    
+
     if (match?.length === 3) {
       return {
         user: match[1],
@@ -53,7 +55,7 @@ router.post(
     try {
       // Extract and validate publicRepoURL from request body
       const { publicRepoURL } = req.body;
-      
+
       if (typeof publicRepoURL !== 'string' || publicRepoURL === '') {
         res.status(400).json({
           error: 'Missing repository URL',
@@ -67,7 +69,8 @@ router.post(
       if (!repoInfo) {
         res.status(400).json({
           error: 'Invalid GitHub URL',
-          message: 'The provided URL is not a valid GitHub repository URL. Expected format: https://github.com/username/repository',
+          message:
+            'The provided URL is not a valid GitHub repository URL. Expected format: https://github.com/username/repository',
         });
         return;
       }
@@ -83,7 +86,7 @@ router.post(
 
       // Convert the extracted files to the expected IStructure format
       const result = convertPublicRepoFilesToStructure(extractedFiles);
-      
+
       // Return the structured data as JSON
       res.json(result);
     } catch (error) {
@@ -96,4 +99,4 @@ router.post(
   },
 );
 
-export default router; 
+export default router;

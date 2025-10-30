@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '../interfaces/interfaces.ts';
+import type { ISchemaInfo } from '../interfaces/interfaces.ts';
 import {
   UNIQUE_COLUMN_NAMES,
   isJunctionTable,

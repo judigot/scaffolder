@@ -1,4 +1,9 @@
-import { IStructure, IBase, IFile, IFolder } from "@/components/FileViewer.tsx";
+import type {
+  IStructure,
+  IBase,
+  IFile,
+  IFolder,
+} from '@/components/FileViewer.tsx';
 
 export function mergeArrayOfObjects(
   structure1: IStructure,
@@ -21,7 +26,11 @@ export function mergeArrayOfObjects(
   ): IFile | IFolder {
     if (target.type === 'folder' && source.type === 'folder') {
       // Merge files array recursively for folders
-      target.children = mergeArrayOfObjects(target.children, source.children, groupBy);
+      target.children = mergeArrayOfObjects(
+        target.children,
+        source.children,
+        groupBy,
+      );
     } else if (target.type === 'file' && source.type === 'file') {
       // For files, source overwrites target
       target.content = source.content;

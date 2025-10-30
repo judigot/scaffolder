@@ -9,7 +9,7 @@ import FileViewer from '@/components/FileViewer.tsx';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
 import { CREATION_MODES } from '@/constants.ts';
-import { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
@@ -518,9 +518,8 @@ function App() {
 
                   setGenerationStatus({
                     ...generationStatus,
-                    ...{
-                      isDBConnectionValid: true,
-                    },
+
+                    isDBConnectionValid: true,
                   });
                 })
                 .catch((error: unknown) => {
@@ -528,9 +527,8 @@ function App() {
                   // Failure
                   setGenerationStatus({
                     ...generationStatus,
-                    ...{
-                      isDBConnectionValid: false,
-                    },
+
+                    isDBConnectionValid: false,
                   });
                 });
             }}

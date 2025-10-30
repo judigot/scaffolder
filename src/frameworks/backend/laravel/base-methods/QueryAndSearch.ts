@@ -1,4 +1,4 @@
-import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   group: 'Query and Search',
@@ -41,7 +41,8 @@ export default {
       methodName: 'search',
       route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.search');`,
       description: 'Search records',
-      repositoryMethod: '{{methodName}}(string $query, array $fields, int $perPage = 15)',
+      repositoryMethod:
+        '{{methodName}}(string $query, array $fields, int $perPage = 15)',
       repositoryContent: `
         return $this->model->where(function ($q) use ($query, $fields) {
             foreach ($fields as $field) {
@@ -49,7 +50,8 @@ export default {
             }
         })->paginate($perPage);
       `,
-      serviceMethod: '{{methodName}}(string $query, array $fields, int $perPage = 15)',
+      serviceMethod:
+        '{{methodName}}(string $query, array $fields, int $perPage = 15)',
       serviceContent: `
         return $this->repository->{{methodName}}($query, $fields, $perPage);
       `,

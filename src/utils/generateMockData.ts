@@ -1,4 +1,4 @@
-import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { faker } from '@faker-js/faker';
 

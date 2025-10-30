@@ -1,6 +1,6 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { APP_SETTINGS } from '@/constants.ts';
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { getPrimaryKey, changeCase } from '@/utils/common.ts';
 import { createFile } from '@/helpers/stringHelper.ts';
 

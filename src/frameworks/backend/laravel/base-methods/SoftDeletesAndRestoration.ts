@@ -1,4 +1,4 @@
-import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   group: 'Soft Deletes and Restoration',

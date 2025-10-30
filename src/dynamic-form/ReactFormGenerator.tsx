@@ -1,4 +1,4 @@
-import { JSONFormStructure } from './DynamicFormStructure.ts';
+import type { JSONFormStructure } from './DynamicFormStructure.ts';
 import { useState } from 'react';
 
 interface IField {

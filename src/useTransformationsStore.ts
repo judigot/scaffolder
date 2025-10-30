@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, PersistOptions } from 'zustand/middleware';
+import {
+  persist,
+  createJSONStorage,
+  type PersistOptions,
+} from 'zustand/middleware';
 import { format as formatSQL } from 'sql-formatter';
 import generateMockData from '@/utils/generateMockData.ts';
 import generateSQLInserts from '@/utils/generateSQLInserts.ts';
@@ -8,12 +12,12 @@ import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins.ts';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import generateTypescriptInterfaces from '@/utils/generateTypescriptInterfaces.ts';
-import { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import generateSQLSchema from '@/utils/generateSQLSchema.ts';
 import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
@@ -137,16 +141,23 @@ export const useTransformationsStore = create<ITransformations>()(
             mockDataRows: 2,
             schemaInfo,
           });
-          
+
           // Create a new variable that combines mock data with seed data using map
           const seedData: ParsedJSONSchema = Object.fromEntries(
             schemaInfo
-              .filter((table): table is ISchemaInfo & { data: Record<string, unknown>[] } => 
-                Boolean(table.data && Array.isArray(table.data) && table.data.length > 0)
+              .filter(
+                (
+                  table,
+                ): table is ISchemaInfo & { data: Record<string, unknown>[] } =>
+                  Boolean(
+                    table.data &&
+                      Array.isArray(table.data) &&
+                      table.data.length > 0,
+                  ),
               )
-              .map(table => [table.tableName, table.data])
+              .map((table) => [table.tableName, table.data]),
           );
-          
+
           // Fix foreign key references in mock data to only use seed data IDs
           const fixedParsedSchema = Object.fromEntries(
             Object.entries(parsedSchema).map(([tableName, records]) => {
@@ -154,40 +165,48 @@ export const useTransformationsStore = create<ITransformations>()(
                 // If table has seed data, use only seed data
                 return [tableName, seedData[tableName]];
               }
-              
+
               // For tables without seed data, fix foreign key references
-              const table = schemaInfo.find(t => t.tableName === tableName);
+              const table = schemaInfo.find((t) => t.tableName === tableName);
               if (!table) {
                 return [tableName, records];
               }
-              
-              const fixedRecords = records.map(record => {
+
+              const fixedRecords = records.map((record) => {
                 const fixedRecord = { ...record };
-                
+
                 // Fix foreign key values to only reference seed data
-                table.columnsInfo.forEach(col => {
+                table.columnsInfo.forEach((col) => {
                   if (col.foreign_key) {
                     const foreignTableName = col.foreign_key.foreign_table_name;
-                    const foreignColumnName = col.foreign_key.foreign_column_name;
+                    const foreignColumnName =
+                      col.foreign_key.foreign_column_name;
                     const foreignSeedData = seedData[foreignTableName];
-                    
-                    if (Array.isArray(foreignSeedData) && foreignSeedData.length > 0) {
+
+                    if (
+                      Array.isArray(foreignSeedData) &&
+                      foreignSeedData.length > 0
+                    ) {
                       // Only use seed data values for foreign keys
-                      const randomSeedRecord = foreignSeedData[Math.floor(Math.random() * foreignSeedData.length)];
-                      fixedRecord[col.column_name] = randomSeedRecord[foreignColumnName];
+                      const randomSeedRecord =
+                        foreignSeedData[
+                          Math.floor(Math.random() * foreignSeedData.length)
+                        ];
+                      fixedRecord[col.column_name] =
+                        randomSeedRecord[foreignColumnName];
                     }
                   }
                 });
-                
+
                 return fixedRecord;
               });
-              
+
               return [tableName, fixedRecords];
-            })
+            }),
           );
-          
+
           const finalParsedSchema: ParsedJSONSchema = fixedParsedSchema;
-          
+
           useFormStore.setState({ schemaInput: finalParsedSchema });
         } catch {
           set({
@@ -229,16 +248,23 @@ export const useTransformationsStore = create<ITransformations>()(
             mockDataRows: MAX_MOCK_DATA_ROWS,
             schemaInfo,
           });
-          
-                    // Create a new variable that combines mock data with seed data using map
+
+          // Create a new variable that combines mock data with seed data using map
           const seedData: ParsedJSONSchema = Object.fromEntries(
             schemaInfo
-              .filter((table): table is ISchemaInfo & { data: Record<string, unknown>[] } => 
-                Boolean(table.data && Array.isArray(table.data) && table.data.length > 0)
+              .filter(
+                (
+                  table,
+                ): table is ISchemaInfo & { data: Record<string, unknown>[] } =>
+                  Boolean(
+                    table.data &&
+                      Array.isArray(table.data) &&
+                      table.data.length > 0,
+                  ),
               )
-              .map(table => [table.tableName, table.data])
+              .map((table) => [table.tableName, table.data]),
           );
-          
+
           // Fix foreign key references in mock data to only use seed data IDs
           const fixedMockData = Object.fromEntries(
             Object.entries(mockData).map(([tableName, records]) => {
@@ -246,40 +272,48 @@ export const useTransformationsStore = create<ITransformations>()(
                 // If table has seed data, use only seed data
                 return [tableName, seedData[tableName]];
               }
-              
+
               // For tables without seed data, fix foreign key references
-              const table = schemaInfo.find(t => t.tableName === tableName);
+              const table = schemaInfo.find((t) => t.tableName === tableName);
               if (!table) {
                 return [tableName, records];
               }
-              
-              const fixedRecords = records.map(record => {
+
+              const fixedRecords = records.map((record) => {
                 const fixedRecord = { ...record };
-                
+
                 // Fix foreign key values to only reference seed data
-                table.columnsInfo.forEach(col => {
+                table.columnsInfo.forEach((col) => {
                   if (col.foreign_key) {
                     const foreignTableName = col.foreign_key.foreign_table_name;
-                    const foreignColumnName = col.foreign_key.foreign_column_name;
+                    const foreignColumnName =
+                      col.foreign_key.foreign_column_name;
                     const foreignSeedData = seedData[foreignTableName];
-                    
-                    if (Array.isArray(foreignSeedData) && foreignSeedData.length > 0) {
+
+                    if (
+                      Array.isArray(foreignSeedData) &&
+                      foreignSeedData.length > 0
+                    ) {
                       // Only use seed data values for foreign keys
-                      const randomSeedRecord = foreignSeedData[Math.floor(Math.random() * foreignSeedData.length)];
-                      fixedRecord[col.column_name] = randomSeedRecord[foreignColumnName];
+                      const randomSeedRecord =
+                        foreignSeedData[
+                          Math.floor(Math.random() * foreignSeedData.length)
+                        ];
+                      fixedRecord[col.column_name] =
+                        randomSeedRecord[foreignColumnName];
                     }
                   }
                 });
-                
+
                 return fixedRecord;
               });
-              
+
               return [tableName, fixedRecords];
-            })
+            }),
           );
-          
+
           finalMockData = fixedMockData;
-          
+
           set({ mockData: finalMockData });
         } catch {
           finalMockData = {};

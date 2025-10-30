@@ -1,8 +1,8 @@
 import {
-  IColumnInfo,
-  ISchemaInfo,
+  type IColumnInfo,
+  type ISchemaInfo,
   isITable,
-  IIntrospectedSchemaInfo,
+  type IIntrospectedSchemaInfo,
 } from '@/interfaces/interfaces.ts';
 import { addSchemaInfo } from '@/utils/identifySchema.ts';
 import { typeMappings } from '@/utils/mappings.ts';

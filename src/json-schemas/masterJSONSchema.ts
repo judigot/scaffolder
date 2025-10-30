@@ -1,4 +1,4 @@
-import { IJSONSchema } from '@/interfaces/interfaces.ts';
+import type { IJSONSchema } from '@/interfaces/interfaces.ts';
 
 export default {
   product: [
@@ -116,4 +116,4 @@ export default {
       updated_at: '2024-06-18T10:17:19.123456Z',
     },
   ],
-} satisfies IJSONSchema; 
+} satisfies IJSONSchema;

@@ -1,8 +1,8 @@
-import { IFile } from '@/components/FileViewer.tsx';
+import type { IFile } from '@/components/FileViewer.tsx';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
-import {
+import type {
   IActionFlags,
   IBuildContext,
 } from '@/utils/project-builder/interfaces/interfaces.ts';
@@ -70,7 +70,7 @@ export const processMultipleFiles = ({
             schemaInfoParsed,
             table,
             projectYamlPath,
-            fileName
+            fileName,
           );
           if (table.tableName !== processedIncludeTable) {
             return false;
@@ -90,7 +90,7 @@ export const processMultipleFiles = ({
           schemaInfoParsed,
           table,
           projectYamlPath,
-          fileName
+          fileName,
         );
         if (table.tableName === processedExcludeTable) {
           return false;
@@ -108,7 +108,7 @@ export const processMultipleFiles = ({
         schemaInfoParsed,
         table,
         projectYamlPath,
-        fileName
+        fileName,
       );
 
       const outputFileName = processedName.includes('/')
@@ -129,7 +129,9 @@ export const processMultipleFiles = ({
         schemaInfoParsed,
         table,
         projectYamlPath,
-        typeof templateOption === 'string' && templateOption.length > 0 ? templateOption : fileName
+        typeof templateOption === 'string' && templateOption.length > 0
+          ? templateOption
+          : fileName,
       );
       content = processIterateInTemplate(
         content,

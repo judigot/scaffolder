@@ -1,4 +1,4 @@
-import { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import findOrFail from './findOrFail/laravel.ts';
 import findMany from './findMany/laravel.ts';
 import random from './random/laravel.ts';

@@ -1,6 +1,6 @@
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
@@ -65,10 +65,11 @@ export const buildProjectFiles = (
 
   try {
     const parsedYaml: unknown = parse(file.content);
-    
+
     const placeholders = extractPlaceholdersFromYaml(parsedYaml);
-    const circularPlaceholderCheck = detectCircularPlaceholderImports(placeholders);
-    
+    const circularPlaceholderCheck =
+      detectCircularPlaceholderImports(placeholders);
+
     if (circularPlaceholderCheck.hasCircularReference) {
       return [
         {

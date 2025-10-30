@@ -1,4 +1,4 @@
-import { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
+import type { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 const structure: IRepositoryStructure = {
   group: 'CRUD',

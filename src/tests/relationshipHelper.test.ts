@@ -1,4 +1,4 @@
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
   addRelationship,
   purgeForeignKeyTraces,
@@ -243,9 +243,7 @@ describe('relationshipHelper', () => {
           belongsTo: ['user'],
           hasMany: ['comment'],
           childTables: ['comment'],
-          pivotRelationships: [
-            { relatedTable: 'tag', pivotTable: 'post_tag' },
-          ],
+          pivotRelationships: [{ relatedTable: 'tag', pivotTable: 'post_tag' }],
         },
       ];
 

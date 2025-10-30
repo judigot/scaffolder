@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import path from 'node:path';
 import fs from 'node:fs';
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { createFolderStructure } from '@/utils/createFolderStructure.ts';
 import { createOrResetDatabase } from '@/utils/databaseOperations.ts';
 import generateSQLSchema from '@/utils/generateSQLSchema.ts';
@@ -11,7 +11,7 @@ import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables.ts';
 import { format as formatSQL } from 'sql-formatter';
 import generateSQLInserts from '@/utils/generateSQLInserts.ts';
 import generateMockData from '@/utils/generateMockData.ts';
-import { IFormStore } from '@/useFormStore.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 import { isUsingLocalFiles } from '@/hooks/useUserFiles.ts';
 
 interface ICreateLocalFilesRequest {

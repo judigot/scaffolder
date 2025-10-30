@@ -1,5 +1,5 @@
-import { ReactElement, useState } from 'react';
-import { JSONFormStructure } from './DynamicFormStructure.ts';
+import { type ReactElement, useState } from 'react';
+import type { JSONFormStructure } from './DynamicFormStructure.ts';
 
 /* Prompt
 Don't use prop spreading.

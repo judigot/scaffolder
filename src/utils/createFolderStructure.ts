@@ -1,4 +1,4 @@
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { watermark } from '@/constants.ts';
 import fs from 'node:fs';
 import path from 'node:path';

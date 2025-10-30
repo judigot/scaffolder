@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import identifySchema from '@/utils/identifySchema.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
   usersPostOneToOneSchema,
   usersPostsOneToManySchema,

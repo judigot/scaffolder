@@ -1,7 +1,7 @@
-import { IFolder, IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
-import { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import {
   LOOP_COMMAND_REGEX,
   LOOP_TABLES_REGEX,
@@ -30,7 +30,10 @@ import { parse } from 'yaml';
 /**
  * Find a folder in the file structure given a path
  */
-const findFolderByPath = (path: string, userFiles: IStructure): IFolder | undefined => {
+const findFolderByPath = (
+  path: string,
+  userFiles: IStructure,
+): IFolder | undefined => {
   const pathParts = path.split('/').filter(Boolean);
   let currentFolder: IFolder | undefined;
 
@@ -41,7 +44,7 @@ const findFolderByPath = (path: string, userFiles: IStructure): IFolder | undefi
   if (pathParts.length === 0) {
     return undefined;
   }
-  
+
   // Find the first level folder
   currentFolder = store.find(
     (item): item is IFolder =>
@@ -63,8 +66,10 @@ const findFolderByPath = (path: string, userFiles: IStructure): IFolder | undefi
  * Check if a folder contains any YAML files
  */
 const folderContainsYamlFiles = (folder: IFolder): boolean => {
-  return folder.children.some(item => 
-    item.type === 'file' && (item.name.endsWith('.yml') || item.name.endsWith('.yaml'))
+  return folder.children.some(
+    (item) =>
+      item.type === 'file' &&
+      (item.name.endsWith('.yml') || item.name.endsWith('.yaml')),
   );
 };
 
@@ -80,17 +85,17 @@ export const processLoopTables = (
       // Parse options
       const templateMatch = TEMPLATE_MATCH_REGEX.exec(options);
       const separatorMatch = SEPARATOR_MATCH_REGEX.exec(options);
-      
+
       if (!templateMatch) {
         return ''; // No template provided, cannot proceed
       }
-      
+
       // Get template content
       const templateContent = templateMatch[1]
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
         .replace(/\\s/g, ' ');
-      
+
       // Get separator if provided, or use default indent
       const separator = separatorMatch
         ? separatorMatch[1]
@@ -98,7 +103,7 @@ export const processLoopTables = (
             .replace(/\\t/g, '\t')
             .replace(/\\s/g, ' ')
         : '\n    '; // Default separator for PHP files with indentation
-      
+
       return schemaInfo
         .map((table) => {
           const replacements = getReplacementsForTable(table, schemaInfoParsed);
@@ -167,80 +172,84 @@ export const processIterateCommand = (
 
   // Parse ignore list with flexible whitespace and handle USE_CONSTANT
   const ignoreList = ignoreMatch
-    ? ignoreMatch[1]
-        .split(',')
-        .map((item) => {
-          const trimmed = item.trim();
-          const constantMatch = USE_CONSTANT_REGEX.exec(trimmed);
-          if (constantMatch) {
-            // Get raw values from constant file without any processing
-            return loadConstant(
-              constantMatch[1],
-              userFiles,
-              schemaInfoParsed,
-              table,
-            );
-          }
-          // For non-constant values, still process any placeholders they might have
-          const replacements = getReplacementsForTable(table, schemaInfoParsed);
-          return replacePlaceholders(
-            trimmed,
-            replacements,
+    ? ignoreMatch[1].split(',').flatMap((item) => {
+        const trimmed = item.trim();
+        const constantMatch = USE_CONSTANT_REGEX.exec(trimmed);
+        if (constantMatch) {
+          // Get raw values from constant file without any processing
+          return loadConstant(
+            constantMatch[1],
             userFiles,
             schemaInfoParsed,
             table,
           );
-        })
-        .flat()
+        }
+        // For non-constant values, still process any placeholders they might have
+        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        return replacePlaceholders(
+          trimmed,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          table,
+        );
+      })
     : [];
 
   // Helper function to check if a folder should be ignored based on its path
   const shouldIgnoreFolder = (folderPath: string): boolean => {
     // Check if the folder path matches any of the ignore patterns
-    return ignoreList.some(ignorePath => {
+    return ignoreList.some((ignorePath) => {
       if (typeof ignorePath !== 'string') {
         return false;
       }
-      
+
       // Handle directory wildcards in ignore pattern
       if (ignorePath.endsWith('/**')) {
         // Remove the trailing /** for direct path prefix matching
         const pathPrefix = ignorePath.replace(/\/\*\*$/, '');
-        return folderPath === pathPrefix || folderPath.startsWith(`${pathPrefix}/`);
+        return (
+          folderPath === pathPrefix || folderPath.startsWith(`${pathPrefix}/`)
+        );
       }
-      
+
       // Handle exact directory matches
       if (ignorePath.startsWith('/')) {
-        return folderPath === ignorePath || folderPath.startsWith(`${ignorePath}/`);
+        return (
+          folderPath === ignorePath || folderPath.startsWith(`${ignorePath}/`)
+        );
       }
-      
+
       // For patterns, check if the folder path includes the pattern
       return folderPath.includes(ignorePath);
     });
   };
 
   // Check for recursive wildcard path
-  const recursiveWildcardMatch = RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
-  
+  const recursiveWildcardMatch =
+    RECURSIVE_WILDCARD_REGEX.exec(propertyPathsStr);
+
   if (recursiveWildcardMatch) {
     // Get the wildcard pattern
     const [, wildcardPath] = recursiveWildcardMatch;
 
     // Process all matching folders using the wildcard pattern
     const matchingFolders = findFoldersWithWildcard(userFiles, wildcardPath);
-    
+
     // Filter out folders that should be ignored
-    const filteredFolders = matchingFolders.filter(folder => {
+    const filteredFolders = matchingFolders.filter((folder) => {
       const fullPath = buildFolderPath(folder, userFiles);
       return !shouldIgnoreFolder(fullPath);
     });
-    
+
     // For wildcard paths, check if any of the matching folders contain YAML files
     let shouldBeFileBased = false;
-    
+
     if (filteredFolders.length > 0) {
       // If none of the folders contain YAML files, use file-based mode
-      const anyFolderHasYaml = filteredFolders.some(folder => folderContainsYamlFiles(folder));
+      const anyFolderHasYaml = filteredFolders.some((folder) =>
+        folderContainsYamlFiles(folder),
+      );
       shouldBeFileBased = !anyFolderHasYaml;
     }
 
@@ -259,7 +268,7 @@ export const processIterateCommand = (
           template,
           includedFiles,
           excludedFiles,
-          separator
+          separator,
         );
 
         if (processedTemplate) {
@@ -276,21 +285,21 @@ export const processIterateCommand = (
   const folderPathMatch = FOLDER_PATH_REGEX.exec(propertyPathsStr);
   if (folderPathMatch) {
     const [, folderPath] = folderPathMatch;
-    
+
     // Check if this folder should be ignored
     if (shouldIgnoreFolder(`/${folderPath}`)) {
       return ''; // Skip this folder
     }
-    
+
     const targetFolder = findFolderByPath(folderPath, userFiles);
-    
+
     let shouldBeFileBased = false;
-    
+
     if (targetFolder) {
       // If the folder doesn't contain any YAML files, use file-based mode
       shouldBeFileBased = !folderContainsYamlFiles(targetFolder);
     }
-    
+
     if (shouldBeFileBased) {
       return processFileBasedTemplate(
         propertyPathsStr,
@@ -300,7 +309,7 @@ export const processIterateCommand = (
         template,
         includedFiles,
         excludedFiles,
-        separator
+        separator,
       );
     }
   }
@@ -428,7 +437,7 @@ export const processIterateCommand = (
         );
 
         // Filter out folders that should be ignored
-        const filteredFolders = matchingFolders.filter(folder => {
+        const filteredFolders = matchingFolders.filter((folder) => {
           const fullPath = buildFolderPath(folder, userFiles);
           return !shouldIgnoreFolder(fullPath);
         });
@@ -449,12 +458,12 @@ export const processIterateCommand = (
       }
 
       const [, folderPath] = folderMatch;
-      
+
       // Check if this folder should be ignored
       if (shouldIgnoreFolder(`/${folderPath}`)) {
         continue; // Skip this folder
       }
-      
+
       // Navigate through the folder structure
       const pathParts = folderPath.split('/').filter(Boolean);
       let currentFolder: IFolder | undefined;
@@ -627,7 +636,7 @@ export const processIterateCommand = (
       schemaInfoParsed,
       table,
       projectFilePath,
-      template
+      template,
     );
   });
 
@@ -655,9 +664,9 @@ const processFilesInFolder = (
         includedFiles.length === 0 ||
         includedFiles.some((pattern) => fileName.includes(pattern));
 
-      const shouldExclude =
-        excludedFiles.length > 0 &&
-        excludedFiles.some((pattern) => fileName.includes(pattern));
+      const shouldExclude = excludedFiles.some((pattern) =>
+        fileName.includes(pattern),
+      );
 
       // Skip this file if it doesn't meet the include/exclude criteria
       if (!shouldInclude || shouldExclude) {

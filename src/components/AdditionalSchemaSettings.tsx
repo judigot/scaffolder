@@ -1,12 +1,17 @@
 import { useEffect } from 'react';
 import TagInput from '@/components/TagInput.tsx';
 import { useAdditionalSchemaStore } from '@/useAdditionalSchhemaSettings.ts';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 
 function AdditionalSchemaSettings() {
-  const { additionalSettings: formData, setInputValue, setAddedValues, setSearchable, resetFormData } =
-    useAdditionalSchemaStore();
+  const {
+    additionalSettings: formData,
+    setInputValue,
+    setAddedValues,
+    setSearchable,
+    resetFormData,
+  } = useAdditionalSchemaStore();
   const { schemaInfo } = useTransformationsStore();
 
   /* Initialize missing tables when component mounts or schema changes */
@@ -14,7 +19,7 @@ function AdditionalSchemaSettings() {
     const hasMissingTables = schemaInfo.some(
       (schema) => !(schema.tableName in formData.inputValues),
     );
-    
+
     if (hasMissingTables) {
       resetFormData(schemaInfo);
     }

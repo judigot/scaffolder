@@ -1,4 +1,4 @@
-import { IStructure } from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import {
   IMPORT_PROJECT_REGEX,

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import {
@@ -12,7 +13,7 @@ import {
   Download as DownloadIcon,
 } from '@mui/icons-material';
 import { handleCopy } from '@/helpers/stringHelper.ts';
-import Editor, { OnMount } from '@monaco-editor/react';
+import Editor, { type OnMount } from '@monaco-editor/react';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
 import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
@@ -726,17 +727,20 @@ function FileViewer({
       };
 
       // Make API call to create files
-      const response = await fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/create-local-files`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${String(import.meta.env.VITE_BACKEND_URL)}/create-local-files`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            schemaInfo,
+            SQLSchema,
+            formData,
+          }),
         },
-        body: JSON.stringify({
-          schemaInfo,
-          SQLSchema,
-          formData,
-        }),
-      });
+      );
 
       const data: unknown = await response.json();
 
@@ -1020,9 +1024,7 @@ function FileViewer({
                     id: 'downloadFolder',
                     label: 'Download Selected Folder',
                     onClick: () => {
-                      if (
-                        contextMenu.item?.type === 'folder'
-                      ) {
+                      if (contextMenu.item?.type === 'folder') {
                         downloadSelectedFolder(
                           contextMenu.item,
                           contextMenu.parentPath ?? [],
@@ -1038,9 +1040,7 @@ function FileViewer({
                     id: 'copyFolderStructure',
                     label: 'Copy Folder Structure',
                     onClick: () => {
-                      if (
-                        contextMenu.item?.type === 'folder'
-                      ) {
+                      if (contextMenu.item?.type === 'folder') {
                         // Find the folder in the structure
                         const findFolderInStructure = (
                           items: IStructure,

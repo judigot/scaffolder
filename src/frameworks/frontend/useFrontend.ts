@@ -1,5 +1,5 @@
-import { IStructure } from '@/components/FileViewer.tsx';
-import { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import createAPICalls from '@/frameworks/frontend/createAPICalls.ts';
 import createTypescriptInterfaces from '@/frameworks/frontend/createTypescriptInterfaces.ts';
 import createAxiosInstance from '@/frameworks/frontend/createAxiosInstance.ts';
