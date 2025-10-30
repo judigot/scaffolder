@@ -25,7 +25,8 @@ export const zipAndDownloadIStructure = (
     });
 
     // Convert to Blob for download
-    const blob = new Blob([zipData], { type: 'application/zip' });
+    const arrayBuffer = new Uint8Array(zipData).buffer;
+    const blob = new Blob([arrayBuffer], { type: 'application/zip' });
 
     // Create a download link
     const downloadUrl = URL.createObjectURL(blob);
