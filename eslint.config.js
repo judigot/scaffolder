@@ -2,7 +2,6 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import importPlugin from 'eslint-plugin-import';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
-import tsParser from '@typescript-eslint/parser';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
@@ -76,7 +75,7 @@ export default defineConfig([
         vi: 'readonly',
       },
 
-      parser: tsParser,
+      parser: tseslint.parser,
       ecmaVersion: 12,
       sourceType: 'module',
 
