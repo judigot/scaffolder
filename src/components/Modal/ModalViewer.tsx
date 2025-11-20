@@ -7,8 +7,8 @@ function ModalViewer() {
   const handleOpenModal = async () => {
     const response = await promptModal({
       title: 'Are you sure?',
-      trueText: 'Yes',
-      falseText: 'No',
+      confirmButtonText: 'Yes',
+      denyButtonText: 'No',
     });
 
     if (response) {

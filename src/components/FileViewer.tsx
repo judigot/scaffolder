@@ -238,8 +238,8 @@ function FileViewer({
       const result = await promptModal({
         title: 'Unsaved Changes',
         description: `Do you want to save the changes you made to ${selectedFile.name}?`,
-        trueText: 'Save and Close',
-        falseText: 'Close without Saving',
+        confirmButtonText: 'Save and Close',
+        denyButtonText: 'Close without Saving',
       });
 
       // If user chose "Save and Close"
@@ -522,8 +522,8 @@ function FileViewer({
     const result = await promptModal({
       title: `Delete ${item.type === 'file' ? 'File' : 'Folder'}`,
       description: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
-      trueText: 'Delete',
-      falseText: 'Cancel',
+      confirmButtonText: 'Delete',
+      denyButtonText: 'Cancel',
     });
 
     // Only proceed with deletion if the user confirmed
@@ -760,8 +760,8 @@ function FileViewer({
         title: 'Error',
         description:
           error instanceof Error ? error.message : 'Failed to create app',
-        trueText: 'OK',
-        falseText: '',
+        confirmButtonText: 'OK',
+        denyButtonText: '',
       });
     }
   };

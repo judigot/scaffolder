@@ -277,8 +277,8 @@ function SchemaBuilder() {
     const result = await promptModal({
       title: `Remove "${sourceTable.tableName}" table?`,
       description: `Are you sure you want to remove "${sourceTable.tableName}" table and its dependent tables?`,
-      trueText: 'Yes',
-      falseText: 'No',
+      confirmButtonText: 'Yes',
+      denyButtonText: 'No',
     });
 
     if (!result) {
@@ -721,8 +721,8 @@ function SchemaBuilder() {
     const result = await promptModal({
       title: `Remove "${column.column_name}" column?`,
       description: `Are you sure you want to remove the "${column.column_name}" column from the "${table.tableName}" table?`,
-      trueText: 'Yes',
-      falseText: 'No',
+      confirmButtonText: 'Yes',
+      denyButtonText: 'No',
     });
 
     if (!result) {
@@ -823,8 +823,8 @@ function SchemaBuilder() {
                 title: 'Delete All Tables',
                 description:
                   'Are you sure you want to delete all tables? This action cannot be undone.',
-                trueText: 'Yes',
-                falseText: 'No',
+                confirmButtonText: 'Yes',
+                denyButtonText: 'No',
               });
               if (result) {
                 setSchemaInfo([]); // Clear all tables

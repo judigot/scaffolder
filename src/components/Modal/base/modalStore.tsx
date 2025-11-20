@@ -16,8 +16,8 @@ interface IModalState {
   promptModal: (props: {
     title: string;
     description?: string;
-    trueText: string;
-    falseText: string;
+    confirmButtonText: string;
+    denyButtonText: string;
   }) => Promise<boolean>;
   newValue: (props: { title: string }) => Promise<string>;
   editValue: (props: { title: string; oldValue: string }) => Promise<string>;
@@ -51,7 +51,7 @@ export const useModalStore = create<IModalState>((set) => ({
       ],
     }));
   },
-  promptModal: ({ title, description, trueText, falseText }) => {
+  promptModal: ({ title, description, confirmButtonText, denyButtonText }) => {
     const id: string = Math.random().toString(36).substring(2, 10);
 
     // Return a promise to resolve user interaction
@@ -102,14 +102,14 @@ export const useModalStore = create<IModalState>((set) => ({
                       }}
                       className="mt-4 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
                     >
-                      {falseText}
+                      {denyButtonText}
                     </button>
                     &nbsp;
                     <button
                       type="submit"
                       className="mt-4 px-4 py-2 bg-blue-500 text-gray-800 rounded-lg hover:bg-gray-400"
                     >
-                      {trueText}
+                      {confirmButtonText}
                     </button>
                   </form>
                 </div>
