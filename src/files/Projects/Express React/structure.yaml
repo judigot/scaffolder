@@ -1,3 +1,6 @@
+$CORE:
+  - /Core/vite
+  - /Core/extra-core-files
 src:
   IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
   components:

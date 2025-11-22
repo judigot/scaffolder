@@ -228,6 +228,47 @@ describe('mergeCoreFilesWithScaffolded', () => {
     }
   });
 
+  it('should not include core folder itself in result', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'README.md',
+        content: 'Core README',
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'core',
+        children: [
+          {
+            type: 'file',
+            name: 'should-not-appear.txt',
+            content: 'This core folder should not appear',
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'src',
+        children: [
+          {
+            type: 'file',
+            name: 'index.js',
+            content: 'index',
+          },
+        ],
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result.find((f) => f.name === 'README.md')).toBeDefined();
+    expect(result.find((f) => f.name === 'src')).toBeDefined();
+    expect(result.find((f) => f.name === 'core')).toBeDefined();
+  });
+
   it('should handle complex real-world scenario', () => {
     const coreFiles: IStructure = [
       {

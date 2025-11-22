@@ -104,8 +104,21 @@ export const buildProjectFiles = (
 
     const coreFiles = loadCoreFiles(projectYamlPath, userFiles);
 
+    let yamlStructureToProcess: unknown = parsedYaml;
+    if (
+      parsedYaml !== null &&
+      typeof parsedYaml === 'object' &&
+      !Array.isArray(parsedYaml) &&
+      '$CORE' in parsedYaml
+    ) {
+      const entries = Object.entries(parsedYaml).filter(
+        ([key]) => key !== '$CORE',
+      );
+      yamlStructureToProcess = Object.fromEntries(entries);
+    }
+
     const scaffoldedFiles = processYamlStructure({
-      node: parsedYaml,
+      node: yamlStructureToProcess,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
@@ -117,7 +130,9 @@ export const buildProjectFiles = (
       scaffoldedFiles,
     );
 
-    return projectFiles;
+    return projectFiles.filter(
+      (item) => item.name !== 'core' && item.name !== 'Core',
+    );
   } catch (error) {
     return [
       {
