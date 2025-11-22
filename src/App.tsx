@@ -301,7 +301,7 @@ function App() {
         </div>
         <div className="inline-block">
           <h1 className="text-2xl font-bold inline-block pl-5 pr-5">
-            Scaffolder
+            Scaffolder - Write Once, Generate Forever!
           </h1>
         </div>
         <form id="appGeneratorForm" name="appGeneratorForm">
