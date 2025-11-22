@@ -9,10 +9,7 @@ export interface IColumnInfoSlim {
   default?: string | null;
   primaryKey?: true;
   unique?: true;
-  foreignTable?: {
-    table: string;
-    column: string;
-  };
+  foreign?: string;
 }
 
 export type ISchemaInfoSlim = {

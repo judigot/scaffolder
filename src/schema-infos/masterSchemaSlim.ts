@@ -42,10 +42,7 @@ export default [
       {
         name: 'customer_id',
         type: 'number',
-        foreignTable: {
-          table: 'customer',
-          column: 'customer_id',
-        },
+        foreign: 'customer',
       },
     ],
   },
@@ -62,18 +59,12 @@ export default [
       {
         name: 'order_id',
         type: 'number',
-        foreignTable: {
-          table: 'order',
-          column: 'order_id',
-        },
+        foreign: 'order',
       },
       {
         name: 'product_id',
         type: 'number',
-        foreignTable: {
-          table: 'product',
-          column: 'product_id',
-        },
+        foreign: 'product',
       },
     ],
   },
@@ -131,10 +122,7 @@ export default [
         name: 'user_id',
         type: 'number',
         unique: true,
-        foreignTable: {
-          table: 'user',
-          column: 'user_id',
-        },
+        foreign: 'user',
       },
       {
         name: 'bio',
@@ -162,10 +150,7 @@ export default [
       {
         name: 'user_id',
         type: 'number',
-        foreignTable: {
-          table: 'user',
-          column: 'user_id',
-        },
+        foreign: 'user',
       },
       {
         name: 'title',
