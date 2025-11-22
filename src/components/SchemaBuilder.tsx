@@ -1135,6 +1135,10 @@ function SchemaBuilder() {
     const table = schemaInfo[tableIndex];
     const column = table.columnsInfo[columnIndex];
 
+    if (column.primary_key === true) {
+      return;
+    }
+
     const result = await promptModal({
       title: `Remove "${column.column_name}" column?`,
       description: `Are you sure you want to remove the "${column.column_name}" column from the "${table.tableName}" table?`,
@@ -2638,32 +2642,53 @@ function SchemaBuilder() {
 
                                     {/* Actions - Delete Column */}
                                     <td className="border border-gray-600 px-2 py-1 text-center">
-                                      <button
-                                        onClick={() => {
-                                          void (async () => {
-                                            await handleRemoveColumn(
-                                              selectedTableIndex,
-                                              originalIndex,
-                                            );
-                                          })();
-                                        }}
-                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded p-1 transition-colors duration-200"
-                                        title={`Remove ${column.column_name} column`}
-                                      >
-                                        <svg
-                                          className="w-4 h-4"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
+                                      {column.primary_key === true ? (
+                                        <div
+                                          className="text-gray-600 rounded p-1 inline-block"
+                                          title="Primary key columns cannot be removed"
                                         >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                          />
-                                        </svg>
-                                      </button>
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                            />
+                                          </svg>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            void (async () => {
+                                              await handleRemoveColumn(
+                                                selectedTableIndex,
+                                                originalIndex,
+                                              );
+                                            })();
+                                          }}
+                                          className="text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded p-1 transition-colors duration-200"
+                                          title={`Remove ${column.column_name} column`}
+                                        >
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                            />
+                                          </svg>
+                                        </button>
+                                      )}
                                     </td>
                                   </tr>
                                 );
