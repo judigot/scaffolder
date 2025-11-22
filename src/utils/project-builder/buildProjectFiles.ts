@@ -7,6 +7,8 @@ import { processYamlStructure } from '@/utils/project-builder/project-processors
 import { detectCircularImports } from '@/utils/project-builder/utils/detectCircularImports.ts';
 import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
 import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/detectCircularPlaceholderImports.ts';
+import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
@@ -100,13 +102,20 @@ export const buildProjectFiles = (
       ];
     }
 
-    const projectFiles = processYamlStructure({
+    const coreFiles = loadCoreFiles(projectYamlPath, userFiles);
+
+    const scaffoldedFiles = processYamlStructure({
       node: parsedYaml,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
       projectYamlPath,
     });
+
+    const projectFiles = mergeCoreFilesWithScaffolded(
+      coreFiles,
+      scaffoldedFiles,
+    );
 
     return projectFiles;
   } catch (error) {

@@ -1,0 +1,343 @@
+import { describe, it, expect } from 'vitest';
+import { mergeCoreFilesWithScaffolded } from './mergeCoreFiles.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+
+describe('mergeCoreFilesWithScaffolded', () => {
+  it('should merge core and scaffolded files with no conflicts', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'README.md',
+        content: 'Core README',
+      },
+      {
+        type: 'file',
+        name: 'package.json',
+        content: 'Core package',
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'index.js',
+        content: 'Scaffolded index',
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result).toHaveLength(3);
+    expect(result.find((f) => f.name === 'README.md')).toBeDefined();
+    expect(result.find((f) => f.name === 'package.json')).toBeDefined();
+    expect(result.find((f) => f.name === 'index.js')).toBeDefined();
+  });
+
+  it('should override core file with scaffolded file when names conflict', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'config.json',
+        content: 'Core config',
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'config.json',
+        content: 'Scaffolded config',
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('file');
+    if (result[0].type === 'file') {
+      expect(result[0].content).toBe('Scaffolded config');
+    }
+  });
+
+  it('should merge folders with same name', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'src',
+        children: [
+          {
+            type: 'file',
+            name: 'core-file.txt',
+            content: 'Core file',
+          },
+        ],
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'src',
+        children: [
+          {
+            type: 'file',
+            name: 'scaffolded-file.txt',
+            content: 'Scaffolded file',
+          },
+        ],
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('folder');
+    if (result[0].type === 'folder') {
+      expect(result[0].children).toHaveLength(2);
+      expect(
+        result[0].children.find((f) => f.name === 'core-file.txt'),
+      ).toBeDefined();
+      expect(
+        result[0].children.find((f) => f.name === 'scaffolded-file.txt'),
+      ).toBeDefined();
+    }
+  });
+
+  it('should deeply merge nested folders', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'src',
+        children: [
+          {
+            type: 'folder',
+            name: 'utils',
+            children: [
+              {
+                type: 'file',
+                name: 'core-helper.js',
+                content: 'Core helper',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'src',
+        children: [
+          {
+            type: 'folder',
+            name: 'utils',
+            children: [
+              {
+                type: 'file',
+                name: 'scaffolded-helper.js',
+                content: 'Scaffolded helper',
+              },
+            ],
+          },
+          {
+            type: 'folder',
+            name: 'components',
+            children: [
+              {
+                type: 'file',
+                name: 'Button.tsx',
+                content: 'Button component',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('folder');
+    expect(result[0].name).toBe('src');
+
+    if (result[0].type === 'folder') {
+      expect(result[0].children).toHaveLength(2);
+
+      const utilsFolder = result[0].children.find((f) => f.name === 'utils');
+      expect(utilsFolder).toBeDefined();
+      expect(utilsFolder?.type).toBe('folder');
+
+      if (utilsFolder?.type === 'folder') {
+        expect(utilsFolder.children).toHaveLength(2);
+        expect(
+          utilsFolder.children.find((f) => f.name === 'core-helper.js'),
+        ).toBeDefined();
+        expect(
+          utilsFolder.children.find((f) => f.name === 'scaffolded-helper.js'),
+        ).toBeDefined();
+      }
+
+      const componentsFolder = result[0].children.find(
+        (f) => f.name === 'components',
+      );
+      expect(componentsFolder).toBeDefined();
+      expect(componentsFolder?.type).toBe('folder');
+    }
+  });
+
+  it('should override file in nested folder', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'config',
+        children: [
+          {
+            type: 'file',
+            name: 'database.js',
+            content: 'Core database config',
+          },
+        ],
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'config',
+        children: [
+          {
+            type: 'file',
+            name: 'database.js',
+            content: 'Scaffolded database config',
+          },
+        ],
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result).toHaveLength(1);
+    if (result[0].type === 'folder') {
+      expect(result[0].children).toHaveLength(1);
+      if (result[0].children[0].type === 'file') {
+        expect(result[0].children[0].content).toBe(
+          'Scaffolded database config',
+        );
+      }
+    }
+  });
+
+  it('should handle complex real-world scenario', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'file',
+        name: '.gitignore',
+        content: 'node_modules/',
+      },
+      {
+        type: 'file',
+        name: 'package.json',
+        content: '{"name": "core"}',
+      },
+      {
+        type: 'folder',
+        name: 'src',
+        children: [
+          {
+            type: 'file',
+            name: 'test.txt',
+            content: 'Test from core',
+          },
+          {
+            type: 'folder',
+            name: 'config',
+            children: [
+              {
+                type: 'file',
+                name: 'app.js',
+                content: 'Core app config',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'package.json',
+        content: '{"name": "scaffolded"}',
+      },
+      {
+        type: 'folder',
+        name: 'src',
+        children: [
+          {
+            type: 'folder',
+            name: 'components',
+            children: [
+              {
+                type: 'file',
+                name: 'DataTable.tsx',
+                content: 'DataTable component',
+              },
+            ],
+          },
+          {
+            type: 'folder',
+            name: 'config',
+            children: [
+              {
+                type: 'file',
+                name: 'routes.js',
+                content: 'Routes config',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result).toHaveLength(3);
+
+    const gitignore = result.find((f) => f.name === '.gitignore');
+    expect(gitignore).toBeDefined();
+
+    const packageJson = result.find((f) => f.name === 'package.json');
+    expect(packageJson).toBeDefined();
+    if (packageJson?.type === 'file') {
+      expect(packageJson.content).toBe('{"name": "scaffolded"}');
+    }
+
+    const srcFolder = result.find((f) => f.name === 'src');
+    expect(srcFolder).toBeDefined();
+    expect(srcFolder?.type).toBe('folder');
+
+    if (srcFolder?.type === 'folder') {
+      expect(
+        srcFolder.children.find((f) => f.name === 'test.txt'),
+      ).toBeDefined();
+      expect(
+        srcFolder.children.find((f) => f.name === 'components'),
+      ).toBeDefined();
+
+      const configFolder = srcFolder.children.find((f) => f.name === 'config');
+      expect(configFolder).toBeDefined();
+      expect(configFolder?.type).toBe('folder');
+
+      if (configFolder?.type === 'folder') {
+        expect(configFolder.children).toHaveLength(2);
+        expect(
+          configFolder.children.find((f) => f.name === 'app.js'),
+        ).toBeDefined();
+        expect(
+          configFolder.children.find((f) => f.name === 'routes.js'),
+        ).toBeDefined();
+      }
+    }
+  });
+});
