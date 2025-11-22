@@ -31,7 +31,7 @@ const persistConfig = {
   }),
 };
 
-const isUseCache = false;
+const isUseCache = true;
 
 export const useProjectStore = create<IProjectStore>()(
   persist(
