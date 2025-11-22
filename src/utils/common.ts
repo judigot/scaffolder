@@ -8,8 +8,17 @@ import type {
 import type { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
-import { typeMappings } from '@/utils/mappings.ts';
+import { typeMappings as fallbackTypeMappings } from '@/utils/mappings.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import pluralize from 'pluralize';
+
+const getTypeMappings = (): Record<PropertyKey, unknown> => {
+  const storeTypeMappings = useMockDatabaseStore.getState().typeMappings;
+  if (!storeTypeMappings || Object.keys(storeTypeMappings).length === 0) {
+    return fallbackTypeMappings;
+  }
+  return storeTypeMappings;
+};
 
 export function changeCase(input: string): TableCaseFormatsObject {
   const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
@@ -163,25 +172,51 @@ export const quoteTableName = (tableName: string): string => {
   return `${quote}${tableName}${quote}`;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
+
+const getTypeMappingValue = (
+  mappings: Record<PropertyKey, unknown>,
+  key: string,
+  columnType: DBTypes | 'typescript',
+): string => {
+  if (Object.hasOwn(mappings, key) && isRecord(mappings[key])) {
+    const mapping = mappings[key];
+    if (
+      Object.hasOwn(mapping, columnType) &&
+      typeof mapping[columnType] === 'string'
+    ) {
+      return mapping[columnType];
+    }
+  }
+  return '';
+};
+
 export const getTypeMapping = (
   column: IColumnInfo,
   columnType: DBTypes | 'typescript',
 ): string => {
   const { column_name, data_type, primary_key } = column;
+  const typeMappings = getTypeMappings();
 
   if (primary_key) {
-    return typeMappings.primaryKey[columnType];
+    return getTypeMappingValue(typeMappings, 'primaryKey', columnType);
   }
 
   if (column_name.toLowerCase().includes('password')) {
-    return typeMappings.password[columnType];
+    return getTypeMappingValue(typeMappings, 'password', columnType);
   }
 
   if (column_name.endsWith('_id')) {
-    return typeMappings.number[columnType];
+    return getTypeMappingValue(typeMappings, 'number', columnType);
   }
 
-  return typeMappings[data_type][columnType];
+  if (!Object.hasOwn(typeMappings, data_type)) {
+    return getTypeMappingValue(typeMappings, 'string', columnType);
+  }
+
+  return getTypeMappingValue(typeMappings, data_type, columnType);
 };
 
 export const generateColumnDefinition = ({

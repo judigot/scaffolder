@@ -14,6 +14,9 @@ import useTransformationsStore from '@/useTransformationsStore.ts';
 import yaml from 'yaml';
 import DataTypeSelector from '@/components/DataTypeSelector.tsx';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
+import { typeMappings } from '@/utils/mappings.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useFormStore } from '@/useFormStore.ts';
 
 interface INewColumnFormData {
   columnName: string;
@@ -61,8 +64,106 @@ function SchemaBuilder() {
     originalIndex: number;
   } | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
+  const [columnValidationError, setColumnValidationError] = useState<
+    string | null
+  >(null);
 
   const columnNameInputRef = useRef<HTMLInputElement>(null);
+  const { typeMappings: customTypeMappings } = useMockDatabaseStore();
+  const { dbType } = useFormStore();
+
+  const isRecordWithStringValues = (
+    value: unknown,
+  ): value is Record<string, unknown> => {
+    return (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      Object.keys(value).length > 0
+    );
+  };
+
+  const getDatabaseType = useCallback(
+    (dataType: string): string => {
+      const currentDbType = dbType;
+      const hasValidDbType =
+        currentDbType !== undefined &&
+        (currentDbType === 'mysql' || currentDbType === 'postgresql');
+
+      if (!hasValidDbType) {
+        return dataType;
+      }
+
+      const coreTypeMapping = typeMappings[dataType];
+
+      if (
+        coreTypeMapping !== undefined &&
+        currentDbType in coreTypeMapping &&
+        typeof coreTypeMapping[currentDbType] === 'string'
+      ) {
+        return coreTypeMapping[currentDbType];
+      }
+
+      const hasCustomMappings = customTypeMappings !== undefined;
+      if (hasCustomMappings && dataType in customTypeMappings) {
+        const customTypeMapping = customTypeMappings[dataType];
+
+        if (
+          isRecordWithStringValues(customTypeMapping) &&
+          currentDbType in customTypeMapping
+        ) {
+          const dbTypeValue = customTypeMapping[currentDbType];
+          return typeof dbTypeValue === 'string' ? dbTypeValue : dataType;
+        }
+      }
+
+      return dataType;
+    },
+    [customTypeMappings, dbType],
+  );
+
+  const getTypeScriptType = useCallback(
+    (dataType: string): 'string' | 'number' | 'float' | 'boolean' | 'Date' => {
+      const coreTypeMapping = typeMappings[dataType];
+      if (coreTypeMapping !== undefined && 'typescript' in coreTypeMapping) {
+        const tsType = coreTypeMapping.typescript;
+        if (
+          tsType === 'string' ||
+          tsType === 'number' ||
+          tsType === 'float' ||
+          tsType === 'boolean' ||
+          tsType === 'Date'
+        ) {
+          return tsType;
+        }
+      }
+
+      const hasCustomMappings = customTypeMappings !== undefined;
+      if (hasCustomMappings && dataType in customTypeMappings) {
+        const customTypeMapping = customTypeMappings[dataType];
+        if (
+          customTypeMapping !== null &&
+          typeof customTypeMapping === 'object' &&
+          'typescript' in customTypeMapping
+        ) {
+          const tsType = customTypeMapping.typescript;
+          if (
+            typeof tsType === 'string' &&
+            (tsType === 'string' ||
+              tsType === 'number' ||
+              tsType === 'float' ||
+              tsType === 'boolean' ||
+              tsType === 'Date')
+          ) {
+            return tsType;
+          }
+        }
+      }
+
+      return 'string';
+    },
+    [customTypeMappings],
+  );
 
   const [selectedTableIndex, setSelectedTableIndex] = useState<number | null>(
     0,
@@ -72,6 +173,82 @@ function SchemaBuilder() {
   const [yamlSeedData, setYamlSeedData] = useState<string>('');
   const [showSeedDataSuccess, setShowSeedDataSuccess] =
     useState<boolean>(false);
+
+  const validateColumnName = useCallback(
+    (columnName: string): { isValid: boolean; error: string | null } => {
+      const isEmpty = !columnName.trim();
+      if (isEmpty) {
+        return { isValid: false, error: 'Column name is required' };
+      }
+
+      const isTooLong = columnName.length > 64;
+      if (isTooLong) {
+        return {
+          isValid: false,
+          error: 'Column name must be 64 characters or less',
+        };
+      }
+
+      const snakeCaseRegex = /^[a-z][a-z0-9_]*$/;
+      const isValidSnakeCase = snakeCaseRegex.test(columnName);
+      if (!isValidSnakeCase) {
+        return {
+          isValid: false,
+          error:
+            'Column name must be in snake_case format (lowercase letters, numbers, and underscores only)',
+        };
+      }
+
+      const noTableSelected = selectedTableIndex === null;
+      if (noTableSelected) {
+        return { isValid: true, error: null };
+      }
+
+      const existingColumns = schemaInfo[selectedTableIndex].columnsInfo;
+      const isDuplicateName = existingColumns.some(
+        (col) => col.column_name.toLowerCase() === columnName.toLowerCase(),
+      );
+
+      if (isDuplicateName) {
+        return {
+          isValid: false,
+          error: `Column "${columnName}" already exists in this table`,
+        };
+      }
+
+      return { isValid: true, error: null };
+    },
+    [schemaInfo, selectedTableIndex],
+  );
+
+  const validateDataType = useCallback(
+    (dataType: string): { isValid: boolean; error: string | null } => {
+      const isEmpty = !dataType.trim();
+      if (isEmpty) {
+        return { isValid: false, error: 'Data type is required' };
+      }
+
+      const coreTypeMappingsKeys = Object.keys(typeMappings);
+      const hasCustomMappings = customTypeMappings !== undefined;
+      const customTypeMappingsKeys = hasCustomMappings
+        ? Object.keys(customTypeMappings)
+        : [];
+      const allValidTypes = [
+        ...new Set([...coreTypeMappingsKeys, ...customTypeMappingsKeys]),
+      ];
+      const isValidType = allValidTypes.includes(dataType);
+
+      if (!isValidType) {
+        return {
+          isValid: false,
+          error: `Invalid data type "${dataType}". Please select a valid type from the dropdown.`,
+        };
+      }
+
+      return { isValid: true, error: null };
+    },
+    [customTypeMappings],
+  );
 
   // Parse YAML to JSON
   const parseYamlToJson = (
@@ -219,8 +396,32 @@ function SchemaBuilder() {
         ...prev,
         [name]: type === 'checkbox' ? checked : value,
       }));
+
+      const isColumnNameField = name === 'columnName';
+      const isDataTypeField = name === 'dataType';
+
+      if (isColumnNameField) {
+        const validation = validateColumnName(value);
+        setColumnValidationError(validation.error);
+        return;
+      }
+
+      if (isDataTypeField) {
+        const validation = validateDataType(value);
+        const isValidDataType = validation.isValid;
+        const hasDataTypeError = columnValidationError?.includes('data type');
+
+        if (isValidDataType && hasDataTypeError === true) {
+          setColumnValidationError(null);
+          return;
+        }
+
+        if (!isValidDataType) {
+          setColumnValidationError(validation.error);
+        }
+      }
     },
-    [],
+    [validateColumnName, validateDataType, columnValidationError],
   );
 
   const handleRenameTable = async (index: number) => {
@@ -303,10 +504,11 @@ function SchemaBuilder() {
       'childTables',
     ];
 
-    /* Gather pivot tables directly linked in the sourceTable's pivotRelationships */
-    const pivotTablesFromRelationships = sourceTable.pivotRelationships?.map(
-      (rel) => rel.pivotTable,
-    );
+    const pivotTablesFromRelationships =
+      sourceTable.pivotRelationships !== undefined &&
+      sourceTable.pivotRelationships !== null
+        ? sourceTable.pivotRelationships.map((rel) => rel.pivotTable)
+        : [];
 
     const tablesToRemove = [
       sourceTable.tableName,
@@ -318,7 +520,7 @@ function SchemaBuilder() {
           );
         })
         .map((table) => table.tableName),
-      ...(pivotTablesFromRelationships ?? []), // Handle possibly undefined
+      ...pivotTablesFromRelationships,
     ];
 
     /* Remove these tables and clean references */
@@ -377,16 +579,33 @@ function SchemaBuilder() {
   }, [schemaInfo]);
 
   const isStandaloneTable = (table: ITableInfo): boolean => {
-    return (
-      !table.isPivot &&
-      (!table.hasOne || table.hasOne.length === 0) &&
-      (!table.hasMany || table.hasMany.length === 0) &&
-      (!table.belongsTo || table.belongsTo.length === 0) &&
-      (!table.belongsToMany || table.belongsToMany.length === 0) &&
-      (!table.foreignTables || table.foreignTables.length === 0) &&
-      (!table.childTables || table.childTables.length === 0) &&
-      (!table.pivotRelationships || table.pivotRelationships.length === 0)
-    );
+    const isPivotTable = table.isPivot === true;
+    const hasOneToOneRelations =
+      table.hasOne !== undefined && table.hasOne.length > 0;
+    const hasOneToManyRelations =
+      table.hasMany !== undefined && table.hasMany.length > 0;
+    const hasBelongsToRelations =
+      table.belongsTo !== undefined && table.belongsTo.length > 0;
+    const hasManyToManyRelations =
+      table.belongsToMany !== undefined && table.belongsToMany.length > 0;
+    const hasForeignTables =
+      table.foreignTables !== undefined && table.foreignTables.length > 0;
+    const hasChildTables =
+      table.childTables !== undefined && table.childTables.length > 0;
+    const hasPivotRelationships =
+      table.pivotRelationships !== undefined &&
+      table.pivotRelationships.length > 0;
+
+    const hasAnyRelationships =
+      hasOneToOneRelations ||
+      hasOneToManyRelations ||
+      hasBelongsToRelations ||
+      hasManyToManyRelations ||
+      hasForeignTables ||
+      hasChildTables ||
+      hasPivotRelationships;
+
+    return !isPivotTable && !hasAnyRelationships;
   };
 
   const standaloneTables = useMemo(() => {
@@ -399,17 +618,37 @@ function SchemaBuilder() {
   }, [schemaInfo]);
 
   const addNewColumnToTable = useCallback(
-    (columnData: INewColumnFormData): void => {
-      if (selectedTableIndex === null) {
-        return;
+    (columnData: INewColumnFormData): boolean => {
+      const noTableSelected = selectedTableIndex === null;
+      if (noTableSelected) {
+        return false;
       }
+
+      const columnNameValidation = validateColumnName(columnData.columnName);
+      const isColumnNameValid = columnNameValidation.isValid;
+
+      if (!isColumnNameValid) {
+        setColumnValidationError(columnNameValidation.error);
+        return false;
+      }
+
+      const dataTypeValidation = validateDataType(columnData.dataType);
+      const isDataTypeValid = dataTypeValidation.isValid;
+
+      if (!isDataTypeValid) {
+        setColumnValidationError(dataTypeValidation.error);
+        return false;
+      }
+
       const updatedSchema = [...schemaInfo];
       const table = updatedSchema[selectedTableIndex];
+
+      const normalizedDataType = getTypeScriptType(columnData.dataType);
 
       // Create the new column
       const newColumn: IColumnInfo = {
         column_name: columnData.columnName,
-        data_type: columnData.dataType,
+        data_type: normalizedDataType,
         is_nullable: columnData.isNullable ? 'YES' : 'NO',
         column_default:
           columnData.defaultValue === '' ? undefined : columnData.defaultValue,
@@ -426,63 +665,112 @@ function SchemaBuilder() {
       // Add the column to the table
       table.columnsInfo.push(newColumn);
 
-      // If this is a foreign key, update relationships
-      if (columnData.foreignKey) {
-        const parentTableIndex = updatedSchema.findIndex(
-          (t) => t.tableName === columnData.foreignKey?.tableName,
-        );
+      const foreignKeyData = columnData.foreignKey;
+      const hasForeignKey = foreignKeyData !== null;
 
-        if (parentTableIndex !== -1) {
-          if (
-            updatedSchema[parentTableIndex].hasOne &&
-            columnData.foreignKey.relationType === 'oneToOne'
-          ) {
-            if (
-              !updatedSchema[parentTableIndex].hasOne.includes(table.tableName)
-            ) {
-              updatedSchema[parentTableIndex].hasOne.push(table.tableName);
-            }
-            if (
-              table.belongsTo &&
-              !table.belongsTo.includes(columnData.foreignKey.tableName)
-            ) {
-              table.belongsTo.push(columnData.foreignKey.tableName);
-            }
-          } else {
-            if (
-              updatedSchema[parentTableIndex].hasMany &&
-              !updatedSchema[parentTableIndex].hasMany.includes(table.tableName)
-            ) {
-              updatedSchema[parentTableIndex].hasMany.push(table.tableName);
-            }
-            if (
-              table.belongsTo &&
-              !table.belongsTo.includes(columnData.foreignKey.tableName)
-            ) {
-              table.belongsTo.push(columnData.foreignKey.tableName);
-            }
-          }
+      if (!hasForeignKey) {
+        setSchemaInfo(updatedSchema);
+        setColumnValidationError(null);
 
-          if (
-            table.foreignTables &&
-            !table.foreignTables.includes(columnData.foreignKey.tableName)
-          ) {
-            table.foreignTables.push(columnData.foreignKey.tableName);
-          }
+        setNewColumnFormData({
+          columnName: '',
+          dataType: 'string',
+          isNullable: false,
+          defaultValue: '',
+          isPrimary: false,
+          isUnique: false,
+          foreignKey: null,
+        });
 
-          if (
-            updatedSchema[parentTableIndex].childTables &&
-            !updatedSchema[parentTableIndex].childTables.includes(
-              table.tableName,
-            )
-          ) {
-            updatedSchema[parentTableIndex].childTables.push(table.tableName);
-          }
+        return true;
+      }
+      const foreignKeyTableName = foreignKeyData.tableName;
+      const parentTableIndex = updatedSchema.findIndex(
+        (t) => t.tableName === foreignKeyTableName,
+      );
+      const parentTableNotFound = parentTableIndex === -1;
+
+      if (parentTableNotFound) {
+        setSchemaInfo(updatedSchema);
+        setColumnValidationError(null);
+
+        setNewColumnFormData({
+          columnName: '',
+          dataType: 'string',
+          isNullable: false,
+          defaultValue: '',
+          isPrimary: false,
+          isUnique: false,
+          foreignKey: null,
+        });
+
+        return true;
+      }
+
+      const parentTable = updatedSchema[parentTableIndex];
+      const isOneToOneRelation = foreignKeyData.relationType === 'oneToOne';
+
+      if (isOneToOneRelation) {
+        const parentHasOneArray = parentTable.hasOne;
+        const parentHasOneExists =
+          parentHasOneArray !== undefined && parentHasOneArray !== null;
+        const notAlreadyInParentHasOne =
+          parentHasOneExists && !parentHasOneArray.includes(table.tableName);
+
+        if (notAlreadyInParentHasOne) {
+          parentHasOneArray.push(table.tableName);
         }
       }
 
+      if (!isOneToOneRelation) {
+        const parentHasManyArray = parentTable.hasMany;
+        const parentHasManyExists =
+          parentHasManyArray !== undefined && parentHasManyArray !== null;
+        const notAlreadyInParentHasMany =
+          parentHasManyExists && !parentHasManyArray.includes(table.tableName);
+
+        if (notAlreadyInParentHasMany) {
+          parentHasManyArray.push(table.tableName);
+        }
+      }
+
+      const tableBelongsToArray = table.belongsTo;
+      const tableBelongsToExists =
+        tableBelongsToArray !== undefined && tableBelongsToArray !== null;
+      const notAlreadyInBelongsTo =
+        tableBelongsToExists &&
+        !tableBelongsToArray.includes(foreignKeyTableName);
+
+      if (notAlreadyInBelongsTo) {
+        tableBelongsToArray.push(foreignKeyTableName);
+      }
+
+      const tableForeignTablesArray = table.foreignTables;
+      const tableForeignTablesExists =
+        tableForeignTablesArray !== undefined &&
+        tableForeignTablesArray !== null;
+      const notAlreadyInForeignTables =
+        tableForeignTablesExists &&
+        !tableForeignTablesArray.includes(foreignKeyTableName);
+
+      if (notAlreadyInForeignTables) {
+        tableForeignTablesArray.push(foreignKeyTableName);
+      }
+
+      const parentChildTablesArray = parentTable.childTables;
+      const parentChildTablesExists =
+        parentChildTablesArray !== undefined && parentChildTablesArray !== null;
+      const notAlreadyInParentChildTables =
+        parentChildTablesExists &&
+        !parentChildTablesArray.includes(table.tableName);
+
+      if (notAlreadyInParentChildTables) {
+        parentChildTablesArray.push(table.tableName);
+      }
+
       setSchemaInfo(updatedSchema);
-      // Reset form
+      setColumnValidationError(null);
+
       setNewColumnFormData({
         columnName: '',
         dataType: 'string',
@@ -492,8 +780,17 @@ function SchemaBuilder() {
         isUnique: false,
         foreignKey: null,
       });
+
+      return true;
     },
-    [schemaInfo, selectedTableIndex, setSchemaInfo],
+    [
+      schemaInfo,
+      selectedTableIndex,
+      setSchemaInfo,
+      validateColumnName,
+      validateDataType,
+      getTypeScriptType,
+    ],
   );
 
   const handleForeignKeyChange = useCallback(
@@ -544,12 +841,14 @@ function SchemaBuilder() {
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>): void => {
       e.preventDefault();
-      addNewColumnToTable(newColumnFormData);
 
-      // Focus the column name input after successful submission
-      setTimeout(() => {
-        columnNameInputRef.current?.focus();
-      }, 100);
+      const success = addNewColumnToTable(newColumnFormData);
+
+      if (success) {
+        setTimeout(() => {
+          columnNameInputRef.current?.focus();
+        }, 100);
+      }
     },
     [addNewColumnToTable, newColumnFormData],
   );
@@ -593,11 +892,35 @@ function SchemaBuilder() {
   };
 
   const isFormValid = (): boolean => {
-    return Boolean(
-      newColumnFormData.columnName.trim() &&
-        newColumnFormData.dataType &&
-        (!newColumnFormData.foreignKey ||
-          newColumnFormData.foreignKey.relationType),
+    const hasValidationError =
+      columnValidationError !== null && columnValidationError !== undefined;
+
+    if (hasValidationError) {
+      return false;
+    }
+
+    const columnNameValidation = validateColumnName(
+      newColumnFormData.columnName,
+    );
+    const dataTypeValidation = validateDataType(newColumnFormData.dataType);
+
+    const isColumnNameValid = columnNameValidation.isValid;
+    const isDataTypeValid = dataTypeValidation.isValid;
+    const hasColumnName = newColumnFormData.columnName.trim().length > 0;
+    const hasDataType = newColumnFormData.dataType.length > 0;
+    const hasForeignKey = newColumnFormData.foreignKey !== null;
+    const hasRelationType =
+      hasForeignKey &&
+      newColumnFormData.foreignKey !== null &&
+      newColumnFormData.foreignKey.relationType.length > 0;
+    const isForeignKeyValid = !hasForeignKey || hasRelationType;
+
+    return (
+      isColumnNameValid &&
+      isDataTypeValid &&
+      hasColumnName &&
+      hasDataType &&
+      isForeignKeyValid
     );
   };
 
@@ -615,6 +938,72 @@ function SchemaBuilder() {
     [],
   );
 
+  const validateAndSaveColumnName = useCallback(
+    (column: IColumnInfo, tableIndex: number, columnIndex: number): boolean => {
+      const existingColumns = schemaInfo[tableIndex].columnsInfo;
+      const isDuplicateName = existingColumns.some(
+        (col, idx) =>
+          idx !== columnIndex &&
+          col.column_name.toLowerCase() === editingValue.toLowerCase(),
+      );
+
+      if (isDuplicateName) {
+        void promptModal({
+          title: 'Duplicate Column Name',
+          description: `Column name "${editingValue}" already exists in this table. Please choose a different name.`,
+          confirmButtonText: 'OK',
+          denyButtonText: 'Cancel',
+        });
+        return false;
+      }
+
+      const snakeCaseRegex = /^[a-z][a-z0-9_]*$/;
+      const isValidSnakeCase = snakeCaseRegex.test(editingValue);
+
+      if (!isValidSnakeCase) {
+        void promptModal({
+          title: 'Invalid Column Name',
+          description:
+            'Column name must be in snake_case format (lowercase letters, numbers, and underscores only).',
+          confirmButtonText: 'OK',
+          denyButtonText: 'Cancel',
+        });
+        return false;
+      }
+
+      column.column_name = editingValue;
+      return true;
+    },
+    [schemaInfo, editingValue, promptModal],
+  );
+
+  const validateAndSaveDataType = useCallback(
+    (column: IColumnInfo): boolean => {
+      const coreTypeMappingsKeys = Object.keys(typeMappings);
+      const customTypeMappingsKeys =
+        customTypeMappings !== undefined ? Object.keys(customTypeMappings) : [];
+      const allValidTypes = [
+        ...new Set([...coreTypeMappingsKeys, ...customTypeMappingsKeys]),
+      ];
+      const isValidType = allValidTypes.includes(editingValue);
+
+      if (!isValidType) {
+        void promptModal({
+          title: 'Invalid Data Type',
+          description: `Invalid data type "${editingValue}". Please select a valid type.`,
+          confirmButtonText: 'OK',
+          denyButtonText: 'Cancel',
+        });
+        return false;
+      }
+
+      const normalizedDataType = getTypeScriptType(editingValue);
+      column.data_type = normalizedDataType;
+      return true;
+    },
+    [customTypeMappings, editingValue, getTypeScriptType, promptModal],
+  );
+
   const handleCellSave = useCallback(
     (tableIndex: number, columnIndex: number, field: string): void => {
       if (!editingCell) {
@@ -623,33 +1012,59 @@ function SchemaBuilder() {
 
       const updatedSchemaInfo = [...schemaInfo];
       const column = updatedSchemaInfo[tableIndex].columnsInfo[columnIndex];
+      let isValidUpdate = true;
 
-      switch (field) {
-        case 'column_name':
-          column.column_name = editingValue;
-          break;
-        case 'data_type':
-          column.data_type = editingValue;
-          break;
-        case 'is_nullable':
-          column.is_nullable = editingValue;
-          break;
-        case 'column_default':
-          column.column_default = editingValue || null;
-          break;
-        case 'primary_key':
-          column.primary_key = editingValue === 'true' ? true : undefined;
-          break;
-        case 'unique':
-          column.unique = editingValue === 'true' ? true : undefined;
-          break;
+      const isColumnNameField = field === 'column_name';
+      const isDataTypeField = field === 'data_type';
+      const isNullableField = field === 'is_nullable';
+      const isDefaultField = field === 'column_default';
+      const isPrimaryKeyField = field === 'primary_key';
+      const isUniqueField = field === 'unique';
+
+      if (isColumnNameField) {
+        isValidUpdate = validateAndSaveColumnName(
+          column,
+          tableIndex,
+          columnIndex,
+        );
+      }
+
+      if (isDataTypeField) {
+        isValidUpdate = validateAndSaveDataType(column);
+      }
+
+      if (isNullableField) {
+        column.is_nullable = editingValue;
+      }
+
+      if (isDefaultField) {
+        column.column_default = editingValue || null;
+      }
+
+      if (isPrimaryKeyField) {
+        column.primary_key = editingValue === 'true' ? true : undefined;
+      }
+
+      if (isUniqueField) {
+        column.unique = editingValue === 'true' ? true : undefined;
+      }
+
+      if (!isValidUpdate) {
+        return;
       }
 
       setSchemaInfo(updatedSchemaInfo);
       setEditingCell(null);
       setEditingValue('');
     },
-    [editingCell, editingValue, schemaInfo, setSchemaInfo],
+    [
+      editingCell,
+      editingValue,
+      schemaInfo,
+      setSchemaInfo,
+      validateAndSaveColumnName,
+      validateAndSaveDataType,
+    ],
   );
 
   const handleCellCancel = useCallback((): void => {
@@ -695,7 +1110,9 @@ function SchemaBuilder() {
         (col) =>
           col.primary_key === true && col.column_name !== excludeColumnName,
       );
-      return primaryKeyColumn ? primaryKeyColumn.column_name : null;
+      return primaryKeyColumn !== undefined
+        ? primaryKeyColumn.column_name
+        : null;
     },
     [schemaInfo],
   );
@@ -706,7 +1123,7 @@ function SchemaBuilder() {
         tableIndex,
         columnName,
       );
-      return existingPrimaryKey === null;
+      return existingPrimaryKey === null || existingPrimaryKey === undefined;
     },
     [getExistingPrimaryKeyColumn],
   );
@@ -1835,7 +2252,18 @@ function SchemaBuilder() {
                                             }
                                           }}
                                         >
-                                          {column.data_type}
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">
+                                              {getDatabaseType(
+                                                column.data_type,
+                                              )}
+                                            </span>
+                                            <span className="text-xs text-gray-400">
+                                              {getTypeScriptType(
+                                                column.data_type,
+                                              )}
+                                            </span>
+                                          </div>
                                         </button>
                                       )}
                                     </td>
@@ -2270,6 +2698,38 @@ function SchemaBuilder() {
                         </h4>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
+                          {columnValidationError !== null &&
+                            columnValidationError !== undefined && (
+                              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
+                                <div className="flex-1">
+                                  <p className="text-sm text-red-200 mt-1">
+                                    {columnValidationError}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setColumnValidationError(null);
+                                  }}
+                                  className="text-red-300 hover:text-red-200 transition-colors"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
@@ -2531,7 +2991,8 @@ function SchemaBuilder() {
                             </button>
 
                             {showSeedDataSuccess &&
-                              schemaInfo[selectedTableIndex].data && (
+                              schemaInfo[selectedTableIndex].data !==
+                                undefined && (
                                 <span className="text-sm text-green-400">
                                   ✓ Seed data saved (
                                   {schemaInfo[selectedTableIndex].data.length ||

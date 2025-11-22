@@ -12,7 +12,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
 interface IStore {
   userFiles: IStructure;
   projects: IFile[];
-  typeMappings: Record<string, unknown> | undefined;
+  typeMappings: Record<PropertyKey, unknown> | undefined;
   setUserFiles: (userFiles: IStructure) => void;
 }
 
