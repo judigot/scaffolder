@@ -67,8 +67,8 @@ const resolveCoreImport = (
  * Loads core files with support for core imports from structure.yaml
  *
  * Supports both single string and array formats:
- * - Single: `$CORE: /Core/vite`
- * - Multiple: `$CORE: [/Core/vite, /Core/extra]`
+ * - Single: `$USE_CORE: /Core/vite`
+ * - Multiple: `$USE_CORE: [/Core/vite, /Core/extra]`
  *
  * Merge order (later wins):
  * 1. Core imports (in array order if array, or single import if string)
@@ -101,8 +101,12 @@ export const loadCoreFiles = (
     try {
       const parsed: unknown = parse(structureFile.content);
 
-      if (parsed !== null && typeof parsed === 'object' && '$CORE' in parsed) {
-        const coreValue = parsed.$CORE;
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        '$USE_CORE' in parsed
+      ) {
+        const coreValue = parsed.$USE_CORE;
 
         let corePaths: string[] = [];
 

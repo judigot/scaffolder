@@ -6,7 +6,7 @@ Reusable core templates that can be imported by multiple projects.
 
 ### Single Core Import
 ```yaml
-$CORE: /Core/vite
+$USE_CORE: /Core/vite
 
 src:
   IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
@@ -14,7 +14,7 @@ src:
 
 ### Multiple Core Imports
 ```yaml
-$CORE:
+$USE_CORE:
   - /Core/vite
   - /Core/react
   - /Core/extra
@@ -37,7 +37,7 @@ src:
 
 ```yaml
 # structure.yaml
-$CORE:
+$USE_CORE:
   - /Core/vite      # Base
   - /Core/react     # Overrides vite
 
@@ -53,7 +53,7 @@ $CORE:
 
 1. Create folder in `src/files/Core/`
 2. Add your template files
-3. Reference in `structure.yaml` with `$CORE:`
+3. Reference in `structure.yaml` with `$USE_CORE:`
 
 ```
 Core/
@@ -66,7 +66,7 @@ Core/
 
 Use:
 ```yaml
-$CORE: /Core/my-template
+$USE_CORE: /Core/my-template
 ```
 
 ## Notes

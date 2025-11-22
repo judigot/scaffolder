@@ -59,7 +59,7 @@ describe('loadCoreFiles', () => {
             {
               type: 'file',
               name: 'structure.yaml',
-              content: '$CORE: /Core/vite\nsrc:\n  - index.ts',
+              content: '$USE_CORE: /Core/vite\nsrc:\n  - index.ts',
             },
             {
               type: 'folder',
@@ -82,7 +82,7 @@ describe('loadCoreFiles', () => {
               type: 'file',
               name: 'structure.yaml',
               content:
-                '$CORE:\n  - /Core/vite\n  - /Core/react\nsrc:\n  - index.ts',
+                '$USE_CORE:\n  - /Core/vite\n  - /Core/react\nsrc:\n  - index.ts',
             },
           ],
         },
@@ -198,7 +198,7 @@ describe('loadCoreFiles', () => {
               {
                 type: 'file',
                 name: 'structure.yaml',
-                content: '$CORE: /Core/base\nsrc:\n  - index.ts',
+                content: '$USE_CORE: /Core/base\nsrc:\n  - index.ts',
               },
               {
                 type: 'folder',
@@ -252,7 +252,7 @@ describe('loadCoreFiles', () => {
               {
                 type: 'file',
                 name: 'structure.yaml',
-                content: '$CORE: /Core/nonexistent\nsrc:\n  - index.ts',
+                content: '$USE_CORE: /Core/nonexistent\nsrc:\n  - index.ts',
               },
             ],
           },

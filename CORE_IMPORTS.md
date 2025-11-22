@@ -2,13 +2,13 @@
 
 ## Overview
 
-The core imports feature allows you to reuse shared core files across multiple projects using the `$CORE` keyword in `structure.yaml`.
+The core imports feature allows you to reuse shared core files across multiple projects using the `$USE_CORE` keyword in `structure.yaml`.
 
 ## Syntax
 
 ### Single Import
 ```yaml
-$CORE: /Core/vite
+$USE_CORE: /Core/vite
 
 src:
   IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
@@ -16,7 +16,7 @@ src:
 
 ### Multiple Imports
 ```yaml
-$CORE:
+$USE_CORE:
   - /Core/vite
   - /Core/react
   - /Core/extra-core-files
@@ -60,7 +60,7 @@ Express React/core/
 
 **structure.yaml:**
 ```yaml
-$CORE: /Core/vite
+$USE_CORE: /Core/vite
 
 src:
   IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
@@ -98,7 +98,7 @@ src/files/
         │   ├── package.json   # Overrides /Core/vite/package.json
         │   └── config/
         └── structure.yaml
-            # $CORE: /Core/vite
+            # $USE_CORE: /Core/vite
 ```
 
 ## Key Features
@@ -106,7 +106,7 @@ src/files/
 ### ✅ Composable
 Mix and match multiple core templates:
 ```yaml
-$CORE:
+$USE_CORE:
   - /Core/node     # Base Node.js setup
   - /Core/vite     # Vite configuration
   - /Core/react    # React setup
@@ -122,13 +122,13 @@ Project-specific `core/` folder always wins conflicts.
 `core/` and `Core/` folders are automatically excluded from final output.
 
 ### ✅ Backward Compatible
-Projects without `$CORE` still work with local `core/` folder only.
+Projects without `$USE_CORE` still work with local `core/` folder only.
 
 ## Use Cases
 
 ### Simple Project
 ```yaml
-$CORE: /Core/vite
+$USE_CORE: /Core/vite
 
 src:
   - index.html
@@ -138,7 +138,7 @@ src:
 
 ### Composed Project
 ```yaml
-$CORE:
+$USE_CORE:
   - /Core/node
   - /Core/vite
   - /Core/react
@@ -149,7 +149,7 @@ src:
 
 ### With Custom Overrides
 ```yaml
-$CORE: /Core/vite
+$USE_CORE: /Core/vite
 
 # Local core/package.json adds project-specific dependencies
 # Local core/vite.config.js adds custom Vite plugins
@@ -163,7 +163,7 @@ src:
 ### Core Functions
 
 **1. `loadCoreFiles.ts`**
-- Parses `$CORE` from structure.yaml
+- Parses `$USE_CORE` from structure.yaml
 - Supports string and array formats
 - Resolves core import paths
 - Merges in priority order
@@ -176,7 +176,7 @@ src:
 - Dynamic conflict resolution
 
 **3. `buildProjectFiles.ts`**
-- Strips `$CORE` before processing YAML
+- Strips `$USE_CORE` before processing YAML
 - Filters `core` and `Core` from output
 - Returns clean project structure
 
@@ -232,5 +232,5 @@ The core imports feature provides:
 - ✅ Tested - comprehensive test suite
 - ✅ Zero linter errors - production ready
 
-**Use `$CORE` to share common files across projects while maintaining project-specific control!**
+**Use `$USE_CORE` to share common files across projects while maintaining project-specific control!**
 

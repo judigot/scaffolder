@@ -109,10 +109,10 @@ export const buildProjectFiles = (
       parsedYaml !== null &&
       typeof parsedYaml === 'object' &&
       !Array.isArray(parsedYaml) &&
-      '$CORE' in parsedYaml
+      '$USE_CORE' in parsedYaml
     ) {
       const entries = Object.entries(parsedYaml).filter(
-        ([key]) => key !== '$CORE',
+        ([key]) => key !== '$USE_CORE',
       );
       yamlStructureToProcess = Object.fromEntries(entries);
     }

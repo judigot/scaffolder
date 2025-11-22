@@ -1,4 +1,4 @@
-$CORE:
+$USE_CORE:
   - /Core/vite
   - /Core/extra-core-files
 src:
