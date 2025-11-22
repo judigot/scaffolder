@@ -32,20 +32,20 @@ const fetchGitHubFiles = async (
   }
 
   try {
-    const response = await fetch(
-      isUsingLocalFiles
-        ? `${String(import.meta.env.VITE_BACKEND_URL)}/getUserFiles`
-        : `${String(import.meta.env.VITE_BACKEND_URL)}/getUserFilesFromPublicRepo`,
-      {
-        method: isUsingLocalFiles ? 'GET' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: isUsingLocalFiles
-          ? undefined
-          : JSON.stringify({ publicRepoURL: params.publicRepoURL }),
+    const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
+    const apiUrl = isUsingLocalFiles
+      ? `${backendUrl}/getUserFiles`
+      : `${backendUrl}/getUserFilesFromPublicRepo`;
+
+    const response = await fetch(apiUrl, {
+      method: isUsingLocalFiles ? 'GET' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    );
+      body: isUsingLocalFiles
+        ? undefined
+        : JSON.stringify({ publicRepoURL: params.publicRepoURL }),
+    });
 
     if (!response.ok) {
       // Using assertion functions instead of 'as' operator
