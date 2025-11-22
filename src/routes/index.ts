@@ -5,9 +5,10 @@ import introspectRouter from './introspect.ts';
 import userFilesRouter from './getUserFiles.ts';
 import getUserFilesFromPublicRepoRouter from './getUserFilesFromPublicRepo.ts';
 import createLocalFilesRouter from './createLocalFiles.ts';
-
+import helloRouter from './hello.ts';
 const router = Router();
 
+router.use(helloRouter);
 router.use(executeCustomSchemaRouter);
 router.use(scaffoldRouter);
 router.use(introspectRouter);
