@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useFormStore } from '@/useFormStore.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
@@ -19,6 +20,7 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 
 function App() {
+  const { logout, user } = useAuth0();
   const formData = useFormStore();
   const {
     backendUrl,
@@ -270,10 +272,36 @@ function App() {
         </div>
       )}
 
-      <nav className="bg-gray-900 text-white p-2 sticky top-0 z-50 text-center">
+      <nav className="bg-gray-900 text-white p-2 sticky top-0 z-50 text-center border-b border-gray-700">
+        <div className="absolute right-4 top-4 flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-semibold">
+              {user?.name?.charAt(0).toUpperCase() ??
+                user?.email?.charAt(0).toUpperCase() ??
+                'U'}
+            </div>
+            <span className="text-gray-300 text-sm">
+              Hi,{' '}
+              <span className="font-medium text-white">
+                {user?.name ?? user?.email ?? 'User'}
+              </span>
+            </span>
+          </div>
+          <span className="text-gray-600">|</span>
+          <button
+            onClick={() => {
+              void logout({
+                logoutParams: { returnTo: window.location.origin },
+              });
+            }}
+            className="text-gray-400 hover:text-white transition-colors cursor-pointer bg-transparent border-none focus:outline-none text-sm"
+          >
+            Logout
+          </button>
+        </div>
         <div className="inline-block">
           <h1 className="text-2xl font-bold inline-block pl-5 pr-5">
-            App Generator
+            Scaffolder
           </h1>
         </div>
         <form id="appGeneratorForm" name="appGeneratorForm">

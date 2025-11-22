@@ -1,4 +1,4 @@
-export const watermark = 'Owner: App Scaffolder';
+export const watermark = 'Owner: Scaffolder';
 
 export const IGNORED_TABLES_LARAVEL: string[] = [
   'migrations',
