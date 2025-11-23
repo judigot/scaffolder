@@ -32,6 +32,7 @@ export default defineConfig([
     '**/tailwind.config.js',
     '**/postcss.config.js',
     '**/vitest.setup.ts',
+    '**/docs',
 
     '.next/**',
     'out/**',
