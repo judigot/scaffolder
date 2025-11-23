@@ -136,6 +136,29 @@ primaryKey:
     - 'int'
     - 'tinyint'
 
+foreignKey:
+  info:
+    group: 'Templates'
+  mysql: 'BIGINT'
+  postgresql: 'BIGINT'
+  typescript: 'number'
+  postgresql-introspected:
+    - 'bigint'
+    - 'serial'
+    - 'serial8'
+    - 'serial4'
+    - 'uuid'
+    - 'bigserial'
+    - 'smallserial'
+    - 'smallint'
+    - 'integer'
+  mysql-introspected:
+    - 'bigint'
+    - 'uuid'
+    - 'serial'
+    - 'int'
+    - 'tinyint'
+
 password:
   info:
     group: 'Templates'

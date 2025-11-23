@@ -643,12 +643,10 @@ function SchemaBuilder() {
       const updatedSchema = [...schemaInfo];
       const table = updatedSchema[selectedTableIndex];
 
-      const normalizedDataType = getTypeScriptType(columnData.dataType);
-
       // Create the new column
       const newColumn: IColumnInfo = {
         column_name: columnData.columnName,
-        data_type: normalizedDataType,
+        data_type: columnData.dataType,
         is_nullable: columnData.isNullable ? 'YES' : 'NO',
         column_default:
           columnData.defaultValue === '' ? undefined : columnData.defaultValue,
@@ -789,7 +787,6 @@ function SchemaBuilder() {
       setSchemaInfo,
       validateColumnName,
       validateDataType,
-      getTypeScriptType,
     ],
   );
 
@@ -997,11 +994,10 @@ function SchemaBuilder() {
         return false;
       }
 
-      const normalizedDataType = getTypeScriptType(editingValue);
-      column.data_type = normalizedDataType;
+      column.data_type = editingValue;
       return true;
     },
-    [customTypeMappings, editingValue, getTypeScriptType, promptModal],
+    [customTypeMappings, editingValue, promptModal],
   );
 
   const handleCellSave = useCallback(
@@ -2258,9 +2254,25 @@ function SchemaBuilder() {
                                         >
                                           <div className="flex flex-col">
                                             <span className="font-medium">
-                                              {getDatabaseType(
-                                                column.data_type,
-                                              )}
+                                              {(() => {
+                                                let effectiveType: string =
+                                                  column.data_type;
+                                                if (
+                                                  column.primary_key === true
+                                                ) {
+                                                  effectiveType = 'primaryKey';
+                                                }
+
+                                                if (
+                                                  column.foreign_key !==
+                                                  undefined
+                                                ) {
+                                                  effectiveType = 'foreignKey';
+                                                }
+                                                return getDatabaseType(
+                                                  effectiveType,
+                                                );
+                                              })()}
                                             </span>
                                             <span className="text-xs text-gray-400">
                                               {getTypeScriptType(

@@ -20,7 +20,7 @@ export type ISchemaInfoSlim = {
 
 export interface IColumnInfo {
   column_name: string;
-  data_type: 'string' | 'number' | 'float' | 'boolean' | 'Date';
+  data_type: string;
   is_nullable: string;
   column_default?: string | null;
   primary_key?: true;
