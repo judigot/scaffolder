@@ -1,5 +1,5 @@
-import { typeMappings } from '@/utils/mappings.ts';
 import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
 interface IConversionParams {
   value: unknown;
@@ -11,20 +11,44 @@ interface IConversionParams {
     | 'mysql-introspected';
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
+
 const convertType = ({ value, targetType }: IConversionParams): string => {
+  const typeMappings = useMockDatabaseStore.getState().typeMappings;
+  if (!typeMappings || !isRecord(typeMappings)) {
+    return '';
+  }
+
   const identifiedType = identifyTSPrimitiveType(value);
   if (identifiedType in typeMappings) {
-    const targetTypeValue = typeMappings[identifiedType][targetType];
-    if (Array.isArray(targetTypeValue)) {
-      return targetTypeValue[0]; // Or handle arrays in a more appropriate way if needed
+    const mapping = typeMappings[identifiedType];
+    if (isRecord(mapping) && targetType in mapping) {
+      const targetTypeValue = mapping[targetType];
+      if (Array.isArray(targetTypeValue) && targetTypeValue.length > 0) {
+        const firstValue: unknown = targetTypeValue[0];
+        return typeof firstValue === 'string' ? firstValue : '';
+      }
+      if (typeof targetTypeValue === 'string') {
+        return targetTypeValue;
+      }
     }
-    return targetTypeValue;
   }
-  const fallbackValue = typeMappings.string[targetType];
-  if (Array.isArray(fallbackValue)) {
-    return fallbackValue[0]; // Or handle arrays in a more appropriate way if needed
+
+  const stringMapping = typeMappings.string;
+  if (isRecord(stringMapping) && targetType in stringMapping) {
+    const fallbackValue = stringMapping[targetType];
+    if (Array.isArray(fallbackValue) && fallbackValue.length > 0) {
+      const firstValue: unknown = fallbackValue[0];
+      return typeof firstValue === 'string' ? firstValue : '';
+    }
+    if (typeof fallbackValue === 'string') {
+      return fallbackValue;
+    }
   }
-  return fallbackValue; // Fallback to string if type not found
+
+  return '';
 };
 
 export default convertType;

@@ -18,7 +18,6 @@ import useTransformationsStore from '@/useTransformationsStore.ts';
 import yaml from 'yaml';
 import DataTypeSelector from '@/components/DataTypeSelector.tsx';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
-import { typeMappings } from '@/utils/mappings.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
@@ -98,14 +97,22 @@ function SchemaBuilder() {
         return dataType;
       }
 
-      const coreTypeMapping = typeMappings[dataType];
+      const typeMappings = useMockDatabaseStore.getState().typeMappings;
+      const isRecord = (value: unknown): value is Record<string, unknown> => {
+        return (
+          value !== null && typeof value === 'object' && !Array.isArray(value)
+        );
+      };
 
-      if (
-        coreTypeMapping !== undefined &&
-        currentDbType in coreTypeMapping &&
-        typeof coreTypeMapping[currentDbType] === 'string'
-      ) {
-        return coreTypeMapping[currentDbType];
+      if (typeMappings && isRecord(typeMappings) && dataType in typeMappings) {
+        const coreTypeMapping = typeMappings[dataType];
+        if (
+          isRecord(coreTypeMapping) &&
+          currentDbType in coreTypeMapping &&
+          typeof coreTypeMapping[currentDbType] === 'string'
+        ) {
+          return coreTypeMapping[currentDbType];
+        }
       }
 
       const hasCustomMappings = customTypeMappings !== undefined;
@@ -128,17 +135,27 @@ function SchemaBuilder() {
 
   const getTypeScriptType = useCallback(
     (dataType: string): 'string' | 'number' | 'float' | 'boolean' | 'Date' => {
-      const coreTypeMapping = typeMappings[dataType];
-      if (coreTypeMapping !== undefined && 'typescript' in coreTypeMapping) {
-        const tsType = coreTypeMapping.typescript;
-        if (
-          tsType === 'string' ||
-          tsType === 'number' ||
-          tsType === 'float' ||
-          tsType === 'boolean' ||
-          tsType === 'Date'
-        ) {
-          return tsType;
+      const typeMappings = useMockDatabaseStore.getState().typeMappings;
+      const isRecord = (value: unknown): value is Record<string, unknown> => {
+        return (
+          value !== null && typeof value === 'object' && !Array.isArray(value)
+        );
+      };
+
+      if (typeMappings && isRecord(typeMappings) && dataType in typeMappings) {
+        const coreTypeMapping = typeMappings[dataType];
+        if (isRecord(coreTypeMapping) && 'typescript' in coreTypeMapping) {
+          const tsType = coreTypeMapping.typescript;
+          if (
+            typeof tsType === 'string' &&
+            (tsType === 'string' ||
+              tsType === 'number' ||
+              tsType === 'float' ||
+              tsType === 'boolean' ||
+              tsType === 'Date')
+          ) {
+            return tsType;
+          }
         }
       }
 
@@ -232,7 +249,11 @@ function SchemaBuilder() {
         return { isValid: false, error: 'Data type is required' };
       }
 
-      const coreTypeMappingsKeys = Object.keys(typeMappings);
+      const typeMappings = useMockDatabaseStore.getState().typeMappings;
+      const coreTypeMappingsKeys =
+        typeMappings && typeof typeMappings === 'object'
+          ? Object.keys(typeMappings)
+          : [];
       const hasCustomMappings = customTypeMappings !== undefined;
       const customTypeMappingsKeys = hasCustomMappings
         ? Object.keys(customTypeMappings)
@@ -980,7 +1001,11 @@ function SchemaBuilder() {
 
   const validateAndSaveDataType = useCallback(
     (column: IColumnInfo): boolean => {
-      const coreTypeMappingsKeys = Object.keys(typeMappings);
+      const typeMappings = useMockDatabaseStore.getState().typeMappings;
+      const coreTypeMappingsKeys =
+        typeMappings && typeof typeMappings === 'object'
+          ? Object.keys(typeMappings)
+          : [];
       const customTypeMappingsKeys =
         customTypeMappings !== undefined ? Object.keys(customTypeMappings) : [];
       const allValidTypes = [

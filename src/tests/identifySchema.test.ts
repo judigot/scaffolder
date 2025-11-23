@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import identifySchema from '@/utils/identifySchema.ts';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
@@ -6,8 +6,19 @@ import {
   usersPostsOneToManySchema,
   POSSchema,
 } from '@/json-schemas/index.ts';
+import {
+  setupTypeMappings,
+  teardownTypeMappings,
+} from '@/tests/helpers/setupTypeMappings.ts';
 
 describe('identifySchema', () => {
+  beforeEach(() => {
+    setupTypeMappings();
+  });
+
+  afterEach(() => {
+    teardownTypeMappings();
+  });
   it('should correctly identify the full structure for usersPostOneToOneSchema', () => {
     const schemaInfo = identifySchema(usersPostOneToOneSchema);
 

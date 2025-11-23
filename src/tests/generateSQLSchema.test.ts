@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables.ts';
 import generateSQLSchema from '@/utils/generateSQLSchema.ts';
 import { format as formatSQL } from 'sql-formatter';
@@ -6,11 +6,23 @@ import { APP_SETTINGS } from '@/constants.ts';
 import manyToMany from '@/schema-infos/manyToMany.ts';
 import oneToMany from '@/schema-infos/oneToMany.ts';
 import oneToOne from '@/schema-infos/oneToOne.ts';
+import {
+  setupTypeMappings,
+  teardownTypeMappings,
+} from '@/tests/helpers/setupTypeMappings.ts';
 
 describe('generateSQLSchema', () => {
   const userPostOneToOneSchemaInfo = oneToOne;
   const userPostsOneToManySchemaInfo = oneToMany;
   const POSSchemaInfo = manyToMany;
+
+  beforeEach(() => {
+    setupTypeMappings();
+  });
+
+  afterEach(() => {
+    teardownTypeMappings();
+  });
 
   it('should generate correct SQL schema for one-to-one relationship', () => {
     const deleteTablesQueries = generateSQLDeleteTables(

@@ -5,29 +5,60 @@ import {
   type IIntrospectedSchemaInfo,
 } from '@/interfaces/interfaces.ts';
 import { addSchemaInfo } from '@/utils/identifySchema.ts';
-import { typeMappings } from '@/utils/mappings.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
 
 export const getTypeScriptType = (dataType: string): string => {
-  // Normalize the data type to lowercase
-  const identifiedType = dataType.toLowerCase();
-
-  // Check if the identified type directly exists in typeMappings
-  if (identifiedType in typeMappings) {
-    return typeMappings[identifiedType].typescript;
+  const typeMappings = useMockDatabaseStore.getState().typeMappings;
+  if (!typeMappings || !isRecord(typeMappings)) {
+    return 'string';
   }
 
-  // Iterate through the typeMappings to find a matching introspected type
-  for (const mappings of Object.values(typeMappings)) {
-    if (
-      mappings['postgresql-introspected'].includes(identifiedType) ||
-      mappings['mysql-introspected'].includes(identifiedType)
-    ) {
-      return mappings.typescript;
+  const identifiedType = dataType.toLowerCase();
+
+  if (identifiedType in typeMappings) {
+    const mapping = typeMappings[identifiedType];
+    if (isRecord(mapping) && 'typescript' in mapping) {
+      const tsType = mapping.typescript;
+      if (typeof tsType === 'string') {
+        return tsType;
+      }
     }
   }
 
-  // Fallback to string if no match is found
-  return typeMappings.string.typescript;
+  for (const mapping of Object.values(typeMappings)) {
+    if (!isRecord(mapping)) {
+      continue;
+    }
+
+    const postgresqlIntrospected = mapping['postgresql-introspected'];
+    const mysqlIntrospected = mapping['mysql-introspected'];
+
+    if (
+      (Array.isArray(postgresqlIntrospected) &&
+        postgresqlIntrospected.includes(identifiedType)) ||
+      (Array.isArray(mysqlIntrospected) &&
+        mysqlIntrospected.includes(identifiedType))
+    ) {
+      const tsType = mapping.typescript;
+      if (typeof tsType === 'string') {
+        return tsType;
+      }
+    }
+  }
+
+  const stringMapping = typeMappings.string;
+  if (isRecord(stringMapping) && 'typescript' in stringMapping) {
+    const tsType = stringMapping.typescript;
+    if (typeof tsType === 'string') {
+      return tsType;
+    }
+  }
+
+  return 'string';
 };
 
 export const getRequiredColumns = (columns: IColumnInfo[]): string[] =>

@@ -222,6 +222,12 @@ export const useTransformationsStore = create<ITransformations>()(
         }
       },
       setTransformations: (tempSchemaInfo?: ISchemaInfo[] | null) => {
+        const { typeMappings } = useMockDatabaseStore.getState();
+
+        if (!typeMappings || Object.keys(typeMappings).length === 0) {
+          return;
+        }
+
         const { includeInsertData, insertOption, includeTypeGuards } =
           useFormStore.getState();
 

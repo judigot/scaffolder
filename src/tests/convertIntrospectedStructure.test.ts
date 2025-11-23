@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 import type {
   IIntrospectedSchemaInfo,
@@ -7,8 +7,19 @@ import type {
 import manyToMany from '@/schema-infos/manyToMany.ts';
 import oneToMany from '@/schema-infos/oneToMany.ts';
 import oneToOne from '@/schema-infos/oneToOne.ts';
+import {
+  setupTypeMappings,
+  teardownTypeMappings,
+} from '@/tests/helpers/setupTypeMappings.ts';
 
 describe('convertIntrospectedStructure', () => {
+  beforeEach(() => {
+    setupTypeMappings();
+  });
+
+  afterEach(() => {
+    teardownTypeMappings();
+  });
   const usersPostOneToOneSchema: IIntrospectedSchemaInfo[] = [
     {
       table_name: 'post',

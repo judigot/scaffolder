@@ -1,5 +1,5 @@
 import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
-import { typeMappings } from '@/utils/mappings.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 /**
  * Summarizes the value types of keys in an array of objects.
  *
@@ -324,14 +324,28 @@ export function generateInterface({
         }
 
         const valueType = identifyTSPrimitiveType(value);
-        const isValidMapping = (
-          type: string,
-        ): type is keyof typeof typeMappings => {
-          return Object.hasOwn(typeMappings, type);
+        const typeMappings = useMockDatabaseStore.getState().typeMappings;
+        const isRecord = (value: unknown): value is Record<string, unknown> => {
+          return (
+            value !== null && typeof value === 'object' && !Array.isArray(value)
+          );
         };
-        const mappedType = isValidMapping(valueType)
-          ? typeMappings[valueType].typescript
-          : valueType;
+
+        let mappedType = valueType;
+        if (
+          typeMappings &&
+          isRecord(typeMappings) &&
+          valueType in typeMappings
+        ) {
+          const mapping = typeMappings[valueType];
+          if (isRecord(mapping) && 'typescript' in mapping) {
+            const tsType = mapping.typescript;
+            if (typeof tsType === 'string') {
+              mappedType = tsType;
+            }
+          }
+        }
+
         return `${indent}${key}${isOptional}: ${mappedType};`;
       })
       .join('\n');

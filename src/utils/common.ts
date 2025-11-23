@@ -8,14 +8,13 @@ import type {
 import type { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
-import { typeMappings as fallbackTypeMappings } from '@/utils/mappings.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import pluralize from 'pluralize';
 
 const getTypeMappings = (): Record<PropertyKey, unknown> => {
   const storeTypeMappings = useMockDatabaseStore.getState().typeMappings;
   if (!storeTypeMappings || Object.keys(storeTypeMappings).length === 0) {
-    return fallbackTypeMappings;
+    return {};
   }
   return storeTypeMappings;
 };

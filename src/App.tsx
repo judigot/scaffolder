@@ -60,7 +60,7 @@ function App() {
   });
 
   // Use both stores
-  const { setUserFiles } = useMockDatabaseStore();
+  const { setUserFiles, typeMappings } = useMockDatabaseStore();
 
   const {
     projects,
@@ -195,12 +195,16 @@ function App() {
   ]);
 
   useEffect(() => {
+    if (!typeMappings || Object.keys(typeMappings).length === 0) {
+      return;
+    }
     setTransformations();
   }, [
     dbType, // Don't remove! This changes the quote used in the database schema
     includeInsertData, // Don't remove! This toggles mock data generation
     includeTypeGuards, // Don't remove! This toggles type guards generation in the UI
     schemaInfo,
+    typeMappings, // Don't remove! Transformations must wait for typeMappings to load
     setTransformations,
   ]);
 
