@@ -253,7 +253,7 @@ export const purgeForeignKeyTraces = (
       columnsInfo: updatedColumnsInfo,
     };
 
-    // Helper function to filter arrays
+    // Helper function to filter arrays and return cleaned array or undefined
     const filterArray = (
       array: string[] | undefined,
       filterFn: (item: string) => boolean,
@@ -289,13 +289,13 @@ export const purgeForeignKeyTraces = (
       existingTableNames.has(t),
     );
 
-    const requiredColumns = filterArray(
-      table.requiredColumns,
-      (col) => !removedColumnNames.has(col),
-    );
-
-    if (requiredColumns && requiredColumns.length > 0) {
-      updatedTable.requiredColumns = requiredColumns;
+    // Clean up requiredColumns
+    if (table.requiredColumns?.length != null) {
+      const requiredColumns = table.requiredColumns.filter(
+        (col) => !removedColumnNames.has(col),
+      );
+      updatedTable.requiredColumns =
+        requiredColumns.length > 0 ? requiredColumns : undefined;
     }
 
     // Clean up pivot relationships

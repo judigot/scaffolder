@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import type { ITableInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import type {
+  ITableInfo,
+  IColumnInfo,
+  ISchemaInfo,
+} from '@/interfaces/interfaces.ts';
 import {
   addRelationship,
   purgeForeignKeyTraces,
@@ -524,33 +528,33 @@ function SchemaBuilder() {
     ];
 
     /* Remove these tables and clean references */
-    const updatedSchema = schemaInfo
+    const updatedSchema: ISchemaInfo[] = schemaInfo
       .filter((table) => !tablesToRemove.includes(table.tableName))
       .map((table) => {
+        const updatedTable = { ...table };
+
         relationshipKeys.forEach((relation) => {
-          const currentRelations = table[relation];
+          const currentRelations = updatedTable[relation];
           if (currentRelations && Array.isArray(currentRelations)) {
             const relationsValue = currentRelations.filter(
               (rel) => !tablesToRemove.includes(rel),
             );
-            if (relationsValue.length > 0) {
-              table[relation] = [...relationsValue];
-            }
+            updatedTable[relation] =
+              relationsValue.length > 0 ? [...relationsValue] : undefined;
           }
         });
 
-        if (table.pivotRelationships) {
-          const pivotRelationships = table.pivotRelationships.filter(
+        if (updatedTable.pivotRelationships) {
+          const pivotRelationships = updatedTable.pivotRelationships.filter(
             (rel) =>
               !tablesToRemove.includes(rel.relatedTable) &&
               !tablesToRemove.includes(rel.pivotTable),
           );
-          if (pivotRelationships.length > 0) {
-            table.pivotRelationships = [...pivotRelationships];
-          }
+          updatedTable.pivotRelationships =
+            pivotRelationships.length > 0 ? [...pivotRelationships] : undefined;
         }
 
-        return table;
+        return cleanUpEmptyArrays(updatedTable);
       });
 
     setSchemaInfo(purgeForeignKeyTraces(updatedSchema));
@@ -1124,6 +1128,100 @@ function SchemaBuilder() {
     [getExistingPrimaryKeyColumn],
   );
 
+  function cleanUpEmptyArrays(table: ISchemaInfo): ISchemaInfo;
+  function cleanUpEmptyArrays(table: ITableInfo): ITableInfo;
+  function cleanUpEmptyArrays(table: ITableInfo): ITableInfo {
+    // Helper function to check if array exists and is not empty
+    const hasItems = (array: unknown[] | undefined): array is unknown[] => {
+      return array != null && array.length > 0;
+    };
+
+    // Helper type guard to check if table is ISchemaInfo
+    function isISchemaInfo(t: ITableInfo): t is ISchemaInfo {
+      return 'columnsInfo' in t;
+    }
+
+    // Start with a clean ISchemaInfo object if the table has columnsInfo
+    if (isISchemaInfo(table)) {
+      const schemaTable = table;
+      const cleaned: ISchemaInfo = {
+        tableName: schemaTable.tableName,
+        columnsInfo: [...schemaTable.columnsInfo],
+      };
+
+      // Only add non-empty arrays
+      if (hasItems(schemaTable.hasOne)) {
+        cleaned.hasOne = [...schemaTable.hasOne];
+      }
+      if (hasItems(schemaTable.hasMany)) {
+        cleaned.hasMany = [...schemaTable.hasMany];
+      }
+      if (hasItems(schemaTable.belongsTo)) {
+        cleaned.belongsTo = [...schemaTable.belongsTo];
+      }
+      if (hasItems(schemaTable.belongsToMany)) {
+        cleaned.belongsToMany = [...schemaTable.belongsToMany];
+      }
+      if (hasItems(schemaTable.foreignTables)) {
+        cleaned.foreignTables = [...schemaTable.foreignTables];
+      }
+      if (hasItems(schemaTable.childTables)) {
+        cleaned.childTables = [...schemaTable.childTables];
+      }
+      if (hasItems(schemaTable.requiredColumns)) {
+        cleaned.requiredColumns = [...schemaTable.requiredColumns];
+      }
+      if (hasItems(schemaTable.foreignKeys)) {
+        cleaned.foreignKeys = [...schemaTable.foreignKeys];
+      }
+      if (hasItems(schemaTable.pivotRelationships)) {
+        cleaned.pivotRelationships = [...schemaTable.pivotRelationships];
+      }
+
+      // Copy other optional properties
+      if (schemaTable.isPivot !== undefined) {
+        cleaned.isPivot = schemaTable.isPivot;
+      }
+      if (schemaTable.data !== undefined && schemaTable.data.length > 0) {
+        cleaned.data = [...schemaTable.data];
+      }
+
+      return cleaned;
+    }
+
+    // Fallback for plain ITableInfo
+    const cleaned: ITableInfo = {
+      tableName: table.tableName,
+    };
+
+    if (hasItems(table.hasOne)) {
+      cleaned.hasOne = [...table.hasOne];
+    }
+    if (hasItems(table.hasMany)) {
+      cleaned.hasMany = [...table.hasMany];
+    }
+    if (hasItems(table.belongsTo)) {
+      cleaned.belongsTo = [...table.belongsTo];
+    }
+    if (hasItems(table.belongsToMany)) {
+      cleaned.belongsToMany = [...table.belongsToMany];
+    }
+    if (hasItems(table.foreignTables)) {
+      cleaned.foreignTables = [...table.foreignTables];
+    }
+    if (hasItems(table.childTables)) {
+      cleaned.childTables = [...table.childTables];
+    }
+    if (hasItems(table.pivotRelationships)) {
+      cleaned.pivotRelationships = [...table.pivotRelationships];
+    }
+    if (table.isPivot !== undefined) {
+      cleaned.isPivot = table.isPivot;
+    }
+
+    return cleaned;
+  }
+
   const handleRemoveColumn = async (
     tableIndex: number,
     columnIndex: number,
@@ -1154,6 +1252,20 @@ function SchemaBuilder() {
       (_, index) => index !== columnIndex,
     );
 
+    // Remove column from requiredColumns
+    if (updatedTable.requiredColumns) {
+      updatedTable.requiredColumns = updatedTable.requiredColumns.filter(
+        (colName) => colName !== column.column_name,
+      );
+    }
+
+    // Remove column from foreignKeys if it was a foreign key
+    if (updatedTable.foreignKeys) {
+      updatedTable.foreignKeys = updatedTable.foreignKeys.filter(
+        (colName) => colName !== column.column_name,
+      );
+    }
+
     // If this column was a foreign key, clean up relationships
     if (column.foreign_key) {
       const foreignTableName = column.foreign_key.foreign_table_name;
@@ -1183,7 +1295,8 @@ function SchemaBuilder() {
           );
         }
 
-        updatedSchema[parentTableIndex] = parentTable;
+        // Clean up parent table
+        updatedSchema[parentTableIndex] = cleanUpEmptyArrays(parentTable);
       }
 
       // Remove foreign table from this table's relationships
@@ -1199,7 +1312,8 @@ function SchemaBuilder() {
       }
     }
 
-    updatedSchema[tableIndex] = updatedTable;
+    // Clean up current table
+    updatedSchema[tableIndex] = cleanUpEmptyArrays(updatedTable);
     setSchemaInfo(updatedSchema);
   };
 
