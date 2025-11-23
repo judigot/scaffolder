@@ -242,7 +242,12 @@ export const generateColumnDefinition = ({
 
   const quote = useFormStore.getState().quote;
   const { column_name, is_nullable, primary_key, unique } = columnName;
-  const isDBDefinition = ['postgresql', 'mysql'].includes(columnType);
+  const dbTypes = useMockDatabaseStore.getState().dbTypes;
+  const isDBDefinition =
+    dbTypes !== undefined &&
+    dbTypes.length > 0 &&
+    typeof columnType === 'string' &&
+    dbTypes.includes(columnType);
   const targetDefinition =
     columnMappings[isDBDefinition ? 'sql-table' : 'typescript'];
   const type = getTypeMapping(columnName, columnType);

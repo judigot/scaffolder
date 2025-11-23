@@ -1,4 +1,5 @@
 import type { DBTypes } from '@/interfaces/interfaces.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
 interface IDBConnectionInfo {
   dbType: DBTypes;
@@ -22,7 +23,26 @@ export function extractDBConnectionInfo(
 
   const { dbType, username, password, host, port, dbName } = match.groups;
 
-  if (dbType !== 'postgresql' && dbType !== 'mysql') {
+  try {
+    const validDbTypes = useMockDatabaseStore.getState().dbTypes;
+    if (validDbTypes && validDbTypes.length > 0) {
+      if (!validDbTypes.includes(dbType)) {
+        throw new Error(
+          `Unsupported database type "${dbType}". Supported types: ${validDbTypes.join(', ')}`,
+        );
+      }
+    }
+  } catch {
+    if (dbType !== 'postgresql' && dbType !== 'mysql') {
+      throw new Error('Unsupported database type');
+    }
+  }
+
+  const isValidDBType = (type: string): type is DBTypes => {
+    return type === 'postgresql' || type === 'mysql';
+  };
+
+  if (!isValidDBType(dbType)) {
     throw new Error('Unsupported database type');
   }
 

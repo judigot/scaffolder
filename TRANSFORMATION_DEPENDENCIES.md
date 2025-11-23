@@ -6,15 +6,17 @@ Transformations (code generation) in this application depend on asynchronous dat
 
 ## Rule: Transformations Must Wait for Dependencies
 
-**Transformations must come after `userFiles` and `typeMappings` have been set.**
+**Transformations must come after `userFiles`, `typeMappings`, and `dbTypes` have been set.**
 
 ### Why This Rule Exists
 
 1. **Type Mappings Are Loaded Asynchronously**: The `typeMappings` are parsed from `typeMappings.yaml` file which is loaded asynchronously when `userFiles` are fetched from the repository.
 
-2. **No Fallback Values**: The system does not use fallback/default values for type mappings. Transformations will fail or produce incorrect results if executed before type mappings are available.
+2. **Database Types Are Loaded Asynchronously**: The `dbTypes` are parsed from `dbTypes.yaml` file which is loaded asynchronously when `userFiles` are fetched from the repository. This allows the system to support multiple database types dynamically (postgresql, mysql, sqlite, mssql, etc.).
 
-3. **Data Integrity**: Waiting ensures that all transformations use the correct type mappings as defined in the user's configuration files.
+3. **No Fallback Values**: The system does not use fallback/default values for type mappings or database types. Transformations will fail or produce incorrect results if executed before these are available.
+
+4. **Data Integrity**: Waiting ensures that all transformations use the correct type mappings and database types as defined in the user's configuration files.
 
 ### Implementation Details
 
@@ -24,52 +26,51 @@ The `useEffect` hook that triggers transformations includes `typeMappings` in it
 
 ```typescript
 useEffect(() => {
-  if (typeMappings) {
-    setTransformations();
+  if (!typeMappings || Object.keys(typeMappings).length === 0) {
+    return;
   }
+  if (!dbTypes || dbTypes.length === 0) {
+    return;
+  }
+  setTransformations();
 }, [
   dbType,
   includeInsertData,
   includeTypeGuards,
   schemaInfo,
   typeMappings, // Required dependency
+  dbTypes, // Required dependency
   setTransformations,
 ]);
 ```
 
 #### In Store (`useTransformationsStore.ts`)
 
-The `setTransformations` function checks for `typeMappings` before executing:
-
-```typescript
-setTransformations: (tempSchemaInfo?: ISchemaInfo[] | null) => {
-  const { typeMappings } = useMockDatabaseStore.getState();
-  
-  // ... other code ...
-  
-  if (!typeMappings) {
-    return; // Exit early if typeMappings not available
-  }
-  
-  // ... proceed with transformations ...
-}
-```
+The `setTransformations` function relies on the checks in `App.tsx` to ensure `typeMappings` and `dbTypes` are available before it's called. The strict checks are enforced at the application level.
 
 #### In Utility Functions (`common.ts`)
 
-The `getTypeMapping` function uses a fallback mechanism that checks the store first, then falls back to default mappings from `@/utils/mappings.ts` if the store is empty:
+The `getTypeMapping` function retrieves type mappings from the store. The `generateColumnDefinition` function uses dynamic `dbTypes` to determine if a column type is a database definition:
 
 ```typescript
 const getTypeMappings = (): Record<PropertyKey, unknown> => {
   const storeTypeMappings = useMockDatabaseStore.getState().typeMappings;
   if (!storeTypeMappings || Object.keys(storeTypeMappings).length === 0) {
-    return fallbackTypeMappings; // From @/utils/mappings.ts
+    return {};
   }
   return storeTypeMappings;
 };
+
+// In generateColumnDefinition:
+const dbTypes = useMockDatabaseStore.getState().dbTypes;
+const isDBDefinition =
+  dbTypes !== undefined &&
+  dbTypes.length > 0 &&
+  typeof columnType === 'string' &&
+  dbTypes.includes(columnType);
 ```
 
-**Note**: The fallback mechanism ensures that tests and initial application load work correctly, but in production, the system waits for actual type mappings to be loaded from the user's repository.
+**Note**: The system waits for actual type mappings and database types to be loaded from the user's repository before running transformations.
 
 ### Testing
 
@@ -102,20 +103,25 @@ describe('MyTest', () => {
 
 #### Affected Test Files
 
-The following test files require `typeMappings` to be set up:
+The following test files require `typeMappings` and `dbTypes` to be set up:
 
 - `src/tests/generateTypescriptInterfaces.test.ts`
 - `src/tests/generateSQLSchema.test.ts`
-- Any test that uses `getTypeMapping`, `generateColumnDefinition`, or transformation functions
+- `src/tests/convertIntrospectedStructure.test.ts`
+- `src/tests/identifySchema.test.ts`
+- Any test that uses `getTypeMapping`, `generateColumnDefinition`, `extractDBConnectionInfo`, or transformation functions
 
-### Functions That Require Type Mappings
+The test helper `setupTypeMappings()` automatically sets up both `typeMappings` and `dbTypes` from their respective YAML files.
 
-The following functions depend on `typeMappings` being available:
+### Functions That Require Type Mappings and Database Types
 
-- `getTypeMapping()` - Maps column types to target language types
-- `generateColumnDefinition()` - Generates column definitions for SQL/TypeScript
-- `generateTypescriptInterfaces()` - Generates TypeScript interface definitions
-- `generateSQLSchema()` - Generates SQL CREATE TABLE statements
+The following functions depend on `typeMappings` and `dbTypes` being available:
+
+- `getTypeMapping()` - Maps column types to target language types (requires `typeMappings`)
+- `generateColumnDefinition()` - Generates column definitions for SQL/TypeScript (requires `typeMappings` and `dbTypes`)
+- `generateTypescriptInterfaces()` - Generates TypeScript interface definitions (requires `typeMappings`)
+- `generateSQLSchema()` - Generates SQL CREATE TABLE statements (requires `typeMappings` and `dbTypes`)
+- `extractDBConnectionInfo()` - Validates database connection strings against loaded `dbTypes`
 
 ### Loading Sequence
 
@@ -123,10 +129,11 @@ The following functions depend on `typeMappings` being available:
 2. `userFiles` are fetched asynchronously
 3. `setUserFiles()` is called, which:
    - Parses `typeMappings.yaml` from the Constants folder
-   - Sets `typeMappings` in the store
-4. `useEffect` in `App.tsx` detects `typeMappings` change
-5. `setTransformations()` is called
-6. Transformations execute with correct type mappings
+   - Parses `dbTypes.yaml` from the Constants folder
+   - Sets `typeMappings` and `dbTypes` in the store
+4. `useEffect` in `App.tsx` detects `typeMappings` and `dbTypes` changes
+5. `setTransformations()` is called only when both are available
+6. Transformations execute with correct type mappings and database types
 
 ### Best Practices
 

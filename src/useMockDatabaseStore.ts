@@ -13,6 +13,7 @@ interface IStore {
   userFiles: IStructure;
   projects: IFile[];
   typeMappings: Record<PropertyKey, unknown> | undefined;
+  dbTypes: string[] | undefined;
   setUserFiles: (userFiles: IStructure) => void;
 }
 
@@ -24,6 +25,7 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
   projects: [],
 
   typeMappings: undefined,
+  dbTypes: undefined,
 
   /**
    * Updates user files and notifies useProjectStore
@@ -38,6 +40,7 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
     );
 
     let typeMappings: Record<string, unknown> | undefined;
+    let dbTypes: string[] | undefined;
     if (constantsFolder) {
       const typeMappingsFile = constantsFolder.children.find(
         (child): child is IFile =>
@@ -54,11 +57,30 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
           typeMappings = undefined;
         }
       }
+
+      const dbTypesFile = constantsFolder.children.find(
+        (child): child is IFile =>
+          child.type === 'file' && child.name === 'dbTypes.yaml',
+      );
+      if (dbTypesFile && dbTypesFile.content.trim() !== '') {
+        try {
+          const parsedData: unknown = yaml.parse(dbTypesFile.content);
+          if (Array.isArray(parsedData)) {
+            dbTypes = parsedData.filter(
+              (item): item is string => typeof item === 'string',
+            );
+          }
+        } catch (error) {
+          console.error('Error parsing dbTypes.yaml:', error);
+          dbTypes = undefined;
+        }
+      }
     }
 
-    if (typeMappings !== undefined) {
+    if (typeMappings !== undefined || dbTypes !== undefined) {
       set({
-        typeMappings,
+        ...(typeMappings !== undefined && { typeMappings }),
+        ...(dbTypes !== undefined && { dbTypes }),
       });
     }
 

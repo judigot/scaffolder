@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 interface IAuthGuardProps {
   children: ReactNode;

@@ -91,7 +91,14 @@ function SchemaBuilder() {
       const currentDbType = dbType;
       const hasValidDbType =
         currentDbType !== undefined &&
-        (currentDbType === 'mysql' || currentDbType === 'postgresql');
+        (() => {
+          const dbTypes = useMockDatabaseStore.getState().dbTypes;
+          return (
+            dbTypes !== undefined &&
+            dbTypes.length > 0 &&
+            dbTypes.includes(currentDbType)
+          );
+        })();
 
       if (!hasValidDbType) {
         return dataType;

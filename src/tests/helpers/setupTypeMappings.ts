@@ -8,23 +8,45 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
 };
 
 export const setupTypeMappings = (): void => {
-  const yamlFilePath = join(
+  const typeMappingsFilePath = join(
     process.cwd(),
     'src',
     'files',
     'Constants',
     'typeMappings.yaml',
   );
-  const yamlContent = readFileSync(yamlFilePath, 'utf-8');
-  const parsedData: unknown = parse(yamlContent);
+  const typeMappingsContent = readFileSync(typeMappingsFilePath, 'utf-8');
+  const parsedTypeMappings: unknown = parse(typeMappingsContent);
 
-  if (isRecord(parsedData)) {
-    useMockDatabaseStore.setState({ typeMappings: parsedData });
+  if (isRecord(parsedTypeMappings)) {
+    useMockDatabaseStore.setState({ typeMappings: parsedTypeMappings });
   } else {
     throw new Error('Failed to parse typeMappings.yaml as a record');
+  }
+
+  const dbTypesFilePath = join(
+    process.cwd(),
+    'src',
+    'files',
+    'Constants',
+    'dbTypes.yaml',
+  );
+  const dbTypesContent = readFileSync(dbTypesFilePath, 'utf-8');
+  const parsedDbTypes: unknown = parse(dbTypesContent);
+
+  if (Array.isArray(parsedDbTypes)) {
+    const dbTypes = parsedDbTypes.filter(
+      (item): item is string => typeof item === 'string',
+    );
+    useMockDatabaseStore.setState({ dbTypes });
+  } else {
+    throw new Error('Failed to parse dbTypes.yaml as an array');
   }
 };
 
 export const teardownTypeMappings = (): void => {
-  useMockDatabaseStore.setState({ typeMappings: undefined });
+  useMockDatabaseStore.setState({
+    typeMappings: undefined,
+    dbTypes: undefined,
+  });
 };

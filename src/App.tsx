@@ -60,7 +60,7 @@ function App() {
   });
 
   // Use both stores
-  const { setUserFiles, typeMappings } = useMockDatabaseStore();
+  const { setUserFiles, typeMappings, dbTypes } = useMockDatabaseStore();
 
   const {
     projects,
@@ -198,6 +198,9 @@ function App() {
     if (!typeMappings || Object.keys(typeMappings).length === 0) {
       return;
     }
+    if (!dbTypes || dbTypes.length === 0) {
+      return;
+    }
     setTransformations();
   }, [
     dbType, // Don't remove! This changes the quote used in the database schema
@@ -205,6 +208,7 @@ function App() {
     includeTypeGuards, // Don't remove! This toggles type guards generation in the UI
     schemaInfo,
     typeMappings, // Don't remove! Transformations must wait for typeMappings to load
+    dbTypes, // Don't remove! Transformations must wait for dbTypes to load
     setTransformations,
   ]);
 

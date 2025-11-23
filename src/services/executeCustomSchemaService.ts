@@ -49,7 +49,7 @@ export const executeCustomSchemaService = async (
     throw new Error('Unsupported database type');
   }
 
-  const introspectionResult = await introspect(dbConnection);
+  const introspectionResult = await introspect(dbConnection, dbType);
   if (isITableArray(introspectionResult)) {
     return convertIntrospectedStructure(introspectionResult);
   }
