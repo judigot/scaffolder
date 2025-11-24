@@ -22,11 +22,39 @@ export default defineConfig({
           items: [
             {
               text: 'Repository Folders',
-              link: '/documentation/structure/',
+              link: '/documentation/structure/repository-folders/',
               items: [
                 {
                   text: 'Core',
                   link: '/documentation/structure/repository-folders/core/',
+                },
+                {
+                  text: 'Projects',
+                  link: '/documentation/structure/repository-folders/projects/',
+                },
+                {
+                  text: 'Constants',
+                  link: '/documentation/structure/repository-folders/constants/',
+                },
+                {
+                  text: 'Schemas',
+                  link: '/documentation/structure/repository-folders/schemas/',
+                },
+                {
+                  text: 'Templates',
+                  link: '/documentation/structure/repository-folders/templates/',
+                },
+                {
+                  text: 'Base Methods',
+                  link: '/documentation/structure/repository-folders/base-methods/',
+                },
+                {
+                  text: 'Domain Methods',
+                  link: '/documentation/structure/repository-folders/domain-methods/',
+                },
+                {
+                  text: 'Enterprise Methods',
+                  link: '/documentation/structure/repository-folders/enterprise-methods/',
                 },
               ],
             },

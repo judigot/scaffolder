@@ -1,8 +1,8 @@
 ---
-title: Core Imports ($USE_CORE)
+title: $USE_CORE
 ---
 
-# Core Imports ($USE_CORE)
+# $USE_CORE
 
 The `$USE_CORE` keyword allows you to import shared core files from the `Core/` directory into your projects using `structure.yaml`.
 
