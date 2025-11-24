@@ -178,7 +178,25 @@ The `structure.yaml` file supports:
 - **`$USE_CORE`** - Import shared core templates
 - **File definitions** - Define files and directories
 - **`IMPORT_TEMPLATE()`** - Reference template files
-- **`IMPORT_PROJECT()`** - Import from other projects
+- **`IMPORT_PROJECT()`** - Import from other projects (see [IMPORT_PROJECT API Reference](/documentation/api-reference/project-imports/))
+
+### IMPORT_PROJECT
+
+Projects can import and reuse structures from other projects using the `IMPORT_PROJECT` keyword. This allows you to compose complex projects by combining multiple project structures:
+
+```yaml
+src:
+  IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
+    components:
+      - DataTable.tsx
+```
+
+This is particularly useful when:
+- Building full-stack projects by combining frontend and backend structures
+- Reusing common project patterns across multiple projects
+- Creating project variants based on base templates
+
+For complete syntax and options, see the [IMPORT_PROJECT API Reference](/documentation/api-reference/project-imports/).
 
 ## Next Steps
 

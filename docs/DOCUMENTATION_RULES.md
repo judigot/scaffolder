@@ -141,9 +141,33 @@ See $USE_CORE for details.
 
 **Rationale**: Clear context about what the link contains.
 
+### 9. Implementation Alignment
+
+**Rule**: Documentation MUST align with actual API implementations in `src/utils/project-builder/`.
+
+**Requirements**:
+- **Syntax examples** must match actual implementation behavior
+- **Option flags** must reflect available flags in `constants/actionFlags.ts`
+- **Command syntax** must match processors in `project-processors/` and `template-processors/`
+- **Merge priority rules** must reflect actual merge logic in `utils/mergeCoreFiles.ts`
+- **Path resolution** must match implementation in `utils/findFileInStructure.ts`
+- **Error handling** must document actual error behaviors from the code
+
+**Verification**:
+1. Review implementation files before writing API reference documentation
+2. Test documented syntax matches actual behavior
+3. Update documentation when implementation changes
+4. Reference source files in code comments when documenting complex behavior
+
+**Example**:
+- ✅ **Correct**: Document `--scoped` flag because it exists in `actionFlags.ts` and is processed in `importProject.ts`
+- ❌ **Wrong**: Document a `--verbose` flag that doesn't exist in the implementation
+
+**Rationale**: Documentation accuracy is critical for user trust and successful adoption. Misaligned documentation causes frustration and incorrect usage.
+
 ## Navigation Rules
 
-### 9. Top-Level Navigation
+### 10. Top-Level Navigation
 
 **Rule**: Top nav items link to main sections only.
 
@@ -154,7 +178,7 @@ See $USE_CORE for details.
 
 **Rationale**: Simple, clear navigation for main sections.
 
-### 10. Sidebar Navigation
+### 11. Sidebar Navigation
 
 **Rule**: Sidebar only appears on documentation pages (`/documentation/`).
 
@@ -172,7 +196,7 @@ API Reference
 
 **Rationale**: Provides detailed navigation within documentation section only.
 
-### 11. Sidebar Link Format
+### 12. Sidebar Link Format
 
 **Rule**: Sidebar links must include trailing slashes for folder-based routes.
 
@@ -186,7 +210,7 @@ API Reference
 
 ## Content Focus Rules
 
-### 12. Structure Pages: Organization Focus
+### 13. Structure Pages: Organization Focus
 
 **Rule**: Structure documentation pages focus on **organization and structure**, not usage syntax.
 
@@ -204,7 +228,7 @@ API Reference
 
 **Rationale**: Separation of concerns - structure docs are about organization, not syntax.
 
-### 13. API Reference Pages: Syntax Focus
+### 14. API Reference Pages: Syntax Focus
 
 **Rule**: API reference pages focus on **syntax and usage**, not organization details.
 
@@ -221,7 +245,7 @@ API Reference
 
 **Rationale**: API reference is for syntax and usage, not organization.
 
-### 14. Business Value Pages: High-Level Focus
+### 15. Business Value Pages: High-Level Focus
 
 **Rule**: Introduction and Features pages focus on **value proposition**, not technical details.
 
@@ -240,7 +264,7 @@ API Reference
 
 ## Naming Conventions
 
-### 15. Folder and File Names
+### 16. Folder and File Names
 
 **Rule**: Use lowercase, hyphenated names for folders. Use `index.md` for page files.
 
@@ -251,7 +275,7 @@ API Reference
 
 **Rationale**: Consistent naming prevents confusion and routing issues.
 
-### 16. Sidebar Item Names
+### 17. Sidebar Item Names
 
 **Rule**: Sidebar items use concise, descriptive names matching folder structure.
 
@@ -264,7 +288,7 @@ API Reference
 
 ## Linking Rules
 
-### 17. Internal Link Format
+### 18. Internal Link Format
 
 **Rule**: Always use absolute paths starting with `/` for internal links.
 
@@ -281,7 +305,7 @@ API Reference
 
 **Rationale**: Absolute paths work regardless of current page location.
 
-### 18. Cross-Section References
+### 19. Cross-Section References
 
 **Rule**: When referencing content in different sections, provide context.
 
@@ -294,7 +318,7 @@ Learn about the [Core Directory](/documentation/structure/repository-folders/cor
 
 ## Anti-Duplication Rules
 
-### 19. Single Source of Truth
+### 20. Single Source of Truth
 
 **Rule**: Each topic has one primary location. Other pages reference it, don't duplicate it.
 
@@ -306,7 +330,7 @@ Learn about the [Core Directory](/documentation/structure/repository-folders/cor
 
 **Rationale**: Reduces maintenance burden and inconsistencies.
 
-### 20. Summary vs Detail Pattern
+### 21. Summary vs Detail Pattern
 
 **Rule**: Pages can have brief summaries, but detailed explanations exist in one place only.
 
@@ -319,7 +343,7 @@ Core templates are imported using `$USE_CORE`. See the [API Reference](/document
 
 **Rationale**: Allows context while preventing duplication.
 
-### 21. Content Placement Decision Tree
+### 22. Content Placement Decision Tree
 
 **Rule**: Use this decision tree to determine where content belongs:
 

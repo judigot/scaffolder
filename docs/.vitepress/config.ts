@@ -68,6 +68,10 @@ export default defineConfig({
               text: '$USE_CORE',
               link: '/documentation/api-reference/core-imports/',
             },
+            {
+              text: 'IMPORT_PROJECT',
+              link: '/documentation/api-reference/project-imports/',
+            },
           ],
         },
       ],
