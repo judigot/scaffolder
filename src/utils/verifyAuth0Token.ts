@@ -5,9 +5,23 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-interface IDecodedToken {
-  sub?: string;
-  [key: string]: unknown;
+interface IJwtPayloadWithSub extends jwt.JwtPayload {
+  sub: string;
+}
+
+interface IRequestWithAuth0UserId extends Request {
+  auth0UserId?: string;
+}
+
+function isJwtPayloadWithSub(
+  decoded: jwt.JwtPayload | string | undefined,
+): decoded is IJwtPayloadWithSub {
+  if (typeof decoded !== 'object') {
+    return false;
+  }
+  return (
+    'sub' in decoded && typeof decoded.sub === 'string' && decoded.sub !== ''
+  );
 }
 
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
@@ -23,7 +37,7 @@ if (AUTH0_DOMAIN !== undefined && AUTH0_DOMAIN !== '') {
 function getKey(
   header: jwt.JwtHeader | null,
   callback: jwt.SigningKeyCallback,
-) {
+): void {
   if (!client) {
     callback(new Error('Auth0 domain not configured'));
     return;
@@ -33,12 +47,15 @@ function getKey(
     callback(new Error('No kid in header'));
     return;
   }
-  if (header.kid === undefined || header.kid === '') {
+
+  // Type guard for header.kid
+  const kid = header.kid;
+  if (kid === undefined || typeof kid !== 'string' || kid === '') {
     callback(new Error('No kid in header'));
     return;
   }
 
-  client.getSigningKey(header.kid, (err, key) => {
+  client.getSigningKey(kid, (err, key) => {
     if (err) {
       callback(err);
       return;
@@ -49,7 +66,7 @@ function getKey(
 }
 
 export function verifyAuth0Token(
-  req: Request,
+  req: IRequestWithAuth0UserId,
   res: Response,
   next: NextFunction,
 ): void {
@@ -85,7 +102,11 @@ export function verifyAuth0Token(
   };
 
   const audience = process.env.AUTH0_AUDIENCE;
-  if (audience !== undefined && audience !== '') {
+  if (
+    audience !== undefined &&
+    audience !== '' &&
+    typeof audience === 'string'
+  ) {
     verifyOptions.audience = audience;
   } else {
     res.status(500).json({
@@ -98,30 +119,17 @@ export function verifyAuth0Token(
 
   jwt.verify(token, getKey, verifyOptions, (err, decoded) => {
     if (err) {
-      res.status(401).json({ error: 'Invalid token', message: err.message });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      res.status(401).json({ error: 'Invalid token', message: errorMessage });
       return;
     }
 
-    if (typeof decoded !== 'object') {
+    if (!isJwtPayloadWithSub(decoded)) {
       res.status(401).json({ error: 'Invalid token payload' });
       return;
     }
 
-    // eslint-disable-next-line no-type-assertion/no-type-assertion
-    const decodedToken = decoded as IDecodedToken;
-    if (decodedToken.sub === undefined || decodedToken.sub === '') {
-      res.status(401).json({ error: 'Token missing user ID' });
-      return;
-    }
-
-    req.auth0UserId = decodedToken.sub;
+    req.auth0UserId = decoded.sub;
     next();
   });
-}
-
-declare module 'express-serve-static-core' {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  interface Request {
-    auth0UserId?: string;
-  }
 }

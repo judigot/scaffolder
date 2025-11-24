@@ -10,7 +10,11 @@ router.use(verifyAuth0Token);
 router.post('/create-github-file', (req: Request, res: Response) => {
   void (async () => {
     try {
-      const auth0UserId = req.auth0UserId;
+      // Type guard for auth0UserId
+      const auth0UserId =
+        'auth0UserId' in req && typeof req.auth0UserId === 'string'
+          ? req.auth0UserId
+          : undefined;
 
       if (auth0UserId === undefined || auth0UserId === '') {
         res.status(401).json({ error: 'User ID not found in token' });
@@ -52,6 +56,11 @@ router.post('/create-github-file', (req: Request, res: Response) => {
           error: 'Missing required fields',
           message: 'publicRepoURL, filePath, and content are required',
         });
+        return;
+      }
+
+      if (typeof auth0UserId !== 'string' || auth0UserId === '') {
+        res.status(401).json({ error: 'User ID not found in token' });
         return;
       }
 
