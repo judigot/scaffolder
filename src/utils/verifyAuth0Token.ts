@@ -24,7 +24,7 @@ function isJwtPayloadWithSub(
   );
 }
 
-const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
+const AUTH0_DOMAIN = process.env.VITE_AUTH0_DOMAIN;
 
 let client: JwksClient | null = null;
 
@@ -101,7 +101,7 @@ export function verifyAuth0Token(
     algorithms: ['RS256'],
   };
 
-  const audience = process.env.AUTH0_AUDIENCE;
+  const audience = process.env.VITE_AUTH0_AUDIENCE;
   if (
     audience !== undefined &&
     audience !== '' &&

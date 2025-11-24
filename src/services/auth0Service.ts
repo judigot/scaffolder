@@ -10,7 +10,7 @@ interface IAuth0Config {
 }
 
 function getAuth0Config(): IAuth0Config | null {
-  const domain = process.env.AUTH0_DOMAIN;
+  const domain = process.env.VITE_AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_MANAGEMENT_API_CLIENT_ID;
   const clientSecret = process.env.AUTH0_MANAGEMENT_API_CLIENT_SECRET;
 
