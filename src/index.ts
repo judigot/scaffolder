@@ -41,10 +41,15 @@ app.get('/', (_req: Request, res: Response) => {
 // Use routes from the routes folder
 app.use(router);
 
-// Start server
-app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(
-    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on http://127.0.0.1:${PORT}`,
-  );
-});
+// Start server only in development
+if (!import.meta.env.PROD) {
+  app.listen(PORT, () => {
+    // eslint-disable-next-line no-console
+    console.log(
+      `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on http://127.0.0.1:${PORT}`,
+    );
+  });
+}
+
+// Export for Vercel serverless function
+export default app;
