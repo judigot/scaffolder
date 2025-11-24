@@ -13,10 +13,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "functions": {
-    "src/index.ts": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
