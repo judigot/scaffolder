@@ -84,6 +84,8 @@ function FileViewer({
   const editorRef = useRef<ICodeEditor | null>(null);
   const fileViewerRef = useRef<HTMLDivElement>(null);
   const [isCreatingFile, setIsCreatingFile] = useState<boolean>(false);
+  const [isCreatingRepository, setIsCreatingRepository] =
+    useState<boolean>(false);
 
   // Save file content changes - wrapped in useCallback
   const saveFileChanges = useCallback(() => {
@@ -712,6 +714,138 @@ function FileViewer({
     }
   };
 
+  const handleCreateNewTestRepository = () => {
+    void (async () => {
+      setIsCreatingRepository(true);
+
+      try {
+        const accessTokenResult = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
+          },
+        });
+        if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
+          throw new Error('Failed to get access token');
+        }
+        const accessToken: string = accessTokenResult;
+
+        const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
+        const tokenResponse = await fetch(`${backendUrl}/github-token`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!tokenResponse.ok) {
+          throw new Error('Failed to get GitHub token');
+        }
+
+        const tokenData: unknown = await tokenResponse.json();
+        interface ITokenResponse {
+          success?: boolean;
+          token?: string | null;
+        }
+        const isTokenResponse = (val: unknown): val is ITokenResponse => {
+          return (
+            typeof val === 'object' &&
+            val !== null &&
+            ('success' in val || 'token' in val)
+          );
+        };
+
+        if (
+          !isTokenResponse(tokenData) ||
+          tokenData.token === null ||
+          tokenData.token === undefined ||
+          tokenData.token === ''
+        ) {
+          throw new Error(
+            'GitHub token not found. Please set your GitHub token in your profile.',
+          );
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const repoName = `test-repo-${timestamp}`;
+        const description = `Test repository created at ${new Date().toISOString()}`;
+
+        const response = await fetch(
+          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-repository`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              repoName,
+              description,
+              isPrivate: false,
+            }),
+          },
+        );
+
+        const result: unknown = await response.json();
+
+        interface ICreateRepositoryResponse {
+          success?: boolean;
+          message?: string;
+          repoUrl?: string;
+          error?: string;
+        }
+
+        const isCreateRepositoryResponse = (
+          val: unknown,
+        ): val is ICreateRepositoryResponse => {
+          return (
+            typeof val === 'object' &&
+            val !== null &&
+            ('success' in val ||
+              'message' in val ||
+              'repoUrl' in val ||
+              'error' in val)
+          );
+        };
+
+        if (!response.ok) {
+          const errorMessage = isCreateRepositoryResponse(result)
+            ? (result.error ?? 'Failed to create repository')
+            : 'Failed to create repository';
+          throw new Error(errorMessage);
+        }
+
+        if (
+          isCreateRepositoryResponse(result) &&
+          result.repoUrl !== undefined &&
+          result.repoUrl !== ''
+        ) {
+          void promptModal({
+            title: 'Repository Created',
+            description: `Repository created successfully!\n\nURL: ${result.repoUrl}`,
+            confirmButtonText: 'OK',
+            denyButtonText: '',
+          });
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error('Failed to create repository:', error.message);
+          void promptModal({
+            title: 'Error',
+            description: `Failed to create repository: ${error.message}`,
+            confirmButtonText: 'OK',
+            denyButtonText: '',
+          });
+        } else {
+          console.error('An unexpected error occurred');
+        }
+      } finally {
+        setIsCreatingRepository(false);
+      }
+    })();
+  };
+
   const handleCreateTestFile = () => {
     void (async () => {
       if (!publicRepoURL || publicRepoURL === '') {
@@ -909,6 +1043,18 @@ function FileViewer({
           }`}
         >
           {isCreatingFile ? 'Creating...' : 'Create Test File'}
+        </button>
+        <button
+          type="button"
+          onClick={handleCreateNewTestRepository}
+          disabled={isCreatingRepository}
+          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+            isCreatingRepository
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+          }`}
+        >
+          {isCreatingRepository ? 'Creating...' : 'Create Test Repository'}
         </button>
       </div>
       <br />
