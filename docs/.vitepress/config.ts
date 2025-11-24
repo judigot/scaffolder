@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  title: 'Scaffolder Documentation',
+  title: 'Scaffolder - Write Once, Generate Forever!',
   description: 'Generate APIs from database schemas using reusable templates',
 
   base: process.env.VITEPRESS_BASE || '/',
