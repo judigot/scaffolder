@@ -68,7 +68,7 @@ docs/
 
 **Strategy**:
 1. Identify the primary location for each topic
-2. Use cross-references: "See [Page Name](/path) for details"
+2. Use cross-references: "See [Page Name](/documentation/structure/repository-folders/core/) for details"
 3. Keep summaries brief, link to detailed docs
 
 ### 5. Structure Documentation Hierarchy

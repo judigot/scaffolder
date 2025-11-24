@@ -12,7 +12,7 @@ Learn how to use Scaffolder to generate APIs from database schemas using reusabl
 
 Learn about organizing your `scaffolder-files` repository, directory structure, and project organization.
 
-[View Repository Structure →](/documentation/structure)
+[View Repository Structure →](/documentation/structure/)
 
 ### API Reference
 

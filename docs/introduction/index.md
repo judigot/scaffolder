@@ -74,6 +74,6 @@ Companies adopting Scaffolder can:
 
 ## Next Steps
 
-- Learn about Scaffolder's [Features](/features)
+- Learn about Scaffolder's [Features](/features/)
 - Explore the [Documentation](/documentation/) for API templating
 
