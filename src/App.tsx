@@ -20,7 +20,7 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 
 function App() {
-  const { logout, user } = useAuth0();
+  const { logout, user, getAccessTokenSilently, isAuthenticated } = useAuth0();
   const formData = useFormStore();
   const {
     backendUrl,
@@ -77,14 +77,9 @@ function App() {
     : [];
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // State for showing a notification when GitHub data is updated
-  const [showGitHubUpdateNotification, setShowGitHubUpdateNotification] =
-    useState<boolean>(false);
-
-  // State for showing a notification when schema is updated
-  const [showSchemaUpdateNotification, setShowSchemaUpdateNotification] =
-    useState<boolean>(false);
+  const [isCreatingFile, setIsCreatingFile] = useState<boolean>(false);
+  const [githubToken, setGithubToken] = useState<string>('');
+  const [isLoadingToken, setIsLoadingToken] = useState<boolean>(true);
 
   // State for input value before being committed to store
   const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
@@ -108,6 +103,143 @@ function App() {
     },
   );
 
+  useEffect(() => {
+    const loadGitHubToken = async () => {
+      if (!user || !isAuthenticated) {
+        setIsLoadingToken(false);
+        return;
+      }
+
+      try {
+        const accessTokenResult = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
+          },
+          cacheMode: 'on',
+        }).catch((error: unknown) => {
+          if (
+            error instanceof Error &&
+            error.message.includes('Missing Refresh Token')
+          ) {
+            return null as unknown;
+          }
+          throw error;
+        });
+
+        if (accessTokenResult === null) {
+          setIsLoadingToken(false);
+          return;
+        }
+
+        if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
+          setIsLoadingToken(false);
+          return;
+        }
+
+        const accessToken: string = accessTokenResult;
+        const response = await fetch(
+          `${String(import.meta.env.VITE_BACKEND_URL)}/github-token`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
+        if (response.ok) {
+          const result: unknown = await response.json();
+          interface ITokenResponse {
+            success?: boolean;
+            token?: string | null;
+          }
+          const isTokenResponse = (val: unknown): val is ITokenResponse => {
+            return (
+              typeof val === 'object' &&
+              val !== null &&
+              ('success' in val || 'token' in val)
+            );
+          };
+
+          if (
+            isTokenResponse(result) &&
+            result.token !== null &&
+            result.token !== undefined
+          ) {
+            setGithubToken(result.token);
+          }
+        }
+      } catch (error: unknown) {
+        if (
+          error instanceof Error &&
+          error.message.includes('Missing Refresh Token')
+        ) {
+          // Missing refresh token is expected on first load - user will need to log in again
+        } else if (error instanceof Error) {
+          const errorMessage = error.message;
+          if (
+            !errorMessage.includes('Missing Refresh Token') &&
+            !errorMessage.includes('login_required')
+          ) {
+            console.error(`Failed to load GitHub token: ${errorMessage}`);
+          }
+        }
+      } finally {
+        setIsLoadingToken(false);
+      }
+    };
+
+    void loadGitHubToken();
+  }, [user, isAuthenticated, getAccessTokenSilently]);
+
+  const saveGitHubToken = async (token: string) => {
+    if (!user) {
+      return;
+    }
+
+    try {
+      const accessTokenResult = await getAccessTokenSilently({
+        authorizationParams: {
+          audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
+        },
+      });
+      if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
+        throw new Error('Failed to get access token');
+      }
+      const accessToken: string = accessTokenResult;
+      const response = await fetch(
+        `${String(import.meta.env.VITE_BACKEND_URL)}/github-token`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorData: unknown = await response.json();
+        interface IErrorResponse {
+          error?: string;
+        }
+        const isErrorResponse = (val: unknown): val is IErrorResponse => {
+          return typeof val === 'object' && val !== null && 'error' in val;
+        };
+        const errorMessage = isErrorResponse(errorData)
+          ? (errorData.error ?? 'Failed to save token')
+          : 'Failed to save token';
+        throw new Error(errorMessage);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Failed to save GitHub token: ${error.message}`);
+      }
+    }
+  };
+
   // Handle GitHub data changes
   useEffect(() => {
     if (userFiles) {
@@ -115,12 +247,6 @@ function App() {
         // Just set the userFiles in the mock database store
         // The project store will handle detecting changes
         setUserFiles(userFiles);
-
-        // Show notification for GitHub updates
-        setShowGitHubUpdateNotification(true);
-        setTimeout(() => {
-          setShowGitHubUpdateNotification(false);
-        }, 3000);
       }
     }
   }, [userFiles, setUserFiles, publicRepoURL]);
@@ -129,14 +255,6 @@ function App() {
   useEffect(() => {
     // We don't need to rebuild files here - useTransformationsStore.setSchemaInfo already does this
     // The project files are automatically rebuilt when schema info changes
-
-    // Show the schema update notification
-    setShowSchemaUpdateNotification(true);
-
-    // Hide notification after 3 seconds
-    setTimeout(() => {
-      setShowSchemaUpdateNotification(false);
-    }, 3000);
   }, [schemaInfo]);
 
   const handleChange = (
@@ -236,49 +354,151 @@ function App() {
     }
   }, [publicRepoURL, refetchUserFiles]);
 
+  const handleCreateTestFile = () => {
+    void (async () => {
+      if (!publicRepoURL || publicRepoURL === '') {
+        console.error('Please provide a GitHub repository URL');
+        return;
+      }
+
+      if (!githubToken || githubToken === '') {
+        console.error('Please provide a GitHub token');
+        return;
+      }
+
+      setIsCreatingFile(true);
+
+      try {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filePath = `dist/test-file-${timestamp}.txt`;
+        const content = `Test file created at ${new Date().toISOString()}\nRepository: ${publicRepoURL}`;
+
+        const accessTokenResult = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
+          },
+        });
+        if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
+          throw new Error('Failed to get access token');
+        }
+        const accessToken: string = accessTokenResult;
+        const response = await fetch(
+          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-file`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              publicRepoURL,
+              filePath,
+              content,
+              commitMessage: `Create test file: ${filePath}`,
+            }),
+          },
+        );
+
+        const result: unknown = await response.json();
+
+        interface ICreateFileResponse {
+          success?: boolean;
+          message?: string;
+          url?: string;
+          error?: string;
+        }
+
+        const isCreateFileResponse = (
+          val: unknown,
+        ): val is ICreateFileResponse => {
+          return (
+            typeof val === 'object' &&
+            val !== null &&
+            ('success' in val ||
+              'message' in val ||
+              'url' in val ||
+              'error' in val)
+          );
+        };
+
+        if (!response.ok) {
+          const errorMessage = isCreateFileResponse(result)
+            ? (result.error ?? 'Failed to create file')
+            : 'Failed to create file';
+          throw new Error(errorMessage);
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error('Failed to create file:', error.message);
+        } else {
+          console.error('An unexpected error occurred');
+        }
+      } finally {
+        setIsCreatingFile(false);
+      }
+    })();
+  };
+
   return (
     <div className="text-white bg-black">
-      {/* GitHub data update notification */}
-      {showGitHubUpdateNotification && (
-        <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 mr-2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+      <div className="p-4 bg-gray-800 rounded-md mb-4">
+        <div className="mb-2">
+          <label
+            htmlFor="githubToken"
+            className="block text-sm font-medium mb-1"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-          GitHub data updated at {new Date().toLocaleTimeString()}
+            GitHub Token (Personal Access Token):
+          </label>
+          <input
+            id="githubToken"
+            type="password"
+            value={githubToken}
+            onChange={(e) => {
+              const tokenValue = e.target.value;
+              setGithubToken(tokenValue);
+              if (tokenValue !== '') {
+                void saveGitHubToken(tokenValue);
+              }
+            }}
+            placeholder={
+              isLoadingToken ? 'Loading token...' : 'ghp_xxxxxxxxxxxxxxxxxxxx'
+            }
+            disabled={isLoadingToken}
+            className="w-full p-2 border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Create a token at{' '}
+            <a
+              href="https://github.com/settings/tokens"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:text-indigo-300"
+            >
+              github.com/settings/tokens
+            </a>{' '}
+            with repo permissions. Token is securely stored in your Auth0
+            profile.
+          </p>
+          {isLoadingToken && (
+            <p className="text-xs text-gray-500 mt-1">Loading saved token...</p>
+          )}
         </div>
-      )}
-
-      {/* Schema update notification */}
-      {showSchemaUpdateNotification && (
-        <div className="fixed top-4 left-4 bg-orange-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 mr-2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-          Schema updated and files rebuilt at {new Date().toLocaleTimeString()}
-        </div>
-      )}
+        <button
+          type="button"
+          onClick={handleCreateTestFile}
+          disabled={isCreatingFile || !publicRepoURL || !githubToken}
+          className={`px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+            isCreatingFile || !publicRepoURL || !githubToken
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+          }`}
+        >
+          {isCreatingFile
+            ? 'Creating...'
+            : `Create test-file-(timestamp).txt inside dist folder on ${publicRepoURL}`}
+        </button>
+      </div>
 
       <nav className="bg-gray-900 text-white p-2 sticky top-0 z-50 text-center border-b border-gray-700">
         <div className="absolute right-4 top-4 flex items-center gap-3">

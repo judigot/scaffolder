@@ -5,6 +5,8 @@ import introspectRouter from './introspect.ts';
 import userFilesRouter from './getUserFiles.ts';
 import getUserFilesFromPublicRepoRouter from './getUserFilesFromPublicRepo.ts';
 import createLocalFilesRouter from './createLocalFiles.ts';
+import createGitHubFileRouter from './createGitHubFile.ts';
+import githubTokenRouter from './githubToken.ts';
 import helloRouter from './hello.ts';
 const router = Router();
 
@@ -15,5 +17,7 @@ router.use(introspectRouter);
 router.use(userFilesRouter);
 router.use(getUserFilesFromPublicRepoRouter);
 router.use(createLocalFilesRouter);
+router.use(createGitHubFileRouter);
+router.use(githubTokenRouter);
 
 export default router;
