@@ -766,11 +766,15 @@ function FileViewer({
           );
         }
 
+        const baseRepoName =
+          typeof projectName === 'string' && projectName !== ''
+            ? projectName.replace(/\s+/g, '-').toLowerCase()
+            : 'scaffolded-project';
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const repoName = `test-repo-${timestamp}`;
-        const description = `Test repository created at ${new Date().toISOString()}`;
+        const repoName = `${baseRepoName}-${timestamp}`;
+        const description = `Scaffolded project exported at ${new Date().toISOString()}`;
 
-        const response = await fetch(
+        const createRepoResponse = await fetch(
           `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-repository`,
           {
             method: 'POST',
@@ -787,7 +791,7 @@ function FileViewer({
           },
         );
 
-        const result: unknown = await response.json();
+        const createRepoResult: unknown = await createRepoResponse.json();
 
         interface ICreateRepositoryResponse {
           success?: boolean;
@@ -809,31 +813,95 @@ function FileViewer({
           );
         };
 
-        if (!response.ok) {
-          const errorMessage = isCreateRepositoryResponse(result)
-            ? (result.error ?? 'Failed to create repository')
+        if (!createRepoResponse.ok) {
+          const errorMessage = isCreateRepositoryResponse(createRepoResult)
+            ? (createRepoResult.error ?? 'Failed to create repository')
             : 'Failed to create repository';
           throw new Error(errorMessage);
         }
 
         if (
-          isCreateRepositoryResponse(result) &&
-          result.repoUrl !== undefined &&
-          result.repoUrl !== ''
+          !isCreateRepositoryResponse(createRepoResult) ||
+          createRepoResult.repoUrl === undefined ||
+          createRepoResult.repoUrl === ''
         ) {
-          void promptModal({
-            title: 'Repository Created',
-            description: `Repository created successfully!\n\nURL: ${result.repoUrl}`,
-            confirmButtonText: 'OK',
-            denyButtonText: '',
-          });
+          throw new Error('Failed to get repository URL');
         }
+
+        const repoUrl = createRepoResult.repoUrl;
+        const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
+        const match = githubRegex.exec(repoUrl);
+
+        if (match?.length !== 3) {
+          throw new Error('Invalid repository URL format');
+        }
+
+        const owner = match[1];
+        const repo = match[2];
+
+        const uploadResponse = await fetch(
+          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-folder-structure`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              structure: folderStructure,
+              owner,
+              repo,
+              branch: 'main',
+            }),
+          },
+        );
+
+        const uploadResult: unknown = await uploadResponse.json();
+
+        interface IUploadResponse {
+          success?: boolean;
+          message?: string;
+          filesCreated?: number;
+          error?: string;
+        }
+
+        const isUploadResponse = (val: unknown): val is IUploadResponse => {
+          return (
+            typeof val === 'object' &&
+            val !== null &&
+            ('success' in val ||
+              'message' in val ||
+              'filesCreated' in val ||
+              'error' in val)
+          );
+        };
+
+        if (!uploadResponse.ok) {
+          const errorMessage = isUploadResponse(uploadResult)
+            ? (uploadResult.error ?? 'Failed to upload files')
+            : 'Failed to upload files';
+          throw new Error(errorMessage);
+        }
+
+        const filesCreated =
+          isUploadResponse(uploadResult) &&
+          uploadResult.filesCreated !== undefined
+            ? uploadResult.filesCreated
+            : 0;
+
+        void promptModal({
+          title: 'Project Exported Successfully',
+          description: `Repository created and ${String(filesCreated)} file(s) uploaded successfully!\n\nRepository URL: ${repoUrl}`,
+          confirmButtonText: 'OK',
+          denyButtonText: '',
+        });
       } catch (error: unknown) {
         if (error instanceof Error) {
-          console.error('Failed to create repository:', error.message);
+          console.error('Failed to export project:', error.message);
           void promptModal({
             title: 'Error',
-            description: `Failed to create repository: ${error.message}`,
+            description: `Failed to export project: ${error.message}`,
             confirmButtonText: 'OK',
             denyButtonText: '',
           });
@@ -1047,14 +1115,16 @@ function FileViewer({
         <button
           type="button"
           onClick={handleCreateNewTestRepository}
-          disabled={isCreatingRepository}
+          disabled={isCreatingRepository || folderStructure.length === 0}
           className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-            isCreatingRepository
+            isCreatingRepository || folderStructure.length === 0
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
           }`}
         >
-          {isCreatingRepository ? 'Creating...' : 'Create Test Repository'}
+          {isCreatingRepository
+            ? 'Exporting...'
+            : 'Export Scaffolded Project Into A New Repository'}
         </button>
       </div>
       <br />

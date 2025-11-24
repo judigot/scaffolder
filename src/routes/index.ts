@@ -7,6 +7,7 @@ import getUserFilesFromPublicRepoRouter from './getUserFilesFromPublicRepo.ts';
 import createLocalFilesRouter from './createLocalFiles.ts';
 import createGitHubFileRouter from './createGitHubFile.ts';
 import createGitHubRepositoryRouter from './createGitHubRepository.ts';
+import createGitHubFolderStructureRouter from './createGitHubFolderStructure.ts';
 import githubTokenRouter from './githubToken.ts';
 import helloRouter from './hello.ts';
 const router = Router();
@@ -20,6 +21,7 @@ router.use(getUserFilesFromPublicRepoRouter);
 router.use(createLocalFilesRouter);
 router.use(createGitHubFileRouter);
 router.use(createGitHubRepositoryRouter);
+router.use(createGitHubFolderStructureRouter);
 router.use(githubTokenRouter);
 
 export default router;
