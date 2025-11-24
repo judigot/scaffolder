@@ -4,7 +4,7 @@ import {
   createJSONStorage,
   type PersistOptions,
 } from 'zustand/middleware';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 import type { DBTypes, IJSONSchema } from '@/interfaces/interfaces.ts';
 import { SQLQueries } from '@/utils/mappings.ts';
 import { CREATION_MODES } from '@/constants.ts';

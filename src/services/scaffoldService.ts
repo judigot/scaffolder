@@ -8,7 +8,7 @@ import http, { type IncomingMessage } from 'node:http';
 import fs from 'node:fs';
 import { changeCase } from '@/utils/common.ts';
 import type { IFormStore } from '@/useFormStore.ts';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 import { createOrResetDatabase } from '@/utils/databaseOperations.ts';
 
 interface IScaffoldRequest {

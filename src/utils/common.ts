@@ -7,7 +7,7 @@ import type {
 } from '@/interfaces/interfaces.ts';
 import type { TableCaseFormatsObject } from '@/interfaces/placeholders.ts';
 import { useFormStore } from '@/useFormStore.ts';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import pluralize from 'pluralize';
 

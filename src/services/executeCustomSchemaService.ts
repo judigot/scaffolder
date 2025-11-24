@@ -3,7 +3,7 @@ import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
 import introspect from '@/utils/introspect.ts';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import extractDBConnectionInfo from '@/utils/extractDBConnectionInfo.ts';
+import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 import type { IExecuteCustomSchemaRequest } from '@/interfaces/IExecuteCustomSchemaRequest.ts';
 
 export const executeCustomSchemaService = async (
