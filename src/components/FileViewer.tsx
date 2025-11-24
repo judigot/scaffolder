@@ -732,16 +732,14 @@ function FileViewer({
         }
         const accessToken: string = accessTokenResult;
 
-        const tokenResponse = await fetch(
-          `${String(import.meta.env.VITE_BACKEND_URL)}/github-token`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
+        const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
+        const tokenResponse = await fetch(`${backendUrl}/github-token`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
           },
-        );
+        });
 
         if (!tokenResponse.ok) {
           throw new Error('Failed to get GitHub token');
