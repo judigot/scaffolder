@@ -41,7 +41,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
           return;
         }
 
-        const backendUrl = String(import.meta.env.VITE_BACKEND_URL);
+        const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
         const response = await fetch(`${backendUrl}/github-token`, {
           method: 'GET',
           headers: {
