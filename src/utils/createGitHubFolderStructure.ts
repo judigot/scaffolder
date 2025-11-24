@@ -1,6 +1,5 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
 import { Octokit } from '@octokit/rest';
-import { watermark } from '@/constants.ts';
 
 interface ICreateGitHubFolderStructureRequest {
   structure: IStructure;
@@ -9,83 +8,113 @@ interface ICreateGitHubFolderStructureRequest {
   githubToken: string;
   basePath?: string;
   branch?: string;
+  commitMessage?: string;
 }
 
-async function createOrUpdateFile(
+interface IFileEntry {
+  path: string;
+  content: string;
+  mode: '100644' | '100755' | '120000';
+  type: 'blob';
+}
+
+function collectFiles(
+  structure: IStructure,
+  basePath: string,
+  currentPath: string,
+): IFileEntry[] {
+  const files: IFileEntry[] = [];
+
+  for (const item of structure) {
+    if (item.type === 'folder') {
+      const folderPath =
+        currentPath === '' ? item.name : `${currentPath}/${item.name}`;
+      const nestedFiles = collectFiles(item.children, basePath, folderPath);
+      files.push(...nestedFiles);
+    } else {
+      const filePath =
+        currentPath === '' ? item.name : `${currentPath}/${item.name}`;
+      const fullPath = basePath === '' ? filePath : `${basePath}/${filePath}`;
+
+      files.push({
+        path: fullPath,
+        content: item.content,
+        mode: '100644',
+        type: 'blob',
+      });
+    }
+  }
+
+  return files;
+}
+
+async function createBlobs(
   octokit: Octokit,
   owner: string,
   repo: string,
-  filePath: string,
-  content: string,
-  branch: string,
-): Promise<void> {
-  let fileSha: string | undefined;
-
-  try {
-    const existingFile = await octokit.repos.getContent({
-      owner,
-      repo,
-      path: filePath,
-      ref: branch,
-    });
-
-    if (Array.isArray(existingFile.data)) {
-      throw new Error(`Path ${filePath} is a directory, not a file`);
+  files: IFileEntry[],
+): Promise<Map<string, string>> {
+  const blobPromises = files.map(async (file) => {
+    try {
+      const base64Content = Buffer.from(file.content, 'utf-8').toString(
+        'base64',
+      );
+      const response = await octokit.git.createBlob({
+        owner,
+        repo,
+        content: base64Content,
+        encoding: 'base64',
+      });
+      return { path: file.path, sha: response.data.sha };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new Error(
+          `Failed to create blob for ${file.path}: ${error.message}`,
+        );
+      }
+      throw new Error(`Failed to create blob for ${file.path}: Unknown error`);
     }
+  });
 
-    if ('sha' in existingFile.data) {
-      fileSha = existingFile.data.sha;
-    }
-  } catch (error: unknown) {
-    if (
-      error instanceof Error &&
-      'status' in error &&
-      typeof error.status === 'number' &&
-      error.status === 404
-    ) {
-      fileSha = undefined;
-    } else {
-      throw error;
-    }
+  const blobResults = await Promise.all(blobPromises);
+  const blobMap = new Map<string, string>();
+
+  for (const result of blobResults) {
+    blobMap.set(result.path, result.sha);
   }
 
-  const finalWatermark = `/* ${watermark} */`;
-  let fileContent = content;
-  const fileType = filePath.split('.').pop()?.toLowerCase();
+  return blobMap;
+}
 
-  if (fileType === 'php') {
-    fileContent = fileContent.replace('<?php', `<?php\n${finalWatermark}`);
-  } else {
-    fileContent = `${finalWatermark}\n${fileContent}`;
-  }
-
-  const base64Content = Buffer.from(fileContent, 'utf-8').toString('base64');
-
-  const updateParams: {
-    owner: string;
-    repo: string;
+function buildTree(
+  files: IFileEntry[],
+  blobMap: Map<string, string>,
+): {
+  path: string;
+  mode: '100644' | '100755' | '120000';
+  type: 'blob';
+  sha: string;
+}[] {
+  const tree: {
     path: string;
-    message: string;
-    content: string;
-    branch: string;
-    sha?: string;
-  } = {
-    owner,
-    repo,
-    path: filePath,
-    message:
-      fileSha !== undefined && fileSha !== ''
-        ? `Update ${filePath}`
-        : `Create ${filePath}`,
-    content: base64Content,
-    branch,
-  };
+    mode: '100644' | '100755' | '120000';
+    type: 'blob';
+    sha: string;
+  }[] = [];
 
-  if (fileSha !== undefined && fileSha !== '') {
-    updateParams.sha = fileSha;
+  for (const file of files) {
+    const sha = blobMap.get(file.path);
+    if (sha !== undefined) {
+      tree.push({
+        path: file.path,
+        mode: file.mode,
+        type: file.type,
+        sha,
+      });
+    }
   }
 
-  await octokit.repos.createOrUpdateFileContents(updateParams);
+  return tree;
 }
 
 export const createGitHubFolderStructure = async (
@@ -98,49 +127,163 @@ export const createGitHubFolderStructure = async (
     githubToken,
     basePath = '',
     branch = 'main',
+    commitMessage,
   } = data;
 
   const octokit = new Octokit({
     auth: githubToken,
   });
 
-  let filesCreated = 0;
+  try {
+    const files = collectFiles(structure, basePath, '');
+    const filesCount = files.length;
 
-  const processItem = async (
-    item: (typeof structure)[number],
-    currentPath: string,
-  ): Promise<void> => {
-    if (item.type === 'folder') {
-      const folderPath =
-        currentPath === '' ? item.name : `${currentPath}/${item.name}`;
+    if (filesCount === 0) {
+      return {
+        success: true,
+        message: 'No files to upload',
+        filesCreated: 0,
+      };
+    }
 
-      for (const child of item.children) {
-        await processItem(child, folderPath);
+    let blobMap: Map<string, string>;
+
+    try {
+      blobMap = await createBlobs(octokit, owner, repo, files);
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('empty') ||
+          error.message.includes('Git Repository is empty'))
+      ) {
+        if (files.length > 0) {
+          const firstFile = files[0];
+          const base64Content = Buffer.from(
+            firstFile.content,
+            'utf-8',
+          ).toString('base64');
+          await octokit.repos.createOrUpdateFileContents({
+            owner,
+            repo,
+            path: firstFile.path,
+            message: 'Initial commit by Scaffolder',
+            content: base64Content,
+            branch,
+          });
+          const remainingFiles = files.slice(1);
+          if (remainingFiles.length > 0) {
+            blobMap = await createBlobs(octokit, owner, repo, remainingFiles);
+          } else {
+            blobMap = new Map<string, string>();
+          }
+          const firstFileBlob = await octokit.git.createBlob({
+            owner,
+            repo,
+            content: base64Content,
+            encoding: 'base64',
+          });
+          blobMap.set(firstFile.path, firstFileBlob.data.sha);
+        } else {
+          throw new Error('No files to upload');
+        }
+      } else {
+        throw error;
       }
-    } else {
-      const filePath =
-        currentPath === '' ? item.name : `${currentPath}/${item.name}`;
-      const fullPath = basePath === '' ? filePath : `${basePath}/${filePath}`;
+    }
 
-      await createOrUpdateFile(
-        octokit,
+    const tree = buildTree(files, blobMap);
+
+    let baseTreeSha: string | undefined;
+    let parents: string[] = [];
+
+    try {
+      const refResponse = await octokit.git.getRef({
         owner,
         repo,
-        fullPath,
-        item.content,
-        branch,
-      );
-      filesCreated += 1;
+        ref: `heads/${branch}`,
+      });
+
+      const baseCommitSha = refResponse.data.object.sha;
+
+      const getCommitResponse = await octokit.git.getCommit({
+        owner,
+        repo,
+        commit_sha: baseCommitSha,
+      });
+
+      baseTreeSha = getCommitResponse.data.tree.sha;
+      parents = [baseCommitSha];
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        'status' in error &&
+        typeof error.status === 'number' &&
+        error.status === 404
+      ) {
+        baseTreeSha = undefined;
+        parents = [];
+      } else {
+        throw error;
+      }
     }
-  };
 
-  for (const item of structure) {
-    await processItem(item, '');
+    const treeResponse = await octokit.git.createTree({
+      owner,
+      repo,
+      base_tree: baseTreeSha,
+      tree,
+    });
+
+    const treeSha = treeResponse.data.sha;
+
+    const commitResponse = await octokit.git.createCommit({
+      owner,
+      repo,
+      message:
+        commitMessage !== undefined && commitMessage !== ''
+          ? commitMessage
+          : 'Initial commit by Scaffolder',
+      tree: treeSha,
+      parents,
+    });
+
+    const commitSha = commitResponse.data.sha;
+
+    try {
+      await octokit.git.updateRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`,
+        sha: commitSha,
+        force: true,
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        'status' in error &&
+        typeof error.status === 'number' &&
+        error.status === 404
+      ) {
+        await octokit.git.createRef({
+          owner,
+          repo,
+          ref: `refs/heads/${branch}`,
+          sha: commitSha,
+        });
+      } else {
+        throw error;
+      }
+    }
+
+    return {
+      success: true,
+      message: `Successfully created ${String(filesCount)} file(s) in a single commit`,
+      filesCreated: filesCount,
+    };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to create folder structure: ${error.message}`);
+    }
+    throw new Error('Failed to create folder structure: Unknown error');
   }
-
-  return {
-    success: true,
-    message: `Successfully created ${String(filesCreated)} file(s) in repository`,
-    filesCreated,
-  };
 };

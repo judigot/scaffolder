@@ -29,6 +29,7 @@ router.post(
           repo?: unknown;
           basePath?: unknown;
           branch?: unknown;
+          commitMessage?: unknown;
         }
         const isRequestBody = (val: unknown): val is IRequestBody => {
           return typeof val === 'object' && val !== null;
@@ -46,6 +47,7 @@ router.post(
         const repo = req.body.repo;
         const basePath = req.body.basePath;
         const branch = req.body.branch;
+        const commitMessage = req.body.commitMessage;
 
         if (!Array.isArray(structure)) {
           res.status(400).json({
@@ -124,6 +126,10 @@ router.post(
               : undefined,
           branch:
             typeof branch === 'string' && branch !== '' ? branch : undefined,
+          commitMessage:
+            typeof commitMessage === 'string' && commitMessage !== ''
+              ? commitMessage
+              : undefined,
         });
 
         res.json(result);
