@@ -1,5 +1,6 @@
 import type React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import {
@@ -59,6 +60,7 @@ function FileViewer({
   mode: 'edit' | 'view';
   projectName?: string;
 }) {
+  const { getAccessTokenSilently } = useAuth0();
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
   const { editValue, newValue, promptModal } = useModalStore();
@@ -81,6 +83,7 @@ function FileViewer({
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const editorRef = useRef<ICodeEditor | null>(null);
   const fileViewerRef = useRef<HTMLDivElement>(null);
+  const [isCreatingFile, setIsCreatingFile] = useState<boolean>(false);
 
   // Save file content changes - wrapped in useCallback
   const saveFileChanges = useCallback(() => {
@@ -709,6 +712,127 @@ function FileViewer({
     }
   };
 
+  const handleCreateTestFile = () => {
+    void (async () => {
+      if (!publicRepoURL || publicRepoURL === '') {
+        console.error('Please provide a GitHub repository URL');
+        return;
+      }
+
+      setIsCreatingFile(true);
+
+      try {
+        const accessTokenResult = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
+          },
+        });
+        if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
+          throw new Error('Failed to get access token');
+        }
+        const accessToken: string = accessTokenResult;
+
+        const tokenResponse = await fetch(
+          `${String(import.meta.env.VITE_BACKEND_URL)}/github-token`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
+        if (!tokenResponse.ok) {
+          throw new Error('Failed to get GitHub token');
+        }
+
+        const tokenData: unknown = await tokenResponse.json();
+        interface ITokenResponse {
+          success?: boolean;
+          token?: string | null;
+        }
+        const isTokenResponse = (val: unknown): val is ITokenResponse => {
+          return (
+            typeof val === 'object' &&
+            val !== null &&
+            ('success' in val || 'token' in val)
+          );
+        };
+
+        if (
+          !isTokenResponse(tokenData) ||
+          tokenData.token === null ||
+          tokenData.token === undefined ||
+          tokenData.token === ''
+        ) {
+          throw new Error(
+            'GitHub token not found. Please set your GitHub token in your profile.',
+          );
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filePath = `dist/test-file-${timestamp}.txt`;
+        const content = `Test file created at ${new Date().toISOString()}\nRepository: ${publicRepoURL}`;
+
+        const response = await fetch(
+          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-file`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              publicRepoURL,
+              filePath,
+              content,
+              commitMessage: `Create test file: ${filePath}`,
+            }),
+          },
+        );
+
+        const result: unknown = await response.json();
+
+        interface ICreateFileResponse {
+          success?: boolean;
+          message?: string;
+          url?: string;
+          error?: string;
+        }
+
+        const isCreateFileResponse = (
+          val: unknown,
+        ): val is ICreateFileResponse => {
+          return (
+            typeof val === 'object' &&
+            val !== null &&
+            ('success' in val ||
+              'message' in val ||
+              'url' in val ||
+              'error' in val)
+          );
+        };
+
+        if (!response.ok) {
+          const errorMessage = isCreateFileResponse(result)
+            ? (result.error ?? 'Failed to create file')
+            : 'Failed to create file';
+          throw new Error(errorMessage);
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error('Failed to create file:', error.message);
+        } else {
+          console.error('An unexpected error occurred');
+        }
+      } finally {
+        setIsCreatingFile(false);
+      }
+    })();
+  };
+
   const handleCreateApp = async () => {
     try {
       // Create formData object from the current state
@@ -768,13 +892,27 @@ function FileViewer({
 
   return (
     <div className="h-96 p-2" ref={fileViewerRef}>
-      <button
-        type="button"
-        onClick={() => void handleCreateApp()}
-        className="mb-2 sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-      >
-        Create App!
-      </button>
+      <div className="flex gap-2 mb-2">
+        <button
+          type="button"
+          onClick={() => void handleCreateApp()}
+          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+        >
+          Create App!
+        </button>
+        <button
+          type="button"
+          onClick={handleCreateTestFile}
+          disabled={isCreatingFile || !publicRepoURL}
+          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+            isCreatingFile || !publicRepoURL
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+          }`}
+        >
+          {isCreatingFile ? 'Creating...' : 'Create Test File'}
+        </button>
+      </div>
       <br />
       <div className="grid grid-cols-1 md:grid-cols-3 text-white">
         <div className="col-span-1 bg-gray-800 select-none mr-2">

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
 import { useFormStore } from '@/useFormStore.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
@@ -21,7 +20,6 @@ import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import UserProfile from '@/components/UserProfile.tsx';
 
 function App() {
-  const { getAccessTokenSilently } = useAuth0();
   const formData = useFormStore();
   const {
     backendUrl,
@@ -78,8 +76,6 @@ function App() {
     : [];
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isCreatingFile, setIsCreatingFile] = useState<boolean>(false);
-  const [githubToken, setGithubToken] = useState<string>('');
 
   // State for input value before being committed to store
   const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
@@ -217,123 +213,11 @@ function App() {
     }
   }, [publicRepoURL, refetchUserFiles]);
 
-  const handleCreateTestFile = () => {
-    void (async () => {
-      if (!publicRepoURL || publicRepoURL === '') {
-        console.error('Please provide a GitHub repository URL');
-        return;
-      }
-
-      if (!githubToken || githubToken === '') {
-        console.error('Please provide a GitHub token');
-        return;
-      }
-
-      setIsCreatingFile(true);
-
-      try {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filePath = `dist/test-file-${timestamp}.txt`;
-        const content = `Test file created at ${new Date().toISOString()}\nRepository: ${publicRepoURL}`;
-
-        const accessTokenResult = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
-          },
-        });
-        if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
-          throw new Error('Failed to get access token');
-        }
-        const accessToken: string = accessTokenResult;
-        const response = await fetch(
-          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-file`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              publicRepoURL,
-              filePath,
-              content,
-              commitMessage: `Create test file: ${filePath}`,
-            }),
-          },
-        );
-
-        const result: unknown = await response.json();
-
-        interface ICreateFileResponse {
-          success?: boolean;
-          message?: string;
-          url?: string;
-          error?: string;
-        }
-
-        const isCreateFileResponse = (
-          val: unknown,
-        ): val is ICreateFileResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val ||
-              'message' in val ||
-              'url' in val ||
-              'error' in val)
-          );
-        };
-
-        if (!response.ok) {
-          const errorMessage = isCreateFileResponse(result)
-            ? (result.error ?? 'Failed to create file')
-            : 'Failed to create file';
-          throw new Error(errorMessage);
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          console.error('Failed to create file:', error.message);
-        } else {
-          console.error('An unexpected error occurred');
-        }
-      } finally {
-        setIsCreatingFile(false);
-      }
-    })();
-  };
-
   return (
     <div className="text-white bg-black">
-      <div className="p-4 bg-gray-800 rounded-md mb-4">
-        <button
-          type="button"
-          onClick={handleCreateTestFile}
-          disabled={isCreatingFile || !publicRepoURL || !githubToken}
-          className={`px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-            isCreatingFile || !publicRepoURL || !githubToken
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
-        >
-          {isCreatingFile
-            ? 'Creating...'
-            : `Create test-file-(timestamp).txt inside dist folder on ${publicRepoURL}`}
-        </button>
-        {!githubToken && (
-          <p className="text-xs text-gray-400 mt-2">
-            Please set your GitHub token in your profile to create files.
-          </p>
-        )}
-      </div>
-
       <nav className="bg-gray-900 text-white p-2 sticky top-0 z-50 text-center border-b border-gray-700">
         <div className="absolute right-4 top-4 flex items-center gap-3">
-          <UserProfile
-            onTokenUpdate={(token) => {
-              setGithubToken(token);
-            }}
-          />
+          <UserProfile />
         </div>
         <div className="inline-block">
           <h1 className="text-2xl font-bold inline-block pl-5 pr-5">
