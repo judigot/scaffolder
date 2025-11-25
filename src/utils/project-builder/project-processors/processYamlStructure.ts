@@ -18,6 +18,12 @@ import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import type { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processTemplatePathWithFlag } from '@/utils/project-builder/utils/processRelativePath.ts';
 
+const ROOT_LEVEL_ACTIONS = [
+  PROJECT_ACTIONS.CREATE_FILE,
+  PROJECT_ACTIONS.CREATE_BASE_METHOD_FILE,
+  PROJECT_ACTIONS.FILE_LOOP,
+] as const;
+
 export const processYamlStructure = ({
   node,
   schemaInfo,
@@ -414,6 +420,36 @@ export const processYamlStructure = ({
 
   if (typeof node === 'object' && node !== null) {
     return Object.entries(node).flatMap(([key, value]): IStructure => {
+      if (ROOT_LEVEL_ACTIONS.some((action) => key.startsWith(`${action}(`))) {
+        const actionResult = processYamlStructure({
+          node: key,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          projectYamlPath,
+          table,
+          formData,
+          userMetadata,
+        });
+
+        if (value !== null && value !== undefined) {
+          const childStructure = processYamlStructure({
+            node: value,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            projectYamlPath,
+            table,
+            formData,
+            userMetadata,
+          });
+
+          return [...actionResult, ...childStructure];
+        }
+
+        return actionResult;
+      }
+
       // Special handling for IMPORT_PROJECT keys with colons
       if (key.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
         // Extract the command string
