@@ -4,7 +4,10 @@ import {
   createJSONStorage,
   type PersistOptions,
 } from 'zustand/middleware';
-import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
+import {
+  extractDBConnectionInfo,
+  type IDBConnectionInfo,
+} from '@/utils/extractDBConnectionInfo.ts';
 import type { DBTypes, IJSONSchema } from '@/interfaces/interfaces.ts';
 import { SQLQueries } from '@/utils/mappings.ts';
 import { CREATION_MODES } from '@/constants.ts';
@@ -42,6 +45,11 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   clientID: string;
   clientSecret: string;
   creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES];
+  dbUsername: string;
+  dbPassword: string;
+  dbHost: string;
+  dbPort: number;
+  dbName: string;
   setCreationMode: (
     creationMode: (typeof CREATION_MODES)[keyof typeof CREATION_MODES],
   ) => void;
@@ -51,11 +59,20 @@ export interface IFormStore extends Record<PropertyKey, unknown> {
   setManyToMany: () => void;
   setDBType: (dbType: DBTypes) => void;
   setPublicRepoURL: (url: string) => void;
+  setDbConnection: (connection: string) => void;
 }
 
 function determineSQLDatabaseType(dbConnection: string): DBTypes {
   const dbType = extractDBConnectionInfo(dbConnection).dbType;
   return dbType;
+}
+
+function getDBConnectionInfo(dbConnection: string): IDBConnectionInfo | null {
+  try {
+    return extractDBConnectionInfo(dbConnection);
+  } catch {
+    return null;
+  }
 }
 
 const persistConfig: PersistOptions<IFormStore, unknown> = {
@@ -67,10 +84,10 @@ export const useFormStore = create<IFormStore>()(
   persist((rawSet) => {
     const set = createTabSync<IFormStore>('scaffolder-sync')(rawSet);
 
-    const initialDbType = determineSQLDatabaseType(
-      'postgresql://root:123@localhost:5432/laravel',
-    );
+    const initialDbConnection = 'postgresql://root:123@localhost:5432/laravel';
+    const initialDbType = determineSQLDatabaseType(initialDbConnection);
     const initialQuote = SQLQueries.quote[initialDbType];
+    const initialDbInfo = getDBConnectionInfo(initialDbConnection);
 
     return {
       schemaInput: masterJSONSchema,
@@ -79,7 +96,7 @@ export const useFormStore = create<IFormStore>()(
       // backendDir: 'C:/Users/Username/Desktop/app/backend',
       frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',
       // frontendDir: 'C:/Users/Username/Desktop/app/frontend',
-      dbConnection: 'postgresql://root:123@localhost:5432/laravel',
+      dbConnection: initialDbConnection,
       framework: frameworks.LARAVEL,
       includeInsertData: true,
       insertOption: 'SQLInsertQueriesFromMockData',
@@ -91,6 +108,11 @@ export const useFormStore = create<IFormStore>()(
       clientID: '',
       clientSecret: '',
       creationMode: CREATION_MODES.SCHEMA_BUILDER,
+      dbUsername: initialDbInfo?.username ?? '',
+      dbPassword: initialDbInfo?.password ?? '',
+      dbHost: initialDbInfo?.host ?? '',
+      dbPort: initialDbInfo?.port ?? 0,
+      dbName: initialDbInfo?.dbName ?? '',
       setCreationMode: (creationMode) => {
         set({ creationMode });
       },
@@ -131,11 +153,35 @@ export const useFormStore = create<IFormStore>()(
 
           const newDbType = determineSQLDatabaseType(connectionString);
           const newQuote = SQLQueries.quote[newDbType];
+          const dbInfo = getDBConnectionInfo(connectionString);
 
           return {
             dbConnection: connectionString,
             dbType: newDbType,
             quote: newQuote,
+            dbUsername: dbInfo?.username ?? '',
+            dbPassword: dbInfo?.password ?? '',
+            dbHost: dbInfo?.host ?? '',
+            dbPort: dbInfo?.port ?? 0,
+            dbName: dbInfo?.dbName ?? '',
+          };
+        });
+      },
+      setDbConnection: (connection: string) => {
+        set(() => {
+          const dbType = determineSQLDatabaseType(connection);
+          const quote = SQLQueries.quote[dbType];
+          const dbInfo = getDBConnectionInfo(connection);
+
+          return {
+            dbConnection: connection,
+            dbType,
+            quote,
+            dbUsername: dbInfo?.username ?? '',
+            dbPassword: dbInfo?.password ?? '',
+            dbHost: dbInfo?.host ?? '',
+            dbPort: dbInfo?.port ?? 0,
+            dbName: dbInfo?.dbName ?? '',
           };
         });
       },

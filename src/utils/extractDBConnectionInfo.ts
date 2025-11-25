@@ -1,7 +1,7 @@
 import type { DBTypes } from '@/interfaces/interfaces.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 
-interface IDBConnectionInfo {
+export interface IDBConnectionInfo {
   dbType: DBTypes;
   username: string;
   password: string;
