@@ -2,6 +2,7 @@ import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 import {
   LOOP_COMMAND_REGEX,
   LOOP_TABLES_REGEX,
@@ -78,6 +79,7 @@ export const processLoopTables = (
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
+  formData?: IFormStore,
 ): string => {
   return content.replace(
     LOOP_TABLES_REGEX,
@@ -113,6 +115,9 @@ export const processLoopTables = (
             userFiles,
             schemaInfoParsed,
             table,
+            undefined,
+            undefined,
+            formData,
           );
         })
         .join(separator);
@@ -126,6 +131,7 @@ export const processIterateCommand = (
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
   projectFilePath?: string,
+  formData?: IFormStore,
 ): string => {
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
@@ -182,6 +188,8 @@ export const processIterateCommand = (
             userFiles,
             schemaInfoParsed,
             table,
+            undefined,
+            formData,
           );
         }
         // For non-constant values, still process any placeholders they might have
@@ -192,6 +200,9 @@ export const processIterateCommand = (
           userFiles,
           schemaInfoParsed,
           table,
+          undefined,
+          undefined,
+          formData,
         );
       })
     : [];
@@ -269,6 +280,8 @@ export const processIterateCommand = (
           includedFiles,
           excludedFiles,
           separator,
+          projectFilePath,
+          formData,
         );
 
         if (processedTemplate) {
@@ -310,6 +323,8 @@ export const processIterateCommand = (
         includedFiles,
         excludedFiles,
         separator,
+        projectFilePath,
+        formData,
       );
     }
   }
@@ -410,6 +425,7 @@ export const processIterateCommand = (
       schemaInfoParsed,
       userFiles,
       projectFilePath,
+      formData,
     );
   }
 
@@ -637,6 +653,7 @@ export const processIterateCommand = (
       table,
       projectFilePath,
       template,
+      formData,
     );
   });
 

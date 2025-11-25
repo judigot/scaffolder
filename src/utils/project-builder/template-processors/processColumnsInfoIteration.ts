@@ -4,6 +4,7 @@ import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 export const processColumnsInfoIteration = (
   tableObj: ISchemaInfo,
@@ -12,6 +13,7 @@ export const processColumnsInfoIteration = (
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
   projectFilePath?: string,
+  formData?: IFormStore,
 ): string => {
   // Process each column individually
   const results: string[] = [];
@@ -73,6 +75,7 @@ export const processColumnsInfoIteration = (
       tableObj,
       projectFilePath,
       processedTemplate,
+      formData,
     );
     if (result.trim()) {
       results.push(result);

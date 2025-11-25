@@ -4,6 +4,7 @@ import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
+import type { IFormStore } from '@/useFormStore.ts';
 
 export const loadConstant = (
   constantName: string,
@@ -11,6 +12,7 @@ export const loadConstant = (
   schemaInfoParsed: ISchemaInfoResult,
   table?: ISchemaInfo,
   projectFilePath?: string,
+  formData?: IFormStore,
 ): string[] => {
   const store = userFiles;
   const constantsFolder = store.find(
@@ -76,6 +78,7 @@ export const loadConstant = (
           table,
           projectFilePath,
           constantName,
+          formData,
         ),
       );
     }

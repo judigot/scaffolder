@@ -5,6 +5,7 @@ const LOOP = 'LOOP';
 export const TEMPLATE_ACTIONS = {
   LOOP,
   USE_CONSTANT: 'USE_CONSTANT',
+  USE_FORM_DATA: 'USE_FORM_DATA',
   USE_TEMPLATE: 'USE_TEMPLATE',
   LOOP_TABLES: `${LOOP}(tables)`,
   LOOP_COLUMNS: `${LOOP}(columns)`,
@@ -31,6 +32,7 @@ export const REGEX_PATTERNS = {
   TEMPLATE_OPTION: (flag: string) => `--${flag}="(.*?)"`,
   BOOLEAN_FLAG: (flag: string) => `--${flag}`,
   USE_CONSTANT: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_CONSTANT}\\(([^)]+)\\)\\s*\\]\\]`,
+  USE_FORM_DATA: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_FORM_DATA}\\(([^)]+)\\)\\s*\\]\\]`,
   USE_TEMPLATE: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_TEMPLATE}\\(([^)]+)\\)\\s*\\]\\]`,
   FOLDER_PATH: '^\\/(.*?)$',
   RECURSIVE_WILDCARD_PATH: '^\\/(.*(\\*\\*).*)$',
@@ -80,8 +82,12 @@ export const REMOVE_DUPLICATES_REGEX = new RegExp(
 
 export const USE_CONSTANT_REGEX = new RegExp(REGEX_PATTERNS.USE_CONSTANT);
 
+export const USE_FORM_DATA_REGEX = new RegExp(REGEX_PATTERNS.USE_FORM_DATA);
+
 export const USE_TEMPLATE_REGEX = new RegExp(REGEX_PATTERNS.USE_TEMPLATE);
 
 export const FOLDER_PATH_REGEX = new RegExp(REGEX_PATTERNS.FOLDER_PATH);
 
-export const RECURSIVE_WILDCARD_REGEX = new RegExp(REGEX_PATTERNS.RECURSIVE_WILDCARD_PATH);
+export const RECURSIVE_WILDCARD_REGEX = new RegExp(
+  REGEX_PATTERNS.RECURSIVE_WILDCARD_PATH,
+);

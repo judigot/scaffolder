@@ -8,6 +8,7 @@ import {
   isPathRelative,
   getProjectDirectory,
 } from '@/utils/project-builder/utils/processRelativePath.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 /**
  * This command allows including the content of another template file, supporting both
@@ -34,6 +35,7 @@ export const processUseTemplate = (
   templatePath?: string,
   projectFilePath?: string,
   table?: ISchemaInfo,
+  formData?: IFormStore,
 ): string => {
   // Create a new RegExp with the global flag to match all occurrences
   const globalUseTemplateRegex = new RegExp(USE_TEMPLATE_REGEX.source, 'g');
@@ -87,6 +89,8 @@ export const processUseTemplate = (
         table,
         // Use the resolved path to ensure proper relative path resolution for nested imports
         pathToUse,
+        projectFilePath,
+        formData,
       );
 
       return processedContent;

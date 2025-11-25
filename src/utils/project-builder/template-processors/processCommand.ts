@@ -3,8 +3,12 @@ import { loadConstant } from '@/utils/project-builder/template-processors/loadCo
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
-import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
+import {
+  TEMPLATE_ACTIONS,
+  USE_FORM_DATA_REGEX,
+} from '@/utils/project-builder/constants/templateActions.ts';
 import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 /**
  * Helper function to check if a string has content
@@ -28,6 +32,7 @@ export const processCommand = (
   table?: ISchemaInfo,
   templateFilePath?: string,
   projectFilePath?: string,
+  formData?: IFormStore,
 ): string => {
   // Process all commands in order of specificity
   let result = text;
@@ -51,7 +56,41 @@ export const processCommand = (
         schemaInfoParsed,
         table,
         projectFilePath,
+        formData,
       ).join(',');
+    },
+  );
+
+  // Process USE_FORM_DATA commands
+  const useFormDataRegex = new RegExp(USE_FORM_DATA_REGEX.source, 'g');
+
+  result = result.replace(
+    useFormDataRegex,
+    (_match: string, group1: string) => {
+      if (!formData) {
+        return '';
+      }
+      const formDataKey = group1.trim();
+      if (!(formDataKey in formData)) {
+        return '';
+      }
+      const value = formData[formDataKey];
+      if (value === undefined || value === null) {
+        return '';
+      }
+      if (typeof value === 'string') {
+        return value;
+      }
+      if (typeof value === 'boolean' || typeof value === 'number') {
+        return String(value);
+      }
+      if (Array.isArray(value)) {
+        return value.join(',');
+      }
+      if (typeof value === 'object') {
+        return JSON.stringify(value);
+      }
+      return '';
     },
   );
 
@@ -64,6 +103,7 @@ export const processCommand = (
     templateFilePath,
     projectFilePath,
     table,
+    formData,
   );
 
   // Remove entire lines where LOOP tags produce empty results
@@ -106,6 +146,7 @@ export const processCommand = (
             schemaInfoParsed,
             userFiles,
             projectFilePath,
+            formData,
           );
 
           // Only add whitespace if cmdResult has content

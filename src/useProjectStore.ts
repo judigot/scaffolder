@@ -4,6 +4,7 @@ import type { IFile, IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useFormStore } from '@/useFormStore.ts';
 import equal from 'fast-deep-equal';
 
 type IProjectBuildCache = IStructure;
@@ -31,7 +32,7 @@ const persistConfig = {
   }),
 };
 
-const isUseCache = true;
+const isUseCache = !true;
 
 export const useProjectStore = create<IProjectStore>()(
   persist(
@@ -163,6 +164,9 @@ export const useProjectStore = create<IProjectStore>()(
         // Get all user files
         const { userFiles: allUserFiles } = useMockDatabaseStore.getState();
 
+        // Get form data
+        const formData = useFormStore.getState();
+
         // Build project files using the project path
         // Use uniqueId if available, otherwise use the folder-based path
         const projectPath =
@@ -173,6 +177,7 @@ export const useProjectStore = create<IProjectStore>()(
           projectPath,
           allUserFiles,
           schemaInfo,
+          formData,
         );
 
         // Update cache

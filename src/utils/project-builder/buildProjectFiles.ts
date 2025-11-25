@@ -9,11 +9,13 @@ import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extra
 import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/detectCircularPlaceholderImports.ts';
 import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
+import { IFormStore } from '@/useFormStore.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,
   userFiles: IStructure,
   schemaInfo: ISchemaInfo[],
+  formData: IFormStore,
 ): IStructure => {
   const schemaInfoParsed = getSchemaInfo(schemaInfo);
   const file = findFileInStructure(projectYamlPath, userFiles);
@@ -123,6 +125,7 @@ export const buildProjectFiles = (
       schemaInfoParsed,
       userFiles,
       projectYamlPath,
+      formData,
     });
 
     const projectFiles = mergeCoreFilesWithScaffolded(

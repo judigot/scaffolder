@@ -5,3 +5,5 @@ src:
   IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
   components:
     - CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt)
+form:
+  - CREATE_FILE(form.txt --template ./templates/form.txt)

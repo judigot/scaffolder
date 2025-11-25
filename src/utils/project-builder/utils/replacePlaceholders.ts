@@ -6,6 +6,7 @@ import { processIfConditions } from '@/utils/project-builder/template-processors
 import { importTemplateAsPlaceholder } from '@/utils/project-builder/template-processors/importTemplateAsPlaceholder.ts';
 import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 /**
  * Replaces placeholders in a template with values from the replacements object
@@ -19,6 +20,7 @@ export const replacePlaceholders = (
   table?: ISchemaInfo,
   projectFilePath?: string,
   templateFilePath?: string,
+  formData?: IFormStore,
 ): string => {
   // Process all commands
   const processedText = processCommand(
@@ -28,6 +30,7 @@ export const replacePlaceholders = (
     table,
     templateFilePath,
     projectFilePath,
+    formData,
   );
 
   // Process IF conditions

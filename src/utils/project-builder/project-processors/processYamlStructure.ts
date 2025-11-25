@@ -25,6 +25,7 @@ export const processYamlStructure = ({
   userFiles,
   projectYamlPath,
   table,
+  formData,
 }: IBuildContext): IStructure => {
   if (typeof node === 'string') {
     const nodeParams = /\(([^)]+)\)/.exec(node);
@@ -122,6 +123,7 @@ export const processYamlStructure = ({
           table,
           projectYamlPath,
           command,
+          formData,
         );
 
         // Extract the base filename from the processed path if it contains slashes
@@ -136,6 +138,7 @@ export const processYamlStructure = ({
             schemaInfo,
             schemaInfoParsed,
             userFiles,
+            formData,
           ),
           replacements,
           userFiles,
@@ -145,6 +148,7 @@ export const processYamlStructure = ({
           typeof templatePath === 'string' && templatePath.length > 0
             ? templatePath
             : command,
+          formData,
         );
 
         content = processIterateInTemplate(
@@ -179,6 +183,8 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         table,
         projectYamlPath,
+        undefined,
+        formData,
       );
 
       // Extract just the filename portion if it contains slashes
@@ -207,6 +213,7 @@ export const processYamlStructure = ({
         schemaInfoProcessed,
         projectYamlPath,
         node,
+        formData,
       );
 
       processedContent = processIterateInTemplate(
@@ -237,6 +244,7 @@ export const processYamlStructure = ({
         userFiles,
         projectYamlPath,
         table,
+        formData,
       });
     }
 
@@ -248,6 +256,7 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         userFiles,
         projectYamlPath,
+        formData,
       });
     }
 
@@ -282,6 +291,8 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         schemaInfoProcessed,
         projectYamlPath,
+        undefined,
+        formData,
       );
 
       processedContent = processIterateInTemplate(
@@ -353,6 +364,7 @@ export const processYamlStructure = ({
               schemaInfoParsed,
               userFiles,
               projectYamlPath,
+              formData,
             });
           }
         }
@@ -367,6 +379,7 @@ export const processYamlStructure = ({
           userFiles,
           projectYamlPath,
           table,
+          formData,
         });
       }
       return processYamlStructure({
@@ -375,6 +388,7 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         userFiles,
         projectYamlPath,
+        formData,
       });
     });
   }
@@ -397,6 +411,7 @@ export const processYamlStructure = ({
           userFiles,
           projectYamlPath,
           table,
+          formData,
         });
 
         // If this is just an import without creating a folder (when it has a colon at the end)
@@ -409,6 +424,7 @@ export const processYamlStructure = ({
             userFiles,
             projectYamlPath,
             table,
+            formData,
           });
 
           return [...importResult, ...childStructure];
@@ -443,6 +459,7 @@ export const processYamlStructure = ({
           schemaInfoParsed,
           userFiles,
           projectYamlPath,
+          formData,
         });
       }
 
@@ -458,6 +475,7 @@ export const processYamlStructure = ({
               userFiles,
               projectYamlPath,
               table,
+              formData,
             }),
           },
         ];
@@ -473,6 +491,7 @@ export const processYamlStructure = ({
             schemaInfoParsed,
             userFiles,
             projectYamlPath,
+            formData,
           }),
         },
       ];

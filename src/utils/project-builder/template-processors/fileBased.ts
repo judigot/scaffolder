@@ -5,6 +5,7 @@ import { changeCase } from '@/utils/common.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { importTemplateAsPlaceholder } from '@/utils/project-builder/template-processors/importTemplateAsPlaceholder.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 export const processFileBasedTemplate = (
   folderPath: string,
@@ -16,6 +17,7 @@ export const processFileBasedTemplate = (
   excludedFiles: string[] = [],
   separator = '\n',
   projectFilePath?: string,
+  formData?: IFormStore,
 ): string => {
   // Navigate to the specified folder path
   const pathParts = folderPath.split('/').filter(Boolean);
@@ -158,6 +160,7 @@ export const processFileBasedTemplate = (
           table,
           projectFilePath,
           folderPath,
+          formData,
         );
 
         results.push(processedTemplate);
@@ -179,6 +182,7 @@ export const processFileBasedTemplate = (
           table,
           projectFilePath,
           folderPath,
+          formData,
         );
 
         results.push(processedTemplate);
