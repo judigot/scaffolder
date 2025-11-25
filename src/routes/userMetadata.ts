@@ -98,9 +98,30 @@ router.post('/user-metadata/env', (req: Request, res: Response) => {
       );
 
       const currentMetadata = await getUserMetadata(auth0UserId);
-      const updatedMetadata = {
-        ...(currentMetadata ?? {}),
-        env: envRecord,
+
+      // Ensure metadata object exists and has env key initialized
+      const baseMetadata = currentMetadata ?? {};
+      let existingEnv: Record<string, unknown> = {};
+      if (
+        typeof baseMetadata.env === 'object' &&
+        baseMetadata.env !== null &&
+        !Array.isArray(baseMetadata.env)
+      ) {
+        const envValue = baseMetadata.env;
+        const isRecord = (val: unknown): val is Record<string, unknown> => {
+          return typeof val === 'object' && val !== null && !Array.isArray(val);
+        };
+        if (isRecord(envValue)) {
+          existingEnv = envValue;
+        }
+      }
+
+      const updatedMetadata: Record<string, unknown> = {
+        ...baseMetadata,
+        env: {
+          ...existingEnv,
+          ...envRecord,
+        },
       };
 
       await updateUserMetadata(auth0UserId, updatedMetadata);
