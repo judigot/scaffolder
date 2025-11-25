@@ -3,6 +3,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { TEMPLATE_ACTIONS } from '@/utils/project-builder/constants/templateActions.ts';
 import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 export const processIterateInTemplate = (
   content: string,
@@ -10,6 +11,8 @@ export const processIterateInTemplate = (
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
   table?: ISchemaInfo,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   const iterateRegex = new RegExp(
     `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
@@ -31,6 +34,9 @@ export const processIterateInTemplate = (
           table,
           schemaInfoParsed,
           userFiles,
+          undefined,
+          formData,
+          userMetadata,
         );
         return cmdResult ? whitespace + cmdResult : '';
       }

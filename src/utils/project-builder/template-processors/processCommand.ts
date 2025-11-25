@@ -6,6 +6,7 @@ import { processIterateCommand } from '@/utils/project-builder/template-processo
 import {
   TEMPLATE_ACTIONS,
   USE_FORM_DATA_REGEX,
+  USE_USER_ENV_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
 import type { IFormStore } from '@/useFormStore.ts';
@@ -33,6 +34,7 @@ export const processCommand = (
   templateFilePath?: string,
   projectFilePath?: string,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   // Process all commands in order of specificity
   let result = text;
@@ -94,6 +96,49 @@ export const processCommand = (
     },
   );
 
+  // Process USE_USER_ENV commands
+  const useUserEnvRegex = new RegExp(USE_USER_ENV_REGEX.source, 'g');
+
+  const isRecord = (val: unknown): val is Record<string, unknown> => {
+    return (
+      val !== null &&
+      val !== undefined &&
+      typeof val === 'object' &&
+      !Array.isArray(val)
+    );
+  };
+
+  result = result.replace(useUserEnvRegex, (_match: string, group1: string) => {
+    if (!userMetadata) {
+      return '';
+    }
+    const env = userMetadata.env;
+    if (!isRecord(env)) {
+      return '';
+    }
+    const envKey = group1.trim();
+    if (!(envKey in env)) {
+      return '';
+    }
+    const value: unknown = env[envKey];
+    if (value === undefined || value === null) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'boolean' || typeof value === 'number') {
+      return String(value);
+    }
+    if (Array.isArray(value)) {
+      return value.join(',');
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return '';
+  });
+
   // Then, process USE_TEMPLATE commands to include other templates
   // Pass both templateFilePath and projectFilePath to properly handle relative paths
   result = processUseTemplate(
@@ -104,6 +149,7 @@ export const processCommand = (
     projectFilePath,
     table,
     formData,
+    userMetadata,
   );
 
   // Remove entire lines where LOOP tags produce empty results
@@ -147,6 +193,7 @@ export const processCommand = (
             userFiles,
             projectFilePath,
             formData,
+            userMetadata,
           );
 
           // Only add whitespace if cmdResult has content
@@ -193,6 +240,8 @@ export const processCommand = (
         schemaInfoParsed,
         userFiles,
         projectFilePath,
+        formData,
+        userMetadata,
       );
 
       // Only add whitespace if cmdResult has content

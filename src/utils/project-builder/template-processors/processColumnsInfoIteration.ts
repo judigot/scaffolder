@@ -14,6 +14,7 @@ export const processColumnsInfoIteration = (
   userFiles: IStructure,
   projectFilePath?: string,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   // Process each column individually
   const results: string[] = [];
@@ -76,6 +77,7 @@ export const processColumnsInfoIteration = (
       projectFilePath,
       processedTemplate,
       formData,
+      userMetadata,
     );
     if (result.trim()) {
       results.push(result);

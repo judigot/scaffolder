@@ -13,6 +13,7 @@ export const loadConstant = (
   table?: ISchemaInfo,
   projectFilePath?: string,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string[] => {
   const store = userFiles;
   const constantsFolder = store.find(
@@ -79,6 +80,7 @@ export const loadConstant = (
           projectFilePath,
           constantName,
           formData,
+          userMetadata,
         ),
       );
     }

@@ -25,6 +25,7 @@ export const processMultipleFiles = ({
   userFiles,
   projectYamlPath,
   formData,
+  userMetadata,
 }: IMultipleFilesContext): IFile[] => {
   if (!fileName || fileName.length === 0) {
     return [];
@@ -73,6 +74,7 @@ export const processMultipleFiles = ({
             projectYamlPath,
             fileName,
             formData,
+            userMetadata,
           );
           if (table.tableName !== processedIncludeTable) {
             return false;
@@ -94,6 +96,7 @@ export const processMultipleFiles = ({
           projectYamlPath,
           fileName,
           formData,
+          userMetadata,
         );
         if (table.tableName === processedExcludeTable) {
           return false;
@@ -113,6 +116,7 @@ export const processMultipleFiles = ({
         projectYamlPath,
         fileName,
         formData,
+        userMetadata,
       );
 
       const outputFileName = processedName.includes('/')
@@ -125,6 +129,7 @@ export const processMultipleFiles = ({
         schemaInfoParsed,
         userFiles,
         formData,
+        userMetadata,
       );
 
       content = replacePlaceholders(
@@ -138,6 +143,7 @@ export const processMultipleFiles = ({
           ? templateOption
           : fileName,
         formData,
+        userMetadata,
       );
       content = processIterateInTemplate(
         content,
@@ -145,6 +151,8 @@ export const processMultipleFiles = ({
         schemaInfoParsed,
         userFiles,
         table,
+        formData,
+        userMetadata,
       );
 
       const finalContent = formatFileContent(content);

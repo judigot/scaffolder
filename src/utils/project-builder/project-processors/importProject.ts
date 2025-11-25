@@ -36,6 +36,7 @@ export const importProject = ({
   projectYamlPath,
   table,
   formData,
+  userMetadata,
 }: IBuildContext): IStructure => {
   // Clean up the command string to handle cases where it might have trailing characters
   const cleanCommand = command?.trim();
@@ -82,6 +83,7 @@ export const importProject = ({
         projectYamlPath,
         table,
         formData,
+        userMetadata,
       });
     } else if (
       (includeTableOption != null && includeTableOption.trim().length > 0) ||
@@ -110,6 +112,7 @@ export const importProject = ({
             projectYamlPath,
             undefined,
             formData,
+            userMetadata,
           );
           if (currentTable.tableName !== processedIncludeTable) {
             continue;
@@ -130,6 +133,7 @@ export const importProject = ({
             projectYamlPath,
             undefined,
             formData,
+            userMetadata,
           );
           if (currentTable.tableName === processedExcludeTable) {
             continue;
@@ -145,6 +149,7 @@ export const importProject = ({
           projectYamlPath,
           table: currentTable,
           formData,
+          userMetadata,
         });
 
         filteredResults.push(...processedStructure);
@@ -161,6 +166,7 @@ export const importProject = ({
       userFiles,
       projectYamlPath,
       formData,
+      userMetadata,
     });
   } catch {
     return [];

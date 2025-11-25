@@ -12,6 +12,7 @@ export const processDynamicFolders = ({
   userFiles,
   projectYamlPath,
   formData,
+  userMetadata,
 }: IBuildContext): IStructure => {
   return schemaInfo.map((table) => {
     const replacements = getReplacementsForTable(table, schemaInfoParsed);
@@ -29,6 +30,7 @@ export const processDynamicFolders = ({
       projectYamlPath,
       undefined,
       formData,
+      userMetadata,
     );
 
     // Process children with the current table context
@@ -40,6 +42,7 @@ export const processDynamicFolders = ({
       projectYamlPath,
       table,
       formData,
+      userMetadata,
     });
 
     return {

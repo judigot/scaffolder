@@ -26,6 +26,7 @@ export const processYamlStructure = ({
   projectYamlPath,
   table,
   formData,
+  userMetadata,
 }: IBuildContext): IStructure => {
   if (typeof node === 'string') {
     const nodeParams = /\(([^)]+)\)/.exec(node);
@@ -124,6 +125,7 @@ export const processYamlStructure = ({
           projectYamlPath,
           command,
           formData,
+          userMetadata,
         );
 
         // Extract the base filename from the processed path if it contains slashes
@@ -139,6 +141,7 @@ export const processYamlStructure = ({
             schemaInfoParsed,
             userFiles,
             formData,
+            userMetadata,
           ),
           replacements,
           userFiles,
@@ -149,6 +152,7 @@ export const processYamlStructure = ({
             ? templatePath
             : command,
           formData,
+          userMetadata,
         );
 
         content = processIterateInTemplate(
@@ -157,6 +161,8 @@ export const processYamlStructure = ({
           schemaInfoParsed,
           userFiles,
           table,
+          formData,
+          userMetadata,
         );
 
         // Format with consistent character handling
@@ -185,6 +191,7 @@ export const processYamlStructure = ({
         projectYamlPath,
         undefined,
         formData,
+        userMetadata,
       );
 
       // Extract just the filename portion if it contains slashes
@@ -206,6 +213,8 @@ export const processYamlStructure = ({
           schemaInfo,
           schemaInfoParsed,
           userFiles,
+          formData,
+          userMetadata,
         ),
         replacements,
         userFiles,
@@ -214,6 +223,7 @@ export const processYamlStructure = ({
         projectYamlPath,
         node,
         formData,
+        userMetadata,
       );
 
       processedContent = processIterateInTemplate(
@@ -222,6 +232,8 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         userFiles,
         schemaInfoProcessed,
+        formData,
+        userMetadata,
       );
 
       // Format the final content with proper character replacements
@@ -285,6 +297,8 @@ export const processYamlStructure = ({
           schemaInfo,
           schemaInfoParsed,
           userFiles,
+          formData,
+          userMetadata,
         ),
         replacements,
         userFiles,
@@ -293,6 +307,7 @@ export const processYamlStructure = ({
         projectYamlPath,
         undefined,
         formData,
+        userMetadata,
       );
 
       processedContent = processIterateInTemplate(
@@ -301,6 +316,8 @@ export const processYamlStructure = ({
         schemaInfoParsed,
         userFiles,
         table,
+        formData,
+        userMetadata,
       );
 
       // Format the final content with proper character replacements
@@ -380,6 +397,7 @@ export const processYamlStructure = ({
           projectYamlPath,
           table,
           formData,
+          userMetadata,
         });
       }
       return processYamlStructure({
@@ -389,6 +407,7 @@ export const processYamlStructure = ({
         userFiles,
         projectYamlPath,
         formData,
+        userMetadata,
       });
     });
   }
@@ -425,6 +444,7 @@ export const processYamlStructure = ({
             projectYamlPath,
             table,
             formData,
+            userMetadata,
           });
 
           return [...importResult, ...childStructure];
@@ -476,6 +496,7 @@ export const processYamlStructure = ({
               projectYamlPath,
               table,
               formData,
+              userMetadata,
             }),
           },
         ];
@@ -492,6 +513,7 @@ export const processYamlStructure = ({
             userFiles,
             projectYamlPath,
             formData,
+            userMetadata,
           }),
         },
       ];

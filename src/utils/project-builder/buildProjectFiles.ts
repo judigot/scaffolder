@@ -9,7 +9,7 @@ import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extra
 import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/detectCircularPlaceholderImports.ts';
 import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
-import { IFormStore } from '@/useFormStore.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 
 export const buildProjectFiles = (
   projectYamlPath: string,

@@ -22,7 +22,7 @@ import { useUser } from '@/hooks/useUser.ts';
 
 function App() {
   const formData = useFormStore();
-  const { user, isLoading: isUserLoading } = useUser();
+  const { user, userMetadata, isLoading: isUserLoading } = useUser();
   const {
     backendUrl,
     backendDir,
@@ -72,10 +72,20 @@ function App() {
     invalidateProjectCache,
   } = useProjectStore();
 
+  // Invalidate project cache when userMetadata changes
+  useEffect(() => {
+    if (selectedProject !== null && userMetadata !== null) {
+      invalidateProjectCache(selectedProject.name);
+    }
+  }, [userMetadata, selectedProject, invalidateProjectCache]);
+
   // Get the project files from the selected project
-  // Only build if user is loaded (not null) to ensure metadata is available
+  // Only build if user and userMetadata are loaded to ensure metadata is available
   const builtProjectFiles =
-    selectedProject !== null && user !== null && !isUserLoading
+    selectedProject !== null &&
+    user !== null &&
+    userMetadata !== null &&
+    !isUserLoading
       ? buildProjectFilesForProject(selectedProject, schemaInfo)
       : [];
 

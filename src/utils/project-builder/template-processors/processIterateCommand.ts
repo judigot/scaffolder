@@ -80,6 +80,7 @@ export const processLoopTables = (
   schemaInfoParsed: ISchemaInfoResult,
   userFiles: IStructure,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   return content.replace(
     LOOP_TABLES_REGEX,
@@ -118,6 +119,7 @@ export const processLoopTables = (
             undefined,
             undefined,
             formData,
+            userMetadata,
           );
         })
         .join(separator);
@@ -132,6 +134,7 @@ export const processIterateCommand = (
   userFiles: IStructure,
   projectFilePath?: string,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
@@ -190,6 +193,7 @@ export const processIterateCommand = (
             table,
             undefined,
             formData,
+            userMetadata,
           );
         }
         // For non-constant values, still process any placeholders they might have
@@ -203,6 +207,7 @@ export const processIterateCommand = (
           undefined,
           undefined,
           formData,
+          userMetadata,
         );
       })
     : [];
@@ -282,6 +287,7 @@ export const processIterateCommand = (
           separator,
           projectFilePath,
           formData,
+          userMetadata,
         );
 
         if (processedTemplate) {
@@ -325,6 +331,7 @@ export const processIterateCommand = (
         separator,
         projectFilePath,
         formData,
+        userMetadata,
       );
     }
   }
@@ -351,6 +358,10 @@ export const processIterateCommand = (
           userFiles,
           schemaInfoParsed,
           table,
+          undefined,
+          undefined,
+          formData,
+          userMetadata,
         );
       })
     : [];
@@ -654,6 +665,7 @@ export const processIterateCommand = (
       projectFilePath,
       template,
       formData,
+      userMetadata,
     );
   });
 

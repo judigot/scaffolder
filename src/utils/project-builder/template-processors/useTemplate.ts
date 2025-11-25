@@ -36,6 +36,7 @@ export const processUseTemplate = (
   projectFilePath?: string,
   table?: ISchemaInfo,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   // Create a new RegExp with the global flag to match all occurrences
   const globalUseTemplateRegex = new RegExp(USE_TEMPLATE_REGEX.source, 'g');
@@ -91,6 +92,7 @@ export const processUseTemplate = (
         pathToUse,
         projectFilePath,
         formData,
+        userMetadata,
       );
 
       return processedContent;

@@ -21,6 +21,7 @@ export const replacePlaceholders = (
   projectFilePath?: string,
   templateFilePath?: string,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   // Process all commands
   const processedText = processCommand(
@@ -31,6 +32,7 @@ export const replacePlaceholders = (
     templateFilePath,
     projectFilePath,
     formData,
+    userMetadata,
   );
 
   // Process IF conditions

@@ -18,6 +18,7 @@ export const processFileBasedTemplate = (
   separator = '\n',
   projectFilePath?: string,
   formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): string => {
   // Navigate to the specified folder path
   const pathParts = folderPath.split('/').filter(Boolean);
@@ -161,6 +162,7 @@ export const processFileBasedTemplate = (
           projectFilePath,
           folderPath,
           formData,
+          userMetadata,
         );
 
         results.push(processedTemplate);
@@ -183,6 +185,7 @@ export const processFileBasedTemplate = (
           projectFilePath,
           folderPath,
           formData,
+          userMetadata,
         );
 
         results.push(processedTemplate);
