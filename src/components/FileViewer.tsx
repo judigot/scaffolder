@@ -784,7 +784,16 @@ function FileViewer({
             : 'scaffolded-project';
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const repoName = `${baseRepoName}-${timestamp}`;
-        const description = `Scaffolded project exported at ${new Date().toISOString()}`;
+        const exportedAt = new Date();
+        const humanDate = exportedAt.toLocaleString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        const description = `This project was created using Scaffolder. Exported on ${humanDate}`;
 
         const createRepoResponse = await fetch(
           `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-repository`,
@@ -865,6 +874,7 @@ function FileViewer({
               owner,
               repo,
               branch: 'main',
+              projectName,
             }),
           },
         );

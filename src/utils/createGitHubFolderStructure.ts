@@ -10,6 +10,7 @@ interface ICreateGitHubFolderStructureRequest {
   basePath?: string;
   branch?: string;
   commitMessage?: string;
+  projectName?: string;
 }
 
 interface IFileEntry {
@@ -166,6 +167,7 @@ export const createGitHubFolderStructure = async (
     basePath = '',
     branch = 'main',
     commitMessage,
+    projectName,
   } = data;
 
   const octokit = new Octokit({
@@ -184,7 +186,12 @@ export const createGitHubFolderStructure = async (
       };
     }
 
-    const readmeContent = `# ${repo}
+    const displayName =
+      typeof projectName === 'string' && projectName !== ''
+        ? projectName
+        : repo;
+
+    const readmeContent = `# ${displayName}
 
 This project was generated using [Scaffolder](https://github.com/scaffolder) - Write Once, Generate Forever!
 
