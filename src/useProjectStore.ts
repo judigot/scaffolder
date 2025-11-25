@@ -5,6 +5,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
+import { useUserStore } from '@/useUserStore.ts';
 import equal from 'fast-deep-equal';
 
 type IProjectBuildCache = IStructure;
@@ -167,6 +168,9 @@ export const useProjectStore = create<IProjectStore>()(
         // Get form data
         const formData = useFormStore.getState();
 
+        // Get user metadata
+        const { userMetadata } = useUserStore.getState();
+
         // Build project files using the project path
         // Use uniqueId if available, otherwise use the folder-based path
         const projectPath =
@@ -178,6 +182,7 @@ export const useProjectStore = create<IProjectStore>()(
           allUserFiles,
           schemaInfo,
           formData,
+          userMetadata,
         );
 
         // Update cache

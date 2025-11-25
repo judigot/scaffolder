@@ -16,6 +16,7 @@ export const buildProjectFiles = (
   userFiles: IStructure,
   schemaInfo: ISchemaInfo[],
   formData: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
 ): IStructure => {
   const schemaInfoParsed = getSchemaInfo(schemaInfo);
   const file = findFileInStructure(projectYamlPath, userFiles);
@@ -126,6 +127,7 @@ export const buildProjectFiles = (
       userFiles,
       projectYamlPath,
       formData,
+      userMetadata,
     });
 
     const projectFiles = mergeCoreFilesWithScaffolded(

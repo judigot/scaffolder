@@ -9,6 +9,7 @@ import createGitHubFileRouter from './createGitHubFile.ts';
 import createGitHubRepositoryRouter from './createGitHubRepository.ts';
 import createGitHubFolderStructureRouter from './createGitHubFolderStructure.ts';
 import githubTokenRouter from './githubToken.ts';
+import userMetadataRouter from './userMetadata.ts';
 import helloRouter from './hello.ts';
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use(createGitHubFileRouter);
 router.use(createGitHubRepositoryRouter);
 router.use(createGitHubFolderStructureRouter);
 router.use(githubTokenRouter);
+router.use(userMetadataRouter);
 
 export default router;

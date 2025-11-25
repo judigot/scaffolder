@@ -27,4 +27,5 @@ export interface IBuildContext {
   folderName?: string;
   children?: unknown;
   formData?: IFormStore;
+  userMetadata?: Record<string, unknown> | null;
 }

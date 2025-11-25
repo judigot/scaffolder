@@ -18,9 +18,11 @@ import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import UserProfile from '@/components/UserProfile.tsx';
+import { useUser } from '@/hooks/useUser.ts';
 
 function App() {
   const formData = useFormStore();
+  const { user, isLoading: isUserLoading } = useUser();
   const {
     backendUrl,
     backendDir,
@@ -71,9 +73,11 @@ function App() {
   } = useProjectStore();
 
   // Get the project files from the selected project
-  const builtProjectFiles = selectedProject
-    ? buildProjectFilesForProject(selectedProject, schemaInfo)
-    : [];
+  // Only build if user is loaded (not null) to ensure metadata is available
+  const builtProjectFiles =
+    selectedProject !== null && user !== null && !isUserLoading
+      ? buildProjectFilesForProject(selectedProject, schemaInfo)
+      : [];
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 

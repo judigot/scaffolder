@@ -1,17 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
+import { useUser } from '@/hooks/useUser.ts';
+import { useUserStore } from '@/useUserStore.ts';
 
 interface IUserProfileProps {
   onTokenUpdate?: (token: string) => void;
 }
 
 export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
-  const { user, logout, getAccessTokenSilently } = useAuth0();
+  const {
+    user,
+    logout,
+    githubToken,
+    isLoading,
+    accessToken,
+    refreshGitHubToken,
+  } = useUser();
+  const { setGithubToken } = useUserStore();
   const [isOpen, setIsOpen] = useState(false);
   const [showTokenManagement, setShowTokenManagement] = useState(false);
-  const [githubToken, setGithubToken] = useState<string>('');
   const [inputValue, setInputValue] = useState<string>('');
-  const [isLoadingToken, setIsLoadingToken] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [showToken, setShowToken] = useState<boolean>(false);
@@ -23,84 +30,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const loadGitHubToken = async () => {
-      if (!user) {
-        setIsLoadingToken(false);
-        return;
+    if (githubToken !== null && githubToken !== '') {
+      setInputValue(githubToken);
+      if (onTokenUpdate) {
+        onTokenUpdate(githubToken);
       }
-
-      try {
-        const accessTokenResult = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
-          },
-          cacheMode: 'on',
-        });
-        if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
-          setIsLoadingToken(false);
-          return;
-        }
-
-        const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
-        const response = await fetch(`${backendUrl}/github-token`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${accessTokenResult}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const result: unknown = await response.json();
-          interface ITokenResponse {
-            success?: boolean;
-            token?: string | null;
-          }
-          const isTokenResponse = (val: unknown): val is ITokenResponse => {
-            return (
-              typeof val === 'object' &&
-              val !== null &&
-              ('success' in val || 'token' in val)
-            );
-          };
-
-          if (
-            isTokenResponse(result) &&
-            result.token !== null &&
-            result.token !== undefined
-          ) {
-            setGithubToken(result.token);
-            setInputValue(result.token);
-            if (onTokenUpdate) {
-              onTokenUpdate(result.token);
-            }
-          }
-        }
-      } catch (error: unknown) {
-        if (
-          error instanceof Error &&
-          error.message.includes('Missing Refresh Token')
-        ) {
-          // Missing refresh token is expected on first load
-        } else if (error instanceof Error) {
-          const errorMessage = error.message;
-          if (
-            !errorMessage.includes('Missing Refresh Token') &&
-            !errorMessage.includes('login_required')
-          ) {
-            console.error(`Failed to load GitHub token: ${errorMessage}`);
-          }
-        }
-      } finally {
-        setIsLoadingToken(false);
-      }
-    };
-
-    void loadGitHubToken();
-  }, [user, getAccessTokenSilently, onTokenUpdate]);
+    }
+  }, [githubToken, onTokenUpdate]);
 
   const saveGitHubToken = async (token: string) => {
-    if (!user) {
+    if (user === null || accessToken === null || accessToken === '') {
       return;
     }
 
@@ -109,21 +48,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setSuccessMessage(null);
 
     try {
-      const accessTokenResult = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
-        },
-        cacheMode: 'on',
-      });
-      if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
-        throw new Error('Failed to get access token');
+      const backendUrlEnv: unknown = import.meta.env.VITE_BACKEND_URL;
+      if (typeof backendUrlEnv !== 'string' || backendUrlEnv === '') {
+        throw new Error('Backend URL is not configured');
       }
+      const backendUrl: string = backendUrlEnv;
 
-      const backendUrl = String(import.meta.env.VITE_BACKEND_URL);
       const response = await fetch(`${backendUrl}/github-token`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessTokenResult}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token }),
@@ -166,6 +100,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       setTimeout(() => {
         setShowSavedIndicator(false);
       }, 5000);
+      await refreshGitHubToken();
       if (onTokenUpdate) {
         onTokenUpdate(token);
       }
@@ -181,7 +116,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   };
 
   const deleteGitHubToken = async () => {
-    if (!user) {
+    if (user === null || accessToken === null || accessToken === '') {
       return;
     }
 
@@ -190,21 +125,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setSuccessMessage(null);
 
     try {
-      const accessTokenResult = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
-        },
-        cacheMode: 'on',
-      });
-      if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
-        throw new Error('Failed to get access token');
+      const backendUrlEnv: unknown = import.meta.env.VITE_BACKEND_URL;
+      if (typeof backendUrlEnv !== 'string' || backendUrlEnv === '') {
+        throw new Error('Backend URL is not configured');
       }
+      const backendUrl: string = backendUrlEnv;
 
-      const backendUrl = String(import.meta.env.VITE_BACKEND_URL);
       const response = await fetch(`${backendUrl}/github-token`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${accessTokenResult}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -240,13 +170,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
         await response.json();
       }
 
-      setGithubToken('');
+      setGithubToken(null);
       setInputValue('');
       setHasChanges(false);
       setSuccessMessage('Token deleted successfully');
       setTimeout(() => {
         setSuccessMessage(null);
       }, 3000);
+      await refreshGitHubToken();
       if (onTokenUpdate) {
         onTokenUpdate('');
       }
@@ -263,20 +194,20 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
   const handleInputChange = (value: string) => {
     setInputValue(value);
-    setHasChanges(value !== githubToken);
+    setHasChanges(value !== (githubToken ?? ''));
     setError(null);
     setSuccessMessage(null);
   };
 
   const handleSave = () => {
     const tokenValue = inputValue.trim();
-    if (tokenValue !== '' && tokenValue !== githubToken) {
+    if (tokenValue !== '' && tokenValue !== (githubToken ?? '')) {
       void saveGitHubToken(tokenValue);
     }
   };
 
   const handleCancel = () => {
-    setInputValue(githubToken);
+    setInputValue(githubToken ?? '');
     setHasChanges(false);
     setError(null);
     setSuccessMessage(null);
@@ -335,7 +266,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                 setIsOpen(false);
                 setShowTokenManagement(false);
                 setHasChanges(false);
-                setInputValue(githubToken);
+                setInputValue(githubToken ?? '');
                 setError(null);
                 setShowDeleteConfirm(false);
               }}
@@ -371,15 +302,13 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
                       />
                     </svg>
-                    {githubToken ? 'Manage Token' : 'Add Token'}
+                    {githubToken !== null && githubToken !== ''
+                      ? 'Manage Token'
+                      : 'Add Token'}
                   </button>
 
                   <button
-                    onClick={() => {
-                      void logout({
-                        logoutParams: { returnTo: window.location.origin },
-                      });
-                    }}
+                    onClick={logout}
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
                   >
                     <svg
@@ -405,7 +334,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       onClick={() => {
                         setShowTokenManagement(false);
                         setHasChanges(false);
-                        setInputValue(githubToken);
+                        setInputValue(githubToken ?? '');
                         setError(null);
                         setShowDeleteConfirm(false);
                       }}
@@ -468,11 +397,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             handleInputChange(e.target.value);
                           }}
                           placeholder={
-                            isLoadingToken
+                            isLoading
                               ? 'Loading...'
                               : 'ghp_xxxxxxxxxxxxxxxxxxxx'
                           }
-                          disabled={isLoadingToken || isSaving || isDeleting}
+                          disabled={isLoading || isSaving || isDeleting}
                           className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         />
                         <button
@@ -481,7 +410,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             setShowToken(!showToken);
                           }}
                           className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors text-sm"
-                          disabled={isLoadingToken || !githubToken}
+                          disabled={
+                            isLoading ||
+                            githubToken === null ||
+                            githubToken === ''
+                          }
                         >
                           {showToken ? (
                             <svg
@@ -577,9 +510,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         <button
                           onClick={handleSave}
                           disabled={
-                            isSaving ||
-                            isLoadingToken ||
-                            inputValue.trim() === ''
+                            isSaving || isLoading || inputValue.trim() === ''
                           }
                           className="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -613,7 +544,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         </button>
                         <button
                           onClick={handleCancel}
-                          disabled={isSaving || isLoadingToken}
+                          disabled={isSaving || isLoading}
                           className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Cancel
@@ -621,30 +552,33 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       </div>
                     )}
 
-                    {githubToken && !hasChanges && !showDeleteConfirm && (
-                      <button
-                        onClick={() => {
-                          setShowDeleteConfirm(true);
-                        }}
-                        disabled={isDeleting || isLoadingToken}
-                        className="w-full flex items-center justify-center px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <svg
-                          className="w-4 h-4 mr-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                    {githubToken !== null &&
+                      githubToken !== '' &&
+                      !hasChanges &&
+                      !showDeleteConfirm && (
+                        <button
+                          onClick={() => {
+                            setShowDeleteConfirm(true);
+                          }}
+                          disabled={isDeleting || isLoading}
+                          className="w-full flex items-center justify-center px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                        Delete Token
-                      </button>
-                    )}
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          Delete Token
+                        </button>
+                      )}
 
                     {showDeleteConfirm && (
                       <div className="p-3 bg-red-900/20 border border-red-600/50 rounded-md">
