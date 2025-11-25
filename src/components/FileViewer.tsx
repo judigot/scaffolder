@@ -714,6 +714,18 @@ function FileViewer({
     }
   };
 
+  const countFiles = (items: IStructure): number => {
+    let count = 0;
+    for (const item of items) {
+      if (item.type === 'file') {
+        count += 1;
+      } else {
+        count += countFiles(item.children);
+      }
+    }
+    return count;
+  };
+
   const handleCreateNewTestRepository = () => {
     void (async () => {
       setIsCreatingRepository(true);
@@ -1222,8 +1234,8 @@ function FileViewer({
           }`}
         >
           {isCreatingRepository
-            ? 'Exporting...'
-            : 'Export Scaffolded Project Into A New Repository'}
+            ? `Exporting ${String(countFiles(folderStructure))} files...`
+            : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
         </button>
       </div>
       <br />
