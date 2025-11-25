@@ -1,9 +1,60 @@
 import masterSchema from '@/schema-infos/masterSchema.ts';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
+import type { IFormStore } from '@/useFormStore.ts';
+import { frameworks } from '@/useFormStore.ts';
+import { CREATION_MODES } from '@/constants.ts';
+import masterJSONSchema from '@/json-schemas/masterJSONSchema.ts';
 
 describe('Build Project Files', () => {
   it('should build project files based on templates', () => {
+    const formData: IFormStore = {
+      schemaInput: masterJSONSchema,
+      backendUrl: 'http://localhost:5000',
+      backendDir: 'C:/Users/Jude/Desktop/laravel',
+      frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',
+      dbConnection: 'postgresql://root:123@localhost:5432/laravel',
+      framework: frameworks.LARAVEL,
+      includeInsertData: true,
+      insertOption: 'SQLInsertQueriesFromMockData',
+      includeTypeGuards: true,
+      outputOnSingleFile: false,
+      dbType: 'postgresql',
+      quote: '"',
+      publicRepoURL: 'https://github.com/judigot/scaffolder-files',
+      clientID: '',
+      clientSecret: '',
+      creationMode: CREATION_MODES.SCHEMA_BUILDER,
+      dbUsername: 'root',
+      dbPassword: '123',
+      dbHost: 'localhost',
+      dbPort: 5432,
+      dbName: 'laravel',
+      setCreationMode: (): void => {
+        /* stub */
+      },
+      setMasterSchema: (): void => {
+        /* stub */
+      },
+      setOneToOne: (): void => {
+        /* stub */
+      },
+      setOneToMany: (): void => {
+        /* stub */
+      },
+      setManyToMany: (): void => {
+        /* stub */
+      },
+      setDBType: (): void => {
+        /* stub */
+      },
+      setPublicRepoURL: (): void => {
+        /* stub */
+      },
+      setDbConnection: (): void => {
+        /* stub */
+      },
+    };
     const expectation = `
     [
     {
@@ -728,6 +779,7 @@ describe('Build Project Files', () => {
       '/Projects/Laravel.yaml',
       userFiles,
       masterSchema,
+      formData,
     );
     const clean = (str: string) =>
       str

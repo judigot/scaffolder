@@ -101,6 +101,7 @@ export const createLocalFilesService = async (
       `/Projects/${projectName}/structure.yaml`,
       userFiles,
       schemaInfo,
+      formData,
     );
 
     // Create target directory if it doesn't exist

@@ -86,6 +86,7 @@ export const useTransformationsStore = create<ITransformations>()(
         if (selectedProject) {
           invalidateProjectCache(selectedProject.name);
           const { userFiles } = useMockDatabaseStore.getState();
+          const formData = useFormStore.getState();
           useFormStore.setState(() => {
             // Check if we have a cached version of this project's file structure
             const cachedProjectFiles = projectBuildCache[selectedProject.name];
@@ -103,6 +104,7 @@ export const useTransformationsStore = create<ITransformations>()(
                 `/Projects/${selectedProject.name}`,
                 userFiles,
                 schemaInfo,
+                formData,
               );
 
               // Update cache with the new structure
