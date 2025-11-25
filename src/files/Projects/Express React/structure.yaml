@@ -5,4 +5,4 @@ src:
   IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
   components:
     - CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt)
-CREATE_FILE(.envwwww --template /Templates/env.txt):
+CREATE_FILE(.env --template /Templates/env.txt):
