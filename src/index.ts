@@ -48,3 +48,5 @@ app.listen(PORT, () => {
     `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on http://127.0.0.1:${PORT}`,
   );
 });
+
+export default app;
