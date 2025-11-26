@@ -1,10 +1,10 @@
-import NQLParser from './NQLParser.ts';
+// import NQLParser from './NQLParser.ts';
 
-const schemaInfo = NQLParser(`
-Relationships:
-users have many posts
-orders have many products via pivot
-`);
+// const schemaInfo = NQLParser(`
+// Relationships:
+// users have many posts
+// orders have many products via pivot
+// `);
 
-// eslint-disable-next-line no-console
-console.log(schemaInfo);
+// // eslint-disable-next-line no-console
+// console.log(schemaInfo);

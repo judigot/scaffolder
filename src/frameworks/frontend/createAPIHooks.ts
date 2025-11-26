@@ -4,20 +4,6 @@ import type { IStructure } from '@/components/FileViewer.tsx';
 import { getPrimaryKey, changeCase } from '@/utils/common.ts';
 import { createFile } from '@/helpers/stringHelper.ts';
 
-const _CREATE_TEMPLATE = `
-import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '@/interfaces/interfaces.ts';
-
-type IBody = Omit<I{{className}}, '{{primaryKey}}' | 'created_at' | 'updated_at'>;
-
-export const create{{className}} = async (
-  formData: IBody,
-): Promise<IBody | undefined> => {
-  const result: IBody | undefined = await axiosInstance.post<IBody>('/{{tableNamePlural}}', formData);
-  return result;
-};
-`;
-
 const READ_TEMPLATE = `
 import {
   UseQueryOptions,
@@ -35,26 +21,6 @@ export const use{{className}}Data = (
     queryFn: read{{className}},
     ...behavior,
   });
-`;
-
-const _UPDATE_TEMPLATE = `
-import axiosInstance from '../axiosInstance';
-import { I{{className}} } from '@/interfaces/interfaces.ts';
-
-type IBody = I{{className}};
-
-export const update{{className}} = async (formData: IBody): Promise<IBody> => {
-  const result: IBody = await axiosInstance.patch<IBody>('/{{tableNamePlural}}', formData);
-  return result;
-};
-`;
-
-const _DELETE_TEMPLATE = `
-import axiosInstance from '../axiosInstance';
-
-export const delete{{className}} = async (id: number): Promise<void> => {
-  await axiosInstance.delete(\`/{{tableNamePlural}}/\${String(id)}\`);
-};
 `;
 
 const createAPIHooks = (schemaInfo: ISchemaInfo[]): IStructure => {

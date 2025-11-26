@@ -58,7 +58,7 @@ const generateFieldComponent = (field: IField) => {
 
 export function DynamicForm(structure: typeof JSONFormStructure) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [formData, _setFormData] = useState<Record<string, unknown>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,16 +80,6 @@ export function DynamicForm(structure: typeof JSONFormStructure) {
     //   // Handle error
     //   console.error('Error submitting form:', error);
     // }
-  };
-
-  const _handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ): void => {
-    const { name, value } = e.target;
-    setFormData((prev: Record<string, unknown>) => ({
-      ...prev,
-      [name]: value,
-    }));
   };
 
   return (

@@ -31,9 +31,6 @@ export const processMultipleFiles = ({
     return [];
   }
 
-  // If the command was a parameter such as command(param), extracting just the command
-  const _fileNameWithoutParams = fileName.replace(/\([^)]*\)/g, '');
-
   // Get the template name from either the explicit template option or use the filename
   const templateOption = options[ACTION_FLAGS.TEMPLATE];
   let templateContent = '';
