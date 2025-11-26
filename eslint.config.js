@@ -39,6 +39,8 @@ export default defineConfig([
     'build/**',
     'coverage/**',
     'next-env.d.ts',
+
+    '**/src/files',
   ]),
   {
     files: ['**/*.{ts,tsx}'],
