@@ -6,7 +6,7 @@ import process from 'node:process';
 dotenv.config();
 
 const app = express();
-const PORT = (process.env.PORT ?? 5000).toString();
+const VITE_BACKEND_PORT = (process.env.VITE_BACKEND_PORT ?? 5000).toString();
 const platform: string = process.platform;
 
 app.use(express.json());
@@ -16,10 +16,10 @@ app.get('/api', (_req: Request, res: Response) => {
   res.send({ message: 'AlienStack' });
 });
 
-app.listen(PORT, () => {
+app.listen(VITE_BACKEND_PORT, () => {
   // eslint-disable-next-line no-console
   console.log(
-    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on http://localhost:${PORT}`,
+    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on www${String(process.env.VITE_BACKEND_HOST)}:${VITE_BACKEND_PORT}`,
   );
 });
 
