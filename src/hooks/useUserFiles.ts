@@ -5,6 +5,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import type { IStructure } from '@/components/FileViewer.tsx';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 interface IFetchGitHubFilesParams {
   publicRepoURL: string;
@@ -32,10 +33,9 @@ const fetchGitHubFiles = async (
   }
 
   try {
-    const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
     const apiUrl = isUsingLocalFiles
-      ? `${backendUrl}/getUserFiles`
-      : `${backendUrl}/getUserFilesFromPublicRepo`;
+      ? `${getApiUrl()}/getUserFiles`
+      : `${getApiUrl()}/getUserFilesFromPublicRepo`;
 
     const response = await fetch(apiUrl, {
       method: isUsingLocalFiles ? 'GET' : 'POST',

@@ -3,6 +3,7 @@ import type { ClipboardEvent } from 'react';
 import { useUser } from '@/hooks/useUser.ts';
 import { useUserStore } from '@/useUserStore.ts';
 import { ContextMenu } from '@/components/UI/ContextMenu.tsx';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 const generateEntryId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -196,13 +197,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setSuccessMessage(null);
 
     try {
-      const backendUrlEnv: unknown = import.meta.env.VITE_BACKEND_URL;
-      if (typeof backendUrlEnv !== 'string' || backendUrlEnv === '') {
-        throw new Error('Backend URL is not configured');
-      }
-      const backendUrl: string = backendUrlEnv;
-
-      const response = await fetch(`${backendUrl}/github-token`, {
+      const response = await fetch(`${getApiUrl()}/github-token`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -273,13 +268,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setSuccessMessage(null);
 
     try {
-      const backendUrlEnv: unknown = import.meta.env.VITE_BACKEND_URL;
-      if (typeof backendUrlEnv !== 'string' || backendUrlEnv === '') {
-        throw new Error('Backend URL is not configured');
-      }
-      const backendUrl: string = backendUrlEnv;
-
-      const response = await fetch(`${backendUrl}/github-token`, {
+      const response = await fetch(`${getApiUrl()}/github-token`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -517,13 +506,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
           })),
       };
 
-      const backendUrlEnv: unknown = import.meta.env.VITE_BACKEND_URL;
-      if (typeof backendUrlEnv !== 'string' || backendUrlEnv === '') {
-        throw new Error('Backend URL is not configured');
-      }
-      const backendUrl: string = backendUrlEnv;
-
-      const response = await fetch(`${backendUrl}/user-metadata/env`, {
+      const response = await fetch(`${getApiUrl()}/user-metadata/env`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,

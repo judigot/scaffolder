@@ -22,6 +22,7 @@ import { useFormStore } from '@/useFormStore.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 export interface IBase {
   name: string;
@@ -760,8 +761,7 @@ function FileViewer({
         }
         const accessToken: string = accessTokenResult;
 
-        const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
-        const tokenResponse = await fetch(`${backendUrl}/github-token`, {
+        const tokenResponse = await fetch(`${getApiUrl()}/github-token`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -815,7 +815,7 @@ function FileViewer({
         const description = `This project was created using Scaffolder. Exported on ${humanDate}`;
 
         const createRepoResponse = await fetch(
-          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-repository`,
+          `${getApiUrl()}/create-github-repository`,
           {
             method: 'POST',
             headers: {
@@ -880,7 +880,7 @@ function FileViewer({
         const repo = match[2];
 
         const uploadResponse = await fetch(
-          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-folder-structure`,
+          `${getApiUrl()}/create-github-folder-structure`,
           {
             method: 'POST',
             headers: {
@@ -1074,8 +1074,7 @@ function FileViewer({
         }
         const accessToken: string = accessTokenResult;
 
-        const backendUrl = String(import.meta.env.VITE_BACKEND_URL ?? '');
-        const tokenResponse = await fetch(`${backendUrl}/github-token`, {
+        const tokenResponse = await fetch(`${getApiUrl()}/github-token`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -1115,23 +1114,20 @@ function FileViewer({
         const filePath = `dist/test-file-${timestamp}.txt`;
         const content = `Test file created at ${new Date().toISOString()}\nRepository: ${publicRepoURL}`;
 
-        const response = await fetch(
-          `${String(import.meta.env.VITE_BACKEND_URL)}/create-github-file`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              publicRepoURL,
-              filePath,
-              content,
-              commitMessage: `Create test file: ${filePath}`,
-            }),
+        const response = await fetch(`${getApiUrl()}/create-github-file`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
           },
-        );
+          body: JSON.stringify({
+            publicRepoURL,
+            filePath,
+            content,
+            commitMessage: `Create test file: ${filePath}`,
+          }),
+        });
 
         const result: unknown = await response.json();
 
@@ -1191,20 +1187,17 @@ function FileViewer({
       };
 
       // Make API call to create files
-      const response = await fetch(
-        `${String(import.meta.env.VITE_BACKEND_URL)}/create-local-files`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            schemaInfo,
-            SQLSchema,
-            formData,
-          }),
+      const response = await fetch(`${getApiUrl()}/create-local-files`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({
+          schemaInfo,
+          SQLSchema,
+          formData,
+        }),
+      });
 
       const data: unknown = await response.json();
 

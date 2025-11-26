@@ -19,6 +19,7 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import UserProfile from '@/components/UserProfile.tsx';
 import { useUser } from '@/hooks/useUser.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 function App() {
   const formData = useFormStore();
@@ -408,7 +409,7 @@ function App() {
             type="button"
             onClick={() => {
               setIsLoading(true);
-              fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/scaffold`, {
+              fetch(`${getApiUrl()}/scaffold`, {
                 method: 'POST',
                 headers: {
                   Accept: 'application/json',
@@ -451,7 +452,7 @@ function App() {
           <button
             type="button"
             onClick={() => {
-              fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/introspect`, {
+              fetch(`${getApiUrl()}/introspect`, {
                 // *GET, POST, PATCH, PUT, DELETE
                 method: 'POST',
                 headers: {

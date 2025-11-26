@@ -91,7 +91,13 @@ export const useFormStore = create<IFormStore>()(
 
     return {
       schemaInput: masterJSONSchema,
-      backendUrl: String(import.meta.env.VITE_BACKEND_URL),
+      backendUrl: (() => {
+        const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
+        const port = String(import.meta.env.VITE_BACKEND_PORT ?? '5000');
+        const apiPath = String(import.meta.env.VITE_API_URL ?? 'api');
+        const backendUrl = backendHost ? `${backendHost}:${port}` : '';
+        return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
+      })(),
       backendDir: 'C:/Users/Jude/Desktop/laravel',
       // backendDir: 'C:/Users/Username/Desktop/app/backend',
       frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',

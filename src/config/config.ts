@@ -1,4 +1,5 @@
 import type { IConfig } from '@/interfaces/IConfig.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 export default {
   general: {
@@ -6,7 +7,7 @@ export default {
     version: '1.0.0',
     environment: 'development',
     baseUrl: String(import.meta.env.VITE_FRONTEND_URL),
-    apiBaseUrl: `${String(import.meta.env.VITE_BACKEND_URL)}/api`,
+    apiBaseUrl: getApiUrl(),
     defaultLanguage: 'english',
     supportedLanguages: [
       'english',

@@ -13,6 +13,7 @@ import generateSQLInserts from '@/utils/generateSQLInserts.ts';
 import generateMockData from '@/utils/generateMockData.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import { isUsingLocalFiles } from '@/hooks/useUserFiles.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 interface ICreateLocalFilesRequest {
   schemaInfo: ISchemaInfo[];
@@ -62,8 +63,8 @@ export const createLocalFilesService = async (
     // Get user files from the public repo
     const response = await fetch(
       isUsingLocalFiles
-        ? `${String(import.meta.env.VITE_BACKEND_URL)}/getUserFiles`
-        : `${String(import.meta.env.VITE_BACKEND_URL)}/getUserFilesFromPublicRepo`,
+        ? `${getApiUrl()}/getUserFiles`
+        : `${getApiUrl()}/getUserFilesFromPublicRepo`,
       {
         method: isUsingLocalFiles ? 'GET' : 'POST',
         headers: {

@@ -2,6 +2,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { useModalStore } from '@/useModalStore.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { type FormEvent, useEffect, useState } from 'react';
 
 interface IForm {
@@ -44,7 +45,7 @@ function SQLSchemaInputModal() {
     }
 
     if (isSchemaInput(data)) {
-      fetch(`${String(import.meta.env.VITE_BACKEND_URL)}/executeCustomSchema`, {
+      fetch(`${getApiUrl()}/executeCustomSchema`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',

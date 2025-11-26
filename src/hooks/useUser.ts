@@ -49,12 +49,10 @@ const isTokenResponse = (val: unknown): val is ITokenResponse => {
   );
 };
 
+import { getApiUrl } from '@/utils/getApiUrl.ts';
+
 const getBackendUrl = (): string => {
-  const backendUrlEnv: unknown = import.meta.env.VITE_BACKEND_URL;
-  if (typeof backendUrlEnv !== 'string' || backendUrlEnv === '') {
-    throw new Error('Backend URL is not configured');
-  }
-  return backendUrlEnv;
+  return getApiUrl();
 };
 
 const fetchUserMetadata = async (
