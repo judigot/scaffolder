@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import '@/styles/scss/main.scss';
+import '@/styles/main.scss';
 import App from '@/App.tsx';
 import SQLSchemaInputModal from '@/components/SQLSchemaInputModal.tsx';
 import AuthGuard from '@/components/AuthGuard.tsx';
