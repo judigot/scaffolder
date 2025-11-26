@@ -32,7 +32,6 @@ export default defineConfig([
     '**/tailwind.config.js',
     '**/postcss.config.js',
     '**/vitest.setup.ts',
-    '**/api',
     '**/docs',
 
     '.next/**',
@@ -105,7 +104,16 @@ export default defineConfig([
       },
       'import/resolver': {
         typescript: {
-          alwaysTryTypes: true, // Ensures TypeScript types are always considered
+          alwaysTryTypes: true,
+          project: [
+            './tsconfig.json',
+            ...(() => {
+              if (!isNextJs) {
+                return ['./tsconfig.app.json', './tsconfig.node.json'];
+              }
+              return [];
+            })(),
+          ],
         },
       },
     },
