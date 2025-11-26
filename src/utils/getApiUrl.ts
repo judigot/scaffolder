@@ -10,8 +10,9 @@
 export const getApiUrl = (): string => {
   const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
   const port = String(import.meta.env.VITE_BACKEND_PORT ?? '5000');
+  const apiPath = String(import.meta.env.VITE_API_URL ?? 'api');
   const backendUrl = backendHost ? `${backendHost}:${port}` : '';
-  return backendUrl;
+  return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
 };
 
 /**

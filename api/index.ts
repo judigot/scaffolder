@@ -39,7 +39,7 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Use routes from the routes folder
-app.use(router);
+app.use('/api', router);
 
 // Start server
 app.listen(VITE_BACKEND_PORT, () => {
