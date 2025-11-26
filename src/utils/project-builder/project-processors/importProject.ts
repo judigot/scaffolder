@@ -67,20 +67,19 @@ export const importProject = ({
     // Now we can safely use the validated object
     const parsedYaml: Record<string, unknown> = parsedContent;
 
-    // Check if we should process with specific table context
+    const importedProjectPath = path;
+
     const scopedOption = options[ACTION_FLAGS.SCOPED] === true;
     const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
     const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
 
-    // If a specific table is provided or we have table filtering options
     if (table && scopedOption) {
-      // Process with the current table context
       return processYamlStructure({
         node: parsedYaml,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
-        projectYamlPath,
+        projectYamlPath: importedProjectPath,
         table,
         formData,
         userMetadata,
@@ -140,13 +139,12 @@ export const importProject = ({
           }
         }
 
-        // Process the structure with this table
         const processedStructure = processYamlStructure({
           node: parsedYaml,
           schemaInfo,
           schemaInfoParsed,
           userFiles,
-          projectYamlPath,
+          projectYamlPath: importedProjectPath,
           table: currentTable,
           formData,
           userMetadata,
@@ -158,13 +156,12 @@ export const importProject = ({
       return filteredResults;
     }
 
-    // Default behavior: process without table-specific context
     return processYamlStructure({
       node: parsedYaml,
       schemaInfo,
       schemaInfoParsed,
       userFiles,
-      projectYamlPath,
+      projectYamlPath: importedProjectPath,
       formData,
       userMetadata,
     });

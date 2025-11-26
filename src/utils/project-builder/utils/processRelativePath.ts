@@ -3,11 +3,10 @@ import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extract
 /**
  * Determines if a path is relative
  * @param path The path to check
- * @returns True if the path is relative (starts with './' or doesn't start with '/')
+ * @returns True if the path is explicitly relative (starts with './' or '../')
  */
 export const isPathRelative = (path: string): boolean => {
-  // A path is relative if it starts with './' or doesn't start with '/'
-  return path.startsWith('./') || !path.startsWith('/');
+  return path.startsWith('./') || path.startsWith('../');
 };
 
 /**
