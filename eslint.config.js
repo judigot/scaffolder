@@ -40,6 +40,7 @@ export default defineConfig([
     'coverage/**',
     'next-env.d.ts',
 
+    '**/api',
     '**/src/files',
   ]),
   {

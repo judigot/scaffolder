@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     // <server/>
     "paths": {
-      "@/*": ["./src/*", "./api/*"]
+      "@/*": ["./src/*"]
     },
     "target": "ESNext",
     "useDefineForClassFields": true,
@@ -28,5 +28,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "api"]
+  "include": ["src"]
 }

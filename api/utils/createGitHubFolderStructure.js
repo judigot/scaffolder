@@ -1,0 +1,284 @@
+import { Octokit } from '@octokit/rest';
+import pLimit from 'p-limit';
+const GITHUB_BLOB_CONCURRENCY = 10;
+const GITHUB_BLOB_MAX_RETRIES = 5;
+const GITHUB_BLOB_RETRY_BASE_DELAY_MS = 1000;
+function collectFiles(structure, basePath, currentPath) {
+  const files = [];
+  for (const item of structure) {
+    if (item.type === 'folder') {
+      const folderPath =
+        currentPath === '' ? item.name : `${currentPath}/${item.name}`;
+      const nestedFiles = collectFiles(item.children, basePath, folderPath);
+      files.push(...nestedFiles);
+    } else {
+      const filePath =
+        currentPath === '' ? item.name : `${currentPath}/${item.name}`;
+      const fullPath = basePath === '' ? filePath : `${basePath}/${filePath}`;
+      files.push({
+        path: fullPath,
+        content: item.content,
+        mode: '100644',
+        type: 'blob',
+        isBinary: item.isBinary,
+      });
+    }
+  }
+  return files;
+}
+async function createBlobs(octokit, owner, repo, files) {
+  const limit = pLimit(GITHUB_BLOB_CONCURRENCY);
+  const delay = (ms) =>
+    new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  const createBlobWithRetry = async (file, attempt = 0) => {
+    try {
+      const base64Content =
+        file.isBinary === true
+          ? file.content
+          : Buffer.from(file.content, 'utf-8').toString('base64');
+      const response = await octokit.git.createBlob({
+        owner,
+        repo,
+        content: base64Content,
+        encoding: 'base64',
+      });
+      return { path: file.path, sha: response.data.sha };
+    } catch (error) {
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        const isRateLimit =
+          message.includes('rate limit') ||
+          message.includes('secondary rate limit') ||
+          message.includes('abuse detection');
+        if (isRateLimit && attempt < GITHUB_BLOB_MAX_RETRIES) {
+          const backoffMs =
+            GITHUB_BLOB_RETRY_BASE_DELAY_MS * 2 ** attempt +
+            Math.floor(Math.random() * 250);
+          await delay(backoffMs);
+          return createBlobWithRetry(file, attempt + 1);
+        }
+        throw new Error(
+          `Failed to create blob for ${file.path}: ${error.message}`,
+        );
+      }
+      throw new Error(`Failed to create blob for ${file.path}: Unknown error`);
+    }
+  };
+  const tasks = files.map((file) =>
+    limit(async () => {
+      return await createBlobWithRetry(file);
+    }),
+  );
+  const blobResults = await Promise.all(tasks);
+  const blobMap = new Map();
+  for (const result of blobResults) {
+    blobMap.set(result.path, result.sha);
+  }
+  return blobMap;
+}
+function buildTree(files, blobMap) {
+  const tree = [];
+  for (const file of files) {
+    const sha = blobMap.get(file.path);
+    if (sha !== undefined) {
+      tree.push({
+        path: file.path,
+        mode: file.mode,
+        type: file.type,
+        sha,
+      });
+    }
+  }
+  return tree;
+}
+const delay = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+export const createGitHubFolderStructure = async (data) => {
+  const {
+    structure,
+    owner,
+    repo,
+    githubToken,
+    basePath = '',
+    branch = 'main',
+    commitMessage,
+    projectName,
+  } = data;
+  const octokit = new Octokit({
+    auth: githubToken,
+  });
+  try {
+    const files = collectFiles(structure, basePath, '');
+    const filesCount = files.length;
+    if (filesCount === 0) {
+      return {
+        success: true,
+        message: 'No files to upload',
+        filesCreated: 0,
+      };
+    }
+    const displayName =
+      typeof projectName === 'string' && projectName !== ''
+        ? projectName
+        : repo;
+    const readmeContent = `# ${displayName}
+
+This project was generated using [Scaffolder](https://github.com/scaffolder) - Write Once, Generate Forever!
+
+## About Scaffolder
+
+Scaffolder is a powerful tool designed to simplify and accelerate the process of building software applications. By automating the creation of essential code structures, Scaffolder allows you to focus on business logic—the unique processes and features that make your app valuable.
+
+### Key Features
+
+- ⚡ **Fast Generation**: Get your app's foundational features ready in minutes
+- 🎯 **Deterministic Output**: 100% consistent code generation based on templates
+- 🔄 **Pattern-Driven**: Design patterns once, generate code forever
+- 🚀 **Enterprise-Grade**: Production-ready code that passes code review
+
+## Getting Started
+
+This project contains all the scaffolded files generated from your database schema. You can now:
+
+1. Review the generated code structure
+2. Customize the templates as needed
+3. Add your business logic
+4. Deploy and iterate
+
+## Learn More
+
+- 📚 [Scaffolder Documentation](https://scaffolder.dev)
+- 💬 [Community Discussions](https://github.com/scaffolder)
+- 🐛 [Report Issues](https://github.com/scaffolder/issues)
+
+---
+
+**Generated by Scaffolder** - Because your time is too valuable for boilerplate.
+
+🚀 Write Once. Generate Forever.`;
+    let baseTreeSha;
+    let parents = [];
+    const isRepositoryEmpty = (error) => {
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        const isEmpty =
+          message.includes('empty') ||
+          message.includes('git repository is empty') ||
+          message.includes('repository is empty');
+        const is404 =
+          'status' in error &&
+          typeof error.status === 'number' &&
+          error.status === 404;
+        return isEmpty || is404;
+      }
+      return false;
+    };
+    try {
+      const refResponse = await octokit.git.getRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`,
+      });
+      const baseCommitSha = refResponse.data.object.sha;
+      const getCommitResponse = await octokit.git.getCommit({
+        owner,
+        repo,
+        commit_sha: baseCommitSha,
+      });
+      baseTreeSha = getCommitResponse.data.tree.sha;
+      parents = [baseCommitSha];
+    } catch (error) {
+      if (isRepositoryEmpty(error)) {
+        baseTreeSha = undefined;
+        parents = [];
+        const readmeBase64 = Buffer.from(readmeContent, 'utf-8').toString(
+          'base64',
+        );
+        await octokit.repos.createOrUpdateFileContents({
+          owner,
+          repo,
+          path: 'README.md',
+          message: 'Initial commit by Scaffolder',
+          content: readmeBase64,
+          branch,
+        });
+        await delay(500);
+        const refResponse = await octokit.git.getRef({
+          owner,
+          repo,
+          ref: `heads/${branch}`,
+        });
+        const baseCommitSha = refResponse.data.object.sha;
+        const getCommitResponse = await octokit.git.getCommit({
+          owner,
+          repo,
+          commit_sha: baseCommitSha,
+        });
+        baseTreeSha = getCommitResponse.data.tree.sha;
+        parents = [baseCommitSha];
+      } else {
+        throw error;
+      }
+    }
+    const blobMap = await createBlobs(octokit, owner, repo, files);
+    const tree = buildTree(files, blobMap);
+    const treeResponse = await octokit.git.createTree({
+      owner,
+      repo,
+      base_tree: baseTreeSha,
+      tree,
+    });
+    const treeSha = treeResponse.data.sha;
+    const projectFilesCommitMessage =
+      commitMessage !== undefined && commitMessage !== ''
+        ? commitMessage
+        : `Add ${String(filesCount)} scaffolded file(s)`;
+    const commitResponse = await octokit.git.createCommit({
+      owner,
+      repo,
+      message: projectFilesCommitMessage,
+      tree: treeSha,
+      parents,
+    });
+    const commitSha = commitResponse.data.sha;
+    try {
+      await octokit.git.updateRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`,
+        sha: commitSha,
+        force: true,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        'status' in error &&
+        typeof error.status === 'number' &&
+        error.status === 404
+      ) {
+        await octokit.git.createRef({
+          owner,
+          repo,
+          ref: `refs/heads/${branch}`,
+          sha: commitSha,
+        });
+      } else {
+        throw error;
+      }
+    }
+    return {
+      success: true,
+      message: `Successfully created ${String(filesCount)} file(s) in a single commit`,
+      filesCreated: filesCount,
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to create folder structure: ${error.message}`);
+    }
+    throw new Error('Failed to create folder structure: Unknown error');
+  }
+};
