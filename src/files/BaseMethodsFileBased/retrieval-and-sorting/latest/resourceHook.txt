@@ -1,6 +1,6 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { getLatestResources } from '@/hooks/shared/useLatest.ts';
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 interface ILatestParams {
   limit?: number;
@@ -10,7 +10,7 @@ interface ILatestParams {
 export const useLatest{{tableNamePascalCasePlural}} = (
   params: ILatestParams = {},
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {

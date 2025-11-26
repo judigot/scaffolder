@@ -1,4 +1,4 @@
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
 import { axiosInstance } from '@/vendor/axiosInstance.ts';
 
 /**

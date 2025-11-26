@@ -1,6 +1,6 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { getOldestResources } from '@/hooks/shared/useOldest.ts';
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 interface IOldestParams {
   limit?: number;
@@ -10,7 +10,7 @@ interface IOldestParams {
 export const useOldest{{tableNamePascalCasePlural}} = (
   params: IOldestParams = {},
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {

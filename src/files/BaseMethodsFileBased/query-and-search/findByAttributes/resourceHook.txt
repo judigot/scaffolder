@@ -1,6 +1,6 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { findByAttributesResources } from '@/hooks/shared/useFindByAttributes.ts';
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 interface IFindByAttributesParams {
   attributes: Record<string, unknown>;
@@ -12,7 +12,7 @@ interface IFindByAttributesParams {
 export const useFindByAttributes{{tableNamePascalCasePlural}} = (
   params: IFindByAttributesParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {

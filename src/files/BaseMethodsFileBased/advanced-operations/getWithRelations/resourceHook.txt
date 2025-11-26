@@ -1,6 +1,6 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { getWithRelationsResources } from '@/hooks/shared/useGetWithRelations.ts';
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 interface IGetWithRelationsParams {
   relations: string[];
@@ -10,7 +10,7 @@ interface IGetWithRelationsParams {
 export const useGetWithRelations{{tableNamePascalCasePlural}} = (
   params: IGetWithRelationsParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {

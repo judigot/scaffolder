@@ -1,4 +1,4 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { countResources } from '@/hooks/shared/useCount.ts';
 
 interface ICountParams {

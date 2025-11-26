@@ -1,4 +1,4 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 
 /**
  * Generic query instance hook for running standardized queries.
@@ -10,13 +10,12 @@ import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 export const useQueryInstance = <T>(
   queryKey: string | unknown[],
   fetcher: () => Promise<T>,
-  options?: Omit<UseQueryOptions<T, Error>, 'queryKey' | 'queryFn'>,
+  options?: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'>,
 ) => {
   return useQuery({
     queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
     queryFn: fetcher,
     staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
     retry: 1,
     refetchOnWindowFocus: true,
     ...options,

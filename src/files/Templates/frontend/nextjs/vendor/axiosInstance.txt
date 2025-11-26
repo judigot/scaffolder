@@ -10,28 +10,55 @@ export const axiosInstance = axios.create({
 
 // Request interceptor (for adding auth tokens or logging)
 axiosInstance.interceptors.request.use(
-  config => {
-    // Example: attach auth token
+  (config) => {
     const token = localStorage.getItem('authToken');
-    if (token) {
+    if (token != null) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  error => {
-    return Promise.reject(error);
-  }
+  (error) => {
+    const errorInstance =
+      error instanceof Error ? error : new Error(String(error));
+    return Promise.reject(errorInstance);
+  },
 );
 
 // Response interceptor (for global error handling)
 axiosInstance.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', error.response?.data || error.message);
-    // Optionally: trigger toast notifications or redirect on auth errors
-    if (error.response?.status === 401) {
-      // handle unauthorized
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const errorData: unknown = error.response?.data;
+      let errorMessage: string;
+      if (errorData != null) {
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (typeof errorData === 'object') {
+          errorMessage = JSON.stringify(errorData);
+        } else if (
+          typeof errorData === 'number' ||
+          typeof errorData === 'boolean'
+        ) {
+          errorMessage = String(errorData);
+        } else {
+          errorMessage = 'Unknown error';
+        }
+      } else {
+        errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      }
+      console.error('API Error:', errorMessage);
+      if (error.response?.status === 401) {
+        // handle unauthorized
+      }
+    } else {
+      console.error(
+        'API Error:',
+        error instanceof Error ? error.message : String(error),
+      );
     }
-    return Promise.reject(error);
-  }
+    const errorInstance =
+      error instanceof Error ? error : new Error(String(error));
+    return Promise.reject(errorInstance);
+  },
 );

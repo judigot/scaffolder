@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
-import { validateAndSanitize } from '@/hooks/shared/useValidation.ts';
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
+import { validateAndSanitize } from '@/hooks/shared/useValidate.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 interface IValidationData {
   data: Partial<I{{tableNamePascalCaseSingular}}>;
@@ -13,8 +13,6 @@ export const useValidate{{tableNamePascalCaseSingular}} = (
     'mutationFn'
   >,
 ) => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ data, rules }: IValidationData) =>
       validateAndSanitize<I{{tableNamePascalCaseSingular}}>(

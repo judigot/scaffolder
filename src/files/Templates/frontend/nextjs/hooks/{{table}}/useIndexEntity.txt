@@ -1,6 +1,6 @@
 import { useQueryInstance } from '@/vendor/useQueryInstance';
 import { useResource } from '@/hooks/shared/useResource.ts';
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
 
 export const use{{tableNamePascalCaseSingular}} = (
   options?: Parameters<typeof useQueryInstance<I{{tableNamePascalCaseSingular}}[]>>[2],

@@ -1,4 +1,4 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { pluckResources } from '@/hooks/shared/usePluck.ts';
 
 interface IPluckParams {
@@ -9,7 +9,7 @@ interface IPluckParams {
 export const usePluck{{tableNamePascalCasePlural}} = (
   params: IPluckParams,
   options?: Omit<
-    UseQueryOptions<(string | number)[], Error>,
+    UseQueryOptions<(string | number)[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {

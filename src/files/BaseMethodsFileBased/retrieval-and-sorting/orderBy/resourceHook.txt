@@ -1,6 +1,6 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { orderByResources } from '@/hooks/shared/useOrderBy.ts';
-import { I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 interface IOrderByParams {
   column: string;
@@ -12,7 +12,7 @@ interface IOrderByParams {
 export const useOrderBy{{tableNamePascalCasePlural}} = (
   params: IOrderByParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[], Error>,
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {

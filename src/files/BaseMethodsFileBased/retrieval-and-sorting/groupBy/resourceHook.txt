@@ -1,4 +1,4 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { groupByResources } from '@/hooks/shared/useGroupBy.ts';
 
 interface IGroupByParams {
@@ -20,7 +20,7 @@ interface IGroupByResult {
 export const useGroupBy{{tableNamePascalCasePlural}} = (
   params: IGroupByParams,
   options?: Omit<
-    UseQueryOptions<IGroupByResult[], Error>,
+    UseQueryOptions<IGroupByResult[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
