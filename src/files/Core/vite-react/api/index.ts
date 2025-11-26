@@ -19,7 +19,7 @@ app.get('/api', (_req: Request, res: Response) => {
 app.listen(VITE_BACKEND_PORT, () => {
   // eslint-disable-next-line no-console
   console.log(
-    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on www${String(process.env.VITE_BACKEND_HOST)}:${VITE_BACKEND_PORT}`,
+    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on ${String(process.env.VITE_BACKEND_HOST)}:${VITE_BACKEND_PORT}`,
   );
 });
 
