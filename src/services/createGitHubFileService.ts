@@ -7,6 +7,7 @@ interface ICreateGitHubFileRequest {
   githubToken: string;
   branch?: string;
   commitMessage?: string;
+  isBinary?: boolean;
 }
 
 interface IParsedRepoInfo {
@@ -41,6 +42,7 @@ export const createGitHubFileService = async (
     githubToken,
     branch = 'main',
     commitMessage,
+    isBinary = false,
   } = data;
 
   if (!publicRepoURL) {
@@ -95,7 +97,9 @@ export const createGitHubFileService = async (
       }
     }
 
-    const base64Content = Buffer.from(content, 'utf-8').toString('base64');
+    const base64Content = isBinary
+      ? content
+      : Buffer.from(content, 'utf-8').toString('base64');
 
     const defaultCommitMessage =
       fileSha !== undefined && fileSha !== ''

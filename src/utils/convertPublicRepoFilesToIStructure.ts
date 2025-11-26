@@ -19,6 +19,7 @@ export function convertPublicRepoFilesToStructure(
           name: part,
           type: 'file',
           content: file.content,
+          isBinary: file.isBinary,
         });
       } else {
         const existingFolderCandidate = currentFolder.children.find(

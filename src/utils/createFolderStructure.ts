@@ -1,40 +1,9 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
-import { watermark } from '@/constants.ts';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const clearGeneratedFiles = (directory: string): void => {
-  if (!fs.existsSync(directory)) {
-    return;
-  }
-
-  fs.readdirSync(directory).forEach((file: string) => {
-    const filePath = path.join(directory, file);
-    const isFile = fs.lstatSync(filePath).isFile();
-
-    if (isFile) {
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      const hasWatermark = fileContent.includes(watermark);
-
-      if (hasWatermark) {
-        fs.unlinkSync(filePath);
-      }
-      return;
-    }
-
-    clearGeneratedFiles(filePath);
-
-    const isDirectoryEmpty = fs.readdirSync(filePath).length === 0;
-    if (isDirectoryEmpty) {
-      fs.rmdirSync(filePath);
-    }
-  });
-};
-
 /**
- * Recursively creates files and folders from the given structure after cleaning up old files.
- *
- * @param params - The parameters object containing structure and targetDirectory.
+ * Recursively creates files and folders from the given structure.
  */
 export const createFolderStructure = ({
   structure,
@@ -46,11 +15,6 @@ export const createFolderStructure = ({
   structure.forEach((item) => {
     if (item.type === 'folder') {
       const folderPath = path.join(targetDirectory, item.name);
-
-      /* Clear old files before creating a new folder structure */
-      if (fs.existsSync(folderPath)) {
-        clearGeneratedFiles(folderPath);
-      }
 
       if (!fs.existsSync(folderPath)) {
         fs.mkdirSync(folderPath, { recursive: true });
@@ -64,18 +28,13 @@ export const createFolderStructure = ({
     if (item.type === 'file') {
       const filePath = path.join(targetDirectory, item.name);
 
-      const finalWatermark = `/* ${watermark} */`;
-      let fileContent = item.content;
-      const fileType = path.extname(item.name).slice(1);
-
-      if (fileType === 'php') {
-        fileContent = fileContent.replace('<?php', `<?php\n${finalWatermark}`); // Ensure the watermark is added immediately after the <?php tag
-      } else {
-        // For non-PHP files, prepend the watermark
-        fileContent = `${finalWatermark}\n${fileContent}`;
+      if (item.isBinary === true) {
+        const binaryData = Buffer.from(item.content, 'base64');
+        fs.writeFileSync(filePath, binaryData);
+        return;
       }
 
-      fs.writeFileSync(filePath, fileContent, 'utf-8');
+      fs.writeFileSync(filePath, item.content, 'utf-8');
     }
   });
 };

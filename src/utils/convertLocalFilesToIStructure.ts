@@ -1,6 +1,7 @@
 import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
 import * as fs from 'fs';
 import * as path from 'path';
+import { isBinaryFile } from '@/utils/binaryFileUtils.ts';
 
 /**
  * Recursively reads a directory and converts its structure to IStructure format
@@ -31,12 +32,15 @@ function convertLocalFilesToIStructure(directoryPath: string): IStructure {
         };
         result.push(folder);
       } else {
-        // It's a file, read its content
-        const content = fs.readFileSync(itemPath, 'utf-8');
+        const binary = isBinaryFile(item);
+        const content = binary
+          ? fs.readFileSync(itemPath).toString('base64')
+          : fs.readFileSync(itemPath, 'utf-8');
         const file: IFile = {
           name: item,
           type: 'file',
           content,
+          isBinary: binary,
         };
         result.push(file);
       }

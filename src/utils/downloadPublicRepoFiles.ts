@@ -1,8 +1,10 @@
 import { unzipSync, strFromU8 } from 'fflate';
+import { isBinaryFile } from '@/utils/binaryFileUtils.ts';
 
 export interface IExtractedFile {
   path: string;
   content: string;
+  isBinary?: boolean;
 }
 
 interface IFetchRepoOptions {
@@ -61,9 +63,21 @@ export async function fetchRepositoryFiles(
         ? cleanedPath
         : (cleanedPath.split('/').pop() ?? cleanedPath);
 
+      const binary = isBinaryFile(finalFilePath);
+
+      if (binary) {
+        const base64Content = Buffer.from(fileContent).toString('base64');
+        return {
+          path: finalFilePath,
+          content: base64Content,
+          isBinary: true,
+        };
+      }
+
       return {
         path: finalFilePath,
         content: strFromU8(fileContent),
+        isBinary: false,
       };
     });
 

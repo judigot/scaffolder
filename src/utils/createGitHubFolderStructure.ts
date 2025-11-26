@@ -18,6 +18,7 @@ interface IFileEntry {
   content: string;
   mode: '100644' | '100755' | '120000';
   type: 'blob';
+  isBinary?: boolean;
 }
 
 const GITHUB_BLOB_CONCURRENCY = 10;
@@ -47,6 +48,7 @@ function collectFiles(
         content: item.content,
         mode: '100644',
         type: 'blob',
+        isBinary: item.isBinary,
       });
     }
   }
@@ -72,9 +74,10 @@ async function createBlobs(
     attempt = 0,
   ): Promise<{ path: string; sha: string }> => {
     try {
-      const base64Content = Buffer.from(file.content, 'utf-8').toString(
-        'base64',
-      );
+      const base64Content =
+        file.isBinary === true
+          ? file.content
+          : Buffer.from(file.content, 'utf-8').toString('base64');
       const response = await octokit.git.createBlob({
         owner,
         repo,

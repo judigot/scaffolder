@@ -31,7 +31,8 @@ export interface IBase {
 export interface IFile extends IBase {
   type: 'file';
   content: string;
-  uniqueId?: string; // Full path to uniquely identify the file
+  uniqueId?: string;
+  isBinary?: boolean;
 }
 
 export interface IFolder extends IBase {
@@ -41,12 +42,30 @@ export interface IFolder extends IBase {
 
 export type IStructure = (IFile | IFolder)[];
 
-// Define a type for the editor
 interface ICodeEditor {
   getValue(): string;
 }
 
-// Helper function to create a unique file identifier
+const IMAGE_EXTENSIONS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.bmp',
+  '.ico',
+  '.svg',
+]);
+
+const isImageFile = (filename: string): boolean => {
+  const lastDotIndex = filename.lastIndexOf('.');
+  if (lastDotIndex === -1) {
+    return false;
+  }
+  const ext = filename.slice(lastDotIndex).toLowerCase();
+  return IMAGE_EXTENSIONS.has(ext);
+};
+
 const createUniqueFileId = (path: string[], fileName: string): string => {
   return [...path, fileName].join('/');
 };
@@ -1376,43 +1395,55 @@ function FileViewer({
                   )}
                 </div>
               </div>
-              <Editor
-                // className="max-h-96"
-                height="20rem"
-                defaultValue={selectedFile.content}
-                value={fileContent}
-                language={(() => {
-                  const fileExtension: string | undefined = selectedFile.name
-                    .split('.')
-                    .pop();
-                  if (fileExtension === undefined) {
-                    return 'plaintext';
-                  }
-                  const languageMap: Record<string, string> = {
-                    ts: 'typescript',
-                    js: 'javascript',
-                    php: 'php',
-                    css: 'css',
-                    sass: 'sass',
-                    java: 'java',
-                    sql: 'sql',
-                    txt: 'plaintext',
-                    jsx: 'javascript',
-                    tsx: 'typescript',
-                  };
-                  return languageMap[fileExtension] ?? 'plaintext';
-                })()}
-                theme="vs-dark"
-                options={{
-                  readOnly: mode === 'view',
-                  domReadOnly: mode === 'view',
-                  minimap: { enabled: true },
-                  fontSize: 14,
-                  lineNumbers: 'on',
-                }}
-                onChange={handleEditorChange}
-                onMount={handleEditorDidMount}
-              />
+              {isImageFile(selectedFile.name) ? (
+                <div
+                  className="flex items-center justify-center bg-gray-900 p-4"
+                  style={{ height: '20rem' }}
+                >
+                  <img
+                    src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${selectedFile.content}`}
+                    alt={selectedFile.name}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <Editor
+                  height="20rem"
+                  defaultValue={selectedFile.content}
+                  value={fileContent}
+                  language={(() => {
+                    const fileExtension: string | undefined = selectedFile.name
+                      .split('.')
+                      .pop();
+                    if (fileExtension === undefined) {
+                      return 'plaintext';
+                    }
+                    const languageMap: Record<string, string> = {
+                      ts: 'typescript',
+                      js: 'javascript',
+                      php: 'php',
+                      css: 'css',
+                      sass: 'sass',
+                      java: 'java',
+                      sql: 'sql',
+                      txt: 'plaintext',
+                      jsx: 'javascript',
+                      tsx: 'typescript',
+                    };
+                    return languageMap[fileExtension] ?? 'plaintext';
+                  })()}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: mode === 'view',
+                    domReadOnly: mode === 'view',
+                    minimap: { enabled: true },
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                  }}
+                  onChange={handleEditorChange}
+                  onMount={handleEditorDidMount}
+                />
+              )}
             </div>
           )}
         </div>
