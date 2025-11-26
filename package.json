@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@10.18.3",
   "scripts": {
-    "dev": "concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
+    "dev": "concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot api/index.ts\"",
     "test": "bun test --passWithNoTests",
     "test:watch": "bun test --watch --passWithNoTests",
     "lint": "echo 'Linting...' && bun run --silent lint:tsc && bun run --silent lint:eslint && printf \"\\033[1;32m✔ Linting complete — no errors found.\\033[0m\\n\" || exit 1",
