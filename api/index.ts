@@ -4,6 +4,7 @@ import compression from 'compression';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import process from 'node:process';
+import router from '@/routes/index.ts';
 
 dotenv.config();
 
@@ -37,11 +38,14 @@ app.get('/', (_req: Request, res: Response) => {
   res.sendFile(publicDirectory);
 });
 
+// Use routes from the routes folder
+app.use(router);
+
 // Start server
 app.listen(VITE_BACKEND_PORT, () => {
   // eslint-disable-next-line no-console
   console.log(
-    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on www${String(process.env.VITE_BACKEND_HOST)}:${VITE_BACKEND_PORT}`,
+    `${platform.charAt(0).toUpperCase() + platform.slice(1)} is running on ${String(process.env.VITE_BACKEND_HOST)}:${VITE_BACKEND_PORT}`,
   );
 });
 
