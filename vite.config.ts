@@ -10,7 +10,16 @@ export default defineConfig({
   /* </testConfig> */ /*<alias>*/ resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
-  /*</alias>*/ /*<devPort>*/ server: { port: 3000 },
+  /*</alias>*/ /*<devPort>*/ server: {
+    host: true,
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'config',
+        changeOrigin: true,
+      },
+    },
+  },
   /*</devPort>*/ /* <basepath> */ base: './' /* Resolve asset paths after building */ /* </basepath> */,
   plugins: [react(), tsconfigPaths()],
 });
