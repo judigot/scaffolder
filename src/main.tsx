@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@/styles/main.scss';
 import App from '@/App.tsx';
 import SQLSchemaInputModal from '@/components/SQLSchemaInputModal.tsx';
-import AuthGuard from '@/components/AuthGuard.tsx';
+// import AuthGuard from '@/components/AuthGuard.tsx';
 // import TransformationTester from '@/TransformationTester.tsx';
 import ModalProvider from '@/components/Modal/base/ModalProvider.tsx';
 
@@ -78,12 +78,12 @@ if (rootElement) {
       {/* <FormParser structure={JSONFormStructure} /> */}
 
       <QueryClientProvider client={queryClient}>
-        <AuthGuard>
-          <ModalProvider />
-          <SQLSchemaInputModal />
-          {/* <TransformationTester /> */}
-          <App />
-        </AuthGuard>
+        {/* <AuthGuard> */}
+        <ModalProvider />
+        <SQLSchemaInputModal />
+        {/* <TransformationTester /> */}
+        <App />
+        {/* </AuthGuard> */}
       </QueryClientProvider>
       {/* </Auth0Provider> */}
     </React.StrictMode>,
