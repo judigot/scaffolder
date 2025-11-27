@@ -25,7 +25,6 @@ dist-ssr
 
 .env
 output
-api/*.js
 
 docs/.vitepress/dist
 docs/.vitepress/cache
