@@ -4,7 +4,7 @@ import compression from 'compression';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import process from 'node:process';
-// import router from '@/routes/index.ts';
+import router from '../src/routes/index.ts';
 
 dotenv.config();
 
@@ -39,11 +39,11 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Use routes from the routes folder
-// app.use('/api', router);
+app.use('/api', router);
 
-app.get('/api', (_req: Request, res: Response) => {
-  res.send({ message: 'AlienStack' });
-});
+// app.get('/api', (_req: Request, res: Response) => {
+//   res.send({ message: 'AlienStack' });
+// });
 
 // Start server
 app.listen(VITE_BACKEND_PORT, () => {
