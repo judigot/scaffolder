@@ -99,40 +99,23 @@ router.post('/user-metadata/env', (req: Request, res: Response) => {
 
       const currentMetadata = await getUserMetadata(auth0UserId);
 
-      // Ensure metadata object exists and has env key initialized
       const baseMetadata = currentMetadata ?? {};
-      let existingEnv: Record<string, unknown> = {};
-      if (
-        typeof baseMetadata.env === 'object' &&
-        baseMetadata.env !== null &&
-        !Array.isArray(baseMetadata.env)
-      ) {
-        const envValue = baseMetadata.env;
-        const isRecord = (val: unknown): val is Record<string, unknown> => {
-          return typeof val === 'object' && val !== null && !Array.isArray(val);
-        };
-        if (isRecord(envValue)) {
-          existingEnv = envValue;
-        }
-      }
 
       const updatedMetadata: Record<string, unknown> = {
         ...baseMetadata,
-        env: {
-          ...existingEnv,
-          ...envRecord,
-        },
+        env: envRecord,
       };
 
       await updateUserMetadata(auth0UserId, updatedMetadata);
 
-      res.json({
+      res.status(200).json({
         success: true,
         env: envRecord,
       });
     } catch (error) {
       if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
+        const statusCode = error.message.includes('Failed to') ? 500 : 400;
+        res.status(statusCode).json({ error: error.message });
       } else {
         res.status(500).json({ error: 'An unexpected error occurred' });
       }

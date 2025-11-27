@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ClipboardEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/useUser.ts';
 import { useUserStore } from '@/useUserStore.ts';
 import { ContextMenu } from '@/components/UI/ContextMenu.tsx';
@@ -118,6 +119,7 @@ interface IUserProfileProps {
 }
 
 export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
+  const queryClient = useQueryClient();
   const {
     user,
     logout,
@@ -183,7 +185,6 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setEnvEntries(entriesWithEmpty);
     setOriginalEnvEntries(entriesWithEmpty);
     setEnvError(null);
-    setEnvSuccessMessage(null);
   }, [userMetadata]);
 
   const isEnvDirty = !areEnvEntriesEqual(envEntries, originalEnvEntries);
@@ -517,24 +518,48 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to save environment variables: ${String(response.status)} ${response.statusText} ${errorText}`,
-        );
+        let errorMessage = 'Failed to save environment variables';
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json') === true) {
+          try {
+            const errorData: unknown = await response.json();
+            interface IErrorResponse {
+              error?: string;
+              message?: string;
+            }
+            const isErrorResponse = (val: unknown): val is IErrorResponse => {
+              return typeof val === 'object' && val !== null && 'error' in val;
+            };
+            if (isErrorResponse(errorData)) {
+              errorMessage =
+                errorData.error ?? errorData.message ?? errorMessage;
+            }
+          } catch {
+            errorMessage = `Server error: ${String(response.status)} ${response.statusText}`;
+          }
+        } else {
+          const errorText = await response.text();
+          errorMessage =
+            errorText.trim() !== ''
+              ? `${errorMessage}: ${errorText}`
+              : `Server error: ${String(response.status)} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result: unknown = await response.json();
       let envRecord: Record<string, unknown> | null = null;
       if (isRecord(result) && 'env' in result && isRecord(result.env)) {
-        const envValue = result.env;
-        if (isRecord(envValue)) {
-          envRecord = envValue;
-        }
+        envRecord = result.env;
+      }
+
+      if (envRecord === null) {
+        throw new Error('Invalid response format from server');
       }
 
       const updatedMetadata = {
         ...(userMetadata ?? {}),
-        env: envRecord ?? {},
+        env: envRecord,
       };
       setUserMetadataStore(updatedMetadata);
       const extracted = extractEnvEntriesFromMetadata(updatedMetadata);
@@ -547,6 +572,13 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       setEnvEntries(entriesWithEmpty);
       setOriginalEnvEntries(entriesWithEmpty);
       setEditingEntryIds(new Set());
+
+      if (user.sub !== undefined && user.sub !== '') {
+        void queryClient.invalidateQueries({
+          queryKey: ['userMetadata', user.sub],
+        });
+      }
+
       setEnvSuccessMessage('Environment variables saved successfully');
     } catch (envSaveError: unknown) {
       if (envSaveError instanceof Error) {
