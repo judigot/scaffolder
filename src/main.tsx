@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@/styles/main.scss';
 import App from '@/App.tsx';
 import SQLSchemaInputModal from '@/components/SQLSchemaInputModal.tsx';
-// import AuthGuard from '@/components/AuthGuard.tsx';
+import AuthGuard from '@/components/AuthGuard.tsx';
 // import TransformationTester from '@/TransformationTester.tsx';
 import ModalProvider from '@/components/Modal/base/ModalProvider.tsx';
 
@@ -14,7 +14,7 @@ import ModalProvider from '@/components/Modal/base/ModalProvider.tsx';
 
 import formatCode from '@/utils/formatCode.ts';
 
-// import { Auth0Provider } from '@auth0/auth0-react';
+import { Auth0Provider } from '@auth0/auth0-react';
 
 void (async () => {
   const formattedCode = await formatCode(`<?php
@@ -64,7 +64,7 @@ const queryClient = new QueryClient();
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      {/* <Auth0Provider
+      <Auth0Provider
         domain={String(import.meta.env.VITE_AUTH0_DOMAIN)}
         clientId={String(import.meta.env.VITE_AUTH0_CLIENT_ID)}
         authorizationParams={{
@@ -74,18 +74,18 @@ if (rootElement) {
         }}
         cacheLocation="localstorage"
         useRefreshTokens={true}
-      > */}
-      {/* <FormParser structure={JSONFormStructure} /> */}
+      >
+        {/* <FormParser structure={JSONFormStructure} /> */}
 
-      <QueryClientProvider client={queryClient}>
-        {/* <AuthGuard> */}
-        <ModalProvider />
-        <SQLSchemaInputModal />
-        {/* <TransformationTester /> */}
-        <App />
-        {/* </AuthGuard> */}
-      </QueryClientProvider>
-      {/* </Auth0Provider> */}
+        <QueryClientProvider client={queryClient}>
+          <AuthGuard>
+            <ModalProvider />
+            <SQLSchemaInputModal />
+            {/* <TransformationTester /> */}
+            <App />
+          </AuthGuard>
+        </QueryClientProvider>
+      </Auth0Provider>
     </React.StrictMode>,
   );
 }

@@ -12,61 +12,61 @@ const platform: string = process.platform;
 app.use(express.json());
 app.use(cors());
 
-// app.get('/', (_req: Request, res: Response) => {
+// app.get('/api/', (_req: Request, res: Response) => {
 //   res.send({ message: 'AlienStack' });
 // });
 
 // 12 API routes for testing - no '/api' prefix
 
-app.get('/test1', (_req: Request, res: Response) => {
+app.get('/api/test1', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 1 OK' });
 });
 
-app.get('/test2', (_req: Request, res: Response) => {
+app.get('/api/test2', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 2 OK' });
 });
 
-app.get('/test3', (_req: Request, res: Response) => {
+app.get('/api/test3', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 3 OK' });
 });
 
-app.get('/test4', (_req: Request, res: Response) => {
+app.get('/api/test4', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 4 OK' });
 });
 
-app.get('/test5', (_req: Request, res: Response) => {
+app.get('/api/test5', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 5 OK' });
 });
 
-app.get('/test6', (_req: Request, res: Response) => {
+app.get('/api/test6', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 6 OK' });
 });
 
-app.get('/test7', (_req: Request, res: Response) => {
+app.get('/api/test7', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 7 OK' });
 });
 
-app.get('/test8', (_req: Request, res: Response) => {
+app.get('/api/test8', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 8 OK' });
 });
 
-app.get('/test9', (_req: Request, res: Response) => {
+app.get('/api/test9', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 9 OK' });
 });
 
-app.get('/test10', (_req: Request, res: Response) => {
+app.get('/api/test10', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 10 OK' });
 });
 
-app.get('/test11', (_req: Request, res: Response) => {
+app.get('/api/test11', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 11 OK' });
 });
 
-app.get('/test12', (_req: Request, res: Response) => {
+app.get('/api/test12', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 12 OK' });
 });
 
-app.get('/test13', (_req: Request, res: Response) => {
+app.get('/api/test13', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 13 OK' });
 });
 
