@@ -66,6 +66,10 @@ app.get('/test12', (_req: Request, res: Response) => {
   res.json({ message: 'Test route 12 OK' });
 });
 
+app.get('/test13', (_req: Request, res: Response) => {
+  res.json({ message: 'Test route 13 OK' });
+});
+
 app.listen(VITE_BACKEND_PORT, () => {
   // eslint-disable-next-line no-console
   console.log(
