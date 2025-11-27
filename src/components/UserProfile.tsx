@@ -4,6 +4,7 @@ import { useUser } from '@/hooks/useUser.ts';
 import { useUserStore } from '@/useUserStore.ts';
 import { ContextMenu } from '@/components/UI/ContextMenu.tsx';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
+import tokenPermissionsImage from '@/assets/images/token-permissions.png';
 
 const generateEntryId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -748,7 +749,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       Back
                     </button>
                     <h2 className="text-lg font-semibold text-white">
-                      Manage Token
+                      Manage GitHub Token
                     </h2>
                     <div className="w-16" />
                   </div>
@@ -878,10 +879,10 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           </span>
                         </div>
                       )}
-                      <div className="mt-2 text-xs text-gray-500 space-y-1">
+                      <div className="mt-2 text-xs text-gray-500 space-y-3">
                         <p>
                           <a
-                            href="https://github.com/settings/personal-access-tokens"
+                            href="https://github.com/settings/personal-access-tokens/new"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-indigo-400 hover:text-indigo-300 underline"
@@ -891,8 +892,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           with{' '}
                           <span className="text-gray-400">Read and Write</span>{' '}
                           permissions for{' '}
-                          <span className="text-gray-400">Contents</span>.
+                          <span className="text-gray-400">Administration</span>{' '}
+                          and <span className="text-gray-400">Contents</span>.
                         </p>
+                        <div className="mt-3 p-3 bg-gray-900/50 border border-gray-700 rounded-md">
+                          <p className="text-xs text-gray-400 mb-2">
+                            Example token permissions:
+                          </p>
+                          <img
+                            src={tokenPermissionsImage}
+                            alt="GitHub token permissions example showing Administration, Contents, and Metadata sections"
+                            className="w-full rounded border border-gray-700"
+                          />
+                        </div>
                       </div>
                     </div>
                     {hasChanges && (
