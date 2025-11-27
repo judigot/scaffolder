@@ -616,7 +616,16 @@ function FileViewer({
     parentPath: string[] = [],
   ) {
     const folderColor = mode === 'edit' ? 'text-yellow-500' : 'text-gray-200';
-    return items.map((item, index) => {
+    const sortedItems = [...items].sort((a, b) => {
+      if (a.type === 'folder' && b.type === 'file') {
+        return -1;
+      }
+      if (a.type === 'file' && b.type === 'folder') {
+        return 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    return sortedItems.map((item, index) => {
       const itemId = `${parentId}-${item.name}-${String(index)}`;
 
       // Handle folder items
