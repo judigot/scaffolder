@@ -38,14 +38,7 @@ if (isProduction) {
   });
 } else {
   app.get('/', (_req: Request, res: Response) => {
-    const isDevelopment: boolean = process.env.NODE_ENV === 'development';
-
-    if (!isDevelopment) {
-      res.redirect(process.env.VITE_FRONTEND_URL ?? '');
-      return;
-    }
-
-    res.send({ message: 'AlienStack' });
+    res.redirect(`${process.env.VITE_BACKEND_HOST ?? 'http://localhost'}:3000`);
   });
 }
 
