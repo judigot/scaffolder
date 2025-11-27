@@ -3,7 +3,7 @@ import {
   getGitHubToken,
   setGitHubToken,
   deleteGitHubToken,
-} from '@/services/auth0Service.ts';
+} from '@/app/services/auth0Service.ts';
 import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
 
 const router = Router();

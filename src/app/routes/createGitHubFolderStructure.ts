@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { createGitHubFolderStructure } from '@/utils/createGitHubFolderStructure.ts';
-import { getGitHubToken } from '@/services/auth0Service.ts';
+import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 

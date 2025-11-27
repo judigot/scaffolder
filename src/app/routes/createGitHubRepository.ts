@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
-import { createGitHubRepositoryService } from '@/services/createGitHubRepositoryService.ts';
-import { getGitHubToken } from '@/services/auth0Service.ts';
+import { createGitHubRepositoryService } from '@/app/services/createGitHubRepositoryService.ts';
+import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
 
 const router = Router();

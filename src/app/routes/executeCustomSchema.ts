@@ -1,27 +1,18 @@
 import { Router, type Request, type Response } from 'express';
-import { scaffoldService } from '@/services/scaffoldService.ts';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import type { IFormStore } from '@/useFormStore.ts';
+import { executeCustomSchemaService } from '@/app/services/executeCustomSchemaService.ts';
+import type { IExecuteCustomSchemaRequest } from '@/interfaces/IExecuteCustomSchemaRequest.ts';
 
 const router = Router();
 
 router.post(
-  '/scaffold',
+  '/executeCustomSchema',
   (
-    req: Request<
-      unknown,
-      unknown,
-      {
-        schemaInfo: ISchemaInfo[];
-        SQLSchema: string | null;
-        formData: IFormStore;
-      }
-    >,
+    req: Request<unknown, unknown, IExecuteCustomSchemaRequest>,
     res: Response,
   ) => {
     void (async () => {
       try {
-        const result = await scaffoldService(req.body);
+        const result = await executeCustomSchemaService(req.body);
         res.json(result);
       } catch (error) {
         if (error instanceof Error) {
