@@ -93,7 +93,7 @@ export const useFormStore = create<IFormStore>()(
       schemaInput: masterJSONSchema,
       backendUrl: (() => {
         const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
-        const port = String(import.meta.env.VITE_BACKEND_PORT ?? '5000');
+        const port = String(import.meta.env.VITE_BACKEND_PORT ?? '3000');
         const apiPath = String(import.meta.env.VITE_API_URL ?? 'api');
         const backendUrl = backendHost ? `${backendHost}:${port}` : '';
         return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
