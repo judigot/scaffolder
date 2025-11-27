@@ -41,6 +41,10 @@ app.get('/', (_req: Request, res: Response) => {
 // Use routes from the routes folder
 app.use('/api', router);
 
+app.get('/', (_req: Request, res: Response) => {
+  res.send({ message: 'AlienStack' });
+});
+
 // Start server
 app.listen(VITE_BACKEND_PORT, () => {
   // eslint-disable-next-line no-console

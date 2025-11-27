@@ -1,75 +1,51 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import path from 'node:path';
 import dotenv from 'dotenv';
 import process from 'node:process';
+// import router from '@/routes/index.ts';
 
 dotenv.config();
 
 const app = express();
 const VITE_BACKEND_PORT = (process.env.VITE_BACKEND_PORT ?? 5000).toString();
 const platform: string = process.platform;
+let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
 
-app.use(express.json());
+if (platform === 'win32') {
+  __dirname = __dirname.substring(1);
+}
+
+const publicDirectory = path.join(__dirname, 'public');
+
+// Enable middleware
+app.use(compression());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
+app.use(express.static(publicDirectory));
 
-// app.get('/api/', (_req: Request, res: Response) => {
-//   res.send({ message: 'AlienStack' });
-// });
+// Define routes
+app.get('/', (_req: Request, res: Response) => {
+  const isDevelopment: boolean = String(process.env.NODE_ENV) === 'development';
 
-// 12 API routes for testing - no '/api' prefix
+  if (isDevelopment) {
+    res.redirect(String(process.env.VITE_FRONTEND_URL));
+    return;
+  }
 
-app.get('/api/test1', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 1 OK' });
+  res.sendFile(publicDirectory);
 });
 
-app.get('/api/test2', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 2 OK' });
+// Use routes from the routes folder
+// app.use('/api', router);
+
+app.get('/api', (_req: Request, res: Response) => {
+  res.send({ message: 'AlienStack' });
 });
 
-app.get('/api/test3', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 3 OK' });
-});
-
-app.get('/api/test4', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 4 OK' });
-});
-
-app.get('/api/test5', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 5 OK' });
-});
-
-app.get('/api/test6', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 6 OK' });
-});
-
-app.get('/api/test7', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 7 OK' });
-});
-
-app.get('/api/test8', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 8 OK' });
-});
-
-app.get('/api/test9', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 9 OK' });
-});
-
-app.get('/api/test10', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 10 OK' });
-});
-
-app.get('/api/test11', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 11 OK' });
-});
-
-app.get('/api/test12', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 12 OK' });
-});
-
-app.get('/api/test13', (_req: Request, res: Response) => {
-  res.json({ message: 'Test route 13 OK' });
-});
-
+// Start server
 app.listen(VITE_BACKEND_PORT, () => {
   // eslint-disable-next-line no-console
   console.log(
