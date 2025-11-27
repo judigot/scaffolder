@@ -1,29 +1,34 @@
 {
   "compilerOptions": {
-    "outDir": "./temp",
-    "rootDir": "./src",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
+    "rootDir": "src",
+    "outDir": "temp",
+    "noEmit": false,
+
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     },
-    "target": "ESNext",
-    "useDefineForClassFields": true,
-    "lib": ["ESNext"],
-    "module": "ESNext",
-    "skipLibCheck": true,
 
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
+    // Node.js runtime settings
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
 
+    // Backend-friendly flags
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+
+    // Avoid conflicts with frontend settings
+    "isolatedModules": false,
+    "allowJs": false,
+    "jsx": "preserve"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.tsx", "src/**/*.jsx"]
+
+  // Only compile backend source files
+  "include": ["src/**/*.ts", "src/**/*.mts"],
+
+  // Explicitly ignore frontend files
+  "exclude": ["**/*.tsx", "**/*.jsx", "node_modules"]
 }
