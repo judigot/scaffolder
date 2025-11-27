@@ -16,7 +16,7 @@ import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 import { useUserFiles } from '@/hooks/useUserFiles.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
+// import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
 import UserProfile from '@/components/UserProfile.tsx';
 import { useUser } from '@/hooks/useUser.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
@@ -56,10 +56,10 @@ function App() {
     setSchemaInfo,
   } = useTransformationsStore();
 
-  const folderStructures = useFolderStructures({
-    schemaInfo,
-    formData,
-  });
+  // const folderStructures = useFolderStructures({
+  //   schemaInfo,
+  //   formData,
+  // });
 
   // Use both stores
   const { setUserFiles, typeMappings, dbTypes } = useMockDatabaseStore();
@@ -748,10 +748,10 @@ function App() {
                           folderStructure={builtProjectFiles}
                           projectName={selectedProject.name}
                         />
-                        <FileViewer
+                        {/* <FileViewer
                           mode="edit"
                           folderStructure={folderStructures.Laravel}
-                        />
+                        /> */}
                         {/* <FileViewer
                         mode="view"
                         folderStructure={folderStructures.frontend}
