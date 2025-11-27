@@ -1,4 +1,8 @@
 import { createRequire } from 'node:module';
+import express from 'express';
+import cors from 'cors';
+import path6 from 'node:path';
+import process3 from 'node:process';
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
 var __defProp = Object.defineProperty;
@@ -15924,249 +15928,6 @@ var require_client2 = __commonJS((exports, module) => {
   } catch (e) {
     throw e;
   }
-  var TypeOverrides = require_type_overrides();
-  var EventEmitter = __require('events').EventEmitter;
-  var util = __require('util');
-  var ConnectionParameters = require_connection_parameters();
-  var NativeQuery = require_query2();
-  var Client = (module.exports = function (config) {
-    EventEmitter.call(this);
-    config = config || {};
-    this._Promise = config.Promise || global.Promise;
-    this._types = new TypeOverrides(config.types);
-    this.native = new Native({
-      types: this._types,
-    });
-    this._queryQueue = [];
-    this._ending = false;
-    this._connecting = false;
-    this._connected = false;
-    this._queryable = true;
-    const cp = (this.connectionParameters = new ConnectionParameters(config));
-    if (config.nativeConnectionString)
-      cp.nativeConnectionString = config.nativeConnectionString;
-    this.user = cp.user;
-    Object.defineProperty(this, 'password', {
-      configurable: true,
-      enumerable: false,
-      writable: true,
-      value: cp.password,
-    });
-    this.database = cp.database;
-    this.host = cp.host;
-    this.port = cp.port;
-    this.namedQueries = {};
-  });
-  Client.Query = NativeQuery;
-  util.inherits(Client, EventEmitter);
-  Client.prototype._errorAllQueries = function (err) {
-    const enqueueError = (query) => {
-      process.nextTick(() => {
-        query.native = this.native;
-        query.handleError(err);
-      });
-    };
-    if (this._hasActiveQuery()) {
-      enqueueError(this._activeQuery);
-      this._activeQuery = null;
-    }
-    this._queryQueue.forEach(enqueueError);
-    this._queryQueue.length = 0;
-  };
-  Client.prototype._connect = function (cb) {
-    const self2 = this;
-    if (this._connecting) {
-      process.nextTick(() =>
-        cb(
-          new Error(
-            'Client has already been connected. You cannot reuse a client.',
-          ),
-        ),
-      );
-      return;
-    }
-    this._connecting = true;
-    this.connectionParameters.getLibpqConnectionString(
-      function (err, conString) {
-        if (self2.connectionParameters.nativeConnectionString)
-          conString = self2.connectionParameters.nativeConnectionString;
-        if (err) return cb(err);
-        self2.native.connect(conString, function (err2) {
-          if (err2) {
-            self2.native.end();
-            return cb(err2);
-          }
-          self2._connected = true;
-          self2.native.on('error', function (err3) {
-            self2._queryable = false;
-            self2._errorAllQueries(err3);
-            self2.emit('error', err3);
-          });
-          self2.native.on('notification', function (msg) {
-            self2.emit('notification', {
-              channel: msg.relname,
-              payload: msg.extra,
-            });
-          });
-          self2.emit('connect');
-          self2._pulseQueryQueue(true);
-          cb();
-        });
-      },
-    );
-  };
-  Client.prototype.connect = function (callback) {
-    if (callback) {
-      this._connect(callback);
-      return;
-    }
-    return new this._Promise((resolve, reject) => {
-      this._connect((error) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
-  };
-  Client.prototype.query = function (config, values, callback) {
-    let query;
-    let result;
-    let readTimeout;
-    let readTimeoutTimer;
-    let queryCallback;
-    if (config === null || config === undefined) {
-      throw new TypeError('Client was passed a null or undefined query');
-    } else if (typeof config.submit === 'function') {
-      readTimeout =
-        config.query_timeout || this.connectionParameters.query_timeout;
-      result = query = config;
-      if (typeof values === 'function') {
-        config.callback = values;
-      }
-    } else {
-      readTimeout =
-        config.query_timeout || this.connectionParameters.query_timeout;
-      query = new NativeQuery(config, values, callback);
-      if (!query.callback) {
-        let resolveOut, rejectOut;
-        result = new this._Promise((resolve, reject) => {
-          resolveOut = resolve;
-          rejectOut = reject;
-        }).catch((err) => {
-          Error.captureStackTrace(err);
-          throw err;
-        });
-        query.callback = (err, res) => (err ? rejectOut(err) : resolveOut(res));
-      }
-    }
-    if (readTimeout) {
-      queryCallback = query.callback;
-      readTimeoutTimer = setTimeout(() => {
-        const error = new Error('Query read timeout');
-        process.nextTick(() => {
-          query.handleError(error, this.connection);
-        });
-        queryCallback(error);
-        query.callback = () => {};
-        const index = this._queryQueue.indexOf(query);
-        if (index > -1) {
-          this._queryQueue.splice(index, 1);
-        }
-        this._pulseQueryQueue();
-      }, readTimeout);
-      query.callback = (err, res) => {
-        clearTimeout(readTimeoutTimer);
-        queryCallback(err, res);
-      };
-    }
-    if (!this._queryable) {
-      query.native = this.native;
-      process.nextTick(() => {
-        query.handleError(
-          new Error(
-            'Client has encountered a connection error and is not queryable',
-          ),
-        );
-      });
-      return result;
-    }
-    if (this._ending) {
-      query.native = this.native;
-      process.nextTick(() => {
-        query.handleError(new Error('Client was closed and is not queryable'));
-      });
-      return result;
-    }
-    this._queryQueue.push(query);
-    this._pulseQueryQueue();
-    return result;
-  };
-  Client.prototype.end = function (cb) {
-    const self2 = this;
-    this._ending = true;
-    if (!this._connected) {
-      this.once('connect', this.end.bind(this, cb));
-    }
-    let result;
-    if (!cb) {
-      result = new this._Promise(function (resolve, reject) {
-        cb = (err) => (err ? reject(err) : resolve());
-      });
-    }
-    this.native.end(function () {
-      self2._errorAllQueries(new Error('Connection terminated'));
-      process.nextTick(() => {
-        self2.emit('end');
-        if (cb) cb();
-      });
-    });
-    return result;
-  };
-  Client.prototype._hasActiveQuery = function () {
-    return (
-      this._activeQuery &&
-      this._activeQuery.state !== 'error' &&
-      this._activeQuery.state !== 'end'
-    );
-  };
-  Client.prototype._pulseQueryQueue = function (initialConnection) {
-    if (!this._connected) {
-      return;
-    }
-    if (this._hasActiveQuery()) {
-      return;
-    }
-    const query = this._queryQueue.shift();
-    if (!query) {
-      if (!initialConnection) {
-        this.emit('drain');
-      }
-      return;
-    }
-    this._activeQuery = query;
-    query.submit(this);
-    const self2 = this;
-    query.once('_done', function () {
-      self2._pulseQueryQueue();
-    });
-  };
-  Client.prototype.cancel = function (query) {
-    if (this._activeQuery === query) {
-      this.native.cancel(function () {});
-    } else if (this._queryQueue.indexOf(query) !== -1) {
-      this._queryQueue.splice(this._queryQueue.indexOf(query), 1);
-    }
-  };
-  Client.prototype.ref = function () {};
-  Client.prototype.unref = function () {};
-  Client.prototype.setTypeParser = function (oid, format, parseFn) {
-    return this._types.setTypeParser(oid, format, parseFn);
-  };
-  Client.prototype.getTypeParser = function (oid, format) {
-    return this._types.getTypeParser(oid, format);
-  };
 });
 
 // node_modules/.pnpm/pg@8.16.3/node_modules/pg/lib/index.js
@@ -70864,10 +70625,6 @@ var require_src3 = __commonJS((exports, module) => {
 // src/index.ts
 var import_compression = __toESM(require_compression(), 1);
 var import_dotenv3 = __toESM(require_main(), 1);
-import express from 'express';
-import cors from 'cors';
-import path6 from 'node:path';
-import process3 from 'node:process';
 
 // src/routes/index.ts
 import { Router as Router13 } from 'express';
@@ -121978,9 +121735,9 @@ var useFormStore = create()(
     return {
       schemaInput: masterJSONSchema_default,
       backendUrl: (() => {
-        const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
-        const port = String(import.meta.env.VITE_BACKEND_PORT ?? '5000');
-        const apiPath = String(import.meta.env.VITE_API_URL ?? 'api');
+        const backendHost = String(process.env.VITE_BACKEND_HOST ?? '');
+        const port = String(process.env.VITE_BACKEND_PORT ?? '5000');
+        const apiPath = String(process.env.VITE_API_URL ?? 'api');
         const backendUrl = backendHost ? `${backendHost}:${port}` : '';
         return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
       })(),
@@ -123102,9 +122859,9 @@ var findFileInStructure = (path, structure) => {
 
 // src/utils/getApiUrl.ts
 var getApiUrl = () => {
-  const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
-  const port = String(import.meta.env.VITE_BACKEND_PORT ?? '5000');
-  const apiPath = String(import.meta.env.VITE_API_URL ?? 'api');
+  const backendHost = String(process.env.VITE_BACKEND_HOST ?? '');
+  const port = String(process.env.VITE_BACKEND_PORT ?? '5000');
+  const apiPath = String(process.env.VITE_API_URL ?? 'api');
   const backendUrl = backendHost ? `${backendHost}:${port}` : '';
   return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
 };
@@ -123115,7 +122872,7 @@ var config_default = {
     appName: 'MyWebApp',
     version: '1.0.0',
     environment: 'development',
-    baseUrl: String(import.meta.env.VITE_FRONTEND_URL),
+    baseUrl: String(process.env.VITE_FRONTEND_URL),
     apiBaseUrl: getApiUrl(),
     defaultLanguage: 'english',
     supportedLanguages: [
@@ -123317,13 +123074,13 @@ var config_default = {
         google: {
           clientId: 'your-google-client-id',
           clientSecret: 'your-google-client-secret',
-          redirectUri: `${String(import.meta.env.VITE_FRONTEND_URL)}/auth/google/callback`,
+          redirectUri: `${String(process.env.VITE_FRONTEND_URL)}/auth/google/callback`,
           scopes: ['profile', 'email'],
         },
         github: {
           clientId: 'your-github-client-id',
           clientSecret: 'your-github-client-secret',
-          redirectUri: `${String(import.meta.env.VITE_FRONTEND_URL)}/auth/github/callback`,
+          redirectUri: `${String(process.env.VITE_FRONTEND_URL)}/auth/github/callback`,
           scopes: ['read:user', 'user:email'],
         },
       },
@@ -123371,7 +123128,7 @@ var config_default = {
   security: {
     cors: {
       enabled: true,
-      allowedOrigins: [String(import.meta.env.VITE_FRONTEND_URL)],
+      allowedOrigins: [String(process.env.VITE_FRONTEND_URL)],
       allowedMethods: ['GET', 'POST', 'PUT', 'DELETE'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     },
@@ -142636,11 +142393,7 @@ var check_modulus_length_default = (key, alg) => {
 };
 
 // node_modules/.pnpm/jose@4.15.9/node_modules/jose/dist/node/esm/runtime/asn1.js
-import {
-  createPrivateKey,
-  createPublicKey as createPublicKey2,
-  KeyObject as KeyObject3,
-} from 'crypto';
+import { createPrivateKey } from 'crypto';
 import { Buffer as Buffer4 } from 'buffer';
 var fromPKCS8 = (pem) =>
   createPrivateKey({
