@@ -65,7 +65,9 @@ if (isProduction && !isVercel) {
   });
 }
 
-export default app.fetch.bind(app);
+export default async (req: Request): Promise<Response> => {
+  return app.fetch(req);
+};
 
 if (!isVercel) {
   const startServer = async (): Promise<void> => {
