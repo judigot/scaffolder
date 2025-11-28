@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
   type UseQueryOptions,
   type UseQueryResult,
@@ -16,19 +15,14 @@ interface IErrorResponse {
   error?: string;
 }
 
-export const isUsingLocalFiles = !true;
+const isProduction = import.meta.env.PROD;
 
-/**
- * Fetches project files from a public GitHub repository
- *
- * @param params The parameters for fetching GitHub files
- * @returns A promise that resolves to the fetched files
- */
+export const isUsingLocalFiles = !isProduction;
+
 const fetchGitHubFiles = async (
   params: IFetchGitHubFilesParams,
 ): Promise<IStructure> => {
   if (!params.publicRepoURL) {
-    // Return empty structure if no repo URL provided
     return [];
   }
 
