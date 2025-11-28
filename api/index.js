@@ -19,4 +19,4 @@ serve(
 );
 
 // For other runtimes (e.g., Cloudflare Workers, Deno, Bun), you would export the app directly:
-// export default app;
+export default app;
