@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
   type UseQueryOptions,
   type UseQueryResult,
@@ -16,7 +15,9 @@ interface IErrorResponse {
   error?: string;
 }
 
-export const isUsingLocalFiles = true;
+const isProduction = import.meta.env.PROD;
+
+export const isUsingLocalFiles = !isProduction;
 
 /**
  * Fetches project files from a public GitHub repository

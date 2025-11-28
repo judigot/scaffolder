@@ -16,7 +16,7 @@ import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 import { useUserFiles } from '@/hooks/useUserFiles.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-// import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
+// import { folderStructureBuilder } from '@/frameworks/folderStructureBuilder.ts';
 import UserProfile from '@/components/UserProfile.tsx';
 import { useUser } from '@/hooks/useUser.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
@@ -56,7 +56,7 @@ function App() {
     setSchemaInfo,
   } = useTransformationsStore();
 
-  // const folderStructures = useFolderStructures({
+  // const folderStructures = folderStructureBuilder({
   //   schemaInfo,
   //   formData,
   // });

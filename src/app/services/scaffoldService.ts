@@ -1,7 +1,7 @@
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import path from 'node:path';
 import createFolderStructure from '@/utils/createFolderStructure.ts';
-import { useFolderStructures } from '@/frameworks/useFolderStructures.ts';
+import { folderStructureBuilder } from '@/frameworks/folderStructureBuilder.ts';
 import { mergeArrayOfObjects } from '@/utils/mergeArrayOfObjects.ts';
 import https from 'node:https';
 import http, { type IncomingMessage } from 'node:http';
@@ -76,8 +76,7 @@ export const scaffoldService = async (
   }
 
   try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const folderStructures = useFolderStructures({ schemaInfo, formData });
+    const folderStructures = folderStructureBuilder({ schemaInfo, formData });
 
     if (
       isBackendDirValid &&
