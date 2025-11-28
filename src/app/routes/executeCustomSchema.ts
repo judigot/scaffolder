@@ -1,25 +1,28 @@
-import type { IRouteContext } from './types.ts';
+import { Router, type Request, type Response } from 'express';
 import { executeCustomSchemaService } from '@/app/services/executeCustomSchemaService.ts';
 import type { IExecuteCustomSchemaRequest } from '@/interfaces/IExecuteCustomSchemaRequest.ts';
 
-function isExecuteCustomSchemaRequest(
-  body: unknown,
-): body is IExecuteCustomSchemaRequest {
-  return body !== null && typeof body === 'object';
-}
+const router = Router();
 
-export const executeCustomSchemaHandler = async (c: IRouteContext) => {
-  try {
-    const body = await c.req.json();
-    if (!isExecuteCustomSchemaRequest(body)) {
-      return c.json({ error: 'Invalid request body' }, 400);
-    }
-    const result = await executeCustomSchemaService(body);
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof Error) {
-      return c.json({ error: error.message }, 400);
-    }
-    return c.json({ error: 'An unexpected error occurred' }, 500);
-  }
-};
+router.post(
+  '/executeCustomSchema',
+  (
+    req: Request<unknown, unknown, IExecuteCustomSchemaRequest>,
+    res: Response,
+  ) => {
+    void (async () => {
+      try {
+        const result = await executeCustomSchemaService(req.body);
+        res.json(result);
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(400).json({ error: error.message });
+        } else {
+          res.status(500).json({ error: 'An unexpected error occurred' });
+        }
+      }
+    })();
+  },
+);
+
+export default router;

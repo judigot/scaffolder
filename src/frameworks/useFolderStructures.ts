@@ -27,4 +27,4 @@ export function getFolderStructures({
 }
 
 // Keep the old name for backward compatibility with React components
-export const folderStructureBuilder = getFolderStructures;
+export const useFolderStructures = getFolderStructures;

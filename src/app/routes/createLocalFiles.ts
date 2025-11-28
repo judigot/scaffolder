@@ -1,32 +1,37 @@
-import type { IRouteContext } from './types.ts';
+import { Router, type Request, type Response } from 'express';
 import { createLocalFilesService } from '@/app/services/createLocalFilesService.ts';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 
-interface ICreateLocalFilesRequest {
-  schemaInfo: ISchemaInfo[];
-  SQLSchema: string | null;
-  formData: IFormStore;
-}
+const router = Router();
 
-function isCreateLocalFilesRequest(
-  body: unknown,
-): body is ICreateLocalFilesRequest {
-  return body !== null && typeof body === 'object';
-}
+router.post(
+  '/create-local-files',
+  (
+    req: Request<
+      unknown,
+      unknown,
+      {
+        schemaInfo: ISchemaInfo[];
+        SQLSchema: string | null;
+        formData: IFormStore;
+      }
+    >,
+    res: Response,
+  ) => {
+    void (async () => {
+      try {
+        const result = await createLocalFilesService(req.body);
+        res.json(result);
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(400).json({ error: error.message });
+        } else {
+          res.status(500).json({ error: 'An unexpected error occurred' });
+        }
+      }
+    })();
+  },
+);
 
-export const createLocalFilesHandler = async (c: IRouteContext) => {
-  try {
-    const body = await c.req.json();
-    if (!isCreateLocalFilesRequest(body)) {
-      return c.json({ error: 'Invalid request body' }, 400);
-    }
-    const result = await createLocalFilesService(body);
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof Error) {
-      return c.json({ error: error.message }, 400);
-    }
-    return c.json({ error: 'An unexpected error occurred' }, 500);
-  }
-};
+export default router;

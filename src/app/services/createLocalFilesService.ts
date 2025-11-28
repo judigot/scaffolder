@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import path from 'node:path';
 import fs from 'node:fs';
 import type { IStructure } from '@/components/FileViewer.tsx';
