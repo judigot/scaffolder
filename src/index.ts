@@ -4,13 +4,13 @@ import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
-import { readFileSync } from 'node:fs';
 import dotenv from 'dotenv';
 import process from 'node:process';
 import router from '@/app/routes/index.ts';
 
 dotenv.config();
 
+const app = new Hono();
 const isProduction: boolean = process.env.NODE_ENV === 'production';
 const PORT = Number.parseInt(process.env.VITE_BACKEND_PORT ?? '3000', 10);
 const platform: string = process.platform;
@@ -24,50 +24,25 @@ const publicDirectory = isProduction
   ? path.join(__dirname, '..', 'dist')
   : path.join(__dirname, 'public');
 
-interface IHonoContext {
-  html: (h: string) => Response;
-  text: (t: string, s: number) => Response;
-}
-
-function isHonoContext(c: unknown): c is IHonoContext {
-  if (c === null || typeof c !== 'object') {
-    return false;
-  }
-  if (!('html' in c) || !('text' in c)) {
-    return false;
-  }
-  const obj: { html?: unknown; text?: unknown } = c;
-  return typeof obj.html === 'function' && typeof obj.text === 'function';
-}
-
-const app = new Hono();
+const isVercel = process.env.VERCEL === '1';
 
 app.use(compress());
 app.use('*', cors());
 
 app.route('/api', router);
 
-const isVercel = process.env.VERCEL === '1';
-
 if (isProduction && !isVercel) {
   app.use('*', serveStatic({ root: publicDirectory }));
-  app.get('*', (c: unknown) => {
-    if (!isHonoContext(c)) {
-      return new Response('Internal Server Error', { status: 500 });
-    }
-    try {
-      const htmlPath = path.join(publicDirectory, 'index.html');
-      const html = readFileSync(htmlPath, 'utf-8');
-      return c.html(html);
-    } catch {
-      return c.text('Not Found', 404);
-    }
-  });
+  // app.get('*', (c: Context) => {
+  //   try {
+  //     const htmlPath = path.join(publicDirectory, 'index.html');
+  //     const html = readFileSync(htmlPath, 'utf-8');
+  //     return c.html(html);
+  //   } catch {
+  //     return c.text('Not Found', 404);
+  //   }
+  // });
 }
-
-export default async (req: Request): Promise<Response> => {
-  return app.fetch(req);
-};
 
 if (!isVercel) {
   const startServer = async (): Promise<void> => {
@@ -181,3 +156,5 @@ if (!isVercel) {
 
   void startServer();
 }
+
+export default app;
