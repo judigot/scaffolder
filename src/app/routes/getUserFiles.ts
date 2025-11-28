@@ -1,23 +1,7 @@
-import { Router, type Request, type Response } from 'express';
+import type { IRouteContext } from './types.ts';
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
 
-const router = Router();
-
-router.get(
-  '/getUserFiles',
-  (
-    _req: Request<
-      unknown,
-      unknown,
-      {
-        path: string;
-      }
-    >,
-    res: Response,
-  ) => {
-    const result = convertLocalFilesToIStructure('src/files');
-    res.json(result);
-  },
-);
-
-export default router;
+export const getUserFilesHandler = (c: IRouteContext) => {
+  const result = convertLocalFilesToIStructure('src/files');
+  return c.json(result);
+};

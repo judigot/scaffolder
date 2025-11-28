@@ -1,9 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { IRouteContext } from './types.ts';
 
-const router = Router();
-
-router.get('/hello', (_req: Request, res: Response) => {
-  return res.json({ message: 'Hello, world!' });
-});
-
-export default router;
+export const helloHandler = (c: IRouteContext) => {
+  return c.json({ message: 'Hello, world!' });
+};

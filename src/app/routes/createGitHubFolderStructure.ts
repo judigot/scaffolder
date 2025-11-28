@@ -1,153 +1,135 @@
-import { Router, type Request, type Response } from 'express';
+import type { IRouteContext } from './types.ts';
 import { createGitHubFolderStructure } from '@/utils/createGitHubFolderStructure.ts';
 import { getGitHubToken } from '@/app/services/auth0Service.ts';
-import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 
-const router = Router();
+interface ICreateFolderStructureRequest {
+  structure?: unknown;
+  owner?: unknown;
+  repo?: unknown;
+  basePath?: unknown;
+  branch?: unknown;
+  commitMessage?: unknown;
+  projectName?: unknown;
+}
 
-router.use(verifyAuth0Token);
+function isCreateFolderStructureRequest(
+  body: unknown,
+): body is ICreateFolderStructureRequest {
+  return body !== null && typeof body === 'object';
+}
 
-router.post(
-  '/create-github-folder-structure',
-  (req: Request, res: Response) => {
-    void (async () => {
-      try {
-        const auth0UserId =
-          'auth0UserId' in req && typeof req.auth0UserId === 'string'
-            ? req.auth0UserId
-            : undefined;
+const isValidStructureItem = (item: unknown): boolean => {
+  if (typeof item !== 'object' || item === null) {
+    return false;
+  }
+  if (!('type' in item) || !('name' in item)) {
+    return false;
+  }
+  const itemWithProps = item;
+  const typeProp = 'type' in itemWithProps ? itemWithProps.type : undefined;
+  if (typeof typeProp !== 'string') {
+    return false;
+  }
+  return typeProp === 'file' || typeProp === 'folder';
+};
 
-        if (auth0UserId === undefined || auth0UserId === '') {
-          res.status(401).json({ error: 'User ID not found in token' });
-          return;
-        }
+const isValidStructure = (val: unknown): val is IStructure => {
+  if (!Array.isArray(val)) {
+    return false;
+  }
+  return val.every(isValidStructureItem);
+};
 
-        interface IRequestBody {
-          structure?: unknown;
-          owner?: unknown;
-          repo?: unknown;
-          basePath?: unknown;
-          branch?: unknown;
-          commitMessage?: unknown;
-          projectName?: unknown;
-        }
-        const isRequestBody = (val: unknown): val is IRequestBody => {
-          return typeof val === 'object' && val !== null;
-        };
-        if (!isRequestBody(req.body)) {
-          res.status(400).json({
-            error: 'Invalid request body',
-            message: 'Request body must be an object',
-          });
-          return;
-        }
+export const createGitHubFolderStructureHandler = async (c: IRouteContext) => {
+  try {
+    const auth0UserId = c.get('auth0UserId');
 
-        const structure = req.body.structure;
-        const owner = req.body.owner;
-        const repo = req.body.repo;
-        const basePath = req.body.basePath;
-        const branch = req.body.branch;
-        const commitMessage = req.body.commitMessage;
-        const projectName = req.body.projectName;
+    if (auth0UserId === undefined || auth0UserId === '') {
+      return c.status(401).json({ error: 'User ID not found in token' });
+    }
 
-        if (!Array.isArray(structure)) {
-          res.status(400).json({
-            error: 'Missing required field',
-            message: 'structure is required and must be an array',
-          });
-          return;
-        }
+    if (typeof auth0UserId !== 'string') {
+      return c.status(401).json({ error: 'Invalid user ID type' });
+    }
 
-        if (typeof owner !== 'string' || owner === '') {
-          res.status(400).json({
-            error: 'Missing required field',
-            message: 'owner is required',
-          });
-          return;
-        }
+    const body = await c.req.json();
+    if (!isCreateFolderStructureRequest(body)) {
+      return c.status(400).json({
+        error: 'Invalid request body',
+        message: 'Request body must be an object',
+      });
+    }
 
-        if (typeof repo !== 'string' || repo === '') {
-          res.status(400).json({
-            error: 'Missing required field',
-            message: 'repo is required',
-          });
-          return;
-        }
+    const structure = body.structure;
+    const owner = body.owner;
+    const repo = body.repo;
+    const basePath = body.basePath;
+    const branch = body.branch;
+    const commitMessage = body.commitMessage;
+    const projectName = body.projectName;
 
-        const githubToken = await getGitHubToken(auth0UserId);
+    if (!Array.isArray(structure)) {
+      return c.status(400).json({
+        error: 'Missing required field',
+        message: 'structure is required and must be an array',
+      });
+    }
 
-        if (githubToken === null || githubToken === '') {
-          res.status(400).json({
-            error: 'GitHub token not found',
-            message:
-              'Please set your GitHub token in the settings before uploading files',
-          });
-          return;
-        }
+    if (typeof owner !== 'string' || owner === '') {
+      return c.status(400).json({
+        error: 'Missing required field',
+        message: 'owner is required',
+      });
+    }
 
-        const isValidStructureItem = (item: unknown): boolean => {
-          if (typeof item !== 'object' || item === null) {
-            return false;
-          }
-          if (!('type' in item) || !('name' in item)) {
-            return false;
-          }
-          const itemWithProps = item;
-          const typeProp =
-            'type' in itemWithProps ? itemWithProps.type : undefined;
-          if (typeof typeProp !== 'string') {
-            return false;
-          }
-          return typeProp === 'file' || typeProp === 'folder';
-        };
+    if (typeof repo !== 'string' || repo === '') {
+      return c.status(400).json({
+        error: 'Missing required field',
+        message: 'repo is required',
+      });
+    }
 
-        const isValidStructure = (val: unknown): val is IStructure => {
-          if (!Array.isArray(val)) {
-            return false;
-          }
-          return val.every(isValidStructureItem);
-        };
+    const githubToken = await getGitHubToken(auth0UserId);
 
-        if (!isValidStructure(structure)) {
-          res.status(400).json({
-            error: 'Invalid structure format',
-            message: 'structure must be a valid IStructure array',
-          });
-          return;
-        }
+    if (githubToken === null || githubToken === '') {
+      return c.status(400).json({
+        error: 'GitHub token not found',
+        message:
+          'Please set your GitHub token in the settings before uploading files',
+      });
+    }
 
-        const result = await createGitHubFolderStructure({
-          structure,
-          owner,
-          repo,
-          githubToken,
-          basePath:
-            typeof basePath === 'string' && basePath !== ''
-              ? basePath
-              : undefined,
-          branch:
-            typeof branch === 'string' && branch !== '' ? branch : undefined,
-          commitMessage:
-            typeof commitMessage === 'string' && commitMessage !== ''
-              ? commitMessage
-              : undefined,
-          projectName:
-            typeof projectName === 'string' && projectName !== ''
-              ? projectName
-              : undefined,
-        });
+    if (!isValidStructure(structure)) {
+      return c.status(400).json({
+        error: 'Invalid structure format',
+        message: 'structure must be a valid IStructure array',
+      });
+    }
 
-        res.json(result);
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          res.status(400).json({ error: error.message });
-        } else {
-          res.status(500).json({ error: 'An unexpected error occurred' });
-        }
-      }
-    })();
-  },
-);
+    const result = await createGitHubFolderStructure({
+      structure,
+      owner,
+      repo,
+      githubToken,
+      basePath:
+        typeof basePath === 'string' && basePath !== '' ? basePath : undefined,
+      branch: typeof branch === 'string' && branch !== '' ? branch : undefined,
+      commitMessage:
+        typeof commitMessage === 'string' && commitMessage !== ''
+          ? commitMessage
+          : undefined,
+      projectName:
+        typeof projectName === 'string' && projectName !== ''
+          ? projectName
+          : undefined,
+    });
 
-export default router;
+    return c.json(result);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return c.status(400).json({ error: error.message });
+    }
+    return c.status(500).json({ error: 'An unexpected error occurred' });
+  }
+};

@@ -1,129 +1,108 @@
-import { Router, type Request, type Response } from 'express';
+import type { IRouteContext } from './types.ts';
 import {
   getGitHubToken,
   setGitHubToken,
   deleteGitHubToken,
 } from '@/app/services/auth0Service.ts';
-import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
 
-const router = Router();
+export const getGitHubTokenHandler = async (c: IRouteContext) => {
+  try {
+    const auth0UserId = c.get('auth0UserId');
 
-router.use(verifyAuth0Token);
-
-router.get('/github-token', (req: Request, res: Response) => {
-  void (async () => {
-    try {
-      // Type guard for auth0UserId
-      const auth0UserId =
-        'auth0UserId' in req && typeof req.auth0UserId === 'string'
-          ? req.auth0UserId
-          : undefined;
-
-      if (auth0UserId === undefined || auth0UserId === '') {
-        res.status(401).json({ error: 'User ID not found in token' });
-        return;
-      }
-
-      if (typeof auth0UserId !== 'string') {
-        res.status(401).json({ error: 'Invalid user ID type' });
-        return;
-      }
-
-      const token = await getGitHubToken(auth0UserId);
-
-      res.json({
-        success: true,
-        token: token ?? null,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'An unexpected error occurred' });
-      }
+    if (auth0UserId === undefined || auth0UserId === '') {
+      return c.status(401).json({ error: 'User ID not found in token' });
     }
-  })();
-});
 
-router.post(
-  '/github-token',
-  (req: Request & { auth0UserId?: string }, res: Response) => {
-    void (async () => {
-      try {
-        const auth0UserId = req.auth0UserId;
+    if (typeof auth0UserId !== 'string') {
+      return c.status(401).json({ error: 'Invalid user ID type' });
+    }
 
-        if (auth0UserId === undefined || auth0UserId === '') {
-          res.status(401).json({ error: 'User ID not found in token' });
-          return;
-        }
+    const token = await getGitHubToken(auth0UserId);
 
-        interface IRequestBody {
-          token?: unknown;
-        }
-        const isRequestBody = (val: unknown): val is IRequestBody => {
-          return typeof val === 'object' && val !== null;
-        };
-        if (!isRequestBody(req.body)) {
-          res.status(400).json({
-            error: 'Invalid request body',
-            message: 'Request body must be an object',
-          });
-          return;
-        }
-        const token = req.body.token;
+    return c.json({
+      success: true,
+      token: token ?? null,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return c.status(400).json({ error: error.message });
+    }
+    return c.status(500).json({ error: 'An unexpected error occurred' });
+  }
+};
 
-        if (typeof token !== 'string' || token === '') {
-          res.status(400).json({
-            error: 'Missing or invalid token',
-            message: 'Token must be a non-empty string',
-          });
-          return;
-        }
+interface ISetTokenRequest {
+  token?: unknown;
+}
 
-        await setGitHubToken(auth0UserId, token);
+function isSetTokenRequest(body: unknown): body is ISetTokenRequest {
+  return body !== null && typeof body === 'object';
+}
 
-        res.json({
-          success: true,
-          message: 'GitHub token stored successfully',
-        });
-      } catch (error) {
-        if (error instanceof Error) {
-          res.status(400).json({ error: error.message });
-        } else {
-          res.status(500).json({ error: 'An unexpected error occurred' });
-        }
-      }
-    })();
-  },
-);
+export const setGitHubTokenHandler = async (c: IRouteContext) => {
+  try {
+    const auth0UserId = c.get('auth0UserId');
 
-router.delete(
-  '/github-token',
-  (req: Request & { auth0UserId?: string }, res: Response) => {
-    void (async () => {
-      try {
-        const auth0UserId = req.auth0UserId;
+    if (auth0UserId === undefined || auth0UserId === '') {
+      return c.status(401).json({ error: 'User ID not found in token' });
+    }
 
-        if (auth0UserId === undefined || auth0UserId === '') {
-          res.status(401).json({ error: 'User ID not found in token' });
-          return;
-        }
+    if (typeof auth0UserId !== 'string') {
+      return c.status(401).json({ error: 'Invalid user ID type' });
+    }
 
-        await deleteGitHubToken(auth0UserId);
+    const body = await c.req.json();
+    if (!isSetTokenRequest(body)) {
+      return c.status(400).json({
+        error: 'Invalid request body',
+        message: 'Request body must be an object',
+      });
+    }
+    const token = body.token;
 
-        res.json({
-          success: true,
-          message: 'GitHub token deleted successfully',
-        });
-      } catch (error) {
-        if (error instanceof Error) {
-          res.status(400).json({ error: error.message });
-        } else {
-          res.status(500).json({ error: 'An unexpected error occurred' });
-        }
-      }
-    })();
-  },
-);
+    if (typeof token !== 'string' || token === '') {
+      return c.status(400).json({
+        error: 'Missing or invalid token',
+        message: 'Token must be a non-empty string',
+      });
+    }
 
-export default router;
+    await setGitHubToken(auth0UserId, token);
+
+    return c.json({
+      success: true,
+      message: 'GitHub token stored successfully',
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return c.status(400).json({ error: error.message });
+    }
+    return c.status(500).json({ error: 'An unexpected error occurred' });
+  }
+};
+
+export const deleteGitHubTokenHandler = async (c: IRouteContext) => {
+  try {
+    const auth0UserId = c.get('auth0UserId');
+
+    if (auth0UserId === undefined || auth0UserId === '') {
+      return c.status(401).json({ error: 'User ID not found in token' });
+    }
+
+    if (typeof auth0UserId !== 'string') {
+      return c.status(401).json({ error: 'Invalid user ID type' });
+    }
+
+    await deleteGitHubToken(auth0UserId);
+
+    return c.json({
+      success: true,
+      message: 'GitHub token deleted successfully',
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return c.status(400).json({ error: error.message });
+    }
+    return c.status(500).json({ error: 'An unexpected error occurred' });
+  }
+};
