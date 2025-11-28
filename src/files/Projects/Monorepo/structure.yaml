@@ -1,0 +1,4 @@
+backend:
+  IMPORT_PROJECT(Projects/Laravel/structure.yaml):
+frontend:
+  IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
