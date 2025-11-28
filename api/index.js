@@ -1,11 +1,22 @@
-/**
- * ⚠️  IMPORTANT: Do not remove this file
- *
- * This file is required by Vercel to recognize the api/ directory as a serverless function.
- *
- * During the build process (pnpm build), this placeholder will be automatically
- * overwritten with the actual bundled Express server code. However, Vercel needs
- * this file to exist in the repository to properly configure the API route.
- *
- * @see package.json - "build:api" script for build details
- */
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server'; // For Node.js runtime
+
+const app = new Hono();
+
+app.get('/api/hello', (c) => {
+  return c.json({ message: 'Hello, Hono!' });
+});
+
+// For Node.js runtime
+serve(
+  {
+    fetch: app.fetch,
+    port: 3000,
+  },
+  (info) => {
+    console.log(`Server listening on http://localhost:${info.port}`);
+  },
+);
+
+// For other runtimes (e.g., Cloudflare Workers, Deno, Bun), you would export the app directly:
+// export default app;
