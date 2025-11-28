@@ -1,10 +1,8 @@
 import { Hono } from 'hono';
 import { compress } from 'hono/compress';
 import { cors } from 'hono/cors';
-/* eslint-disable import/no-unresolved */
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
-/* eslint-enable import/no-unresolved */
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import dotenv from 'dotenv';
