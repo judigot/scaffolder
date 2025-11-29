@@ -1,11 +1,9 @@
-/**
- * ⚠️  IMPORTANT: Do not remove this file
- *
- * This file is required by Vercel to recognize the api/ directory as a serverless function.
- *
- * During the build process (pnpm build), this placeholder will be automatically
- * overwritten with the actual bundled Express server code. However, Vercel needs
- * this file to exist in the repository to properly configure the API route.
- *
- * @see package.json - "build:api" script for build details
- */
+// Basin hono server that uses routes from src/app/routes
+import { Hono } from 'hono';
+import { router } from '@/app/routes';
+
+const app = new Hono();
+
+app.route('/api', router);
+
+export default app;

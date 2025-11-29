@@ -1,29 +1,11 @@
-import { Router } from 'express';
-import executeCustomSchemaRouter from './executeCustomSchema.ts';
-import scaffoldRouter from './scaffold.ts';
-import introspectRouter from './introspect.ts';
-import userFilesRouter from './getUserFiles.ts';
-import getUserFilesFromPublicRepoRouter from './getUserFilesFromPublicRepo.ts';
-import createLocalFilesRouter from './createLocalFiles.ts';
-import createGitHubFileRouter from './createGitHubFile.ts';
-import createGitHubRepositoryRouter from './createGitHubRepository.ts';
-import createGitHubFolderStructureRouter from './createGitHubFolderStructure.ts';
-import githubTokenRouter from './githubToken.ts';
-import userMetadataRouter from './userMetadata.ts';
+// import hello.ts and another.ts and use hono router to combine them
+import { Hono } from 'hono';
 import helloRouter from './hello.ts';
-const router = Router();
+import anotherRouter from './another.ts';
 
-router.use(helloRouter);
-router.use(executeCustomSchemaRouter);
-router.use(scaffoldRouter);
-router.use(introspectRouter);
-router.use(userFilesRouter);
-router.use(getUserFilesFromPublicRepoRouter);
-router.use(createLocalFilesRouter);
-router.use(createGitHubFileRouter);
-router.use(createGitHubRepositoryRouter);
-router.use(createGitHubFolderStructureRouter);
-router.use(githubTokenRouter);
-router.use(userMetadataRouter);
+const router = new Hono();
+
+router.route('/hello', helloRouter);
+router.route('/another', anotherRouter);
 
 export default router;
