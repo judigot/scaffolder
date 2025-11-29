@@ -1,4 +1,5 @@
 $USE_CORE:
+  - /Core/spec-driven-development
   - /Core/vite-react
 src:
   IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
