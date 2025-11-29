@@ -7,11 +7,14 @@ import indexRouter from '@/app/routes/index.ts';
 
 const app = new Hono();
 
-app.use('/api', compress());
-app.use('/api', bodyLimit({ maxSize: 100 * 1024 * 1024 }));
-app.use('/api', cors());
+app.use(`/${String(process.env.VITE_BACKEND_HOST)}`, compress());
+app.use(
+  `/${String(process.env.VITE_BACKEND_HOST)}`,
+  bodyLimit({ maxSize: 100 * 1024 * 1024 }),
+);
+app.use(`/${String(process.env.VITE_BACKEND_HOST)}`, cors());
 
-app.route('/api', indexRouter);
+app.route(`/${String(process.env.VITE_BACKEND_HOST)}`, indexRouter);
 
 if (process.env.VERCEL !== '1') {
   if (process.env.NODE_ENV !== 'development') {
@@ -19,7 +22,7 @@ if (process.env.VERCEL !== '1') {
   } else {
     app.get('*', (c) => {
       const port = String(process.env.VITE_FRONTEND_PORT);
-      const url = `http://localhost:${port}${c.req.path}`;
+      const url = `${String(process.env.VITE_BACKEND_HOST)}:${port}${c.req.path}`;
       return c.redirect(url, 302);
     });
   }
@@ -28,7 +31,7 @@ if (process.env.VERCEL !== '1') {
 const hono: { fetch: typeof app.fetch; port?: number } = { fetch: app.fetch };
 
 if (process.env.VERCEL !== '1') {
-  hono.port = Number(process.env.VITE_BACKEND_PORT) || 3000;
+  hono.port = Number(process.env.VITE_BACKEND_PORT);
 }
 
 export default hono;
