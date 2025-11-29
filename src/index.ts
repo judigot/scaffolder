@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { compress } from 'hono/compress';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
-// import { serveStatic } from '@hono/node-server/serve-static';
+import { serveStatic } from '@hono/node-server/serve-static';
 import indexRouter from '@/app/routes/index.ts';
 
 const app = new Hono();
@@ -13,14 +13,16 @@ app.use('*', cors());
 
 app.route('/api', indexRouter);
 
-// if (process.env.NODE_ENV !== 'development') {
-//   app.get('*', serveStatic({ root: 'dist' }));
-// } else {
-//   app.get('*', (c) => {
-//     const url = `http://localhost:${String(process.env.VITE_FRONTEND_PORT)}${c.req.path}`;
-//     return c.redirect(url, 302);
-//   });
-// }
+if (process.env.VERCEL !== '1') {
+  if (process.env.NODE_ENV !== 'development') {
+    app.get('*', serveStatic({ root: 'dist' }));
+  } else {
+    app.get('*', (c) => {
+      const url = `http://localhost:${String(process.env.VITE_FRONTEND_PORT)}${c.req.path}`;
+      return c.redirect(url, 302);
+    });
+  }
+}
 
 export default {
   port: process.env.VITE_BACKEND_PORT,
