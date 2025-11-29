@@ -2,6 +2,6 @@ $USE_CORE:
   - /Core/spec-driven-development
   - /Core/vite-react
 src:
-  IMPORT_PROJECT(Projects/Template - Frontend/structure.yaml):
+  IMPORT_PROJECT(Projects/App Generator - Template - Frontend/structure.yaml):
   components:
     - CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt)

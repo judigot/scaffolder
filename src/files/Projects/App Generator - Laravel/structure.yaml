@@ -1,7 +1,7 @@
 app:
     Http:
         Controllers:
-            - IMPORT_PROJECT(Projects/Next.js.yaml)
+            - IMPORT_PROJECT(Projects/App Generator - Next.js.yaml)
             - CREATE_FILE(BaseController.php --template ./templates/BaseController.txt)
             - CREATE_FILE(AuthController.php --conditions hasUsers=true --template ./templates/AuthController.txt)
             - FILE_LOOP({{tableNamePascalCaseSingular}}Controller.php --template ./templates/Controller.txt)
@@ -22,4 +22,4 @@ app:
 routes:
     - CREATE_FILE(api.php --template ./templates/api.txt)
     - FILE_LOOP({{tableNameKebabCasePlural}}.php --template ./templates/Route.txt)
-# IMPORT_PROJECT(Projects/Next.js/structure.yaml):
+# IMPORT_PROJECT(Projects/App Generator - Next.js/structure.yaml):
