@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-// import { compress } from 'hono/compress';
+import { compress } from 'hono/compress';
 // import { bodyLimit } from 'hono/body-limit';
 // import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
@@ -7,7 +7,7 @@ import indexRouter from '@/app/routes/index.ts';
 
 const app = new Hono();
 
-// app.use(compress());
+app.use(compress());
 // app.use('*', bodyLimit({ maxSize: 100 * 1024 * 1024 }));
 // app.use('*', cors());
 
@@ -32,5 +32,3 @@ if (process.env.VERCEL !== '1') {
 }
 
 export default hono;
-
-// export default app;
