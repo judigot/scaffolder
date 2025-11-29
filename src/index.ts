@@ -7,15 +7,13 @@ import indexRouter from '@/app/routes/index.ts';
 
 const app = new Hono();
 
-const API_PREFIX = `/${String(process.env.VITE_API_URL)}`;
+const API_URL = `/${String(process.env.VITE_API_URL)}`;
 
-const apiRouter = new Hono();
-apiRouter.use('*', compress());
-apiRouter.use('*', bodyLimit({ maxSize: 100 * 1024 * 1024 }));
-apiRouter.use('*', cors());
-apiRouter.route('/', indexRouter);
+app.use(API_URL, compress());
+app.use(API_URL, bodyLimit({ maxSize: 100 * 1024 * 1024 }));
+app.use(API_URL, cors());
 
-app.route(API_PREFIX, apiRouter);
+app.route(`/${String(process.env.VITE_API_URL)}`, indexRouter);
 
 if (process.env.VERCEL !== '1') {
   if (process.env.NODE_ENV !== 'development') {
