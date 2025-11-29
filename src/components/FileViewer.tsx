@@ -1462,11 +1462,21 @@ function FileViewer({
                   className="flex items-center justify-center bg-gray-900 p-4"
                   style={{ height: '20rem' }}
                 >
-                  <img
-                    src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${selectedFile.content}`}
-                    alt={selectedFile.name}
-                    className="max-h-full max-w-full object-contain"
-                  />
+                  {selectedFile.name.toLowerCase().endsWith('.svg') &&
+                  !selectedFile.content.startsWith('data:') &&
+                  !selectedFile.content.includes('base64') &&
+                  selectedFile.content.trim().startsWith('<') ? (
+                    <div
+                      className="max-h-full max-w-full"
+                      dangerouslySetInnerHTML={{ __html: selectedFile.content }}
+                    />
+                  ) : (
+                    <img
+                      src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${selectedFile.content}`}
+                      alt={selectedFile.name}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  )}
                 </div>
               ) : (
                 <Editor
