@@ -1,0 +1,65 @@
+book:
+  title: "The Great Adventure"
+  author: "Sarah Johnson"
+  genre: "Fantasy"
+  isbn: "978-0-123456-78-9"
+  publication-date: "2024-03-15"
+  publisher: "Fantasy Press"
+  page-count: 450
+  language: "English"
+  format: "Hardcover"
+  synopsis: "A thrilling fantasy adventure following a young mage's journey to save the kingdom from an ancient evil."
+
+characters:
+  - name: "Aria Moonwhisper"
+    role: "Protagonist"
+    age: 18
+    description: "A young mage with untapped potential, determined to save her kingdom"
+    abilities: ["Magic", "Swordsmanship", "Leadership"]
+    background: "Orphaned at a young age, raised by the mage academy"
+    
+  - name: "Thorin Ironforge"
+    role: "Mentor"
+    age: 65
+    description: "Wise old mage and Aria's mentor"
+    abilities: ["Advanced Magic", "Ancient Knowledge", "Strategy"]
+    background: "Former court mage, now retired to teach"
+    
+  - name: "Malachar the Dark"
+    role: "Antagonist"
+    age: 1000
+    description: "Ancient dark sorcerer seeking to destroy the kingdom"
+    abilities: ["Dark Magic", "Immortality", "Mind Control"]
+    background: "Banished from the kingdom centuries ago"
+
+chapters:
+  - number: 1
+    title: "The Awakening"
+    summary: "Aria discovers her magical abilities"
+    word-count: 3500
+    
+  - number: 2
+    title: "The Academy"
+    summary: "Aria begins her training at the mage academy"
+    word-count: 4200
+    
+  - number: 3
+    title: "The Prophecy"
+    summary: "Ancient prophecy reveals Aria's destiny"
+    word-count: 3800
+
+world-building:
+  setting: "Kingdom of Eldoria"
+  time-period: "Medieval Fantasy"
+  magic-system: "Elemental magic based on natural elements"
+  locations:
+    - "Mage Academy of Eldoria"
+    - "Dark Forest"
+    - "Crystal Caves"
+    - "Royal Palace"
+
+tags:
+  Category: "Fiction"
+  SubGenre: "Epic Fantasy"
+  Themes: ["Coming of Age", "Magic", "Good vs Evil"]
+

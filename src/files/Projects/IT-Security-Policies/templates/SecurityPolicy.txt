@@ -1,0 +1,87 @@
+# Security Policy: [[USE_DATA(network.name)]]
+
+## Network Information
+
+- **Network Name:** [[USE_DATA(network.name)]]
+- **Location:** [[USE_DATA(network.location)]]
+- **Subnet:** [[USE_DATA(network.subnet)]]
+- **VLAN ID:** [[USE_DATA(network.vlan-id)]]
+
+## Firewall Rules
+
+### Ingress Rules
+
+[[USE_DATA(security.firewall-rules)]]
+
+### Default Policy
+
+- **Default Ingress:** Deny All
+- **Default Egress:** Allow All
+
+## Network Segmentation
+
+### VLANs
+
+- **Primary VLAN:** [[USE_DATA(network.vlan-id)]] - [[USE_DATA(network.name)]]
+
+### Security Zones
+
+- **Internal Zone:** [[USE_DATA(network.subnet)]]
+- **DMZ Zone:** (if applicable)
+- **External Zone:** Internet
+
+## Access Control
+
+### Device Access
+
+- **Management IPs:** [[USE_DATA(devices[0].management-ip)]]
+- **Access Protocol:** SSH only
+- **Authentication:** Key-based authentication required
+
+### Network Access
+
+- **DHCP:** [[USE_DATA(dhcp.enabled)]]
+- **DNS Servers:** [[USE_DATA(dns.primary)]], [[USE_DATA(dns.secondary)]]
+- **NTP Servers:** (configure as needed)
+
+## Monitoring and Logging
+
+- **Log Retention:** 90 days
+- **Alert Threshold:** Any denied connection attempts
+- **Monitoring:** 24/7 network monitoring enabled
+
+## Compliance
+
+- **Compliance Standards:** (specify applicable standards)
+- **Audit Frequency:** Quarterly
+- **Last Audit Date:** (to be updated)
+
+## Incident Response
+
+### Escalation Path
+
+1. **Level 1:** Network Operations Team
+2. **Level 2:** Security Team
+3. **Level 3:** CISO
+
+### Contact Information
+
+- **Primary Contact:** network-ops@company.com
+- **Emergency Contact:** security@company.com
+- **On-Call:** +1-XXX-XXX-XXXX
+
+## Review and Updates
+
+- **Policy Review Frequency:** Quarterly
+- **Last Review Date:** (to be updated)
+- **Next Review Date:** (to be updated)
+- **Policy Owner:** Network Security Team
+
+## Change Management
+
+All changes to this security policy must:
+1. Be reviewed by the Security Team
+2. Be approved by the Network Operations Manager
+3. Be documented in the change management system
+4. Be tested in a non-production environment first
+

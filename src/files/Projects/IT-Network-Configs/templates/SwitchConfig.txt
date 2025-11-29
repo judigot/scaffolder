@@ -1,0 +1,47 @@
+! [[USE_DATA(network.name)]] Switch Configuration
+! Generated: {{current-date}}
+! Location: [[USE_DATA(network.location)]]
+
+hostname [[USE_DATA(devices[1].name)]]
+!
+! VLAN Configuration
+!
+vlan [[USE_DATA(network.vlan-id)]]
+ name [[USE_DATA(network.name)]]
+!
+! Interface Configuration
+!
+[[USE_DATA(devices[1].interfaces)]]
+!
+! Management Interface
+!
+interface vlan [[USE_DATA(network.vlan-id)]]
+ ip address [[USE_DATA(devices[1].ip-address)]] [[USE_DATA(network.subnet)]]
+!
+! Default Gateway
+!
+ip default-gateway [[USE_DATA(routing.default-gateway)]]
+!
+! DNS Configuration
+!
+ip name-server [[USE_DATA(dns.primary)]]
+ip name-server [[USE_DATA(dns.secondary)]]
+!
+! Access Control
+!
+enable secret cisco
+service password-encryption
+line con 0
+ password cisco
+ login
+line vty 0 15
+ password cisco
+ login
+ transport input ssh
+!
+! Logging
+!
+logging buffered 4096
+!
+end
+

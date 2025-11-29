@@ -1,0 +1,2 @@
+- LOOP_FOLDERS({{book.title}}-Proposal.md --data-source=/DataSources/Creative-Books/**/info.yaml --template=./templates/BookProposal.txt)
+

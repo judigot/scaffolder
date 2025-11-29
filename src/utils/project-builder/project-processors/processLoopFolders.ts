@@ -24,6 +24,10 @@ interface IDataSourceMatch {
   folderPath: string;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
 const flattenData = (
   obj: Record<string, unknown>,
   prefix = '',
@@ -41,9 +45,15 @@ const flattenData = (
         for (let i = 0; i < value.length; i++) {
           result[`${newKey}[${String(i)}]`] = String(value[i]);
         }
-      } else if (typeof value === 'object') {
-        flattenData(value as Record<string, unknown>, newKey, result);
-      } else {
+      } else if (isRecord(value)) {
+        flattenData(value, newKey, result);
+      } else if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint' ||
+        typeof value === 'symbol'
+      ) {
         result[newKey] = String(value);
       }
     }
@@ -71,7 +81,7 @@ const findFilesMatchingGlob = (
       if (item.type === 'folder') {
         const newPath = currentPath ? `${currentPath}/${item.name}` : item.name;
         findAllFilesRecursively(item.children, fileName, newPath, item);
-      } else if (item.type === 'file') {
+      } else {
         const matchesName =
           item.name === fileName ||
           fileName === '*' ||
@@ -82,13 +92,21 @@ const findFilesMatchingGlob = (
 
         if (matchesName && parentFolder) {
           try {
-            const parsed = parse(item.content) as Record<string, unknown>;
-            const flatData = flattenData(parsed);
-            results.push({
-              folder: parentFolder,
-              data: { ...parsed, ...flatData },
-              folderPath: currentPath,
-            });
+            const parsed: unknown = parse(item.content);
+            if (isRecord(parsed)) {
+              const flatData = flattenData(parsed);
+              results.push({
+                folder: parentFolder,
+                data: { ...parsed, ...flatData },
+                folderPath: currentPath,
+              });
+            } else {
+              results.push({
+                folder: parentFolder,
+                data: {},
+                folderPath: currentPath,
+              });
+            }
           } catch {
             results.push({
               folder: parentFolder,
@@ -100,7 +118,6 @@ const findFilesMatchingGlob = (
       }
     }
   };
-
 
   const findRecursive = (
     items: IStructure,
@@ -128,7 +145,9 @@ const findFilesMatchingGlob = (
 
       for (const item of items) {
         if (item.type === 'folder') {
-          const newPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+          const newPath = currentPath
+            ? `${currentPath}/${item.name}`
+            : item.name;
           findRecursive(item.children, patternIndex + 1, newPath, item);
           findRecursive(item.children, patternIndex, newPath, item);
         }
@@ -139,7 +158,9 @@ const findFilesMatchingGlob = (
     for (const item of items) {
       if (item.type === 'folder' && !isLastPart) {
         if (item.name === currentPart || currentPart === '*') {
-          const newPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+          const newPath = currentPath
+            ? `${currentPath}/${item.name}`
+            : item.name;
           findRecursive(item.children, patternIndex + 1, newPath, item);
         }
       } else if (item.type === 'file' && isLastPart) {
@@ -153,13 +174,21 @@ const findFilesMatchingGlob = (
 
         if (matchesName && parentFolder) {
           try {
-            const parsed = parse(item.content) as Record<string, unknown>;
-            const flatData = flattenData(parsed);
-            results.push({
-              folder: parentFolder,
-              data: { ...parsed, ...flatData },
-              folderPath: currentPath,
-            });
+            const parsed: unknown = parse(item.content);
+            if (isRecord(parsed)) {
+              const flatData = flattenData(parsed);
+              results.push({
+                folder: parentFolder,
+                data: { ...parsed, ...flatData },
+                folderPath: currentPath,
+              });
+            } else {
+              results.push({
+                folder: parentFolder,
+                data: {},
+                folderPath: currentPath,
+              });
+            }
           } catch {
             results.push({
               folder: parentFolder,
@@ -189,7 +218,6 @@ const findFilesMatchingGlob = (
   return results;
 };
 
-
 export const processLoopFolders = ({
   command: fileName,
   options,
@@ -202,7 +230,7 @@ export const processLoopFolders = ({
   }
 
   const dataSourcePattern = options[ACTION_FLAGS.DATA_SOURCE];
-  if (!dataSourcePattern) {
+  if (dataSourcePattern === undefined || dataSourcePattern === '') {
     return [];
   }
 
@@ -212,7 +240,11 @@ export const processLoopFolders = ({
     options[ACTION_FLAGS.IS_RELATIVE_PATH] === true &&
     typeof templatePath === 'string';
 
-  if (hasRelativeTemplatePath && templatePath) {
+  if (
+    hasRelativeTemplatePath &&
+    templatePath !== undefined &&
+    templatePath !== ''
+  ) {
     templatePath = processTemplatePathWithFlag(
       templatePath,
       projectYamlPath,
@@ -246,7 +278,7 @@ export const processLoopFolders = ({
       name: folderName,
     };
 
-    const flattenedData = flattenData(augmentedData as Record<string, unknown>);
+    const flattenedData = flattenData(augmentedData);
     const replacements: Replacements = {};
     for (const [key, value] of Object.entries(flattenedData)) {
       replacements[key] = value;
@@ -293,4 +325,3 @@ export const processLoopFolders = ({
 
   return files.filter((file) => file.content.trim().length > 0);
 };
-

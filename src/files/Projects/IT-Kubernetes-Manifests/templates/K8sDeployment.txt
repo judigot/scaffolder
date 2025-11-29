@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: [[USE_DATA(service.name)]]
+  namespace: [[USE_DATA(deployment.namespace)]]
+  labels:
+    app: [[USE_DATA(service.name)]]
+    version: [[USE_DATA(service.version)]]
+    [[USE_DATA(tags)]]
+spec:
+  replicas: [[USE_DATA(deployment.replicas)]]
+  strategy:
+    type: [[USE_DATA(deployment.strategy)]]
+    rollingUpdate:
+      maxSurge: [[USE_DATA(deployment.max-surge)]]
+      maxUnavailable: [[USE_DATA(deployment.max-unavailable)]]
+  selector:
+    matchLabels:
+      app: [[USE_DATA(service.name)]]
+  template:
+    metadata:
+      labels:
+        app: [[USE_DATA(service.name)]]
+        version: [[USE_DATA(service.version)]]
+    spec:
+      containers:
+      - name: [[USE_DATA(service.name)]]
+        image: [[USE_DATA(service.name)]]:[[USE_DATA(service.version)]]
+        imagePullPolicy: Always
+        ports:
+        [[USE_DATA(ports)]]
+        env:
+        [[USE_DATA(env-vars)]]
+        resources:
+          requests:
+            cpu: [[USE_DATA(resources.requests.cpu)]]
+            memory: [[USE_DATA(resources.requests.memory)]]
+          limits:
+            cpu: [[USE_DATA(resources.limits.cpu)]]
+            memory: [[USE_DATA(resources.limits.memory)]]
+        livenessProbe:
+          httpGet:
+            path: [[USE_DATA(health-checks.liveness.path)]]
+            port: [[USE_DATA(health-checks.liveness.port)]]
+          initialDelaySeconds: [[USE_DATA(health-checks.liveness.initial-delay)]]
+          periodSeconds: [[USE_DATA(health-checks.liveness.period)]]
+          timeoutSeconds: [[USE_DATA(health-checks.liveness.timeout)]]
+          failureThreshold: [[USE_DATA(health-checks.liveness.failure-threshold)]]
+        readinessProbe:
+          httpGet:
+            path: [[USE_DATA(health-checks.readiness.path)]]
+            port: [[USE_DATA(health-checks.readiness.port)]]
+          initialDelaySeconds: [[USE_DATA(health-checks.readiness.initial-delay)]]
+          periodSeconds: [[USE_DATA(health-checks.readiness.period)]]
+          timeoutSeconds: [[USE_DATA(health-checks.readiness.timeout)]]
+          failureThreshold: [[USE_DATA(health-checks.readiness.failure-threshold)]]
+        volumeMounts:
+        [[USE_DATA(volumes)]]
+

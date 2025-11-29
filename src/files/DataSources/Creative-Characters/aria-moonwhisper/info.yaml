@@ -1,0 +1,70 @@
+character:
+  name: "Aria Moonwhisper"
+  role: "Protagonist"
+  age: 18
+  gender: "Female"
+  species: "Human"
+  appearance:
+    height: "5'4\""
+    build: "Slender"
+    hair-color: "Silver"
+    eye-color: "Violet"
+    distinguishing-features: "Silver hair that glows when using magic"
+    clothing-style: "Mage robes with silver trim"
+  
+  personality:
+    traits: ["Determined", "Compassionate", "Curious", "Brave"]
+    strengths: ["Quick learner", "Natural leader", "Empathetic"]
+    weaknesses: ["Impatient", "Self-doubting", "Too trusting"]
+    fears: ["Failing those who depend on her", "Losing control of her magic"]
+    motivations: ["Protect her kingdom", "Discover her true potential", "Avenge her parents"]
+  
+  background:
+    origin: "Orphaned at age 5, raised by the Mage Academy"
+    family: "Parents were powerful mages killed by dark forces"
+    education: "Mage Academy of Eldoria"
+    occupation: "Student mage, later becomes court mage"
+    significant-events:
+      - "Age 5: Parents killed, taken to academy"
+      - "Age 12: First magical awakening"
+      - "Age 18: Discovers she is the chosen one"
+  
+  abilities:
+    primary: "Elemental Magic"
+    skills:
+      - name: "Fire Magic"
+        level: "Intermediate"
+        description: "Can create and control fire"
+      - name: "Water Magic"
+        level: "Intermediate"
+        description: "Can manipulate water and ice"
+      - name: "Light Magic"
+        level: "Advanced"
+        description: "Rare ability to use light magic"
+      - name: "Swordsmanship"
+        level: "Basic"
+        description: "Trained in basic sword fighting"
+  
+  relationships:
+    - name: "Thorin Ironforge"
+      type: "Mentor"
+      description: "Her teacher and father figure"
+    - name: "Malachar the Dark"
+      type: "Enemy"
+      description: "The dark sorcerer who killed her parents"
+  
+  story-arc:
+    beginning: "Unaware of her true potential"
+    middle: "Discovers her destiny and begins training"
+    end: "Defeats the dark sorcerer and saves the kingdom"
+  
+  quotes:
+    - "Magic isn't about power, it's about understanding."
+    - "I may be young, but I won't let fear stop me."
+    - "My parents' legacy lives on through me."
+
+tags:
+  Book: "The Great Adventure"
+  Genre: "Fantasy"
+  Importance: "Main Character"
+

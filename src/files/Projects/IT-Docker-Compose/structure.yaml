@@ -1,0 +1,2 @@
+- LOOP_FOLDERS({{service.name}}-docker-compose.yml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/DockerCompose.txt)
+

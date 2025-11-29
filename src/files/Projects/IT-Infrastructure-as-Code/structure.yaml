@@ -1,0 +1,4 @@
+- LOOP_FOLDERS({{environment.name}}-main.tf --data-source=/DataSources/IT-Infrastructure/**/info.yaml --template=./templates/TerraformMain.txt)
+- LOOP_FOLDERS({{environment.name}}-variables.tf --data-source=/DataSources/IT-Infrastructure/**/info.yaml --template=./templates/TerraformVariables.txt)
+- LOOP_FOLDERS({{environment.name}}-outputs.tf --data-source=/DataSources/IT-Infrastructure/**/info.yaml --template=./templates/TerraformOutputs.txt)
+

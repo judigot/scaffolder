@@ -1,0 +1,4 @@
+- LOOP_FOLDERS({{network.name}}-router-config.txt --data-source=/DataSources/IT-Networks/**/info.yaml --template=./templates/RouterConfig.txt)
+- LOOP_FOLDERS({{network.name}}-switch-config.txt --data-source=/DataSources/IT-Networks/**/info.yaml --template=./templates/SwitchConfig.txt)
+- LOOP_FOLDERS({{network.name}}-firewall-config.txt --data-source=/DataSources/IT-Networks/**/info.yaml --template=./templates/FirewallConfig.txt)
+

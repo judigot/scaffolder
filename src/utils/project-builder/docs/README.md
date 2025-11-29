@@ -1,17 +1,24 @@
 # Project Builder Documentation
 
-This directory contains documentation for the project builder system, including project actions, template commands, and usage guides.
+This directory contains documentation for the project builder system, including project actions, template commands, usage guides, and business information.
 
 ## Available Documentation
 
-### Project Actions
+### Technical Documentation
+
+#### Project Actions
 
 - **[LOOP_FOLDERS.md](./LOOP_FOLDERS.md)** - Generate multiple files by iterating over folders matching a glob pattern
 - **[CORE_FILES_GUIDE.md](../CORE_FILES_GUIDE.md)** - Guide for using core files in projects
 
-### Template Commands
+#### Template Commands
 
 - **[USE_DATA.md](./USE_DATA.md)** - Access data from external YAML files in templates
+
+### Business Documentation
+
+- **[BUSINESS_VALUE.md](./BUSINESS_VALUE.md)** - Comprehensive business value proposition, ROI analysis, and market positioning
+- **[SELLING_POINTS.md](./SELLING_POINTS.md)** - Marketing messages, competitive advantages, and target audience positioning
 
 ## Quick Reference
 

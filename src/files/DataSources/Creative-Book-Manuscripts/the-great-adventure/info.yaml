@@ -1,0 +1,234 @@
+book:
+  title: "The Great Adventure"
+  author: "Sarah Johnson"
+  genre: "Fantasy"
+  target-word-count: 100000
+  current-word-count: 87500
+
+structure:
+  order:
+    - "prologue"
+    - "part-1"
+    - "part-2"
+    - "part-3"
+    - "epilogue"
+
+parts:
+  - id: "prologue"
+    title: "Prologue: The Prophecy"
+    type: "prologue"
+    word-count: 2500
+    order: 1
+    scenes:
+      - "scene-001"
+      - "scene-002"
+    
+  - id: "part-1"
+    title: "Part One: The Awakening"
+    type: "part"
+    word-count: 30000
+    order: 2
+    chapters:
+      - "chapter-01"
+      - "chapter-02"
+      - "chapter-03"
+      - "chapter-04"
+      - "chapter-05"
+    
+  - id: "part-2"
+    title: "Part Two: The Journey"
+    type: "part"
+    word-count: 35000
+    order: 3
+    chapters:
+      - "chapter-06"
+      - "chapter-07"
+      - "chapter-08"
+      - "chapter-09"
+      - "chapter-10"
+    
+  - id: "part-3"
+    title: "Part Three: The Final Battle"
+    type: "part"
+    word-count: 20000
+    order: 4
+    chapters:
+      - "chapter-11"
+      - "chapter-12"
+      - "chapter-13"
+    
+  - id: "epilogue"
+    title: "Epilogue: A New Beginning"
+    type: "epilogue"
+    word-count: 2000
+    order: 5
+    scenes:
+      - "scene-099"
+
+sections:
+  prologue:
+    scene-001:
+      title: "The Ancient Prophecy"
+      content-file: "./sections/prologue/scene-001.txt"
+      word-count: 1200
+      pov: "Narrator"
+      location: "Ancient Temple"
+      characters: ["Narrator"]
+      notes: "Sets up the prophecy that drives the story"
+    
+    scene-002:
+      title: "The Chosen One"
+      content-file: "./sections/prologue/scene-002.txt"
+      word-count: 1300
+      pov: "Aria"
+      location: "Mage Academy"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge"]
+      notes: "Introduces Aria and her mentor"
+  
+  chapters:
+    chapter-01:
+      title: "The Awakening"
+      content-file: "./sections/chapters/chapter-01.txt"
+      word-count: 3500
+      pov: "Aria"
+      location: "Mage Academy"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge"]
+      summary: "Aria discovers her magical abilities for the first time"
+      notes: "Key moment - first use of magic"
+    
+    chapter-02:
+      title: "The Academy"
+      content-file: "./sections/chapters/chapter-02.txt"
+      word-count: 4200
+      pov: "Aria"
+      location: "Mage Academy"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge", "Other Students"]
+      summary: "Aria begins her training at the mage academy"
+      notes: "World-building chapter"
+    
+    chapter-03:
+      title: "The Prophecy Revealed"
+      content-file: "./sections/chapters/chapter-03.txt"
+      word-count: 3800
+      pov: "Aria"
+      location: "Ancient Library"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge"]
+      summary: "Aria learns about the ancient prophecy"
+      notes: "Plot point - reveals main quest"
+    
+    chapter-04:
+      title: "The First Test"
+      content-file: "./sections/chapters/chapter-04.txt"
+      word-count: 4100
+      pov: "Aria"
+      location: "Training Grounds"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge"]
+      summary: "Aria faces her first real test of magic"
+      notes: "Action scene"
+    
+    chapter-05:
+      title: "The Call to Adventure"
+      content-file: "./sections/chapters/chapter-05.txt"
+      word-count: 4400
+      pov: "Aria"
+      location: "Royal Palace"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge", "King"]
+      summary: "Aria receives the call to begin her quest"
+      notes: "End of Part 1 - inciting incident"
+    
+    chapter-06:
+      title: "Leaving Home"
+      content-file: "./sections/chapters/chapter-06.txt"
+      word-count: 5000
+      pov: "Aria"
+      location: "Mage Academy, then Road"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge"]
+      summary: "Aria leaves the academy to begin her journey"
+      notes: "Beginning of journey"
+    
+    chapter-07:
+      title: "The Dark Forest"
+      content-file: "./sections/chapters/chapter-07.txt"
+      word-count: 4800
+      pov: "Aria"
+      location: "Dark Forest"
+      characters: ["Aria Moonwhisper"]
+      summary: "Aria travels through the dangerous dark forest"
+      notes: "Danger and suspense"
+    
+    chapter-08:
+      title: "The First Encounter"
+      content-file: "./sections/chapters/chapter-08.txt"
+      word-count: 5200
+      pov: "Aria"
+      location: "Dark Forest"
+      characters: ["Aria Moonwhisper", "Dark Creatures"]
+      summary: "Aria faces her first real danger"
+      notes: "First battle scene"
+    
+    chapter-09:
+      title: "The Crystal Caves"
+      content-file: "./sections/chapters/chapter-09.txt"
+      word-count: 5500
+      pov: "Aria"
+      location: "Crystal Caves"
+      characters: ["Aria Moonwhisper"]
+      summary: "Aria discovers the ancient crystal caves"
+      notes: "Discovery and power-up"
+    
+    chapter-10:
+      title: "The Guardian"
+      content-file: "./sections/chapters/chapter-10.txt"
+      word-count: 5000
+      pov: "Aria"
+      location: "Crystal Caves"
+      characters: ["Aria Moonwhisper", "Ancient Guardian"]
+      summary: "Aria meets the guardian of the crystals"
+      notes: "Mentor figure, reveals more about prophecy"
+    
+    chapter-11:
+      title: "The Final Approach"
+      content-file: "./sections/chapters/chapter-11.txt"
+      word-count: 6000
+      pov: "Aria"
+      location: "Approaching Dark Fortress"
+      characters: ["Aria Moonwhisper"]
+      summary: "Aria approaches the dark sorcerer's fortress"
+      notes: "Building tension"
+    
+    chapter-12:
+      title: "The Confrontation"
+      content-file: "./sections/chapters/chapter-12.txt"
+      word-count: 7000
+      pov: "Aria"
+      location: "Dark Fortress"
+      characters: ["Aria Moonwhisper", "Malachar the Dark"]
+      summary: "Aria confronts the dark sorcerer"
+      notes: "Climax - final battle"
+    
+    chapter-13:
+      title: "Victory and Return"
+      content-file: "./sections/chapters/chapter-13.txt"
+      word-count: 7000
+      pov: "Aria"
+      location: "Dark Fortress, then Kingdom"
+      characters: ["Aria Moonwhisper", "Malachar the Dark", "Kingdom Citizens"]
+      summary: "Aria defeats the dark sorcerer and returns home"
+      notes: "Resolution"
+  
+  epilogue:
+    scene-099:
+      title: "A New Beginning"
+      content-file: "./sections/epilogue/scene-099.txt"
+      word-count: 2000
+      pov: "Aria"
+      location: "Royal Palace"
+      characters: ["Aria Moonwhisper", "Thorin Ironforge", "King"]
+      notes: "Sets up potential sequel"
+
+metadata:
+  status: "draft"
+  last-updated: "2024-01-20"
+  version: "1.2"
+  notes: "Currently revising Part 2, need to add more character development in chapter 08"
+
