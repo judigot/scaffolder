@@ -18,13 +18,17 @@ if (process.env.VERCEL !== '1') {
     app.get('*', serveStatic({ root: 'dist' }));
   } else {
     app.get('*', (c) => {
-      const url = `http://localhost:${String(process.env.VITE_FRONTEND_PORT)}${c.req.path}`;
+      const port = String(process.env.VITE_FRONTEND_PORT);
+      const url = `http://localhost:${port}${c.req.path}`;
       return c.redirect(url, 302);
     });
   }
 }
 
-export default {
-  port: process.env.VITE_BACKEND_PORT,
-  fetch: app.fetch,
-};
+const hono = { port: Number(process.env.VITE_BACKEND_PORT), fetch: app.fetch };
+
+if (process.env.VERCEL !== '1') {
+  hono.port = Number(process.env.VITE_BACKEND_PORT);
+}
+
+export default hono;
