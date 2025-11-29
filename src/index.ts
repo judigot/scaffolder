@@ -1,15 +1,15 @@
 import { Hono } from 'hono';
 import { compress } from 'hono/compress';
-// import { bodyLimit } from 'hono/body-limit';
-// import { cors } from 'hono/cors';
+import { bodyLimit } from 'hono/body-limit';
+import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import indexRouter from '@/app/routes/index.ts';
 
 const app = new Hono();
 
 app.use('/api', compress());
-// app.use('*', bodyLimit({ maxSize: 100 * 1024 * 1024 }));
-// app.use('*', cors());
+app.use('/api', bodyLimit({ maxSize: 100 * 1024 * 1024 }));
+app.use('/api', cors());
 
 app.route('/api', indexRouter);
 
