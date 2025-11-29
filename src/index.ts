@@ -9,9 +9,9 @@ const app = new Hono();
 
 const API_URL = `/${String(process.env.VITE_API_URL)}`;
 
+app.use('*', cors());
 app.use(API_URL, compress());
 app.use(API_URL, bodyLimit({ maxSize: 100 * 1024 * 1024 }));
-app.use(API_URL, cors());
 
 app.route(`/${String(process.env.VITE_API_URL)}`, indexRouter);
 
