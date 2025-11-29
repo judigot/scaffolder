@@ -112,6 +112,7 @@ export const importProject = ({
             undefined,
             formData,
             userMetadata,
+            undefined,
           );
           if (currentTable.tableName !== processedIncludeTable) {
             continue;
@@ -133,6 +134,7 @@ export const importProject = ({
             undefined,
             formData,
             userMetadata,
+            undefined,
           );
           if (currentTable.tableName === processedExcludeTable) {
             continue;

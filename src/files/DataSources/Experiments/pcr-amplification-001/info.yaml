@@ -1,0 +1,37 @@
+experiment:
+  id: "EXP-2024-001"
+  title: "PCR Amplification of Beta-Actin Gene"
+  date: "2024-01-15"
+  researcher: "Dr. Sarah Chen"
+  lab: "Molecular Biology Lab"
+  institution: "University Research Center"
+  objective: "Amplify beta-actin gene from human genomic DNA to use as a housekeeping gene control in qPCR experiments"
+  hypothesis: "Beta-actin gene can be successfully amplified from human genomic DNA using standard PCR conditions"
+  materials:
+    - "Human genomic DNA (100ng/μL)"
+    - "Beta-actin forward primer (10μM)"
+    - "Beta-actin reverse primer (10μM)"
+    - "PCR Master Mix"
+    - "Nuclease-free water"
+    - "PCR tubes"
+  protocol:
+    step1: "Prepare reaction mix: 12.5μL Master Mix, 1μL forward primer, 1μL reverse primer, 1μL DNA template, 9.5μL water"
+    step2: "Initial denaturation: 95°C for 3 minutes"
+    step3: "35 cycles: Denature 95°C 30s, Anneal 60°C 30s, Extend 72°C 45s"
+    step4: "Final extension: 72°C for 5 minutes"
+    step5: "Hold at 4°C"
+  conditions:
+    template-amount: "100ng"
+    primer-concentration: "0.4μM each"
+    annealing-temperature: "60°C"
+    extension-time: "45 seconds"
+    cycle-number: 35
+  results:
+    success: true
+    product-size: "353 bp"
+    yield: "High"
+    quality: "Single band on gel electrophoresis"
+  analysis: "PCR successfully amplified beta-actin gene. Product size matches expected 353bp. Ready for use as qPCR control."
+  conclusion: "Beta-actin gene amplification successful. Protocol validated for use in subsequent qPCR experiments."
+  notes: "No optimization needed. Standard conditions worked well. Store amplified product at -20°C."
+

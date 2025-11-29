@@ -4,7 +4,10 @@ import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { processCommand } from '@/utils/project-builder/template-processors/processCommand.ts';
 import { processIfConditions } from '@/utils/project-builder/template-processors/processIfConditions.ts';
 import { importTemplateAsPlaceholder } from '@/utils/project-builder/template-processors/importTemplateAsPlaceholder.ts';
-import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type {
+  Replacements,
+  DataContext,
+} from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 
@@ -22,6 +25,7 @@ export const replacePlaceholders = (
   templateFilePath?: string,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataContext?: DataContext,
 ): string => {
   // Process all commands
   const processedText = processCommand(
@@ -33,6 +37,7 @@ export const replacePlaceholders = (
     projectFilePath,
     formData,
     userMetadata,
+    dataContext,
   );
 
   // Process IF conditions

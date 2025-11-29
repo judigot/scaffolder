@@ -1,0 +1,2 @@
+LOOP_FOLDERS({{purchase-order.number}}-PurchaseOrder.html --data-source=/DataSources/Purchase-Orders/**/info.yaml --template=./templates/PurchaseOrder.txt)
+

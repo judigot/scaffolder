@@ -1,0 +1,2 @@
+LOOP_FOLDERS({{element.symbol}}-{{element.name}}-Card.html --data-source=/DataSources/Elements/**/info.yaml --template=./templates/ElementCard.txt)
+

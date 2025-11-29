@@ -78,6 +78,7 @@ export const processColumnsInfoIteration = (
       processedTemplate,
       formData,
       userMetadata,
+      undefined,
     );
     if (result.trim()) {
       results.push(result);

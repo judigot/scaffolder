@@ -10,6 +10,7 @@ import { processDynamicFolders } from '@/utils/project-builder/project-processor
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import { processLoopTables } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
+import { processLoopFolders } from '@/utils/project-builder/project-processors/processLoopFolders.ts';
 import { importProject } from '@/utils/project-builder/project-processors/importProject.ts';
 import { createBaseMethodFile } from '@/utils/project-builder/project-processors/createBaseMethodFile.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
@@ -22,6 +23,7 @@ const ROOT_LEVEL_ACTIONS = [
   PROJECT_ACTIONS.CREATE_FILE,
   PROJECT_ACTIONS.CREATE_BASE_METHOD_FILE,
   PROJECT_ACTIONS.FILE_LOOP,
+  PROJECT_ACTIONS.LOOP_FOLDERS,
 ] as const;
 
 export const processYamlStructure = ({
@@ -132,6 +134,7 @@ export const processYamlStructure = ({
           command,
           formData,
           userMetadata,
+          undefined,
         );
 
         // Extract the base filename from the processed path if it contains slashes
@@ -159,6 +162,7 @@ export const processYamlStructure = ({
             : command,
           formData,
           userMetadata,
+          undefined,
         );
 
         content = processIterateInTemplate(
@@ -198,6 +202,7 @@ export const processYamlStructure = ({
         undefined,
         formData,
         userMetadata,
+        undefined,
       );
 
       // Extract just the filename portion if it contains slashes
@@ -230,6 +235,7 @@ export const processYamlStructure = ({
         node,
         formData,
         userMetadata,
+        undefined,
       );
 
       processedContent = processIterateInTemplate(
@@ -278,6 +284,19 @@ export const processYamlStructure = ({
       });
     }
 
+    if (node.startsWith(`${PROJECT_ACTIONS.LOOP_FOLDERS}(`)) {
+      return processLoopFolders({
+        command,
+        options,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        projectYamlPath,
+        formData,
+        userMetadata,
+      });
+    }
+
     // Handle bare filenames by looking for templates
     const templateContent = loadTemplateContent(
       userFiles,
@@ -314,6 +333,7 @@ export const processYamlStructure = ({
         undefined,
         formData,
         userMetadata,
+        undefined,
       );
 
       processedContent = processIterateInTemplate(

@@ -31,6 +31,7 @@ export const processDynamicFolders = ({
       undefined,
       formData,
       userMetadata,
+      undefined,
     );
 
     // Process children with the current table context

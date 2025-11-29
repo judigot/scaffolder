@@ -5,6 +5,7 @@ export const ACTION_FLAGS = {
   INCLUDE_TABLE: 'include-table',
   EXCLUDE_TABLE: 'exclude-table',
   IS_RELATIVE_PATH: 'isRelativePath',
+  DATA_SOURCE: 'data-source',
 } as const;
 
 export type ProjectActionFlag =

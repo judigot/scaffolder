@@ -1,0 +1,2 @@
+LOOP_FOLDERS({{expense-report.employee-name}}-{{expense-report.period}}-ExpenseReport.html --data-source=/DataSources/Expenses/**/info.yaml --template=./templates/ExpenseReport.txt)
+

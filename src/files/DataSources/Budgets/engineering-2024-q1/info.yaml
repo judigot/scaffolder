@@ -1,0 +1,58 @@
+budget:
+  id: "BUD-2024-ENG-Q1"
+  department: "Engineering"
+  year: 2024
+  quarter: "Q1"
+  period-start: "2024-01-01"
+  period-end: "2024-03-31"
+  allocated: 250000
+  spent: 180000
+  remaining: 70000
+  utilization-percentage: 72
+  status: "On Track"
+line-items:
+  - category: "Salaries"
+    budgeted: 150000
+    actual: 145000
+    variance: -5000
+    variance-percentage: -3.33
+    status: "Under Budget"
+  - category: "Equipment"
+    budgeted: 50000
+    actual: 20000
+    variance: -30000
+    variance-percentage: -60
+    status: "Under Budget"
+  - category: "Software Licenses"
+    budgeted: 30000
+    actual: 10000
+    variance: -20000
+    variance-percentage: -66.67
+    status: "Under Budget"
+  - category: "Training & Development"
+    budgeted: 15000
+    actual: 5000
+    variance: -10000
+    variance-percentage: -66.67
+    status: "Under Budget"
+  - category: "Office Supplies"
+    budgeted: 5000
+    actual: 0
+    variance: -5000
+    variance-percentage: -100
+    status: "Under Budget"
+department-manager:
+  name: "Michael Chen"
+  title: "Engineering Director"
+  approval-date: "2024-01-05"
+finance-approver:
+  name: "Sarah Johnson"
+  title: "CFO"
+  approval-date: "2024-01-10"
+company:
+  name: "Tech Solutions Inc"
+  address: "123 Business Ave"
+  city: "New York"
+  state: "NY"
+  zip: "10001"
+

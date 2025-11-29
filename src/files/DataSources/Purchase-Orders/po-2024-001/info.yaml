@@ -1,0 +1,66 @@
+purchase-order:
+  number: "PO-2024-001"
+  date: "2024-01-15"
+  status: "Approved"
+  priority: "Normal"
+  requested-by: "John Doe"
+  department: "Engineering"
+  project: "Q1 Equipment Upgrade"
+vendor:
+  name: "Tech Supply Co"
+  address: "456 Vendor Street"
+  city: "San Francisco"
+  state: "CA"
+  zip: "94102"
+  phone: "555-1234-5678"
+  email: "sales@techsupply.com"
+  contact-person: "Jane Vendor"
+  tax-id: "98-7654321"
+ship-to:
+  name: "Tech Solutions Inc"
+  address: "123 Business Ave"
+  city: "New York"
+  state: "NY"
+  zip: "10001"
+  attention: "Receiving Department"
+items:
+  - item-number: "ITEM-001"
+    description: "Dell XPS 15 Laptop - 16GB RAM, 512GB SSD"
+    quantity: 5
+    unit-price: 1299.99
+    total: 6499.95
+    part-number: "DELL-XPS15-001"
+  - item-number: "ITEM-002"
+    description: "Logitech MX Master 3 Mouse"
+    quantity: 5
+    unit-price: 99.99
+    total: 499.95
+    part-number: "LOG-MX3-001"
+  - item-number: "ITEM-003"
+    description: "Ergonomic Office Chair"
+    quantity: 5
+    unit-price: 299.99
+    total: 1499.95
+    part-number: "CHAIR-ERG-001"
+pricing:
+  subtotal: 8499.85
+  tax-rate: 8.5
+  tax: 722.49
+  shipping: 150.00
+  total: 9372.34
+payment-terms: "Net 30"
+delivery-date: "2024-02-15"
+notes: "Please deliver to receiving dock between 9 AM - 5 PM. Contact receiving department upon arrival."
+approved-by:
+  name: "Sarah Johnson"
+  title: "Finance Manager"
+  date: "2024-01-16"
+company:
+  name: "Tech Solutions Inc"
+  address: "123 Business Ave"
+  city: "New York"
+  state: "NY"
+  zip: "10001"
+  phone: "555-0001-2345"
+  email: "purchasing@techsolutions.com"
+

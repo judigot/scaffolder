@@ -30,8 +30,19 @@ export const parseCommand = (
   const options: IActionFlags = {};
 
   optionParts.forEach((part) => {
-    const [key, ...valueParts] = part.trim().split(' ');
-    const value = valueParts.join(' ').trim();
+    const trimmedPart = part.trim();
+    let key: string;
+    let value: string;
+
+    const equalsIndex = trimmedPart.indexOf('=');
+    if (equalsIndex !== -1) {
+      key = trimmedPart.substring(0, equalsIndex);
+      value = trimmedPart.substring(equalsIndex + 1).trim();
+    } else {
+      const [firstPart, ...valueParts] = trimmedPart.split(' ');
+      key = firstPart;
+      value = valueParts.join(' ').trim();
+    }
 
     switch (key) {
       case ACTION_FLAGS.CONDITIONS:
@@ -64,6 +75,12 @@ export const parseCommand = (
       case ACTION_FLAGS.EXCLUDE_TABLE:
         if (value) {
           options[ACTION_FLAGS.EXCLUDE_TABLE] = parseQuotedOrRawValue(value);
+        }
+        break;
+
+      case ACTION_FLAGS.DATA_SOURCE:
+        if (value) {
+          options[ACTION_FLAGS.DATA_SOURCE] = parseQuotedOrRawValue(value);
         }
         break;
 

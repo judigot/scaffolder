@@ -163,6 +163,7 @@ export const processFileBasedTemplate = (
           folderPath,
           formData,
           userMetadata,
+          undefined,
         );
 
         results.push(processedTemplate);
@@ -186,6 +187,7 @@ export const processFileBasedTemplate = (
           folderPath,
           formData,
           userMetadata,
+          undefined,
         );
 
         results.push(processedTemplate);

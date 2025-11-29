@@ -120,6 +120,7 @@ export const processLoopTables = (
             undefined,
             formData,
             userMetadata,
+            undefined,
           );
         })
         .join(separator);
@@ -208,6 +209,7 @@ export const processIterateCommand = (
           undefined,
           formData,
           userMetadata,
+          undefined,
         );
       })
     : [];
@@ -362,6 +364,7 @@ export const processIterateCommand = (
           undefined,
           formData,
           userMetadata,
+          undefined,
         );
       })
     : [];
@@ -666,6 +669,7 @@ export const processIterateCommand = (
       template,
       formData,
       userMetadata,
+      undefined,
     );
   });
 

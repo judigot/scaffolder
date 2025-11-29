@@ -72,6 +72,7 @@ export const processMultipleFiles = ({
             fileName,
             formData,
             userMetadata,
+            undefined,
           );
           if (table.tableName !== processedIncludeTable) {
             return false;
@@ -94,6 +95,7 @@ export const processMultipleFiles = ({
           fileName,
           formData,
           userMetadata,
+          undefined,
         );
         if (table.tableName === processedExcludeTable) {
           return false;
@@ -114,6 +116,7 @@ export const processMultipleFiles = ({
         fileName,
         formData,
         userMetadata,
+        undefined,
       );
 
       const outputFileName = processedName.includes('/')
@@ -141,6 +144,7 @@ export const processMultipleFiles = ({
           : fileName,
         formData,
         userMetadata,
+        undefined,
       );
       content = processIterateInTemplate(
         content,

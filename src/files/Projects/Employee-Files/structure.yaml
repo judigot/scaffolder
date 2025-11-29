@@ -1,0 +1,1 @@
+LOOP_FOLDERS({{basic-info.name}}'s-Resume.html --data-source=//DataSources/People/**/info.yaml --template=./templates/Resume.txt)

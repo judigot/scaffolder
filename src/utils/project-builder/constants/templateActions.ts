@@ -8,6 +8,7 @@ export const TEMPLATE_ACTIONS = {
   USE_FORM_DATA: 'USE_FORM_DATA',
   USE_USER_ENV: 'USE_USER_ENV',
   USE_TEMPLATE: 'USE_TEMPLATE',
+  USE_DATA: 'USE_DATA',
   LOOP_TABLES: `${LOOP}(tables)`,
   LOOP_COLUMNS: `${LOOP}(columns)`,
 } as const;
@@ -36,6 +37,7 @@ export const REGEX_PATTERNS = {
   USE_FORM_DATA: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_FORM_DATA}\\(([^)]+)\\)\\s*\\]\\]`,
   USE_USER_ENV: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_USER_ENV}\\(([^)]+)\\)\\s*\\]\\]`,
   USE_TEMPLATE: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_TEMPLATE}\\(([^)]+)\\)\\s*\\]\\]`,
+  USE_DATA: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_DATA}\\(([^)]+)\\)\\s*\\]\\]`,
   FOLDER_PATH: '^\\/(.*?)$',
   RECURSIVE_WILDCARD_PATH: '^\\/(.*(\\*\\*).*)$',
 } as const;
@@ -95,3 +97,5 @@ export const FOLDER_PATH_REGEX = new RegExp(REGEX_PATTERNS.FOLDER_PATH);
 export const RECURSIVE_WILDCARD_REGEX = new RegExp(
   REGEX_PATTERNS.RECURSIVE_WILDCARD_PATH,
 );
+
+export const USE_DATA_REGEX = new RegExp(REGEX_PATTERNS.USE_DATA);

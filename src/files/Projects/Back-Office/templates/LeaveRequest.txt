@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leave Request - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { border-bottom: 3px solid #9c27b0; padding-bottom: 20px; margin-bottom: 30px; }
+    .title { font-size: 2em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    .request-id { color: #7f8c8d; font-size: 1.1em; }
+    .employee-info { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+    .info-box { background: #f3e5f5; padding: 12px; border-radius: 5px; }
+    .label { font-weight: bold; color: #34495e; margin-bottom: 5px; }
+    .value { color: #2c3e50; }
+    .status-badge { display: inline-block; padding: 8px 20px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+    .approved { background: #4caf50; color: white; }
+    .pending { background: #ff9800; color: white; }
+    .rejected { background: #f44336; color: white; }
+    .leave-details { background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #9c27b0; }
+    .details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .section { margin: 25px 0; }
+    .section-title { font-size: 1.3em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; margin-bottom: 15px; }
+    .reason-box { background: #fff3e0; padding: 15px; border-radius: 5px; margin: 15px 0; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #ecf0f1; }
+    .approval-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin-top: 30px; }
+    .approval-box { padding: 15px; border: 2px solid #ecf0f1; border-radius: 5px; }
+    .signature-line { border-top: 2px solid #333; width: 100%; margin: 50px 0 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">LEAVE REQUEST</div>
+      <div class="request-id">Request ID: [[USE_DATA(leave-request.id)]]</div>
+      <div class="employee-info">
+        <div class="info-box">
+          <div class="label">Employee Name</div>
+          <div class="value">[[USE_DATA(basic-info.name)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Employee ID</div>
+          <div class="value">[[USE_DATA(employee.employee-id)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Department</div>
+          <div class="value">[[USE_DATA(employee.department)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Manager</div>
+          <div class="value">[[USE_DATA(employee.manager)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Status</div>
+          <div class="value"><span class="status-badge [[USE_DATA(leave-request.status)]]">[[USE_DATA(leave-request.status)]]</span></div>
+        </div>
+        <div class="info-box">
+          <div class="label">Submitted Date</div>
+          <div class="value">[[USE_DATA(leave-request.submitted-date)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Leave Details</div>
+      <div class="leave-details">
+        <div class="details-grid">
+          <div>
+            <div class="label">Leave Type</div>
+            <div class="value" style="font-size: 1.2em; font-weight: bold;">[[USE_DATA(leave-request.type)]]</div>
+          </div>
+          <div>
+            <div class="label">Days Requested</div>
+            <div class="value" style="font-size: 1.2em; font-weight: bold;">[[USE_DATA(leave-request.days-requested)]]</div>
+          </div>
+          <div>
+            <div class="label">Start Date</div>
+            <div class="value" style="font-size: 1.1em;">[[USE_DATA(leave-request.start-date)]]</div>
+          </div>
+          <div>
+            <div class="label">End Date</div>
+            <div class="value" style="font-size: 1.1em;">[[USE_DATA(leave-request.end-date)]]</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Reason for Leave</div>
+      <div class="reason-box">
+        <div class="value">[[USE_DATA(leave-request.reason)]]</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="approval-section">
+        <div class="approval-box">
+          <div class="label">Employee Signature</div>
+          <div class="value">[[USE_DATA(basic-info.name)]]</div>
+          <div class="signature-line"></div>
+          <div style="margin-top: 10px; color: #7f8c8d;">Date: [[USE_DATA(leave-request.submitted-date)]]</div>
+        </div>
+        <div class="approval-box">
+          <div class="label">Manager Approval</div>
+          <div class="value">[[USE_DATA(leave-request.approved-by)]]</div>
+          <div class="value" style="font-size: 0.9em; color: #7f8c8d;">[[USE_DATA(employee.manager)]]</div>
+          <div class="signature-line"></div>
+          <div style="margin-top: 10px; color: #7f8c8d;">Date: [[USE_DATA(leave-request.approval-date)]]</div>
+        </div>
+      </div>
+      <div style="margin-top: 30px; text-align: center; color: #7f8c8d; font-size: 0.9em;">
+        <p><strong>[[USE_DATA(company-info.name)]]</strong></p>
+        <p>[[USE_DATA(company-info.address)]], [[USE_DATA(company-info.city)]], [[USE_DATA(company-info.state)]] [[USE_DATA(company-info.zip)]]</p>
+        <p>For questions, contact HR at [[USE_DATA(company-info.email)]]</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

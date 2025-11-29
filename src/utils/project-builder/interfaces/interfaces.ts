@@ -14,7 +14,10 @@ export interface IActionFlags {
   [ACTION_FLAGS.SCOPED]?: boolean;
   [ACTION_FLAGS.EXCLUDE_TABLE]?: string;
   [ACTION_FLAGS.IS_RELATIVE_PATH]?: boolean;
+  [ACTION_FLAGS.DATA_SOURCE]?: string;
 }
+
+export type DataContext = Record<string, unknown>;
 
 export interface IBuildContext {
   node?: unknown;
@@ -28,4 +31,5 @@ export interface IBuildContext {
   children?: unknown;
   formData?: IFormStore;
   userMetadata?: Record<string, unknown> | null;
+  dataContext?: DataContext;
 }

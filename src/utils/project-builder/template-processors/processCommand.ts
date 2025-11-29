@@ -7,9 +7,11 @@ import {
   TEMPLATE_ACTIONS,
   USE_FORM_DATA_REGEX,
   USE_USER_ENV_REGEX,
+  USE_DATA_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
 import type { IFormStore } from '@/useFormStore.ts';
+import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 /**
  * Helper function to check if a string has content
@@ -35,6 +37,7 @@ export const processCommand = (
   projectFilePath?: string,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataContext?: DataContext,
 ): string => {
   // Process all commands in order of specificity
   let result = text;
@@ -132,6 +135,36 @@ export const processCommand = (
     }
     if (Array.isArray(value)) {
       return value.join(',');
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return '';
+  });
+
+  // Process USE_DATA commands
+  const useDataRegex = new RegExp(USE_DATA_REGEX.source, 'g');
+
+  result = result.replace(useDataRegex, (_match: string, group1: string) => {
+    if (!dataContext) {
+      return '';
+    }
+    const dataKey = group1.trim();
+    if (!(dataKey in dataContext)) {
+      return '';
+    }
+    const value = dataContext[dataKey];
+    if (value === undefined || value === null) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'boolean' || typeof value === 'number') {
+      return String(value);
+    }
+    if (Array.isArray(value)) {
+      return value.join(', ');
     }
     if (typeof value === 'object') {
       return JSON.stringify(value);

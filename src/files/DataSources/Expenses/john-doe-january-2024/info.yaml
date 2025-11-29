@@ -1,0 +1,72 @@
+expense-report:
+  id: "EXP-2024-001"
+  employee-name: "John Doe"
+  employee-id: "EMP-001"
+  department: "Engineering"
+  period: "January 2024"
+  submission-date: "2024-02-01"
+  status: "Approved"
+  total-amount: 1250.50
+  reimbursable-amount: 1250.50
+  expenses:
+    - id: "EXP-001"
+      date: "2024-01-15"
+      category: "Travel"
+      subcategory: "Airfare"
+      description: "Flight to Tech Conference - San Francisco"
+      amount: 450.00
+      receipt-number: "RCP-001"
+      receipt-url: ""
+      approved: true
+      notes: "Business trip for annual tech conference"
+    - id: "EXP-002"
+      date: "2024-01-16"
+      category: "Meals"
+      subcategory: "Business Dinner"
+      description: "Client dinner meeting"
+      amount: 85.50
+      receipt-number: "RCP-002"
+      receipt-url: ""
+      approved: true
+      notes: "Dinner with potential client"
+    - id: "EXP-003"
+      date: "2024-01-18"
+      category: "Travel"
+      subcategory: "Hotel"
+      description: "Hotel stay - 3 nights"
+      amount: 450.00
+      receipt-number: "RCP-003"
+      receipt-url: ""
+      approved: true
+      notes: "Conference hotel"
+    - id: "EXP-004"
+      date: "2024-01-20"
+      category: "Travel"
+      subcategory: "Ground Transportation"
+      description: "Taxi and rideshare expenses"
+      amount: 125.00
+      receipt-number: "RCP-004"
+      receipt-url: ""
+      approved: true
+      notes: "Transportation during conference"
+    - id: "EXP-005"
+      date: "2024-01-25"
+      category: "Office Supplies"
+      subcategory: "Equipment"
+      description: "Wireless mouse and keyboard"
+      amount: 140.00
+      receipt-number: "RCP-005"
+      receipt-url: ""
+      approved: true
+      notes: "Home office equipment"
+approver:
+  name: "Sarah Johnson"
+  title: "Finance Manager"
+  approval-date: "2024-02-05"
+company:
+  name: "Tech Solutions Inc"
+  address: "123 Business Ave"
+  city: "New York"
+  state: "NY"
+  zip: "10001"
+

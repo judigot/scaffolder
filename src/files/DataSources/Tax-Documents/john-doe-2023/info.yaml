@@ -1,0 +1,56 @@
+tax-document:
+  id: "TAX-2023-001"
+  type: "Tax Summary"
+  tax-year: 2023
+  taxpayer-name: "John Doe"
+  taxpayer-ssn: "XXX-XX-1234"
+  filing-status: "Single"
+  submission-date: "2024-04-15"
+income:
+  total: 75000
+  sources:
+    - type: "W-2 Wages"
+      amount: 70000
+      employer: "Tech Solutions Inc"
+    - type: "Freelance Income"
+      amount: 5000
+      payer: "Various Clients"
+deductions:
+  standard-deduction: 13850
+  itemized-deductions: 0
+  total-deductions: 13850
+adjustments:
+  total: 2000
+  items:
+    - description: "IRA Contribution"
+      amount: 2000
+taxable-income: 59150
+tax-liability:
+  federal-income-tax: 8800
+  state-income-tax: 2500
+  local-tax: 500
+  self-employment-tax: 0
+  total-tax: 11800
+credits:
+  total: 500
+  items:
+    - description: "Earned Income Credit"
+      amount: 500
+payments:
+  federal-withholding: 9000
+  state-withholding: 2400
+  estimated-payments: 0
+  total-payments: 11400
+refund-or-owed:
+  amount: -400
+  type: "Owed"
+address:
+  street: "123 Main St"
+  city: "Anytown"
+  state: "CA"
+  zip: "12345"
+prepared-by:
+  name: "Tax Prep Services"
+  preparer-id: "PTIN-12345"
+  date: "2024-04-10"
+

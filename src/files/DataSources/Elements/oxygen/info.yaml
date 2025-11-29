@@ -1,0 +1,32 @@
+element:
+  symbol: "O"
+  name: "Oxygen"
+  atomic-number: 8
+  atomic-mass: "15.999"
+  group: 16
+  period: 2
+  block: "p"
+  category: "Nonmetal"
+  electron-configuration: "1s² 2s² 2p⁴"
+  electronegativity: 3.44
+  density: "0.001429 g/cm³"
+  melting-point: "-218.79°C"
+  boiling-point: "-182.96°C"
+  state-at-room-temp: "Gas"
+  color: "Colorless"
+  discovery-year: 1774
+  discoverer: "Joseph Priestley and Carl Wilhelm Scheele"
+  uses: "Medical oxygen therapy, steel production, water treatment, combustion, life support systems"
+  description: "Oxygen is essential for life and is the most abundant element in Earth's crust. It is a highly reactive nonmetal and oxidizing agent."
+  safety-notes: "Supports combustion. High concentrations can be dangerous. Keep away from flammable materials."
+  isotopes:
+    - name: "Oxygen-16"
+      mass-number: 16
+      abundance: "99.757%"
+    - name: "Oxygen-17"
+      mass-number: 17
+      abundance: "0.038%"
+    - name: "Oxygen-18"
+      mass-number: 18
+      abundance: "0.205%"
+
