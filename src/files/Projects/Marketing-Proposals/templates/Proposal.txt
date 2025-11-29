@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Proposal - [[USE_DATA(client.company-name)]]</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #ffffff; }
     .cover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px; text-align: center; border-radius: 10px 10px 0 0; }
     .cover h1 { font-size: 3em; margin: 20px 0; }
     .cover .subtitle { font-size: 1.3em; opacity: 0.9; }

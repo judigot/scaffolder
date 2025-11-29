@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Financial Statement - [[USE_DATA(financial-statement.company-name)]] - [[USE_DATA(financial-statement.period)]]</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #ffffff; }
     .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .header { text-align: center; border-bottom: 4px solid #2c3e50; padding-bottom: 25px; margin-bottom: 30px; }
     .company-name { font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }

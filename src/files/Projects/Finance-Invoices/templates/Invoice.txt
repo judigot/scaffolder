@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invoice [[USE_DATA(invoice.number)]]</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #ffffff; }
     .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 3px solid #333; padding-bottom: 20px; }
     .company-info { }
     .invoice-info { text-align: right; }
