@@ -24,6 +24,7 @@ import useTransformationsStore from '@/useTransformationsStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { useFileContent } from '@/hooks/useFileContent.ts';
 
 export interface IBase {
   name: string;
@@ -35,6 +36,7 @@ export interface IFile extends IBase {
   content: string;
   uniqueId?: string;
   isBinary?: boolean;
+  filePath?: string;
 }
 
 export interface IFolder extends IBase {
@@ -182,15 +184,114 @@ function FileViewer({
     setFolderStructure(initialFolderStructure);
   }, [initialFolderStructure]);
 
-  // Update fileContent when selectedFile changes
+  const filePath =
+    selectedFile?.filePath ??
+    (selectedFile ? createUniqueFileId(currentPath, selectedFile.name) : '');
+
+  // Only fetch if:
+  // 1. File is selected
+  // 2. Content is empty (not yet loaded)
+  // 3. We have a valid repo URL and file path
+  // 4. The file doesn't already have content in the structure
+  const shouldFetchContent = !!(
+    selectedFile &&
+    selectedFile.content === '' &&
+    typeof publicRepoURL === 'string' &&
+    publicRepoURL !== '' &&
+    filePath !== '' &&
+    filePath !== ''
+  );
+
+  const {
+    data: fetchedFileContent,
+    isLoading: isFileContentLoading,
+    error: fileContentError,
+  } = useFileContent(
+    {
+      publicRepoURL: publicRepoURL || '',
+      filePath: filePath || '',
+    },
+    shouldFetchContent,
+  );
+
+  useEffect(() => {
+    if (fetchedFileContent && selectedFile) {
+      const updateFileInStructure = (
+        items: IStructure,
+        path: string[],
+        fileName: string,
+        newContent: string,
+        isBinary: boolean,
+        filePathToStore: string,
+      ): IStructure => {
+        if (path.length === 0) {
+          return items.map((item) => {
+            if (item.type === 'file' && item.name === fileName) {
+              return {
+                ...item,
+                content: newContent,
+                isBinary,
+                filePath: filePathToStore || item.filePath,
+              };
+            }
+            return item;
+          });
+        }
+
+        const currentFolder = path[0];
+        const remainingPath = path.slice(1);
+
+        return items.map((item) => {
+          if (item.type === 'folder' && item.name === currentFolder) {
+            return {
+              ...item,
+              children: updateFileInStructure(
+                item.children,
+                remainingPath,
+                fileName,
+                newContent,
+                isBinary,
+                filePathToStore,
+              ),
+            };
+          }
+          return item;
+        });
+      };
+
+      const updatedStructure = updateFileInStructure(
+        folderStructure,
+        currentPath,
+        selectedFile.name,
+        fetchedFileContent.content,
+        fetchedFileContent.isBinary,
+        filePath,
+      );
+      setFolderStructure(updatedStructure);
+    }
+  }, [
+    fetchedFileContent,
+    selectedFile,
+    folderStructure,
+    currentPath,
+    filePath,
+  ]);
+
   useEffect(() => {
     if (selectedFile) {
-      setFileContent(selectedFile.content);
-      setIsFileEdited(false); // Reset edit state when changing files
+      if (selectedFile.content) {
+        setFileContent(selectedFile.content);
+      } else if (fetchedFileContent) {
+        setFileContent(fetchedFileContent.content);
+      } else {
+        setFileContent('');
+      }
+      setIsFileEdited(false);
     }
-  }, [selectedFile]);
+  }, [selectedFile, fetchedFileContent]);
 
   // Modified effect to find file by uniqueId instead of just name
+  // This syncs selectedFile with the latest content from folderStructure
   useEffect(() => {
     if (selectedFile) {
       const findFileByUniqueId = (
@@ -218,12 +319,19 @@ function FileViewer({
 
       const { file, path } = findFileByUniqueId(folderStructure);
       if (file) {
-        // Create a file with uniqueId
+        // Create a file with uniqueId and ensure filePath is set
         const fileWithUniqueId = {
           ...file,
           uniqueId: createUniqueFileId(path, file.name),
+          filePath: file.filePath ?? createUniqueFileId(path, file.name),
         };
-        setSelectedFile(fileWithUniqueId);
+        // Only update if content changed to avoid infinite loops
+        if (
+          fileWithUniqueId.content !== selectedFile.content ||
+          fileWithUniqueId.filePath !== selectedFile.filePath
+        ) {
+          setSelectedFile(fileWithUniqueId);
+        }
         setCurrentPath(path);
       } else {
         setSelectedFile(null);
@@ -703,13 +811,15 @@ function FileViewer({
             </div>
           }
           onClick={() => {
-            // Create a file with uniqueId and pass it to the onSelectFile callback
+            // Create a file with uniqueId and filePath, then pass it to the onSelectFile callback
+            // Use existing filePath if available, otherwise use uniqueId
             const fileWithUniqueId = {
               ...item,
               uniqueId,
+              filePath: item.filePath ?? uniqueId,
             };
             onSelectFile(fileWithUniqueId);
-            if (isHtmlFile(item.name)) {
+            if (isHtmlFile(item.name) && item.content && item.content !== '') {
               openRandomModal({
                 title: item.name,
                 size: 'fullscreen',
@@ -719,8 +829,11 @@ function FileViewer({
                       <button
                         type="button"
                         onClick={() => {
-                          handleDownloadHtmlAsPdf(item.content, item.name);
+                          if (item.content) {
+                            handleDownloadHtmlAsPdf(item.content, item.name);
+                          }
                         }}
+                        disabled={!item.content}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md shadow-sm focus:outline-none focus:ring focus:ring-green-500 focus:ring-opacity-50 flex items-center gap-2 transition-colors"
                         title="Download as PDF"
                       >
@@ -1441,9 +1554,12 @@ function FileViewer({
                 <div>
                   <button
                     onClick={() => {
-                      handleCopy(selectedFile.content);
+                      if (selectedFile.content) {
+                        handleCopy(selectedFile.content);
+                      }
                     }}
-                    className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right"
+                    disabled={!selectedFile.content}
+                    className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <CopyIcon fontSize="small" />
                   </button>
@@ -1457,22 +1573,41 @@ function FileViewer({
                   )}
                 </div>
               </div>
-              {isImageFile(selectedFile.name) ? (
+              {isFileContentLoading ? (
+                <div
+                  className="flex items-center justify-center bg-gray-900 p-4"
+                  style={{ height: '20rem' }}
+                >
+                  <div className="text-white">Loading file content...</div>
+                </div>
+              ) : fileContentError ? (
+                <div
+                  className="flex items-center justify-center bg-gray-900 p-4"
+                  style={{ height: '20rem' }}
+                >
+                  <div className="text-red-400">
+                    Error loading file:{' '}
+                    {fileContentError instanceof Error
+                      ? fileContentError.message
+                      : 'Unknown error'}
+                  </div>
+                </div>
+              ) : isImageFile(selectedFile.name) && fileContent ? (
                 <div
                   className="flex items-center justify-center bg-gray-900 p-4"
                   style={{ height: '20rem' }}
                 >
                   {selectedFile.name.toLowerCase().endsWith('.svg') &&
-                  !selectedFile.content.startsWith('data:') &&
-                  !selectedFile.content.includes('base64') &&
-                  selectedFile.content.trim().startsWith('<') ? (
+                  !fileContent.startsWith('data:') &&
+                  !fileContent.includes('base64') &&
+                  fileContent.trim().startsWith('<') ? (
                     <div
                       className="max-h-full max-w-full"
-                      dangerouslySetInnerHTML={{ __html: selectedFile.content }}
+                      dangerouslySetInnerHTML={{ __html: fileContent }}
                     />
                   ) : (
                     <img
-                      src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${selectedFile.content}`}
+                      src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${fileContent}`}
                       alt={selectedFile.name}
                       className="max-h-full max-w-full object-contain"
                     />
