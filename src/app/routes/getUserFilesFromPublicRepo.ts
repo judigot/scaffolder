@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { Hono } from 'hono';
 import { fetchRepositoryFiles } from '@/utils/downloadPublicRepoFiles.ts';
 import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFilesToIStructure.ts';
 
@@ -16,7 +16,7 @@ import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFile
  * This approach resolves CORS issues by handling the GitHub API requests
  * server-side rather than from the browser.
  */
-const router = Router();
+const router = new Hono();
 
 // Helper function to parse GitHub URL
 function parseGitHubURL(
@@ -40,63 +40,54 @@ function parseGitHubURL(
   }
 }
 
-router.post(
-  '/getUserFilesFromPublicRepo',
-  async (
-    req: Request<
-      unknown,
-      unknown,
+router.post('/', async (c) => {
+  const body = await c.req.json<{ publicRepoURL?: string }>();
+
+  const { publicRepoURL } = body;
+
+  if (typeof publicRepoURL !== 'string' || publicRepoURL === '') {
+    return c.json(
       {
-        publicRepoURL?: string;
-      }
-    >,
-    res: Response,
-  ) => {
-    try {
-      // Extract and validate publicRepoURL from request body
-      const { publicRepoURL } = req.body;
+        error: 'Missing repository URL',
+        message: 'Please provide a valid GitHub repository URL',
+      },
+      400,
+    );
+  }
 
-      if (typeof publicRepoURL !== 'string' || publicRepoURL === '') {
-        res.status(400).json({
-          error: 'Missing repository URL',
-          message: 'Please provide a valid GitHub repository URL',
-        });
-        return;
-      }
+  const repoInfo = parseGitHubURL(publicRepoURL);
+  if (!repoInfo) {
+    return c.json(
+      {
+        error: 'Invalid GitHub URL',
+        message:
+          'The provided URL is not a valid GitHub repository URL. Expected format: https://github.com/username/repository',
+      },
+      400,
+    );
+  }
 
-      // Parse the GitHub URL
-      const repoInfo = parseGitHubURL(publicRepoURL);
-      if (!repoInfo) {
-        res.status(400).json({
-          error: 'Invalid GitHub URL',
-          message:
-            'The provided URL is not a valid GitHub repository URL. Expected format: https://github.com/username/repository',
-        });
-        return;
-      }
+  try {
+    const extractedFiles = await fetchRepositoryFiles({
+      user: repoInfo.user,
+      repository: repoInfo.repository,
+      branch: 'main',
+      filesToFetch: ['*'],
+      keepFolderStructure: true,
+    });
 
-      // Fetch repository files from GitHub (server-to-server request not subject to CORS)
-      const extractedFiles = await fetchRepositoryFiles({
-        user: repoInfo.user,
-        repository: repoInfo.repository,
-        branch: 'main',
-        filesToFetch: ['*'],
-        keepFolderStructure: true,
-      });
+    const result = convertPublicRepoFilesToStructure(extractedFiles);
 
-      // Convert the extracted files to the expected IStructure format
-      const result = convertPublicRepoFilesToStructure(extractedFiles);
-
-      // Return the structured data as JSON
-      res.json(result);
-    } catch (error) {
-      // Handle errors with appropriate status code and message
-      res.status(500).json({
+    return c.json(result);
+  } catch (error) {
+    return c.json(
+      {
         error: 'Failed to fetch repository files',
         message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  },
-);
+      },
+      500,
+    );
+  }
+});
 
 export default router;

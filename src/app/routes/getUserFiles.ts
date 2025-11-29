@@ -1,23 +1,11 @@
-import { Router, type Request, type Response } from 'express';
+import { Hono } from 'hono';
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
 
-const router = Router();
+const router = new Hono();
 
-router.get(
-  '/getUserFiles',
-  (
-    _req: Request<
-      unknown,
-      unknown,
-      {
-        path: string;
-      }
-    >,
-    res: Response,
-  ) => {
-    const result = convertLocalFilesToIStructure('src/files');
-    res.json(result);
-  },
-);
+router.get('/', (c) => {
+  const result = convertLocalFilesToIStructure('src/files');
+  return c.json(result);
+});
 
 export default router;

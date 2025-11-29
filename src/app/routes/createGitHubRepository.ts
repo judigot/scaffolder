@@ -1,83 +1,92 @@
-import { Router, type Request, type Response } from 'express';
+import { Hono } from 'hono';
 import { createGitHubRepositoryService } from '@/app/services/createGitHubRepositoryService.ts';
 import { getGitHubToken } from '@/app/services/auth0Service.ts';
-import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
+import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
-const router = Router();
+const router = new Hono();
 
-router.use(verifyAuth0Token);
+interface ICreateRepositoryBody {
+  repoName?: unknown;
+  description?: unknown;
+  isPrivate?: unknown;
+}
 
-router.post('/create-github-repository', (req: Request, res: Response) => {
-  void (async () => {
-    try {
-      const auth0UserId =
-        'auth0UserId' in req && typeof req.auth0UserId === 'string'
-          ? req.auth0UserId
-          : undefined;
+const isCreateRepositoryBody = (val: unknown): val is ICreateRepositoryBody => {
+  return typeof val === 'object' && val !== null;
+};
 
-      if (auth0UserId === undefined || auth0UserId === '') {
-        res.status(401).json({ error: 'User ID not found in token' });
-        return;
-      }
+router.post('/', async (c) => {
+  const verification = await verifyAuth0TokenFromAuthHeader(
+    c.req.header('authorization'),
+  );
 
-      interface IRequestBody {
-        repoName?: unknown;
-        description?: unknown;
-        isPrivate?: unknown;
-      }
-      const isRequestBody = (val: unknown): val is IRequestBody => {
-        return typeof val === 'object' && val !== null;
-      };
-      if (!isRequestBody(req.body)) {
-        res.status(400).json({
-          error: 'Invalid request body',
-          message: 'Request body must be an object',
-        });
-        return;
-      }
+  if (!verification.ok) {
+    return c.json(verification.body, verification.status);
+  }
 
-      const repoName = req.body.repoName;
-      const description = req.body.description;
-      const isPrivate = req.body.isPrivate;
+  const auth0UserId = verification.auth0UserId;
 
-      if (typeof repoName !== 'string' || repoName === '') {
-        res.status(400).json({
-          error: 'Missing required field',
-          message: 'repoName is required',
-        });
-        return;
-      }
+  if (auth0UserId === '') {
+    return c.json({ error: 'User ID not found in token' }, 401);
+  }
 
-      const githubToken = await getGitHubToken(auth0UserId);
+  const body = await c.req.json<ICreateRepositoryBody>();
 
-      if (githubToken === null || githubToken === '') {
-        res.status(400).json({
-          error: 'GitHub token not found',
-          message:
-            'Please set your GitHub token in the settings before creating repositories',
-        });
-        return;
-      }
+  if (!isCreateRepositoryBody(body)) {
+    return c.json(
+      {
+        error: 'Invalid request body',
+        message: 'Request body must be an object',
+      },
+      400,
+    );
+  }
 
-      const result = await createGitHubRepositoryService({
-        repoName,
-        description:
-          typeof description === 'string' && description !== ''
-            ? description
-            : undefined,
-        isPrivate: typeof isPrivate === 'boolean' ? isPrivate : undefined,
-        githubToken,
-      });
+  const repoName = body.repoName;
+  const description = body.description;
+  const isPrivate = body.isPrivate;
 
-      res.json(result);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'An unexpected error occurred' });
-      }
+  if (typeof repoName !== 'string' || repoName === '') {
+    return c.json(
+      {
+        error: 'Missing required field',
+        message: 'repoName is required',
+      },
+      400,
+    );
+  }
+
+  const githubToken = await getGitHubToken(auth0UserId);
+
+  if (githubToken === null || githubToken === '') {
+    return c.json(
+      {
+        error: 'GitHub token not found',
+        message:
+          'Please set your GitHub token in the settings before creating repositories',
+      },
+      400,
+    );
+  }
+
+  try {
+    const result = await createGitHubRepositoryService({
+      repoName,
+      description:
+        typeof description === 'string' && description !== ''
+          ? description
+          : undefined,
+      isPrivate: typeof isPrivate === 'boolean' ? isPrivate : undefined,
+      githubToken,
+    });
+
+    return c.json(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 400);
     }
-  })();
+    return c.json({ error: 'An unexpected error occurred' }, 500);
+  }
 });
 
 export default router;

@@ -1,102 +1,105 @@
-import { Router, type Request, type Response } from 'express';
+import { Hono } from 'hono';
 import { createGitHubFileService } from '@/app/services/createGitHubFileService.ts';
 import { getGitHubToken } from '@/app/services/auth0Service.ts';
-import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
+import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
-const router = Router();
+const router = new Hono();
 
-router.use(verifyAuth0Token);
+interface ICreateGitHubFileBody {
+  publicRepoURL?: unknown;
+  filePath?: unknown;
+  content?: unknown;
+  branch?: unknown;
+  commitMessage?: unknown;
+}
 
-router.post('/create-github-file', (req: Request, res: Response) => {
-  void (async () => {
-    try {
-      // Type guard for auth0UserId
-      const auth0UserId =
-        'auth0UserId' in req && typeof req.auth0UserId === 'string'
-          ? req.auth0UserId
-          : undefined;
+const isCreateGitHubFileBody = (val: unknown): val is ICreateGitHubFileBody => {
+  return typeof val === 'object' && val !== null;
+};
 
-      if (auth0UserId === undefined || auth0UserId === '') {
-        res.status(401).json({ error: 'User ID not found in token' });
-        return;
-      }
+router.post('/', async (c) => {
+  const verification = await verifyAuth0TokenFromAuthHeader(
+    c.req.header('authorization'),
+  );
 
-      interface IRequestBody {
-        publicRepoURL?: unknown;
-        filePath?: unknown;
-        content?: unknown;
-        branch?: unknown;
-        commitMessage?: unknown;
-      }
-      const isRequestBody = (val: unknown): val is IRequestBody => {
-        return typeof val === 'object' && val !== null;
-      };
-      if (!isRequestBody(req.body)) {
-        res.status(400).json({
-          error: 'Invalid request body',
-          message: 'Request body must be an object',
-        });
-        return;
-      }
-      const publicRepoURL = req.body.publicRepoURL;
-      const filePath = req.body.filePath;
-      const content = req.body.content;
-      const branch = req.body.branch;
-      const commitMessage = req.body.commitMessage;
+  if (!verification.ok) {
+    return c.json(verification.body, verification.status);
+  }
 
-      if (
-        typeof publicRepoURL !== 'string' ||
-        publicRepoURL === '' ||
-        typeof filePath !== 'string' ||
-        filePath === '' ||
-        typeof content !== 'string' ||
-        content === ''
-      ) {
-        res.status(400).json({
-          error: 'Missing required fields',
-          message: 'publicRepoURL, filePath, and content are required',
-        });
-        return;
-      }
+  const auth0UserId = verification.auth0UserId;
 
-      if (typeof auth0UserId !== 'string' || auth0UserId === '') {
-        res.status(401).json({ error: 'User ID not found in token' });
-        return;
-      }
+  if (auth0UserId === '') {
+    return c.json({ error: 'User ID not found in token' }, 401);
+  }
 
-      const githubToken = await getGitHubToken(auth0UserId);
+  const body = await c.req.json<ICreateGitHubFileBody>();
 
-      if (githubToken === null || githubToken === '') {
-        res.status(400).json({
-          error: 'GitHub token not found',
-          message:
-            'Please set your GitHub token in the settings before creating files',
-        });
-        return;
-      }
+  if (!isCreateGitHubFileBody(body)) {
+    return c.json(
+      {
+        error: 'Invalid request body',
+        message: 'Request body must be an object',
+      },
+      400,
+    );
+  }
 
-      const result = await createGitHubFileService({
-        publicRepoURL,
-        filePath,
-        content,
-        githubToken,
-        branch:
-          typeof branch === 'string' && branch !== '' ? branch : undefined,
-        commitMessage:
-          typeof commitMessage === 'string' && commitMessage !== ''
-            ? commitMessage
-            : undefined,
-      });
+  const publicRepoURL = body.publicRepoURL;
+  const filePath = body.filePath;
+  const content = body.content;
+  const branch = body.branch;
+  const commitMessage = body.commitMessage;
 
-      res.json(result);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'An unexpected error occurred' });
-      }
+  if (
+    typeof publicRepoURL !== 'string' ||
+    publicRepoURL === '' ||
+    typeof filePath !== 'string' ||
+    filePath === '' ||
+    typeof content !== 'string' ||
+    content === ''
+  ) {
+    return c.json(
+      {
+        error: 'Missing required fields',
+        message: 'publicRepoURL, filePath, and content are required',
+      },
+      400,
+    );
+  }
+
+  const githubToken = await getGitHubToken(auth0UserId);
+
+  if (githubToken === null || githubToken === '') {
+    return c.json(
+      {
+        error: 'GitHub token not found',
+        message:
+          'Please set your GitHub token in the settings before creating files',
+      },
+      400,
+    );
+  }
+
+  try {
+    const result = await createGitHubFileService({
+      publicRepoURL,
+      filePath,
+      content,
+      githubToken,
+      branch: typeof branch === 'string' && branch !== '' ? branch : undefined,
+      commitMessage:
+        typeof commitMessage === 'string' && commitMessage !== ''
+          ? commitMessage
+          : undefined,
+    });
+
+    return c.json(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 400);
     }
-  })();
+    return c.json({ error: 'An unexpected error occurred' }, 500);
+  }
 });
 
 export default router;

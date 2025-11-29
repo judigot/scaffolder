@@ -1,46 +1,33 @@
-import { Router, type Request, type Response } from 'express';
+import { Hono } from 'hono';
 import {
   getUserMetadata,
   updateUserMetadata,
 } from '@/app/services/auth0Service.ts';
-import { verifyAuth0Token } from '@/utils/verifyAuth0Token.ts';
+import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
-const router = Router();
+const router = new Hono();
 
-router.use(verifyAuth0Token);
+router.get('/', async (c) => {
+  const verification = await verifyAuth0TokenFromAuthHeader(
+    c.req.header('authorization'),
+  );
 
-router.get('/user-metadata', (req: Request, res: Response) => {
-  void (async () => {
-    try {
-      const auth0UserId =
-        'auth0UserId' in req && typeof req.auth0UserId === 'string'
-          ? req.auth0UserId
-          : undefined;
+  if (!verification.ok) {
+    return c.json(verification.body, verification.status);
+  }
 
-      if (auth0UserId === undefined || auth0UserId === '') {
-        res.status(401).json({ error: 'User ID not found in token' });
-        return;
-      }
+  const auth0UserId = verification.auth0UserId;
 
-      if (typeof auth0UserId !== 'string') {
-        res.status(401).json({ error: 'Invalid user ID type' });
-        return;
-      }
+  if (auth0UserId === '') {
+    return c.json({ error: 'User ID not found in token' }, 401);
+  }
 
-      const metadata = await getUserMetadata(auth0UserId);
+  const metadata = await getUserMetadata(auth0UserId);
 
-      res.json({
-        success: true,
-        metadata: metadata ?? null,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'An unexpected error occurred' });
-      }
-    }
-  })();
+  return c.json({
+    success: true,
+    metadata: metadata ?? null,
+  });
 });
 
 interface IEnvVariablePayload {
@@ -54,73 +41,65 @@ const isEnvVariablePayload = (val: unknown): val is IEnvVariablePayload => {
   return 'envVariables' in val;
 };
 
-router.post('/user-metadata/env', (req: Request, res: Response) => {
-  void (async () => {
-    try {
-      const auth0UserId =
-        'auth0UserId' in req && typeof req.auth0UserId === 'string'
-          ? req.auth0UserId
-          : undefined;
+router.post('/env', async (c) => {
+  const verification = await verifyAuth0TokenFromAuthHeader(
+    c.req.header('authorization'),
+  );
 
-      if (auth0UserId === undefined || auth0UserId === '') {
-        res.status(401).json({ error: 'User ID not found in token' });
-        return;
-      }
+  if (!verification.ok) {
+    return c.json(verification.body, verification.status);
+  }
 
-      if (typeof auth0UserId !== 'string') {
-        res.status(401).json({ error: 'Invalid user ID type' });
-        return;
-      }
+  const auth0UserId = verification.auth0UserId;
 
+  if (auth0UserId === '') {
+    return c.json({ error: 'User ID not found in token' }, 401);
+  }
+
+  const body = await c.req.json<IEnvVariablePayload>();
+
+  if (!isEnvVariablePayload(body) || !Array.isArray(body.envVariables)) {
+    return c.json(
+      {
+        error: 'Invalid payload',
+        message: 'envVariables must be an array of { key, value } objects.',
+      },
+      400,
+    );
+  }
+
+  const envRecord = body.envVariables.reduce<Record<string, string>>(
+    (acc, item) => {
       if (
-        !isEnvVariablePayload(req.body) ||
-        !Array.isArray(req.body.envVariables)
+        typeof item.key === 'string' &&
+        item.key.trim() !== '' &&
+        typeof item.value === 'string'
       ) {
-        res.status(400).json({
-          error: 'Invalid payload',
-          message: 'envVariables must be an array of { key, value } objects.',
-        });
-        return;
+        acc[item.key.trim()] = item.value;
       }
+      return acc;
+    },
+    {},
+  );
 
-      const envRecord = req.body.envVariables.reduce<Record<string, string>>(
-        (acc, item) => {
-          if (
-            typeof item.key === 'string' &&
-            item.key.trim() !== '' &&
-            typeof item.value === 'string'
-          ) {
-            acc[item.key.trim()] = item.value;
-          }
-          return acc;
-        },
-        {},
-      );
+  const currentMetadata = await getUserMetadata(auth0UserId);
 
-      const currentMetadata = await getUserMetadata(auth0UserId);
+  const baseMetadata = currentMetadata ?? {};
 
-      const baseMetadata = currentMetadata ?? {};
+  const updatedMetadata: Record<string, unknown> = {
+    ...baseMetadata,
+    env: envRecord,
+  };
 
-      const updatedMetadata: Record<string, unknown> = {
-        ...baseMetadata,
-        env: envRecord,
-      };
+  await updateUserMetadata(auth0UserId, updatedMetadata);
 
-      await updateUserMetadata(auth0UserId, updatedMetadata);
-
-      res.status(200).json({
-        success: true,
-        env: envRecord,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        const statusCode = error.message.includes('Failed to') ? 500 : 400;
-        res.status(statusCode).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'An unexpected error occurred' });
-      }
-    }
-  })();
+  return c.json(
+    {
+      success: true,
+      env: envRecord,
+    },
+    200,
+  );
 });
 
 export default router;

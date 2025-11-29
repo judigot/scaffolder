@@ -1,28 +1,21 @@
-import { Router, type Request, type Response } from 'express';
+import { Hono } from 'hono';
 import { executeCustomSchemaService } from '@/app/services/executeCustomSchemaService.ts';
 import type { IExecuteCustomSchemaRequest } from '@/interfaces/IExecuteCustomSchemaRequest.ts';
 
-const router = Router();
+const router = new Hono();
 
-router.post(
-  '/executeCustomSchema',
-  (
-    req: Request<unknown, unknown, IExecuteCustomSchemaRequest>,
-    res: Response,
-  ) => {
-    void (async () => {
-      try {
-        const result = await executeCustomSchemaService(req.body);
-        res.json(result);
-      } catch (error) {
-        if (error instanceof Error) {
-          res.status(400).json({ error: error.message });
-        } else {
-          res.status(500).json({ error: 'An unexpected error occurred' });
-        }
-      }
-    })();
-  },
-);
+router.post('/', async (c) => {
+  const body = await c.req.json<IExecuteCustomSchemaRequest>();
+
+  try {
+    const result = await executeCustomSchemaService(body);
+    return c.json(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 400);
+    }
+    return c.json({ error: 'An unexpected error occurred' }, 500);
+  }
+});
 
 export default router;

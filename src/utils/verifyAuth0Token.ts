@@ -13,6 +13,27 @@ interface IRequestWithAuth0UserId extends Request {
   auth0UserId?: string;
 }
 
+interface IVerifyAuth0TokenResultError {
+  ok: false;
+  status: 401 | 500;
+  body: {
+    error: string;
+    message?: string;
+  };
+  auth0UserId?: undefined;
+}
+
+interface IVerifyAuth0TokenResultSuccess {
+  ok: true;
+  status: 200;
+  body?: undefined;
+  auth0UserId: string;
+}
+
+type IVerifyAuth0TokenResult =
+  | IVerifyAuth0TokenResultError
+  | IVerifyAuth0TokenResultSuccess;
+
 function isJwtPayloadWithSub(
   decoded: jwt.JwtPayload | string | undefined,
 ): decoded is IJwtPayloadWithSub {
@@ -48,7 +69,6 @@ function getKey(
     return;
   }
 
-  // Type guard for header.kid
   const kid = header.kid;
   if (kid === undefined || typeof kid !== 'string' || kid === '') {
     callback(new Error('No kid in header'));
@@ -65,35 +85,40 @@ function getKey(
   });
 }
 
-export function verifyAuth0Token(
-  req: IRequestWithAuth0UserId,
-  res: Response,
-  next: NextFunction,
-): void {
+export async function verifyAuth0TokenFromAuthHeader(
+  authHeader: string | undefined,
+): Promise<IVerifyAuth0TokenResult> {
   if (AUTH0_DOMAIN === undefined || AUTH0_DOMAIN === '' || client === null) {
-    res.status(500).json({
-      error: 'Auth0 configuration missing',
-      message: 'AUTH0_DOMAIN environment variable is not set',
-    });
-    return;
+    return {
+      ok: false,
+      status: 500,
+      body: {
+        error: 'Auth0 configuration missing',
+        message: 'AUTH0_DOMAIN environment variable is not set',
+      },
+    };
   }
-
-  const authHeader = req.headers.authorization;
 
   if (
     authHeader === undefined ||
     authHeader === '' ||
     !authHeader.startsWith('Bearer ')
   ) {
-    res.status(401).json({ error: 'Missing or invalid authorization header' });
-    return;
+    return {
+      ok: false,
+      status: 401,
+      body: { error: 'Missing or invalid authorization header' },
+    };
   }
 
   const token = authHeader.substring(7);
 
   if (token === '' || token.trim() === '') {
-    res.status(401).json({ error: 'Token is empty' });
-    return;
+    return {
+      ok: false,
+      status: 401,
+      body: { error: 'Token is empty' },
+    };
   }
 
   const verifyOptions: jwt.VerifyOptions = {
@@ -109,27 +134,63 @@ export function verifyAuth0Token(
   ) {
     verifyOptions.audience = audience;
   } else {
-    res.status(500).json({
-      error: 'Auth0 API audience not configured',
-      message:
-        'AUTH0_AUDIENCE environment variable is required for token verification',
-    });
-    return;
+    return {
+      ok: false,
+      status: 500,
+      body: {
+        error: 'Auth0 API audience not configured',
+        message:
+          'AUTH0_AUDIENCE environment variable is required for token verification',
+      },
+    };
   }
 
-  jwt.verify(token, getKey, verifyOptions, (err, decoded) => {
-    if (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      res.status(401).json({ error: 'Invalid token', message: errorMessage });
-      return;
-    }
+  return await new Promise<IVerifyAuth0TokenResult>((resolve) => {
+    jwt.verify(token, getKey, verifyOptions, (err, decoded) => {
+      if (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        resolve({
+          ok: false,
+          status: 401,
+          body: { error: 'Invalid token', message: errorMessage },
+        });
+        return;
+      }
 
-    if (!isJwtPayloadWithSub(decoded)) {
-      res.status(401).json({ error: 'Invalid token payload' });
-      return;
-    }
+      if (!isJwtPayloadWithSub(decoded)) {
+        resolve({
+          ok: false,
+          status: 401,
+          body: { error: 'Invalid token payload' },
+        });
+        return;
+      }
 
-    req.auth0UserId = decoded.sub;
-    next();
+      resolve({
+        ok: true,
+        status: 200,
+        auth0UserId: decoded.sub,
+      });
+    });
   });
+}
+
+export function verifyAuth0Token(
+  req: IRequestWithAuth0UserId,
+  res: Response,
+  next: NextFunction,
+): void {
+  void (async () => {
+    const result = await verifyAuth0TokenFromAuthHeader(
+      req.headers.authorization,
+    );
+
+    if (!result.ok) {
+      res.status(result.status).json(result.body);
+      return;
+    }
+
+    req.auth0UserId = result.auth0UserId;
+    next();
+  })();
 }
