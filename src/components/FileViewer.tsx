@@ -12,6 +12,7 @@ import {
   NoteAdd as NoteAddIcon,
   Save as SaveIcon,
   Download as DownloadIcon,
+  PictureAsPdf as PictureAsPdfIcon,
 } from '@mui/icons-material';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import Editor, { type OnMount } from '@monaco-editor/react';
@@ -65,6 +66,15 @@ const isImageFile = (filename: string): boolean => {
   }
   const ext = filename.slice(lastDotIndex).toLowerCase();
   return IMAGE_EXTENSIONS.has(ext);
+};
+
+const isHtmlFile = (filename: string): boolean => {
+  const lastDotIndex = filename.lastIndexOf('.');
+  if (lastDotIndex === -1) {
+    return false;
+  }
+  const ext = filename.slice(lastDotIndex).toLowerCase();
+  return ext === '.html' || ext === '.htm';
 };
 
 const createUniqueFileId = (path: string[], fileName: string): string => {
@@ -598,6 +608,25 @@ function FileViewer({
     }
   };
 
+  const handleDownloadHtmlAsPdf = (htmlContent: string, _fileName: string) => {
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+
+    if (!printWindow) {
+      console.error('Failed to open print window');
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        URL.revokeObjectURL(url);
+      }, 250);
+    };
+  };
+
   // Fix linter errors
   const handleContextMenuWithCheck = (
     e: React.MouseEvent,
@@ -680,6 +709,37 @@ function FileViewer({
               uniqueId,
             };
             onSelectFile(fileWithUniqueId);
+            if (isHtmlFile(item.name)) {
+              openRandomModal({
+                title: item.name,
+                size: 'fullscreen',
+                content: (
+                  <div className="w-full h-full min-h-0 flex flex-col">
+                    <div className="flex justify-end gap-2 mb-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleDownloadHtmlAsPdf(item.content, item.name);
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md shadow-sm focus:outline-none focus:ring focus:ring-green-500 focus:ring-opacity-50 flex items-center gap-2 transition-colors"
+                        title="Download as PDF"
+                      >
+                        <PictureAsPdfIcon fontSize="small" />
+                        <span>Download as PDF</span>
+                      </button>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                      <iframe
+                        srcDoc={item.content}
+                        className="w-full h-full border-0 rounded"
+                        title={item.name}
+                        sandbox="allow-scripts allow-same-origin"
+                      />
+                    </div>
+                  </div>
+                ),
+              });
+            }
           }}
         />
       );

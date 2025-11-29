@@ -10,6 +10,7 @@ interface ICustomModalProps {
   useStaticPortal?: boolean;
   /** Optional ID of the element that triggered the modal */
   initialFocusRef?: React.RefObject<HTMLElement>;
+  size?: 'small' | 'medium' | 'large' | 'fullscreen';
 }
 
 function CustomModal({
@@ -19,6 +20,7 @@ function CustomModal({
   children,
   useStaticPortal = false,
   initialFocusRef,
+  size = 'medium',
 }: ICustomModalProps) {
   const modal = useRef<HTMLDivElement>(null);
   const modalRoot = useStaticPortal
@@ -172,9 +174,17 @@ function CustomModal({
       />
       <div
         role="document"
-        className="relative bg-white dark:bg-gray-800 shadow-lg rounded-lg w-[90%] sm:w-[500px] p-6 animate-scale-up cursor-auto"
+        className={`relative bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 animate-scale-up cursor-auto ${
+          size === 'fullscreen'
+            ? 'w-[98vw] h-[98vh] flex flex-col'
+            : size === 'large'
+              ? 'w-[95vw] h-[90vh] max-w-[95vw] max-h-[90vh] flex flex-col'
+              : size === 'small'
+                ? 'w-[90%] sm:w-[400px]'
+                : 'w-[90%] sm:w-[500px]'
+        }`}
       >
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-shrink-0">
           <h2
             id="modal-title"
             className="text-2xl font-semibold text-gray-800 dark:text-gray-200"
@@ -190,7 +200,15 @@ function CustomModal({
             ❌
           </button>
         </div>
-        <div className="mt-4 text-gray-600 dark:text-gray-300">{children}</div>
+        <div
+          className={
+            (size === 'fullscreen' || size === 'large'
+              ? 'mt-4 flex-1 min-h-0 '
+              : 'mt-4 ') + 'text-gray-600 dark:text-gray-300'
+          }
+        >
+          {children}
+        </div>
       </div>
     </div>,
     modalRoot,

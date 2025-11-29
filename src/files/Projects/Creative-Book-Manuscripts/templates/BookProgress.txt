@@ -1,0 +1,39 @@
+# Writing Progress: [[USE_DATA(book.title)]]
+
+**Author:** [[USE_DATA(book.author)]]  
+**Status:** [[USE_DATA(metadata.status)]]  
+**Version:** [[USE_DATA(metadata.version)]]  
+**Last Updated:** [[USE_DATA(metadata.last-updated)]]
+
+## Word Count Progress
+
+- **Current:** [[USE_DATA(book.current-word-count)]]
+- **Target:** [[USE_DATA(book.target-word-count)]]
+- **Remaining:** {{remaining-words}}
+- **Progress:** {{percentage}}%
+
+## Structure Progress
+
+[[USE_DATA(parts)]]
+
+## Section Status
+
+### Prologue
+[[USE_DATA(sections.prologue)]]
+
+### Chapters
+[[USE_DATA(sections.chapters)]]
+
+### Epilogue
+[[USE_DATA(sections.epilogue)]]
+
+## Writing Notes
+
+[[USE_DATA(metadata.notes)]]
+
+## Next Steps
+
+- Review and revise Part 2
+- Complete character development in Chapter 08
+- Finalize epilogue scene
+

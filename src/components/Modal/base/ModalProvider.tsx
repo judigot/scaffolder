@@ -14,6 +14,7 @@ function ModalProvider() {
           onClose={() => {
             closeModal(modal.id);
           }}
+          size={modal.size}
         >
           {modal.content}
         </CustomModal>

@@ -1,0 +1,30 @@
+# Outline: [[USE_DATA(book.title)]]
+
+**Author:** [[USE_DATA(book.author)]]  
+**Genre:** [[USE_DATA(book.genre)]]  
+**Target Word Count:** [[USE_DATA(book.target-word-count)]]  
+**Current Word Count:** [[USE_DATA(book.current-word-count)]]
+
+## Book Structure
+
+[[USE_DATA(structure.parts)]]
+
+## Part Details
+
+[[USE_DATA(parts)]]
+
+## Chapter/Scene Details
+
+[[USE_DATA(sections)]]
+
+## Progress Tracking
+
+- **Total Word Count:** [[USE_DATA(book.current-word-count)]] / [[USE_DATA(book.target-word-count)]]
+- **Completion:** {{percentage}}%
+- **Status:** [[USE_DATA(metadata.status)]]
+- **Last Updated:** [[USE_DATA(metadata.last-updated)]]
+
+## Writer's Notes
+
+[[USE_DATA(metadata.notes)]]
+

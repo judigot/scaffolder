@@ -7,12 +7,17 @@ interface IModal {
   id: ModalIDs;
   title: string;
   content: React.ReactNode;
+  size?: 'small' | 'medium' | 'large' | 'fullscreen';
 }
 
 interface IModalState {
   modals: IModal[];
   openModal: (id: ModalIDs, title: string, content: React.ReactNode) => void;
-  openRandomModal: (props: { title: string; content: React.ReactNode }) => void;
+  openRandomModal: (props: {
+    title: string;
+    content: React.ReactNode;
+    size?: 'small' | 'medium' | 'large' | 'fullscreen';
+  }) => void;
   promptModal: (props: {
     title: string;
     description?: string;
@@ -34,9 +39,11 @@ export const useModalStore = create<IModalState>((set) => ({
   openRandomModal: ({
     title,
     content,
+    size = 'medium',
   }: {
     title: string;
     content: React.ReactNode;
+    size?: 'small' | 'medium' | 'large' | 'fullscreen';
   }) => {
     const id: string = Math.random().toString(36).substring(2, 10);
 
@@ -47,6 +54,7 @@ export const useModalStore = create<IModalState>((set) => ({
           id,
           title,
           content,
+          size,
         },
       ],
     }));

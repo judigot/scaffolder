@@ -1,0 +1,49 @@
+# [[USE_DATA(book.title)]]
+
+**By [[USE_DATA(book.author)]]**
+
+---
+
+## Prologue
+
+[[USE_DATA(sections.prologue)]]
+
+## Part One: The Awakening
+
+[[USE_DATA(sections.chapters.chapter-01)]]
+[[USE_DATA(sections.chapters.chapter-02)]]
+[[USE_DATA(sections.chapters.chapter-03)]]
+[[USE_DATA(sections.chapters.chapter-04)]]
+[[USE_DATA(sections.chapters.chapter-05)]]
+
+## Part Two: The Journey
+
+[[USE_DATA(sections.chapters.chapter-06)]]
+[[USE_DATA(sections.chapters.chapter-07)]]
+[[USE_DATA(sections.chapters.chapter-08)]]
+[[USE_DATA(sections.chapters.chapter-09)]]
+[[USE_DATA(sections.chapters.chapter-10)]]
+
+## Part Three: The Final Battle
+
+[[USE_DATA(sections.chapters.chapter-11)]]
+[[USE_DATA(sections.chapters.chapter-12)]]
+[[USE_DATA(sections.chapters.chapter-13)]]
+
+## Epilogue
+
+[[USE_DATA(sections.epilogue)]]
+
+---
+
+**Word Count:** [[USE_DATA(book.current-word-count)]] / [[USE_DATA(book.target-word-count)]]  
+**Status:** [[USE_DATA(metadata.status)]]  
+**Last Updated:** [[USE_DATA(metadata.last-updated)]]  
+**Version:** [[USE_DATA(metadata.version)]]
+
+---
+
+## Writer's Notes
+
+[[USE_DATA(metadata.notes)]]
+
