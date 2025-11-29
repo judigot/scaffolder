@@ -10,5 +10,9 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, './src') },
   },
   base: './',
+  server: {
+    host: true,
+    port: Number(process.env.VITE_FRONTEND_PORT),
+  },
   plugins: [react(), tsconfigPaths()],
 });
