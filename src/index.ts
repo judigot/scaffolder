@@ -7,7 +7,7 @@ import indexRouter from '@/app/routes/index.ts';
 
 const app = new Hono();
 
-app.use(compress());
+app.use('/api', compress());
 // app.use('*', bodyLimit({ maxSize: 100 * 1024 * 1024 }));
 // app.use('*', cors());
 
