@@ -26,6 +26,7 @@ export const replacePlaceholders = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataContext?: DataContext,
+  skipLoopDataSources = false,
 ): string => {
   // Process all commands
   const processedText = processCommand(
@@ -38,6 +39,7 @@ export const replacePlaceholders = (
     formData,
     userMetadata,
     dataContext,
+    skipLoopDataSources,
   );
 
   // Process IF conditions

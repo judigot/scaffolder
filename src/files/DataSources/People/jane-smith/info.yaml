@@ -1,5 +1,6 @@
 basic-info:
   name: Jane Smith
+  employee-id: "EMP-002"
   email: jane.smith@example.com
   phone: 555-987-6543
   address: 456 Oak Avenue

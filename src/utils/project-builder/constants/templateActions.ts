@@ -11,6 +11,7 @@ export const TEMPLATE_ACTIONS = {
   USE_DATA: 'USE_DATA',
   LOOP_TABLES: `${LOOP}(tables)`,
   LOOP_COLUMNS: `${LOOP}(columns)`,
+  LOOP_DATA_SOURCES: 'LOOP_DATA_SOURCES',
 } as const;
 
 // Template option flags for template commands
@@ -31,7 +32,7 @@ export type TemplateOption =
 
 // Regex pattern helper functions
 export const REGEX_PATTERNS = {
-  TEMPLATE_OPTION: (flag: string) => `--${flag}="(.*?)"`,
+  TEMPLATE_OPTION: (flag: string) => `--${flag}="((?:[^"\\\\]|\\\\.)*)"`,
   BOOLEAN_FLAG: (flag: string) => `--${flag}`,
   USE_CONSTANT: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_CONSTANT}\\(([^)]+)\\)\\s*\\]\\]`,
   USE_FORM_DATA: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_FORM_DATA}\\(([^)]+)\\)\\s*\\]\\]`,
@@ -99,3 +100,8 @@ export const RECURSIVE_WILDCARD_REGEX = new RegExp(
 );
 
 export const USE_DATA_REGEX = new RegExp(REGEX_PATTERNS.USE_DATA);
+
+export const LOOP_DATA_SOURCES_START_REGEX = new RegExp(
+  `\\[\\[${TEMPLATE_ACTIONS.LOOP_DATA_SOURCES}\\(`,
+  'g',
+);

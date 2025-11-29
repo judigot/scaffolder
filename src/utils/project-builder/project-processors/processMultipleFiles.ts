@@ -8,7 +8,10 @@ import type {
 } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
-import { processLoopTables } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import {
+  processLoopTables,
+  processLoopDataSources,
+} from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
@@ -123,11 +126,17 @@ export const processMultipleFiles = ({
         ? extractFileNameFromPath(processedName)
         : processedName;
 
-      let content = processLoopTables(
-        templateContent,
-        schemaInfo,
-        schemaInfoParsed,
+      let content = processLoopDataSources(
+        processLoopTables(
+          templateContent,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          formData,
+          userMetadata,
+        ),
         userFiles,
+        schemaInfoParsed,
         formData,
         userMetadata,
       );

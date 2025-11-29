@@ -1,5 +1,6 @@
 basic-info:
   name: John Doe
+  employee-id: "EMP-001"
   email: john.doe@example.com
   phone: 123-456-7890
   address: 123 Main St

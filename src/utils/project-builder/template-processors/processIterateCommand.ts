@@ -6,6 +6,7 @@ import type { IFormStore } from '@/useFormStore.ts';
 import {
   LOOP_COMMAND_REGEX,
   LOOP_TABLES_REGEX,
+  LOOP_DATA_SOURCES_START_REGEX,
   TEMPLATE_MATCH_REGEX,
   SEPARATOR_MATCH_REGEX,
   FILTER_MATCH_REGEX,
@@ -17,6 +18,10 @@ import {
   FOLDER_PATH_REGEX,
   RECURSIVE_WILDCARD_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
+import {
+  findFilesMatchingGlob,
+  createDataContextReplacements,
+} from '@/utils/project-builder/utils/dataSourceUtils.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
@@ -85,27 +90,24 @@ export const processLoopTables = (
   return content.replace(
     LOOP_TABLES_REGEX,
     (_match: string, options: string) => {
-      // Parse options
       const templateMatch = TEMPLATE_MATCH_REGEX.exec(options);
       const separatorMatch = SEPARATOR_MATCH_REGEX.exec(options);
 
       if (!templateMatch) {
-        return ''; // No template provided, cannot proceed
+        return '';
       }
 
-      // Get template content
       const templateContent = templateMatch[1]
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
         .replace(/\\s/g, ' ');
 
-      // Get separator if provided, or use default indent
       const separator = separatorMatch
         ? separatorMatch[1]
             .replace(/\\n/g, '\n')
             .replace(/\\t/g, '\t')
             .replace(/\\s/g, ' ')
-        : '\n    '; // Default separator for PHP files with indentation
+        : '\n    ';
 
       return schemaInfo
         .map((table) => {
@@ -126,6 +128,199 @@ export const processLoopTables = (
         .join(separator);
     },
   );
+};
+
+const findMatchingCloseBrackets = (
+  content: string,
+  startIndex: number,
+): number => {
+  let depth = 1;
+  let i = startIndex;
+  while (i < content.length && depth > 0) {
+    if (content[i] === '[' && content[i + 1] === '[') {
+      depth++;
+      i += 2;
+    } else if (content[i] === ']' && content[i + 1] === ']') {
+      depth--;
+      if (depth === 0) {
+        return i;
+      }
+      i += 2;
+    } else {
+      i++;
+    }
+  }
+  return -1;
+};
+
+const parseQuotedString = (
+  str: string,
+  startIndex: number,
+): { value: string; endIndex: number } | null => {
+  if (str[startIndex] !== '"') {
+    return null;
+  }
+
+  let i = startIndex + 1;
+  let result = '';
+  let escaped = false;
+
+  while (i < str.length) {
+    const char = str[i];
+
+    if (escaped) {
+      if (char === 'n') {
+        result += '\n';
+      } else if (char === 't') {
+        result += '\t';
+      } else if (char === 's') {
+        result += ' ';
+      } else if (char === '"') {
+        result += '"';
+      } else if (char === '\\') {
+        result += '\\';
+      } else {
+        result += '\\' + char;
+      }
+      escaped = false;
+    } else if (char === '\\') {
+      escaped = true;
+    } else if (char === '"') {
+      return { value: result, endIndex: i + 1 };
+    } else {
+      result += char;
+    }
+
+    i++;
+  }
+
+  return null;
+};
+
+const parseLoopDataSourcesCommand = (
+  commandContent: string,
+): {
+  dataSourcePattern: string;
+  templateContent: string;
+  separator: string;
+} | null => {
+  const firstSpaceIndex = commandContent.indexOf(' ');
+  if (firstSpaceIndex === -1) {
+    return null;
+  }
+
+  const dataSourcePattern = commandContent.substring(0, firstSpaceIndex).trim();
+  const options = commandContent.substring(firstSpaceIndex);
+
+  // Find --template="..." using manual parsing
+  const templateFlag = '--template=';
+  const templateIndex = options.indexOf(templateFlag);
+  if (templateIndex === -1) {
+    return null;
+  }
+
+  const templateStart = templateIndex + templateFlag.length;
+  const templateResult = parseQuotedString(options, templateStart);
+  if (!templateResult) {
+    return null;
+  }
+
+  const templateContent = templateResult.value;
+
+  // Find --separator="..." if present
+  const separatorFlag = '--separator=';
+  const separatorIndex = options.indexOf(
+    separatorFlag,
+    templateResult.endIndex,
+  );
+  let separator = '\n';
+  if (separatorIndex !== -1) {
+    const separatorStart = separatorIndex + separatorFlag.length;
+    const separatorResult = parseQuotedString(options, separatorStart);
+    if (separatorResult) {
+      separator = separatorResult.value;
+    }
+  }
+
+  return { dataSourcePattern, templateContent, separator };
+};
+
+export const processLoopDataSources = (
+  content: string,
+  userFiles: IStructure,
+  schemaInfoParsed: ISchemaInfoResult,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  let result = content;
+  let match: RegExpExecArray | null;
+
+  LOOP_DATA_SOURCES_START_REGEX.lastIndex = 0;
+
+  while ((match = LOOP_DATA_SOURCES_START_REGEX.exec(result)) !== null) {
+    const startIndex = match.index;
+    const contentStartIndex = startIndex + match[0].length;
+
+    const closeBracketIndex = findMatchingCloseBrackets(
+      result,
+      contentStartIndex,
+    );
+    if (closeBracketIndex === -1) {
+      break;
+    }
+
+    const innerContent = result.substring(contentStartIndex, closeBracketIndex);
+    const lastParenIndex = innerContent.lastIndexOf(')');
+    if (lastParenIndex === -1) {
+      break;
+    }
+
+    const commandContent = innerContent.substring(0, lastParenIndex);
+
+    const parsed = parseLoopDataSourcesCommand(commandContent);
+
+    if (!parsed) {
+      LOOP_DATA_SOURCES_START_REGEX.lastIndex = contentStartIndex;
+      continue;
+    }
+
+    const { dataSourcePattern, templateContent, separator } = parsed;
+
+    const dataMatches = findFilesMatchingGlob(userFiles, dataSourcePattern);
+
+    const replacement = dataMatches
+      .map((dataMatch) => {
+        const { augmentedData, replacements } = createDataContextReplacements(
+          dataMatch.data,
+          dataMatch.folderPath,
+        );
+
+        return replacePlaceholders(
+          templateContent.trim(),
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          undefined,
+          undefined,
+          undefined,
+          formData,
+          userMetadata,
+          augmentedData,
+          true, // Skip LOOP_DATA_SOURCES to prevent infinite recursion
+        );
+      })
+      .join(separator);
+
+    const fullMatchEnd = closeBracketIndex + 2;
+    result =
+      result.substring(0, startIndex) +
+      replacement +
+      result.substring(fullMatchEnd);
+
+    LOOP_DATA_SOURCES_START_REGEX.lastIndex = startIndex + replacement.length;
+  }
+
+  return result;
 };
 
 export const processIterateCommand = (

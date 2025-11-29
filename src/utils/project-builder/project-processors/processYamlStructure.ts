@@ -8,7 +8,10 @@ import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
 import { processDynamicFolders } from '@/utils/project-builder/project-processors/processDynamicFolders.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
-import { processLoopTables } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import {
+  processLoopTables,
+  processLoopDataSources,
+} from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
 import { processLoopFolders } from '@/utils/project-builder/project-processors/processLoopFolders.ts';
 import { importProject } from '@/utils/project-builder/project-processors/importProject.ts';
@@ -18,6 +21,7 @@ import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectAction
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import type { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processTemplatePathWithFlag } from '@/utils/project-builder/utils/processRelativePath.ts';
+import { flattenData } from '@/utils/project-builder/utils/dataSourceUtils.ts';
 
 const ROOT_LEVEL_ACTIONS = [
   PROJECT_ACTIONS.CREATE_FILE,
@@ -35,6 +39,7 @@ export const processYamlStructure = ({
   table,
   formData,
   userMetadata,
+  dataContext,
 }: IBuildContext): IStructure => {
   if (typeof node === 'string') {
     const nodeParams = /\(([^)]+)\)/.exec(node);
@@ -89,13 +94,84 @@ export const processYamlStructure = ({
 
       const schemaInfoProcessed =
         schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+
+      const scopedOption = options[ACTION_FLAGS.SCOPED];
+
+      if (dataContext && (scopedOption ?? false)) {
+        let templateContent = '';
+        if (
+          typeof templatePath === 'string' &&
+          templatePath.trim().length > 0
+        ) {
+          const loadedContent = loadTemplateContent(
+            userFiles,
+            templatePath,
+            projectYamlPath,
+          );
+          if (loadedContent.length > 0) {
+            templateContent = loadedContent;
+          }
+        } else {
+          templateContent = loadTemplateContent(
+            userFiles,
+            command,
+            projectYamlPath,
+          );
+        }
+
+        const flattenedData = flattenData(dataContext);
+        const dataReplacements: Record<string, string> = {};
+        for (const [key, value] of Object.entries(flattenedData)) {
+          dataReplacements[key] = value;
+        }
+
+        const processedName = replacePlaceholders(
+          command,
+          dataReplacements,
+          userFiles,
+          schemaInfoParsed,
+          undefined,
+          projectYamlPath,
+          command,
+          formData,
+          userMetadata,
+          dataContext,
+        );
+
+        const outputFileName = processedName.includes('/')
+          ? extractFileNameFromPath(processedName)
+          : processedName;
+
+        const content = replacePlaceholders(
+          templateContent,
+          dataReplacements,
+          userFiles,
+          schemaInfoParsed,
+          undefined,
+          projectYamlPath,
+          typeof templatePath === 'string' && templatePath.length > 0
+            ? templatePath
+            : command,
+          formData,
+          userMetadata,
+          dataContext,
+        );
+
+        const finalContent = formatFileContent(content);
+
+        return [
+          {
+            type: 'file',
+            name: outputFileName,
+            content: finalContent,
+          },
+        ];
+      }
+
       if (!schemaInfoProcessed) {
         return [];
       }
 
-      // When inside a dynamic folder context with --scoped flag,
-      // use only the current table context rather than looping over all tables
-      const scopedOption = options[ACTION_FLAGS.SCOPED];
       if (table && (scopedOption ?? false)) {
         // The hasRelationships check is removed here to allow processing of all tables
 
@@ -144,11 +220,17 @@ export const processYamlStructure = ({
 
         let content = '';
         content = replacePlaceholders(
-          processLoopTables(
-            templateContent,
-            schemaInfo,
-            schemaInfoParsed,
+          processLoopDataSources(
+            processLoopTables(
+              templateContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              formData,
+              userMetadata,
+            ),
             userFiles,
+            schemaInfoParsed,
             formData,
             userMetadata,
           ),
@@ -217,13 +299,18 @@ export const processYamlStructure = ({
         projectYamlPath,
       );
 
-      // Process the template with all replacements
       let processedContent = replacePlaceholders(
-        processLoopTables(
-          templateContent,
-          schemaInfo,
-          schemaInfoParsed,
+        processLoopDataSources(
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            formData,
+            userMetadata,
+          ),
           userFiles,
+          schemaInfoParsed,
           formData,
           userMetadata,
         ),
@@ -315,13 +402,18 @@ export const processYamlStructure = ({
         schemaInfoParsed,
       );
 
-      // Process the template content with all replacements
       let processedContent = replacePlaceholders(
-        processLoopTables(
-          templateContent,
-          schemaInfo,
-          schemaInfoParsed,
+        processLoopDataSources(
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            formData,
+            userMetadata,
+          ),
           userFiles,
+          schemaInfoParsed,
           formData,
           userMetadata,
         ),
@@ -380,7 +472,6 @@ export const processYamlStructure = ({
           typeof obj === 'object' && obj !== null && !Array.isArray(obj);
 
         if (isRecordWithDynamicFolder(item)) {
-          // Get the keys of the object
           const keys = Object.keys(item);
           if (
             keys.length > 0 &&
@@ -393,13 +484,13 @@ export const processYamlStructure = ({
               return [];
             }
 
-            // Extract folder name by removing the function name and parentheses
-            const folderName = key.slice(
+            const folderLoopParams = key.slice(
               PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
               -1,
             );
+            const { command: folderName, options: folderOptions } =
+              parseCommand(folderLoopParams);
 
-            // Process the dynamic folders directly
             return processDynamicFolders({
               folderName,
               children: value,
@@ -408,12 +499,13 @@ export const processYamlStructure = ({
               userFiles,
               projectYamlPath,
               formData,
+              userMetadata,
+              options: folderOptions,
             });
           }
         }
       }
 
-      // Standard processing for non-dynamic-folder items
       if (table) {
         return processYamlStructure({
           node: item,
@@ -424,6 +516,7 @@ export const processYamlStructure = ({
           table,
           formData,
           userMetadata,
+          dataContext,
         });
       }
       return processYamlStructure({
@@ -434,6 +527,7 @@ export const processYamlStructure = ({
         projectYamlPath,
         formData,
         userMetadata,
+        dataContext,
       });
     });
   }
@@ -450,6 +544,7 @@ export const processYamlStructure = ({
           table,
           formData,
           userMetadata,
+          dataContext,
         });
 
         if (value !== null && value !== undefined) {
@@ -462,6 +557,7 @@ export const processYamlStructure = ({
             table,
             formData,
             userMetadata,
+            dataContext,
           });
 
           return [...actionResult, ...childStructure];
@@ -489,9 +585,7 @@ export const processYamlStructure = ({
           formData,
         });
 
-        // If this is just an import without creating a folder (when it has a colon at the end)
         if (key.endsWith(':') && value !== null && typeof value === 'object') {
-          // Process the value structure with the same context
           const childStructure = processYamlStructure({
             node: value,
             schemaInfo,
@@ -501,6 +595,7 @@ export const processYamlStructure = ({
             table,
             formData,
             userMetadata,
+            dataContext,
           });
 
           return [...importResult, ...childStructure];
@@ -523,11 +618,13 @@ export const processYamlStructure = ({
       }
 
       if (key.startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)) {
-        // Extract folder name and remove parentheses
-        const folderName = key
-          .slice(PROJECT_ACTIONS.FOLDER_LOOP.length + 1, -1)
-          .replace(/[()]/g, '');
-        // Return the dynamic folders directly without an extra parent folder
+        const folderLoopParams = key.slice(
+          PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
+          -1,
+        );
+        const { command: folderName, options: folderOptions } =
+          parseCommand(folderLoopParams);
+
         return processDynamicFolders({
           folderName,
           children: value,
@@ -536,6 +633,8 @@ export const processYamlStructure = ({
           userFiles,
           projectYamlPath,
           formData,
+          userMetadata,
+          options: folderOptions,
         });
       }
 
@@ -553,6 +652,7 @@ export const processYamlStructure = ({
               table,
               formData,
               userMetadata,
+              dataContext,
             }),
           },
         ];
@@ -570,6 +670,7 @@ export const processYamlStructure = ({
             projectYamlPath,
             formData,
             userMetadata,
+            dataContext,
           }),
         },
       ];

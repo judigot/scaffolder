@@ -32,4 +32,5 @@ export interface IBuildContext {
   formData?: IFormStore;
   userMetadata?: Record<string, unknown> | null;
   dataContext?: DataContext;
+  options?: IActionFlags;
 }

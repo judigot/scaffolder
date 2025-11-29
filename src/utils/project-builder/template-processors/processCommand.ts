@@ -2,7 +2,10 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
-import { processIterateCommand } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import {
+  processIterateCommand,
+  processLoopDataSources,
+} from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import {
   TEMPLATE_ACTIONS,
   USE_FORM_DATA_REGEX,
@@ -38,6 +41,7 @@ export const processCommand = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataContext?: DataContext,
+  skipLoopDataSources = false,
 ): string => {
   // Process all commands in order of specificity
   let result = text;
@@ -141,6 +145,19 @@ export const processCommand = (
     }
     return '';
   });
+
+  // Process LOOP_DATA_SOURCES commands BEFORE USE_DATA
+  // This expands LOOP_DATA_SOURCES first, then USE_DATA commands inside the expanded content can be processed
+  // Skip if we're already inside a LOOP_DATA_SOURCES processing context to prevent infinite recursion
+  if (!skipLoopDataSources) {
+    result = processLoopDataSources(
+      result,
+      userFiles,
+      schemaInfoParsed,
+      formData,
+      userMetadata,
+    );
+  }
 
   // Process USE_DATA commands
   const useDataRegex = new RegExp(USE_DATA_REGEX.source, 'g');

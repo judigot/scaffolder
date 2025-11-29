@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll Statement - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .header { text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; }
+    .company-name { font-size: 1.8em; font-weight: bold; color: #2c3e50; }
+    .document-title { font-size: 1.3em; color: #7f8c8d; margin-top: 10px; }
+    .section { margin: 25px 0; }
+    .section-title { font-size: 1.2em; font-weight: bold; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; margin-bottom: 15px; }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ecf0f1; }
+    .label { font-weight: 600; color: #555; }
+    .value { color: #2c3e50; text-align: right; }
+    .total-row { font-weight: bold; font-size: 1.1em; padding-top: 10px; border-top: 2px solid #34495e; margin-top: 10px; }
+    .amount { color: #27ae60; }
+    .deduction { color: #e74c3c; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="company-name">[[USE_DATA(company-info.name)]]</div>
+    <div class="document-title">Payroll Statement</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Employee Information</div>
+    <div class="info-row">
+      <span class="label">Employee Name:</span>
+      <span class="value">[[USE_DATA(basic-info.name)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Employee ID:</span>
+      <span class="value">[[USE_DATA(employee.employee-id)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Pay Period:</span>
+      <span class="value">[[USE_DATA(payroll.period)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Pay Date:</span>
+      <span class="value">[[USE_DATA(payroll.pay-date)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Pay Frequency:</span>
+      <span class="value">[[USE_DATA(payroll.pay-frequency)]]</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Earnings</div>
+    <div class="info-row">
+      <span class="label">Hours Worked:</span>
+      <span class="value">[[USE_DATA(payroll.hours-worked)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Hourly Rate:</span>
+      <span class="value">$[[USE_DATA(payroll.hourly-rate)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Overtime Hours:</span>
+      <span class="value">[[USE_DATA(payroll.overtime-hours)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Overtime Pay:</span>
+      <span class="value">$[[USE_DATA(payroll.overtime-pay)]]</span>
+    </div>
+    <div class="info-row total-row">
+      <span class="label">Gross Pay:</span>
+      <span class="value amount">$[[USE_DATA(payroll.gross-pay)]]</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Deductions</div>
+    <div class="info-row">
+      <span class="label">Federal Tax:</span>
+      <span class="value deduction">-$[[USE_DATA(payroll.deductions.federal-tax)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">State Tax:</span>
+      <span class="value deduction">-$[[USE_DATA(payroll.deductions.state-tax)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Social Security:</span>
+      <span class="value deduction">-$[[USE_DATA(payroll.deductions.social-security)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Medicare:</span>
+      <span class="value deduction">-$[[USE_DATA(payroll.deductions.medicare)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Health Insurance:</span>
+      <span class="value deduction">-$[[USE_DATA(payroll.deductions.health-insurance)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">401(k) Retirement:</span>
+      <span class="value deduction">-$[[USE_DATA(payroll.deductions.retirement-401k)]]</span>
+    </div>
+    <div class="info-row total-row">
+      <span class="label">Total Deductions:</span>
+      <span class="value deduction">-$[[USE_DATA(payroll.deductions.total-deductions)]]</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="info-row total-row" style="font-size: 1.3em; color: #27ae60;">
+      <span class="label">Net Pay:</span>
+      <span class="value">$[[USE_DATA(payroll.net-pay)]]</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Year-to-Date Summary</div>
+    <div class="info-row">
+      <span class="label">YTD Gross Pay:</span>
+      <span class="value">$[[USE_DATA(payroll.year-to-date.gross-pay)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">YTD Net Pay:</span>
+      <span class="value">$[[USE_DATA(payroll.year-to-date.net-pay)]]</span>
+    </div>
+  </div>
+</body>
+</html>
+
