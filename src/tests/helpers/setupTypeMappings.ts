@@ -2,10 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
+import { isRecord } from '@/utils/typeGuards.ts';
 
 export const setupTypeMappings = (): void => {
   const typeMappingsFilePath = join(

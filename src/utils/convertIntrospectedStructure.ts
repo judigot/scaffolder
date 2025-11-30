@@ -6,10 +6,7 @@ import {
 } from '@/interfaces/interfaces.ts';
 import { addSchemaInfo } from '@/utils/identifySchema.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
+import { isRecord } from '@/utils/typeGuards.ts';
 
 export const getTypeScriptType = (dataType: string): string => {
   const typeMappings = useMockDatabaseStore.getState().typeMappings;

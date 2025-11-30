@@ -5,6 +5,7 @@ import { getReplacementsForTable } from '@/utils/project-builder/template-proces
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { parse } from 'yaml';
 import type { IFormStore } from '@/useFormStore.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 export const loadConstant = (
   constantName: string,
@@ -44,10 +45,7 @@ export const loadConstant = (
     // Parse YAML content
     const parsed: unknown = parse(preprocessedContent);
 
-    // Type guard for Record<string, unknown>
-    function isRecord(value: unknown): value is Record<string, unknown> {
-      return value !== null && typeof value === 'object';
-    }
+    // isRecord imported from @/utils/typeGuards.ts
 
     // First get raw values without processing placeholders
     let rawValues: string[] = [];

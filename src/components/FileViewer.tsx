@@ -1460,70 +1460,78 @@ function FileViewer({
         >
           {isCreatingFile ? 'Creating...' : 'Create Test File'}
         </button>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCreateNewTestRepository}
-            disabled={
-              isCreatingRepository ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-            }
-            className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-              isCreatingRepository ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            }`}
-            title={
-              safeFilesUsingUserEnv.length > 0
-                ? 'Cannot export: USE_USER_ENV detected in files'
-                : undefined
-            }
-          >
-            {isCreatingRepository
-              ? `Exporting ${String(countFiles(folderStructure))} files...`
-              : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
-          </button>
-          {safeFilesUsingUserEnv.length > 0 && (
-            <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md max-w-md">
-              <div className="flex items-start gap-2">
-                <svg
-                  className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-yellow-300 mb-1">
-                    USE_USER_ENV Detected
-                  </p>
-                  <p className="text-xs text-yellow-200/80 mb-2">
-                    {safeFilesUsingUserEnv.length} file(s) use USE_USER_ENV.
-                    Committing to GitHub will expose your secrets.
-                  </p>
-                  <ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
-                    {safeFilesUsingUserEnv.map((filePath: string) => (
-                      <li key={filePath} className="font-mono">
-                        {filePath}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-xs text-yellow-200/70">
-                    Use placeholders or download locally instead.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={handleCreateNewTestRepository}
+          disabled={
+            isCreatingRepository ||
+            folderStructure.length === 0 ||
+            safeFilesUsingUserEnv.length > 0
+          }
+          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+            isCreatingRepository ||
+            folderStructure.length === 0 ||
+            safeFilesUsingUserEnv.length > 0
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+          }`}
+          title={
+            safeFilesUsingUserEnv.length > 0
+              ? 'Cannot export: USE_USER_ENV detected in files'
+              : undefined
+          }
+        >
+          {isCreatingRepository
+            ? `Exporting ${String(countFiles(folderStructure))} files...`
+            : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
+        </button>
       </div>
+      {safeFilesUsingUserEnv.length > 0 && (
+        <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md mb-2 w-fit">
+          <div className="flex items-start gap-2">
+            <svg
+              className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-yellow-300 mb-1">
+                Security Warning: Secrets Detected
+              </p>
+              <p className="text-xs text-yellow-200/80 mb-2">
+                {safeFilesUsingUserEnv.length} file(s) contain sensitive data.
+                Exporting to GitHub will leak your secrets (API keys, passwords,
+                tokens, etc.).
+              </p>
+              <ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
+                {safeFilesUsingUserEnv.map((filePath: string) => (
+                  <li key={filePath} className="font-mono">
+                    {filePath}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-yellow-200/70">
+                <button
+                  type="button"
+                  onClick={() => {
+                    zipAndDownloadIStructure(folderStructure, getZipFileName());
+                  }}
+                  className="text-yellow-300 hover:text-yellow-200 underline font-medium"
+                >
+                  Download ZIP
+                </button>{' '}
+                instead or use placeholders.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <br />
       <div className="grid grid-cols-1 md:grid-cols-3 text-white">
         <div className="col-span-1 bg-gray-800 select-none mr-2">

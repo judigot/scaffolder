@@ -1,5 +1,6 @@
 import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface IConversionParams {
   value: unknown;
@@ -10,10 +11,6 @@ interface IConversionParams {
     | 'postgresql-introspected'
     | 'mysql-introspected';
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
 
 const convertType = ({ value, targetType }: IConversionParams): string => {
   const typeMappings = useMockDatabaseStore.getState().typeMappings;

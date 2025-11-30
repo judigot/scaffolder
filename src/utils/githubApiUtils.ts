@@ -22,16 +22,14 @@ interface IGitHubFileResponse {
   url: string;
 }
 
+import { isRecord } from '@/utils/typeGuards.ts';
+
 export interface IFileMetadata {
   path: string;
   type: 'file' | 'folder';
   size?: number;
   sha?: string;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
 
 const getProperty = (obj: unknown, key: string): unknown => {
   if (!isRecord(obj)) {

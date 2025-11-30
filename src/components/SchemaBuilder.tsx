@@ -18,6 +18,7 @@ import useTransformationsStore from '@/useTransformationsStore.ts';
 import yaml from 'yaml';
 import DataTypeSelector from '@/components/DataTypeSelector.tsx';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
@@ -105,11 +106,6 @@ function SchemaBuilder() {
       }
 
       const typeMappings = useMockDatabaseStore.getState().typeMappings;
-      const isRecord = (value: unknown): value is Record<string, unknown> => {
-        return (
-          value !== null && typeof value === 'object' && !Array.isArray(value)
-        );
-      };
 
       if (typeMappings && isRecord(typeMappings) && dataType in typeMappings) {
         const coreTypeMapping = typeMappings[dataType];
@@ -143,11 +139,6 @@ function SchemaBuilder() {
   const getTypeScriptType = useCallback(
     (dataType: string): 'string' | 'number' | 'float' | 'boolean' | 'Date' => {
       const typeMappings = useMockDatabaseStore.getState().typeMappings;
-      const isRecord = (value: unknown): value is Record<string, unknown> => {
-        return (
-          value !== null && typeof value === 'object' && !Array.isArray(value)
-        );
-      };
 
       if (typeMappings && isRecord(typeMappings) && dataType in typeMappings) {
         const coreTypeMapping = typeMappings[dataType];

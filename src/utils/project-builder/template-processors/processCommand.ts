@@ -15,6 +15,7 @@ import {
 import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 /**
  * Helper function to check if a string has content
@@ -106,14 +107,7 @@ export const processCommand = (
   // Process USE_USER_ENV commands
   const useUserEnvRegex = new RegExp(USE_USER_ENV_REGEX.source, 'g');
 
-  const isRecord = (val: unknown): val is Record<string, unknown> => {
-    return (
-      val !== null &&
-      val !== undefined &&
-      typeof val === 'object' &&
-      !Array.isArray(val)
-    );
-  };
+  // isRecord imported from @/utils/typeGuards.ts
 
   result = result.replace(useUserEnvRegex, (_match: string, group1: string) => {
     if (!userMetadata) {

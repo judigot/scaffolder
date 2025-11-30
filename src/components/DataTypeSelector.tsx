@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface IDataTypeSelectorProps {
   value: string;
@@ -11,11 +12,6 @@ interface IDataTypeSelectorProps {
   name?: string;
   required?: boolean;
 }
-
-// Type guard function to check if value is a Record<string, unknown>
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
 
 // Helper function to safely get database-specific type
 const getDbSpecificType = (typeMapping: unknown, dbType: string): string => {

@@ -1,5 +1,6 @@
 import identifyTSPrimitiveType from '@/utils/identifyTSPrimitiveType.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 /**
  * Summarizes the value types of keys in an array of objects.
  *
@@ -325,11 +326,7 @@ export function generateInterface({
 
         const valueType = identifyTSPrimitiveType(value);
         const typeMappings = useMockDatabaseStore.getState().typeMappings;
-        const isRecord = (value: unknown): value is Record<string, unknown> => {
-          return (
-            value !== null && typeof value === 'object' && !Array.isArray(value)
-          );
-        };
+        // isRecord imported from @/utils/typeGuards.ts
 
         let mappedType = valueType;
         if (

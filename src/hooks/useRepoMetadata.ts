@@ -7,6 +7,7 @@ import type { IStructure } from '@/components/FileViewer.tsx';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { convertMetadataToIStructure } from '@/utils/convertMetadataToIStructure.ts';
 import type { IFileMetadata } from '@/utils/githubApiUtils.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface IFetchRepoMetadataParams {
   publicRepoURL: string;
@@ -57,11 +58,7 @@ const fetchRepoMetadata = async (
       throw new Error('Invalid response format: expected an array');
     }
 
-    const isRecord = (value: unknown): value is Record<string, unknown> => {
-      return (
-        value !== null && typeof value === 'object' && !Array.isArray(value)
-      );
-    };
+    // isRecord imported from @/utils/typeGuards.ts
 
     const getProperty = (obj: unknown, key: string): unknown => {
       if (!isRecord(obj)) {

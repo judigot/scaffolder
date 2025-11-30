@@ -3,11 +3,7 @@ import { create } from 'zustand';
 import { useProjectStore } from '@/useProjectStore.ts';
 import equal from 'fast-deep-equal';
 import yaml from 'yaml';
-
-// Type guard function to check if value is a Record<string, unknown>
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface IStore {
   userFiles: IStructure;

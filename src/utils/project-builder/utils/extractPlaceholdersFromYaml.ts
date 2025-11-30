@@ -1,11 +1,5 @@
 import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
-
-/**
- * Type guard to check if a value is a non-null object
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+import { isRecord } from '@/utils/typeGuards.ts';
 
 /**
  * Extracts placeholders from a YAML structure for placeholder reference checking.

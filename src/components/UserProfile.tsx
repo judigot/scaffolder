@@ -18,6 +18,7 @@ import {
   getPassphraseFromSession,
   clearPassphraseSession,
 } from '@/utils/passphraseSession.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 const generateEntryId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -39,10 +40,6 @@ const createEmptyEnvEntry = (): IEnvEntry => ({
   value: '',
   isSaved: false,
 });
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
 
 const extractEnvEntriesFromMetadata = (
   metadata: Record<string, unknown> | null | undefined,

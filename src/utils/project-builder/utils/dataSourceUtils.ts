@@ -1,6 +1,7 @@
 import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
 import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { parse } from 'yaml';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 export interface IDataSourceMatch {
   folder: IFolder;
@@ -8,9 +9,7 @@ export interface IDataSourceMatch {
   folderPath: string;
 }
 
-export const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
+export { isRecord };
 
 export const flattenData = (
   obj: Record<string, unknown>,

@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface IForeignKey {
   foreign_table_name: string;
@@ -87,10 +88,7 @@ const generateForeignKeyValue = (
   const { foreign_table_name, foreign_column_name } = foreign_key;
   const foreignRecords = generatedData[foreign_table_name];
 
-  /* Type guard to check if a value is a record */
-  const isRecord = (value: unknown): value is Record<string, unknown> => {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  };
+  // isRecord imported from @/utils/typeGuards.ts
 
   /* Ensure foreignRecords is an array */
   if (!Array.isArray(foreignRecords)) {

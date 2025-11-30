@@ -4,6 +4,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface IFetchFileContentParams {
   publicRepoURL: string;
@@ -57,11 +58,7 @@ const fetchFileContent = async (
 
     const data: unknown = await response.json();
 
-    const isRecord = (value: unknown): value is Record<string, unknown> => {
-      return (
-        value !== null && typeof value === 'object' && !Array.isArray(value)
-      );
-    };
+    // isRecord imported from @/utils/typeGuards.ts
 
     const getProperty = (obj: unknown, key: string): unknown => {
       if (!isRecord(obj)) {

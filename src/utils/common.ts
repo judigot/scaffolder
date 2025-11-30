@@ -10,6 +10,7 @@ import { useFormStore } from '@/useFormStore.ts';
 import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import pluralize from 'pluralize';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 const getTypeMappings = (): Record<PropertyKey, unknown> => {
   const storeTypeMappings = useMockDatabaseStore.getState().typeMappings;
@@ -171,9 +172,7 @@ export const quoteTableName = (tableName: string): string => {
   return `${quote}${tableName}${quote}`;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
+// isRecord imported from @/utils/typeGuards.ts
 
 const getTypeMappingValue = (
   mappings: Record<PropertyKey, unknown>,

@@ -5,17 +5,11 @@ import {
   PROJECT_ACTIONS,
 } from '@/utils/project-builder/constants/projectActions.ts';
 import { parse } from 'yaml';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface ICircularImportResult {
   hasCircularImport: boolean;
   cycleChain: string;
-}
-
-/**
- * Type guard to check if a value is a non-null object
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**

@@ -2,10 +2,7 @@ import {
   decryptSecret,
   parseEncryptedValue,
 } from '@/utils/zeroKnowledgeEncryption.ts';
-
-const isRecord = (val: unknown): val is Record<string, unknown> => {
-  return val !== null && typeof val === 'object' && !Array.isArray(val);
-};
+import { isRecord } from '@/utils/typeGuards.ts';
 
 export async function decryptUserMetadataEnv(
   userMetadata: Record<string, unknown> | null | undefined,
