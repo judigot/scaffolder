@@ -10,6 +10,7 @@ import { processDynamicFolders } from '@/utils/project-builder/project-processor
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import {
   processLoopTables,
+  processLoopTablesReversed,
   processLoopDataSources,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
@@ -239,8 +240,15 @@ export const processYamlStructure = ({
         let content = '';
         content = replacePlaceholders(
           processLoopDataSources(
-            processLoopTables(
-              templateContent,
+            processLoopTablesReversed(
+              processLoopTables(
+                templateContent,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+                formData,
+                userMetadata,
+              ),
               schemaInfo,
               schemaInfoParsed,
               userFiles,
@@ -325,8 +333,15 @@ export const processYamlStructure = ({
 
       let processedContent = replacePlaceholders(
         processLoopDataSources(
-          processLoopTables(
-            templateContent,
+          processLoopTablesReversed(
+            processLoopTables(
+              templateContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              formData,
+              userMetadata,
+            ),
             schemaInfo,
             schemaInfoParsed,
             userFiles,
@@ -442,8 +457,15 @@ export const processYamlStructure = ({
 
       let processedContent = replacePlaceholders(
         processLoopDataSources(
-          processLoopTables(
-            templateContent,
+          processLoopTablesReversed(
+            processLoopTables(
+              templateContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              formData,
+              userMetadata,
+            ),
             schemaInfo,
             schemaInfoParsed,
             userFiles,
@@ -732,8 +754,15 @@ export const processYamlStructure = ({
 
           let processedContent = replacePlaceholders(
             processLoopDataSources(
-              processLoopTables(
-                templateContent,
+              processLoopTablesReversed(
+                processLoopTables(
+                  templateContent,
+                  schemaInfo,
+                  schemaInfoParsed,
+                  userFiles,
+                  formData,
+                  userMetadata,
+                ),
                 schemaInfo,
                 schemaInfoParsed,
                 userFiles,

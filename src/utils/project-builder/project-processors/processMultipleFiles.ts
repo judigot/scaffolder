@@ -10,6 +10,7 @@ import { getReplacementsForTable } from '@/utils/project-builder/template-proces
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import {
   processLoopTables,
+  processLoopTablesReversed,
   processLoopDataSources,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
@@ -154,8 +155,15 @@ export const processMultipleFiles = ({
       }
 
       let content = processLoopDataSources(
-        processLoopTables(
-          templateContent,
+        processLoopTablesReversed(
+          processLoopTables(
+            templateContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            formData,
+            userMetadata,
+          ),
           schemaInfo,
           schemaInfoParsed,
           userFiles,

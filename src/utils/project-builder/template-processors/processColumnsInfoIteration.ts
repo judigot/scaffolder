@@ -4,6 +4,7 @@ import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
+import { processAtIf } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 
 export const processColumnsInfoIteration = (
@@ -20,9 +21,6 @@ export const processColumnsInfoIteration = (
   const results: string[] = [];
 
   for (const column of tableObj.columnsInfo) {
-    // Create a copy of the template for this column
-    const processedTemplate = templateStr;
-
     // Get case variations for the column name
     const caseFormats = changeCase(column.column_name);
 
@@ -67,7 +65,10 @@ export const processColumnsInfoIteration = (
       ...getReplacementsForTable(tableObj, schemaInfoParsed),
     };
 
-    // Replace placeholders
+    // First process @IF conditions (experimental syntax)
+    const processedTemplate = processAtIf(templateStr, replacements);
+
+    // Then replace placeholders (which also processes {% IF %} conditions)
     const result = replacePlaceholders(
       processedTemplate,
       replacements,

@@ -10,6 +10,7 @@ export const TEMPLATE_ACTIONS = {
   USE_TEMPLATE: 'USE_TEMPLATE',
   USE_DATA: 'USE_DATA',
   LOOP_TABLES: `${LOOP}(tables)`,
+  LOOP_TABLES_REVERSED: `${LOOP}(tablesReversed)`,
   LOOP_COLUMNS: `${LOOP}(columns)`,
   LOOP_DATA_SOURCES: 'LOOP_DATA_SOURCES',
 } as const;
@@ -45,6 +46,11 @@ export const REGEX_PATTERNS = {
 
 export const LOOP_TABLES_REGEX = new RegExp(
   `\\[\\[${TEMPLATE_ACTIONS.LOOP_TABLES.replace('(', '\\(').replace(')', '\\)')}(\\s+.*)\\]\\]`,
+  'g',
+);
+
+export const LOOP_TABLES_REVERSED_REGEX = new RegExp(
+  `\\[\\[${TEMPLATE_ACTIONS.LOOP_TABLES_REVERSED.replace('(', '\\(').replace(')', '\\)')}(\\s+.*)\\]\\]`,
   'g',
 );
 

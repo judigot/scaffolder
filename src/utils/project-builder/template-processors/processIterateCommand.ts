@@ -6,6 +6,7 @@ import type { IFormStore } from '@/useFormStore.ts';
 import {
   LOOP_COMMAND_REGEX,
   LOOP_TABLES_REGEX,
+  LOOP_TABLES_REVERSED_REGEX,
   LOOP_DATA_SOURCES_START_REGEX,
   TEMPLATE_MATCH_REGEX,
   SEPARATOR_MATCH_REGEX,
@@ -17,6 +18,7 @@ import {
   USE_CONSTANT_REGEX,
   FOLDER_PATH_REGEX,
   RECURSIVE_WILDCARD_REGEX,
+  TEMPLATE_ACTIONS,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import {
   findFilesMatchingGlob,
@@ -79,6 +81,682 @@ const folderContainsYamlFiles = (folder: IFolder): boolean => {
   );
 };
 
+/**
+ * Process block-based LOOP syntax: [[LOOP(property)]]...content...[[/LOOP --separator="..."]]
+ * This syntax avoids escaping issues with nested templates.
+ * Uses balanced bracket matching to handle nested LOOPs.
+ */
+const processBlockLoops = (
+  content: string,
+  table: ISchemaInfo,
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  // Match opening [[LOOP(property)]] - but not tables or tablesReversed (those are handled separately)
+  const openRegex = /\[\[\s*LOOP\(([^)]+)\)\s*\]\]/g;
+  let result = content;
+  let match;
+
+  // Collect all matches with their balanced closing tags
+  const matches: {
+    start: number;
+    end: number;
+    property: string;
+    templateContent: string;
+    closingOptions: string;
+  }[] = [];
+
+  while ((match = openRegex.exec(content)) !== null) {
+    const property = match[1];
+    // Skip tables and tablesReversed - they're handled by processBlockLoopTables/Reversed
+    if (property === 'tables' || property === 'tablesReversed') {
+      continue;
+    }
+
+    const openEnd = match.index + match[0].length;
+    const closeInfo = findAtLoopEnd(content, openEnd);
+
+    if (closeInfo) {
+      matches.push({
+        start: match.index,
+        end: closeInfo.endIndex,
+        property,
+        templateContent: content.slice(
+          openEnd,
+          closeInfo.endIndex - closeInfo.closingOptions.length - 9,
+        ),
+        closingOptions: closeInfo.closingOptions,
+      });
+    }
+  }
+
+  // Process matches in reverse order to avoid index shifting
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { start, end, property, templateContent, closingOptions } =
+      matches[i];
+
+    // Parse separator from closing tag options
+    const separatorMatch = /--separator="((?:[^"\\]|\\.)*)"/.exec(
+      closingOptions,
+    );
+    const separator = separatorMatch
+      ? separatorMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+      : '';
+
+    let processed = '';
+
+    // Process columnsInfo directly
+    if (property === 'columnsInfo') {
+      processed = processColumnsInfoIteration(
+        table,
+        templateContent.trim(),
+        separator,
+        schemaInfoParsed,
+        userFiles,
+        undefined,
+        formData,
+        userMetadata,
+      );
+    } else {
+      // For other properties, use processIterateCommand with inline format
+      const escapedTemplate = templateContent
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t');
+
+      const escapedSeparator = separator
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t');
+
+      processed = processIterateCommand(
+        `${TEMPLATE_ACTIONS.LOOP}(${property}) --template="${escapedTemplate}" --separator="${escapedSeparator}"`,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        undefined,
+        formData,
+        userMetadata,
+      );
+    }
+
+    result = result.slice(0, start) + processed + result.slice(end);
+  }
+
+  return result;
+};
+
+const processInnerLoops = (
+  content: string,
+  table: ISchemaInfo,
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  // First process block-based LOOPs (new syntax)
+  const result = processBlockLoops(
+    content,
+    table,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+  );
+
+  // Then process inline LOOPs (legacy syntax)
+  const iterateRegex = new RegExp(
+    `\\[\\[\\s*${TEMPLATE_ACTIONS.LOOP}\\(([^\\[\\]]*?(?:\\{\\{[^}]*\\}\\})?[^\\[\\]]*)\\)([^\\]]*)\\]\\]`,
+    'g',
+  );
+
+  return result.replace(
+    iterateRegex,
+    (fullMatch: string, propertyPathsStr: string, options: string) => {
+      const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
+      const cmdResult = processIterateCommand(
+        `${TEMPLATE_ACTIONS.LOOP}(${propertyPathsStr})${options}`,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        undefined,
+        formData,
+        userMetadata,
+      );
+      return cmdResult ? whitespace + cmdResult : '';
+    },
+  );
+};
+
+/**
+ * Find matching @/LOOP for a @LOOP(...) block, handling nested blocks
+ * New experimental syntax that doesn't conflict with [[ ]] brackets
+ */
+const findAtLoopEnd = (
+  content: string,
+  startIndex: number,
+): { endIndex: number; closingOptions: string } | null => {
+  let depth = 1;
+  let i = startIndex;
+
+  while (i < content.length && depth > 0) {
+    // Check for opening @LOOP(
+    if (content.slice(i, i + 6) === '@LOOP(') {
+      // Find the closing ) of this opening tag
+      const closeParen = content.indexOf(')', i + 6);
+      if (closeParen !== -1) {
+        depth++;
+        i = closeParen + 1;
+      } else {
+        i++;
+      }
+    }
+    // Check for closing @/LOOP
+    else if (content.slice(i, i + 6) === '@/LOOP') {
+      depth--;
+      if (depth === 0) {
+        // Find the end of the line or next @LOOP
+        let endIndex = i + 6;
+        let closingOptions = '';
+
+        // Check for options like --separator="..."
+        const restOfLine = content.slice(i + 6);
+        const optionsMatch = /^([^\n@]*)/.exec(restOfLine);
+        if (optionsMatch) {
+          closingOptions = optionsMatch[1];
+          endIndex = i + 6 + optionsMatch[1].length;
+        }
+
+        // Skip trailing newline if present
+        if (content[endIndex] === '\n') {
+          endIndex++;
+        }
+
+        return { endIndex, closingOptions };
+      }
+      i += 6;
+    } else {
+      i++;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Process @LOOP(tables) experimental syntax
+ */
+const processAtLoopTables = (
+  content: string,
+  schemaInfo: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  const openRegex = /@LOOP\(tables\)\n?/g;
+  let result = content;
+  let match;
+
+  const matches: {
+    start: number;
+    end: number;
+    templateContent: string;
+    closingOptions: string;
+  }[] = [];
+
+  while ((match = openRegex.exec(content)) !== null) {
+    const openEnd = match.index + match[0].length;
+    const closeInfo = findAtLoopEnd(content, openEnd);
+
+    if (closeInfo) {
+      matches.push({
+        start: match.index,
+        end: closeInfo.endIndex,
+        templateContent: content.slice(
+          openEnd,
+          closeInfo.endIndex -
+            closeInfo.closingOptions.length -
+            6 -
+            (content[closeInfo.endIndex - 1] === '\n' ? 1 : 0),
+        ),
+        closingOptions: closeInfo.closingOptions,
+      });
+    }
+  }
+
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { start, end, templateContent, closingOptions } = matches[i];
+
+    const separatorMatch = /--separator="((?:[^"\\]|\\.)*)"/.exec(
+      closingOptions,
+    );
+    const separator = separatorMatch
+      ? separatorMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+      : '\n';
+
+    const processed = processAtLoopTablesTemplate(
+      templateContent,
+      separator,
+      schemaInfo,
+      schemaInfoParsed,
+      userFiles,
+      formData,
+      userMetadata,
+    );
+
+    result = result.slice(0, start) + processed + result.slice(end);
+  }
+
+  return result;
+};
+
+/**
+ * Process @LOOP(tablesReversed) experimental syntax
+ */
+const processAtLoopTablesReversed = (
+  content: string,
+  schemaInfo: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  const openRegex = /@LOOP\(tablesReversed\)\n?/g;
+  let result = content;
+  let match;
+  const reversedSchema = [...schemaInfo].reverse();
+
+  const matches: {
+    start: number;
+    end: number;
+    templateContent: string;
+    closingOptions: string;
+  }[] = [];
+
+  while ((match = openRegex.exec(content)) !== null) {
+    const openEnd = match.index + match[0].length;
+    const closeInfo = findAtLoopEnd(content, openEnd);
+
+    if (closeInfo) {
+      matches.push({
+        start: match.index,
+        end: closeInfo.endIndex,
+        templateContent: content.slice(
+          openEnd,
+          closeInfo.endIndex -
+            closeInfo.closingOptions.length -
+            6 -
+            (content[closeInfo.endIndex - 1] === '\n' ? 1 : 0),
+        ),
+        closingOptions: closeInfo.closingOptions,
+      });
+    }
+  }
+
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { start, end, templateContent, closingOptions } = matches[i];
+
+    const separatorMatch = /--separator="((?:[^"\\]|\\.)*)"/.exec(
+      closingOptions,
+    );
+    const separator = separatorMatch
+      ? separatorMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+      : '\n';
+
+    const processed = processAtLoopTablesTemplate(
+      templateContent,
+      separator,
+      reversedSchema,
+      schemaInfoParsed,
+      userFiles,
+      formData,
+      userMetadata,
+    );
+
+    result = result.slice(0, start) + processed + result.slice(end);
+  }
+
+  return result;
+};
+
+/**
+ * Find matching @/IF for a @IF(...) block
+ */
+const findAtIfEnd = (
+  content: string,
+  startIndex: number,
+): { endIndex: number } | null => {
+  let depth = 1;
+  let i = startIndex;
+
+  while (i < content.length && depth > 0) {
+    // Check for nested @IF( - must have ( to start a new block
+    if (content.slice(i, i + 4) === '@IF(' && i + 4 < content.length) {
+      // Find the closing ) of this condition
+      const closeParen = content.indexOf(')', i + 4);
+      if (closeParen !== -1) {
+        depth++;
+        i = closeParen + 1;
+        // Skip newline after @IF(...)
+        if (content[i] === '\n') {
+          i++;
+        }
+      } else {
+        i++;
+      }
+    }
+    // Check for @ELSE (doesn't affect depth, just skip it)
+    else if (content.slice(i, i + 5) === '@ELSE') {
+      i += 5;
+      if (content[i] === '\n') {
+        i++;
+      }
+    }
+    // Check for closing @/IF
+    else if (content.slice(i, i + 4) === '@/IF') {
+      depth--;
+      if (depth === 0) {
+        let endIndex = i + 4;
+        // Skip trailing newline if present
+        if (content[endIndex] === '\n') {
+          endIndex++;
+        }
+        return { endIndex };
+      }
+      i += 4;
+      if (content[i] === '\n') {
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+  return null;
+};
+
+/**
+ * Process @IF experimental syntax
+ * Supports: @IF(var EQUALS 'value'), @IF(var NOT EQUAL 'value')
+ * Also supports @ELSE within @IF blocks
+ */
+export const processAtIf = (
+  content: string,
+  replacements: Record<string, string | string[]>,
+): string => {
+  let result = content;
+  let iterations = 0;
+  const maxIterations = 100; // Prevent infinite loops
+
+  // Keep processing until no more @IF patterns are found
+  while (result.includes('@IF(') && iterations < maxIterations) {
+    iterations++;
+
+    // Find the first @IF(
+    const ifStart = result.indexOf('@IF(');
+    if (ifStart === -1) {
+      break;
+    }
+
+    // Find the closing ) of the condition
+    const conditionEnd = result.indexOf(')', ifStart + 4);
+    if (conditionEnd === -1) {
+      break;
+    }
+
+    const condition = result.slice(ifStart + 4, conditionEnd);
+    let openEnd = conditionEnd + 1;
+    if (result[openEnd] === '\n') {
+      openEnd++;
+    }
+
+    const closeInfo = findAtIfEnd(result, openEnd);
+    if (!closeInfo) {
+      break;
+    }
+
+    // Extract content between @IF(...) and @/IF
+    // The content ends 4 characters before endIndex (for "@/IF")
+    // We need to find where the @/IF starts
+    const closingTagStart =
+      closeInfo.endIndex - (result[closeInfo.endIndex - 1] === '\n' ? 5 : 4);
+    let ifContent = result.slice(openEnd, closingTagStart);
+
+    // Check for @ELSE at the same nesting level
+    let elseContent = '';
+    let elseIdx = -1;
+    let depth = 0;
+    for (let i = 0; i < ifContent.length; i++) {
+      if (ifContent.slice(i, i + 4) === '@IF(') {
+        depth++;
+        const closeParen = ifContent.indexOf(')', i + 4);
+        if (closeParen !== -1) {
+          i = closeParen;
+        }
+      } else if (ifContent.slice(i, i + 4) === '@/IF') {
+        depth--;
+        i += 3;
+      } else if (ifContent.slice(i, i + 5) === '@ELSE' && depth === 0) {
+        elseIdx = i;
+        break;
+      }
+    }
+
+    if (elseIdx !== -1) {
+      elseContent = ifContent.slice(elseIdx + 5);
+      if (elseContent.startsWith('\n')) {
+        elseContent = elseContent.slice(1);
+      }
+      ifContent = ifContent.slice(0, elseIdx);
+      if (ifContent.endsWith('\n')) {
+        ifContent = ifContent.slice(0, -1);
+      }
+    }
+
+    // Parse condition
+    let conditionResult = false;
+
+    // EQUALS condition
+    const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
+      condition,
+    );
+    if (equalsMatch) {
+      const [, varName, expectedValue] = equalsMatch;
+      const actualValue =
+        typeof replacements[varName] === 'string' ? replacements[varName] : '';
+      conditionResult = actualValue === expectedValue;
+    }
+
+    // NOT EQUAL condition
+    const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
+      condition,
+    );
+    if (notEqualMatch) {
+      const [, varName, expectedValue] = notEqualMatch;
+      const actualValue =
+        typeof replacements[varName] === 'string' ? replacements[varName] : '';
+      conditionResult = actualValue !== expectedValue;
+    }
+
+    // Replace the @IF block with the appropriate content
+    const replacement = conditionResult ? ifContent : elseContent;
+    result =
+      result.slice(0, ifStart) + replacement + result.slice(closeInfo.endIndex);
+  }
+
+  return result;
+};
+
+/**
+ * Process @LOOP(columnsInfo) within a table template
+ */
+const processAtLoopColumnsInfo = (
+  content: string,
+  table: ISchemaInfo,
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  const openRegex = /@LOOP\(columnsInfo\)\n?/g;
+  let result = content;
+  let match;
+
+  const matches: {
+    start: number;
+    end: number;
+    templateContent: string;
+    closingOptions: string;
+  }[] = [];
+
+  while ((match = openRegex.exec(content)) !== null) {
+    const openEnd = match.index + match[0].length;
+    const closeInfo = findAtLoopEnd(content, openEnd);
+
+    if (closeInfo) {
+      // Calculate template content end position
+      const closingTagStart =
+        closeInfo.endIndex - closeInfo.closingOptions.length - 6;
+      const hasTrailingNewline = content[closeInfo.endIndex - 1] === '\n';
+      const templateEnd = closingTagStart - (hasTrailingNewline ? 1 : 0);
+
+      matches.push({
+        start: match.index,
+        end: closeInfo.endIndex,
+        templateContent: content.slice(openEnd, templateEnd),
+        closingOptions: closeInfo.closingOptions,
+      });
+    }
+  }
+
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { start, end, templateContent, closingOptions } = matches[i];
+
+    const separatorMatch = /--separator="((?:[^"\\]|\\.)*)"/.exec(
+      closingOptions,
+    );
+    const separator = separatorMatch
+      ? separatorMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+      : '';
+
+    const processed = processColumnsInfoIteration(
+      table,
+      templateContent,
+      separator,
+      schemaInfoParsed,
+      userFiles,
+      undefined,
+      formData,
+      userMetadata,
+    );
+
+    result = result.slice(0, start) + processed + result.slice(end);
+  }
+
+  return result;
+};
+
+/**
+ * Process template for each table using @LOOP syntax
+ */
+const processAtLoopTablesTemplate = (
+  templateContent: string,
+  separator: string,
+  tables: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  return tables
+    .map((table) => {
+      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+
+      // First process inner @LOOP(columnsInfo)
+      let processed = processAtLoopColumnsInfo(
+        templateContent,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+      );
+
+      // Then replace placeholders
+      processed = replacePlaceholders(
+        processed,
+        replacements,
+        userFiles,
+        schemaInfoParsed,
+        table,
+        undefined,
+        undefined,
+        formData,
+        userMetadata,
+        undefined,
+      );
+
+      return processed;
+    })
+    .join(separator);
+};
+
+/**
+ * Process a template for each table in schemaInfo
+ */
+const processTablesTemplate = (
+  templateContent: string,
+  separator: string,
+  tables: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  return tables
+    .map((table) => {
+      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      let processed = replacePlaceholders(
+        templateContent.trim(),
+        replacements,
+        userFiles,
+        schemaInfoParsed,
+        table,
+        undefined,
+        undefined,
+        formData,
+        userMetadata,
+        undefined,
+      );
+      processed = processInnerLoops(
+        processed,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+      );
+      return processed;
+    })
+    .join(separator);
+};
+
 export const processLoopTables = (
   content: string,
   schemaInfo: ISchemaInfo[],
@@ -87,7 +765,18 @@ export const processLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
 ): string => {
-  return content.replace(
+  // First, process @LOOP(tables) experimental syntax
+  let result = processAtLoopTables(
+    content,
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+  );
+
+  // Then, process inline LOOP(tables) with --template="..."
+  result = result.replace(
     LOOP_TABLES_REGEX,
     (_match: string, options: string) => {
       const templateMatch = TEMPLATE_MATCH_REGEX.exec(options);
@@ -100,34 +789,90 @@ export const processLoopTables = (
       const templateContent = templateMatch[1]
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
-        .replace(/\\s/g, ' ');
+        .replace(/\\s/g, ' ')
+        .replace(/\\"/g, '"');
 
       const separator = separatorMatch
         ? separatorMatch[1]
             .replace(/\\n/g, '\n')
             .replace(/\\t/g, '\t')
             .replace(/\\s/g, ' ')
+            .replace(/\\"/g, '"')
         : '\n    ';
 
-      return schemaInfo
-        .map((table) => {
-          const replacements = getReplacementsForTable(table, schemaInfoParsed);
-          return replacePlaceholders(
-            templateContent.trim(),
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-            undefined,
-            undefined,
-            formData,
-            userMetadata,
-            undefined,
-          );
-        })
-        .join(separator);
+      return processTablesTemplate(
+        templateContent,
+        separator,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+      );
     },
   );
+
+  return result;
+};
+
+export const processLoopTablesReversed = (
+  content: string,
+  schemaInfo: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  const reversedSchema = [...schemaInfo].reverse();
+
+  // First, process @LOOP(tablesReversed) experimental syntax
+  let result = processAtLoopTablesReversed(
+    content,
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+  );
+
+  // Then, process inline LOOP(tablesReversed) with --template="..."
+  result = result.replace(
+    LOOP_TABLES_REVERSED_REGEX,
+    (_match: string, options: string) => {
+      const templateMatch = TEMPLATE_MATCH_REGEX.exec(options);
+      const separatorMatch = SEPARATOR_MATCH_REGEX.exec(options);
+
+      if (!templateMatch) {
+        return '';
+      }
+
+      const templateContent = templateMatch[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\s/g, ' ')
+        .replace(/\\"/g, '"');
+
+      const separator = separatorMatch
+        ? separatorMatch[1]
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\s/g, ' ')
+            .replace(/\\"/g, '"')
+        : '\n    ';
+
+      return processTablesTemplate(
+        templateContent,
+        separator,
+        reversedSchema,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+      );
+    },
+  );
+
+  return result;
 };
 
 const findMatchingCloseBrackets = (
@@ -356,6 +1101,7 @@ export const processIterateCommand = (
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
         .replace(/\\s/g, ' ')
+        .replace(/\\"/g, '"')
     : '{{value}}';
 
   // Use literal separator string and preserve spaces
@@ -364,6 +1110,7 @@ export const processIterateCommand = (
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
         .replace(/\\s/g, ' ')
+        .replace(/\\"/g, '"')
     : '';
 
   // Parse include and exclude filters
