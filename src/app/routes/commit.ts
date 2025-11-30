@@ -5,10 +5,6 @@ import { join } from 'node:path';
 
 const router = new Hono();
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
-
 function getRepositoryInfo(): { owner: string; repo: string } | null {
   const manualRepo = process.env.GITHUB_REPOSITORY;
   if (typeof manualRepo === 'string' && manualRepo !== '') {
@@ -136,6 +132,58 @@ function formatTimestamp(dateString: string): string {
   });
 }
 
+function parseCommitFromHTML(html: string): {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+} | null {
+  const commitLinkRegex =
+    /<li[^>]*data-commit-link="[^"]*\/commit\/([a-f0-9]{40})[^"]*"[^>]*>/i;
+  const firstCommitMatch = commitLinkRegex.exec(html);
+  if (!firstCommitMatch || firstCommitMatch.length < 2) {
+    return null;
+  }
+
+  const sha = firstCommitMatch[1];
+  const commitStartIndex = html.indexOf(firstCommitMatch[0]);
+  const commitEndIndex = html.indexOf('</li>', commitStartIndex);
+  if (commitEndIndex === -1) {
+    return null;
+  }
+  const commitSection = html.substring(commitStartIndex, commitEndIndex + 5);
+
+  const titleRegex = /title="([^"]+)"/i;
+  const messageMatch = titleRegex.exec(commitSection);
+  const message =
+    messageMatch && messageMatch.length >= 2
+      ? messageMatch[1].trim()
+      : 'No commit message';
+
+  const authorRegex = /aria-label="commits by ([^"]+)"[^>]*>([^<]+)<\/a>/i;
+  const authorMatch = authorRegex.exec(commitSection);
+  const author =
+    authorMatch && authorMatch.length >= 3
+      ? authorMatch[2].trim()
+      : authorMatch && authorMatch.length >= 2
+        ? authorMatch[1].trim()
+        : 'Unknown';
+
+  const relativeTimeRegex = /<relative-time[^>]*datetime="([^"]+)"[^>]*>/i;
+  const relativeTimeMatch = relativeTimeRegex.exec(commitSection);
+  const date =
+    relativeTimeMatch && relativeTimeMatch.length >= 2
+      ? relativeTimeMatch[1]
+      : new Date().toISOString();
+
+  return {
+    sha,
+    message,
+    author,
+    date,
+  };
+}
+
 router.get('/', async (c) => {
   try {
     const repoInfo = getRepositoryInfo();
@@ -153,134 +201,66 @@ router.get('/', async (c) => {
     }
 
     const branch = getCurrentBranch();
+    const repoUrl = `https://github.com/${repoInfo.owner}/${repoInfo.repo}`;
+    const branchUrl =
+      branch !== 'main' && branch !== 'master'
+        ? `${repoUrl}/tree/${branch}`
+        : repoUrl;
 
-    const headers: Record<string, string> = {
-      Accept: 'application/vnd.github.v3+json',
-    };
+    const response = await fetch(branchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Accept: 'text/html',
+      },
+    });
 
-    const refResponse = await fetch(
-      `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/git/ref/heads/${branch}`,
-      { headers },
-    );
-
-    if (!refResponse.ok) {
-      if (refResponse.status === 404) {
+    if (!response.ok) {
+      if (response.status === 404) {
         return c.json(
           {
-            error: 'Branch not found',
-            message: `Branch '${branch}' does not exist in the repository`,
+            error: 'Repository or branch not found',
+            message: `Repository '${repoInfo.owner}/${repoInfo.repo}' or branch '${branch}' does not exist`,
           },
           404,
         );
       }
-      if (refResponse.status === 403) {
-        return c.json(
-          {
-            error: 'Rate limit exceeded',
-            message: 'GitHub API rate limit exceeded. Please try again later.',
-          },
-          403,
-        );
-      }
       throw new Error(
-        `Failed to fetch branch: HTTP ${String(refResponse.status)}`,
+        `Failed to fetch repository page: HTTP ${String(response.status)}`,
       );
     }
 
-    const refDataUnknown: unknown = await refResponse.json();
-    const isRefData = (val: unknown): val is { object: { sha: string } } => {
-      if (!isRecord(val)) {
-        return false;
-      }
-      if (!('object' in val)) {
-        return false;
-      }
-      const objVal = val.object;
-      if (!isRecord(objVal)) {
-        return false;
-      }
-      if (!('sha' in objVal)) {
-        return false;
-      }
-      return typeof objVal.sha === 'string';
-    };
-    if (!isRefData(refDataUnknown)) {
-      throw new Error('Invalid response format from GitHub API');
-    }
-    const commitSha = refDataUnknown.object.sha;
+    const html = await response.text();
+    const commitInfo = parseCommitFromHTML(html);
 
-    const commitResponse = await fetch(
-      `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/git/commits/${commitSha}`,
-      { headers },
-    );
-
-    if (!commitResponse.ok) {
+    if (!commitInfo) {
       throw new Error(
-        `Failed to fetch commit: HTTP ${String(commitResponse.status)}`,
+        'Unable to parse commit information from repository page',
       );
     }
 
-    const commitDataUnknown: unknown = await commitResponse.json();
-    const isCommitData = (
-      val: unknown,
-    ): val is {
-      sha: string;
-      message: string;
-      author: { name: string; date: string; email: string };
-      committer: { name: string; date: string; email: string };
-      tree: { sha: string };
-      url: string;
-    } => {
-      if (!isRecord(val)) {
-        return false;
-      }
-      if (
-        typeof val.sha !== 'string' ||
-        typeof val.message !== 'string' ||
-        typeof val.url !== 'string' ||
-        !isRecord(val.author) ||
-        !isRecord(val.committer) ||
-        !isRecord(val.tree)
-      ) {
-        return false;
-      }
-      return (
-        typeof val.author.name === 'string' &&
-        typeof val.author.date === 'string' &&
-        typeof val.author.email === 'string' &&
-        typeof val.committer.name === 'string' &&
-        typeof val.committer.date === 'string' &&
-        typeof val.committer.email === 'string' &&
-        typeof val.tree.sha === 'string'
-      );
-    };
-    if (!isCommitData(commitDataUnknown)) {
-      throw new Error('Invalid commit data format from GitHub API');
-    }
-    const commitData = commitDataUnknown;
-
-    const authorDate = new Date(commitData.author.date);
-    const committerDate = new Date(commitData.committer.date);
+    const commitDate = new Date(commitInfo.date);
+    const dateReadable = formatTimestamp(commitInfo.date);
 
     return c.json({
-      sha: commitData.sha,
-      message: commitData.message.trim(),
+      sha: commitInfo.sha,
+      message: commitInfo.message,
       author: {
-        name: commitData.author.name,
-        email: commitData.author.email,
-        date: commitData.author.date,
-        dateReadable: formatTimestamp(commitData.author.date),
-        timestamp: authorDate.getTime(),
+        name: commitInfo.author,
+        email: '',
+        date: commitInfo.date,
+        dateReadable,
+        timestamp: commitDate.getTime(),
       },
       committer: {
-        name: commitData.committer.name,
-        email: commitData.committer.email,
-        date: commitData.committer.date,
-        dateReadable: formatTimestamp(commitData.committer.date),
-        timestamp: committerDate.getTime(),
+        name: commitInfo.author,
+        email: '',
+        date: commitInfo.date,
+        dateReadable,
+        timestamp: commitDate.getTime(),
       },
-      url: commitData.url,
-      treeSha: commitData.tree.sha,
+      url: `https://github.com/${repoInfo.owner}/${repoInfo.repo}/commit/${commitInfo.sha}`,
+      treeSha: '',
       branch,
       repository: `${repoInfo.owner}/${repoInfo.repo}`,
     });
