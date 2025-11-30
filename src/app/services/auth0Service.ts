@@ -1,5 +1,10 @@
 import { ManagementClient } from 'auth0';
 import dotenv from 'dotenv';
+import {
+  encryptValue,
+  decryptValue,
+  isEncryptedValue,
+} from '@/utils/serverEncryption.ts';
 
 dotenv.config();
 
@@ -107,11 +112,27 @@ export async function getGitHubToken(
 ): Promise<string | null> {
   try {
     const metadata = await getUserMetadata(auth0UserId);
-    if (metadata === null) {
+    if (metadata === null || !('github_token' in metadata)) {
       return null;
     }
     const token = metadata.github_token;
-    if (typeof token === 'string') {
+    if (typeof token === 'string' && token !== '') {
+      if (isEncryptedValue(token)) {
+        try {
+          return decryptValue(token);
+        } catch (decryptionError: unknown) {
+          if (decryptionError instanceof Error) {
+            if (decryptionError.message.includes('ENCRYPTION_KEY')) {
+              console.error(
+                'Warning: ENCRYPTION_KEY not set. Cannot decrypt GitHub token. Set ENCRYPTION_KEY environment variable.',
+              );
+              return null;
+            }
+            throw decryptionError;
+          }
+          throw decryptionError;
+        }
+      }
       return token;
     }
     return null;
@@ -129,9 +150,26 @@ export async function setGitHubToken(
 ): Promise<void> {
   try {
     const currentMetadata = await getUserMetadata(auth0UserId);
+    let tokenToStore: string;
+    try {
+      tokenToStore = encryptValue(token);
+    } catch (encryptionError: unknown) {
+      if (encryptionError instanceof Error) {
+        if (encryptionError.message.includes('ENCRYPTION_KEY')) {
+          console.error(
+            'Warning: ENCRYPTION_KEY not set. Storing GitHub token as plain text. Set ENCRYPTION_KEY environment variable for production.',
+          );
+          tokenToStore = token;
+        } else {
+          throw encryptionError;
+        }
+      } else {
+        throw encryptionError;
+      }
+    }
     const updatedMetadata = {
-      ...currentMetadata,
-      github_token: token,
+      ...(currentMetadata ?? {}),
+      github_token: tokenToStore,
     };
     await updateUserMetadata(auth0UserId, updatedMetadata);
   } catch (error: unknown) {
@@ -146,6 +184,9 @@ export async function deleteGitHubToken(auth0UserId: string): Promise<void> {
   try {
     const currentMetadata = await getUserMetadata(auth0UserId);
     if (currentMetadata === null) {
+      return;
+    }
+    if (!('github_token' in currentMetadata)) {
       return;
     }
     const { github_token: _, ...updatedMetadata } = currentMetadata;

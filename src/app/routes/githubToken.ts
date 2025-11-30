@@ -3,8 +3,13 @@ import {
   getGitHubToken,
   setGitHubToken,
   deleteGitHubToken,
+  getUserMetadata,
 } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
+import {
+  isEncryptionAvailable,
+  isEncryptedValue,
+} from '@/utils/serverEncryption.ts';
 
 const router = new Hono();
 
@@ -31,12 +36,42 @@ router.get('/', async (c) => {
     return c.json({ error: 'User ID not found in token' }, 401);
   }
 
-  const token = await getGitHubToken(auth0UserId);
-
-  return c.json({
-    success: true,
-    token: token ?? null,
-  });
+  try {
+    const token = await getGitHubToken(auth0UserId);
+    const encryptionAvailable = isEncryptionAvailable();
+    const metadata = await getUserMetadata(auth0UserId);
+    const rawToken =
+      metadata !== null &&
+      'github_token' in metadata &&
+      typeof metadata.github_token === 'string'
+        ? metadata.github_token
+        : null;
+    const isTokenEncrypted =
+      rawToken !== null && rawToken !== '' && isEncryptedValue(rawToken);
+    return c.json({
+      success: true,
+      token: token ?? null,
+      encryptionAvailable,
+      isTokenEncrypted: rawToken !== null ? isTokenEncrypted : null,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return c.json(
+        {
+          error: 'Failed to get GitHub token',
+          message: error.message,
+        },
+        500,
+      );
+    }
+    return c.json(
+      {
+        error: 'Failed to get GitHub token',
+        message: 'An unexpected error occurred',
+      },
+      500,
+    );
+  }
 });
 
 router.post('/', async (c) => {
@@ -78,7 +113,26 @@ router.post('/', async (c) => {
     );
   }
 
-  await setGitHubToken(auth0UserId, token);
+  try {
+    await setGitHubToken(auth0UserId, token);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return c.json(
+        {
+          error: 'Failed to save GitHub token',
+          message: error.message,
+        },
+        500,
+      );
+    }
+    return c.json(
+      {
+        error: 'Failed to save GitHub token',
+        message: 'An unexpected error occurred',
+      },
+      500,
+    );
+  }
 
   return c.json({
     success: true,
@@ -101,7 +155,26 @@ router.delete('/', async (c) => {
     return c.json({ error: 'User ID not found in token' }, 401);
   }
 
-  await deleteGitHubToken(auth0UserId);
+  try {
+    await deleteGitHubToken(auth0UserId);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return c.json(
+        {
+          error: 'Failed to delete GitHub token',
+          message: error.message,
+        },
+        500,
+      );
+    }
+    return c.json(
+      {
+        error: 'Failed to delete GitHub token',
+        message: 'An unexpected error occurred',
+      },
+      500,
+    );
+  }
 
   return c.json({
     success: true,

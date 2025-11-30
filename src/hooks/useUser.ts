@@ -11,6 +11,8 @@ interface IUserMetadataResponse {
 interface ITokenResponse {
   success?: boolean;
   token?: string | null;
+  encryptionAvailable?: boolean;
+  isTokenEncrypted?: boolean | null;
 }
 
 interface IUser {
@@ -31,6 +33,8 @@ interface IUseUserReturn {
   accessToken: string | null;
   logout: () => void;
   refreshGitHubToken: () => Promise<void>;
+  encryptionAvailable: boolean;
+  isTokenEncrypted: boolean | null;
 }
 
 const isMetadataResponse = (val: unknown): val is IUserMetadataResponse => {
@@ -85,7 +89,11 @@ const fetchUserMetadata = async (
 
 const fetchGitHubToken = async (
   accessToken: string,
-): Promise<string | null> => {
+): Promise<{
+  token: string | null;
+  encryptionAvailable: boolean;
+  isTokenEncrypted: boolean | null;
+}> => {
   const backendUrl = getBackendUrl();
   const response = await fetch(`${backendUrl}/github-token`, {
     method: 'GET',
@@ -96,20 +104,28 @@ const fetchGitHubToken = async (
   });
 
   if (!response.ok) {
-    return null;
+    return {
+      token: null,
+      encryptionAvailable: false,
+      isTokenEncrypted: null,
+    };
   }
 
   const result: unknown = await response.json();
 
-  if (
-    isTokenResponse(result) &&
-    result.token !== null &&
-    result.token !== undefined
-  ) {
-    return result.token;
+  if (isTokenResponse(result)) {
+    return {
+      token: result.token ?? null,
+      encryptionAvailable: result.encryptionAvailable ?? false,
+      isTokenEncrypted: result.isTokenEncrypted ?? null,
+    };
   }
 
-  return null;
+  return {
+    token: null,
+    encryptionAvailable: false,
+    isTokenEncrypted: null,
+  };
 };
 
 export const useUser = (): IUseUserReturn => {
@@ -193,12 +209,16 @@ export const useUser = (): IUseUserReturn => {
     queryFn: async () => {
       const accessToken = await getAccessToken();
       if (accessToken === null) {
-        return null;
+        return {
+          token: null,
+          encryptionAvailable: false,
+          isTokenEncrypted: null,
+        };
       }
 
-      const fetchedToken = await fetchGitHubToken(accessToken);
-      setGithubToken(fetchedToken);
-      return fetchedToken;
+      const fetchedData = await fetchGitHubToken(accessToken);
+      setGithubToken(fetchedData.token);
+      return fetchedData;
     },
     enabled: isAuthenticated && auth0User?.sub !== undefined,
     staleTime: 5 * 60 * 1000,
@@ -228,12 +248,14 @@ export const useUser = (): IUseUserReturn => {
   return {
     user: auth0User ?? null,
     userMetadata: metadata ?? userMetadata,
-    githubToken: tokenData ?? githubToken,
+    githubToken: tokenData?.token ?? githubToken,
     isLoading,
     isAuthenticated,
     error: error instanceof Error ? error : null,
     accessToken: useUserStore.getState().accessToken,
     logout,
     refreshGitHubToken,
+    encryptionAvailable: tokenData?.encryptionAvailable ?? false,
+    isTokenEncrypted: tokenData?.isTokenEncrypted ?? null,
   };
 };
