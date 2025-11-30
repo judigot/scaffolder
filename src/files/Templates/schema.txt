@@ -1,3 +1,4 @@
+<@@FORMAT@@ language="sql">
 <@@LOOP@@ data="tablesReversed" separator="\n">
 DROP TABLE IF EXISTS "{{tableName}}";
 </@@LOOP@@>
@@ -8,3 +9,4 @@ CREATE TABLE "{{tableName}}" (
 </@@LOOP@@><@@LOOP@@ data="columnsInfo" separator=""><@@IF@@ condition="has_foreign_key EQUALS 'true'">,
   CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}")</@@IF@@></@@LOOP@@>);
 </@@LOOP@@>
+</@@FORMAT@@>

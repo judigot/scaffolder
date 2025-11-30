@@ -288,4 +288,69 @@ CREATE TABLE "{{tableName}}" (
     // Strict minified comparison
     expect(minifiedActual).toBe(minifiedExpected);
   });
+
+  it('should format SQL output when using FORMAT tag', () => {
+    const userFilesWithFormat: IStructure = [
+      {
+        type: 'folder',
+        name: 'Projects',
+        children: [
+          {
+            type: 'folder',
+            name: 'App Generator - Database Schema',
+            children: [
+              {
+                type: 'file',
+                name: 'structure.yaml',
+                content:
+                  'CREATE_FILE(schema-formatted.sql --template /Templates/schema-formatted.txt):',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Templates',
+        children: [
+          {
+            type: 'file',
+            name: 'schema-formatted.txt',
+            content: `<@@FORMAT@@ language="sql">
+<@@LOOP@@ data="tablesReversed" separator="\\n">
+DROP TABLE IF EXISTS "{{tableName}}";
+</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\\n\\n">
+CREATE TABLE "{{tableName}}" (
+<@@LOOP@@ data="columnsInfo" separator=",\\n">
+  "{{value}}"<@@IF@@ condition="is_primary_key EQUALS 'true'"> BIGSERIAL PRIMARY KEY</@@IF@@><@@IF@@ condition="is_primary_key EQUALS 'false'"><@@IF@@ condition="data_type EQUALS 'number'"> BIGINT</@@IF@@><@@IF@@ condition="data_type EQUALS 'string'"><@@IF@@ condition="value EQUALS 'password'"> CHAR(60)<@@ELSE@@> TEXT</@@ELSE@@></@@IF@@></@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'"> TIMESTAMPTZ (6)</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'"> BOOLEAN</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'"> UNIQUE</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'"> NOT NULL</@@IF@@></@@IF@@>
+</@@LOOP@@><@@LOOP@@ data="columnsInfo" separator=""><@@IF@@ condition="has_foreign_key EQUALS 'true'">,
+  CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}")</@@IF@@></@@LOOP@@>);
+</@@LOOP@@>
+</@@FORMAT@@>`,
+          },
+        ],
+      },
+    ];
+
+    const projectPath =
+      '/Projects/App Generator - Database Schema/structure.yaml';
+
+    const result = buildProjectFiles(
+      projectPath,
+      userFilesWithFormat,
+      masterSchema,
+      formData,
+      null,
+    );
+
+    const schemaFile = result.structure[0] as IFile;
+    const content = schemaFile.content;
+
+    expect(content).not.toContain('<@@FORMAT@@');
+    expect(content).not.toContain('</@@FORMAT@@>');
+    expect(content).toContain('DROP TABLE');
+    expect(content).toContain('CREATE TABLE');
+    expect(minifySQL(content)).toBe(minifySQL(expectedSchemaSQL));
+  });
 });
