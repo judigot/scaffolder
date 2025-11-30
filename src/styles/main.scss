@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.MuiTreeView-root,
+.MuiTreeView-root *,
+.MuiTreeItem-root,
+.MuiTreeItem-root *,
+.MuiTreeItem-content,
+.MuiTreeItem-content *,
+.MuiCollapse-root,
+.MuiCollapse-root *,
+.MuiCollapse-wrapper,
+.MuiCollapse-wrapperInner,
+[class*='MuiTreeItem'],
+[class*='MuiCollapse'] {
+  transition: none !important;
+  transition-duration: 0ms !important;
+  animation: none !important;
+  animation-duration: 0ms !important;
+}
