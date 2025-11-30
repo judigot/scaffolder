@@ -434,6 +434,308 @@ const processAtLoopTablesReversed = (
 };
 
 /**
+ * Parse attributes from HTML-like tag: <@@LOOP@@ type="tables" separator="\n">
+ */
+const parseHtmlTagAttributes = (
+  attributesStr: string,
+): Record<string, string> => {
+  const attrs: Record<string, string> = {};
+  // Match attribute="value" or attribute='value'
+  const attrRegex = /(\w+)="([^"]*)"|(\w+)='([^']*)'/g;
+  let match;
+
+  while ((match = attrRegex.exec(attributesStr)) !== null) {
+    const name = match[1] || match[3];
+    const value = match[2] || match[4];
+    if (name) {
+      attrs[name] = value;
+    }
+  }
+
+  return attrs;
+};
+
+/**
+ * Find matching </@@LOOP@@> for a <@@LOOP@@> block, handling nested blocks
+ */
+const findHtmlLoopEnd = (
+  content: string,
+  startIndex: number,
+): { endIndex: number } | null => {
+  let depth = 1;
+  let i = startIndex;
+
+  while (i < content.length && depth > 0) {
+    // Check for opening <@@LOOP@@ (9 characters)
+    if (content.slice(i, i + 9) === '<@@LOOP@@') {
+      // Find the closing > of this opening tag
+      const closeTag = content.indexOf('>', i + 9);
+      if (closeTag !== -1) {
+        depth++;
+        i = closeTag + 1;
+      } else {
+        i++;
+      }
+    }
+    // Check for closing </@@LOOP@@> (11 characters)
+    else if (content.slice(i, i + 11) === '</@@LOOP@@>') {
+      depth--;
+      if (depth === 0) {
+        return { endIndex: i + 11 };
+      }
+      i += 11;
+    } else {
+      i++;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Find matching </@@IF@@> for a <@@IF@@> block, handling nested blocks
+ */
+const findHtmlIfEnd = (
+  content: string,
+  startIndex: number,
+): { endIndex: number } | null => {
+  let depth = 1;
+  let i = startIndex;
+
+  while (i < content.length && depth > 0) {
+    // Check for opening <@@IF@@ (7 characters)
+    if (content.slice(i, i + 7) === '<@@IF@@') {
+      // Find the closing > of this opening tag
+      const closeTag = content.indexOf('>', i + 7);
+      if (closeTag !== -1) {
+        depth++;
+        i = closeTag + 1;
+      } else {
+        i++;
+      }
+    }
+    // Check for <@@ELSE@@> (10 characters, doesn't affect depth, just skip it)
+    else if (content.slice(i, i + 10) === '<@@ELSE@@>') {
+      i += 10;
+    }
+    // Check for closing </@@IF@@> (9 characters)
+    else if (content.slice(i, i + 9) === '</@@IF@@>') {
+      depth--;
+      if (depth === 0) {
+        return { endIndex: i + 9 };
+      }
+      i += 9;
+    } else {
+      i++;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Process HTML-like <@@LOOP@@> syntax
+ */
+const processHtmlLoop = (
+  content: string,
+  schemaInfo: ISchemaInfo[],
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  // Match <@@LOOP@@ data="tables" separator="\n">
+  const openRegex = /<@@LOOP@@([^>]*)>/g;
+  let result = content;
+  let match;
+  let iterations = 0;
+  const maxIterations = 100;
+
+  // Process recursively until no more HTML LOOP tags are found
+  while (iterations < maxIterations) {
+    iterations++;
+    const matches: {
+      start: number;
+      end: number;
+      type: string;
+      separator: string;
+      templateContent: string;
+    }[] = [];
+
+    // Reset regex lastIndex for new search
+    openRegex.lastIndex = 0;
+
+    while ((match = openRegex.exec(result)) !== null) {
+      const attributesStr = match[1];
+      const attrs = parseHtmlTagAttributes(attributesStr);
+      const data = attrs.data || '';
+      const separator = attrs.separator
+        ? attrs.separator
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\"/g, '"')
+        : '\n';
+
+      const openEnd = match.index + match[0].length;
+      const closeInfo = findHtmlLoopEnd(result, openEnd);
+
+      if (closeInfo && data) {
+        matches.push({
+          start: match.index,
+          end: closeInfo.endIndex,
+          type: data,
+          separator,
+          templateContent: result.slice(openEnd, closeInfo.endIndex - 11), // -11 for </@@LOOP@@>
+        });
+      }
+    }
+
+    if (matches.length === 0) {
+      break;
+    }
+
+    // Process matches in reverse order
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const { start, end, type, separator, templateContent } = matches[i];
+
+      let processed = '';
+
+      if (type === 'tables') {
+        processed = processAtLoopTablesTemplate(
+          templateContent.replace(/^\n/, '').trimEnd(),
+          separator,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          formData,
+          userMetadata,
+        );
+      } else if (type === 'tablesReversed') {
+        const reversedSchema = [...schemaInfo].reverse();
+        processed = processAtLoopTablesTemplate(
+          templateContent.replace(/^\n/, '').trimEnd(),
+          separator,
+          reversedSchema,
+          schemaInfoParsed,
+          userFiles,
+          formData,
+          userMetadata,
+        );
+      } else if (type === 'columnsInfo') {
+        // Skip columnsInfo at top level - it will be processed per-table in processAtLoopTablesTemplate
+        continue;
+      }
+
+      result = result.slice(0, start) + processed + result.slice(end);
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Process HTML-like <@@IF@@> syntax
+ */
+export const processHtmlIf = (
+  content: string,
+  replacements: Record<string, string | string[]>,
+): string => {
+  // Match <@@IF@@ condition="var EQUALS 'value'">
+  const openRegex = /<@@IF@@([^>]*)>/g;
+  let result = content;
+  let match;
+  let iterations = 0;
+  const maxIterations = 100;
+
+  while (
+    (match = openRegex.exec(result)) !== null &&
+    iterations < maxIterations
+  ) {
+    iterations++;
+
+    const attributesStr = match[1];
+    const attrs = parseHtmlTagAttributes(attributesStr);
+    const condition = attrs.condition || '';
+
+    const openEnd = match.index + match[0].length;
+    const closeInfo = findHtmlIfEnd(result, openEnd);
+
+    if (!closeInfo) {
+      break;
+    }
+
+    // Extract content between <@@IF@@> and </@@IF@@>
+    let ifContent = result.slice(openEnd, closeInfo.endIndex - 9); // -9 for </@@IF@@>
+
+    // Check for <@@ELSE@@> at the same nesting level
+    let elseContent = '';
+    let elseIdx = -1;
+    let depth = 0;
+    for (let i = 0; i < ifContent.length; i++) {
+      if (ifContent.slice(i, i + 7) === '<@@IF@@') {
+        depth++;
+        const closeTag = ifContent.indexOf('>', i + 7);
+        if (closeTag !== -1) {
+          i = closeTag;
+        }
+      } else if (ifContent.slice(i, i + 9) === '</@@IF@@>') {
+        depth--;
+        i += 8;
+      } else if (ifContent.slice(i, i + 10) === '<@@ELSE@@>' && depth === 0) {
+        elseIdx = i + 10;
+        break;
+      }
+    }
+
+    if (elseIdx !== -1) {
+      elseContent = ifContent.slice(elseIdx);
+      // Strip </@@ELSE@@> closing tag if present (11 characters)
+      if (elseContent.endsWith('</@@ELSE@@>')) {
+        elseContent = elseContent.slice(0, -11);
+      }
+      ifContent = ifContent.slice(0, elseIdx - 10);
+    }
+
+    // Parse condition
+    let conditionResult = false;
+
+    // EQUALS condition
+    const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
+      condition,
+    );
+    if (equalsMatch) {
+      const [, varName, expectedValue] = equalsMatch;
+      const actualValue =
+        typeof replacements[varName] === 'string' ? replacements[varName] : '';
+      conditionResult = actualValue === expectedValue;
+    }
+
+    // NOT EQUAL condition
+    const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
+      condition,
+    );
+    if (notEqualMatch) {
+      const [, varName, expectedValue] = notEqualMatch;
+      const actualValue =
+        typeof replacements[varName] === 'string' ? replacements[varName] : '';
+      conditionResult = actualValue !== expectedValue;
+    }
+
+    // Replace the <@@IF@@> block with the appropriate content
+    const replacement = conditionResult ? ifContent : elseContent;
+    result =
+      result.slice(0, match.index) +
+      replacement +
+      result.slice(closeInfo.endIndex);
+
+    // Reset regex to start from beginning since we modified the string
+    openRegex.lastIndex = 0;
+  }
+
+  return result;
+};
+
+/**
  * Find matching @/IF for a @IF(...) block
  */
 const findAtIfEnd = (
@@ -601,6 +903,93 @@ export const processAtIf = (
 };
 
 /**
+ * Process HTML-like <@@LOOP@@ type="columnsInfo"> within a table template
+ */
+const processHtmlLoopColumnsInfo = (
+  content: string,
+  table: ISchemaInfo,
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+): string => {
+  // Match <@@LOOP@@ data="columnsInfo" separator=",\n">
+  const openRegex = /<@@LOOP@@([^>]*)>/g;
+  let result = content;
+  let match;
+  let iterations = 0;
+  const maxIterations = 100;
+
+  // Process recursively until no more HTML LOOP tags are found
+  while (iterations < maxIterations) {
+    iterations++;
+    const matches: {
+      start: number;
+      end: number;
+      separator: string;
+      templateContent: string;
+    }[] = [];
+
+    // Reset regex lastIndex for new search
+    openRegex.lastIndex = 0;
+
+    while ((match = openRegex.exec(result)) !== null) {
+      const attributesStr = match[1];
+      const attrs = parseHtmlTagAttributes(attributesStr);
+      const data = attrs.data || '';
+
+      if (data !== 'columnsInfo') {
+        continue;
+      }
+
+      const separator = attrs.separator
+        ? attrs.separator
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\"/g, '"')
+        : '';
+
+      const openEnd = match.index + match[0].length;
+      const closeInfo = findHtmlLoopEnd(result, openEnd);
+
+      if (closeInfo) {
+        matches.push({
+          start: match.index,
+          end: closeInfo.endIndex,
+          separator,
+          templateContent: result.slice(openEnd, closeInfo.endIndex - 11),
+        });
+      }
+    }
+
+    if (matches.length === 0) {
+      break;
+    }
+
+    // Process matches in reverse order
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const { start, end, separator, templateContent } = matches[i];
+
+      // Process using processColumnsInfoIteration (which will process HTML IF tags per column)
+      const processed = processColumnsInfoIteration(
+        table,
+        templateContent.replace(/^\n/, '').trimEnd(),
+        separator,
+        schemaInfoParsed,
+        userFiles,
+        undefined,
+        formData,
+        userMetadata,
+      );
+
+      result = result.slice(0, start) + processed + result.slice(end);
+    }
+  }
+
+  return result;
+};
+
+/**
  * Process @LOOP(columnsInfo) within a table template
  */
 const processAtLoopColumnsInfo = (
@@ -688,9 +1077,19 @@ const processAtLoopTablesTemplate = (
     .map((table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
-      // First process inner @LOOP(columnsInfo)
-      let processed = processAtLoopColumnsInfo(
+      // First process HTML-like <@@LOOP@@ data="columnsInfo">
+      let processed = processHtmlLoopColumnsInfo(
         templateContent,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+      );
+
+      // Then process inner @LOOP(columnsInfo)
+      processed = processAtLoopColumnsInfo(
+        processed,
         table,
         schemaInfoParsed,
         userFiles,
@@ -765,9 +1164,19 @@ export const processLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
 ): string => {
-  // First, process @LOOP(tables) experimental syntax
-  let result = processAtLoopTables(
+  // First, process HTML-like <@@LOOP@@> syntax
+  let result = processHtmlLoop(
     content,
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+  );
+
+  // Then, process @LOOP(tables) experimental syntax
+  result = processAtLoopTables(
+    result,
     schemaInfo,
     schemaInfoParsed,
     userFiles,
@@ -825,9 +1234,19 @@ export const processLoopTablesReversed = (
 ): string => {
   const reversedSchema = [...schemaInfo].reverse();
 
-  // First, process @LOOP(tablesReversed) experimental syntax
-  let result = processAtLoopTablesReversed(
+  // First, process HTML-like <@@LOOP@@> syntax
+  let result = processHtmlLoop(
     content,
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+  );
+
+  // Then, process @LOOP(tablesReversed) experimental syntax
+  result = processAtLoopTablesReversed(
+    result,
     schemaInfo,
     schemaInfoParsed,
     userFiles,

@@ -4,7 +4,10 @@ import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
-import { processAtIf } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import {
+  processAtIf,
+  processHtmlIf,
+} from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 
 export const processColumnsInfoIteration = (
@@ -65,8 +68,11 @@ export const processColumnsInfoIteration = (
       ...getReplacementsForTable(tableObj, schemaInfoParsed),
     };
 
-    // First process @IF conditions (experimental syntax)
-    const processedTemplate = processAtIf(templateStr, replacements);
+    // First process HTML-like <@@IF@@> conditions
+    let processedTemplate = processHtmlIf(templateStr, replacements);
+
+    // Then process @IF conditions (experimental syntax)
+    processedTemplate = processAtIf(processedTemplate, replacements);
 
     // Then replace placeholders (which also processes {% IF %} conditions)
     const result = replacePlaceholders(

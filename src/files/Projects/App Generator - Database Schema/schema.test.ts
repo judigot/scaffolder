@@ -5,6 +5,21 @@ import type { IFormStore } from '@/useFormStore.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
 
 describe('App Generator - Database Schema', () => {
+  /**
+   * Minify SQL by removing all whitespace including line breaks
+   * This helps catch issues like unprocessed HTML tags
+   * Returns a single line with no whitespace
+   */
+  const minifySQL = (sql: string): string => {
+    return sql
+      .replace(/\s*\(\s*/g, '(') // Remove spaces around opening parens
+      .replace(/\s*\)\s*/g, ')') // Remove spaces around closing parens
+      .replace(/\s*,\s*/g, ',') // Remove spaces around commas
+      .replace(/\s*;\s*/g, ';') // Remove spaces around semicolons
+      .replace(/\s+/g, '') // Remove all remaining whitespace including newlines
+      .trim();
+  };
+
   const expectedSchemaSQL = `DROP TABLE IF EXISTS "posts";
 DROP TABLE IF EXISTS "profile";
 DROP TABLE IF EXISTS "user";
@@ -85,16 +100,16 @@ CREATE TABLE "posts" (
         {
           type: 'file',
           name: 'schema.txt',
-          content: `@LOOP(tablesReversed)
-DROP TABLE IF EXISTS "{{tableName}}";@/LOOP --separator="\\n"
-
-@LOOP(tables)
+          content: `<@@LOOP@@ data="tablesReversed" separator="\\n">
+DROP TABLE IF EXISTS "{{tableName}}";
+</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\\n\\n">
 CREATE TABLE "{{tableName}}" (
-@LOOP(columnsInfo)
-  "{{value}}"@IF(is_primary_key EQUALS 'true') BIGSERIAL PRIMARY KEY@/IF@IF(is_primary_key EQUALS 'false')@IF(data_type EQUALS 'number') BIGINT@/IF@IF(data_type EQUALS 'string')@IF(value EQUALS 'password') CHAR(60)@ELSE TEXT@/IF@/IF@IF(data_type EQUALS 'Date') TIMESTAMPTZ (6)@/IF@IF(data_type EQUALS 'boolean') BOOLEAN@/IF@IF(is_unique EQUALS 'true') UNIQUE@/IF@IF(is_nullable EQUALS 'NO') NOT NULL@/IF@/IF@/LOOP --separator=",\\n"@LOOP(columnsInfo)
-@IF(has_foreign_key EQUALS 'true'),
-  CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}")@/IF@/LOOP --separator=""
-);@/LOOP --separator="\\n\\n"`,
+<@@LOOP@@ data="columnsInfo" separator=",\\n">
+  "{{value}}"<@@IF@@ condition="is_primary_key EQUALS 'true'"> BIGSERIAL PRIMARY KEY</@@IF@@><@@IF@@ condition="is_primary_key EQUALS 'false'"><@@IF@@ condition="data_type EQUALS 'number'"> BIGINT</@@IF@@><@@IF@@ condition="data_type EQUALS 'string'"><@@IF@@ condition="value EQUALS 'password'"> CHAR(60)<@@ELSE@@> TEXT</@@ELSE@@></@@IF@@></@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'"> TIMESTAMPTZ (6)</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'"> BOOLEAN</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'"> UNIQUE</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'"> NOT NULL</@@IF@@></@@IF@@>
+</@@LOOP@@><@@LOOP@@ data="columnsInfo" separator=""><@@IF@@ condition="has_foreign_key EQUALS 'true'">,
+  CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}")</@@IF@@></@@LOOP@@>);
+</@@LOOP@@>`,
         },
       ],
     },
@@ -240,5 +255,37 @@ CREATE TABLE "{{tableName}}" (
 
     const schemaFile = result.structure[0] as IFile;
     expect(schemaFile.content).toBe(expectedSchemaSQL);
+  });
+
+  it('should generate schema.sql with no HTML tags (strict minified check)', () => {
+    const userFiles = createUserFiles();
+    const projectPath =
+      '/Projects/App Generator - Database Schema/structure.yaml';
+
+    const result = buildProjectFiles(
+      projectPath,
+      userFiles,
+      masterSchema,
+      formData,
+      null,
+    );
+
+    const schemaFile = result.structure[0] as IFile;
+    const actual = schemaFile.content;
+    const expected = expectedSchemaSQL;
+
+    // Minify both for comparison (catches whitespace issues and unprocessed tags)
+    const minifiedActual = minifySQL(actual);
+    const minifiedExpected = minifySQL(expected);
+
+    // Check for HTML tags in output (should not exist)
+    expect(actual).not.toContain('<@@LOOP@@');
+    expect(actual).not.toContain('</@@LOOP@@>');
+    expect(actual).not.toContain('<@@IF@@');
+    expect(actual).not.toContain('</@@IF@@>');
+    expect(actual).not.toContain('<@@ELSE@@>');
+
+    // Strict minified comparison
+    expect(minifiedActual).toBe(minifiedExpected);
   });
 });
