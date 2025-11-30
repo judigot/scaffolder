@@ -1461,6 +1461,31 @@ function FileViewer({
           {isCreatingFile ? 'Creating...' : 'Create Test File'}
         </button>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCreateNewTestRepository}
+            disabled={
+              isCreatingRepository ||
+              folderStructure.length === 0 ||
+              safeFilesUsingUserEnv.length > 0
+            }
+            className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+              isCreatingRepository ||
+              folderStructure.length === 0 ||
+              safeFilesUsingUserEnv.length > 0
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
+            title={
+              safeFilesUsingUserEnv.length > 0
+                ? 'Cannot export: USE_USER_ENV detected in files'
+                : undefined
+            }
+          >
+            {isCreatingRepository
+              ? `Exporting ${String(countFiles(folderStructure))} files...`
+              : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
+          </button>
           {safeFilesUsingUserEnv.length > 0 && (
             <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md max-w-md">
               <div className="flex items-start gap-2">
@@ -1490,31 +1515,6 @@ function FileViewer({
               </div>
             </div>
           )}
-          <button
-            type="button"
-            onClick={handleCreateNewTestRepository}
-            disabled={
-              isCreatingRepository ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-            }
-            className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-              isCreatingRepository ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            }`}
-            title={
-              safeFilesUsingUserEnv.length > 0
-                ? 'Cannot export: USE_USER_ENV detected in files'
-                : undefined
-            }
-          >
-            {isCreatingRepository
-              ? `Exporting ${String(countFiles(folderStructure))} files...`
-              : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
-          </button>
         </div>
       </div>
       <br />
