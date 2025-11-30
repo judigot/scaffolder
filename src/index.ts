@@ -27,10 +27,13 @@ if (process.env.VERCEL !== '1') {
   }
 }
 
-const hono: { fetch: typeof app.fetch; port?: number } = { fetch: app.fetch };
+const hono: { fetch: typeof app.fetch; port?: number; hostname?: string } = {
+  fetch: app.fetch,
+};
 
 if (process.env.VERCEL !== '1') {
   hono.port = Number(process.env.VITE_BACKEND_PORT);
+  hono.hostname = process.env.VITE_BACKEND_HOSTNAME ?? '0.0.0.0';
 }
 
 export default hono;
