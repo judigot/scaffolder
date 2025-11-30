@@ -1508,6 +1508,13 @@ function FileViewer({
                     {safeFilesUsingUserEnv.length} file(s) use USE_USER_ENV.
                     Committing to GitHub will expose your secrets.
                   </p>
+                  <ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
+                    {safeFilesUsingUserEnv.map((filePath: string) => (
+                      <li key={filePath} className="font-mono">
+                        {filePath}
+                      </li>
+                    ))}
+                  </ul>
                   <p className="text-xs text-yellow-200/70">
                     Use placeholders or download locally instead.
                   </p>

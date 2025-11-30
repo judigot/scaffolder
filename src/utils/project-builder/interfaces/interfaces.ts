@@ -35,4 +35,5 @@ export interface IBuildContext {
   dataContext?: DataContext;
   options?: IActionFlags;
   onFileUsingUserEnv?: (filePath: string) => void;
+  currentPath?: string;
 }

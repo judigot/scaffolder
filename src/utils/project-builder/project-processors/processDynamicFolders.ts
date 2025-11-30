@@ -19,6 +19,7 @@ export const processDynamicFolders = ({
   formData,
   userMetadata,
   options,
+  currentPath = '',
 }: IBuildContext): IStructure => {
   if (typeof folderName !== 'string') {
     throw new Error('Folder name is not a string');
@@ -47,6 +48,9 @@ export const processDynamicFolders = ({
         augmentedData,
       );
 
+      const newPath =
+        currentPath === '' ? processedName : `${currentPath}/${processedName}`;
+
       const processedChildren = processYamlStructure({
         onFileUsingUserEnv: options?.onFileUsingUserEnv,
         node: children,
@@ -57,6 +61,7 @@ export const processDynamicFolders = ({
         formData,
         userMetadata,
         dataContext: augmentedData,
+        currentPath: newPath,
       });
 
       return {
@@ -83,6 +88,9 @@ export const processDynamicFolders = ({
       undefined,
     );
 
+    const newPath =
+      currentPath === '' ? processedName : `${currentPath}/${processedName}`;
+
     const processedChildren = processYamlStructure({
       node: children,
       schemaInfo,
@@ -93,6 +101,7 @@ export const processDynamicFolders = ({
       formData,
       userMetadata,
       onFileUsingUserEnv: options?.onFileUsingUserEnv,
+      currentPath: newPath,
     });
 
     return {

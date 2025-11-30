@@ -31,6 +31,13 @@ const ROOT_LEVEL_ACTIONS = [
   PROJECT_ACTIONS.LOOP_FOLDERS,
 ] as const;
 
+const buildAbsolutePath = (fileName: string, currentPath: string): string => {
+  if (currentPath === '') {
+    return fileName;
+  }
+  return `${currentPath}/${fileName}`;
+};
+
 export const processYamlStructure = ({
   node,
   schemaInfo,
@@ -42,6 +49,7 @@ export const processYamlStructure = ({
   userMetadata,
   dataContext,
   onFileUsingUserEnv,
+  currentPath = '',
 }: IBuildContext): IStructure => {
   if (typeof node === 'string') {
     const nodeParams = /\(([^)]+)\)/.exec(node);
@@ -145,7 +153,7 @@ export const processYamlStructure = ({
           : processedName;
 
         if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
-          onFileUsingUserEnv(outputFileName);
+          onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
         }
 
         const content = replacePlaceholders(
@@ -225,7 +233,7 @@ export const processYamlStructure = ({
           : processedName;
 
         if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
-          onFileUsingUserEnv(outputFileName);
+          onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
         }
 
         let content = '';
@@ -312,7 +320,7 @@ export const processYamlStructure = ({
       // Check if template uses USE_USER_ENV BEFORE processing
       // This detects usage even if the pattern gets replaced successfully
       if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
-        onFileUsingUserEnv(outputFileName);
+        onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
       }
 
       let processedContent = replacePlaceholders(
@@ -374,6 +382,7 @@ export const processYamlStructure = ({
         formData,
         userMetadata,
         onFileUsingUserEnv,
+        currentPath,
       });
     }
 
@@ -388,6 +397,7 @@ export const processYamlStructure = ({
         formData,
         userMetadata,
         onFileUsingUserEnv,
+        currentPath,
       });
     }
 
@@ -416,7 +426,7 @@ export const processYamlStructure = ({
 
       // Check if template uses USE_USER_ENV BEFORE processing
       if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
-        onFileUsingUserEnv(outputFileName);
+        onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
       }
 
       const schemaInfoProcessed =
@@ -529,6 +539,7 @@ export const processYamlStructure = ({
                 ...folderOptions,
                 onFileUsingUserEnv,
               },
+              currentPath,
             });
           }
         }
@@ -546,6 +557,7 @@ export const processYamlStructure = ({
           userMetadata,
           dataContext,
           onFileUsingUserEnv,
+          currentPath,
         });
       }
       return processYamlStructure({
@@ -558,6 +570,7 @@ export const processYamlStructure = ({
         userMetadata,
         dataContext,
         onFileUsingUserEnv,
+        currentPath,
       });
     });
   }
@@ -576,6 +589,7 @@ export const processYamlStructure = ({
           userMetadata,
           dataContext,
           onFileUsingUserEnv,
+          currentPath,
         });
 
         if (value !== null && value !== undefined) {
@@ -590,6 +604,7 @@ export const processYamlStructure = ({
             userMetadata,
             dataContext,
             onFileUsingUserEnv,
+            currentPath,
           });
 
           return [...actionResult, ...childStructure];
@@ -617,6 +632,7 @@ export const processYamlStructure = ({
           formData,
           userMetadata,
           onFileUsingUserEnv,
+          currentPath,
         });
 
         if (key.endsWith(':') && value !== null && typeof value === 'object') {
@@ -631,6 +647,7 @@ export const processYamlStructure = ({
             userMetadata,
             dataContext,
             onFileUsingUserEnv,
+            currentPath,
           });
 
           return [...importResult, ...childStructure];
@@ -642,11 +659,15 @@ export const processYamlStructure = ({
 
       // Handle conditional folders
       const { name, conditions } = parseConditionalFolder(key);
+      const folderName = name.replace(/[()]/g, '');
+      const newPath =
+        currentPath === '' ? folderName : `${currentPath}/${folderName}`;
+
       if (conditions && !checkConditions(conditions)) {
         return [
           {
             type: 'folder',
-            name: name.replace(/[()]/g, ''),
+            name: folderName,
             children: [],
           },
         ];
@@ -673,6 +694,7 @@ export const processYamlStructure = ({
             ...folderOptions,
             onFileUsingUserEnv,
           },
+          currentPath,
         });
       }
 
@@ -684,11 +706,11 @@ export const processYamlStructure = ({
           projectYamlPath,
         );
         if (templateContent.length > 0) {
-          const outputFileName = name.replace(/[()]/g, '');
+          const outputFileName = folderName;
 
           // Check if template uses USE_USER_ENV BEFORE processing
           if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
-            onFileUsingUserEnv(outputFileName);
+            onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
           }
 
           const schemaInfoProcessed =
@@ -760,7 +782,7 @@ export const processYamlStructure = ({
         return [
           {
             type: 'folder',
-            name: name.replace(/[()]/g, ''),
+            name: folderName,
             children: processYamlStructure({
               node: value,
               schemaInfo,
@@ -772,6 +794,7 @@ export const processYamlStructure = ({
               userMetadata,
               dataContext,
               onFileUsingUserEnv,
+              currentPath: newPath,
             }),
           },
         ];
@@ -780,7 +803,7 @@ export const processYamlStructure = ({
       return [
         {
           type: 'folder',
-          name: name.replace(/[()]/g, ''),
+          name: folderName,
           children: processYamlStructure({
             node: value,
             schemaInfo,
@@ -791,6 +814,7 @@ export const processYamlStructure = ({
             userMetadata,
             dataContext,
             onFileUsingUserEnv,
+            currentPath: newPath,
           }),
         },
       ];

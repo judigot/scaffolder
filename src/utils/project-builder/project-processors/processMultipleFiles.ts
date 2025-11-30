@@ -21,6 +21,13 @@ interface IMultipleFilesContext extends Omit<IBuildContext, 'table'> {
   options?: IActionFlags;
 }
 
+const buildAbsolutePath = (fileName: string, currentPath: string): string => {
+  if (currentPath === '') {
+    return fileName;
+  }
+  return `${currentPath}/${fileName}`;
+};
+
 export const processMultipleFiles = ({
   command: fileName,
   options = {},
@@ -31,6 +38,7 @@ export const processMultipleFiles = ({
   formData,
   userMetadata,
   onFileUsingUserEnv,
+  currentPath = '',
 }: IMultipleFilesContext): IFile[] => {
   if (!fileName || fileName.length === 0) {
     return [];
@@ -142,7 +150,7 @@ export const processMultipleFiles = ({
 
       // Track file if template uses USE_USER_ENV
       if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
-        onFileUsingUserEnv(outputFileName);
+        onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
       }
 
       let content = processLoopDataSources(
