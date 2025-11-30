@@ -97,7 +97,7 @@ export const createLocalFilesService = async (
     }
 
     // Build project files
-    const projectFiles = buildProjectFiles(
+    const buildResult = buildProjectFiles(
       `/Projects/${projectName}/structure.yaml`,
       userFiles,
       schemaInfo,
@@ -112,7 +112,7 @@ export const createLocalFilesService = async (
 
     // Use the utility function to create folder structure
     createFolderStructure({
-      structure: projectFiles,
+      structure: buildResult.structure,
       targetDirectory: targetDir,
     });
 

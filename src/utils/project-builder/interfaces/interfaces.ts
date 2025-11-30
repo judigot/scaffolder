@@ -15,6 +15,7 @@ export interface IActionFlags {
   [ACTION_FLAGS.EXCLUDE_TABLE]?: string;
   [ACTION_FLAGS.IS_RELATIVE_PATH]?: boolean;
   [ACTION_FLAGS.DATA_SOURCE]?: string;
+  onFileUsingUserEnv?: (filePath: string) => void;
 }
 
 export type DataContext = Record<string, unknown>;
@@ -33,4 +34,5 @@ export interface IBuildContext {
   userMetadata?: Record<string, unknown> | null;
   dataContext?: DataContext;
   options?: IActionFlags;
+  onFileUsingUserEnv?: (filePath: string) => void;
 }

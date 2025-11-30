@@ -1,0 +1,6 @@
+app:
+  - config:
+      - app.php: /Templates/backend/laravel/ConfigWithUserEnv.txt
+  - Controllers:
+      - ProductController.php: /Templates/backend/laravel/Controller.txt
+

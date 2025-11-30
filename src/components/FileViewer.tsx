@@ -25,6 +25,8 @@ import { useProjectStore } from '@/useProjectStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { useFileContent } from '@/hooks/useFileContent.ts';
+import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
+import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 
 export interface IBase {
   name: string;
@@ -87,11 +89,14 @@ function FileViewer({
   folderStructure: initialFolderStructure,
   mode,
   projectName,
+  filesUsingUserEnv = [],
 }: {
   folderStructure: IStructure;
   mode: 'edit' | 'view';
   projectName?: string;
+  filesUsingUserEnv?: string[];
 }) {
+  const safeFilesUsingUserEnv = filesUsingUserEnv;
   const { getAccessTokenSilently } = useAuth0();
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
@@ -1061,6 +1066,22 @@ function FileViewer({
         const owner = match[1];
         const repo = match[2];
 
+        // Security check: Detect USE_USER_ENV usage before committing to GitHub
+        const userEnvDetection = detectUserEnvInStructure(folderStructure);
+        if (userEnvDetection.hasUserEnv) {
+          const fileList = userEnvDetection.locations
+            .map((loc) => `  - ${loc.filePath}`)
+            .join('\n');
+          throw new Error(
+            `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
+              `Found in:\n${fileList}\n\n` +
+              `Options:\n` +
+              `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+              `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+              `3. Use environment variable references in code (process.env.KEY_NAME)`,
+          );
+        }
+
         const uploadResponse = await fetch(
           `${getApiUrl()}/create-github-folder-structure`,
           {
@@ -1296,6 +1317,18 @@ function FileViewer({
         const filePath = `dist/test-file-${timestamp}.txt`;
         const content = `Test file created at ${new Date().toISOString()}\nRepository: ${publicRepoURL}`;
 
+        // Security check: Detect USE_USER_ENV usage before committing to GitHub
+        if (USE_USER_ENV_REGEX.test(content)) {
+          throw new Error(
+            `Cannot commit to GitHub: USE_USER_ENV detected in file content. This would expose your secrets.\n\n` +
+              `File: ${filePath}\n\n` +
+              `Options:\n` +
+              `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+              `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+              `3. Use environment variable references in code (process.env.KEY_NAME)`,
+          );
+        }
+
         const response = await fetch(`${getApiUrl()}/create-github-file`, {
           method: 'POST',
           headers: {
@@ -1427,20 +1460,62 @@ function FileViewer({
         >
           {isCreatingFile ? 'Creating...' : 'Create Test File'}
         </button>
-        <button
-          type="button"
-          onClick={handleCreateNewTestRepository}
-          disabled={isCreatingRepository || folderStructure.length === 0}
-          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-            isCreatingRepository || folderStructure.length === 0
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
-        >
-          {isCreatingRepository
-            ? `Exporting ${String(countFiles(folderStructure))} files...`
-            : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
-        </button>
+        <div className="flex items-center gap-2">
+          {safeFilesUsingUserEnv.length > 0 && (
+            <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md max-w-md">
+              <div className="flex items-start gap-2">
+                <svg
+                  className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-yellow-300 mb-1">
+                    USE_USER_ENV Detected
+                  </p>
+                  <p className="text-xs text-yellow-200/80 mb-2">
+                    {safeFilesUsingUserEnv.length} file(s) use USE_USER_ENV.
+                    Committing to GitHub will expose your secrets.
+                  </p>
+                  <p className="text-xs text-yellow-200/70">
+                    Use placeholders or download locally instead.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleCreateNewTestRepository}
+            disabled={
+              isCreatingRepository ||
+              folderStructure.length === 0 ||
+              safeFilesUsingUserEnv.length > 0
+            }
+            className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+              isCreatingRepository ||
+              folderStructure.length === 0 ||
+              safeFilesUsingUserEnv.length > 0
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
+            title={
+              safeFilesUsingUserEnv.length > 0
+                ? 'Cannot export: USE_USER_ENV detected in files'
+                : undefined
+            }
+          >
+            {isCreatingRepository
+              ? `Exporting ${String(countFiles(folderStructure))} files...`
+              : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
+          </button>
+        </div>
       </div>
       <br />
       <div className="grid grid-cols-1 md:grid-cols-3 text-white">

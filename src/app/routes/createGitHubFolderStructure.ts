@@ -3,6 +3,7 @@ import { createGitHubFolderStructure } from '@/utils/createGitHubFolderStructure
 import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
+import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
 
 const router = new Hono();
 
@@ -142,6 +143,29 @@ router.post('/', async (c) => {
       {
         error: 'Invalid structure format',
         message: 'structure must be a valid IStructure array',
+      },
+      400,
+    );
+  }
+
+  // Security check: Detect USE_USER_ENV usage before committing to GitHub
+  // This prevents secrets from being committed to repositories
+  const userEnvDetection = detectUserEnvInStructure(structure);
+  if (userEnvDetection.hasUserEnv) {
+    const fileList = userEnvDetection.locations
+      .map((loc) => `  - ${loc.filePath}`)
+      .join('\n');
+    return c.json(
+      {
+        error: 'USE_USER_ENV detected',
+        message:
+          `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
+          `Found in:\n${fileList}\n\n` +
+          `Options:\n` +
+          `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+          `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+          `3. Use environment variable references in code (process.env.KEY_NAME)`,
+        locations: userEnvDetection.locations,
       },
       400,
     );

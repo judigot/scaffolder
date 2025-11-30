@@ -22,6 +22,7 @@ import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import type { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processTemplatePathWithFlag } from '@/utils/project-builder/utils/processRelativePath.ts';
 import { flattenData } from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 
 const ROOT_LEVEL_ACTIONS = [
   PROJECT_ACTIONS.CREATE_FILE,
@@ -40,6 +41,7 @@ export const processYamlStructure = ({
   formData,
   userMetadata,
   dataContext,
+  onFileUsingUserEnv,
 }: IBuildContext): IStructure => {
   if (typeof node === 'string') {
     const nodeParams = /\(([^)]+)\)/.exec(node);
@@ -142,6 +144,10 @@ export const processYamlStructure = ({
           ? extractFileNameFromPath(processedName)
           : processedName;
 
+        if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+          onFileUsingUserEnv(outputFileName);
+        }
+
         const content = replacePlaceholders(
           templateContent,
           dataReplacements,
@@ -217,6 +223,10 @@ export const processYamlStructure = ({
         const outputFileName = processedName.includes('/')
           ? extractFileNameFromPath(processedName)
           : processedName;
+
+        if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+          onFileUsingUserEnv(outputFileName);
+        }
 
         let content = '';
         content = replacePlaceholders(
@@ -299,6 +309,12 @@ export const processYamlStructure = ({
         projectYamlPath,
       );
 
+      // Check if template uses USE_USER_ENV BEFORE processing
+      // This detects usage even if the pattern gets replaced successfully
+      if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+        onFileUsingUserEnv(outputFileName);
+      }
+
       let processedContent = replacePlaceholders(
         processLoopDataSources(
           processLoopTables(
@@ -356,6 +372,8 @@ export const processYamlStructure = ({
         projectYamlPath,
         table,
         formData,
+        userMetadata,
+        onFileUsingUserEnv,
       });
     }
 
@@ -368,6 +386,8 @@ export const processYamlStructure = ({
         userFiles,
         projectYamlPath,
         formData,
+        userMetadata,
+        onFileUsingUserEnv,
       });
     }
 
@@ -391,6 +411,14 @@ export const processYamlStructure = ({
       projectYamlPath,
     );
     if (templateContent.length > 0) {
+      // Extract filename from node (could be a path or just filename)
+      const outputFileName = extractFileNameFromPath(node);
+
+      // Check if template uses USE_USER_ENV BEFORE processing
+      if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+        onFileUsingUserEnv(outputFileName);
+      }
+
       const schemaInfoProcessed =
         schemaInfo.length > 0 ? schemaInfo[0] : undefined;
       if (!schemaInfoProcessed) {
@@ -440,9 +468,6 @@ export const processYamlStructure = ({
 
       // Format the final content with proper character replacements
       const finalContent = formatFileContent(processedContent);
-
-      // Extract just the filename from the path
-      const outputFileName = extractFileNameFromPath(node);
 
       return [
         {
@@ -500,7 +525,10 @@ export const processYamlStructure = ({
               projectYamlPath,
               formData,
               userMetadata,
-              options: folderOptions,
+              options: {
+                ...folderOptions,
+                onFileUsingUserEnv,
+              },
             });
           }
         }
@@ -517,6 +545,7 @@ export const processYamlStructure = ({
           formData,
           userMetadata,
           dataContext,
+          onFileUsingUserEnv,
         });
       }
       return processYamlStructure({
@@ -528,6 +557,7 @@ export const processYamlStructure = ({
         formData,
         userMetadata,
         dataContext,
+        onFileUsingUserEnv,
       });
     });
   }
@@ -545,6 +575,7 @@ export const processYamlStructure = ({
           formData,
           userMetadata,
           dataContext,
+          onFileUsingUserEnv,
         });
 
         if (value !== null && value !== undefined) {
@@ -558,6 +589,7 @@ export const processYamlStructure = ({
             formData,
             userMetadata,
             dataContext,
+            onFileUsingUserEnv,
           });
 
           return [...actionResult, ...childStructure];
@@ -583,6 +615,8 @@ export const processYamlStructure = ({
           projectYamlPath,
           table,
           formData,
+          userMetadata,
+          onFileUsingUserEnv,
         });
 
         if (key.endsWith(':') && value !== null && typeof value === 'object') {
@@ -596,6 +630,7 @@ export const processYamlStructure = ({
             formData,
             userMetadata,
             dataContext,
+            onFileUsingUserEnv,
           });
 
           return [...importResult, ...childStructure];
@@ -634,8 +669,91 @@ export const processYamlStructure = ({
           projectYamlPath,
           formData,
           userMetadata,
-          options: folderOptions,
+          options: {
+            ...folderOptions,
+            onFileUsingUserEnv,
+          },
         });
+      }
+
+      // Handle case where value is a string (template path) - e.g., "app.php: /Templates/..."
+      if (typeof value === 'string') {
+        const templateContent = loadTemplateContent(
+          userFiles,
+          value,
+          projectYamlPath,
+        );
+        if (templateContent.length > 0) {
+          const outputFileName = name.replace(/[()]/g, '');
+
+          // Check if template uses USE_USER_ENV BEFORE processing
+          if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+            onFileUsingUserEnv(outputFileName);
+          }
+
+          const schemaInfoProcessed =
+            schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+          if (!schemaInfoProcessed) {
+            return [
+              {
+                type: 'file',
+                name: outputFileName,
+                content: '',
+              },
+            ];
+          }
+
+          const replacements = getReplacementsForTable(
+            schemaInfoProcessed,
+            schemaInfoParsed,
+          );
+
+          let processedContent = replacePlaceholders(
+            processLoopDataSources(
+              processLoopTables(
+                templateContent,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+                formData,
+                userMetadata,
+              ),
+              userFiles,
+              schemaInfoParsed,
+              formData,
+              userMetadata,
+            ),
+            replacements,
+            userFiles,
+            schemaInfoParsed,
+            schemaInfoProcessed,
+            projectYamlPath,
+            undefined,
+            formData,
+            userMetadata,
+            undefined,
+          );
+
+          processedContent = processIterateInTemplate(
+            processedContent,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            table,
+            formData,
+            userMetadata,
+          );
+
+          const finalContent = formatFileContent(processedContent);
+
+          return [
+            {
+              type: 'file',
+              name: outputFileName,
+              content: finalContent,
+            },
+          ];
+        }
       }
 
       if (table) {
@@ -653,6 +771,7 @@ export const processYamlStructure = ({
               formData,
               userMetadata,
               dataContext,
+              onFileUsingUserEnv,
             }),
           },
         ];
@@ -671,6 +790,7 @@ export const processYamlStructure = ({
             formData,
             userMetadata,
             dataContext,
+            onFileUsingUserEnv,
           }),
         },
       ];

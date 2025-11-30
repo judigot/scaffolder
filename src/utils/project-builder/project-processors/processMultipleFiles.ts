@@ -14,6 +14,7 @@ import {
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
+import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 
 interface IMultipleFilesContext extends Omit<IBuildContext, 'table'> {
   command: string;
@@ -29,6 +30,7 @@ export const processMultipleFiles = ({
   projectYamlPath,
   formData,
   userMetadata,
+  onFileUsingUserEnv,
 }: IMultipleFilesContext): IFile[] => {
   if (!fileName || fileName.length === 0) {
     return [];
@@ -46,6 +48,18 @@ export const processMultipleFiles = ({
     );
   } else {
     templateContent = loadTemplateContent(userFiles, fileName, projectYamlPath);
+  }
+
+  // Check if template uses USE_USER_ENV BEFORE processing
+  // This detects usage even if the pattern gets replaced successfully
+  if (
+    templateContent.length > 0 &&
+    USE_USER_ENV_REGEX.test(templateContent) &&
+    onFileUsingUserEnv
+  ) {
+    // For FILE_LOOP, we'll track each generated file name
+    // The actual file names will be determined during processing
+    // We'll track them in the map function below
   }
 
   const files: IFile[] = schemaInfo
@@ -125,6 +139,11 @@ export const processMultipleFiles = ({
       const outputFileName = processedName.includes('/')
         ? extractFileNameFromPath(processedName)
         : processedName;
+
+      // Track file if template uses USE_USER_ENV
+      if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+        onFileUsingUserEnv(outputFileName);
+      }
 
       let content = processLoopDataSources(
         processLoopTables(

@@ -2,13 +2,21 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { IFile, IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
+import {
+  buildProjectFiles,
+  type IBuildProjectFilesResult,
+} from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { useUserStore } from '@/useUserStore.ts';
 import equal from 'fast-deep-equal';
 
-type IProjectBuildCache = IStructure;
+interface IProjectBuildCacheEntry {
+  structure: IStructure;
+  filesUsingUserEnv: string[];
+}
+
+type IProjectBuildCache = IProjectBuildCacheEntry;
 
 export interface IProjectStore {
   projects: IFile[];
@@ -18,7 +26,8 @@ export interface IProjectStore {
   buildProjectFilesForProject: (
     project: IFile,
     schemaInfo: ISchemaInfo[],
-  ) => IStructure;
+    decryptedUserMetadata?: Record<string, unknown> | null,
+  ) => IBuildProjectFilesResult;
   invalidateProjectCache: (projectName: string) => void;
   processFilesUpdate: (_userFiles: IStructure, projects: IFile[]) => void;
   updateProjects: (projects: IFile[]) => void;
@@ -155,12 +164,17 @@ export const useProjectStore = create<IProjectStore>()(
       buildProjectFilesForProject: (
         project: IFile,
         schemaInfo: ISchemaInfo[],
-      ): IStructure => {
+        decryptedUserMetadata?: Record<string, unknown> | null,
+      ): IBuildProjectFilesResult => {
         const { projectBuildCache } = get();
 
         // Check if we have a cached version that matches the current schema version
         if (Object.hasOwn(projectBuildCache, project.name)) {
-          return projectBuildCache[project.name];
+          const cached = projectBuildCache[project.name];
+          return {
+            structure: cached.structure,
+            filesUsingUserEnv: cached.filesUsingUserEnv,
+          };
         }
         // Get all user files
         const { userFiles: allUserFiles } = useMockDatabaseStore.getState();
@@ -168,8 +182,12 @@ export const useProjectStore = create<IProjectStore>()(
         // Get form data
         const formData = useFormStore.getState();
 
-        // Get user metadata
+        // Use decrypted metadata if provided, otherwise fall back to store metadata
         const { userMetadata } = useUserStore.getState();
+        const metadataToUse =
+          decryptedUserMetadata !== undefined
+            ? decryptedUserMetadata
+            : userMetadata;
 
         // Build project files using the project path
         // Use uniqueId if available, otherwise use the folder-based path
@@ -177,23 +195,26 @@ export const useProjectStore = create<IProjectStore>()(
           project.uniqueId != null && project.uniqueId.length > 0
             ? project.uniqueId
             : `/Projects/${project.name}/structure.yaml`;
-        const builtFiles = buildProjectFiles(
+        const buildResult = buildProjectFiles(
           projectPath,
           allUserFiles,
           schemaInfo,
           formData,
-          userMetadata,
+          metadataToUse,
         );
 
-        // Update cache
+        // Update cache with both structure and filesUsingUserEnv
         set((state) => ({
           projectBuildCache: {
             ...state.projectBuildCache,
-            [project.name]: builtFiles,
+            [project.name]: {
+              structure: buildResult.structure,
+              filesUsingUserEnv: buildResult.filesUsingUserEnv,
+            },
           },
         }));
 
-        return builtFiles;
+        return buildResult;
       },
     }),
     persistConfig,

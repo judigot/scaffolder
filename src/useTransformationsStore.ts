@@ -17,7 +17,6 @@ import generateSQLSchema from '@/utils/generateSQLSchema.ts';
 import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
 import { createTabSync } from '@/utils/createTabSync.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
-import type { IStructure } from '@/components/FileViewer.tsx';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
@@ -72,7 +71,7 @@ export const useTransformationsStore = create<ITransformations>()(
       aggregateJoins: [],
       setSchemaInfo: (schemaInfo) => {
         const { project } = useFormStore.getState();
-        const { invalidateProjectCache, selectedProject, projectBuildCache } =
+        const { invalidateProjectCache, selectedProject } =
           useProjectStore.getState();
 
         const sortedSchemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
@@ -88,34 +87,23 @@ export const useTransformationsStore = create<ITransformations>()(
           const { userFiles } = useMockDatabaseStore.getState();
           const formData = useFormStore.getState();
           useFormStore.setState(() => {
-            // Check if we have a cached version of this project's file structure
-            const cachedProjectFiles = projectBuildCache[selectedProject.name];
-
-            let projectFiles: IStructure;
-
-            if (cachedProjectFiles.length > 0) {
-              // Use cached version if available
-
-              projectFiles = cachedProjectFiles;
-            } else {
-              // Calculate new structure if not in cache
-
-              projectFiles = buildProjectFiles(
-                `/Projects/${selectedProject.name}`,
-                userFiles,
-                schemaInfo,
-                formData,
-              );
-
-              // Update cache with the new structure
-              projectBuildCache[selectedProject.name] = projectFiles;
-            }
+            // Build new structure (cache was just invalidated)
+            const buildResult = buildProjectFiles(
+              `/Projects/${selectedProject.name}`,
+              userFiles,
+              schemaInfo,
+              formData,
+            );
+            const projectFiles = buildResult.structure;
 
             return {
               project,
               projectFiles,
               projectBuildCache: {
-                [selectedProject.name]: projectFiles,
+                [selectedProject.name]: {
+                  structure: projectFiles,
+                  filesUsingUserEnv: buildResult.filesUsingUserEnv,
+                },
               },
             };
           });

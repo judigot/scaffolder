@@ -20,10 +20,13 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import UserProfile from '@/components/UserProfile.tsx';
 import { useUser } from '@/hooks/useUser.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
 
 function App() {
   const formData = useFormStore();
   const { user, userMetadata, isLoading: isUserLoading } = useUser();
+  const { decryptedMetadata, isLoading: isDecryptingMetadata } =
+    useDecryptedUserMetadata();
   const {
     backendUrl,
     backendDir,
@@ -73,22 +76,38 @@ function App() {
     invalidateProjectCache,
   } = useProjectStore();
 
-  // Invalidate project cache when userMetadata changes
+  // Invalidate project cache when userMetadata or decryptedMetadata changes
   useEffect(() => {
-    if (selectedProject !== null && userMetadata !== null) {
+    if (
+      selectedProject !== null &&
+      (userMetadata !== null || decryptedMetadata !== null)
+    ) {
       invalidateProjectCache(selectedProject.name);
     }
-  }, [userMetadata, selectedProject, invalidateProjectCache]);
+  }, [
+    userMetadata,
+    decryptedMetadata,
+    selectedProject,
+    invalidateProjectCache,
+  ]);
 
   // Get the project files from the selected project
-  // Only build if user and userMetadata are loaded to ensure metadata is available
-  const builtProjectFiles =
+  // Only build if user and metadata are loaded to ensure metadata is available
+  const buildResult =
     selectedProject !== null &&
     user !== null &&
-    userMetadata !== null &&
-    !isUserLoading
-      ? buildProjectFilesForProject(selectedProject, schemaInfo)
-      : [];
+    decryptedMetadata !== null &&
+    !isUserLoading &&
+    !isDecryptingMetadata
+      ? buildProjectFilesForProject(
+          selectedProject,
+          schemaInfo,
+          decryptedMetadata,
+        )
+      : { structure: [], filesUsingUserEnv: [] };
+
+  const builtProjectFiles = buildResult.structure;
+  const filesUsingUserEnv = buildResult.filesUsingUserEnv;
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -747,6 +766,7 @@ function App() {
                           mode="edit"
                           folderStructure={builtProjectFiles}
                           projectName={selectedProject.name}
+                          filesUsingUserEnv={filesUsingUserEnv}
                         />
                         {/* <FileViewer
                           mode="edit"

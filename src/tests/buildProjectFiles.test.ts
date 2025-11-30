@@ -775,12 +775,13 @@ describe('Build Project Files', () => {
 ]
     `;
     const userFiles = convertLocalFilesToIStructure('src/files.test');
-    const result = buildProjectFiles(
+    const buildResult = buildProjectFiles(
       '/Projects/Laravel.yaml',
       userFiles,
       masterSchema,
       formData,
     );
+    const result = buildResult.structure;
     const clean = (str: string) =>
       str
         .replace(/\\\\/g, '\\') // replace double backslash with single backslash
@@ -788,5 +789,135 @@ describe('Build Project Files', () => {
         .replace(/\s+/g, ''); // remove all whitespace
 
     expect(clean(JSON.stringify(result))).toEqual(clean(expectation));
+  });
+
+  it('should detect files using USE_USER_ENV in templates', () => {
+    const formData: IFormStore = {
+      schemaInput: masterJSONSchema,
+      backendUrl: 'http://localhost:5000',
+      backendDir: 'C:/Users/Jude/Desktop/laravel',
+      frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',
+      dbConnection: 'postgresql://root:123@localhost:5432/laravel',
+      framework: frameworks.LARAVEL,
+      includeInsertData: true,
+      insertOption: 'SQLInsertQueriesFromMockData',
+      includeTypeGuards: true,
+      outputOnSingleFile: false,
+      dbType: 'postgresql',
+      quote: '"',
+      publicRepoURL: 'https://github.com/judigot/scaffolder-files',
+      clientID: '',
+      clientSecret: '',
+      creationMode: CREATION_MODES.SCHEMA_BUILDER,
+      dbUsername: 'root',
+      dbPassword: '123',
+      dbHost: 'localhost',
+      dbPort: 5432,
+      dbName: 'laravel',
+      setCreationMode: (): void => {
+        /* stub */
+      },
+      setMasterSchema: (): void => {
+        /* stub */
+      },
+      setOneToOne: (): void => {
+        /* stub */
+      },
+      setOneToMany: (): void => {
+        /* stub */
+      },
+      setManyToMany: (): void => {
+        /* stub */
+      },
+      setDBType: (): void => {
+        /* stub */
+      },
+      setQuote: (): void => {
+        /* stub */
+      },
+      setFramework: (): void => {
+        /* stub */
+      },
+      setBackendUrl: (): void => {
+        /* stub */
+      },
+      setBackendDir: (): void => {
+        /* stub */
+      },
+      setFrontendDir: (): void => {
+        /* stub */
+      },
+      setDBConnection: (): void => {
+        /* stub */
+      },
+      setDBUsername: (): void => {
+        /* stub */
+      },
+      setDBPassword: (): void => {
+        /* stub */
+      },
+      setDBHost: (): void => {
+        /* stub */
+      },
+      setDBPort: (): void => {
+        /* stub */
+      },
+      setDBName: (): void => {
+        /* stub */
+      },
+      setIncludeInsertData: (): void => {
+        /* stub */
+      },
+      setInsertOption: (): void => {
+        /* stub */
+      },
+      setIncludeTypeGuards: (): void => {
+        /* stub */
+      },
+      setOutputOnSingleFile: (): void => {
+        /* stub */
+      },
+      setPublicRepoURL: (): void => {
+        /* stub */
+      },
+      setClientID: (): void => {
+        /* stub */
+      },
+      setClientSecret: (): void => {
+        /* stub */
+      },
+      setDbConnection: (): void => {
+        /* stub */
+      },
+    };
+
+    const userFiles = convertLocalFilesToIStructure('src/files.test');
+
+    const userMetadata = {
+      env: {
+        API_KEY: 'test-api-key-12345',
+        DATABASE_URL: 'postgresql://localhost:5432/testdb',
+      },
+    };
+
+    const buildResult = buildProjectFiles(
+      '/Projects/TestUserEnv.yaml',
+      userFiles,
+      masterSchema,
+      formData,
+      userMetadata,
+    );
+
+    expect(buildResult.filesUsingUserEnv).toBeDefined();
+    expect(Array.isArray(buildResult.filesUsingUserEnv)).toBe(true);
+
+    const filesUsingUserEnv = buildResult.filesUsingUserEnv;
+
+    expect(filesUsingUserEnv.length).toBeGreaterThan(0);
+
+    const hasAppPhp = filesUsingUserEnv.some(
+      (path) => path.includes('app.php') || path === 'app.php',
+    );
+    expect(hasAppPhp).toBe(true);
   });
 });

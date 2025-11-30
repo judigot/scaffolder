@@ -48,6 +48,7 @@ export const processDynamicFolders = ({
       );
 
       const processedChildren = processYamlStructure({
+        onFileUsingUserEnv: options?.onFileUsingUserEnv,
         node: children,
         schemaInfo,
         schemaInfoParsed,
@@ -91,6 +92,7 @@ export const processDynamicFolders = ({
       table,
       formData,
       userMetadata,
+      onFileUsingUserEnv: options?.onFileUsingUserEnv,
     });
 
     return {

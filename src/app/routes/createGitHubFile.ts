@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { createGitHubFileService } from '@/app/services/createGitHubFileService.ts';
 import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
+import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 
 const router = new Hono();
 
@@ -75,6 +76,24 @@ router.post('/', async (c) => {
         error: 'GitHub token not found',
         message:
           'Please set your GitHub token in the settings before creating files',
+      },
+      400,
+    );
+  }
+
+  // Security check: Detect USE_USER_ENV usage before committing to GitHub
+  // This prevents secrets from being committed to repositories
+  if (USE_USER_ENV_REGEX.test(content)) {
+    return c.json(
+      {
+        error: 'USE_USER_ENV detected',
+        message:
+          `Cannot commit to GitHub: USE_USER_ENV detected in file content. This would expose your secrets.\n\n` +
+          `File: ${filePath}\n\n` +
+          `Options:\n` +
+          `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+          `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+          `3. Use environment variable references in code (process.env.KEY_NAME)`,
       },
       400,
     );
