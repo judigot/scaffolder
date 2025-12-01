@@ -1,0 +1,1 @@
+CREATE_FILE(badFormat.ts --template ./templates/badFormat.txt):

@@ -13,9 +13,15 @@ import { processCoreFiles } from '@/utils/project-builder/utils/processCoreFiles
 import type { IFormStore } from '@/useFormStore.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 
+export interface IFailedFormatEntry {
+  filePath: string;
+  errorMessage: string;
+}
+
 export interface IBuildProjectFilesResult {
   structure: IStructure;
   filesUsingUserEnv: string[];
+  filesFailedToFormat: IFailedFormatEntry[];
 }
 
 export const buildProjectFiles = async (
@@ -26,10 +32,20 @@ export const buildProjectFiles = async (
   userMetadata?: Record<string, unknown> | null,
 ): Promise<IBuildProjectFilesResult> => {
   const filesUsingUserEnv: string[] = [];
+  const filesFailedToFormat: IFailedFormatEntry[] = [];
 
   const trackFileUsingUserEnv = (filePath: string): void => {
     if (!filesUsingUserEnv.includes(filePath)) {
       filesUsingUserEnv.push(filePath);
+    }
+  };
+
+  const trackFileFailedToFormat = (
+    filePath: string,
+    errorMessage: string,
+  ): void => {
+    if (!filesFailedToFormat.some((entry) => entry.filePath === filePath)) {
+      filesFailedToFormat.push({ filePath, errorMessage });
     }
   };
   const schemaInfoParsed = getSchemaInfo(schemaInfo);
@@ -51,6 +67,7 @@ export const buildProjectFiles = async (
         },
       ],
       filesUsingUserEnv: [],
+      filesFailedToFormat: [],
     };
   }
 
@@ -85,6 +102,7 @@ export const buildProjectFiles = async (
         },
       ],
       filesUsingUserEnv: [],
+      filesFailedToFormat: [],
     };
   }
 
@@ -125,6 +143,7 @@ export const buildProjectFiles = async (
           },
         ],
         filesUsingUserEnv: [],
+        filesFailedToFormat: [],
       };
     }
 
@@ -163,6 +182,7 @@ export const buildProjectFiles = async (
       formData,
       userMetadata,
       onFileUsingUserEnv: trackFileUsingUserEnv,
+      onFileFailedToFormat: trackFileFailedToFormat,
     });
 
     const projectFiles = mergeCoreFilesWithScaffolded(
@@ -196,6 +216,7 @@ export const buildProjectFiles = async (
     return {
       structure: filteredFiles,
       filesUsingUserEnv,
+      filesFailedToFormat,
     };
   } catch (error) {
     return {
@@ -221,6 +242,7 @@ export const buildProjectFiles = async (
         },
       ],
       filesUsingUserEnv: [],
+      filesFailedToFormat: [],
     };
   }
 };

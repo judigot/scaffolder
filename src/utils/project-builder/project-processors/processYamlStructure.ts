@@ -50,6 +50,7 @@ export const processYamlStructure = async ({
   userMetadata,
   dataContext,
   onFileUsingUserEnv,
+  onFileFailedToFormat,
   currentPath = '',
 }: IBuildContext): Promise<IStructure> => {
   if (typeof node === 'string') {
@@ -173,17 +174,24 @@ export const processYamlStructure = async ({
           dataContext,
         );
 
-        const finalContent = await formatFileContent(
+        const formatResult = await formatFileContent(
           content,
           outputFileName,
           shouldFormat,
         );
 
+        if (formatResult.failed && onFileFailedToFormat) {
+          onFileFailedToFormat(
+            buildAbsolutePath(outputFileName, currentPath),
+            formatResult.errorMessage ?? 'Unknown formatting error',
+          );
+        }
+
         return [
           {
             type: 'file',
             name: outputFileName,
-            content: finalContent,
+            content: formatResult.content,
           },
         ];
       }
@@ -288,18 +296,24 @@ export const processYamlStructure = async ({
           userMetadata,
         );
 
-        // Format with consistent character handling
-        const finalContent = await formatFileContent(
+        const formatResult = await formatFileContent(
           content,
           outputFileName,
           shouldFormat,
         );
 
+        if (formatResult.failed && onFileFailedToFormat) {
+          onFileFailedToFormat(
+            buildAbsolutePath(outputFileName, currentPath),
+            formatResult.errorMessage ?? 'Unknown formatting error',
+          );
+        }
+
         return [
           {
             type: 'file',
             name: outputFileName,
-            content: finalContent,
+            content: formatResult.content,
           },
         ];
       }
@@ -383,18 +397,24 @@ export const processYamlStructure = async ({
         userMetadata,
       );
 
-      // Format the final content with proper character replacements
-      const finalContent = await formatFileContent(
+      const formatResult = await formatFileContent(
         processedContent,
         outputFileName,
         shouldFormat,
       );
 
+      if (formatResult.failed && onFileFailedToFormat) {
+        onFileFailedToFormat(
+          buildAbsolutePath(outputFileName, currentPath),
+          formatResult.errorMessage ?? 'Unknown formatting error',
+        );
+      }
+
       return [
         {
           type: 'file',
           name: outputFileName,
-          content: finalContent,
+          content: formatResult.content,
         },
       ];
     }
@@ -410,6 +430,7 @@ export const processYamlStructure = async ({
         formData,
         userMetadata,
         onFileUsingUserEnv,
+        onFileFailedToFormat,
         currentPath,
       });
     }
@@ -425,6 +446,7 @@ export const processYamlStructure = async ({
         formData,
         userMetadata,
         onFileUsingUserEnv,
+        onFileFailedToFormat,
         currentPath,
       });
     }
@@ -439,6 +461,8 @@ export const processYamlStructure = async ({
         projectYamlPath,
         formData,
         userMetadata,
+        onFileFailedToFormat,
+        currentPath,
       });
     }
 
@@ -511,18 +535,24 @@ export const processYamlStructure = async ({
         userMetadata,
       );
 
-      // Format the final content with proper character replacements
-      const finalContent = await formatFileContent(
+      const formatResult = await formatFileContent(
         processedContent,
         outputFileName,
         true,
       );
 
+      if (formatResult.failed && onFileFailedToFormat) {
+        onFileFailedToFormat(
+          buildAbsolutePath(outputFileName, currentPath),
+          formatResult.errorMessage ?? 'Unknown formatting error',
+        );
+      }
+
       return [
         {
           type: 'file',
           name: outputFileName,
-          content: finalContent,
+          content: formatResult.content,
         },
       ];
     }
@@ -578,6 +608,7 @@ export const processYamlStructure = async ({
                 options: {
                   ...folderOptions,
                   onFileUsingUserEnv,
+                  onFileFailedToFormat,
                 },
                 currentPath,
               });
@@ -597,6 +628,7 @@ export const processYamlStructure = async ({
             userMetadata,
             dataContext,
             onFileUsingUserEnv,
+            onFileFailedToFormat,
             currentPath,
           });
         }
@@ -610,6 +642,7 @@ export const processYamlStructure = async ({
           userMetadata,
           dataContext,
           onFileUsingUserEnv,
+          onFileFailedToFormat,
           currentPath,
         });
       }),
@@ -633,6 +666,7 @@ export const processYamlStructure = async ({
             userMetadata,
             dataContext,
             onFileUsingUserEnv,
+            onFileFailedToFormat,
             currentPath,
           });
 
@@ -648,6 +682,7 @@ export const processYamlStructure = async ({
               userMetadata,
               dataContext,
               onFileUsingUserEnv,
+              onFileFailedToFormat,
               currentPath,
             });
 
@@ -665,7 +700,6 @@ export const processYamlStructure = async ({
             key.length - (key.endsWith(':') ? 2 : 1), // Remove both the closing parenthesis and colon if present
           );
 
-          // Process the import
           const importResult = await importProject({
             command: commandString,
             schemaInfo,
@@ -676,6 +710,7 @@ export const processYamlStructure = async ({
             formData,
             userMetadata,
             onFileUsingUserEnv,
+            onFileFailedToFormat,
             currentPath,
           });
 
@@ -695,6 +730,7 @@ export const processYamlStructure = async ({
               userMetadata,
               dataContext,
               onFileUsingUserEnv,
+              onFileFailedToFormat,
               currentPath,
             });
 
@@ -741,6 +777,7 @@ export const processYamlStructure = async ({
             options: {
               ...folderOptions,
               onFileUsingUserEnv,
+              onFileFailedToFormat,
             },
             currentPath,
           });
@@ -826,17 +863,24 @@ export const processYamlStructure = async ({
               userMetadata,
             );
 
-            const finalContent = await formatFileContent(
+            const formatResult = await formatFileContent(
               processedContent,
               outputFileName,
               true,
             );
 
+            if (formatResult.failed && onFileFailedToFormat) {
+              onFileFailedToFormat(
+                buildAbsolutePath(outputFileName, currentPath),
+                formatResult.errorMessage ?? 'Unknown formatting error',
+              );
+            }
+
             return [
               {
                 type: 'file',
                 name: outputFileName,
-                content: finalContent,
+                content: formatResult.content,
               },
             ];
           }
@@ -858,6 +902,7 @@ export const processYamlStructure = async ({
                 userMetadata,
                 dataContext,
                 onFileUsingUserEnv,
+                onFileFailedToFormat,
                 currentPath: newPath,
               }),
             },
@@ -878,6 +923,7 @@ export const processYamlStructure = async ({
               userMetadata,
               dataContext,
               onFileUsingUserEnv,
+              onFileFailedToFormat,
               currentPath: newPath,
             }),
           },

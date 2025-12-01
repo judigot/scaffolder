@@ -313,19 +313,19 @@ export const createBaseMethodFile = async (
         );
         const lowercaseName = outputFileName.toLowerCase();
 
-        // Check for duplicates
         if (!processedFiles.has(lowercaseName)) {
           processedFiles.add(lowercaseName);
 
-          // Add to result
+          const formatResult = await formatFileContent(
+            templateContent,
+            outputFileName,
+            shouldFormat,
+          );
+
           result.push({
             type: 'file',
             name: outputFileName,
-            content: await formatFileContent(
-              templateContent,
-              outputFileName,
-              shouldFormat,
-            ),
+            content: formatResult.content,
           });
         }
       }
@@ -382,21 +382,21 @@ export const createBaseMethodFile = async (
     // Mark as processed
     processedFiles.add(lowercaseName);
 
-    // Process template content with replacements
     const processedContent = applyReplacements(
       templateFile.content,
       combinedReplacements,
     );
 
-    // Add to result
+    const formatResult = await formatFileContent(
+      processedContent,
+      outputFileName,
+      shouldFormat,
+    );
+
     result.push({
       type: 'file',
       name: outputFileName,
-      content: await formatFileContent(
-        processedContent,
-        outputFileName,
-        shouldFormat,
-      ),
+      content: formatResult.content,
     });
   }
 

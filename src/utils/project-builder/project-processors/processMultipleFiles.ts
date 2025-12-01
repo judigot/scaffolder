@@ -39,6 +39,7 @@ export const processMultipleFiles = async ({
   formData,
   userMetadata,
   onFileUsingUserEnv,
+  onFileFailedToFormat,
   currentPath = '',
 }: IMultipleFilesContext): Promise<IFile[]> => {
   if (!fileName || fileName.length === 0) {
@@ -202,16 +203,23 @@ export const processMultipleFiles = async ({
       );
 
       const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
-      const finalContent = await formatFileContent(
+      const formatResult = await formatFileContent(
         content,
         outputFileName,
         shouldFormat,
       );
 
+      if (formatResult.failed && onFileFailedToFormat) {
+        onFileFailedToFormat(
+          buildAbsolutePath(outputFileName, currentPath),
+          formatResult.errorMessage ?? 'Unknown formatting error',
+        );
+      }
+
       return {
         type: 'file' as const,
         name: outputFileName,
-        content: finalContent,
+        content: formatResult.content,
       } satisfies IFile;
     }),
   );

@@ -1,23 +1,29 @@
 import { format as formatSQL } from 'sql-formatter';
 import formatCode from '@/utils/formatCode.ts';
 import prettier from 'prettier';
-import * as phpPlugin from '@prettier/plugin-php';
+import parserBabel from 'prettier/plugins/babel';
+import parserTypescript from 'prettier/plugins/typescript';
+import parserHtml from 'prettier/plugins/html';
+import parserPostcss from 'prettier/plugins/postcss';
+import parserEstree from 'prettier/plugins/estree';
 
-const EXTENSION_TO_LANGUAGE: Record<string, string> = {
-  php: 'php',
+// Map extensions to Prettier parsers
+const EXTENSION_TO_PARSER: Record<string, string | null> = {
   ts: 'typescript',
   tsx: 'typescript',
-  js: 'javascript',
-  jsx: 'javascript',
+  js: 'babel',
+  jsx: 'babel',
   json: 'json',
   css: 'css',
   scss: 'scss',
-  sass: 'sass',
+  sass: 'css',
   html: 'html',
   htm: 'html',
-  sql: 'sql',
+  php: null,
+  sql: null,
 };
 
+// Set of extensions we want to auto-format
 const FORMATTABLE_EXTENSIONS = new Set([
   'php',
   'ts',
@@ -33,104 +39,93 @@ const FORMATTABLE_EXTENSIONS = new Set([
   'sql',
 ]);
 
-export const getLanguageFromExtension = (extension?: string): string | null => {
-  if (extension === undefined || extension === '') {
-    return null;
-  }
-  return EXTENSION_TO_LANGUAGE[extension.toLowerCase()] ?? null;
-};
-
 export const shouldAutoFormat = (extension?: string): boolean => {
-  if (extension === undefined || extension === '') {
+  if (extension == null) {
     return false;
   }
   return FORMATTABLE_EXTENSIONS.has(extension.toLowerCase());
 };
 
-const autoFormatByLanguage = async (
-  content: string,
-  language: string,
-): Promise<string> => {
-  switch (language) {
-    case 'sql':
-      return formatSQL(content);
-    case 'php': {
-      const formatted = await formatCode(content);
-      return formatted.php;
-    }
-    case 'typescript':
-    case 'javascript':
-    case 'json':
-    case 'css':
-    case 'scss':
-    case 'sass':
-    case 'html':
-      return await formatCodeByLanguage(content, language);
-    default:
-      return content;
-  }
-};
-
-async function formatCodeByLanguage(
-  code: string,
-  language: string,
-): Promise<string> {
-  try {
-    const parser = getPrettierParser(language);
-    const options: prettier.Options = {
-      parser,
-      printWidth: 80,
-      tabWidth: 2,
-      useTabs: false,
-      semi: true,
-      singleQuote: true,
-      trailingComma: 'all',
-      arrowParens: 'always',
-      bracketSpacing: true,
-    };
-
-    if (parser === 'php') {
-      options.plugins = [phpPlugin];
-    }
-
-    return await prettier.format(code, options);
-  } catch (error) {
-    console.error(`Failed to format ${language} code:`, error);
-    return code;
-  }
-}
-
-function getPrettierParser(language: string): string {
-  const parserMap: Record<string, string> = {
-    typescript: 'typescript',
-    javascript: 'babel',
-    json: 'json',
-    css: 'css',
-    scss: 'scss',
-    sass: 'css',
-    html: 'html',
-  };
-  return parserMap[language] ?? 'babel';
+export interface IAutoFormatResult {
+  content: string;
+  failed: boolean;
+  errorMessage?: string;
 }
 
 export const autoFormatByExtension = async (
   content: string,
   fileName: string,
-): Promise<string> => {
+): Promise<IAutoFormatResult> => {
   const extension = fileName.split('.').pop()?.toLowerCase();
 
-  if (
-    extension === undefined ||
-    extension === '' ||
-    !shouldAutoFormat(extension)
-  ) {
-    return content;
+  if (extension == null || !shouldAutoFormat(extension)) {
+    return { content, failed: false };
   }
 
-  const language = getLanguageFromExtension(extension);
-  if (language === null || language === '') {
-    return content;
-  }
+  switch (extension) {
+    case 'sql':
+      try {
+        return { content: formatSQL(content), failed: false };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        return { content, failed: true, errorMessage };
+      }
 
-  return await autoFormatByLanguage(content, language);
+    case 'php': {
+      try {
+        const formatted = await formatCode(content);
+        return { content: formatted.php, failed: false };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        return { content, failed: true, errorMessage };
+      }
+    }
+
+    default: {
+      const parser = EXTENSION_TO_PARSER[extension];
+      if (parser == null) {
+        return { content, failed: false };
+      }
+
+      const parserPlugins: Record<string, prettier.Plugin> = {
+        babel: parserBabel,
+        typescript: parserTypescript,
+        html: parserHtml,
+        css: parserPostcss,
+        scss: parserPostcss,
+        json: parserBabel,
+      };
+
+      try {
+        const formattedCode = await prettier.format(content, {
+          parser,
+          plugins: [parserEstree, parserPlugins[parser]],
+          filepath: fileName,
+          printWidth: 80,
+          tabWidth: 2,
+          useTabs: false,
+          semi: true,
+          singleQuote: true,
+          trailingComma: 'all',
+          arrowParens: 'always',
+          bracketSpacing: true,
+        });
+        return { content: formattedCode, failed: false };
+      } catch (error) {
+        let errorMessage = 'Unknown formatting error';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (
+          error !== null &&
+          typeof error === 'object' &&
+          'message' in error
+        ) {
+          errorMessage = String(error.message);
+        }
+        return { content, failed: true, errorMessage };
+      }
+    }
+  }
 };

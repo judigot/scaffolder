@@ -38,6 +38,7 @@ export const importProject = async ({
   formData,
   userMetadata,
   onFileUsingUserEnv,
+  onFileFailedToFormat,
   currentPath = '',
 }: IBuildContext): Promise<IStructure> => {
   // Clean up the command string to handle cases where it might have trailing characters
@@ -86,6 +87,7 @@ export const importProject = async ({
         formData,
         userMetadata,
         onFileUsingUserEnv,
+        onFileFailedToFormat,
         currentPath,
       });
     } else if (
@@ -155,6 +157,7 @@ export const importProject = async ({
           formData,
           userMetadata,
           onFileUsingUserEnv,
+          onFileFailedToFormat,
           currentPath,
         });
 
@@ -173,6 +176,7 @@ export const importProject = async ({
       formData,
       userMetadata,
       onFileUsingUserEnv,
+      onFileFailedToFormat,
       currentPath,
     });
   } catch {

@@ -56,6 +56,7 @@ export const processDynamicFolders = async ({
 
         const processedChildren = await processYamlStructure({
           onFileUsingUserEnv: options?.onFileUsingUserEnv,
+          onFileFailedToFormat: options?.onFileFailedToFormat,
           node: children,
           schemaInfo,
           schemaInfoParsed,
@@ -106,6 +107,7 @@ export const processDynamicFolders = async ({
         formData,
         userMetadata,
         onFileUsingUserEnv: options?.onFileUsingUserEnv,
+        onFileFailedToFormat: options?.onFileFailedToFormat,
         currentPath: newPath,
       });
 

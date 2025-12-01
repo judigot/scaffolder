@@ -7,6 +7,7 @@ import { useModalStore } from '@/useModalStore.ts';
 import { consolidateInterfaces } from '@/utils/common.ts';
 import FileViewer from '@/components/FileViewer.tsx';
 import type { IStructure } from '@/components/FileViewer.tsx';
+import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
 import { CREATION_MODES } from '@/constants.ts';
@@ -95,7 +96,8 @@ function App() {
   const [buildResult, setBuildResult] = useState<{
     structure: IStructure;
     filesUsingUserEnv: string[];
-  }>({ structure: [], filesUsingUserEnv: [] });
+    filesFailedToFormat: IFailedFormatEntry[];
+  }>({ structure: [], filesUsingUserEnv: [], filesFailedToFormat: [] });
 
   useEffect(() => {
     if (
@@ -114,7 +116,11 @@ function App() {
         setBuildResult(result);
       })();
     } else {
-      setBuildResult({ structure: [], filesUsingUserEnv: [] });
+      setBuildResult({
+        structure: [],
+        filesUsingUserEnv: [],
+        filesFailedToFormat: [],
+      });
     }
   }, [
     selectedProject,
@@ -128,6 +134,7 @@ function App() {
 
   const builtProjectFiles = buildResult.structure;
   const filesUsingUserEnv = buildResult.filesUsingUserEnv;
+  const filesFailedToFormat = buildResult.filesFailedToFormat;
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -787,6 +794,7 @@ function App() {
                           folderStructure={builtProjectFiles}
                           projectName={selectedProject.name}
                           filesUsingUserEnv={filesUsingUserEnv}
+                          filesFailedToFormat={filesFailedToFormat}
                         />
                         {/* <FileViewer
                           mode="edit"

@@ -101,6 +101,7 @@ export const useTransformationsStore = create<ITransformations>()(
                 [selectedProject.name]: {
                   structure: projectFiles,
                   filesUsingUserEnv: buildResult.filesUsingUserEnv,
+                  filesFailedToFormat: buildResult.filesFailedToFormat,
                 },
               },
             }));

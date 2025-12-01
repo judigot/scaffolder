@@ -19,12 +19,21 @@ interface ILoopFoldersContext extends Omit<IBuildContext, 'table'> {
   options: IActionFlags;
 }
 
+const buildAbsolutePath = (fileName: string, currentPath: string): string => {
+  if (currentPath === '') {
+    return fileName;
+  }
+  return `${currentPath}/${fileName}`;
+};
+
 export const processLoopFolders = async ({
   command: fileName,
   options,
   userFiles,
   projectYamlPath,
   schemaInfoParsed,
+  onFileFailedToFormat,
+  currentPath = '',
 }: ILoopFoldersContext): Promise<IFile[]> => {
   if (!fileName || fileName.length === 0) {
     return [];
@@ -104,16 +113,23 @@ export const processLoopFolders = async ({
       );
 
       const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
-      const finalContent = await formatFileContent(
+      const formatResult = await formatFileContent(
         processedContent,
         outputFileName,
         shouldFormat,
       );
 
+      if (formatResult.failed && onFileFailedToFormat) {
+        onFileFailedToFormat(
+          buildAbsolutePath(outputFileName, currentPath),
+          formatResult.errorMessage ?? 'Unknown formatting error',
+        );
+      }
+
       return {
         type: 'file' as const,
         name: outputFileName,
-        content: finalContent,
+        content: formatResult.content,
       } satisfies IFile;
     }),
   );

@@ -17,6 +17,7 @@ export interface IActionFlags {
   [ACTION_FLAGS.DATA_SOURCE]?: string;
   [ACTION_FLAGS.FORMAT]?: boolean;
   onFileUsingUserEnv?: (filePath: string) => void;
+  onFileFailedToFormat?: (filePath: string, errorMessage: string) => void;
 }
 
 export type DataContext = Record<string, unknown>;
@@ -36,5 +37,6 @@ export interface IBuildContext {
   dataContext?: DataContext;
   options?: IActionFlags;
   onFileUsingUserEnv?: (filePath: string) => void;
+  onFileFailedToFormat?: (filePath: string, errorMessage: string) => void;
   currentPath?: string;
 }

@@ -27,6 +27,7 @@ import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { useFileContent } from '@/hooks/useFileContent.ts';
 import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
 
 export interface IBase {
   name: string;
@@ -90,13 +91,16 @@ function FileViewer({
   mode,
   projectName,
   filesUsingUserEnv = [],
+  filesFailedToFormat = [],
 }: {
   folderStructure: IStructure;
   mode: 'edit' | 'view';
   projectName?: string;
   filesUsingUserEnv?: string[];
+  filesFailedToFormat?: IFailedFormatEntry[];
 }) {
   const safeFilesUsingUserEnv = filesUsingUserEnv;
+
   const { getAccessTokenSilently } = useAuth0();
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
@@ -1487,6 +1491,52 @@ function FileViewer({
         </button>
       </div>
       {safeFilesUsingUserEnv.length > 0 && (
+        <div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md mb-2 w-fit">
+          <div className="flex items-start gap-2">
+            <svg
+              className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-orange-300 mb-1">
+                Security Warning: Secrets Detected
+              </p>
+              <p className="text-xs text-orange-200/80 mb-2">
+                {safeFilesUsingUserEnv.length} file(s) contain sensitive data.
+                Exporting to GitHub will leak your secrets (API keys, passwords,
+                tokens, etc.).
+              </p>
+              <ul className="text-xs text-orange-200/80 list-disc list-inside mb-2 space-y-1">
+                {safeFilesUsingUserEnv.map((filePath: string) => (
+                  <li key={filePath} className="font-mono">
+                    {filePath}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-orange-200/70">
+                <button
+                  type="button"
+                  onClick={() => {
+                    zipAndDownloadIStructure(folderStructure, getZipFileName());
+                  }}
+                  className="text-orange-300 hover:text-orange-200 underline font-medium"
+                >
+                  Download ZIP
+                </button>{' '}
+                instead or use placeholders.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {filesFailedToFormat.length > 0 && (
         <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md mb-2 w-fit">
           <div className="flex items-start gap-2">
             <svg
@@ -1502,31 +1552,75 @@ function FileViewer({
             </svg>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-yellow-300 mb-1">
-                Security Warning: Secrets Detected
+                Formatting Failed
               </p>
               <p className="text-xs text-yellow-200/80 mb-2">
-                {safeFilesUsingUserEnv.length} file(s) contain sensitive data.
-                Exporting to GitHub will leak your secrets (API keys, passwords,
-                tokens, etc.).
+                {filesFailedToFormat.length} file(s) could not be formatted due
+                to syntax errors in the generated code.
               </p>
               <ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
-                {safeFilesUsingUserEnv.map((filePath: string) => (
-                  <li key={filePath} className="font-mono">
-                    {filePath}
-                  </li>
-                ))}
+                {filesFailedToFormat
+                  .filter((entry): entry is IFailedFormatEntry => {
+                    if (typeof entry === 'string') {
+                      return false;
+                    }
+                    return (
+                      typeof entry === 'object' &&
+                      'filePath' in entry &&
+                      typeof entry.filePath === 'string'
+                    );
+                  })
+                  .map((entry, index) => {
+                    const filePath = entry.filePath;
+                    const errorMessage =
+                      entry.errorMessage || 'Unknown formatting error';
+                    return (
+                      <li
+                        key={`failed-format-${filePath}-${String(index)}`}
+                        className="font-mono"
+                      >
+                        <span className="inline-block mr-2">{filePath}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openRandomModal({
+                              title: `Formatting Error: ${filePath}`,
+                              content: (
+                                <div className="space-y-4">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-300 mb-2">
+                                      File:
+                                    </p>
+                                    <code className="block p-2 bg-gray-800 rounded text-xs text-gray-200 break-all">
+                                      {filePath}
+                                    </code>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-300 mb-2">
+                                      Error Message:
+                                    </p>
+                                    <pre className="p-3 bg-gray-800 rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
+                                      {errorMessage}
+                                    </pre>
+                                  </div>
+                                  <p className="text-xs text-gray-400">
+                                    Fix the syntax error in your template and
+                                    regenerate the project.
+                                  </p>
+                                </div>
+                              ),
+                            });
+                          }}
+                          className="text-yellow-300 hover:text-yellow-200 underline font-medium text-xs"
+                        >
+                          View error
+                        </button>
+                      </li>
+                    );
+                  })}
               </ul>
               <p className="text-xs text-yellow-200/70">
-                <button
-                  type="button"
-                  onClick={() => {
-                    zipAndDownloadIStructure(folderStructure, getZipFileName());
-                  }}
-                  className="text-yellow-300 hover:text-yellow-200 underline font-medium"
-                >
-                  Download ZIP
-                </button>{' '}
-                instead or use placeholders.
+                Check your templates for syntax errors.
               </p>
             </div>
           </div>
@@ -1708,6 +1802,15 @@ function FileViewer({
                   height="20rem"
                   defaultValue={selectedFile.content}
                   value={fileContent}
+                  beforeMount={(monaco) => {
+                    // Disable import/type errors
+                    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
+                      {
+                        noSemanticValidation: true, // ignore type errors
+                        noSyntaxValidation: false, // keep syntax highlighting
+                      },
+                    );
+                  }}
                   language={(() => {
                     const fileExtension: string | undefined = selectedFile.name
                       .split('.')

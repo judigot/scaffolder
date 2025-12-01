@@ -5,6 +5,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import {
   buildProjectFiles,
   type IBuildProjectFilesResult,
+  type IFailedFormatEntry,
 } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
@@ -14,6 +15,7 @@ import equal from 'fast-deep-equal';
 interface IProjectBuildCacheEntry {
   structure: IStructure;
   filesUsingUserEnv: string[];
+  filesFailedToFormat: IFailedFormatEntry[];
 }
 
 type IProjectBuildCache = IProjectBuildCacheEntry;
@@ -174,6 +176,7 @@ export const useProjectStore = create<IProjectStore>()(
           return {
             structure: cached.structure,
             filesUsingUserEnv: cached.filesUsingUserEnv,
+            filesFailedToFormat: cached.filesFailedToFormat,
           };
         }
         // Get all user files
@@ -210,6 +213,7 @@ export const useProjectStore = create<IProjectStore>()(
             [project.name]: {
               structure: buildResult.structure,
               filesUsingUserEnv: buildResult.filesUsingUserEnv,
+              filesFailedToFormat: buildResult.filesFailedToFormat,
             },
           },
         }));
