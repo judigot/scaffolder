@@ -110,17 +110,14 @@ export function createTabSync<T extends Record<PropertyKey, unknown>>(
   };
 
   return (set: {
-    (
-      partial: T | Partial<T> | ((state: T) => T | Partial<T>),
-      replace?: false,
-    ): void;
+    (partial: Partial<T> | ((state: T) => Partial<T>), replace?: false): void;
     (state: T | ((state: T) => T), replace: true): void;
   }) => {
     subscribe((state) => {
       set(state);
     });
 
-    return (state: T | Partial<T> | ((state: T) => T | Partial<T>)) => {
+    return (state: Partial<T> | ((state: T) => Partial<T>)) => {
       if (typeof state === 'function') {
         // For function updates, we need to let the set happen first to get the actual updates
         let updates: Partial<T> | undefined;

@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Context, Next } from 'hono';
 import jwt from 'jsonwebtoken';
 import jwksClient, { type JwksClient } from 'jwks-rsa';
 import dotenv from 'dotenv';
@@ -7,10 +7,6 @@ dotenv.config();
 
 interface IJwtPayloadWithSub extends jwt.JwtPayload {
   sub: string;
-}
-
-interface IRequestWithAuth0UserId extends Request {
-  auth0UserId?: string;
 }
 
 interface IVerifyAuth0TokenResultError {
@@ -175,22 +171,18 @@ export async function verifyAuth0TokenFromAuthHeader(
   });
 }
 
-export function verifyAuth0Token(
-  req: IRequestWithAuth0UserId,
-  res: Response,
-  next: NextFunction,
-): void {
-  void (async () => {
-    const result = await verifyAuth0TokenFromAuthHeader(
-      req.headers.authorization,
-    );
+export async function verifyAuth0Token(
+  c: Context,
+  next: Next,
+): Promise<Response | undefined> {
+  const result = await verifyAuth0TokenFromAuthHeader(
+    c.req.header('authorization'),
+  );
 
-    if (!result.ok) {
-      res.status(result.status).json(result.body);
-      return;
-    }
+  if (!result.ok) {
+    return c.json(result.body, result.status);
+  }
 
-    req.auth0UserId = result.auth0UserId;
-    next();
-  })();
+  c.set('auth0UserId', result.auth0UserId);
+  await next();
 }
