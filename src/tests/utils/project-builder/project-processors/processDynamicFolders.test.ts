@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { processDynamicFolders } from './processDynamicFolders.ts';
+import { processDynamicFolders } from '@/utils/project-builder/project-processors/processDynamicFolders.ts';
 import type { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 

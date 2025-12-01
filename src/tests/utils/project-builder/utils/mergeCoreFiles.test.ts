@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeCoreFilesWithScaffolded } from './mergeCoreFiles.ts';
+import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 
 describe('mergeCoreFilesWithScaffolded', () => {

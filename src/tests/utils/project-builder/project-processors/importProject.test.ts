@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { importProject } from './importProject.ts';
-import { processYamlStructure } from './processYamlStructure.ts';
+import { importProject } from '@/utils/project-builder/project-processors/importProject.ts';
+import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
 import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
 import masterSchema from '@/schema-infos/masterSchema.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadCoreFiles } from './loadCoreFiles.ts';
+import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 
 describe('loadCoreFiles', () => {
