@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { processLoopFolders } from './processLoopFolders.ts';
+import { processLoopFolders } from '@/utils/project-builder/project-processors/processLoopFolders.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
