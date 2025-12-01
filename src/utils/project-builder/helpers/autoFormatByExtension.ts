@@ -1,7 +1,7 @@
 import { format as formatSQL } from 'sql-formatter';
 import formatCode from '@/utils/formatCode.ts';
 import prettier from 'prettier';
-import phpPlugin from '@prettier/plugin-php';
+import * as phpPlugin from '@prettier/plugin-php';
 
 const EXTENSION_TO_LANGUAGE: Record<string, string> = {
   php: 'php',

@@ -1,5 +1,5 @@
 import prettier from 'prettier';
-import phpPlugin from '@prettier/plugin-php';
+import * as phpPlugin from '@prettier/plugin-php';
 
 async function formatCode(code: string) {
   try {
