@@ -1,1 +1,1 @@
-{{methodNameCamelCase}}(data, options) 
+(data, options)

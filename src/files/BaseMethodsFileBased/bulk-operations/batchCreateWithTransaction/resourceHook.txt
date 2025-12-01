@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
-import { {{methodName}} } from '@/hooks/shared/use{{methodNameTitleCase}}.ts';
+import { {{methodNameCamelCase}} } from '@/hooks/shared/use{{methodNameCamelCase}}.ts';
 import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
 interface IBatchCreateData {
@@ -11,7 +11,7 @@ interface IBatchCreateData {
   };
 }
 
-export const use{{methodNameTitleCase}}{{tableNamePascalCaseSingular}} = (
+export const use{{methodNameCamelCase}}{{tableNamePascalCaseSingular}} = (
   options?: Omit<
     UseMutationOptions<{
       success: I{{tableNamePascalCaseSingular}}[];
@@ -25,7 +25,7 @@ export const use{{methodNameTitleCase}}{{tableNamePascalCaseSingular}} = (
 
   return useMutation({
     mutationFn: ({ dataArray, options: batchOptions }: IBatchCreateData) =>
-      batchCreateWithTransaction<I{{tableNamePascalCaseSingular}}, Omit<I{{tableNamePascalCaseSingular}}, 'id'>>(
+      {{methodNameCamelCase}}<I{{tableNamePascalCaseSingular}}, Omit<I{{tableNamePascalCaseSingular}}, 'id'>>(
         '/{{tableNameCamelCasePlural}}',
         dataArray,
         batchOptions

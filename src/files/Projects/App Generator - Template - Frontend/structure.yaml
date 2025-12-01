@@ -13,7 +13,7 @@ interfaces:
   - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
 services:
   FOLDER_LOOP({{tableNameKebabCaseSingular}}):
-    - CREATE_FILE({{tableNamePascalCaseSingular}}Service.ts --template ./templates/service.txt)
+    - CREATE_FILE({{tableNamePascalCaseSingular}}Service.ts --scoped --template ./templates/service.txt)
 vendor:
   - CREATE_FILE(axiosInstance.ts --template /Templates/frontend/nextjs/vendor/axiosInstance.txt)
   - CREATE_FILE(useQueryInstance.ts --template /Templates/frontend/nextjs/vendor/useQueryInstance.txt)
