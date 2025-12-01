@@ -379,11 +379,6 @@ describe('Build Project Files', () => {
                                     },
                                     {
                                         "type": "file",
-                                        "name": "api.ts",
-                                        "content": "<?php\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::middleware('api')->group(function () {\n    require __DIR__ . '/products.php';\n    require __DIR__ . '/customers.php';\n    require __DIR__ . '/orders.php';\n    require __DIR__ . '/order_products.php';\n    require __DIR__ . '/users.php';\n    require __DIR__ . '/profiles.php';\n    require __DIR__ . '/posts.php';\n});"
-                                    },
-                                    {
-                                        "type": "file",
                                         "name": "useProduct.tsx",
                                         "content": "// Product hook"
                                     },
@@ -427,11 +422,6 @@ describe('Build Project Files', () => {
                                         "type": "file",
                                         "name": "useCustomer.ts",
                                         "content": "// Customer hook"
-                                    },
-                                    {
-                                        "type": "file",
-                                        "name": "api.ts",
-                                        "content": "<?php\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::middleware('api')->group(function () {\n    require __DIR__ . '/products.php';\n    require __DIR__ . '/customers.php';\n    require __DIR__ . '/orders.php';\n    require __DIR__ . '/order_products.php';\n    require __DIR__ . '/users.php';\n    require __DIR__ . '/profiles.php';\n    require __DIR__ . '/posts.php';\n});"
                                     },
                                     {
                                         "type": "file",
@@ -481,11 +471,6 @@ describe('Build Project Files', () => {
                                     },
                                     {
                                         "type": "file",
-                                        "name": "api.ts",
-                                        "content": "<?php\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::middleware('api')->group(function () {\n    require __DIR__ . '/products.php';\n    require __DIR__ . '/customers.php';\n    require __DIR__ . '/orders.php';\n    require __DIR__ . '/order_products.php';\n    require __DIR__ . '/users.php';\n    require __DIR__ . '/profiles.php';\n    require __DIR__ . '/posts.php';\n});"
-                                    },
-                                    {
-                                        "type": "file",
                                         "name": "useProduct.tsx",
                                         "content": "// Product hook"
                                     },
@@ -529,11 +514,6 @@ describe('Build Project Files', () => {
                                         "type": "file",
                                         "name": "useOrderProduct.ts",
                                         "content": "// OrderProduct hook"
-                                    },
-                                    {
-                                        "type": "file",
-                                        "name": "api.ts",
-                                        "content": "<?php\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::middleware('api')->group(function () {\n    require __DIR__ . '/products.php';\n    require __DIR__ . '/customers.php';\n    require __DIR__ . '/orders.php';\n    require __DIR__ . '/order_products.php';\n    require __DIR__ . '/users.php';\n    require __DIR__ . '/profiles.php';\n    require __DIR__ . '/posts.php';\n});"
                                     },
                                     {
                                         "type": "file",
@@ -583,11 +563,6 @@ describe('Build Project Files', () => {
                                     },
                                     {
                                         "type": "file",
-                                        "name": "api.ts",
-                                        "content": "<?php\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::middleware('api')->group(function () {\n    require __DIR__ . '/products.php';\n    require __DIR__ . '/customers.php';\n    require __DIR__ . '/orders.php';\n    require __DIR__ . '/order_products.php';\n    require __DIR__ . '/users.php';\n    require __DIR__ . '/profiles.php';\n    require __DIR__ . '/posts.php';\n});"
-                                    },
-                                    {
-                                        "type": "file",
                                         "name": "useProduct.tsx",
                                         "content": "// Product hook"
                                     },
@@ -634,11 +609,6 @@ describe('Build Project Files', () => {
                                     },
                                     {
                                         "type": "file",
-                                        "name": "api.ts",
-                                        "content": "<?php\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::middleware('api')->group(function () {\n    require __DIR__ . '/products.php';\n    require __DIR__ . '/customers.php';\n    require __DIR__ . '/orders.php';\n    require __DIR__ . '/order_products.php';\n    require __DIR__ . '/users.php';\n    require __DIR__ . '/profiles.php';\n    require __DIR__ . '/posts.php';\n});"
-                                    },
-                                    {
-                                        "type": "file",
                                         "name": "useProduct.tsx",
                                         "content": "// Product hook"
                                     },
@@ -682,11 +652,6 @@ describe('Build Project Files', () => {
                                         "type": "file",
                                         "name": "usePost.ts",
                                         "content": "// Posts hook"
-                                    },
-                                    {
-                                        "type": "file",
-                                        "name": "api.ts",
-                                        "content": "<?php\n\nuse Illuminate\\Http\\Request;\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::middleware('api')->group(function () {\n    require __DIR__ . '/products.php';\n    require __DIR__ . '/customers.php';\n    require __DIR__ . '/orders.php';\n    require __DIR__ . '/order_products.php';\n    require __DIR__ . '/users.php';\n    require __DIR__ . '/profiles.php';\n    require __DIR__ . '/posts.php';\n});"
                                     },
                                     {
                                         "type": "file",
