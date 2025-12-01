@@ -158,7 +158,7 @@ ${expectedCreatePosts}`;
     });
 
     expectedDropStatements.forEach((statement, index) => {
-      it(`should have "${statement}" at position ${index}`, () => {
+      it(`should have "${statement}" at position ${String(index)}`, () => {
         const template = `[[LOOP(tablesReversed) --template="DROP TABLE IF EXISTS \\"{{tableName}}\\";" --separator="\\n"]]`;
 
         const result = processLoopTablesReversed(
@@ -214,7 +214,7 @@ ${expectedCreatePosts}`;
     });
 
     expectedTableOrder.forEach((tableName, index) => {
-      it(`should have "${tableName}" at position ${index}`, () => {
+      it(`should have "${tableName}" at position ${String(index)}`, () => {
         const template = `[[LOOP(tables) --template="{{tableName}}" --separator="\\n"]]`;
 
         const result = processLoopTables(

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import type { IStructure, IFile } from '@/components/FileViewer.tsx';
 import type { IFormStore } from '@/useFormStore.ts';
+import { frameworks } from '@/useFormStore.ts';
+import { CREATION_MODES } from '@/constants.ts';
 import masterSchema from '@/schema-infos/masterSchema.ts';
 
 describe('App Generator - Database Schema', () => {
@@ -131,10 +133,53 @@ CREATE TABLE "{{tableName}}" (
     },
   ];
 
-  const formData = {
-    quote: '"',
+  const formData: IFormStore = {
+    schemaInput: {},
+    backendUrl: 'http://localhost:5000',
+    backendDir: '',
+    frontendDir: '',
     dbConnection: 'postgresql://localhost:5432/test',
-  } as IFormStore;
+    framework: frameworks.LARAVEL,
+    includeInsertData: false,
+    insertOption: 'SQLInsertQueriesFromMockData',
+    includeTypeGuards: false,
+    outputOnSingleFile: false,
+    dbType: 'postgresql',
+    quote: '"',
+    publicRepoURL: '',
+    clientID: '',
+    clientSecret: '',
+    creationMode: CREATION_MODES.SCHEMA_BUILDER,
+    dbUsername: '',
+    dbPassword: '',
+    dbHost: 'localhost',
+    dbPort: 5432,
+    dbName: '',
+    setCreationMode: (): void => {
+      /* stub */
+    },
+    setMasterSchema: (): void => {
+      /* stub */
+    },
+    setOneToOne: (): void => {
+      /* stub */
+    },
+    setOneToMany: (): void => {
+      /* stub */
+    },
+    setManyToMany: (): void => {
+      /* stub */
+    },
+    setDBType: (): void => {
+      /* stub */
+    },
+    setPublicRepoURL: (): void => {
+      /* stub */
+    },
+    setDbConnection: (): void => {
+      /* stub */
+    },
+  };
 
   it('should generate schema.sql file', async () => {
     const userFiles = createUserFiles();
@@ -167,7 +212,11 @@ CREATE TABLE "{{tableName}}" (
       null,
     );
 
-    const schemaFile = result.structure[0] as IFile;
+    const firstItem = result.structure[0];
+    if (firstItem.type !== 'file') {
+      throw new Error('Expected file but got folder');
+    }
+    const schemaFile: IFile = firstItem;
     const content = schemaFile.content;
 
     expect(content).toContain('DROP TABLE IF EXISTS "posts";');
@@ -191,7 +240,11 @@ CREATE TABLE "{{tableName}}" (
       null,
     );
 
-    const schemaFile = result.structure[0] as IFile;
+    const firstItem = result.structure[0];
+    if (firstItem.type !== 'file') {
+      throw new Error('Expected file but got folder');
+    }
+    const schemaFile: IFile = firstItem;
     const content = schemaFile.content;
 
     expect(content).toContain('CREATE TABLE "product"');
@@ -216,7 +269,11 @@ CREATE TABLE "{{tableName}}" (
       null,
     );
 
-    const schemaFile = result.structure[0] as IFile;
+    const firstItem = result.structure[0];
+    if (firstItem.type !== 'file') {
+      throw new Error('Expected file but got folder');
+    }
+    const schemaFile: IFile = firstItem;
     const content = schemaFile.content;
 
     expect(content).toContain('"product_id" BIGSERIAL PRIMARY KEY');
@@ -239,7 +296,11 @@ CREATE TABLE "{{tableName}}" (
       null,
     );
 
-    const schemaFile = result.structure[0] as IFile;
+    const firstItem = result.structure[0];
+    if (firstItem.type !== 'file') {
+      throw new Error('Expected file but got folder');
+    }
+    const schemaFile: IFile = firstItem;
     const content = schemaFile.content;
 
     expect(content).toContain(
@@ -269,7 +330,11 @@ CREATE TABLE "{{tableName}}" (
       null,
     );
 
-    const schemaFile = result.structure[0] as IFile;
+    const firstItem = result.structure[0];
+    if (firstItem.type !== 'file') {
+      throw new Error('Expected file but got folder');
+    }
+    const schemaFile: IFile = firstItem;
     const minifiedActual = minifySQL(schemaFile.content);
     const minifiedExpected = minifySQL(expectedSchemaSQL);
     expect(minifiedActual).toBe(minifiedExpected);
@@ -288,7 +353,11 @@ CREATE TABLE "{{tableName}}" (
       null,
     );
 
-    const schemaFile = result.structure[0] as IFile;
+    const firstItem = result.structure[0];
+    if (firstItem.type !== 'file') {
+      throw new Error('Expected file but got folder');
+    }
+    const schemaFile: IFile = firstItem;
     const actual = schemaFile.content;
     const expected = expectedSchemaSQL;
 
@@ -376,7 +445,11 @@ CREATE TABLE "{{tableName}}" (
       null,
     );
 
-    const schemaFile = result.structure[0] as IFile;
+    const firstItem = result.structure[0];
+    if (firstItem.type !== 'file') {
+      throw new Error('Expected file but got folder');
+    }
+    const schemaFile: IFile = firstItem;
     const content = schemaFile.content;
 
     expect(content).not.toContain('<@@FORMAT@@');
