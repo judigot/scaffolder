@@ -162,7 +162,7 @@ function TagInput({
           {filteredSuggestions.map((suggestion, index) => (
             <li
               key={index}
-              className="p-2 cursor-pointer text-white hover:bg-gray-500 rounded-t-md first:rounded-t-md last:rounded-b-md"
+              className="p-2 text-white hover:bg-gray-500 rounded-t-md first:rounded-t-md last:rounded-b-md"
               onClick={() => {
                 handleSuggestionClick(suggestion);
               }}

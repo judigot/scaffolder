@@ -799,7 +799,7 @@ function App() {
                   setIsSQLSchemaModalOpen(true);
                 }}
                 rows={15}
-                className="cursor-pointer p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
               />
               <div className="block text-sm font-medium mt-4">
                 <input

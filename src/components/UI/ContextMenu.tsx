@@ -165,7 +165,7 @@ export const ContextMenu = ({
             <button
               type="button"
               key={item.id}
-              className={`flex items-center px-3 py-2 hover:bg-gray-700 cursor-pointer w-full text-left ${
+              className={`flex items-center px-3 py-2 hover:bg-gray-700 w-full text-left ${
                 isDisabled ? 'opacity-50 cursor-not-allowed' : ''
               } ${item.className ?? ''}`}
               onClick={() => {

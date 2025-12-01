@@ -387,9 +387,9 @@ function SchemaBuilder() {
       if (e.ctrlKey && e.key === 'Enter') {
         const valid = Boolean(
           newColumnFormData.columnName.trim() &&
-            newColumnFormData.dataType &&
-            (!newColumnFormData.foreignKey ||
-              newColumnFormData.foreignKey.relationType),
+          newColumnFormData.dataType &&
+          (!newColumnFormData.foreignKey ||
+            newColumnFormData.foreignKey.relationType),
         );
         if (!valid) {
           return;
@@ -539,7 +539,7 @@ function SchemaBuilder() {
         .filter((table) => {
           return Boolean(
             sourceTable.childTables?.includes(table.tableName) === true &&
-              table.isPivot,
+            table.isPivot,
           );
         })
         .map((table) => table.tableName),
@@ -1519,7 +1519,7 @@ function SchemaBuilder() {
                           return;
                         }}
                         tabIndex={-1}
-                        className={`p-3 rounded-md cursor-pointer transition-all duration-200 group ${
+                        className={`p-3 rounded-md transition-all duration-200 group ${
                           isSelected
                             ? 'bg-indigo-500/20 border border-indigo-500/30 text-indigo-300'
                             : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
@@ -1615,7 +1615,7 @@ function SchemaBuilder() {
                             return;
                           }}
                           tabIndex={-1}
-                          className={`p-3 rounded-md cursor-pointer transition-all duration-200 group ${
+                          className={`p-3 rounded-md transition-all duration-200 group ${
                             isSelected
                               ? 'bg-yellow-500/20 border border-yellow-500/30 text-yellow-300'
                               : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
@@ -1707,7 +1707,7 @@ function SchemaBuilder() {
                             return;
                           }}
                           tabIndex={-1}
-                          className={`p-3 rounded-md cursor-pointer transition-all duration-200 group ${
+                          className={`p-3 rounded-md transition-all duration-200 group ${
                             isSelected
                               ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
                               : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
@@ -1865,7 +1865,7 @@ function SchemaBuilder() {
                     {/* One-to-One Relationships */}
                     {(Boolean(
                       schemaInfo[selectedTableIndex].hasOne &&
-                        schemaInfo[selectedTableIndex].hasOne.length > 0,
+                      schemaInfo[selectedTableIndex].hasOne.length > 0,
                     ) ||
                       Boolean(
                         schemaInfo[selectedTableIndex].belongsTo?.some(
@@ -1899,7 +1899,7 @@ function SchemaBuilder() {
                                       setSelectedTableIndex(tableIndex);
                                     }
                                   }}
-                                  className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline transition-colors duration-200"
                                 >
                                   {table}
                                 </button>
@@ -1931,7 +1931,7 @@ function SchemaBuilder() {
                                       setSelectedTableIndex(tableIndex);
                                     }
                                   }}
-                                  className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  className="ml-2 font-medium text-blue-200 hover:text-blue-100 hover:underline transition-colors duration-200"
                                 >
                                   {table}
                                 </button>
@@ -1944,7 +1944,7 @@ function SchemaBuilder() {
                     {/* One-to-Many Relationships */}
                     {(Boolean(
                       schemaInfo[selectedTableIndex].hasMany &&
-                        schemaInfo[selectedTableIndex].hasMany.length > 0,
+                      schemaInfo[selectedTableIndex].hasMany.length > 0,
                     ) ||
                       Boolean(
                         schemaInfo[selectedTableIndex].belongsTo?.some(
@@ -1980,7 +1980,7 @@ function SchemaBuilder() {
                                       setSelectedTableIndex(tableIndex);
                                     }
                                   }}
-                                  className="ml-2 font-medium text-green-200 hover:text-green-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  className="ml-2 font-medium text-green-200 hover:text-green-100 hover:underline transition-colors duration-200"
                                 >
                                   {table}
                                 </button>
@@ -2012,7 +2012,7 @@ function SchemaBuilder() {
                                       setSelectedTableIndex(tableIndex);
                                     }
                                   }}
-                                  className="ml-2 font-medium text-green-200 hover:text-green-100 hover:underline cursor-pointer transition-colors duration-200"
+                                  className="ml-2 font-medium text-green-200 hover:text-green-100 hover:underline transition-colors duration-200"
                                 >
                                   {table}
                                 </button>
@@ -2048,7 +2048,7 @@ function SchemaBuilder() {
                                         setSelectedTableIndex(tableIndex);
                                       }
                                     }}
-                                    className="ml-2 font-medium text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                    className="ml-2 font-medium text-purple-200 hover:text-purple-100 hover:underline transition-colors duration-200"
                                   >
                                     {table}
                                   </button>
@@ -2072,7 +2072,7 @@ function SchemaBuilder() {
                                         setSelectedTableIndex(tableIndex);
                                       }
                                     }}
-                                    className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                    className="text-purple-200 hover:text-purple-100 hover:underline transition-colors duration-200"
                                   >
                                     {rel.relatedTable}
                                   </button>
@@ -2088,7 +2088,7 @@ function SchemaBuilder() {
                                         setSelectedTableIndex(tableIndex);
                                       }
                                     }}
-                                    className="text-purple-200 hover:text-purple-100 hover:underline cursor-pointer transition-colors duration-200"
+                                    className="text-purple-200 hover:text-purple-100 hover:underline transition-colors duration-200"
                                   >
                                     {rel.pivotTable}
                                   </button>
@@ -2130,7 +2130,7 @@ function SchemaBuilder() {
                                             setSelectedTableIndex(tableIndex);
                                           }
                                         }}
-                                        className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
+                                        className="text-gray-200 hover:text-gray-100 hover:underline transition-colors duration-200"
                                       >
                                         {table}
                                       </button>
@@ -2164,7 +2164,7 @@ function SchemaBuilder() {
                                             setSelectedTableIndex(tableIndex);
                                           }
                                         }}
-                                        className="text-gray-200 hover:text-gray-100 hover:underline cursor-pointer transition-colors duration-200"
+                                        className="text-gray-200 hover:text-gray-100 hover:underline transition-colors duration-200"
                                       >
                                         {table}
                                       </button>
@@ -2368,7 +2368,7 @@ function SchemaBuilder() {
                                       ) : (
                                         <button
                                           type="button"
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
+                                          className="hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                           onDoubleClick={(e) => {
                                             handleCellEdit(
                                               filteredIndex,
@@ -2431,7 +2431,7 @@ function SchemaBuilder() {
                                       ) : (
                                         <button
                                           type="button"
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
+                                          className="hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                           onDoubleClick={(e) => {
                                             handleCellEdit(
                                               filteredIndex,
@@ -2537,7 +2537,7 @@ function SchemaBuilder() {
                                           return (
                                             <button
                                               type="button"
-                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
+                                              className="hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                               onDoubleClick={(e) => {
                                                 handleCellEdit(
                                                   filteredIndex,
@@ -2611,7 +2611,7 @@ function SchemaBuilder() {
                                       ) : (
                                         <button
                                           type="button"
-                                          className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
+                                          className="hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                           onDoubleClick={(e) => {
                                             handleCellEdit(
                                               filteredIndex,
@@ -2724,7 +2724,7 @@ function SchemaBuilder() {
                                           return (
                                             <button
                                               type="button"
-                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
+                                              className="hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                               onDoubleClick={(e) => {
                                                 handleCellEdit(
                                                   filteredIndex,
@@ -2811,7 +2811,7 @@ function SchemaBuilder() {
                                           return (
                                             <button
                                               type="button"
-                                              className="cursor-pointer hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
+                                              className="hover:bg-gray-600/50 rounded px-1 py-0.5 w-full text-left"
                                               onDoubleClick={(e) => {
                                                 handleCellEdit(
                                                   filteredIndex,
