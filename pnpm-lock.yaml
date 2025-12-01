@@ -39,8 +39,8 @@ importers:
         specifier: ^22.0.1
         version: 22.0.1
       '@prettier/plugin-php':
-        specifier: ^0.24.0
-        version: 0.24.0(prettier@3.7.3)
+        specifier: ^0.23.0
+        version: 0.23.0(prettier@3.7.3)
       '@tailwindcss/postcss':
         specifier: ^4.1.17
         version: 4.1.17
@@ -1702,8 +1702,8 @@ packages:
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
 
-  '@prettier/plugin-php@0.24.0':
-    resolution: {integrity: sha512-x9l65fCE/pgoET6RQowgdgG8Xmzs44z6j6Hhg3coINCyCw9JBGJ5ZzMR2XHAM2jmAdbJAIgqB6cUn4/3W3XLTA==}
+  '@prettier/plugin-php@0.23.0':
+    resolution: {integrity: sha512-8VeSOewhR9eBaQbxDS+NCkbjk57VKlCroz4zTNDKnLl6h4JXG2MLITZR89WDFdHS/E35s/uwtSDgnigWlbGvkQ==}
     peerDependencies:
       prettier: ^3.0.0
 
@@ -6894,7 +6894,7 @@ snapshots:
 
   '@popperjs/core@2.11.8': {}
 
-  '@prettier/plugin-php@0.24.0(prettier@3.7.3)':
+  '@prettier/plugin-php@0.23.0(prettier@3.7.3)':
     dependencies:
       linguist-languages: 8.2.0
       php-parser: 3.2.5
