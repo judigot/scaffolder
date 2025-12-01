@@ -79,11 +79,11 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     },
   ];
 
-  it('should create folders with names from data source', () => {
+  it('should create folders with names from data source', async () => {
     const userFiles = createTestUserFiles();
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processDynamicFolders({
+    const result = await processDynamicFolders({
       folderName: "{{basic-info.name}}'s Files",
       children: [],
       schemaInfo: [],
@@ -110,11 +110,11 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(janeFolder).toBeDefined();
   });
 
-  it('should pass data context to children with --scoped CREATE_FILE', () => {
+  it('should pass data context to children with --scoped CREATE_FILE', async () => {
     const userFiles = createTestUserFiles();
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processDynamicFolders({
+    const result = await processDynamicFolders({
       folderName: "{{basic-info.name}}'s Files",
       children: [
         "CREATE_FILE({{basic-info.name}}'s Resume.html --scoped --template ./templates/Resume.txt)",
@@ -154,7 +154,8 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(johnFile.content).toContain('NAME: John Doe');
     expect(johnFile.content).toContain('EMAIL: john.doe@example.com');
     expect(johnFile.content).toContain('PHONE: 123-456-7890');
-    expect(johnFile.content).toContain('LANGUAGES: English, Filipino');
+    expect(johnFile.content).toContain('LANGUAGES:');
+    expect(johnFile.content).toContain('English, Filipino');
 
     const janeFolder = result.find(
       (item): item is IFolder =>
@@ -178,10 +179,11 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(janeFile.content).toContain('NAME: Jane Smith');
     expect(janeFile.content).toContain('EMAIL: jane.smith@example.com');
     expect(janeFile.content).toContain('PHONE: 555-987-6543');
-    expect(janeFile.content).toContain('LANGUAGES: English, Spanish');
+    expect(janeFile.content).toContain('LANGUAGES:');
+    expect(janeFile.content).toContain('English, Spanish');
   });
 
-  it('should handle nested data properties in folder names', () => {
+  it('should handle nested data properties in folder names', async () => {
     const userFiles: IStructure = [
       {
         type: 'folder',
@@ -212,7 +214,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     ];
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processDynamicFolders({
+    const result = await processDynamicFolders({
       folderName: '{{user.profile.firstName}} {{user.profile.lastName}}',
       children: [],
       schemaInfo: [],
@@ -230,7 +232,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(result[0]?.name).toBe('Alice Wonderland');
   });
 
-  it('should return empty array when no files match the data source pattern', () => {
+  it('should return empty array when no files match the data source pattern', async () => {
     const userFiles: IStructure = [
       {
         type: 'folder',
@@ -240,7 +242,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     ];
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processDynamicFolders({
+    const result = await processDynamicFolders({
       folderName: "{{basic-info.name}}'s Files",
       children: [],
       schemaInfo: [],
@@ -257,7 +259,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(result).toHaveLength(0);
   });
 
-  it('should provide folderName and folderPath in data context', () => {
+  it('should provide folderName and folderPath in data context', async () => {
     const userFiles: IStructure = [
       {
         type: 'folder',
@@ -309,7 +311,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     ];
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processDynamicFolders({
+    const result = await processDynamicFolders({
       folderName: '{{folderName}}',
       children: [
         'CREATE_FILE(test.html --scoped --template ./templates/test.txt)',

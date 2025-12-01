@@ -18,6 +18,7 @@ interface ICreateBaseMethodFileOptions {
   template: string;
   outputFile: string;
   scoped?: boolean;
+  shouldFormat?: boolean;
 }
 
 /**
@@ -30,11 +31,13 @@ const parseCreateBaseMethodFileOptions = (
 
   const templatePath = options[ACTION_FLAGS.TEMPLATE] ?? '';
   const scoped = options[ACTION_FLAGS.SCOPED] ?? false;
+  const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
 
   return {
     template: typeof templatePath === 'string' ? templatePath : '',
     outputFile: mainCommand,
     scoped,
+    shouldFormat,
   };
 };
 
@@ -152,19 +155,20 @@ const applyReplacements = (
 /**
  * Creates files based on file-based template structure using wildcards
  */
-export const createBaseMethodFile = (
+export const createBaseMethodFile = async (
   command: string,
   userFiles: IStructure,
   projectYamlPath: string,
   _schemaInfo?: ISchemaInfo[],
   schemaInfoParsed?: ISchemaInfoResult,
   table?: ISchemaInfo,
-): IStructure => {
+): Promise<IStructure> => {
   // Parse options from command
   const options = parseCreateBaseMethodFileOptions(command);
   const outputFilePattern = options.outputFile;
   const templatePath = options.template;
   const isScoped = options.scoped;
+  const shouldFormat = options.shouldFormat ?? true;
 
   // Create result array and deduplication tracking
   const result: IStructure = [];
@@ -317,7 +321,11 @@ export const createBaseMethodFile = (
           result.push({
             type: 'file',
             name: outputFileName,
-            content: formatFileContent(templateContent),
+            content: await formatFileContent(
+              templateContent,
+              outputFileName,
+              shouldFormat,
+            ),
           });
         }
       }
@@ -384,7 +392,11 @@ export const createBaseMethodFile = (
     result.push({
       type: 'file',
       name: outputFileName,
-      content: formatFileContent(processedContent),
+      content: await formatFileContent(
+        processedContent,
+        outputFileName,
+        shouldFormat,
+      ),
     });
   }
 

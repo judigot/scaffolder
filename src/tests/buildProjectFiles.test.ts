@@ -7,7 +7,7 @@ import { CREATION_MODES } from '@/constants.ts';
 import masterJSONSchema from '@/json-schemas/masterJSONSchema.ts';
 
 describe('Build Project Files', () => {
-  it('should build project files based on templates', () => {
+  it('should build project files based on templates', async () => {
     const formData: IFormStore = {
       schemaInput: masterJSONSchema,
       backendUrl: 'http://localhost:5000',
@@ -775,7 +775,7 @@ describe('Build Project Files', () => {
 ]
     `;
     const userFiles = convertLocalFilesToIStructure('src/files.test');
-    const buildResult = buildProjectFiles(
+    const buildResult = await buildProjectFiles(
       '/Projects/Laravel.yaml',
       userFiles,
       masterSchema,
@@ -791,7 +791,7 @@ describe('Build Project Files', () => {
     expect(clean(JSON.stringify(result))).toEqual(clean(expectation));
   });
 
-  it('should detect files using USE_USER_ENV in templates', () => {
+  it('should detect files using USE_USER_ENV in templates', async () => {
     const formData: IFormStore = {
       schemaInput: masterJSONSchema,
       backendUrl: 'http://localhost:5000',
@@ -900,7 +900,7 @@ describe('Build Project Files', () => {
       },
     };
 
-    const buildResult = buildProjectFiles(
+    const buildResult = await buildProjectFiles(
       '/Projects/TestUserEnv.yaml',
       userFiles,
       masterSchema,

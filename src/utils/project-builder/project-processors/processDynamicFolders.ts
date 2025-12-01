@@ -9,7 +9,7 @@ import {
   createDataContextReplacements,
 } from '@/utils/project-builder/utils/dataSourceUtils.ts';
 
-export const processDynamicFolders = ({
+export const processDynamicFolders = async ({
   folderName,
   children,
   schemaInfo,
@@ -20,7 +20,7 @@ export const processDynamicFolders = ({
   userMetadata,
   options,
   currentPath = '',
-}: IBuildContext): IStructure => {
+}: IBuildContext): Promise<IStructure> => {
   if (typeof folderName !== 'string') {
     throw new Error('Folder name is not a string');
   }
@@ -29,38 +29,83 @@ export const processDynamicFolders = ({
   if (dataSourcePattern !== undefined && dataSourcePattern !== '') {
     const dataMatches = findFilesMatchingGlob(userFiles, dataSourcePattern);
 
-    return dataMatches.map((match) => {
-      const { augmentedData, replacements } = createDataContextReplacements(
-        match.data,
-        match.folderPath,
-      );
+    return await Promise.all(
+      dataMatches.map(async (match) => {
+        const { augmentedData, replacements } = createDataContextReplacements(
+          match.data,
+          match.folderPath,
+        );
+
+        const processedName = replacePlaceholders(
+          folderName,
+          replacements,
+          userFiles,
+          schemaInfoParsed,
+          undefined,
+          projectYamlPath,
+          undefined,
+          formData,
+          userMetadata,
+          augmentedData,
+        );
+
+        const newPath =
+          currentPath === ''
+            ? processedName
+            : `${currentPath}/${processedName}`;
+
+        const processedChildren = await processYamlStructure({
+          onFileUsingUserEnv: options?.onFileUsingUserEnv,
+          node: children,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          projectYamlPath,
+          formData,
+          userMetadata,
+          dataContext: augmentedData,
+          currentPath: newPath,
+        });
+
+        return {
+          type: 'folder',
+          name: processedName,
+          children: processedChildren,
+        };
+      }),
+    );
+  }
+
+  return await Promise.all(
+    schemaInfo.map(async (table) => {
+      const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
       const processedName = replacePlaceholders(
         folderName,
         replacements,
         userFiles,
         schemaInfoParsed,
-        undefined,
+        table,
         projectYamlPath,
         undefined,
         formData,
         userMetadata,
-        augmentedData,
+        undefined,
       );
 
       const newPath =
         currentPath === '' ? processedName : `${currentPath}/${processedName}`;
 
-      const processedChildren = processYamlStructure({
-        onFileUsingUserEnv: options?.onFileUsingUserEnv,
+      const processedChildren = await processYamlStructure({
         node: children,
         schemaInfo,
         schemaInfoParsed,
         userFiles,
         projectYamlPath,
+        table,
         formData,
         userMetadata,
-        dataContext: augmentedData,
+        onFileUsingUserEnv: options?.onFileUsingUserEnv,
         currentPath: newPath,
       });
 
@@ -69,45 +114,6 @@ export const processDynamicFolders = ({
         name: processedName,
         children: processedChildren,
       };
-    });
-  }
-
-  return schemaInfo.map((table) => {
-    const replacements = getReplacementsForTable(table, schemaInfoParsed);
-
-    const processedName = replacePlaceholders(
-      folderName,
-      replacements,
-      userFiles,
-      schemaInfoParsed,
-      table,
-      projectYamlPath,
-      undefined,
-      formData,
-      userMetadata,
-      undefined,
-    );
-
-    const newPath =
-      currentPath === '' ? processedName : `${currentPath}/${processedName}`;
-
-    const processedChildren = processYamlStructure({
-      node: children,
-      schemaInfo,
-      schemaInfoParsed,
-      userFiles,
-      projectYamlPath,
-      table,
-      formData,
-      userMetadata,
-      onFileUsingUserEnv: options?.onFileUsingUserEnv,
-      currentPath: newPath,
-    });
-
-    return {
-      type: 'folder',
-      name: processedName,
-      children: processedChildren,
-    };
-  });
+    }),
+  );
 };

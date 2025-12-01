@@ -18,13 +18,13 @@ export interface IBuildProjectFilesResult {
   filesUsingUserEnv: string[];
 }
 
-export const buildProjectFiles = (
+export const buildProjectFiles = async (
   projectYamlPath: string,
   userFiles: IStructure,
   schemaInfo: ISchemaInfo[],
   formData: IFormStore,
   userMetadata?: Record<string, unknown> | null,
-): IBuildProjectFilesResult => {
+): Promise<IBuildProjectFilesResult> => {
   const filesUsingUserEnv: string[] = [];
 
   const trackFileUsingUserEnv = (filePath: string): void => {
@@ -154,7 +154,7 @@ export const buildProjectFiles = (
       yamlStructureToProcess = Object.fromEntries(entries);
     }
 
-    const scaffoldedFiles = processYamlStructure({
+    const scaffoldedFiles = await processYamlStructure({
       node: yamlStructureToProcess,
       schemaInfo,
       schemaInfoParsed,

@@ -29,7 +29,7 @@ const buildAbsolutePath = (fileName: string, currentPath: string): string => {
   return `${currentPath}/${fileName}`;
 };
 
-export const processMultipleFiles = ({
+export const processMultipleFiles = async ({
   command: fileName,
   options = {},
   schemaInfo,
@@ -40,7 +40,7 @@ export const processMultipleFiles = ({
   userMetadata,
   onFileUsingUserEnv,
   currentPath = '',
-}: IMultipleFilesContext): IFile[] => {
+}: IMultipleFilesContext): Promise<IFile[]> => {
   if (!fileName || fileName.length === 0) {
     return [];
   }
@@ -71,48 +71,24 @@ export const processMultipleFiles = ({
     // We'll track them in the map function below
   }
 
-  const files: IFile[] = schemaInfo
-    .filter((table) => {
-      const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
-      const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
-      const scopedOption = options[ACTION_FLAGS.SCOPED];
+  const filteredSchemaInfo = schemaInfo.filter((table) => {
+    const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
+    const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
+    const scopedOption = options[ACTION_FLAGS.SCOPED];
+
+    if (
+      (includeTableOption?.trim().length ?? 0) > 0 ||
+      (excludeTableOption?.trim().length ?? 0) > 0 ||
+      scopedOption === true
+    ) {
+      const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
       if (
-        (includeTableOption?.trim().length ?? 0) > 0 ||
-        (excludeTableOption?.trim().length ?? 0) > 0 ||
-        scopedOption === true
+        includeTableOption !== undefined &&
+        includeTableOption.trim().length > 0
       ) {
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
-
-        if (
-          includeTableOption !== undefined &&
-          includeTableOption.trim().length > 0
-        ) {
-          const processedIncludeTable = replacePlaceholders(
-            includeTableOption,
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            table,
-            projectYamlPath,
-            fileName,
-            formData,
-            userMetadata,
-            undefined,
-          );
-          if (table.tableName !== processedIncludeTable) {
-            return false;
-          }
-        }
-      }
-
-      if (
-        excludeTableOption !== undefined &&
-        excludeTableOption.trim().length > 0
-      ) {
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        const processedExcludeTable = replacePlaceholders(
-          excludeTableOption,
+        const processedIncludeTable = replacePlaceholders(
+          includeTableOption,
           replacements,
           userFiles,
           schemaInfoParsed,
@@ -123,14 +99,39 @@ export const processMultipleFiles = ({
           userMetadata,
           undefined,
         );
-        if (table.tableName === processedExcludeTable) {
+        if (table.tableName !== processedIncludeTable) {
           return false;
         }
       }
+    }
 
-      return true;
-    })
-    .map((table) => {
+    if (
+      excludeTableOption !== undefined &&
+      excludeTableOption.trim().length > 0
+    ) {
+      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const processedExcludeTable = replacePlaceholders(
+        excludeTableOption,
+        replacements,
+        userFiles,
+        schemaInfoParsed,
+        table,
+        projectYamlPath,
+        fileName,
+        formData,
+        userMetadata,
+        undefined,
+      );
+      if (table.tableName === processedExcludeTable) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const files = await Promise.all(
+    filteredSchemaInfo.map(async (table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
       const processedName = replacePlaceholders(
         fileName,
@@ -200,14 +201,20 @@ export const processMultipleFiles = ({
         userMetadata,
       );
 
-      const finalContent = formatFileContent(content);
+      const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
+      const finalContent = await formatFileContent(
+        content,
+        outputFileName,
+        shouldFormat,
+      );
 
       return {
-        type: 'file',
+        type: 'file' as const,
         name: outputFileName,
         content: finalContent,
-      };
-    });
+      } satisfies IFile;
+    }),
+  );
 
   return files.filter((file) => file.content.trim().length > 0);
 };

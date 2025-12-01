@@ -17,7 +17,7 @@ import formatCode from '@/utils/formatCode.ts';
 import { Auth0Provider } from '@auth0/auth0-react';
 
 void (async () => {
-  const formattedCode = await formatCode(`<?php
+  const formatted = await formatCode(`<?php
 
 namespace App\\Models;
 
@@ -52,7 +52,8 @@ class Profile extends Model
         return $this->belongsTo(User::class);
     }
 
-}`).php;
+}`);
+  const formattedCode = formatted.php;
   // eslint-disable-next-line no-console
   console.log(formattedCode);
 })();

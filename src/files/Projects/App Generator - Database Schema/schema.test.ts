@@ -136,12 +136,12 @@ CREATE TABLE "{{tableName}}" (
     dbConnection: 'postgresql://localhost:5432/test',
   } as IFormStore;
 
-  it('should generate schema.sql file', () => {
+  it('should generate schema.sql file', async () => {
     const userFiles = createUserFiles();
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFiles,
       masterSchema,
@@ -154,12 +154,12 @@ CREATE TABLE "{{tableName}}" (
     expect(result.structure[0].name).toBe('schema.sql');
   });
 
-  it('should generate schema.sql with correct DROP TABLE statements in reverse order', () => {
+  it('should generate schema.sql with correct DROP TABLE statements in reverse order', async () => {
     const userFiles = createUserFiles();
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFiles,
       masterSchema,
@@ -178,12 +178,12 @@ CREATE TABLE "{{tableName}}" (
     expect(dropPosts).toBeLessThan(dropProduct);
   });
 
-  it('should generate schema.sql with correct CREATE TABLE statements', () => {
+  it('should generate schema.sql with correct CREATE TABLE statements', async () => {
     const userFiles = createUserFiles();
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFiles,
       masterSchema,
@@ -203,12 +203,12 @@ CREATE TABLE "{{tableName}}" (
     expect(content).toContain('CREATE TABLE "posts"');
   });
 
-  it('should generate schema.sql with correct column definitions', () => {
+  it('should generate schema.sql with correct column definitions', async () => {
     const userFiles = createUserFiles();
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFiles,
       masterSchema,
@@ -226,12 +226,12 @@ CREATE TABLE "{{tableName}}" (
     expect(content).toContain('"email" TEXT UNIQUE NOT NULL');
   });
 
-  it('should generate schema.sql with correct foreign key constraints', () => {
+  it('should generate schema.sql with correct foreign key constraints', async () => {
     const userFiles = createUserFiles();
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFiles,
       masterSchema,
@@ -256,12 +256,12 @@ CREATE TABLE "{{tableName}}" (
     );
   });
 
-  it('should generate exact schema.sql content', () => {
+  it('should generate exact schema.sql content', async () => {
     const userFiles = createUserFiles();
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFiles,
       masterSchema,
@@ -275,12 +275,12 @@ CREATE TABLE "{{tableName}}" (
     expect(minifiedActual).toBe(minifiedExpected);
   });
 
-  it('should generate schema.sql with no HTML tags (strict minified check)', () => {
+  it('should generate schema.sql with no HTML tags (strict minified check)', async () => {
     const userFiles = createUserFiles();
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFiles,
       masterSchema,
@@ -307,7 +307,7 @@ CREATE TABLE "{{tableName}}" (
     expect(minifiedActual).toBe(minifiedExpected);
   });
 
-  it('should format SQL output when using FORMAT tag', () => {
+  it('should format SQL output when using FORMAT tag', async () => {
     const userFilesWithFormat: IStructure = [
       {
         type: 'folder',
@@ -368,7 +368,7 @@ CREATE TABLE "{{tableName}}" (
     const projectPath =
       '/Projects/App Generator - Database Schema/structure.yaml';
 
-    const result = buildProjectFiles(
+    const result = await buildProjectFiles(
       projectPath,
       userFilesWithFormat,
       masterSchema,

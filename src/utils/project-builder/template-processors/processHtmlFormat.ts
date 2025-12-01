@@ -1,4 +1,5 @@
 import { format as formatSQL } from 'sql-formatter';
+import formatCode from '@/utils/formatCode.ts';
 
 const parseHtmlTagAttributes = (
   attributesStr: string,
@@ -30,16 +31,23 @@ const findHtmlFormatEnd = (
   return { endIndex: closeIdx + closeTag.length };
 };
 
-const formatByLanguage = (content: string, language: string): string => {
+const formatByLanguage = async (
+  content: string,
+  language: string,
+): Promise<string> => {
   switch (language) {
     case 'sql':
       return formatSQL(content);
+    case 'php': {
+      const formatted = await formatCode(content);
+      return formatted.php;
+    }
     default:
       return content;
   }
 };
 
-export const processHtmlFormat = (content: string): string => {
+export const processHtmlFormat = async (content: string): Promise<string> => {
   const openRegex = /<@@FORMAT@@([^>]*)>/g;
   let result = content;
   let match;
@@ -79,17 +87,24 @@ export const processHtmlFormat = (content: string): string => {
       break;
     }
 
-    for (let i = matches.length - 1; i >= 0; i--) {
-      const { start, end, language, innerContent } = matches[i];
+    const formatPromises = matches.map(
+      async ({ start, end, language, innerContent }) => {
+        let formatted = innerContent.trim();
 
-      let formatted = innerContent.trim();
+        try {
+          formatted = await formatByLanguage(formatted, language);
+        } catch (error) {
+          console.error(`Failed to format ${language} code:`, error);
+        }
 
-      try {
-        formatted = formatByLanguage(formatted, language);
-      } catch {
-        // If formatting fails, keep the original content
-      }
+        return { start, end, formatted };
+      },
+    );
 
+    const formattedResults = await Promise.all(formatPromises);
+
+    for (let i = formattedResults.length - 1; i >= 0; i--) {
+      const { start, end, formatted } = formattedResults[i];
       result = result.slice(0, start) + formatted + result.slice(end);
     }
   }

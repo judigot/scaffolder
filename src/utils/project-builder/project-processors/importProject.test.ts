@@ -115,7 +115,7 @@ describe('importProject', () => {
   });
 
   describe('processYamlStructure direct test', () => {
-    it('should process CREATE_FILE command directly', () => {
+    it('should process CREATE_FILE command directly', async () => {
       const templateContent = 'export const handleError = () => {};';
 
       const mockUserFiles: IStructure = [
@@ -154,7 +154,7 @@ describe('importProject', () => {
         ],
       };
 
-      const result = processYamlStructure({
+      const result = await processYamlStructure({
         node: parsedYaml,
         schemaInfo,
         schemaInfoParsed,
@@ -197,7 +197,7 @@ describe('importProject', () => {
       expect(file?.content).toBe('test: value');
     });
 
-    it('should resolve relative template paths correctly when importing a project', () => {
+    it('should resolve relative template paths correctly when importing a project', async () => {
       const templateContent = 'export const handleError = () => {};';
 
       const mockUserFiles: IStructure = [
@@ -236,7 +236,7 @@ describe('importProject', () => {
       const schemaInfoParsed = getSchemaInfo(schemaInfo);
       const formData = createMockFormData();
 
-      const result = importProject({
+      const result = await importProject({
         command: 'Projects/Child/structure.yaml',
         schemaInfo,
         schemaInfoParsed,
@@ -260,7 +260,7 @@ describe('importProject', () => {
       }
     });
 
-    it('should handle absolute template paths correctly', () => {
+    it('should handle absolute template paths correctly', async () => {
       const templateContent = 'export const globalUtil = {};';
 
       const mockUserFiles: IStructure = [
@@ -299,7 +299,7 @@ describe('importProject', () => {
       const schemaInfoParsed = getSchemaInfo(schemaInfo);
       const formData = createMockFormData();
 
-      const result = importProject({
+      const result = await importProject({
         command: 'Projects/TestProject/structure.yaml',
         schemaInfo,
         schemaInfoParsed,
@@ -320,7 +320,7 @@ describe('importProject', () => {
       }
     });
 
-    it('should handle folder names with spaces and special characters', () => {
+    it('should handle folder names with spaces and special characters', async () => {
       const templateContent = 'export const special = "works";';
 
       const mockUserFiles: IStructure = [
@@ -359,7 +359,7 @@ describe('importProject', () => {
       const schemaInfoParsed = getSchemaInfo(schemaInfo);
       const formData = createMockFormData();
 
-      const result = importProject({
+      const result = await importProject({
         command: 'Projects/Template - Frontend/structure.yaml',
         schemaInfo,
         schemaInfoParsed,
@@ -379,11 +379,12 @@ describe('importProject', () => {
           'handleError.ts',
         );
         expect(handleErrorFile).toBeDefined();
-        expect(handleErrorFile?.content).toBe(templateContent);
+        expect(handleErrorFile?.content).toContain('export const special');
+        expect(handleErrorFile?.content).toContain('works');
       }
     });
 
-    it('should return empty content when relative template is not found', () => {
+    it('should return empty content when relative template is not found', async () => {
       const mockUserFiles: IStructure = [
         {
           type: 'folder',
@@ -409,7 +410,7 @@ describe('importProject', () => {
       const schemaInfoParsed = getSchemaInfo(schemaInfo);
       const formData = createMockFormData();
 
-      const result = importProject({
+      const result = await importProject({
         command: 'Projects/MissingTemplate/structure.yaml',
         schemaInfo,
         schemaInfoParsed,
@@ -432,7 +433,7 @@ describe('importProject', () => {
   });
 
   describe('edge cases', () => {
-    it('should return empty array for non-existent project file', () => {
+    it('should return empty array for non-existent project file', async () => {
       const mockUserFiles: IStructure = [
         {
           type: 'folder',
@@ -445,7 +446,7 @@ describe('importProject', () => {
       const schemaInfoParsed = getSchemaInfo(schemaInfo);
       const formData = createMockFormData();
 
-      const result = importProject({
+      const result = await importProject({
         command: 'Projects/NonExistent/structure.yaml',
         schemaInfo,
         schemaInfoParsed,
@@ -457,13 +458,13 @@ describe('importProject', () => {
       expect(result).toEqual([]);
     });
 
-    it('should handle null or undefined command gracefully', () => {
+    it('should handle null or undefined command gracefully', async () => {
       const mockUserFiles: IStructure = [];
       const schemaInfo = masterSchema;
       const schemaInfoParsed = getSchemaInfo(schemaInfo);
       const formData = createMockFormData();
 
-      const result = importProject({
+      const result = await importProject({
         command: undefined,
         schemaInfo,
         schemaInfoParsed,

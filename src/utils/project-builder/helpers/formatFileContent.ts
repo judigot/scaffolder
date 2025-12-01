@@ -1,11 +1,27 @@
 import { processHtmlFormat } from '@/utils/project-builder/template-processors/processHtmlFormat.ts';
+import { autoFormatByExtension } from '@/utils/project-builder/helpers/autoFormatByExtension.ts';
 
-export const formatFileContent = (content: string): string => {
-  const processed = processHtmlFormat(content);
+export const formatFileContent = async (
+  content: string,
+  fileName?: string,
+  shouldFormat = true,
+): Promise<string> => {
+  let processed = await processHtmlFormat(content);
+
+  const hasFormatTags = content.includes('<@@FORMAT@@');
+
+  if (
+    shouldFormat &&
+    fileName !== undefined &&
+    fileName !== '' &&
+    !hasFormatTags
+  ) {
+    processed = await autoFormatByExtension(processed, fileName);
+  }
 
   return processed
-    .replace(/\\n/g, '\n') // Replace \n with actual newlines
-    .replace(/\\t/g, '    ') // Replace \t with four spaces
-    .replace(/\t/g, '    ') // Replace tab characters with four spaces
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '    ')
+    .replace(/\t/g, '    ')
     .trim();
 };

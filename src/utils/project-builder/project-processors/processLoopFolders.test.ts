@@ -4,7 +4,7 @@ import type { IStructure } from '@/components/FileViewer.tsx';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 
 describe('processLoopFolders', () => {
-  it('should generate files with dynamic names from data source', () => {
+  it('should generate files with dynamic names from data source', async () => {
     const userFiles: IStructure = [
       {
         type: 'folder',
@@ -76,7 +76,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
 
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processLoopFolders({
+    const result = await processLoopFolders({
       command: "{{basic-info.name}}'s-Resume.html",
       options: {
         'data-source': '/Employees/**/info.yaml',
@@ -100,7 +100,8 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(johnDoeFile?.content).toContain('NAME: John Doe');
     expect(johnDoeFile?.content).toContain('EMAIL: john.doe@example.com');
     expect(johnDoeFile?.content).toContain('PHONE: 123-456-7890');
-    expect(johnDoeFile?.content).toContain('LANGUAGES: English, Filipino');
+    expect(johnDoeFile?.content).toContain('LANGUAGES:');
+    expect(johnDoeFile?.content).toContain('English, Filipino');
 
     const janeSmithFile = result.find(
       (file) => file.name === "Jane Smith's-Resume.html",
@@ -109,10 +110,11 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(janeSmithFile?.content).toContain('NAME: Jane Smith');
     expect(janeSmithFile?.content).toContain('EMAIL: jane.smith@example.com');
     expect(janeSmithFile?.content).toContain('PHONE: 555-987-6543');
-    expect(janeSmithFile?.content).toContain('LANGUAGES: English, Spanish');
+    expect(janeSmithFile?.content).toContain('LANGUAGES:');
+    expect(janeSmithFile?.content).toContain('English, Spanish');
   });
 
-  it('should handle nested data properties in filename', () => {
+  it('should handle nested data properties in filename', async () => {
     const userFiles: IStructure = [
       {
         type: 'folder',
@@ -160,7 +162,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
 
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processLoopFolders({
+    const result = await processLoopFolders({
       command: '{{basic-info.name}}-Resume.html',
       options: {
         'data-source': '/Employees/**/info.yaml',
@@ -179,11 +181,11 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(result[0]?.name).toBe('Alice Wonderland-Resume.html');
   });
 
-  it('should return empty array when data source pattern is missing', () => {
+  it('should return empty array when data source pattern is missing', async () => {
     const userFiles: IStructure = [];
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processLoopFolders({
+    const result = await processLoopFolders({
       command: 'test.html',
       options: {},
       userFiles,
@@ -197,7 +199,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(result).toHaveLength(0);
   });
 
-  it('should return empty array when no files match the pattern', () => {
+  it('should return empty array when no files match the pattern', async () => {
     const userFiles: IStructure = [
       {
         type: 'folder',
@@ -207,7 +209,7 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     ];
     const schemaInfoParsed = getSchemaInfo([]);
 
-    const result = processLoopFolders({
+    const result = await processLoopFolders({
       command: 'test.html',
       options: {
         'data-source': '/Employees/**/info.yaml',
@@ -223,4 +225,3 @@ LANGUAGES: [[USE_DATA(languages)]]`,
     expect(result).toHaveLength(0);
   });
 });
-

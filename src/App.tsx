@@ -6,6 +6,7 @@ import { useModalStore } from '@/useModalStore.ts';
 
 import { consolidateInterfaces } from '@/utils/common.ts';
 import FileViewer from '@/components/FileViewer.tsx';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
 import { CREATION_MODES } from '@/constants.ts';
@@ -91,20 +92,39 @@ function App() {
     invalidateProjectCache,
   ]);
 
-  // Get the project files from the selected project
-  // Only build if user and metadata are loaded to ensure metadata is available
-  const buildResult =
-    selectedProject !== null &&
-    user !== null &&
-    decryptedMetadata !== null &&
-    !isUserLoading &&
-    !isDecryptingMetadata
-      ? buildProjectFilesForProject(
+  const [buildResult, setBuildResult] = useState<{
+    structure: IStructure;
+    filesUsingUserEnv: string[];
+  }>({ structure: [], filesUsingUserEnv: [] });
+
+  useEffect(() => {
+    if (
+      selectedProject !== null &&
+      user !== null &&
+      decryptedMetadata !== null &&
+      !isUserLoading &&
+      !isDecryptingMetadata
+    ) {
+      void (async () => {
+        const result = await buildProjectFilesForProject(
           selectedProject,
           schemaInfo,
           decryptedMetadata,
-        )
-      : { structure: [], filesUsingUserEnv: [] };
+        );
+        setBuildResult(result);
+      })();
+    } else {
+      setBuildResult({ structure: [], filesUsingUserEnv: [] });
+    }
+  }, [
+    selectedProject,
+    user,
+    decryptedMetadata,
+    isUserLoading,
+    isDecryptingMetadata,
+    buildProjectFilesForProject,
+    schemaInfo,
+  ]);
 
   const builtProjectFiles = buildResult.structure;
   const filesUsingUserEnv = buildResult.filesUsingUserEnv;

@@ -1,1 +1,2 @@
 CREATE_FILE(schema.sql --template /Templates/schema.txt):
+CREATE_FILE(api.php --template ./templates/api.txt):

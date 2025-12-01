@@ -28,7 +28,7 @@ function isValidProjectStructure(
  * @param table Optional table context for scoped imports
  * @returns An array of structure items to be included
  */
-export const importProject = ({
+export const importProject = async ({
   command,
   schemaInfo,
   schemaInfoParsed,
@@ -39,7 +39,7 @@ export const importProject = ({
   userMetadata,
   onFileUsingUserEnv,
   currentPath = '',
-}: IBuildContext): IStructure => {
+}: IBuildContext): Promise<IStructure> => {
   // Clean up the command string to handle cases where it might have trailing characters
   const cleanCommand = command?.trim();
 
@@ -76,7 +76,7 @@ export const importProject = ({
     const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
 
     if (table && scopedOption) {
-      return processYamlStructure({
+      return await processYamlStructure({
         node: parsedYaml,
         schemaInfo,
         schemaInfoParsed,
@@ -145,7 +145,7 @@ export const importProject = ({
           }
         }
 
-        const processedStructure = processYamlStructure({
+        const processedStructure = await processYamlStructure({
           node: parsedYaml,
           schemaInfo,
           schemaInfoParsed,
@@ -164,7 +164,7 @@ export const importProject = ({
       return filteredResults;
     }
 
-    return processYamlStructure({
+    return await processYamlStructure({
       node: parsedYaml,
       schemaInfo,
       schemaInfoParsed,

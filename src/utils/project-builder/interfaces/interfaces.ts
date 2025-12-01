@@ -15,6 +15,7 @@ export interface IActionFlags {
   [ACTION_FLAGS.EXCLUDE_TABLE]?: string;
   [ACTION_FLAGS.IS_RELATIVE_PATH]?: boolean;
   [ACTION_FLAGS.DATA_SOURCE]?: string;
+  [ACTION_FLAGS.FORMAT]?: boolean;
   onFileUsingUserEnv?: (filePath: string) => void;
 }
 

@@ -70,7 +70,6 @@ export const useTransformationsStore = create<ITransformations>()(
       oneToOneJoins: [],
       aggregateJoins: [],
       setSchemaInfo: (schemaInfo) => {
-        const { project } = useFormStore.getState();
         const { invalidateProjectCache, selectedProject } =
           useProjectStore.getState();
 
@@ -86,9 +85,8 @@ export const useTransformationsStore = create<ITransformations>()(
           invalidateProjectCache(selectedProject.name);
           const { userFiles } = useMockDatabaseStore.getState();
           const formData = useFormStore.getState();
-          useFormStore.setState(() => {
-            // Build new structure (cache was just invalidated)
-            const buildResult = buildProjectFiles(
+          void (async () => {
+            const buildResult = await buildProjectFiles(
               `/Projects/${selectedProject.name}`,
               userFiles,
               schemaInfo,
@@ -96,17 +94,17 @@ export const useTransformationsStore = create<ITransformations>()(
             );
             const projectFiles = buildResult.structure;
 
-            return {
-              project,
-              projectFiles,
+            // Update project build cache in useProjectStore
+            useProjectStore.setState((state) => ({
               projectBuildCache: {
+                ...state.projectBuildCache,
                 [selectedProject.name]: {
                   structure: projectFiles,
                   filesUsingUserEnv: buildResult.filesUsingUserEnv,
                 },
               },
-            };
-          });
+            }));
+          })();
         }
 
         // Run transformations on the schema
@@ -141,8 +139,8 @@ export const useTransformationsStore = create<ITransformations>()(
                 ): table is ISchemaInfo & { data: Record<string, unknown>[] } =>
                   Boolean(
                     table.data &&
-                      Array.isArray(table.data) &&
-                      table.data.length > 0,
+                    Array.isArray(table.data) &&
+                    table.data.length > 0,
                   ),
               )
               .map((table) => [table.tableName, table.data]),
@@ -254,8 +252,8 @@ export const useTransformationsStore = create<ITransformations>()(
                 ): table is ISchemaInfo & { data: Record<string, unknown>[] } =>
                   Boolean(
                     table.data &&
-                      Array.isArray(table.data) &&
-                      table.data.length > 0,
+                    Array.isArray(table.data) &&
+                    table.data.length > 0,
                   ),
               )
               .map((table) => [table.tableName, table.data]),

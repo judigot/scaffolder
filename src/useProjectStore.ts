@@ -27,7 +27,7 @@ export interface IProjectStore {
     project: IFile,
     schemaInfo: ISchemaInfo[],
     decryptedUserMetadata?: Record<string, unknown> | null,
-  ) => IBuildProjectFilesResult;
+  ) => Promise<IBuildProjectFilesResult>;
   invalidateProjectCache: (projectName: string) => void;
   processFilesUpdate: (_userFiles: IStructure, projects: IFile[]) => void;
   updateProjects: (projects: IFile[]) => void;
@@ -161,11 +161,11 @@ export const useProjectStore = create<IProjectStore>()(
       /**
        * Builds the files for a project, using cache if available
        */
-      buildProjectFilesForProject: (
+      buildProjectFilesForProject: async (
         project: IFile,
         schemaInfo: ISchemaInfo[],
         decryptedUserMetadata?: Record<string, unknown> | null,
-      ): IBuildProjectFilesResult => {
+      ): Promise<IBuildProjectFilesResult> => {
         const { projectBuildCache } = get();
 
         // Check if we have a cached version that matches the current schema version
@@ -195,7 +195,7 @@ export const useProjectStore = create<IProjectStore>()(
           project.uniqueId != null && project.uniqueId.length > 0
             ? project.uniqueId
             : `/Projects/${project.name}/structure.yaml`;
-        const buildResult = buildProjectFiles(
+        const buildResult = await buildProjectFiles(
           projectPath,
           allUserFiles,
           schemaInfo,

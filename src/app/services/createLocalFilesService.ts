@@ -97,7 +97,7 @@ export const createLocalFilesService = async (
     }
 
     // Build project files
-    const buildResult = buildProjectFiles(
+    const buildResult = await buildProjectFiles(
       `/Projects/${projectName}/structure.yaml`,
       userFiles,
       schemaInfo,

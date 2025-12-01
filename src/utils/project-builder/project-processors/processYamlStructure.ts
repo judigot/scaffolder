@@ -39,7 +39,7 @@ const buildAbsolutePath = (fileName: string, currentPath: string): string => {
   return `${currentPath}/${fileName}`;
 };
 
-export const processYamlStructure = ({
+export const processYamlStructure = async ({
   node,
   schemaInfo,
   schemaInfoParsed,
@@ -51,7 +51,7 @@ export const processYamlStructure = ({
   dataContext,
   onFileUsingUserEnv,
   currentPath = '',
-}: IBuildContext): IStructure => {
+}: IBuildContext): Promise<IStructure> => {
   if (typeof node === 'string') {
     const nodeParams = /\(([^)]+)\)/.exec(node);
 
@@ -86,7 +86,7 @@ export const processYamlStructure = ({
       if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
         return [];
       }
-      return createBaseMethodFile(
+      return await createBaseMethodFile(
         extractedParams,
         userFiles,
         projectYamlPath,
@@ -107,6 +107,7 @@ export const processYamlStructure = ({
         schemaInfo.length > 0 ? schemaInfo[0] : undefined;
 
       const scopedOption = options[ACTION_FLAGS.SCOPED];
+      const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
 
       if (dataContext && (scopedOption ?? false)) {
         let templateContent = '';
@@ -172,7 +173,11 @@ export const processYamlStructure = ({
           dataContext,
         );
 
-        const finalContent = formatFileContent(content);
+        const finalContent = await formatFileContent(
+          content,
+          outputFileName,
+          shouldFormat,
+        );
 
         return [
           {
@@ -284,7 +289,11 @@ export const processYamlStructure = ({
         );
 
         // Format with consistent character handling
-        const finalContent = formatFileContent(content);
+        const finalContent = await formatFileContent(
+          content,
+          outputFileName,
+          shouldFormat,
+        );
 
         return [
           {
@@ -375,7 +384,11 @@ export const processYamlStructure = ({
       );
 
       // Format the final content with proper character replacements
-      const finalContent = formatFileContent(processedContent);
+      const finalContent = await formatFileContent(
+        processedContent,
+        outputFileName,
+        shouldFormat,
+      );
 
       return [
         {
@@ -402,7 +415,7 @@ export const processYamlStructure = ({
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
-      return processMultipleFiles({
+      return await processMultipleFiles({
         command,
         options,
         schemaInfo,
@@ -417,7 +430,7 @@ export const processYamlStructure = ({
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.LOOP_FOLDERS}(`)) {
-      return processLoopFolders({
+      return await processLoopFolders({
         command,
         options,
         schemaInfo,
@@ -499,7 +512,11 @@ export const processYamlStructure = ({
       );
 
       // Format the final content with proper character replacements
-      const finalContent = formatFileContent(processedContent);
+      const finalContent = await formatFileContent(
+        processedContent,
+        outputFileName,
+        true,
+      );
 
       return [
         {
@@ -520,103 +537,93 @@ export const processYamlStructure = ({
   }
 
   if (Array.isArray(node)) {
-    return node.flatMap((item) => {
-      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
-        // Define type predicate for Record
-        const isRecordWithDynamicFolder = (
-          obj: unknown,
-        ): obj is Record<string, unknown> =>
-          typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+    const results = await Promise.all(
+      node.map(async (item) => {
+        if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+          // Define type predicate for Record
+          const isRecordWithDynamicFolder = (
+            obj: unknown,
+          ): obj is Record<string, unknown> =>
+            typeof obj === 'object' && obj !== null && !Array.isArray(obj);
 
-        if (isRecordWithDynamicFolder(item)) {
-          const keys = Object.keys(item);
-          if (
-            keys.length > 0 &&
-            keys[0].startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)
-          ) {
-            const key = keys[0];
-            const value = item[key];
+          if (isRecordWithDynamicFolder(item)) {
+            const keys = Object.keys(item);
+            if (
+              keys.length > 0 &&
+              keys[0].startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)
+            ) {
+              const key = keys[0];
+              const value = item[key];
 
-            if (value == null) {
-              return [];
+              if (value == null) {
+                return [];
+              }
+
+              const folderLoopParams = key.slice(
+                PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
+                -1,
+              );
+              const { command: folderName, options: folderOptions } =
+                parseCommand(folderLoopParams);
+
+              return await processDynamicFolders({
+                folderName,
+                children: value,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+                projectYamlPath,
+                formData,
+                userMetadata,
+                options: {
+                  ...folderOptions,
+                  onFileUsingUserEnv,
+                },
+                currentPath,
+              });
             }
-
-            const folderLoopParams = key.slice(
-              PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
-              -1,
-            );
-            const { command: folderName, options: folderOptions } =
-              parseCommand(folderLoopParams);
-
-            return processDynamicFolders({
-              folderName,
-              children: value,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              projectYamlPath,
-              formData,
-              userMetadata,
-              options: {
-                ...folderOptions,
-                onFileUsingUserEnv,
-              },
-              currentPath,
-            });
           }
         }
-      }
 
-      if (table) {
-        return processYamlStructure({
+        if (table) {
+          return await processYamlStructure({
+            node: item,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            projectYamlPath,
+            table,
+            formData,
+            userMetadata,
+            dataContext,
+            onFileUsingUserEnv,
+            currentPath,
+          });
+        }
+        return await processYamlStructure({
           node: item,
           schemaInfo,
           schemaInfoParsed,
           userFiles,
           projectYamlPath,
-          table,
           formData,
           userMetadata,
           dataContext,
           onFileUsingUserEnv,
           currentPath,
         });
-      }
-      return processYamlStructure({
-        node: item,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
-        projectYamlPath,
-        formData,
-        userMetadata,
-        dataContext,
-        onFileUsingUserEnv,
-        currentPath,
-      });
-    });
+      }),
+    );
+
+    return results.flat();
   }
 
   if (typeof node === 'object' && node !== null) {
-    return Object.entries(node).flatMap(([key, value]): IStructure => {
-      if (ROOT_LEVEL_ACTIONS.some((action) => key.startsWith(`${action}(`))) {
-        const actionResult = processYamlStructure({
-          node: key,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-          projectYamlPath,
-          table,
-          formData,
-          userMetadata,
-          dataContext,
-          onFileUsingUserEnv,
-          currentPath,
-        });
-
-        if (value !== null && value !== undefined) {
-          const childStructure = processYamlStructure({
-            node: value,
+    const results = await Promise.all(
+      Object.entries(node).map(async ([key, value]): Promise<IStructure> => {
+        if (ROOT_LEVEL_ACTIONS.some((action) => key.startsWith(`${action}(`))) {
+          const actionResult = await processYamlStructure({
+            node: key,
             schemaInfo,
             schemaInfoParsed,
             userFiles,
@@ -629,190 +636,8 @@ export const processYamlStructure = ({
             currentPath,
           });
 
-          return [...actionResult, ...childStructure];
-        }
-
-        return actionResult;
-      }
-
-      // Special handling for IMPORT_PROJECT keys with colons
-      if (key.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
-        // Extract the command string
-        const commandString = key.slice(
-          PROJECT_ACTIONS.IMPORT_PROJECT.length + 1,
-          key.length - (key.endsWith(':') ? 2 : 1), // Remove both the closing parenthesis and colon if present
-        );
-
-        // Process the import
-        const importResult = importProject({
-          command: commandString,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-          projectYamlPath,
-          table,
-          formData,
-          userMetadata,
-          onFileUsingUserEnv,
-          currentPath,
-        });
-
-        if (key.endsWith(':') && value !== null && typeof value === 'object') {
-          const childStructure = processYamlStructure({
-            node: value,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            projectYamlPath,
-            table,
-            formData,
-            userMetadata,
-            dataContext,
-            onFileUsingUserEnv,
-            currentPath,
-          });
-
-          return [...importResult, ...childStructure];
-        }
-
-        // Return the import result directly without creating a folder
-        return importResult;
-      }
-
-      // Handle conditional folders
-      const { name, conditions } = parseConditionalFolder(key);
-      const folderName = name.replace(/[()]/g, '');
-      const newPath =
-        currentPath === '' ? folderName : `${currentPath}/${folderName}`;
-
-      if (conditions && !checkConditions(conditions)) {
-        return [
-          {
-            type: 'folder',
-            name: folderName,
-            children: [],
-          },
-        ];
-      }
-
-      if (key.startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)) {
-        const folderLoopParams = key.slice(
-          PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
-          -1,
-        );
-        const { command: folderName, options: folderOptions } =
-          parseCommand(folderLoopParams);
-
-        return processDynamicFolders({
-          folderName,
-          children: value,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-          projectYamlPath,
-          formData,
-          userMetadata,
-          options: {
-            ...folderOptions,
-            onFileUsingUserEnv,
-          },
-          currentPath,
-        });
-      }
-
-      // Handle case where value is a string (template path) - e.g., "app.php: /Templates/..."
-      if (typeof value === 'string') {
-        const templateContent = loadTemplateContent(
-          userFiles,
-          value,
-          projectYamlPath,
-        );
-        if (templateContent.length > 0) {
-          const outputFileName = folderName;
-
-          // Check if template uses USE_USER_ENV BEFORE processing
-          if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
-            onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
-          }
-
-          const schemaInfoProcessed =
-            schemaInfo.length > 0 ? schemaInfo[0] : undefined;
-          if (!schemaInfoProcessed) {
-            return [
-              {
-                type: 'file',
-                name: outputFileName,
-                content: '',
-              },
-            ];
-          }
-
-          const replacements = getReplacementsForTable(
-            schemaInfoProcessed,
-            schemaInfoParsed,
-          );
-
-          let processedContent = replacePlaceholders(
-            processLoopDataSources(
-              processLoopTablesReversed(
-                processLoopTables(
-                  templateContent,
-                  schemaInfo,
-                  schemaInfoParsed,
-                  userFiles,
-                  formData,
-                  userMetadata,
-                ),
-                schemaInfo,
-                schemaInfoParsed,
-                userFiles,
-                formData,
-                userMetadata,
-              ),
-              userFiles,
-              schemaInfoParsed,
-              formData,
-              userMetadata,
-            ),
-            replacements,
-            userFiles,
-            schemaInfoParsed,
-            schemaInfoProcessed,
-            projectYamlPath,
-            undefined,
-            formData,
-            userMetadata,
-            undefined,
-          );
-
-          processedContent = processIterateInTemplate(
-            processedContent,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            table,
-            formData,
-            userMetadata,
-          );
-
-          const finalContent = formatFileContent(processedContent);
-
-          return [
-            {
-              type: 'file',
-              name: outputFileName,
-              content: finalContent,
-            },
-          ];
-        }
-      }
-
-      if (table) {
-        return [
-          {
-            type: 'folder',
-            name: folderName,
-            children: processYamlStructure({
+          if (value !== null && value !== undefined) {
+            const childStructure = await processYamlStructure({
               node: value,
               schemaInfo,
               schemaInfoParsed,
@@ -823,31 +648,244 @@ export const processYamlStructure = ({
               userMetadata,
               dataContext,
               onFileUsingUserEnv,
-              currentPath: newPath,
-            }),
-          },
-        ];
-      }
+              currentPath,
+            });
 
-      return [
-        {
-          type: 'folder',
-          name: folderName,
-          children: processYamlStructure({
-            node: value,
+            return [...actionResult, ...childStructure];
+          }
+
+          return actionResult;
+        }
+
+        // Special handling for IMPORT_PROJECT keys with colons
+        if (key.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
+          // Extract the command string
+          const commandString = key.slice(
+            PROJECT_ACTIONS.IMPORT_PROJECT.length + 1,
+            key.length - (key.endsWith(':') ? 2 : 1), // Remove both the closing parenthesis and colon if present
+          );
+
+          // Process the import
+          const importResult = await importProject({
+            command: commandString,
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            projectYamlPath,
+            table,
+            formData,
+            userMetadata,
+            onFileUsingUserEnv,
+            currentPath,
+          });
+
+          if (
+            key.endsWith(':') &&
+            value !== null &&
+            typeof value === 'object'
+          ) {
+            const childStructure = await processYamlStructure({
+              node: value,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              projectYamlPath,
+              table,
+              formData,
+              userMetadata,
+              dataContext,
+              onFileUsingUserEnv,
+              currentPath,
+            });
+
+            return [...importResult, ...childStructure];
+          }
+
+          // Return the import result directly without creating a folder
+          return importResult;
+        }
+
+        // Handle conditional folders
+        const { name, conditions } = parseConditionalFolder(key);
+        const folderName = name.replace(/[()]/g, '');
+        const newPath =
+          currentPath === '' ? folderName : `${currentPath}/${folderName}`;
+
+        if (conditions && !checkConditions(conditions)) {
+          return [
+            {
+              type: 'folder',
+              name: folderName,
+              children: [],
+            },
+          ];
+        }
+
+        if (key.startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)) {
+          const folderLoopParams = key.slice(
+            PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
+            -1,
+          );
+          const { command: folderName, options: folderOptions } =
+            parseCommand(folderLoopParams);
+
+          return await processDynamicFolders({
+            folderName,
+            children: value,
             schemaInfo,
             schemaInfoParsed,
             userFiles,
             projectYamlPath,
             formData,
             userMetadata,
-            dataContext,
-            onFileUsingUserEnv,
-            currentPath: newPath,
-          }),
-        },
-      ];
-    });
+            options: {
+              ...folderOptions,
+              onFileUsingUserEnv,
+            },
+            currentPath,
+          });
+        }
+
+        // Handle case where value is a string (template path) - e.g., "app.php: /Templates/..."
+        if (typeof value === 'string') {
+          const templateContent = loadTemplateContent(
+            userFiles,
+            value,
+            projectYamlPath,
+          );
+          if (templateContent.length > 0) {
+            const outputFileName = folderName;
+
+            // Check if template uses USE_USER_ENV BEFORE processing
+            if (
+              USE_USER_ENV_REGEX.test(templateContent) &&
+              onFileUsingUserEnv
+            ) {
+              onFileUsingUserEnv(
+                buildAbsolutePath(outputFileName, currentPath),
+              );
+            }
+
+            const schemaInfoProcessed =
+              schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+            if (!schemaInfoProcessed) {
+              return [
+                {
+                  type: 'file',
+                  name: outputFileName,
+                  content: '',
+                },
+              ];
+            }
+
+            const replacements = getReplacementsForTable(
+              schemaInfoProcessed,
+              schemaInfoParsed,
+            );
+
+            let processedContent = replacePlaceholders(
+              processLoopDataSources(
+                processLoopTablesReversed(
+                  processLoopTables(
+                    templateContent,
+                    schemaInfo,
+                    schemaInfoParsed,
+                    userFiles,
+                    formData,
+                    userMetadata,
+                  ),
+                  schemaInfo,
+                  schemaInfoParsed,
+                  userFiles,
+                  formData,
+                  userMetadata,
+                ),
+                userFiles,
+                schemaInfoParsed,
+                formData,
+                userMetadata,
+              ),
+              replacements,
+              userFiles,
+              schemaInfoParsed,
+              schemaInfoProcessed,
+              projectYamlPath,
+              undefined,
+              formData,
+              userMetadata,
+              undefined,
+            );
+
+            processedContent = processIterateInTemplate(
+              processedContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              table,
+              formData,
+              userMetadata,
+            );
+
+            const finalContent = await formatFileContent(
+              processedContent,
+              outputFileName,
+              true,
+            );
+
+            return [
+              {
+                type: 'file',
+                name: outputFileName,
+                content: finalContent,
+              },
+            ];
+          }
+        }
+
+        if (table) {
+          return [
+            {
+              type: 'folder',
+              name: folderName,
+              children: await processYamlStructure({
+                node: value,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+                projectYamlPath,
+                table,
+                formData,
+                userMetadata,
+                dataContext,
+                onFileUsingUserEnv,
+                currentPath: newPath,
+              }),
+            },
+          ];
+        }
+
+        return [
+          {
+            type: 'folder',
+            name: folderName,
+            children: await processYamlStructure({
+              node: value,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              projectYamlPath,
+              formData,
+              userMetadata,
+              dataContext,
+              onFileUsingUserEnv,
+              currentPath: newPath,
+            }),
+          },
+        ];
+      }),
+    );
+
+    return results.flat();
   }
 
   return [];

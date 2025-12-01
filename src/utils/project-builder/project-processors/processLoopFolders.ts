@@ -19,13 +19,13 @@ interface ILoopFoldersContext extends Omit<IBuildContext, 'table'> {
   options: IActionFlags;
 }
 
-export const processLoopFolders = ({
+export const processLoopFolders = async ({
   command: fileName,
   options,
   userFiles,
   projectYamlPath,
   schemaInfoParsed,
-}: ILoopFoldersContext): IFile[] => {
+}: ILoopFoldersContext): Promise<IFile[]> => {
   if (!fileName || fileName.length === 0) {
     return [];
   }
@@ -66,50 +66,57 @@ export const processLoopFolders = ({
 
   const dataMatches = findFilesMatchingGlob(userFiles, dataSourcePattern);
 
-  const files: IFile[] = dataMatches.map((match) => {
-    const { augmentedData, replacements } = createDataContextReplacements(
-      match.data,
-      match.folderPath,
-    );
+  const files = await Promise.all(
+    dataMatches.map(async (match) => {
+      const { augmentedData, replacements } = createDataContextReplacements(
+        match.data,
+        match.folderPath,
+      );
 
-    const processedName = replacePlaceholders(
-      fileName,
-      replacements,
-      userFiles,
-      schemaInfoParsed,
-      undefined,
-      projectYamlPath,
-      undefined,
-      undefined,
-      undefined,
-      augmentedData,
-    );
+      const processedName = replacePlaceholders(
+        fileName,
+        replacements,
+        userFiles,
+        schemaInfoParsed,
+        undefined,
+        projectYamlPath,
+        undefined,
+        undefined,
+        undefined,
+        augmentedData,
+      );
 
-    const outputFileName = processedName.includes('/')
-      ? extractFileNameFromPath(processedName)
-      : processedName;
+      const outputFileName = processedName.includes('/')
+        ? extractFileNameFromPath(processedName)
+        : processedName;
 
-    const processedContent = replacePlaceholders(
-      templateContent,
-      replacements,
-      userFiles,
-      schemaInfoParsed,
-      undefined,
-      projectYamlPath,
-      templatePath,
-      undefined,
-      undefined,
-      augmentedData,
-    );
+      const processedContent = replacePlaceholders(
+        templateContent,
+        replacements,
+        userFiles,
+        schemaInfoParsed,
+        undefined,
+        projectYamlPath,
+        templatePath,
+        undefined,
+        undefined,
+        augmentedData,
+      );
 
-    const finalContent = formatFileContent(processedContent);
+      const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
+      const finalContent = await formatFileContent(
+        processedContent,
+        outputFileName,
+        shouldFormat,
+      );
 
-    return {
-      type: 'file',
-      name: outputFileName,
-      content: finalContent,
-    };
-  });
+      return {
+        type: 'file' as const,
+        name: outputFileName,
+        content: finalContent,
+      } satisfies IFile;
+    }),
+  );
 
   return files.filter((file) => file.content.trim().length > 0);
 };

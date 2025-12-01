@@ -84,6 +84,14 @@ export const parseCommand = (
         }
         break;
 
+      case ACTION_FLAGS.FORMAT:
+        if (value === 'false') {
+          options[ACTION_FLAGS.FORMAT] = false;
+        } else {
+          options[ACTION_FLAGS.FORMAT] = true;
+        }
+        break;
+
       default:
         break;
     }
