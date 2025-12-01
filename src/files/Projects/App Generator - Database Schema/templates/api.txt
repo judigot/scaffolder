@@ -1,10 +1,8 @@
 <?php
 
 use Illuminate\Http\Request;
-            use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Route;
 
-        Route::middleware('api')->group(function
-
-() {
+Route::middleware('api')->group(function () {
     [[LOOP(tables) --template="require __DIR__ . '/{{tableNamePlural}}.php';"]]
 });
