@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
-import type { IStructure, IFile } from '@/components/FileViewer.tsx';
+import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
 import type { IFormStore } from '@/useFormStore.ts';
 import { frameworks } from '@/useFormStore.ts';
 import { CREATION_MODES } from '@/constants.ts';
@@ -1063,6 +1063,342 @@ updated_at:
         // Should not contain template syntax
         expect(content).not.toContain('<@@IF@@');
         expect(content).not.toContain('is_unique EQUALS');
+      }
+    });
+
+    it('should process index() function in filenames correctly', async () => {
+      // Use the actual structure.yaml file which has nested folders
+      const userFiles = createUserFilesWithFileLoop();
+      // Update the structure.yaml to match the actual file
+      const projectsFolder = userFiles.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'Projects',
+      );
+      const appGenFolder = projectsFolder?.children.find(
+        (item): item is IFolder =>
+          item.type === 'folder' &&
+          item.name === 'App Generator - Database Schema',
+      );
+      const structureFile = appGenFolder?.children.find(
+        (item): item is IFile =>
+          item.type === 'file' && item.name === 'structure.yaml',
+      );
+      if (structureFile) {
+        // Use the actual structure.yaml content
+        const actualStructure = `CREATE_FILE(schema.sql --template /Templates/schema.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+
+migrations:
+  simple-index:
+    FILE_LOOP({{index}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+  indexed:
+    FILE_LOOP({{index(1)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+  zero-padded-3:
+    FILE_LOOP({{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+        structureFile.content = actualStructure;
+      }
+
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      // Find the migrations/simple-index folder
+      const migrationsFolder = result.structure.find(
+        (item) => item.type === 'folder' && item.name === 'migrations',
+      );
+      expect(migrationsFolder?.type).toBe('folder');
+
+      if (migrationsFolder?.type === 'folder') {
+        const simpleIndexFolder = migrationsFolder.children.find(
+          (item) => item.type === 'folder' && item.name === 'simple-index',
+        );
+        expect(simpleIndexFolder?.type).toBe('folder');
+
+        if (simpleIndexFolder?.type === 'folder') {
+          const files = simpleIndexFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+
+          // Should have files with processed index (0-based, no padding)
+          expect(files.length).toBeGreaterThan(0);
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed (no unprocessed placeholders)
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{index');
+            expect(fileName).not.toContain('{{index(');
+            expect(fileName).toMatch(/^\d+_[a-z_]+\.sql$/);
+          });
+
+          // Verify specific files exist with correct index
+          expect(fileNames).toContain('0_product.sql');
+          expect(fileNames).toContain('1_customer.sql');
+          expect(fileNames).toContain('2_order.sql');
+        }
+      }
+
+      // Check indexed folder (1-based)
+      if (migrationsFolder?.type === 'folder') {
+        const indexedFolder = migrationsFolder.children.find(
+          (item) => item.type === 'folder' && item.name === 'indexed',
+        );
+        expect(indexedFolder?.type).toBe('folder');
+
+        if (indexedFolder?.type === 'folder') {
+          const files = indexedFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed (1-based)
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{index');
+            expect(fileName).toMatch(/^[1-9]\d*_[a-z_]+\.sql$/);
+          });
+
+          expect(fileNames).toContain('1_product.sql');
+          expect(fileNames).toContain('2_customer.sql');
+        }
+      }
+
+      // Check zero-padded-3 folder
+      if (migrationsFolder?.type === 'folder') {
+        const zeroPaddedFolder = migrationsFolder.children.find(
+          (item) => item.type === 'folder' && item.name === 'zero-padded-3',
+        );
+        expect(zeroPaddedFolder?.type).toBe('folder');
+
+        if (zeroPaddedFolder?.type === 'folder') {
+          const files = zeroPaddedFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed with zero-padding
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{index');
+            expect(fileName).toMatch(/^\d{3}_[a-z_]+\.sql$/);
+          });
+
+          expect(fileNames).toContain('001_product.sql');
+          expect(fileNames).toContain('002_customer.sql');
+        }
+      }
+    });
+
+    it('should process timestamp() function in filenames correctly', async () => {
+      // Use the actual structure.yaml file which has nested folders
+      const userFiles = createUserFilesWithFileLoop();
+      const projectsFolder = userFiles.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'Projects',
+      );
+      const appGenFolder = projectsFolder?.children.find(
+        (item): item is IFolder =>
+          item.type === 'folder' &&
+          item.name === 'App Generator - Database Schema',
+      );
+      const structureFile = appGenFolder?.children.find(
+        (item): item is IFile =>
+          item.type === 'file' && item.name === 'structure.yaml',
+      );
+      if (structureFile) {
+        const actualStructure = `CREATE_FILE(schema.sql --template /Templates/schema.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+
+timestamp-migrations:
+  iso-default:
+    FILE_LOOP({{timestamp}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+  laravel:
+    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+  date-only:
+    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+        structureFile.content = actualStructure;
+      }
+
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      // Find the timestamp-migrations folder
+      const timestampMigrationsFolder = result.structure.find(
+        (item) =>
+          item.type === 'folder' && item.name === 'timestamp-migrations',
+      );
+      expect(timestampMigrationsFolder?.type).toBe('folder');
+
+      if (timestampMigrationsFolder?.type === 'folder') {
+        // Check iso-default folder
+        const isoDefaultFolder = timestampMigrationsFolder.children.find(
+          (item) => item.type === 'folder' && item.name === 'iso-default',
+        );
+        expect(isoDefaultFolder?.type).toBe('folder');
+
+        if (isoDefaultFolder?.type === 'folder') {
+          const files = isoDefaultFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed (ISO 8601 format)
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{timestamp');
+            expect(fileName).not.toContain('{{timestamp(');
+            // ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sssZ
+            expect(fileName).toMatch(
+              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z_[a-z_]+\.sql$/,
+            );
+          });
+        }
+
+        // Check laravel folder
+        const laravelFolder = timestampMigrationsFolder.children.find(
+          (item) => item.type === 'folder' && item.name === 'laravel',
+        );
+        expect(laravelFolder?.type).toBe('folder');
+
+        if (laravelFolder?.type === 'folder') {
+          const files = laravelFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed (Laravel format: YYYY_MM_DD_HHmmss)
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{timestamp');
+            // Timestamp is processed, table name placeholder may remain if not in replacements
+            expect(fileName).toMatch(
+              /^\d{4}_\d{2}_\d{2}_\d{6}_create_.+_table\.sql$/,
+            );
+          });
+        }
+
+        // Check date-only folder
+        const dateOnlyFolder = timestampMigrationsFolder.children.find(
+          (item) => item.type === 'folder' && item.name === 'date-only',
+        );
+        expect(dateOnlyFolder?.type).toBe('folder');
+
+        if (dateOnlyFolder?.type === 'folder') {
+          const files = dateOnlyFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed (Date format: YYYY-MM-DD)
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{timestamp');
+            expect(fileName).toMatch(/^\d{4}-\d{2}-\d{2}_[a-z_]+\.sql$/);
+          });
+        }
+      }
+    });
+
+    it('should process combined index() and timestamp() functions in filenames', async () => {
+      // Use the actual structure.yaml file which has nested folders
+      const userFiles = createUserFilesWithFileLoop();
+      const projectsFolder = userFiles.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'Projects',
+      );
+      const appGenFolder = projectsFolder?.children.find(
+        (item): item is IFolder =>
+          item.type === 'folder' &&
+          item.name === 'App Generator - Database Schema',
+      );
+      const structureFile = appGenFolder?.children.find(
+        (item): item is IFile =>
+          item.type === 'file' && item.name === 'structure.yaml',
+      );
+      if (structureFile) {
+        const actualStructure = `CREATE_FILE(schema.sql --template /Templates/schema.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+
+hybrid:
+  timestamp-and-index:
+    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{index(1, 6)}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+  date-and-index:
+    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+        structureFile.content = actualStructure;
+      }
+
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      // Find the hybrid folder
+      const hybridFolder = result.structure.find(
+        (item) => item.type === 'folder' && item.name === 'hybrid',
+      );
+      expect(hybridFolder?.type).toBe('folder');
+
+      if (hybridFolder?.type === 'folder') {
+        // Check timestamp-and-index folder
+        const timestampAndIndexFolder = hybridFolder.children.find(
+          (item) =>
+            item.type === 'folder' && item.name === 'timestamp-and-index',
+        );
+        expect(timestampAndIndexFolder?.type).toBe('folder');
+
+        if (timestampAndIndexFolder?.type === 'folder') {
+          const files = timestampAndIndexFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed (timestamp + zero-padded index)
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{timestamp');
+            expect(fileName).not.toContain('{{index');
+            // Format: YYYY_MM_DD_HHmmss_000001_create_..._table.sql
+            // Timestamp and index are processed, table name placeholder may remain
+            expect(fileName).toMatch(
+              /^\d{4}_\d{2}_\d{2}_\d{6}_\d{6}_create_.+_table\.sql$/,
+            );
+          });
+        }
+
+        // Check date-and-index folder
+        const dateAndIndexFolder = hybridFolder.children.find(
+          (item) => item.type === 'folder' && item.name === 'date-and-index',
+        );
+        expect(dateAndIndexFolder?.type).toBe('folder');
+
+        if (dateAndIndexFolder?.type === 'folder') {
+          const files = dateAndIndexFolder.children.filter(
+            (item): item is IFile => item.type === 'file',
+          );
+          const fileNames = files.map((item) => item.name);
+
+          // Check that filenames are processed (date + zero-padded index)
+          fileNames.forEach((fileName) => {
+            expect(fileName).not.toContain('{{timestamp');
+            expect(fileName).not.toContain('{{index');
+            // Format: YYYY-MM-DD_001_product.sql
+            expect(fileName).toMatch(/^\d{4}-\d{2}-\d{2}_\d{3}_[a-z_]+\.sql$/);
+          });
+        }
       }
     });
   });

@@ -11,9 +11,14 @@ This directory contains documentation for the project builder system, including 
 - **[LOOP_FOLDERS.md](./LOOP_FOLDERS.md)** - Generate multiple files by iterating over folders matching a glob pattern
 - **[CORE_FILES_GUIDE.md](../CORE_FILES_GUIDE.md)** - Guide for using core files in projects
 
+#### Architecture
+
+- **[CONTEXT_PATTERN.md](./CONTEXT_PATTERN.md)** - Build context object pattern for managing shared state
+
 #### Template Commands
 
 - **[USE_DATA.md](./USE_DATA.md)** - Access data from external YAML files in templates
+- **[PLACEHOLDER_FUNCTIONS.md](./PLACEHOLDER_FUNCTIONS.md)** - Built-in placeholder functions (`index()` and `timestamp()`) for dynamic filename generation
 
 ### Business Documentation
 
@@ -28,7 +33,7 @@ This directory contains documentation for the project builder system, including 
 |--------|-------------|---------|
 | `CREATE_FILE` | Create a single file from a template | `CREATE_FILE(app.ts --template=./templates/app.txt)` |
 | `CREATE_BASE_METHOD_FILE` | Create base method files | `CREATE_BASE_METHOD_FILE(useHook.ts --template=/BaseMethods/.../hook.txt)` |
-| `FILE_LOOP` | Loop over files matching a pattern | `FILE_LOOP(*.ts --template=./templates/file.txt)` |
+| `FILE_LOOP` | Generate multiple files by iterating over schema tables | `FILE_LOOP({{index(1, 4)}}_{{tableName}}.sql --template=./templates/migration.sql.txt)` |
 | `FOLDER_LOOP` | Create dynamic folder structures | `FOLDER_LOOP({{tableName}}): ...` |
 | `LOOP_FOLDERS` | Generate files by iterating over folders | `LOOP_FOLDERS(file.html --data-source=/Data/**/info.yaml --template=./templates/template.txt)` |
 | `IMPORT_PROJECT` | Import another project structure | `IMPORT_PROJECT(Projects/Other/structure.yaml)` |
@@ -43,6 +48,8 @@ This directory contains documentation for the project builder system, including 
 | `USE_TEMPLATE` | Include another template | `[[USE_TEMPLATE(./partials/header.txt)]]` |
 | `USE_CONSTANT` | Access schema constants | `[[USE_CONSTANT(tableName)]]` |
 | `LOOP` | Iterate over data | `[[LOOP(columns)]]` |
+| `index()` | Generate sequential index numbers | `{{index(1, 3)}}` |
+| `timestamp()` | Generate formatted date/time strings | `{{timestamp('YYYY-MM-DD')}}` |
 
 ## Getting Started
 
@@ -52,6 +59,20 @@ This directory contains documentation for the project builder system, including 
 4. **Generate Files**: The system processes your structure and generates files
 
 ## Common Workflows
+
+### Generate Files from Schema Tables
+
+Use `FILE_LOOP` to generate multiple files from database schema tables:
+
+```yaml
+migrations:
+  FILE_LOOP({{index(1, 4)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+```
+
+This generates ordered migration files like:
+- `0001_create_users_table.sql`
+- `0002_create_posts_table.sql`
+- `0003_create_comments_table.sql`
 
 ### Generate Files from Data
 

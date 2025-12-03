@@ -26,7 +26,9 @@ export const parseCommand = (
   command: string,
 ): { command: string; options: IActionFlags } => {
   const [mainCommandPart, ...optionParts] = command.split(FLAG_PREFIX);
-  const mainCommand = mainCommandPart.trim().replace(/[()]/g, '');
+  // Only remove parentheses at the start/end of the command, not inside placeholders
+  // This preserves {{index(1)}} and {{timestamp('YYYY-MM-DD')}} syntax
+  const mainCommand = mainCommandPart.trim().replace(/^\(|\)$/g, '');
   const options: IActionFlags = {};
 
   optionParts.forEach((part) => {

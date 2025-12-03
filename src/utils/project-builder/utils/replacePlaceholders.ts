@@ -41,10 +41,17 @@ export const replacePlaceholders = (
   // Process IF conditions
   const processedConditions = processIfConditions(processedText, replacements);
 
+  // Process function calls (index, timestamp) FIRST before other placeholders
+  // This ensures function calls are processed even if they're not in replacements
+  const processedFunctions = processDynamicProperties(
+    processedConditions,
+    replacements,
+  );
+
   // Process placeholders, allowing for references between properties
   try {
     const processedPlaceholders = importTemplateAsPlaceholder(
-      processedConditions,
+      processedFunctions,
       replacements,
     );
 
@@ -56,7 +63,7 @@ export const replacePlaceholders = (
           ? processedPlaceholders.join(',')
           : String(processedPlaceholders);
 
-    // Process any remaining dynamic properties
+    // Process any remaining dynamic properties (in case importTemplateAsPlaceholder created new function calls)
     return processDynamicProperties(processedResult, replacements);
   } catch {
     // If there was an error in the template processing, fall back to direct dynamic property processing

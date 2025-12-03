@@ -614,6 +614,55 @@ export const processYamlStructure = async (
     const results = await Promise.all(
       Object.entries(node).map(async ([key, value]): Promise<IStructure> => {
         if (ROOT_LEVEL_ACTIONS.some((action) => key.startsWith(`${action}(`))) {
+          // Check if this is a FILE_LOOP command that should create files in a folder
+          // This happens when FILE_LOOP is a key with null value, nested under a folder
+          if (key.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
+            const { command: fileCommand, options: fileOptions } = parseCommand(
+              key.slice(PROJECT_ACTIONS.FILE_LOOP.length + 1, -1),
+            );
+            const dataSourcePath = fileOptions[ACTION_FLAGS.DATA_SOURCE];
+            const dataContext =
+              typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+                ? (loadDataSourceFile(
+                    dataSourcePath,
+                    userFiles,
+                    projectYamlPath,
+                  ) ?? undefined)
+                : undefined;
+
+            // Use currentPath directly since we're processing FILE_LOOP as a key
+            // The parent folder will be created when processing the parent key
+            const files = await processMultipleFiles({
+              command: fileCommand,
+              options: fileOptions,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              projectYamlPath,
+              formData,
+              userMetadata,
+              onFileUsingUserEnv,
+              onFileFailedToFormat,
+              currentPath,
+              dataContext,
+            });
+
+            // If value is null/undefined, return files directly
+            // The parent folder (e.g., "indexed") will wrap these files
+            // This handles the case: indexed: FILE_LOOP(...):
+            if (value === null || value === undefined) {
+              return files;
+            }
+
+            // If value has content, process it as children and combine with files
+            const childStructure = await processYamlStructure({
+              ...ctx,
+              node: value,
+              currentPath,
+            });
+            return [...files, ...childStructure];
+          }
+
           const actionResult = await processYamlStructure({
             ...ctx,
             node: key,
@@ -697,8 +746,187 @@ export const processYamlStructure = async (
           });
         }
 
-        // Handle case where value is a string (template path) - e.g., "app.php: /Templates/..."
+        // Handle case where value is a string (template path or command) - e.g., "app.php: /Templates/..." or "folder: FILE_LOOP(...)"
         if (typeof value === 'string') {
+          // Check if the string is a command (FILE_LOOP, CREATE_FILE, etc.)
+          if (value.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
+            const { command: fileCommand, options: fileOptions } = parseCommand(
+              value.slice(PROJECT_ACTIONS.FILE_LOOP.length + 1, -1),
+            );
+            const dataSourcePath = fileOptions[ACTION_FLAGS.DATA_SOURCE];
+            const dataContext =
+              typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+                ? (loadDataSourceFile(
+                    dataSourcePath,
+                    userFiles,
+                    projectYamlPath,
+                  ) ?? undefined)
+                : undefined;
+
+            const files = await processMultipleFiles({
+              command: fileCommand,
+              options: fileOptions,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              projectYamlPath,
+              formData,
+              userMetadata,
+              onFileUsingUserEnv,
+              onFileFailedToFormat,
+              currentPath: newPath,
+              dataContext,
+            });
+
+            return [
+              {
+                type: 'folder',
+                name: folderName,
+                children: files,
+              },
+            ];
+          }
+
+          if (value.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
+            const { command: createCommand, options: createOptions } =
+              parseCommand(
+                value.slice(PROJECT_ACTIONS.CREATE_FILE.length + 1, -1),
+              );
+            const templatePath = createOptions[ACTION_FLAGS.TEMPLATE];
+            const dataSourcePath = createOptions[ACTION_FLAGS.DATA_SOURCE];
+            const dataContext =
+              typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+                ? (loadDataSourceFile(
+                    dataSourcePath,
+                    userFiles,
+                    projectYamlPath,
+                  ) ?? undefined)
+                : undefined;
+
+            const templateContent = loadTemplateContent(
+              userFiles,
+              typeof templatePath === 'string' && templatePath.length > 0
+                ? templatePath
+                : createCommand,
+              projectYamlPath,
+            );
+
+            if (templateContent.length === 0) {
+              return [
+                {
+                  type: 'folder',
+                  name: folderName,
+                  children: [],
+                },
+              ];
+            }
+
+            const schemaInfoProcessed =
+              schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+            if (!schemaInfoProcessed) {
+              return [
+                {
+                  type: 'folder',
+                  name: folderName,
+                  children: [],
+                },
+              ];
+            }
+
+            const replacements = getReplacementsForTable(
+              schemaInfoProcessed,
+              schemaInfoParsed,
+            );
+            const processedName = replacePlaceholders(
+              createCommand,
+              replacements,
+              {
+                ...ctx,
+                table: schemaInfoProcessed,
+              },
+            );
+            const outputFileName = processedName.includes('/')
+              ? extractFileNameFromPath(processedName)
+              : processedName.replace(/[()]/g, '');
+
+            if (
+              USE_USER_ENV_REGEX.test(templateContent) &&
+              onFileUsingUserEnv
+            ) {
+              onFileUsingUserEnv(buildAbsolutePath(outputFileName, newPath));
+            }
+
+            let processedContent = replacePlaceholders(
+              processLoopDataSources(
+                processLoopTablesReversed(
+                  processLoopTables(
+                    templateContent,
+                    schemaInfo,
+                    schemaInfoParsed,
+                    userFiles,
+                    formData,
+                    userMetadata,
+                    dataContext,
+                  ),
+                  schemaInfo,
+                  schemaInfoParsed,
+                  userFiles,
+                  formData,
+                  userMetadata,
+                  dataContext,
+                ),
+                userFiles,
+                schemaInfoParsed,
+                formData,
+                userMetadata,
+              ),
+              replacements,
+              { ...ctx, table: schemaInfoProcessed, dataContext },
+              typeof templatePath === 'string' && templatePath.length > 0
+                ? templatePath
+                : createCommand,
+            );
+
+            processedContent = processIterateInTemplate(
+              processedContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              schemaInfoProcessed,
+              formData,
+              userMetadata,
+            );
+
+            const shouldFormat = createOptions[ACTION_FLAGS.FORMAT] !== false;
+            const formatResult = await formatFileContent(
+              processedContent,
+              outputFileName,
+              shouldFormat,
+            );
+
+            if (formatResult.failed && onFileFailedToFormat) {
+              onFileFailedToFormat(
+                buildAbsolutePath(outputFileName, newPath),
+                formatResult.errorMessage ?? 'Unknown formatting error',
+              );
+            }
+
+            return [
+              {
+                type: 'folder',
+                name: folderName,
+                children: [
+                  {
+                    type: 'file',
+                    name: outputFileName,
+                    content: formatResult.content,
+                  },
+                ],
+              },
+            ];
+          }
+
+          // Treat as template path if not a command
           const templateContent = loadTemplateContent(
             userFiles,
             value,
@@ -793,29 +1021,18 @@ export const processYamlStructure = async (
           }
         }
 
-        if (table) {
-          return [
-            {
-              type: 'folder',
-              name: folderName,
-              children: await processYamlStructure({
-                ...ctx,
-                node: value,
-                currentPath: newPath,
-              }),
-            },
-          ];
-        }
+        // Process children recursively
+        const childStructure = await processYamlStructure({
+          ...ctx,
+          node: value,
+          currentPath: newPath,
+        });
 
         return [
           {
             type: 'folder',
             name: folderName,
-            children: await processYamlStructure({
-              ...ctx,
-              node: value,
-              currentPath: newPath,
-            }),
+            children: childStructure,
           },
         ];
       }),

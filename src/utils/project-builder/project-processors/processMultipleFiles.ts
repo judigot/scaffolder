@@ -124,8 +124,13 @@ export const processMultipleFiles = async (
   });
 
   const files = await Promise.all(
-    filteredSchemaInfo.map(async (table) => {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+    filteredSchemaInfo.map(async (table, index) => {
+      const replacements = getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        index,
+        filteredSchemaInfo.length,
+      );
       const processedName = replacePlaceholders(
         fileName,
         replacements,

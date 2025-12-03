@@ -1,4 +1,9 @@
 import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import {
+  parseFunctionCall,
+  processIndexFunction,
+  processTimestampFunction,
+} from '@/utils/project-builder/utils/placeholderFunctions.ts';
 
 /**
  * Extracts a separator value from a dynamic property string
@@ -39,6 +44,30 @@ export const processDynamicProperties = (
     if (key in replacements) {
       const value = replacements[key];
       return Array.isArray(value) ? value.join(',') : value;
+    }
+
+    // Handle function calls (index, timestamp)
+    const functionCall = parseFunctionCall(key);
+    if (functionCall.functionName === 'index') {
+      const currentIndexStr = replacements.tableIndex;
+      const totalTablesStr = replacements.totalTables;
+      const currentIndex =
+        typeof currentIndexStr === 'string'
+          ? Number.parseInt(currentIndexStr, 10)
+          : 0;
+      const totalTables =
+        typeof totalTablesStr === 'string'
+          ? Number.parseInt(totalTablesStr, 10)
+          : 0;
+      return processIndexFunction(
+        functionCall.args,
+        Number.isNaN(currentIndex) ? 0 : currentIndex,
+        Number.isNaN(totalTables) ? 0 : totalTables,
+      );
+    }
+
+    if (functionCall.functionName === 'timestamp') {
+      return processTimestampFunction(functionCall.args);
     }
 
     // Handle dynamic properties with separators

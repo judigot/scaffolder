@@ -63,6 +63,12 @@ const processStringPlaceholders = (
     (_match: string, placeholder: string) => {
       const key = placeholder.trim();
 
+      // Skip function calls (index, timestamp) - they should be processed by processDynamicProperties
+      // Function calls have the pattern: functionName(arg1, arg2, ...)
+      if (/^(index|timestamp)\(/.test(key)) {
+        return `{{${key}}}`; // Keep function calls unchanged
+      }
+
       // Check if this key exists in the replacements
       if (!(key in replacements)) {
         return `{{${key}}}`; // Keep the placeholder if not found

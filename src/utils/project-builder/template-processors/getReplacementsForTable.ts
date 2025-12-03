@@ -53,6 +53,8 @@ const addIndexedAccess = (
 export const getReplacementsForTable = (
   table: ISchemaInfo,
   schemaInfoParsed: ISchemaInfoResult,
+  tableIndex?: number,
+  totalTables?: number,
 ): Replacements => {
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
@@ -112,6 +114,12 @@ export const getReplacementsForTable = (
     'hasManyRelationships()': hasManyRelationships,
     'belongsToRelationships()': belongsToRelationships,
     'belongsToManyRelationships()': belongsToManyRelationships,
+    // Index and timestamp support (for function calls and property access)
+    tableIndex: tableIndex !== undefined ? String(tableIndex) : '0',
+    totalTables: totalTables !== undefined ? String(totalTables) : '0',
+    // Default index and timestamp as properties (0-based index, ISO timestamp)
+    index: tableIndex !== undefined ? String(tableIndex) : '0',
+    timestamp: new Date().toISOString(),
   };
 
   // Add indexed access for all array properties
