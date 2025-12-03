@@ -3,6 +3,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IFormStore } from '@/useFormStore.ts';
+import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import {
   LOOP_COMMAND_REGEX,
   LOOP_TABLES_REGEX,
@@ -93,6 +94,7 @@ const processBlockLoops = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   // Match opening [[LOOP(property)]] - but not tables or tablesReversed (those are handled separately)
   const openRegex = /\[\[\s*LOOP\(([^)]+)\)\s*\]\]/g;
@@ -150,7 +152,6 @@ const processBlockLoops = (
 
     let processed = '';
 
-    // Process columnsInfo directly
     if (property === 'columnsInfo') {
       processed = processColumnsInfoIteration(
         table,
@@ -161,6 +162,7 @@ const processBlockLoops = (
         undefined,
         formData,
         userMetadata,
+        dataSource,
       );
     } else {
       // For other properties, use processIterateCommand with inline format
@@ -200,8 +202,8 @@ const processInnerLoops = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
-  // First process block-based LOOPs (new syntax)
   const result = processBlockLoops(
     content,
     table,
@@ -209,6 +211,7 @@ const processInnerLoops = (
     userFiles,
     formData,
     userMetadata,
+    dataSource,
   );
 
   // Then process inline LOOPs (legacy syntax)
@@ -300,6 +303,7 @@ const processAtLoopTables = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   const openRegex = /@LOOP\(tables\)\n?/g;
   let result = content;
@@ -353,6 +357,7 @@ const processAtLoopTables = (
       userFiles,
       formData,
       userMetadata,
+      dataSource,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -371,6 +376,7 @@ const processAtLoopTablesReversed = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   const openRegex = /@LOOP\(tablesReversed\)\n?/g;
   let result = content;
@@ -425,6 +431,7 @@ const processAtLoopTablesReversed = (
       userFiles,
       formData,
       userMetadata,
+      dataSource,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -543,6 +550,7 @@ const processHtmlLoop = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   // Match <@@LOOP@@ data="tables" separator="\n">
   const openRegex = /<@@LOOP@@([^>]*)>/g;
@@ -609,6 +617,7 @@ const processHtmlLoop = (
           userFiles,
           formData,
           userMetadata,
+          dataSource,
         );
       } else if (type === 'tablesReversed') {
         const reversedSchema = [...schemaInfo].reverse();
@@ -620,6 +629,7 @@ const processHtmlLoop = (
           userFiles,
           formData,
           userMetadata,
+          dataSource,
         );
       } else if (type === 'columnsInfo') {
         // Skip columnsInfo at top level - it will be processed per-table in processAtLoopTablesTemplate
@@ -902,9 +912,6 @@ export const processAtIf = (
   return result;
 };
 
-/**
- * Process HTML-like <@@LOOP@@ type="columnsInfo"> within a table template
- */
 const processHtmlLoopColumnsInfo = (
   content: string,
   table: ISchemaInfo,
@@ -912,8 +919,8 @@ const processHtmlLoopColumnsInfo = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
-  // Match <@@LOOP@@ data="columnsInfo" separator=",\n">
   const openRegex = /<@@LOOP@@([^>]*)>/g;
   let result = content;
   let match;
@@ -966,11 +973,9 @@ const processHtmlLoopColumnsInfo = (
       break;
     }
 
-    // Process matches in reverse order
     for (let i = matches.length - 1; i >= 0; i--) {
       const { start, end, separator, templateContent } = matches[i];
 
-      // Process using processColumnsInfoIteration (which will process HTML IF tags per column)
       const processed = processColumnsInfoIteration(
         table,
         templateContent.replace(/^\n/, '').trimEnd(),
@@ -980,6 +985,7 @@ const processHtmlLoopColumnsInfo = (
         undefined,
         formData,
         userMetadata,
+        dataSource,
       );
 
       result = result.slice(0, start) + processed + result.slice(end);
@@ -989,9 +995,6 @@ const processHtmlLoopColumnsInfo = (
   return result;
 };
 
-/**
- * Process @LOOP(columnsInfo) within a table template
- */
 const processAtLoopColumnsInfo = (
   content: string,
   table: ISchemaInfo,
@@ -999,6 +1002,7 @@ const processAtLoopColumnsInfo = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   const openRegex = /@LOOP\(columnsInfo\)\n?/g;
   let result = content;
@@ -1016,7 +1020,6 @@ const processAtLoopColumnsInfo = (
     const closeInfo = findAtLoopEnd(content, openEnd);
 
     if (closeInfo) {
-      // Calculate template content end position
       const closingTagStart =
         closeInfo.endIndex - closeInfo.closingOptions.length - 6;
       const hasTrailingNewline = content[closeInfo.endIndex - 1] === '\n';
@@ -1053,6 +1056,7 @@ const processAtLoopColumnsInfo = (
       undefined,
       formData,
       userMetadata,
+      dataSource,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -1072,6 +1076,7 @@ const processAtLoopTablesTemplate = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   return tables
     .map((table) => {
@@ -1085,6 +1090,7 @@ const processAtLoopTablesTemplate = (
         userFiles,
         formData,
         userMetadata,
+        dataSource,
       );
 
       // Then process inner @LOOP(columnsInfo)
@@ -1095,6 +1101,7 @@ const processAtLoopTablesTemplate = (
         userFiles,
         formData,
         userMetadata,
+        dataSource,
       );
 
       // Then replace placeholders
@@ -1163,6 +1170,7 @@ export const processLoopTables = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   // First, process HTML-like <@@LOOP@@> syntax
   let result = processHtmlLoop(
@@ -1172,6 +1180,7 @@ export const processLoopTables = (
     userFiles,
     formData,
     userMetadata,
+    dataSource,
   );
 
   // Then, process @LOOP(tables) experimental syntax
@@ -1182,6 +1191,7 @@ export const processLoopTables = (
     userFiles,
     formData,
     userMetadata,
+    dataSource,
   );
 
   // Then, process inline LOOP(tables) with --template="..."
@@ -1231,6 +1241,7 @@ export const processLoopTablesReversed = (
   userFiles: IStructure,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
 ): string => {
   const reversedSchema = [...schemaInfo].reverse();
 
@@ -1242,6 +1253,7 @@ export const processLoopTablesReversed = (
     userFiles,
     formData,
     userMetadata,
+    dataSource,
   );
 
   // Then, process @LOOP(tablesReversed) experimental syntax
@@ -1252,6 +1264,7 @@ export const processLoopTablesReversed = (
     userFiles,
     formData,
     userMetadata,
+    dataSource,
   );
 
   // Then, process inline LOOP(tablesReversed) with --template="..."

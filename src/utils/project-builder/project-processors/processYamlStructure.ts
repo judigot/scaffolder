@@ -24,6 +24,7 @@ import type { IBuildContext } from '@/utils/project-builder/interfaces/interface
 import { processTemplatePathWithFlag } from '@/utils/project-builder/utils/processRelativePath.ts';
 import { flattenData } from '@/utils/project-builder/utils/dataSourceUtils.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import { loadDataSourceFile } from '@/utils/project-builder/utils/loadDataSourceFile.ts';
 
 const ROOT_LEVEL_ACTIONS = [
   PROJECT_ACTIONS.CREATE_FILE,
@@ -109,6 +110,12 @@ export const processYamlStructure = async ({
 
       const scopedOption = options[ACTION_FLAGS.SCOPED];
       const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
+
+      const dataSourcePath = options[ACTION_FLAGS.DATA_SOURCE];
+      const dataSource =
+        typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+          ? loadDataSourceFile(dataSourcePath, userFiles, projectYamlPath)
+          : null;
 
       if (dataContext && (scopedOption ?? false)) {
         let templateContent = '';
@@ -261,12 +268,14 @@ export const processYamlStructure = async ({
                 userFiles,
                 formData,
                 userMetadata,
+                dataSource ?? undefined,
               ),
               schemaInfo,
               schemaInfoParsed,
               userFiles,
               formData,
               userMetadata,
+              dataSource ?? undefined,
             ),
             userFiles,
             schemaInfoParsed,
@@ -364,12 +373,14 @@ export const processYamlStructure = async ({
               userFiles,
               formData,
               userMetadata,
+              dataSource ?? undefined,
             ),
             schemaInfo,
             schemaInfoParsed,
             userFiles,
             formData,
             userMetadata,
+            dataSource ?? undefined,
           ),
           userFiles,
           schemaInfoParsed,

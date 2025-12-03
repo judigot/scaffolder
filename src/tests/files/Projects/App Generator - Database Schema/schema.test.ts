@@ -458,4 +458,314 @@ CREATE TABLE "{{tableName}}" (
     expect(content).toContain('CREATE TABLE');
     expect(minifySQL(content)).toBe(minifySQL(expectedSchemaSQL));
   });
+
+  describe('with --data-source flag', () => {
+    const createUserFilesWithDataSource = (): IStructure => [
+      {
+        type: 'folder',
+        name: 'Projects',
+        children: [
+          {
+            type: 'folder',
+            name: 'App Generator - Database Schema',
+            children: [
+              {
+                type: 'file',
+                name: 'structure.yaml',
+                content:
+                  'CREATE_FILE(schema.sql --template /Templates/schema.txt --data-source=/Constants/typeMappings.yaml):',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Templates',
+        children: [
+          {
+            type: 'file',
+            name: 'schema.txt',
+            content: `<@@LOOP@@ data="tablesReversed" separator="\\n">
+DROP TABLE IF EXISTS "{{tableName}}";
+</@@LOOP@@>
+
+<@@LOOP@@ data="tables" separator="\\n\\n">
+CREATE TABLE "{{tableName}}" (
+  <@@LOOP@@ data="columnsInfo" separator=",\\n">
+    "{{column.name}}"
+    <@@IF@@ condition="is_primary_key EQUALS 'true'">
+      {{typeMappings.primaryKey[formData.dbType]}}
+    </@@IF@@>
+    <@@IF@@ condition="is_primary_key EQUALS 'false'">
+      {{typeMappings[column.name][formData.dbType] || typeMappings[column.data_type][formData.dbType]}}
+      <@@IF@@ condition="is_unique EQUALS 'true'">
+        UNIQUE
+      </@@IF@@>
+      <@@IF@@ condition="is_nullable EQUALS 'NO'">
+        NOT NULL
+      </@@IF@@>
+    </@@IF@@>
+  </@@LOOP@@>
+  <@@LOOP@@ data="columnsInfo" separator="">
+    <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
+    CONSTRAINT "FK_{{tableName}}_{{column.name}}" FOREIGN KEY ("{{column.name}}") REFERENCES "{{column.foreign_table}}" ("{{column.foreign_column}}")
+    </@@IF@@>
+  </@@LOOP@@>
+);
+</@@LOOP@@>`,
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Constants',
+        children: [
+          {
+            type: 'file',
+            name: 'typeMappings.yaml',
+            content: `string:
+  mysql: 'VARCHAR(32)'
+  postgresql: 'TEXT'
+number:
+  mysql: 'BIGINT'
+  postgresql: 'BIGINT'
+Date:
+  mysql: 'TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6)'
+boolean:
+  mysql: 'BOOLEAN'
+  postgresql: 'BOOLEAN'
+primaryKey:
+  mysql: 'BIGINT PRIMARY KEY AUTO_INCREMENT'
+  postgresql: 'BIGSERIAL PRIMARY KEY'
+foreignKey:
+  mysql: 'BIGINT'
+  postgresql: 'BIGINT'
+password:
+  mysql: 'CHAR(60)'
+  postgresql: 'CHAR(60)'
+created_at:
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
+updated_at:
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'`,
+          },
+        ],
+      },
+    ];
+
+    const createFormData = (dbType: 'postgresql' | 'mysql'): IFormStore => ({
+      schemaInput: {},
+      backendUrl: 'http://localhost:5000',
+      backendDir: '',
+      frontendDir: '',
+      dbConnection: `${dbType}://localhost:5432/test`,
+      framework: frameworks.LARAVEL,
+      includeInsertData: false,
+      insertOption: 'SQLInsertQueriesFromMockData',
+      includeTypeGuards: false,
+      outputOnSingleFile: false,
+      dbType,
+      quote: '"',
+      publicRepoURL: '',
+      clientID: '',
+      clientSecret: '',
+      creationMode: CREATION_MODES.SCHEMA_BUILDER,
+      dbUsername: '',
+      dbPassword: '',
+      dbHost: 'localhost',
+      dbPort: 5432,
+      dbName: '',
+      setCreationMode: (): void => {
+        /* stub */
+      },
+      setMasterSchema: (): void => {
+        /* stub */
+      },
+      setOneToOne: (): void => {
+        /* stub */
+      },
+      setOneToMany: (): void => {
+        /* stub */
+      },
+      setManyToMany: (): void => {
+        /* stub */
+      },
+      setDBType: (): void => {
+        /* stub */
+      },
+      setPublicRepoURL: (): void => {
+        /* stub */
+      },
+      setDbConnection: (): void => {
+        /* stub */
+      },
+    });
+
+    it('should generate PostgreSQL schema with correct types from data-source', async () => {
+      const userFiles = createUserFilesWithDataSource();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      const firstItem = result.structure[0];
+      if (firstItem.type !== 'file') {
+        throw new Error('Expected file but got folder');
+      }
+      const schemaFile: IFile = firstItem;
+      const content = schemaFile.content;
+
+      expect(content).toContain('"product_id" BIGSERIAL PRIMARY KEY');
+      expect(content).toContain('"product_name" TEXT NOT NULL');
+      expect(content).toContain('"password" CHAR(60) NOT NULL');
+      expect(content).toContain('"created_at" TIMESTAMPTZ');
+      expect(content).toContain('"email" TEXT UNIQUE NOT NULL');
+      expect(content).not.toContain('VARCHAR');
+      expect(content).not.toContain('AUTO_INCREMENT');
+    });
+
+    it('should generate MySQL schema with correct types from data-source', async () => {
+      const userFiles = createUserFilesWithDataSource();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataMysql = createFormData('mysql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataMysql,
+        null,
+      );
+
+      const firstItem = result.structure[0];
+      if (firstItem.type !== 'file') {
+        throw new Error('Expected file but got folder');
+      }
+      const schemaFile: IFile = firstItem;
+      const content = schemaFile.content;
+
+      expect(content).toContain(
+        '"product_id" BIGINT PRIMARY KEY AUTO_INCREMENT',
+      );
+      expect(content).toContain('"product_name" VARCHAR(32) NOT NULL');
+      expect(content).toContain('"password" CHAR(60) NOT NULL');
+      expect(content).toContain('"created_at" TIMESTAMP');
+      expect(content).toContain('"email" VARCHAR(32) UNIQUE NOT NULL');
+      expect(content).not.toContain('BIGSERIAL');
+      expect(content).not.toContain('TIMESTAMPTZ');
+    });
+
+    it('should use primaryKey mapping for primary key columns in PostgreSQL', async () => {
+      const userFiles = createUserFilesWithDataSource();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      const firstItem = result.structure[0];
+      if (firstItem.type !== 'file') {
+        throw new Error('Expected file but got folder');
+      }
+      const schemaFile: IFile = firstItem;
+      const content = schemaFile.content;
+
+      const primaryKeyMatches = content.match(/"\w+"\s+BIGSERIAL PRIMARY KEY/g);
+      expect(primaryKeyMatches).not.toBeNull();
+      expect(primaryKeyMatches?.length).toBeGreaterThan(0);
+    });
+
+    it('should use primaryKey mapping for primary key columns in MySQL', async () => {
+      const userFiles = createUserFilesWithDataSource();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataMysql = createFormData('mysql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataMysql,
+        null,
+      );
+
+      const firstItem = result.structure[0];
+      if (firstItem.type !== 'file') {
+        throw new Error('Expected file but got folder');
+      }
+      const schemaFile: IFile = firstItem;
+      const content = schemaFile.content;
+
+      const primaryKeyMatches = content.match(
+        /"\w+"\s+BIGINT PRIMARY KEY AUTO_INCREMENT/g,
+      );
+      expect(primaryKeyMatches).not.toBeNull();
+      expect(primaryKeyMatches?.length).toBeGreaterThan(0);
+    });
+
+    it('should use column-specific mapping (password) in PostgreSQL', async () => {
+      const userFiles = createUserFilesWithDataSource();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      const firstItem = result.structure[0];
+      if (firstItem.type !== 'file') {
+        throw new Error('Expected file but got folder');
+      }
+      const schemaFile: IFile = firstItem;
+      const content = schemaFile.content;
+
+      expect(content).toContain('"password" CHAR(60)');
+    });
+
+    it('should use column-specific mapping (password) in MySQL', async () => {
+      const userFiles = createUserFilesWithDataSource();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataMysql = createFormData('mysql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataMysql,
+        null,
+      );
+
+      const firstItem = result.structure[0];
+      if (firstItem.type !== 'file') {
+        throw new Error('Expected file but got folder');
+      }
+      const schemaFile: IFile = firstItem;
+      const content = schemaFile.content;
+
+      expect(content).toContain('"password" CHAR(60)');
+    });
+  });
 });
