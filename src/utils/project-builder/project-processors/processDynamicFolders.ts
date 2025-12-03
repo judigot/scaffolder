@@ -9,18 +9,18 @@ import {
   createDataContextReplacements,
 } from '@/utils/project-builder/utils/dataSourceUtils.ts';
 
-export const processDynamicFolders = async ({
-  folderName,
-  children,
-  schemaInfo,
-  schemaInfoParsed,
-  userFiles,
-  projectYamlPath,
-  formData,
-  userMetadata,
-  options,
-  currentPath = '',
-}: IBuildContext): Promise<IStructure> => {
+export const processDynamicFolders = async (
+  ctx: IBuildContext,
+): Promise<IStructure> => {
+  const {
+    folderName,
+    children,
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    options,
+    currentPath = '',
+  } = ctx;
   if (typeof folderName !== 'string') {
     throw new Error('Folder name is not a string');
   }
@@ -36,21 +36,10 @@ export const processDynamicFolders = async ({
           match.folderPath,
         );
 
-        const dataCtx = {
-          userFiles,
-          schemaInfo,
-          schemaInfoParsed,
-          projectYamlPath,
-          formData,
-          userMetadata,
+        const processedName = replacePlaceholders(folderName, replacements, {
+          ...ctx,
           dataContext: augmentedData,
-        };
-
-        const processedName = replacePlaceholders(
-          folderName,
-          replacements,
-          dataCtx,
-        );
+        });
 
         const newPath =
           currentPath === ''
@@ -58,15 +47,8 @@ export const processDynamicFolders = async ({
             : `${currentPath}/${processedName}`;
 
         const processedChildren = await processYamlStructure({
-          onFileUsingUserEnv: options?.onFileUsingUserEnv,
-          onFileFailedToFormat: options?.onFileFailedToFormat,
+          ...ctx,
           node: children,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-          projectYamlPath,
-          formData,
-          userMetadata,
           dataContext: augmentedData,
           currentPath: newPath,
         });
@@ -84,36 +66,18 @@ export const processDynamicFolders = async ({
     schemaInfo.map(async (table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
-      const tableCtx = {
-        userFiles,
-        schemaInfo,
-        schemaInfoParsed,
-        projectYamlPath,
+      const processedName = replacePlaceholders(folderName, replacements, {
+        ...ctx,
         table,
-        formData,
-        userMetadata,
-      };
-
-      const processedName = replacePlaceholders(
-        folderName,
-        replacements,
-        tableCtx,
-      );
+      });
 
       const newPath =
         currentPath === '' ? processedName : `${currentPath}/${processedName}`;
 
       const processedChildren = await processYamlStructure({
+        ...ctx,
         node: children,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
-        projectYamlPath,
         table,
-        formData,
-        userMetadata,
-        onFileUsingUserEnv: options?.onFileUsingUserEnv,
-        onFileFailedToFormat: options?.onFileFailedToFormat,
         currentPath: newPath,
       });
 

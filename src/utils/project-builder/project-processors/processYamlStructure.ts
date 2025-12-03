@@ -40,20 +40,23 @@ const buildAbsolutePath = (fileName: string, currentPath: string): string => {
   return `${currentPath}/${fileName}`;
 };
 
-export const processYamlStructure = async ({
-  node,
-  schemaInfo,
-  schemaInfoParsed,
-  userFiles,
-  projectYamlPath,
-  table,
-  formData,
-  userMetadata,
-  dataContext,
-  onFileUsingUserEnv,
-  onFileFailedToFormat,
-  currentPath = '',
-}: IBuildContext): Promise<IStructure> => {
+export const processYamlStructure = async (
+  ctx: IBuildContext,
+): Promise<IStructure> => {
+  const {
+    node,
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    projectYamlPath,
+    table,
+    formData,
+    userMetadata,
+    dataContext,
+    onFileUsingUserEnv,
+    onFileFailedToFormat,
+    currentPath = '',
+  } = ctx;
   if (typeof node === 'string') {
     const nodeParams = /\(([^)]+)\)/.exec(node);
 
@@ -145,20 +148,10 @@ export const processYamlStructure = async ({
           dataReplacements[key] = value;
         }
 
-        const ctx = {
-          userFiles,
-          schemaInfo,
-          schemaInfoParsed,
-          projectYamlPath,
-          formData,
-          userMetadata,
-          dataContext,
-        };
-
         const processedName = replacePlaceholders(
           command,
           dataReplacements,
-          ctx,
+          { ...ctx, dataContext },
           command,
         );
 
@@ -173,7 +166,7 @@ export const processYamlStructure = async ({
         const content = replacePlaceholders(
           templateContent,
           dataReplacements,
-          ctx,
+          { ...ctx, dataContext },
           typeof templatePath === 'string' && templatePath.length > 0
             ? templatePath
             : command,
@@ -233,19 +226,10 @@ export const processYamlStructure = async ({
 
         // Process the file with the current table context only
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        const tableCtx = {
-          userFiles,
-          schemaInfo,
-          schemaInfoParsed,
-          projectYamlPath,
-          table,
-          formData,
-          userMetadata,
-        };
         const processedName = replacePlaceholders(
           command,
           replacements,
-          tableCtx,
+          { ...ctx, table },
           command,
         );
 
@@ -284,7 +268,7 @@ export const processYamlStructure = async ({
             userMetadata,
           ),
           replacements,
-          tableCtx,
+          { ...ctx, table },
           typeof templatePath === 'string' && templatePath.length > 0
             ? templatePath
             : command,
@@ -327,20 +311,10 @@ export const processYamlStructure = async ({
         schemaInfoProcessed,
         schemaInfoParsed,
       );
-      const processedCtx = {
-        userFiles,
-        schemaInfo,
-        schemaInfoParsed,
-        projectYamlPath,
+      const processedName = replacePlaceholders(command, replacements, {
+        ...ctx,
         table: schemaInfoProcessed,
-        formData,
-        userMetadata,
-      };
-      const processedName = replacePlaceholders(
-        command,
-        replacements,
-        processedCtx,
-      );
+      });
 
       // Extract just the filename portion if it contains slashes
       const outputFileName = processedName.includes('/')
@@ -385,7 +359,7 @@ export const processYamlStructure = async ({
           userMetadata,
         ),
         replacements,
-        processedCtx,
+        { ...ctx, table: schemaInfoProcessed },
         typeof node === 'string' ? node : undefined,
       );
 
@@ -493,15 +467,6 @@ export const processYamlStructure = async ({
         schemaInfoProcessed,
         schemaInfoParsed,
       );
-      const schemaProcessedCtx = {
-        userFiles,
-        schemaInfo,
-        schemaInfoParsed,
-        projectYamlPath,
-        table: schemaInfoProcessed,
-        formData,
-        userMetadata,
-      };
 
       let processedContent = replacePlaceholders(
         processLoopDataSources(
@@ -526,7 +491,7 @@ export const processYamlStructure = async ({
           userMetadata,
         ),
         replacements,
-        schemaProcessedCtx,
+        { ...ctx, table: schemaInfoProcessed },
       );
 
       processedContent = processIterateInTemplate(
@@ -622,32 +587,13 @@ export const processYamlStructure = async ({
 
         if (table) {
           return await processYamlStructure({
+            ...ctx,
             node: item,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            projectYamlPath,
-            table,
-            formData,
-            userMetadata,
-            dataContext,
-            onFileUsingUserEnv,
-            onFileFailedToFormat,
-            currentPath,
           });
         }
         return await processYamlStructure({
+          ...ctx,
           node: item,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-          projectYamlPath,
-          formData,
-          userMetadata,
-          dataContext,
-          onFileUsingUserEnv,
-          onFileFailedToFormat,
-          currentPath,
         });
       }),
     );
@@ -660,34 +606,14 @@ export const processYamlStructure = async ({
       Object.entries(node).map(async ([key, value]): Promise<IStructure> => {
         if (ROOT_LEVEL_ACTIONS.some((action) => key.startsWith(`${action}(`))) {
           const actionResult = await processYamlStructure({
+            ...ctx,
             node: key,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            projectYamlPath,
-            table,
-            formData,
-            userMetadata,
-            dataContext,
-            onFileUsingUserEnv,
-            onFileFailedToFormat,
-            currentPath,
           });
 
           if (value !== null && value !== undefined) {
             const childStructure = await processYamlStructure({
+              ...ctx,
               node: value,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              projectYamlPath,
-              table,
-              formData,
-              userMetadata,
-              dataContext,
-              onFileUsingUserEnv,
-              onFileFailedToFormat,
-              currentPath,
             });
 
             return [...actionResult, ...childStructure];
@@ -705,17 +631,8 @@ export const processYamlStructure = async ({
           );
 
           const importResult = await importProject({
+            ...ctx,
             command: commandString,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            projectYamlPath,
-            table,
-            formData,
-            userMetadata,
-            onFileUsingUserEnv,
-            onFileFailedToFormat,
-            currentPath,
           });
 
           if (
@@ -724,18 +641,8 @@ export const processYamlStructure = async ({
             typeof value === 'object'
           ) {
             const childStructure = await processYamlStructure({
+              ...ctx,
               node: value,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              projectYamlPath,
-              table,
-              formData,
-              userMetadata,
-              dataContext,
-              onFileUsingUserEnv,
-              onFileFailedToFormat,
-              currentPath,
             });
 
             return [...importResult, ...childStructure];
@@ -770,20 +677,14 @@ export const processYamlStructure = async ({
             parseCommand(folderLoopParams);
 
           return await processDynamicFolders({
+            ...ctx,
             folderName,
             children: value,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            projectYamlPath,
-            formData,
-            userMetadata,
             options: {
               ...folderOptions,
               onFileUsingUserEnv,
               onFileFailedToFormat,
             },
-            currentPath,
           });
         }
 
@@ -823,15 +724,6 @@ export const processYamlStructure = async ({
               schemaInfoProcessed,
               schemaInfoParsed,
             );
-            const innerCtx = {
-              userFiles,
-              schemaInfo,
-              schemaInfoParsed,
-              projectYamlPath,
-              table: schemaInfoProcessed,
-              formData,
-              userMetadata,
-            };
 
             let processedContent = replacePlaceholders(
               processLoopDataSources(
@@ -856,7 +748,7 @@ export const processYamlStructure = async ({
                 userMetadata,
               ),
               replacements,
-              innerCtx,
+              { ...ctx, table: schemaInfoProcessed },
             );
 
             processedContent = processIterateInTemplate(
@@ -898,17 +790,8 @@ export const processYamlStructure = async ({
               type: 'folder',
               name: folderName,
               children: await processYamlStructure({
+                ...ctx,
                 node: value,
-                schemaInfo,
-                schemaInfoParsed,
-                userFiles,
-                projectYamlPath,
-                table,
-                formData,
-                userMetadata,
-                dataContext,
-                onFileUsingUserEnv,
-                onFileFailedToFormat,
                 currentPath: newPath,
               }),
             },
@@ -920,16 +803,8 @@ export const processYamlStructure = async ({
             type: 'folder',
             name: folderName,
             children: await processYamlStructure({
+              ...ctx,
               node: value,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              projectYamlPath,
-              formData,
-              userMetadata,
-              dataContext,
-              onFileUsingUserEnv,
-              onFileFailedToFormat,
               currentPath: newPath,
             }),
           },

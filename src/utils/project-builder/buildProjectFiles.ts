@@ -12,6 +12,7 @@ import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/merg
 import { processCoreFiles } from '@/utils/project-builder/utils/processCoreFiles.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import { createContext } from '@/utils/project-builder/helpers/contextHelpers.ts';
 
 export interface IFailedFormatEntry {
   filePath: string;
@@ -173,17 +174,26 @@ export const buildProjectFiles = async (
       yamlStructureToProcess = Object.fromEntries(entries);
     }
 
-    const scaffoldedFiles = await processYamlStructure({
-      node: yamlStructureToProcess,
+    const ctx = createContext(
+      userFiles,
       schemaInfo,
       schemaInfoParsed,
-      userFiles,
       projectYamlPath,
       formData,
       userMetadata,
-      onFileUsingUserEnv: trackFileUsingUserEnv,
-      onFileFailedToFormat: trackFileFailedToFormat,
-    });
+      undefined, // table
+      undefined, // dataContext
+      undefined, // currentPath
+      yamlStructureToProcess, // node
+      undefined, // command
+      undefined, // folderName
+      undefined, // children
+      undefined, // options
+      trackFileUsingUserEnv,
+      trackFileFailedToFormat,
+    );
+
+    const scaffoldedFiles = await processYamlStructure(ctx);
 
     const projectFiles = mergeCoreFilesWithScaffolded(
       coreFiles,

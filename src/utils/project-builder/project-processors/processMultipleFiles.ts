@@ -29,19 +29,22 @@ const buildAbsolutePath = (fileName: string, currentPath: string): string => {
   return `${currentPath}/${fileName}`;
 };
 
-export const processMultipleFiles = async ({
-  command: fileName,
-  options = {},
-  schemaInfo,
-  schemaInfoParsed,
-  userFiles,
-  projectYamlPath,
-  formData,
-  userMetadata,
-  onFileUsingUserEnv,
-  onFileFailedToFormat,
-  currentPath = '',
-}: IMultipleFilesContext): Promise<IFile[]> => {
+export const processMultipleFiles = async (
+  ctx: IMultipleFilesContext,
+): Promise<IFile[]> => {
+  const {
+    command: fileName,
+    options = {},
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    projectYamlPath,
+    formData,
+    userMetadata,
+    onFileUsingUserEnv,
+    onFileFailedToFormat,
+    currentPath = '',
+  } = ctx;
   if (!fileName || fileName.length === 0) {
     return [];
   }
@@ -83,15 +86,6 @@ export const processMultipleFiles = async ({
       scopedOption === true
     ) {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
-      const tableCtx = {
-        userFiles,
-        schemaInfo,
-        schemaInfoParsed,
-        projectYamlPath,
-        table,
-        formData,
-        userMetadata,
-      };
 
       if (
         includeTableOption !== undefined &&
@@ -100,7 +94,7 @@ export const processMultipleFiles = async ({
         const processedIncludeTable = replacePlaceholders(
           includeTableOption,
           replacements,
-          tableCtx,
+          { ...ctx, table },
           fileName,
         );
         if (table.tableName !== processedIncludeTable) {
@@ -114,19 +108,10 @@ export const processMultipleFiles = async ({
       excludeTableOption.trim().length > 0
     ) {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
-      const tableCtx = {
-        userFiles,
-        schemaInfo,
-        schemaInfoParsed,
-        projectYamlPath,
-        table,
-        formData,
-        userMetadata,
-      };
       const processedExcludeTable = replacePlaceholders(
         excludeTableOption,
         replacements,
-        tableCtx,
+        { ...ctx, table },
         fileName,
       );
       if (table.tableName === processedExcludeTable) {
@@ -140,19 +125,10 @@ export const processMultipleFiles = async ({
   const files = await Promise.all(
     filteredSchemaInfo.map(async (table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
-      const tableCtx = {
-        userFiles,
-        schemaInfo,
-        schemaInfoParsed,
-        projectYamlPath,
-        table,
-        formData,
-        userMetadata,
-      };
       const processedName = replacePlaceholders(
         fileName,
         replacements,
-        tableCtx,
+        { ...ctx, table },
         fileName,
       );
 
@@ -190,7 +166,7 @@ export const processMultipleFiles = async ({
       content = replacePlaceholders(
         content,
         replacements,
-        tableCtx,
+        { ...ctx, table },
         typeof templateOption === 'string' && templateOption.length > 0
           ? templateOption
           : fileName,

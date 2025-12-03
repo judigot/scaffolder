@@ -26,16 +26,17 @@ const buildAbsolutePath = (fileName: string, currentPath: string): string => {
   return `${currentPath}/${fileName}`;
 };
 
-export const processLoopFolders = async ({
-  command: fileName,
-  options,
-  userFiles,
-  projectYamlPath,
-  schemaInfo = [],
-  schemaInfoParsed,
-  onFileFailedToFormat,
-  currentPath = '',
-}: ILoopFoldersContext): Promise<IFile[]> => {
+export const processLoopFolders = async (
+  ctx: ILoopFoldersContext,
+): Promise<IFile[]> => {
+  const {
+    command: fileName,
+    options,
+    userFiles,
+    projectYamlPath,
+    onFileFailedToFormat,
+    currentPath = '',
+  } = ctx;
   if (!fileName || fileName.length === 0) {
     return [];
   }
@@ -83,19 +84,10 @@ export const processLoopFolders = async ({
         match.folderPath,
       );
 
-      const dataCtx = {
-        userFiles,
-        schemaInfo,
-        schemaInfoParsed,
-        projectYamlPath,
+      const processedName = replacePlaceholders(fileName, replacements, {
+        ...ctx,
         dataContext: augmentedData,
-      };
-
-      const processedName = replacePlaceholders(
-        fileName,
-        replacements,
-        dataCtx,
-      );
+      });
 
       const outputFileName = processedName.includes('/')
         ? extractFileNameFromPath(processedName)
@@ -104,7 +96,7 @@ export const processLoopFolders = async ({
       const processedContent = replacePlaceholders(
         templateContent,
         replacements,
-        dataCtx,
+        { ...ctx, dataContext: augmentedData },
         templatePath,
       );
 

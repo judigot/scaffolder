@@ -28,19 +28,10 @@ function isValidProjectStructure(
  * @param table Optional table context for scoped imports
  * @returns An array of structure items to be included
  */
-export const importProject = async ({
-  command,
-  schemaInfo,
-  schemaInfoParsed,
-  userFiles,
-  projectYamlPath,
-  table,
-  formData,
-  userMetadata,
-  onFileUsingUserEnv,
-  onFileFailedToFormat,
-  currentPath = '',
-}: IBuildContext): Promise<IStructure> => {
+export const importProject = async (
+  ctx: IBuildContext,
+): Promise<IStructure> => {
+  const { command, schemaInfo, schemaInfoParsed, userFiles, table } = ctx;
   // Clean up the command string to handle cases where it might have trailing characters
   const cleanCommand = command?.trim();
 
@@ -78,17 +69,9 @@ export const importProject = async ({
 
     if (table && scopedOption) {
       return await processYamlStructure({
+        ...ctx,
         node: parsedYaml,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
         projectYamlPath: importedProjectPath,
-        table,
-        formData,
-        userMetadata,
-        onFileUsingUserEnv,
-        onFileFailedToFormat,
-        currentPath,
       });
     } else if (
       (includeTableOption != null && includeTableOption.trim().length > 0) ||
@@ -103,16 +86,6 @@ export const importProject = async ({
           schemaInfoParsed,
         );
 
-        const tableCtx = {
-          userFiles,
-          schemaInfo,
-          schemaInfoParsed,
-          projectYamlPath,
-          table: currentTable,
-          formData,
-          userMetadata,
-        };
-
         // Check include filter
         if (
           includeTableOption != null &&
@@ -121,7 +94,7 @@ export const importProject = async ({
           const processedIncludeTable = replacePlaceholders(
             String(options[ACTION_FLAGS.INCLUDE_TABLE]),
             replacements,
-            tableCtx,
+            { ...ctx, table: currentTable },
           );
           if (currentTable.tableName !== processedIncludeTable) {
             continue;
@@ -136,7 +109,7 @@ export const importProject = async ({
           const processedExcludeTable = replacePlaceholders(
             String(options[ACTION_FLAGS.EXCLUDE_TABLE]),
             replacements,
-            tableCtx,
+            { ...ctx, table: currentTable },
           );
           if (currentTable.tableName === processedExcludeTable) {
             continue;
@@ -144,17 +117,10 @@ export const importProject = async ({
         }
 
         const processedStructure = await processYamlStructure({
+          ...ctx,
           node: parsedYaml,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
           projectYamlPath: importedProjectPath,
           table: currentTable,
-          formData,
-          userMetadata,
-          onFileUsingUserEnv,
-          onFileFailedToFormat,
-          currentPath,
         });
 
         filteredResults.push(...processedStructure);
@@ -164,16 +130,9 @@ export const importProject = async ({
     }
 
     return await processYamlStructure({
+      ...ctx,
       node: parsedYaml,
-      schemaInfo,
-      schemaInfoParsed,
-      userFiles,
       projectYamlPath: importedProjectPath,
-      formData,
-      userMetadata,
-      onFileUsingUserEnv,
-      onFileFailedToFormat,
-      currentPath,
     });
   } catch {
     return [];
