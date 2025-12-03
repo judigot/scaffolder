@@ -1,44 +1,40 @@
-import type { IStructure } from '@/components/FileViewer.tsx';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { processCommand } from '@/utils/project-builder/template-processors/processCommand.ts';
 import { processIfConditions } from '@/utils/project-builder/template-processors/processIfConditions.ts';
 import { importTemplateAsPlaceholder } from '@/utils/project-builder/template-processors/importTemplateAsPlaceholder.ts';
 import type {
   Replacements,
-  DataContext,
+  BuildContext,
 } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
-import type { IFormStore } from '@/useFormStore.ts';
 
 /**
  * Replaces placeholders in a template with values from the replacements object
  * Enhanced version that properly handles dynamic properties like array separators and indexed access
+ *
+ * @param text - The template text to process
+ * @param replacements - Key-value pairs for placeholder replacement
+ * @param ctx - Build context containing userFiles, schemaInfo, formData, etc.
+ * @param templateFilePath - Optional path to the template file
+ * @param skipLoopDataSources - Whether to skip processing LOOP_DATA_SOURCES
  */
 export const replacePlaceholders = (
   text: string,
   replacements: Replacements,
-  userFiles: IStructure,
-  schemaInfoParsed: ISchemaInfoResult,
-  table?: ISchemaInfo,
-  projectFilePath?: string,
+  ctx: BuildContext,
   templateFilePath?: string,
-  formData?: IFormStore,
-  userMetadata?: Record<string, unknown> | null,
-  dataContext?: DataContext,
   skipLoopDataSources = false,
 ): string => {
   // Process all commands
   const processedText = processCommand(
     text,
-    userFiles,
-    schemaInfoParsed,
-    table,
+    ctx.userFiles,
+    ctx.schemaInfoParsed,
+    ctx.table,
     templateFilePath,
-    projectFilePath,
-    formData,
-    userMetadata,
-    dataContext,
+    ctx.projectYamlPath,
+    ctx.formData,
+    ctx.userMetadata,
+    ctx.dataContext,
     skipLoopDataSources,
   );
 

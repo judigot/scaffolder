@@ -83,6 +83,15 @@ export const processMultipleFiles = async ({
       scopedOption === true
     ) {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const tableCtx = {
+        userFiles,
+        schemaInfo,
+        schemaInfoParsed,
+        projectYamlPath,
+        table,
+        formData,
+        userMetadata,
+      };
 
       if (
         includeTableOption !== undefined &&
@@ -91,14 +100,8 @@ export const processMultipleFiles = async ({
         const processedIncludeTable = replacePlaceholders(
           includeTableOption,
           replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-          projectYamlPath,
+          tableCtx,
           fileName,
-          formData,
-          userMetadata,
-          undefined,
         );
         if (table.tableName !== processedIncludeTable) {
           return false;
@@ -111,17 +114,20 @@ export const processMultipleFiles = async ({
       excludeTableOption.trim().length > 0
     ) {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const tableCtx = {
+        userFiles,
+        schemaInfo,
+        schemaInfoParsed,
+        projectYamlPath,
+        table,
+        formData,
+        userMetadata,
+      };
       const processedExcludeTable = replacePlaceholders(
         excludeTableOption,
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-        projectYamlPath,
+        tableCtx,
         fileName,
-        formData,
-        userMetadata,
-        undefined,
       );
       if (table.tableName === processedExcludeTable) {
         return false;
@@ -134,17 +140,20 @@ export const processMultipleFiles = async ({
   const files = await Promise.all(
     filteredSchemaInfo.map(async (table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const tableCtx = {
+        userFiles,
+        schemaInfo,
+        schemaInfoParsed,
+        projectYamlPath,
+        table,
+        formData,
+        userMetadata,
+      };
       const processedName = replacePlaceholders(
         fileName,
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-        projectYamlPath,
+        tableCtx,
         fileName,
-        formData,
-        userMetadata,
-        undefined,
       );
 
       const outputFileName = processedName.includes('/')
@@ -181,16 +190,10 @@ export const processMultipleFiles = async ({
       content = replacePlaceholders(
         content,
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-        projectYamlPath,
+        tableCtx,
         typeof templateOption === 'string' && templateOption.length > 0
           ? templateOption
           : fileName,
-        formData,
-        userMetadata,
-        undefined,
       );
       content = processIterateInTemplate(
         content,

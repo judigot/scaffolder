@@ -36,17 +36,20 @@ export const processDynamicFolders = async ({
           match.folderPath,
         );
 
+        const dataCtx = {
+          userFiles,
+          schemaInfo,
+          schemaInfoParsed,
+          projectYamlPath,
+          formData,
+          userMetadata,
+          dataContext: augmentedData,
+        };
+
         const processedName = replacePlaceholders(
           folderName,
           replacements,
-          userFiles,
-          schemaInfoParsed,
-          undefined,
-          projectYamlPath,
-          undefined,
-          formData,
-          userMetadata,
-          augmentedData,
+          dataCtx,
         );
 
         const newPath =
@@ -81,17 +84,20 @@ export const processDynamicFolders = async ({
     schemaInfo.map(async (table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
+      const tableCtx = {
+        userFiles,
+        schemaInfo,
+        schemaInfoParsed,
+        projectYamlPath,
+        table,
+        formData,
+        userMetadata,
+      };
+
       const processedName = replacePlaceholders(
         folderName,
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-        projectYamlPath,
-        undefined,
-        formData,
-        userMetadata,
-        undefined,
+        tableCtx,
       );
 
       const newPath =

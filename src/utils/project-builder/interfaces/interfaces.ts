@@ -22,21 +22,40 @@ export interface IActionFlags {
 
 export type DataContext = Record<string, unknown>;
 
+/**
+ * Build context containing all shared data for project building.
+ * Pass this single object instead of many individual parameters.
+ */
 export interface IBuildContext {
-  node?: unknown;
-  userFiles: IStructure;
-  schemaInfo: ISchemaInfo[];
-  schemaInfoParsed: ISchemaInfoResult;
-  projectYamlPath: string;
-  table?: ISchemaInfo;
-  command?: string;
-  folderName?: string;
-  children?: unknown;
-  formData?: IFormStore;
-  userMetadata?: Record<string, unknown> | null;
-  dataContext?: DataContext;
-  options?: IActionFlags;
-  onFileUsingUserEnv?: (filePath: string) => void;
-  onFileFailedToFormat?: (filePath: string, errorMessage: string) => void;
-  currentPath?: string;
+  // Core data (always present after initialization)
+  readonly userFiles: IStructure;
+  readonly schemaInfo: ISchemaInfo[];
+  readonly schemaInfoParsed: ISchemaInfoResult;
+  readonly projectYamlPath: string;
+
+  // Optional form/user data
+  readonly formData?: IFormStore;
+  readonly userMetadata?: Record<string, unknown> | null;
+
+  // Contextual data (varies per scope)
+  readonly table?: ISchemaInfo;
+  readonly dataContext?: DataContext;
+  readonly currentPath?: string;
+
+  // Command-specific (used during YAML processing)
+  readonly node?: unknown;
+  readonly command?: string;
+  readonly folderName?: string;
+  readonly children?: unknown;
+  readonly options?: IActionFlags;
+
+  // Callbacks
+  readonly onFileUsingUserEnv?: (filePath: string) => void;
+  readonly onFileFailedToFormat?: (
+    filePath: string,
+    errorMessage: string,
+  ) => void;
 }
+
+// Alias for cleaner imports (both names work)
+export type BuildContext = IBuildContext;

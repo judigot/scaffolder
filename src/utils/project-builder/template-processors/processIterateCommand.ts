@@ -1105,18 +1105,16 @@ const processAtLoopTablesTemplate = (
       );
 
       // Then replace placeholders
-      processed = replacePlaceholders(
-        processed,
-        replacements,
+      const ctx = {
         userFiles,
+        schemaInfo: tables,
         schemaInfoParsed,
+        projectYamlPath: '',
         table,
-        undefined,
-        undefined,
         formData,
         userMetadata,
-        undefined,
-      );
+      };
+      processed = replacePlaceholders(processed, replacements, ctx);
 
       return processed;
     })
@@ -1138,17 +1136,19 @@ const processTablesTemplate = (
   return tables
     .map((table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const ctx = {
+        userFiles,
+        schemaInfo: tables,
+        schemaInfoParsed,
+        projectYamlPath: '',
+        table,
+        formData,
+        userMetadata,
+      };
       let processed = replacePlaceholders(
         templateContent.trim(),
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-        undefined,
-        undefined,
-        formData,
-        userMetadata,
-        undefined,
+        ctx,
       );
       processed = processInnerLoops(
         processed,
@@ -1472,17 +1472,21 @@ export const processLoopDataSources = (
           dataMatch.folderPath,
         );
 
+        const ctx = {
+          userFiles,
+          schemaInfo: [],
+          schemaInfoParsed,
+          projectYamlPath: '',
+          formData,
+          userMetadata,
+          dataContext: augmentedData,
+        };
+
         return replacePlaceholders(
           templateContent.trim(),
           replacements,
-          userFiles,
-          schemaInfoParsed,
+          ctx,
           undefined,
-          undefined,
-          undefined,
-          formData,
-          userMetadata,
-          augmentedData,
           true, // Skip LOOP_DATA_SOURCES to prevent infinite recursion
         );
       })
@@ -1573,18 +1577,16 @@ export const processIterateCommand = (
         }
         // For non-constant values, still process any placeholders they might have
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        return replacePlaceholders(
-          trimmed,
-          replacements,
+        const ignoreCtx = {
           userFiles,
+          schemaInfo: [],
           schemaInfoParsed,
+          projectYamlPath: '',
           table,
-          undefined,
-          undefined,
           formData,
           userMetadata,
-          undefined,
-        );
+        };
+        return replacePlaceholders(trimmed, replacements, ignoreCtx);
       })
     : [];
 
@@ -1728,18 +1730,16 @@ export const processIterateCommand = (
         }
         // For non-constant values, still process any placeholders they might have
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
-        return replacePlaceholders(
-          trimmed,
-          replacements,
+        const filterCtx = {
           userFiles,
+          schemaInfo: [],
           schemaInfoParsed,
+          projectYamlPath: '',
           table,
-          undefined,
-          undefined,
           formData,
           userMetadata,
-          undefined,
-        );
+        };
+        return replacePlaceholders(trimmed, replacements, filterCtx);
       })
     : [];
 
@@ -2033,18 +2033,17 @@ export const processIterateCommand = (
       });
     }
 
-    return replacePlaceholders(
-      template,
-      replacements,
+    const ctx = {
       userFiles,
+      schemaInfo: [],
       schemaInfoParsed,
+      projectYamlPath: projectFilePath ?? '',
       table,
-      projectFilePath,
-      template,
       formData,
       userMetadata,
-      undefined,
-    );
+    };
+
+    return replacePlaceholders(template, replacements, ctx, template);
   });
 
   return joinWithSeparator(lines);

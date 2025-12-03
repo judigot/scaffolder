@@ -103,6 +103,16 @@ export const importProject = async ({
           schemaInfoParsed,
         );
 
+        const tableCtx = {
+          userFiles,
+          schemaInfo,
+          schemaInfoParsed,
+          projectYamlPath,
+          table: currentTable,
+          formData,
+          userMetadata,
+        };
+
         // Check include filter
         if (
           includeTableOption != null &&
@@ -111,14 +121,7 @@ export const importProject = async ({
           const processedIncludeTable = replacePlaceholders(
             String(options[ACTION_FLAGS.INCLUDE_TABLE]),
             replacements,
-            userFiles,
-            schemaInfoParsed,
-            currentTable,
-            projectYamlPath,
-            undefined,
-            formData,
-            userMetadata,
-            undefined,
+            tableCtx,
           );
           if (currentTable.tableName !== processedIncludeTable) {
             continue;
@@ -133,14 +136,7 @@ export const importProject = async ({
           const processedExcludeTable = replacePlaceholders(
             String(options[ACTION_FLAGS.EXCLUDE_TABLE]),
             replacements,
-            userFiles,
-            schemaInfoParsed,
-            currentTable,
-            projectYamlPath,
-            undefined,
-            formData,
-            userMetadata,
-            undefined,
+            tableCtx,
           );
           if (currentTable.tableName === processedExcludeTable) {
             continue;

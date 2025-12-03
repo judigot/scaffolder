@@ -31,6 +31,7 @@ export const processLoopFolders = async ({
   options,
   userFiles,
   projectYamlPath,
+  schemaInfo = [],
   schemaInfoParsed,
   onFileFailedToFormat,
   currentPath = '',
@@ -82,17 +83,18 @@ export const processLoopFolders = async ({
         match.folderPath,
       );
 
+      const dataCtx = {
+        userFiles,
+        schemaInfo,
+        schemaInfoParsed,
+        projectYamlPath,
+        dataContext: augmentedData,
+      };
+
       const processedName = replacePlaceholders(
         fileName,
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        undefined,
-        projectYamlPath,
-        undefined,
-        undefined,
-        undefined,
-        augmentedData,
+        dataCtx,
       );
 
       const outputFileName = processedName.includes('/')
@@ -102,14 +104,8 @@ export const processLoopFolders = async ({
       const processedContent = replacePlaceholders(
         templateContent,
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        undefined,
-        projectYamlPath,
+        dataCtx,
         templatePath,
-        undefined,
-        undefined,
-        augmentedData,
       );
 
       const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;

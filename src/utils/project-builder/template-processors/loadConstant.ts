@@ -68,19 +68,17 @@ export const loadConstant = (
     // Then process placeholders if table is provided
     if (table) {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const ctx = {
+        userFiles,
+        schemaInfo: [],
+        schemaInfoParsed,
+        projectYamlPath: projectFilePath ?? '',
+        table,
+        formData,
+        userMetadata,
+      };
       return rawValues.map((value) =>
-        replacePlaceholders(
-          value,
-          replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-          projectFilePath,
-          constantName,
-          formData,
-          userMetadata,
-          undefined,
-        ),
+        replacePlaceholders(value, replacements, ctx, constantName),
       );
     }
 

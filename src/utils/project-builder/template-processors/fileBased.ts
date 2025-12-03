@@ -152,18 +152,22 @@ export const processFileBasedTemplate = (
           ...processedFolderValues,
         };
 
+        const ctx = {
+          userFiles,
+          schemaInfo: [],
+          schemaInfoParsed,
+          projectYamlPath: projectFilePath ?? '',
+          table,
+          formData,
+          userMetadata,
+        };
+
         // Apply template with replacements
         const processedTemplate = replacePlaceholders(
           template,
           replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-          projectFilePath,
+          ctx,
           folderPath,
-          formData,
-          userMetadata,
-          undefined,
         );
 
         results.push(processedTemplate);
@@ -176,18 +180,22 @@ export const processFileBasedTemplate = (
           ...folderValues,
         };
 
+        const ctx = {
+          userFiles,
+          schemaInfo: [],
+          schemaInfoParsed,
+          projectYamlPath: projectFilePath ?? '',
+          table,
+          formData,
+          userMetadata,
+        };
+
         // Apply template with replacements without trying to resolve nested placeholders
         const processedTemplate = replacePlaceholders(
           template,
           replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-          projectFilePath,
+          ctx,
           folderPath,
-          formData,
-          userMetadata,
-          undefined,
         );
 
         results.push(processedTemplate);

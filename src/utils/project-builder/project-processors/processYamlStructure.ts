@@ -145,17 +145,21 @@ export const processYamlStructure = async ({
           dataReplacements[key] = value;
         }
 
-        const processedName = replacePlaceholders(
-          command,
-          dataReplacements,
+        const ctx = {
           userFiles,
+          schemaInfo,
           schemaInfoParsed,
-          undefined,
           projectYamlPath,
-          command,
           formData,
           userMetadata,
           dataContext,
+        };
+
+        const processedName = replacePlaceholders(
+          command,
+          dataReplacements,
+          ctx,
+          command,
         );
 
         const outputFileName = processedName.includes('/')
@@ -169,16 +173,10 @@ export const processYamlStructure = async ({
         const content = replacePlaceholders(
           templateContent,
           dataReplacements,
-          userFiles,
-          schemaInfoParsed,
-          undefined,
-          projectYamlPath,
+          ctx,
           typeof templatePath === 'string' && templatePath.length > 0
             ? templatePath
             : command,
-          formData,
-          userMetadata,
-          dataContext,
         );
 
         const formatResult = await formatFileContent(
@@ -235,17 +233,20 @@ export const processYamlStructure = async ({
 
         // Process the file with the current table context only
         const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const tableCtx = {
+          userFiles,
+          schemaInfo,
+          schemaInfoParsed,
+          projectYamlPath,
+          table,
+          formData,
+          userMetadata,
+        };
         const processedName = replacePlaceholders(
           command,
           replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-          projectYamlPath,
+          tableCtx,
           command,
-          formData,
-          userMetadata,
-          undefined,
         );
 
         // Extract the base filename from the processed path if it contains slashes
@@ -283,16 +284,10 @@ export const processYamlStructure = async ({
             userMetadata,
           ),
           replacements,
-          userFiles,
-          schemaInfoParsed,
-          table,
-          projectYamlPath,
+          tableCtx,
           typeof templatePath === 'string' && templatePath.length > 0
             ? templatePath
             : command,
-          formData,
-          userMetadata,
-          undefined,
         );
 
         content = processIterateInTemplate(
@@ -332,17 +327,19 @@ export const processYamlStructure = async ({
         schemaInfoProcessed,
         schemaInfoParsed,
       );
+      const processedCtx = {
+        userFiles,
+        schemaInfo,
+        schemaInfoParsed,
+        projectYamlPath,
+        table: schemaInfoProcessed,
+        formData,
+        userMetadata,
+      };
       const processedName = replacePlaceholders(
         command,
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        table,
-        projectYamlPath,
-        undefined,
-        formData,
-        userMetadata,
-        undefined,
+        processedCtx,
       );
 
       // Extract just the filename portion if it contains slashes
@@ -388,14 +385,8 @@ export const processYamlStructure = async ({
           userMetadata,
         ),
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        schemaInfoProcessed,
-        projectYamlPath,
-        node,
-        formData,
-        userMetadata,
-        undefined,
+        processedCtx,
+        typeof node === 'string' ? node : undefined,
       );
 
       processedContent = processIterateInTemplate(
@@ -502,6 +493,15 @@ export const processYamlStructure = async ({
         schemaInfoProcessed,
         schemaInfoParsed,
       );
+      const schemaProcessedCtx = {
+        userFiles,
+        schemaInfo,
+        schemaInfoParsed,
+        projectYamlPath,
+        table: schemaInfoProcessed,
+        formData,
+        userMetadata,
+      };
 
       let processedContent = replacePlaceholders(
         processLoopDataSources(
@@ -526,14 +526,7 @@ export const processYamlStructure = async ({
           userMetadata,
         ),
         replacements,
-        userFiles,
-        schemaInfoParsed,
-        schemaInfoProcessed,
-        projectYamlPath,
-        undefined,
-        formData,
-        userMetadata,
-        undefined,
+        schemaProcessedCtx,
       );
 
       processedContent = processIterateInTemplate(
@@ -830,6 +823,15 @@ export const processYamlStructure = async ({
               schemaInfoProcessed,
               schemaInfoParsed,
             );
+            const innerCtx = {
+              userFiles,
+              schemaInfo,
+              schemaInfoParsed,
+              projectYamlPath,
+              table: schemaInfoProcessed,
+              formData,
+              userMetadata,
+            };
 
             let processedContent = replacePlaceholders(
               processLoopDataSources(
@@ -854,14 +856,7 @@ export const processYamlStructure = async ({
                 userMetadata,
               ),
               replacements,
-              userFiles,
-              schemaInfoParsed,
-              schemaInfoProcessed,
-              projectYamlPath,
-              undefined,
-              formData,
-              userMetadata,
-              undefined,
+              innerCtx,
             );
 
             processedContent = processIterateInTemplate(

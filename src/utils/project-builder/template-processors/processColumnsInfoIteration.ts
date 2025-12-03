@@ -336,17 +336,20 @@ export const processColumnsInfoIteration = (
 
     processedTemplate = processAtIf(processedTemplate, replacements);
 
+    const ctx = {
+      userFiles,
+      schemaInfo: [],
+      schemaInfoParsed,
+      projectYamlPath: projectFilePath ?? '',
+      table: tableObj,
+      formData,
+      userMetadata,
+    };
     const result = replacePlaceholders(
       processedTemplate,
       replacements,
-      userFiles,
-      schemaInfoParsed,
-      tableObj,
-      projectFilePath,
+      ctx,
       processedTemplate,
-      formData,
-      userMetadata,
-      undefined,
     );
     if (result.trim()) {
       results.push(result);
