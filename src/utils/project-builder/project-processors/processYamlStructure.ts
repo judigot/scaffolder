@@ -416,7 +416,8 @@ export const processYamlStructure = async (
       const dataSourcePath = options[ACTION_FLAGS.DATA_SOURCE];
       const dataContext =
         typeof dataSourcePath === 'string' && dataSourcePath.length > 0
-          ? loadDataSourceFile(dataSourcePath, userFiles, projectYamlPath)
+          ? (loadDataSourceFile(dataSourcePath, userFiles, projectYamlPath) ??
+            undefined)
           : undefined;
 
       return await processMultipleFiles({
