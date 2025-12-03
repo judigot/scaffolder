@@ -912,7 +912,7 @@ export const processAtIf = (
   return result;
 };
 
-const processHtmlLoopColumnsInfo = (
+export const processHtmlLoopColumnsInfo = (
   content: string,
   table: ISchemaInfo,
   schemaInfoParsed: ISchemaInfoResult,

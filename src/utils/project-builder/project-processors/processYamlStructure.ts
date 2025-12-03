@@ -412,6 +412,13 @@ export const processYamlStructure = async (
     }
 
     if (node.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
+      // Load data source if specified
+      const dataSourcePath = options[ACTION_FLAGS.DATA_SOURCE];
+      const dataContext =
+        typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+          ? loadDataSourceFile(dataSourcePath, userFiles, projectYamlPath)
+          : undefined;
+
       return await processMultipleFiles({
         command,
         options,
@@ -424,6 +431,7 @@ export const processYamlStructure = async (
         onFileUsingUserEnv,
         onFileFailedToFormat,
         currentPath,
+        dataContext,
       });
     }
 

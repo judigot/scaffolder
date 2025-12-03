@@ -768,4 +768,302 @@ updated_at:
       expect(content).toContain('"password" CHAR(60)');
     });
   });
+
+  describe('FILE_LOOP migration files', () => {
+    const createUserFilesWithFileLoop = (): IStructure => [
+      {
+        type: 'folder',
+        name: 'Projects',
+        children: [
+          {
+            type: 'folder',
+            name: 'App Generator - Database Schema',
+            children: [
+              {
+                type: 'file',
+                name: 'structure.yaml',
+                content:
+                  'FILE_LOOP({{tableNamePascalCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):',
+              },
+              {
+                type: 'folder',
+                name: 'templates',
+                children: [
+                  {
+                    type: 'file',
+                    name: 'migration.sql.txt',
+                    content: `DROP TABLE IF EXISTS "{{tableName}}";
+
+CREATE TABLE "{{tableName}}" (
+  <@@LOOP@@ data="columnsInfo" separator=",\\n">
+    "{{column.name}}"
+    <@@IF@@ condition="is_primary_key EQUALS 'true'">
+      {{typeMappings.primaryKey[formData.dbType]}}
+    </@@IF@@>
+    <@@IF@@ condition="is_primary_key EQUALS 'false'">
+      {{typeMappings[column.name][formData.dbType] || typeMappings[column.data_type][formData.dbType]}}
+      <@@IF@@ condition="is_unique EQUALS 'true'">
+        UNIQUE
+      </@@IF@@>
+      <@@IF@@ condition="is_nullable EQUALS 'NO'">
+        NOT NULL
+      </@@IF@@>
+    </@@IF@@>
+  </@@LOOP@@>
+  <@@LOOP@@ data="columnsInfo" separator="">
+    <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
+    CONSTRAINT "FK_{{tableName}}_{{column.name}}" FOREIGN KEY ("{{column.name}}") REFERENCES "{{column.foreign_table}}" ("{{column.foreign_column}}")
+    </@@IF@@>
+  </@@LOOP@@>
+);
+`,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Constants',
+        children: [
+          {
+            type: 'file',
+            name: 'typeMappings.yaml',
+            content: `string:
+  mysql: 'VARCHAR(32)'
+  postgresql: 'TEXT'
+number:
+  mysql: 'BIGINT'
+  postgresql: 'BIGINT'
+Date:
+  mysql: 'TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6)'
+boolean:
+  mysql: 'BOOLEAN'
+  postgresql: 'BOOLEAN'
+primaryKey:
+  mysql: 'BIGINT PRIMARY KEY AUTO_INCREMENT'
+  postgresql: 'BIGSERIAL PRIMARY KEY'
+foreignKey:
+  mysql: 'BIGINT'
+  postgresql: 'BIGINT'
+password:
+  mysql: 'CHAR(60)'
+  postgresql: 'CHAR(60)'
+created_at:
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
+updated_at:
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'`,
+          },
+          {
+            type: 'file',
+            name: 'dbTypes.yaml',
+            content: `- postgresql
+- mysql`,
+          },
+        ],
+      },
+    ];
+
+    const createFormData = (dbType: 'postgresql' | 'mysql'): IFormStore => ({
+      schemaInput: {},
+      backendUrl: 'http://localhost:5000',
+      backendDir: '',
+      frontendDir: '',
+      dbConnection: `${dbType}://localhost:5432/test`,
+      framework: frameworks.LARAVEL,
+      includeInsertData: false,
+      insertOption: 'SQLInsertQueriesFromMockData',
+      includeTypeGuards: false,
+      outputOnSingleFile: false,
+      dbType,
+      quote: '"',
+      publicRepoURL: '',
+      clientID: '',
+      clientSecret: '',
+      creationMode: CREATION_MODES.SCHEMA_BUILDER,
+      dbUsername: '',
+      dbPassword: '',
+      dbHost: 'localhost',
+      dbPort: 5432,
+      dbName: '',
+      setCreationMode: (): void => {
+        /* stub */
+      },
+      setMasterSchema: (): void => {
+        /* stub */
+      },
+      setOneToOne: (): void => {
+        /* stub */
+      },
+      setOneToMany: (): void => {
+        /* stub */
+      },
+      setManyToMany: (): void => {
+        /* stub */
+      },
+      setDBType: (): void => {
+        /* stub */
+      },
+      setPublicRepoURL: (): void => {
+        /* stub */
+      },
+      setDbConnection: (): void => {
+        /* stub */
+      },
+    });
+
+    it('should generate individual migration files for each table in PostgreSQL', async () => {
+      const userFiles = createUserFilesWithFileLoop();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      // Should generate one file per table
+      const migrationFiles = result.structure.filter(
+        (item) => item.type === 'file' && item.name.endsWith('.sql'),
+      );
+      expect(migrationFiles.length).toBeGreaterThan(0);
+
+      // Check for specific table files
+      const fileNames = migrationFiles.map((item) =>
+        item.type === 'file' ? item.name : '',
+      );
+      expect(fileNames).toContain('Product.sql');
+      expect(fileNames).toContain('User.sql');
+      expect(fileNames).toContain('Post.sql');
+
+      // Verify User.sql content is processed (no template syntax)
+      const userFile = migrationFiles.find(
+        (item) => item.type === 'file' && item.name === 'User.sql',
+      );
+      if (userFile?.type === 'file') {
+        const content = userFile.content;
+        // Should not contain template syntax
+        expect(content).not.toContain('<@@LOOP@@');
+        expect(content).not.toContain('<@@IF@@');
+        expect(content).not.toContain('{{tableName}}');
+        expect(content).not.toContain('{{column.name}}');
+        // Should contain processed SQL
+        expect(content).toContain('DROP TABLE IF EXISTS "user"');
+        expect(content).toContain('CREATE TABLE "user"');
+        expect(content).toContain('"user_id" BIGSERIAL PRIMARY KEY');
+        expect(content).toContain('"password" CHAR(60)');
+      }
+    });
+
+    it('should generate individual migration files for each table in MySQL', async () => {
+      const userFiles = createUserFilesWithFileLoop();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataMysql = createFormData('mysql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataMysql,
+        null,
+      );
+
+      // Should generate one file per table
+      const migrationFiles = result.structure.filter(
+        (item) => item.type === 'file' && item.name.endsWith('.sql'),
+      );
+      expect(migrationFiles.length).toBeGreaterThan(0);
+
+      // Verify Product.sql content is processed with MySQL types
+      const productFile = migrationFiles.find(
+        (item) => item.type === 'file' && item.name === 'Product.sql',
+      );
+      if (productFile?.type === 'file') {
+        const content = productFile.content;
+        // Should not contain template syntax
+        expect(content).not.toContain('<@@LOOP@@');
+        expect(content).not.toContain('<@@IF@@');
+        // Should contain processed SQL with MySQL types
+        expect(content).toContain('DROP TABLE IF EXISTS "product"');
+        expect(content).toContain('CREATE TABLE "product"');
+        expect(content).toContain(
+          '"product_id" BIGINT PRIMARY KEY AUTO_INCREMENT',
+        );
+        expect(content).toContain('"product_name" VARCHAR(32)');
+      }
+    });
+
+    it('should process columnsInfo loops correctly in migration files', async () => {
+      const userFiles = createUserFilesWithFileLoop();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      // Check Order.sql which has foreign keys
+      const orderFile = result.structure.find(
+        (item) => item.type === 'file' && item.name === 'Order.sql',
+      );
+      if (orderFile?.type === 'file') {
+        const content = orderFile.content;
+        // Should contain all columns
+        expect(content).toContain('"order_id"');
+        expect(content).toContain('"customer_id"');
+        // Should contain foreign key constraint
+        expect(content).toContain('CONSTRAINT "FK_order_customer_id"');
+        expect(content).toContain('FOREIGN KEY');
+        expect(content).toContain('REFERENCES "customer"');
+        // Should not contain template syntax
+        expect(content).not.toContain('<@@LOOP@@');
+        expect(content).not.toContain('{{column.name}}');
+      }
+    });
+
+    it('should process IF conditions correctly in migration files', async () => {
+      const userFiles = createUserFilesWithFileLoop();
+      const projectPath =
+        '/Projects/App Generator - Database Schema/structure.yaml';
+      const formDataPostgres = createFormData('postgresql');
+
+      const result = await buildProjectFiles(
+        projectPath,
+        userFiles,
+        masterSchema,
+        formDataPostgres,
+        null,
+      );
+
+      // Check Profile.sql which has unique constraint
+      const profileFile = result.structure.find(
+        (item) => item.type === 'file' && item.name === 'Profile.sql',
+      );
+      if (profileFile?.type === 'file') {
+        const content = profileFile.content;
+        // Should contain UNIQUE constraint for user_id
+        expect(content).toContain('"user_id" BIGINT UNIQUE NOT NULL');
+        // Should contain foreign key
+        expect(content).toContain('CONSTRAINT "FK_profile_user_id"');
+        // Should not contain template syntax
+        expect(content).not.toContain('<@@IF@@');
+        expect(content).not.toContain('is_unique EQUALS');
+      }
+    });
+  });
 });

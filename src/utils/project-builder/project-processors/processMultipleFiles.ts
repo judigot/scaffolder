@@ -12,6 +12,7 @@ import {
   processLoopTables,
   processLoopTablesReversed,
   processLoopDataSources,
+  processHtmlLoopColumnsInfo,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
@@ -161,6 +162,17 @@ export const processMultipleFiles = async (
         schemaInfoParsed,
         formData,
         userMetadata,
+      );
+
+      // Process columnsInfo loops for FILE_LOOP (scoped context)
+      content = processHtmlLoopColumnsInfo(
+        content,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+        ctx.dataContext,
       );
 
       content = replacePlaceholders(
