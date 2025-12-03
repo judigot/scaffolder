@@ -13,7 +13,6 @@ import createGitHubRepositoryRouter from './createGitHubRepository.ts';
 import createGitHubFolderStructureRouter from './createGitHubFolderStructure.ts';
 import githubTokenRouter from './githubToken.ts';
 import userMetadataRouter from './userMetadata.ts';
-import commitRouter from './commit.ts';
 
 const router = new Hono();
 
@@ -34,6 +33,5 @@ router.route(
 );
 router.route('/github-token', githubTokenRouter);
 router.route('/user-metadata', userMetadataRouter);
-router.route('/commit', commitRouter);
 
 export default router;
