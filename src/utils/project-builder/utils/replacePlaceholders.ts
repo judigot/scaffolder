@@ -8,6 +8,42 @@ import type {
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
 
 /**
+ * Pre-process placeholders inside [[...]] commands so that command parameters
+ * like [[USE_ROWS(tableName={{tableName}})]] work correctly.
+ * This replaces {{...}} placeholders INSIDE command brackets before commands are processed.
+ */
+const preProcessCommandPlaceholders = (
+  text: string,
+  replacements: Replacements,
+): string => {
+  // Match [[COMMAND(...)]] patterns and replace {{...}} placeholders inside them
+  return text.replace(
+    /\[\[\s*([A-Z_]+)\(([^)]*)\)\s*\]\]/g,
+    (_fullMatch, commandName: string, params: string) => {
+      // Replace {{...}} placeholders in the params
+      const processedParams = params.replace(
+        /\{\{([^}]+)\}\}/g,
+        (_placeholder: string, key: string) => {
+          const trimmedKey = key.trim();
+          if (trimmedKey in replacements) {
+            const value = replacements[trimmedKey];
+            if (typeof value === 'string') {
+              return value;
+            }
+            if (typeof value === 'number' || typeof value === 'boolean') {
+              return String(value);
+            }
+          }
+          // Return the original placeholder if not found
+          return `{{${key}}}`;
+        },
+      );
+      return `[[${commandName}(${processedParams})]]`;
+    },
+  );
+};
+
+/**
  * Replaces placeholders in a template with values from the replacements object
  * Enhanced version that properly handles dynamic properties like array separators and indexed access
  *
@@ -24,9 +60,16 @@ export const replacePlaceholders = (
   templateFilePath?: string,
   skipLoopDataSources = false,
 ): string => {
+  // Pre-process placeholders inside [[...]] commands first
+  // This ensures command parameters like [[USE_ROWS(tableName={{tableName}})]] work
+  const textWithResolvedCommandParams = preProcessCommandPlaceholders(
+    text,
+    replacements,
+  );
+
   // Process all commands
   const processedText = processCommand(
-    text,
+    textWithResolvedCommandParams,
     ctx.userFiles,
     ctx.schemaInfoParsed,
     ctx.table,

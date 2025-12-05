@@ -1,0 +1,4 @@
+// Seed data for {{tableName}} in JSON format
+
+[[USE_ROWS(tableName={{tableName}}, format=json, pretty=true)]]
+

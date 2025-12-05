@@ -1,4 +1,8 @@
-import type { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import type {
+  ISchemaInfo,
+  IColumnInfo,
+  ParsedJSONSchema,
+} from '@/interfaces/interfaces.ts';
 import { hiddenFields } from '@/frameworks/backend/laravel/createModels.ts';
 
 interface IRelationships {
@@ -16,6 +20,7 @@ export interface ISchemaInfoResult {
   schema: ISchemaInfo[];
   tableNames: string[];
   pivotTables: string[];
+  seedData: Record<PropertyKey, unknown>;
   getPrimaryKey: (tableName: string) => string;
   getForeignTables: (tableName: string) => string[];
   getRequiredColumns: (tableName: string) => string[];
@@ -25,6 +30,8 @@ export interface ISchemaInfoResult {
   getChildTables: (tableName: string) => string[];
   getRelationships: (tableName: string) => IRelationships;
   isPivot: (tableName: string) => boolean;
+  getSeedData: (tableName: string) => Record<string, unknown>[] | undefined;
+  getAllSeedData: () => ParsedJSONSchema;
 }
 
 export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
@@ -143,10 +150,92 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     };
   };
 
+  /* Topological sort to determine the correct order of tables */
+  const topologicalSort = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
+    const sorted: ISchemaInfo[] = [];
+    const visited = new Set<string>();
+    const temp = new Set<string>();
+
+    const visit = (table: ISchemaInfo) => {
+      if (temp.has(table.tableName)) {
+        throw new Error('Cyclic dependency detected');
+      }
+      if (!visited.has(table.tableName)) {
+        temp.add(table.tableName);
+        (table.childTables ?? []).forEach((childTable) => {
+          const childRelationship = schemaInfo.find(
+            (r) => r.tableName === childTable,
+          );
+          if (childRelationship) {
+            visit(childRelationship);
+          }
+        });
+        temp.delete(table.tableName);
+        visited.add(table.tableName);
+        sorted.push(table);
+      }
+    };
+
+    schemaInfo.forEach((table) => {
+      if (!visited.has(table.tableName)) {
+        visit(table);
+      }
+    });
+
+    return sorted.reverse(); // Reverse to get the correct order
+  };
+
+  /* Get seed data for a specific table */
+  const getSeedData = (
+    tableName: string,
+  ): Record<string, unknown>[] | undefined => {
+    const table = tableMap.get(tableName);
+    if (!table) {
+      return undefined;
+    }
+    if (!table.data || !Array.isArray(table.data) || table.data.length === 0) {
+      return undefined;
+    }
+    return table.data;
+  };
+
+  /* Get all seed data ordered by dependencies */
+  const getAllSeedData = (): ParsedJSONSchema => {
+    const seedData: ParsedJSONSchema = {};
+
+    // Get all tables with seed data
+    const tablesWithSeedData = schema.filter(
+      (table) =>
+        Boolean(table.data) &&
+        Array.isArray(table.data) &&
+        table.data.length > 0,
+    );
+
+    if (tablesWithSeedData.length === 0) {
+      return seedData;
+    }
+
+    // Sort tables by dependencies (parents before children)
+    const sortedTables = topologicalSort(tablesWithSeedData);
+
+    // Build seed data in dependency order
+    sortedTables.forEach((table) => {
+      if (table.data && Array.isArray(table.data) && table.data.length > 0) {
+        seedData[table.tableName] = table.data;
+      }
+    });
+
+    return seedData;
+  };
+
+  /* Get seed data as Record for backward compatibility */
+  const seedData: Record<PropertyKey, unknown> = getAllSeedData();
+
   return {
     schema,
     tableNames,
     pivotTables,
+    seedData,
     getPrimaryKey,
     getForeignTables,
     getAllColumns,
@@ -156,6 +245,8 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     getChildTables,
     getRelationships,
     isPivot,
+    getSeedData,
+    getAllSeedData,
   };
 };
 

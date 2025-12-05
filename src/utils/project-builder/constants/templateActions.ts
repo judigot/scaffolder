@@ -9,6 +9,7 @@ export const TEMPLATE_ACTIONS = {
   USE_USER_ENV: 'USE_USER_ENV',
   USE_TEMPLATE: 'USE_TEMPLATE',
   USE_DATA: 'USE_DATA',
+  USE_ROWS: 'USE_ROWS',
   LOOP_TABLES: `${LOOP}(tables)`,
   LOOP_TABLES_REVERSED: `${LOOP}(tablesReversed)`,
   LOOP_COLUMNS: `${LOOP}(columns)`,
@@ -40,6 +41,7 @@ export const REGEX_PATTERNS = {
   USE_USER_ENV: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_USER_ENV}\\(([^)]+)\\)\\s*\\]\\]`,
   USE_TEMPLATE: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_TEMPLATE}\\(([^)]+)\\)\\s*\\]\\]`,
   USE_DATA: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_DATA}\\(([^)]+)\\)\\s*\\]\\]`,
+  USE_ROWS: `\\[\\[\\s*${TEMPLATE_ACTIONS.USE_ROWS}\\(([^)]*)\\)\\s*\\]\\]`,
   FOLDER_PATH: '^\\/(.*?)$',
   RECURSIVE_WILDCARD_PATH: '^\\/(.*(\\*\\*).*)$',
 } as const;
@@ -106,6 +108,8 @@ export const RECURSIVE_WILDCARD_REGEX = new RegExp(
 );
 
 export const USE_DATA_REGEX = new RegExp(REGEX_PATTERNS.USE_DATA);
+
+export const USE_ROWS_REGEX = new RegExp(REGEX_PATTERNS.USE_ROWS);
 
 export const LOOP_DATA_SOURCES_START_REGEX = new RegExp(
   `\\[\\[${TEMPLATE_ACTIONS.LOOP_DATA_SOURCES}\\(`,

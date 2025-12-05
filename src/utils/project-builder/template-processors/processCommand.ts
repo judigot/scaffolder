@@ -1,4 +1,4 @@
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
@@ -11,11 +11,17 @@ import {
   USE_FORM_DATA_REGEX,
   USE_USER_ENV_REGEX,
   USE_DATA_REGEX,
+  USE_ROWS_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { isRecord } from '@/utils/typeGuards.ts';
+import {
+  formatRowsData,
+  parseRowsParams,
+} from '@/utils/project-builder/utils/formatRowsData.ts';
+import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
 /**
  * Helper function to check if a string has content
@@ -43,6 +49,7 @@ export const processCommand = (
   userMetadata?: Record<string, unknown> | null,
   dataContext?: DataContext,
   skipLoopDataSources = false,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Process all commands in order of specificity
   let result = text;
@@ -181,6 +188,65 @@ export const processCommand = (
       return JSON.stringify(value);
     }
     return '';
+  });
+
+  // Process USE_ROWS commands
+  // Uses mockData which already has:
+  // 1. Seed data merged (seed data takes priority over mock data)
+  // 2. FK references fixed to point to valid seed data IDs
+  // mockData can be passed directly (for testing) or fetched from useTransformationsStore
+  const useRowsRegex = new RegExp(USE_ROWS_REGEX.source, 'g');
+
+  result = result.replace(useRowsRegex, (_match: string, group1: string) => {
+    // Parse parameters
+    const params = parseRowsParams(group1);
+
+    // Use provided mockData or get from store
+    const rowData = mockData ?? useTransformationsStore.getState().mockData;
+
+    let rowDataToFormat: ParsedJSONSchema;
+
+    if (params.tableName !== undefined && params.tableName.length > 0) {
+      // Single table mode
+      if (!(params.tableName in rowData)) {
+        return '';
+      }
+      const tableData = rowData[params.tableName];
+      if (tableData.length === 0) {
+        return '';
+      }
+      rowDataToFormat = { [params.tableName]: tableData };
+    } else if (table !== undefined) {
+      // Current table context mode
+      if (!(table.tableName in rowData)) {
+        return '';
+      }
+      const tableData = rowData[table.tableName];
+      if (tableData.length === 0) {
+        return '';
+      }
+      rowDataToFormat = { [table.tableName]: tableData };
+    } else {
+      // All tables mode - get all rows ordered by dependencies
+      // Use schemaInfoParsed.schema order (already sorted by dependencies)
+      const orderedData: ParsedJSONSchema = {};
+      schemaInfoParsed.schema.forEach((t) => {
+        if (t.tableName in rowData) {
+          const tableData = rowData[t.tableName];
+          if (tableData.length > 0) {
+            orderedData[t.tableName] = tableData;
+          }
+        }
+      });
+      rowDataToFormat = orderedData;
+    }
+
+    if (Object.keys(rowDataToFormat).length === 0) {
+      return '';
+    }
+
+    // Format the row data
+    return formatRowsData(rowDataToFormat, params);
   });
 
   // Then, process USE_TEMPLATE commands to include other templates

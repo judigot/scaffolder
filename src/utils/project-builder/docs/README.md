@@ -18,6 +18,7 @@ This directory contains documentation for the project builder system, including 
 #### Template Commands
 
 - **[USE_DATA.md](./USE_DATA.md)** - Access data from external YAML files in templates
+- **[USE_ROWS.md](./USE_ROWS.md)** - Generate database row data (seed + mock) in SQL, CSV, or JSON formats
 - **[PLACEHOLDER_FUNCTIONS.md](./PLACEHOLDER_FUNCTIONS.md)** - Built-in placeholder functions (`index()` and `timestamp()`) for dynamic filename generation
 
 ### Business Documentation
@@ -47,6 +48,7 @@ This directory contains documentation for the project builder system, including 
 | `USE_USER_ENV` | Access user environment variables | `[[USE_USER_ENV(API_KEY)]]` |
 | `USE_TEMPLATE` | Include another template | `[[USE_TEMPLATE(./partials/header.txt)]]` |
 | `USE_CONSTANT` | Access schema constants | `[[USE_CONSTANT(tableName)]]` |
+| `USE_ROWS` | Generate database row data (seed + mock) | `[[USE_ROWS(format=json, pretty=true)]]` |
 | `LOOP` | Iterate over data | `[[LOOP(columns)]]` |
 | `index()` | Generate sequential index numbers | `{{index(1, 3)}}` |
 | `timestamp()` | Generate formatted date/time strings | `{{timestamp('YYYY-MM-DD')}}` |

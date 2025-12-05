@@ -334,6 +334,10 @@ export const processYamlStructure = async (
         onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
       }
 
+      // For CREATE_FILE, we use schemaInfoProcessed for placeholder replacements (via replacements object),
+      // but we preserve the original ctx.table for commands like [[USE_ROWS()]].
+      // If ctx.table is undefined (not in a FILE_LOOP), [[USE_ROWS()]] will use "all tables" mode.
+      // If ctx.table is set (inside a FILE_LOOP), [[USE_ROWS()]] will use that specific table.
       let processedContent = replacePlaceholders(
         processLoopDataSources(
           processLoopTablesReversed(
@@ -359,7 +363,7 @@ export const processYamlStructure = async (
           userMetadata,
         ),
         replacements,
-        { ...ctx, table: schemaInfoProcessed },
+        ctx,
         typeof node === 'string' ? node : undefined,
       );
 
