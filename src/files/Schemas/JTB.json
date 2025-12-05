@@ -1,0 +1,33 @@
+[
+  {
+    "tableName": "user",
+    "columnsInfo": [
+      {
+        "column_name": "user_id",
+        "data_type": "number",
+        "is_nullable": "NO",
+        "column_default": "AUTO_INCREMENT",
+        "primary_key": true
+      }
+    ],
+    "requiredColumns": ["user_id"],
+    "data": [
+      {
+        "user_id": 1
+      }
+    ]
+  },
+  {
+    "tableName": "user_authentication",
+    "columnsInfo": [
+      {
+        "column_name": "user_authentication_id",
+        "data_type": "number",
+        "is_nullable": "NO",
+        "column_default": "AUTO_INCREMENT",
+        "primary_key": true
+      }
+    ],
+    "requiredColumns": ["user_authentication_id"]
+  }
+]

@@ -21,6 +21,7 @@ import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 import { isRecord } from '@/utils/typeGuards.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
+import SchemaSelector from '@/components/SchemaSelector.tsx';
 
 interface INewColumnFormData {
   columnName: string;
@@ -1368,6 +1369,9 @@ function SchemaBuilder() {
 
   return (
     <div className="text-white">
+      {/* Schema Selector - Enterprise Schema Management */}
+      <SchemaSelector />
+
       {schemaInfo.length > 0 && (
         <button
           className="float-right sm:mb-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
@@ -1381,7 +1385,7 @@ function SchemaBuilder() {
                 denyButtonText: 'No',
               });
               if (result) {
-                setSchemaInfo([]); // Clear all tables
+                setSchemaInfo([]); /* Clear all tables */
               }
             })();
           }}

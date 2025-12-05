@@ -58,6 +58,19 @@ Configure how APIs are generated:
 - **Code Style**: Enforce consistent code formatting and structure
 - **Framework Support**: Templates for Express, Fastify, NestJS, and more
 
+## Schema Management
+
+Enterprise-grade schema version control and management:
+
+- **Multiple Schemas**: Create, save, and manage multiple database schemas
+- **Version Control**: All schemas are automatically version controlled in Git
+- **Schema Operations**: Save, load, duplicate, and delete schemas through the GUI
+- **Dirty State Tracking**: Visual indicators for unsaved changes
+- **Git Integration**: Automatic commits with smart commit messages (coming soon)
+- **Schema History**: View and revert to previous schema versions (coming soon)
+
+See [Schema Management](/features/schema-management/) for complete documentation.
+
 ## GitHub Integration
 
 Store and manage your API templates in GitHub:

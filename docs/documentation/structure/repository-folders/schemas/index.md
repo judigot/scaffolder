@@ -14,8 +14,13 @@ The Schemas directory stores schema information that defines your database struc
 
 ```
 Schemas/
-└── masterSchema.json
+├── Master Schema.json
+├── E-commerce Schema.json
+├── User Auth Schema.json
+└── ...
 ```
+
+Schemas are stored as JSON files in the `Schemas/` directory. Each schema file contains a complete database schema definition.
 
 ## Schema Files
 
@@ -29,6 +34,18 @@ The master schema file contains JSON objects that define your database schema. I
 - Database structure representation
 - Seed data (YAML format)
 
+## Schema Management
+
+Schemas can be managed through the Schema Management feature, which provides:
+
+- **Save/Load Schemas**: Save schemas to your repository and load them later
+- **Multiple Schemas**: Create and manage multiple schema files
+- **Version Control**: All schemas are automatically version controlled in Git
+- **Schema Duplication**: Create copies of existing schemas
+- **Schema Deletion**: Remove schemas you no longer need
+
+See [Schema Management](/features/schema-management/) for complete documentation on managing schemas.
+
 ## Creating and Modifying Schemas
 
 Schemas are created and modified using the SchemaBuilder component:
@@ -38,10 +55,6 @@ Schemas are created and modified using the SchemaBuilder component:
 - **Define Relationships**: Set up one-to-one, one-to-many, and many-to-many relationships
 - **Modify Existing Schemas**: Edit table names, column properties, and relationships
 - **Seed Data**: Add sample data in YAML format for testing
-
-### Future Features
-
-- **Import Schemas**: Import existing database schemas (coming soon)
 
 ## Purpose
 
@@ -90,10 +103,12 @@ Schemas are used during code generation:
 ### Current Workflow
 
 1. Open SchemaBuilder in Scaffolder
-2. Create tables and define columns
-3. Set up relationships between tables
-4. Add seed data (optional)
-5. Use the schema for code generation
+2. Select a schema from the Schema Selector (or use master schema)
+3. Create tables and define columns
+4. Set up relationships between tables
+5. Add seed data (optional)
+6. Save the schema to your repository
+7. Use the schema for code generation
 
 ## Best Practices
 
@@ -119,6 +134,7 @@ Schemas are used during code generation:
 
 The SchemaBuilder component provides:
 
+- **Schema Management**: Save, load, duplicate, and delete schemas
 - **Visual Table Management**: Create, rename, and delete tables
 - **Column Editor**: Add columns with inline editing capabilities
 - **Relationship Builder**: Define relationships between tables visually
@@ -126,9 +142,11 @@ The SchemaBuilder component provides:
 - **Seed Data Editor**: Add sample data in YAML format
 - **Table Categories**: Organize tables (Main, Standalone, Pivot)
 - **Search and Filter**: Find tables and columns quickly
+- **Dirty State Tracking**: Visual indicators for unsaved changes
 
 ## Next Steps
 
+- Learn about [Schema Management](/features/schema-management/) for managing multiple schemas
 - Learn about [Constants](/documentation/structure/repository-folders/constants/) for type mappings
 - See [Templates](/documentation/structure/repository-folders/templates/) for code generation
 - Review [Projects](/documentation/structure/repository-folders/projects/) for using schemas in projects

@@ -9,10 +9,13 @@ import getRepoMetadataRouter from './getRepoMetadata.ts';
 import getFileContentRouter from './getFileContent.ts';
 import createLocalFilesRouter from './createLocalFiles.ts';
 import createGitHubFileRouter from './createGitHubFile.ts';
+import deleteGitHubFileRouter from './deleteGitHubFile.ts';
 import createGitHubRepositoryRouter from './createGitHubRepository.ts';
 import createGitHubFolderStructureRouter from './createGitHubFolderStructure.ts';
 import githubTokenRouter from './githubToken.ts';
 import userMetadataRouter from './userMetadata.ts';
+import saveLocalFileRouter from './saveLocalFile.ts';
+import deleteLocalFileRouter from './deleteLocalFile.ts';
 
 const router = new Hono();
 
@@ -26,6 +29,7 @@ router.route('/get-repo-metadata', getRepoMetadataRouter);
 router.route('/get-file-content', getFileContentRouter);
 router.route('/create-local-files', createLocalFilesRouter);
 router.route('/create-github-file', createGitHubFileRouter);
+router.route('/delete-github-file', deleteGitHubFileRouter);
 router.route('/create-github-repository', createGitHubRepositoryRouter);
 router.route(
   '/create-github-folder-structure',
@@ -33,5 +37,7 @@ router.route(
 );
 router.route('/github-token', githubTokenRouter);
 router.route('/user-metadata', userMetadataRouter);
+router.route('/save-local-file', saveLocalFileRouter);
+router.route('/delete-local-file', deleteLocalFileRouter);
 
 export default router;
