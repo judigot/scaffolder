@@ -58,6 +58,16 @@ hybrid:
   rails-with-index:
     FILE_LOOP({{timestamp('YYYYMMDD')}}_{{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
 
+# MyBatis Flyway migrations for Java
+mybatis-flyway:
+  # Flyway versioned migrations (V1__, V2__, etc.)
+  versioned:
+    FILE_LOOP(V{{index(1)}}__Create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/flyway-migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+  
+  # Flyway with zero-padded version (V001__, V002__, etc.)
+  zero-padded:
+    FILE_LOOP(V{{index(1, 3)}}__Create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/flyway-migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+
 # Sample data exports
 sample-data:
   # SQL format (default) - for migrations
