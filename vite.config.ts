@@ -12,6 +12,9 @@ export default defineConfig({
   server: {
     host: true,
     port: Number(process.env.VITE_FRONTEND_PORT),
+    proxy: {
+      '/api': `${String(process.env.VITE_BACKEND_HOST)}:${String(process.env.VITE_BACKEND_PORT)}`,
+    },
   },
   plugins: [react(), tsconfigPaths()],
 });
