@@ -14,12 +14,3 @@ export const getApiUrl = (): string => {
   const backendUrl = backendHost ? `${backendHost}:${port}` : '';
   return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
 };
-
-/**
- * Gets the base backend URL (without API path)
- */
-export const getBackendUrl = (): string => {
-  const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
-  const port = String(import.meta.env.VITE_BACKEND_PORT ?? '3000');
-  return backendHost ? `${backendHost}:${port}` : '';
-};
