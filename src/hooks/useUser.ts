@@ -55,15 +55,10 @@ const isTokenResponse = (val: unknown): val is ITokenResponse => {
 
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 
-const getBackendUrl = (): string => {
-  return getApiUrl();
-};
-
 const fetchUserMetadata = async (
   accessToken: string,
 ): Promise<Record<string, unknown> | null> => {
-  const backendUrl = getBackendUrl();
-  const response = await fetch(`${backendUrl}/user-metadata`, {
+  const response = await fetch(`${getApiUrl()}/user-metadata`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -94,8 +89,7 @@ const fetchGitHubToken = async (
   encryptionAvailable: boolean;
   isTokenEncrypted: boolean | null;
 }> => {
-  const backendUrl = getBackendUrl();
-  const response = await fetch(`${backendUrl}/github-token`, {
+  const response = await fetch(`${getApiUrl()}/github-token`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
