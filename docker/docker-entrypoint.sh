@@ -87,13 +87,9 @@ if [ -f vendor/autoload.php ]; then
             php artisan key:generate --force || true
         }
     fi
-
-    echo "Clearing configuration cache..."
-    $USER_CMD "php artisan config:clear" || php artisan config:clear || true
-    echo "Clearing application cache..."
-    $USER_CMD "php artisan cache:clear" || php artisan cache:clear || true
+    echo "Laravel dependencies installed and ready"
 else
-    echo "Warning: vendor/autoload.php not found. Artisan commands will fail."
+    echo "Warning: vendor/autoload.php not found. Laravel may not work properly."
 fi
 
 if [ ! -d node_modules ]; then
