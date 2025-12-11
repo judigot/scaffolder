@@ -23,7 +23,7 @@ APP_NAME=Laravel
 APP_ENV=local
 APP_KEY=
 APP_DEBUG=true
-APP_URL=http://localhost:1214/laravel
+APP_URL=http://localhost:1214
 
 DB_CONNECTION=mysql
 DB_HOST=mysql
