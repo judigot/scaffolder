@@ -26,7 +26,10 @@ import {
   createDataContextReplacements,
 } from '@/utils/project-builder/utils/dataSourceUtils.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
-import { loadConstant } from '@/utils/project-builder/template-processors/loadConstant.ts';
+import {
+  loadConstant,
+  loadConstantFromPath,
+} from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
 import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import {
@@ -1559,18 +1562,43 @@ export const processIterateCommand = (
     : [];
 
   // Parse ignore list with flexible whitespace and handle USE_CONSTANT
+  /* Regex to match USE_CONSTANT(...) without brackets (for command options) */
+  const USE_CONSTANT_OPTION_REGEX = /USE_CONSTANT\(([^)]+)\)/;
+
   const ignoreList = ignoreMatch
     ? ignoreMatch[1].split(',').flatMap((item) => {
         const trimmed = item.trim();
-        const constantMatch = USE_CONSTANT_REGEX.exec(trimmed);
+        /* Try USE_CONSTANT(...) without brackets first (for command options) */
+        const constantMatch =
+          USE_CONSTANT_OPTION_REGEX.exec(trimmed) ??
+          USE_CONSTANT_REGEX.exec(trimmed);
+
         if (constantMatch) {
-          // Get raw values from constant file without any processing
+          const constantValue = constantMatch[1];
+          /* Check if this is a file path (contains '/' or ends with '.yaml') */
+          const isFilePath =
+            constantValue.includes('/') || constantValue.endsWith('.yaml');
+
+          if (isFilePath) {
+            /* Load from file path (supports relative and absolute paths) */
+            return loadConstantFromPath(
+              constantValue,
+              userFiles,
+              schemaInfoParsed,
+              table,
+              projectFilePath,
+              formData,
+              userMetadata,
+            );
+          }
+
+          /* Load from Constants folder (legacy behavior) */
           return loadConstant(
-            constantMatch[1],
+            constantValue,
             userFiles,
             schemaInfoParsed,
             table,
-            undefined,
+            projectFilePath,
             formData,
             userMetadata,
           );
@@ -1581,7 +1609,7 @@ export const processIterateCommand = (
           userFiles,
           schemaInfo: [],
           schemaInfoParsed,
-          projectYamlPath: '',
+          projectYamlPath: projectFilePath ?? '',
           table,
           formData,
           userMetadata,

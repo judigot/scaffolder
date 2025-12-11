@@ -94,6 +94,12 @@ export const parseCommand = (
         }
         break;
 
+      case 'ignore':
+        if (value) {
+          options.ignore = parseQuotedOrRawValue(value);
+        }
+        break;
+
       default:
         break;
     }

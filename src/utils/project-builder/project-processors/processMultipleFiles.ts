@@ -16,7 +16,17 @@ import {
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
-import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import {
+  USE_USER_ENV_REGEX,
+  USE_CONSTANT_REGEX,
+} from '@/utils/project-builder/constants/templateActions.ts';
+
+/* Regex to match USE_CONSTANT(...) without brackets (for command options) */
+const USE_CONSTANT_OPTION_REGEX = /USE_CONSTANT\(([^)]+)\)/;
+import {
+  loadConstant,
+  loadConstantFromPath,
+} from '@/utils/project-builder/template-processors/loadConstant.ts';
 
 interface IMultipleFilesContext extends Omit<IBuildContext, 'table'> {
   command: string;
@@ -76,7 +86,67 @@ export const processMultipleFiles = async (
     // We'll track them in the map function below
   }
 
+  /* Parse ignore list from options */
+  const ignoreOption = options.ignore;
+  const ignoreList: string[] = [];
+
+  if (
+    ignoreOption !== undefined &&
+    typeof ignoreOption === 'string' &&
+    ignoreOption.trim().length > 0
+  ) {
+    /* Parse ignore list with flexible whitespace and handle USE_CONSTANT */
+    ignoreOption.split(',').forEach((item) => {
+      const trimmed = item.trim();
+      /* Try USE_CONSTANT(...) without brackets first (for command options) */
+      const constantMatch =
+        USE_CONSTANT_OPTION_REGEX.exec(trimmed) ??
+        USE_CONSTANT_REGEX.exec(trimmed);
+
+      if (constantMatch) {
+        const constantValue = constantMatch[1];
+        /* Check if this is a file path (contains '/' or ends with '.yaml') */
+        const isFilePath =
+          constantValue.includes('/') || constantValue.endsWith('.yaml');
+
+        if (isFilePath) {
+          /* Load from file path (supports relative and absolute paths) */
+          const values = loadConstantFromPath(
+            constantValue,
+            userFiles,
+            schemaInfoParsed,
+            undefined /* No table context for ignore list */,
+            projectYamlPath,
+            formData,
+            userMetadata,
+          );
+          ignoreList.push(...values);
+        } else {
+          /* Load from Constants folder (legacy behavior) */
+          const values = loadConstant(
+            constantValue,
+            userFiles,
+            schemaInfoParsed,
+            undefined /* No table context for ignore list */,
+            projectYamlPath,
+            formData,
+            userMetadata,
+          );
+          ignoreList.push(...values);
+        }
+      } else {
+        /* Direct table name (no USE_CONSTANT) */
+        ignoreList.push(trimmed);
+      }
+    });
+  }
+
   const filteredSchemaInfo = schemaInfo.filter((table) => {
+    /* Check if table should be ignored */
+    if (ignoreList.includes(table.tableName)) {
+      return false;
+    }
+
     const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
     const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
     const scopedOption = options[ACTION_FLAGS.SCOPED];

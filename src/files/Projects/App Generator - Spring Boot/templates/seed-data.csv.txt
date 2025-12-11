@@ -1,0 +1,5 @@
+-- Seed data export in CSV format
+-- Suitable for data import tools, Excel, and analytics
+
+[[USE_ROWS(format=csv)]]
+

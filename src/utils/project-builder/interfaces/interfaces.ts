@@ -16,6 +16,7 @@ export interface IActionFlags {
   [ACTION_FLAGS.IS_RELATIVE_PATH]?: boolean;
   [ACTION_FLAGS.DATA_SOURCE]?: string;
   [ACTION_FLAGS.FORMAT]?: boolean;
+  ignore?: string;
   onFileUsingUserEnv?: (filePath: string) => void;
   onFileFailedToFormat?: (filePath: string, errorMessage: string) => void;
 }

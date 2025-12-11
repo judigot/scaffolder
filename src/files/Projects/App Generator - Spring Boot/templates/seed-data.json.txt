@@ -1,0 +1,5 @@
+// Seed data export in JSON format
+// Suitable for API fixtures, testing, and programmatic use
+
+[[USE_ROWS(format=json, pretty=true)]]
+

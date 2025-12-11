@@ -1,0 +1,5 @@
+src:
+  main:
+    resources:
+      db:
+        FILE_LOOP(V{{index(1, 3)}}__create_{{tableNameSnakeCasePlural}}_table.sql --ignore USE_CONSTANT(./constants/ignoredTables.yaml) --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
