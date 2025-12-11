@@ -37,16 +37,49 @@ EOF
     fi
 fi
 
-if [ ! -d vendor ]; then
-    $USER_CMD "composer install --no-interaction --prefer-dist --optimize-autoloader" || true
+if [ ! -f vendor/autoload.php ]; then
+    if [ -f composer.json ]; then
+        echo "Installing Composer dependencies..."
+        if [ "$(id -u)" = "0" ]; then
+            # Try install first
+            if /usr/bin/composer install --no-interaction --prefer-dist --optimize-autoloader 2>&1; then
+                echo "Composer install succeeded"
+            else
+                echo "Composer install failed, trying update to resolve lock file issues..."
+                /usr/bin/composer update --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1 || {
+                    echo "Composer update also failed, but continuing..."
+                }
+            fi
+            chown -R www-data:www-data vendor composer.json composer.lock 2>/dev/null || true
+            # Run post-install scripts as www-data if vendor exists
+            if [ -f vendor/autoload.php ]; then
+                su -s /bin/bash www-data -c "cd /var/www/html && /usr/bin/composer dump-autoload --optimize" || true
+            fi
+        else
+            /usr/bin/composer install --no-interaction --prefer-dist --optimize-autoloader || \
+            /usr/bin/composer update --no-interaction --prefer-dist --optimize-autoloader || true
+        fi
+    else
+        echo "Warning: composer.json not found. Skipping Composer installation."
+    fi
 fi
 
-if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
-    $USER_CMD "php artisan key:generate --force" || true
-fi
+if [ -f vendor/autoload.php ]; then
+    if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
+        echo "Generating application key..."
+        $USER_CMD "php artisan key:generate --force" || {
+            echo "Key generation failed, trying as root..."
+            php artisan key:generate --force || true
+        }
+    fi
 
-$USER_CMD "php artisan config:clear" || true
-$USER_CMD "php artisan cache:clear" || true
+    echo "Clearing configuration cache..."
+    $USER_CMD "php artisan config:clear" || php artisan config:clear || true
+    echo "Clearing application cache..."
+    $USER_CMD "php artisan cache:clear" || php artisan cache:clear || true
+else
+    echo "Warning: vendor/autoload.php not found. Artisan commands will fail."
+fi
 
 if [ ! -d node_modules ]; then
     $USER_CMD "npm install" || true
