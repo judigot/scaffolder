@@ -84,6 +84,7 @@ export const getReplacementsForTable = (
     tableNameKebabCasePlural: caseFormats.kebabCasePlural,
     tableNamePlural: caseFormats.plural,
     tableNameSnakeCaseSingular: caseFormats.snakeCaseSingular,
+    tableNameSnakeCasePlural: caseFormats.snakeCasePlural,
     tableName,
     tableNameSingular: caseFormats.singular,
     tableNameTitleCase: caseFormats.titleCase,
