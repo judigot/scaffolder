@@ -13,9 +13,9 @@ export const {{tableNamePascalCase}} = {
   /**
    * Get a single {{tableName}} by ID (READ).
    */
-  async show({{primaryKey}}: number) {
+  async show({{getPrimaryKey()}}: number) {
     return prisma.{{tableName}}.findUnique({
-      where: { {{primaryKey}} },
+      where: { {{getPrimaryKey()}} },
     });
   },
 
@@ -31,9 +31,9 @@ export const {{tableNamePascalCase}} = {
   /**
    * Update a {{tableName}} by ID (UPDATE).
    */
-  async update({{primaryKey}}: number, data: Partial<{{tableName}}>) {
+  async update({{getPrimaryKey()}}: number, data: Partial<{{tableName}}>) {
     return prisma.{{tableName}}.update({
-      where: { {{primaryKey}} },
+      where: { {{getPrimaryKey()}} },
       data,
     });
   },
@@ -41,9 +41,9 @@ export const {{tableNamePascalCase}} = {
   /**
    * Delete a {{tableName}} by ID (DELETE).
    */
-  async destroy({{primaryKey}}: number) {
+  async destroy({{getPrimaryKey()}}: number) {
     return prisma.{{tableName}}.delete({
-      where: { {{primaryKey}} },
+      where: { {{getPrimaryKey()}} },
     });
   },
 
@@ -114,9 +114,9 @@ export const {{tableNamePascalCase}} = {
   /**
    * Find a {{tableName}} or fail.
    */
-  async findOrFail({{primaryKey}}: number) {
+  async findOrFail({{getPrimaryKey()}}: number) {
     return prisma.{{tableName}}.findUniqueOrThrow({
-      where: { {{primaryKey}} },
+      where: { {{getPrimaryKey()}} },
     });
   },
 
@@ -188,7 +188,7 @@ export const {{tableNamePascalCase}} = {
   async random(count: number) {
     return prisma.{{tableName}}.findMany({
       take: count,
-      orderBy: { {{primaryKey}}: 'asc' },
+      orderBy: { {{getPrimaryKey()}}: 'asc' },
     });
   },
 
@@ -215,7 +215,7 @@ export const {{tableNamePascalCase}} = {
    */
   async findMany(ids: number[]) {
     return prisma.{{tableName}}.findMany({
-      where: { {{primaryKey}}: { in: ids } },
+      where: { {{getPrimaryKey()}}: { in: ids } },
     });
   },
 
@@ -262,5 +262,7 @@ export const {{tableNamePascalCase}} = {
     return prisma.{{tableName}}.groupBy({
       by: [column],
     });
-  },{{softDeleteFunctions}}
+  },
+  
+  // {{softDeleteFunctions}}
 };
