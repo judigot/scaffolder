@@ -41,12 +41,39 @@ check_constraints AS (
 ),
 table_oids AS (
     SELECT c.relname AS table_name,
-        c.oid AS table_oid
+        c.oid AS table_oid,
+        c.relkind
     FROM pg_class c
         JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'public'
+        AND c.relkind IN ('r', 'v')
+),
+view_definitions AS (
+    SELECT c.relname AS table_name,
+        pg_get_viewdef(c.oid) AS view_query
+    FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+        AND c.relkind = 'v'
+),
+view_dependencies AS (
+    SELECT DISTINCT
+        vtu.view_name AS table_name,
+        vtu.table_name AS referenced_table
+    FROM information_schema.view_table_usage vtu
+    WHERE vtu.view_schema = 'public'
+        AND vtu.table_schema = 'public'
 )
 SELECT t.table_name,
+    CASE
+        WHEN toid.relkind = 'v' THEN vd.view_query
+        ELSE NULL
+    END AS view_query,
+    (
+        SELECT json_agg(vdep.referenced_table)
+        FROM view_dependencies vdep
+        WHERE vdep.table_name = t.table_name
+    ) AS view_structure,
     json_agg(
         json_build_object(
             'column_name',
@@ -100,12 +127,17 @@ SELECT t.table_name,
     ) AS composite_unique_constraints
 FROM information_schema.tables t
     JOIN information_schema.columns c ON t.table_name = c.table_name
+        AND t.table_schema = c.table_schema
     LEFT JOIN primary_keys p ON p.table_name = c.table_name
-    AND p.column_name = c.column_name
+        AND p.column_name = c.column_name
     LEFT JOIN foreign_keys f ON f.table_name = c.table_name
-    AND f.column_name = c.column_name
+        AND f.column_name = c.column_name
     JOIN table_oids toid ON toid.table_name = t.table_name
+    LEFT JOIN view_definitions vd ON vd.table_name = t.table_name
 WHERE t.table_schema = 'public'
+    AND t.table_type IN ('BASE TABLE', 'VIEW')
 GROUP BY t.table_name,
-    toid.table_oid
+    toid.table_oid,
+    toid.relkind,
+    vd.view_query
 ORDER BY t.table_name;

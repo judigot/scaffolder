@@ -131,6 +131,13 @@ export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
 
   return {
     tableName,
+    ...(table.view_query !== undefined &&
+      table.view_query !== null &&
+      table.view_query !== '' && { viewQuery: table.view_query }),
+    ...(table.view_structure &&
+      table.view_structure.length > 0 && {
+        viewStructure: table.view_structure,
+      }),
     ...(requiredColumns.length > 0 && { requiredColumns }),
     columnsInfo,
     ...(foreignTables.length > 0 && { foreignTables }),

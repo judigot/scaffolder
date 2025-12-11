@@ -33,6 +33,8 @@ export interface IColumnInfo {
 
 export interface ITableInfo {
   tableName: string;
+  viewQuery?: string;
+  viewStructure?: string[];
   foreignTables?: string[]; // One or none
   childTables?: string[]; // One or none
   isPivot?: true;
@@ -57,6 +59,8 @@ export type ParsedJSONSchema = Record<string, Record<string, unknown>[]>;
 
 export interface IIntrospectedSchemaInfo {
   table_name: string;
+  view_query?: string | null;
+  view_structure?: string[] | null;
   columns: IColumnInfo[];
   check_constraints: string[] | null;
   composite_unique_constraints: string[] | null;
