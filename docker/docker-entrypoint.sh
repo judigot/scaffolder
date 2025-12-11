@@ -25,12 +25,12 @@ APP_KEY=
 APP_DEBUG=true
 APP_URL=http://localhost:1214/laravel
 
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
-DB_DATABASE=laravel
-DB_USERNAME=laravel
-DB_PASSWORD=laravel
+DB_CONNECTION=pgsql
+DB_HOST=postgresql
+DB_PORT=5432
+DB_DATABASE=postgres
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
 EOF
         if [ "$(id -u)" = "0" ]; then
             chown www-data:www-data .env
