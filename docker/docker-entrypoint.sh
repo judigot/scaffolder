@@ -87,6 +87,20 @@ if [ -f vendor/autoload.php ]; then
             php artisan key:generate --force || true
         }
     fi
+    
+    # Database operations
+    echo "Resetting database..."
+    $USER_CMD "php artisan migrate:fresh --force" || {
+        echo "Migration failed, trying as root..."
+        php artisan migrate:fresh --force || true
+    }
+    
+    echo "Seeding database..."
+    $USER_CMD "php artisan db:seed --force" || {
+        echo "Seeding failed, trying as root..."
+        php artisan db:seed --force || true
+    }
+    
     echo "Laravel dependencies installed and ready"
 else
     echo "Warning: vendor/autoload.php not found. Laravel may not work properly."
