@@ -1,0 +1,91 @@
+services:
+  postgresql:
+    image: postgres:16
+    container_name: scaffolder_postgresql
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      - scaffolder_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    image: mysql:8.0
+    container_name: scaffolder_mysql
+    ports:
+      - "13306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - scaffolder_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  laravel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scaffolder_laravel
+    volumes:
+      - ./apps/laravel:/var/www/html
+      - laravel_vendor:/var/www/html/vendor
+      - laravel_node_modules:/var/www/html/node_modules
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:1214/laravel
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: laravel
+    networks:
+      - scaffolder_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    working_dir: /var/www/html
+
+  nginx:
+    image: nginx:alpine
+    container_name: scaffolder_nginx
+    ports:
+      - "1214:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./apps/laravel/public:/var/www/html/public:ro
+    networks:
+      - scaffolder_network
+    depends_on:
+      - laravel
+
+volumes:
+  postgresql_data:
+  mysql_data:
+  laravel_vendor:
+  laravel_node_modules:
+
+networks:
+  scaffolder_network:
+    driver: bridge
+
