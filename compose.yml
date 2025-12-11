@@ -50,7 +50,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: http://localhost:1214
+      APP_URL: http://localhost:1214/laravel
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
@@ -73,7 +73,6 @@ services:
       - "1214:80"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./apps/laravel/public:/var/www/html/public:ro
     networks:
       - scaffolder_network
     depends_on:
