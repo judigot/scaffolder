@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e
+# Don't exit on error - we want to handle failures gracefully
+set +e
 
 cd /var/www/html
 
@@ -37,23 +38,37 @@ EOF
     fi
 fi
 
-if [ ! -f vendor/autoload.php ]; then
+if [ ! -f vendor/autoload.php ] || [ ! -d vendor/laravel ]; then
     if [ -f composer.json ]; then
         echo "Installing Composer dependencies..."
+        # Remove empty or corrupted vendor directory if it exists
+        if [ -d vendor ] && [ ! -f vendor/autoload.php ]; then
+            echo "Removing empty/corrupted vendor directory..."
+            rm -rf vendor
+        fi
+        
         if [ "$(id -u)" = "0" ]; then
             # Try install first
+            echo "Running composer install..."
             if /usr/bin/composer install --no-interaction --prefer-dist --optimize-autoloader 2>&1; then
                 echo "Composer install succeeded"
             else
                 echo "Composer install failed, trying update to resolve lock file issues..."
-                /usr/bin/composer update --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1 || {
-                    echo "Composer update also failed, but continuing..."
-                }
+                /usr/bin/composer update --no-interaction --prefer-dist --optimize-autoloader --no-scripts 2>&1
+                if [ $? -ne 0 ]; then
+                    echo "Composer update also failed"
+                fi
             fi
-            chown -R www-data:www-data vendor composer.json composer.lock 2>/dev/null || true
-            # Run post-install scripts as www-data if vendor exists
+            
+            # Verify installation
             if [ -f vendor/autoload.php ]; then
+                echo "Composer installation verified: vendor/autoload.php exists"
+                chown -R www-data:www-data vendor composer.json composer.lock 2>/dev/null || true
+                # Run post-install scripts as www-data
                 su -s /bin/bash www-data -c "cd /var/www/html && /usr/bin/composer dump-autoload --optimize" || true
+            else
+                echo "ERROR: Composer installation failed - vendor/autoload.php not found"
+                echo "This usually means composer install/update failed. Check the logs above."
             fi
         else
             /usr/bin/composer install --no-interaction --prefer-dist --optimize-autoloader || \
