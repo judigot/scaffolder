@@ -29,3 +29,6 @@ output
 docs/.vitepress/dist
 docs/.vitepress/cache
 docs/.vitepress/temp
+
+# Apps
+apps/laravel/**
