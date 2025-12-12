@@ -11,7 +11,8 @@ const createFormData = (): IFormStore => ({
   backendUrl: 'http://localhost:5000',
   backendDir: 'C:/Users/Jude/Desktop/laravel',
   frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',
-  dbConnection: 'postgresql://root:123@localhost:5432/laravel',
+  dbConnection:
+    'postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder',
   framework: frameworks.LARAVEL,
   includeInsertData: true,
   insertOption: 'SQLInsertQueriesFromMockData',

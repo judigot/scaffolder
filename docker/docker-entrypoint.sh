@@ -23,14 +23,14 @@ APP_NAME=Laravel
 APP_ENV=local
 APP_KEY=
 APP_DEBUG=true
-APP_URL=http://localhost:1214/laravel
+APP_URL=http://localhost:${NGINX_PORT}/laravel
 
 DB_CONNECTION=pgsql
 DB_HOST=postgresql
 DB_PORT=5432
-DB_DATABASE=postgres
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
+DB_DATABASE=${DB_DATABASE}
+DB_USERNAME=${DB_USERNAME}
+DB_PASSWORD=${DB_PASSWORD}
 EOF
         if [ "$(id -u)" = "0" ]; then
             chown www-data:www-data .env

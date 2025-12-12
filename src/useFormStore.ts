@@ -84,7 +84,8 @@ export const useFormStore = create<IFormStore>()(
   persist((rawSet) => {
     const set = createTabSync<IFormStore>('scaffolder-sync')(rawSet);
 
-    const initialDbConnection = 'postgresql://root:123@localhost:5432/laravel';
+    const initialDbConnection =
+      'postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder';
     const initialDbType = determineSQLDatabaseType(initialDbConnection);
     const initialQuote = SQLQueries.quote[initialDbType];
     const initialDbInfo = getDBConnectionInfo(initialDbConnection);
