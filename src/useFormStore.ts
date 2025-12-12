@@ -92,17 +92,9 @@ export const useFormStore = create<IFormStore>()(
 
     return {
       schemaInput: masterJSONSchema,
-      backendUrl: (() => {
-        const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
-        const port = String(import.meta.env.VITE_BACKEND_PORT ?? '3000');
-        const apiPath = String(import.meta.env.VITE_API_URL ?? 'api');
-        const backendUrl = backendHost ? `${backendHost}:${port}` : '';
-        return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
-      })(),
-      backendDir: 'C:/Users/Jude/Desktop/laravel',
-      // backendDir: 'C:/Users/Username/Desktop/app/backend',
-      frontendDir: 'C:/Users/Jude/Desktop/laravel/frontend',
-      // frontendDir: 'C:/Users/Username/Desktop/app/frontend',
+      backendUrl: `http://localhost:1214/laravel/api`,
+      backendDir: 'C:/Users/Jude/Desktop/scaffolder/apps/laravel',
+      frontendDir: 'C:/Users/Jude/Desktop/scaffolder/apps/frontend',
       dbConnection: initialDbConnection,
       framework: frameworks.LARAVEL,
       includeInsertData: true,

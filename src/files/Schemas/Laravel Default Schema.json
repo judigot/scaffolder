@@ -1,17 +1,21 @@
 [
   {
-    "tableName": "users",
-    "requiredColumns": ["id", "name", "email", "password"],
+    "tableName": "user",
     "columnsInfo": [
       {
-        "column_name": "id",
+        "column_name": "user_id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
         "primary_key": true
       },
       {
-        "column_name": "name",
+        "column_name": "first_name",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "last_name",
         "data_type": "string",
         "is_nullable": "NO"
       },
@@ -22,19 +26,15 @@
         "unique": true
       },
       {
-        "column_name": "email_verified_at",
-        "data_type": "Date",
-        "is_nullable": "YES"
+        "column_name": "username",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "unique": true
       },
       {
         "column_name": "password",
         "data_type": "string",
         "is_nullable": "NO"
-      },
-      {
-        "column_name": "remember_token",
-        "data_type": "string",
-        "is_nullable": "YES"
       },
       {
         "column_name": "created_at",
@@ -45,27 +45,33 @@
         "column_name": "updated_at",
         "data_type": "Date",
         "is_nullable": "YES"
-      },
-      {
-        "column_name": "deleted_at",
-        "data_type": "Date",
-        "is_nullable": "YES"
       }
     ],
+    "hasMany": ["user_user_type"],
+    "belongsToMany": ["user_type"],
     "childTables": ["user_user_type"],
+    "requiredColumns": [
+      "user_id",
+      "first_name",
+      "last_name",
+      "email",
+      "username",
+      "password",
+      "created_at",
+      "updated_at"
+    ],
     "pivotRelationships": [
       {
-        "relatedTable": "user_types",
+        "relatedTable": "user_type",
         "pivotTable": "user_user_type"
       }
     ]
   },
   {
-    "tableName": "user_types",
-    "requiredColumns": ["id", "name"],
+    "tableName": "user_type",
     "columnsInfo": [
       {
-        "column_name": "id",
+        "column_name": "user_type_id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -93,20 +99,22 @@
         "is_nullable": "YES"
       }
     ],
+    "hasMany": ["user_user_type"],
+    "belongsToMany": ["user"],
     "childTables": ["user_user_type"],
+    "requiredColumns": ["user_type_id"],
     "pivotRelationships": [
       {
-        "relatedTable": "users",
+        "relatedTable": "user",
         "pivotTable": "user_user_type"
       }
     ]
   },
   {
     "tableName": "user_user_type",
-    "requiredColumns": ["id", "user_id", "user_type_id"],
     "columnsInfo": [
       {
-        "column_name": "id",
+        "column_name": "user_user_type_id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -117,8 +125,8 @@
         "data_type": "number",
         "is_nullable": "NO",
         "foreign_key": {
-          "foreign_table_name": "users",
-          "foreign_column_name": "id"
+          "foreign_table_name": "user",
+          "foreign_column_name": "user_id"
         }
       },
       {
@@ -126,8 +134,8 @@
         "data_type": "number",
         "is_nullable": "NO",
         "foreign_key": {
-          "foreign_table_name": "user_types",
-          "foreign_column_name": "id"
+          "foreign_table_name": "user_type",
+          "foreign_column_name": "user_type_id"
         }
       },
       {
@@ -146,8 +154,10 @@
         "is_nullable": "YES"
       }
     ],
-    "foreignTables": ["users", "user_types"],
+    "belongsTo": ["user", "user_type"],
+    "foreignTables": ["user", "user_type"],
+    "requiredColumns": ["user_user_type_id", "user_id", "user_type_id"],
     "foreignKeys": ["user_id", "user_type_id"],
-    "belongsTo": ["users", "user_types"]
+    "isPivot": true
   }
 ]
