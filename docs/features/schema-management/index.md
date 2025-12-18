@@ -174,8 +174,24 @@ The following features are planned for future releases:
 - **Smart Commit Messages**: Auto-generate commit messages from schema builder actions
 - **Dedicated Schema Repository**: Support for separate repositories for schemas
 
+## Schema Formats
+
+The application supports two schema formats:
+
+- **Full Format (`ISchemaInfo[]`)** - Complete, explicit schema representation
+- **Compressed Format (`ISchemaInfoSlim`)** - Minimal, payload-optimized representation
+
+**Quick Guide:**
+- ✅ **Store locally** (localStorage, files): Use **Full Format**
+- ✅ **Send over network** (API, WebSocket): Use **Compressed Format**
+- ✅ **Use internally** (Zustand stores, components): Use **Full Format**
+
+The application automatically handles format conversion when needed. See the [Schema Formats Guide](/documentation/api-reference/schema-management/schema-formats/) for detailed information.
+
 ## Related Documentation
 
+- [Schema Formats Guide](/documentation/api-reference/schema-management/schema-formats/) - **When to use full vs compressed format**
+- [Schema Management API](/documentation/api-reference/schema-management/) - Technical API reference
 - [Schemas Directory](/documentation/structure/repository-folders/schemas/) - Learn about schema file organization
 - [SchemaBuilder Features](/documentation/structure/repository-folders/schemas/) - Detailed SchemaBuilder capabilities
 - [Projects](/documentation/structure/repository-folders/projects/) - Using schemas in project generation

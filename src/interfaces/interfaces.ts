@@ -16,6 +16,9 @@ export type ISchemaInfoSlim = {
   tableName: string;
   columns: IColumnInfoSlim[];
   isPivot?: true;
+  viewQuery?: string;
+  viewStructure?: string[];
+  data?: Record<string, unknown>[];
 }[];
 
 export interface IColumnInfo {

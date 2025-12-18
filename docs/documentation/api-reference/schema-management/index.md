@@ -196,7 +196,7 @@ The `useSchemaStore` Zustand store manages schema state:
 
 ## Schema File Format
 
-Schemas are stored as JSON arrays of `ISchemaInfo` objects:
+Schemas are stored as JSON arrays of `ISchemaInfo` objects (full format):
 
 ```json
 [
@@ -215,6 +215,14 @@ Schemas are stored as JSON arrays of `ISchemaInfo` objects:
   }
 ]
 ```
+
+**Important**: Schema files should always use the **full format** (`ISchemaInfo[]`) for:
+- Human readability
+- Version control (easier Git diffs)
+- Complete information preservation
+- AI agent readability
+
+For API payloads and network transmission, use the **compressed format** (`ISchemaInfoSlim`). See the [Schema Formats Guide](/documentation/api-reference/schema-management/schema-formats/) for detailed information on when to use each format.
 
 ## Security
 
@@ -254,8 +262,31 @@ interface ISchemaOperationResult {
 
 Errors are displayed in the UI with actionable messages.
 
+## Conversion Utilities
+
+The application provides utilities to convert between full and compressed schema formats:
+
+```typescript
+import { convertSchema } from '@/utils/convertSchemaFormat';
+
+// Convert full format to compressed (for API payloads)
+const compressed = convertSchema({
+  schema: fullSchema,
+  target: 'compressed',
+});
+
+// Convert compressed format to full (after receiving from API)
+const full = convertSchema({
+  schema: compressedSchema,
+  target: 'full',
+});
+```
+
+See the [Schema Formats Guide](/documentation/api-reference/schema-management/schema-formats/) for detailed usage guidelines.
+
 ## Related Documentation
 
+- [Schema Formats Guide](/documentation/api-reference/schema-management/schema-formats/) - **When to use full vs compressed format**
 - [Schema Management Feature](/features/schema-management/) - User guide for schema management
 - [Schemas Directory](/documentation/structure/repository-folders/schemas/) - Schema file organization
 
