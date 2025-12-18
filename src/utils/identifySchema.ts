@@ -274,33 +274,31 @@ export const addAssociations = (
             }
           } else {
             // For introspected structure
-            const foreignTable = tempSchemaInfo.find((rel) =>
-              rel.columnsInfo.some((col) =>
-                Boolean(
-                  col.primary_key && col.column_name === column.column_name,
-                ),
-              ),
+            // Find the primary key column in the parent table that matches the foreign key's referenced column
+            const foreignColumnName = column.foreign_key.foreign_column_name;
+            const primaryKeyColumn = parentTable.columnsInfo.find(
+              (col) =>
+                Boolean(col.primary_key) &&
+                col.column_name === foreignColumnName,
             );
-            if (foreignTable) {
+            if (primaryKeyColumn) {
               if (!column.unique) {
-                // --- foreignTable.hasMany ---
-                if (!foreignTable.hasMany) {
-                  foreignTable.hasMany = [relationship.tableName];
+                // --- parentTable.hasMany ---
+                if (!parentTable.hasMany) {
+                  parentTable.hasMany = [relationship.tableName];
                 } else {
-                  foreignTable.hasMany.push(relationship.tableName);
-                  foreignTable.hasMany = Array.from(
-                    new Set(foreignTable.hasMany),
+                  parentTable.hasMany.push(relationship.tableName);
+                  parentTable.hasMany = Array.from(
+                    new Set(parentTable.hasMany),
                   );
                 }
               } else if (!isJunctionTable(relationship, schemaInfo)) {
-                // --- foreignTable.hasOne ---
-                if (!foreignTable.hasOne) {
-                  foreignTable.hasOne = [relationship.tableName];
+                // --- parentTable.hasOne ---
+                if (!parentTable.hasOne) {
+                  parentTable.hasOne = [relationship.tableName];
                 } else {
-                  foreignTable.hasOne.push(relationship.tableName);
-                  foreignTable.hasOne = Array.from(
-                    new Set(foreignTable.hasOne),
-                  );
+                  parentTable.hasOne.push(relationship.tableName);
+                  parentTable.hasOne = Array.from(new Set(parentTable.hasOne));
                 }
               }
             }

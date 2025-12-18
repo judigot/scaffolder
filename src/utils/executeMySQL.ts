@@ -33,6 +33,7 @@ export const executeMySQL = async (
     }
   } catch (err) {
     console.error('MySQL introspection error:', err);
-    throw new Error('Internal Server Error');
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    throw new Error(`MySQL error: ${errorMessage}`);
   }
 };

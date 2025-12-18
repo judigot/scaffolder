@@ -255,3 +255,226 @@ Views are identified by the presence of `viewQuery`:
 - Added explicit null/undefined checks for viewQuery (strict boolean expressions)
 - Ensured all optional properties are properly handled
 
+## Introspection Test Flow
+
+### Overview
+Tests verify that database schema creation and introspection work correctly through a round-trip process.
+
+### Main Test Flow
+
+1. TEST SETUP (beforeAll/beforeEach)
+   - setupTypeMappings() - Load type maps and configure stores
+
+2. TEST EXECUTION (it block)
+   - Input: masterSchema (ISchemaInfo[]) containing table definitions
+
+3. createAndIntrospectDatabase()
+   - Step 1: Setup Form Store
+     * Set dbConnection
+     * Set dbType (postgresql/mysql)
+     * Set quote character (" or `)
+   
+   - Step 2: Generate SQL Schema
+     * generateSQLDeleteTables() → DROP TABLE IF EXISTS statements
+     * generateSQLSchema() → CREATE TABLE statements with FOREIGN KEY constraints
+     * formatSQL() → Format SQL for readability
+   
+   - Step 3: Clean Database (Clean Slate)
+     * PostgreSQL: DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+     * MySQL: SET FOREIGN_KEY_CHECKS = 0; DROP TABLE IF EXISTS all_tables; SET FOREIGN_KEY_CHECKS = 1;
+   
+   - Step 4: Execute SQL
+     * executePostgreSQL() or executeMySQL()
+     * Creates tables in database
+     * Applies constraints (PK, FK, unique, etc.)
+   
+   - Step 5: Introspect Database
+     * introspect(dbConnection, dbType)
+     * Reads introspect_postgresql.sql or introspect_mysql.sql
+     * Executes introspection query
+     * Returns IIntrospectedSchemaInfo[] (raw snake_case format)
+   
+   - Step 6: Convert to ISchemaInfo
+     * convertIntrospectedStructure()
+       - convertTable() for each table
+         * Maps snake_case → camelCase
+         * Converts data types
+         * Normalizes AUTO_INCREMENT
+       - addSchemaInfo()
+         * Detects relationships
+         * Adds hasOne, hasMany, belongsTo, belongsToMany
+         * Identifies pivot tables
+     * Returns ISchemaInfo[]
+   
+   - Step 7: Normalize Both Schemas
+     * normalizeSchema(originalSchema)
+     * normalizeSchema(introspectedSchema)
+     * Normalization includes:
+       - Sort all arrays (foreignKeys, requiredColumns, etc.)
+       - Normalize AUTO_INCREMENT defaults
+       - Handle undefined vs missing properties
+       - Sort tables alphabetically
+   
+   - Step 8: Compare Schemas
+     * expect(normalizedIntrospected).toEqual(normalizedOriginal)
+     * Verifies:
+       - Exact match of all fields
+       - Primary keys correctly identified
+       - Relationships preserved
+       - Column types match
+       - Constraints match
+
+### Schema Generation Flow
+
+masterSchema (ISchemaInfo[])
+  → generateSQLDeleteTables() → ["DROP TABLE IF EXISTS table1;", ...]
+  → generateSQLSchema()
+      → For each table:
+          → generateColumnDefinition() → Maps TypeScript types → SQL types
+          → generateForeignKeyConstraint() → Creates FK constraints
+      → formatSQL() → Formats SQL for readability
+  → Combined SQL: DROP statements + CREATE statements
+
+### Introspection Flow
+
+Database (PostgreSQL/MySQL)
+  → introspect()
+      → Reads introspect_*.sql file
+      → Executes query against information_schema
+      → Returns IIntrospectedSchemaInfo[] (snake_case, raw DB types)
+  
+  → convertIntrospectedStructure()
+      → convertTable() for each table
+          → convertColumn()
+              → getTypeScriptType() → Maps DB types → TS types
+              → Normalizes AUTO_INCREMENT
+          → getRequiredColumns()
+          → getForeignTables()
+          → getForeignKeys()
+      
+      → addSchemaInfo()
+          → addAssociations()
+              → Detects hasOne/hasMany
+              → Detects belongsTo
+              → Detects belongsToMany
+          → linkChildTables()
+          → identifyPivotTables()
+          → addParentRelationships()
+  
+  → ISchemaInfo[] (camelCase, enriched)
+
+### Normalization Flow
+
+ISchemaInfo[]
+  → normalizeSchema()
+      → Sort tables by tableName
+      → For each table:
+          → normalizeTable()
+              → Sort arrays:
+                  → requiredColumns
+                  → foreignKeys
+                  → foreignTables
+                  → childTables
+                  → hasOne
+                  → hasMany
+                  → belongsTo
+                  → belongsToMany
+                  → pivotRelationships
+              → normalizeColumns()
+                  → Sort columns by column_name
+                  → normalizeColumn()
+                      → Normalize AUTO_INCREMENT (nextval(...) → AUTO_INCREMENT)
+          → Handle optional fields (undefined vs missing)
+  → Normalized ISchemaInfo[] (deterministic)
+
+### Test Scenarios
+
+#### Test 1: Exact Schema Match
+Input: masterSchema
+  → Create DB → Introspect → Normalize
+  → Compare: normalizedIntrospected === normalizedOriginal
+  → Result: All fields match exactly
+
+#### Test 2: Primary Key Identification
+Input: masterSchema
+  → Create DB → Introspect
+  → For each table:
+      - Find primary key column
+      - Verify column_name matches original
+      - Verify primary_key flag is true
+      - Verify AUTO_INCREMENT normalized
+  → Result: Primary keys correctly identified
+
+#### Test 3: Relationship Preservation
+Input: masterSchema
+  → Create DB → Introspect → Normalize
+  → For each table:
+      - Compare hasOne arrays
+      - Compare hasMany arrays
+      - Compare belongsTo arrays
+      - Compare belongsToMany arrays
+      - Compare pivotRelationships
+  → Result: All relationships preserved
+
+#### Test 4: "id" Primary Key Test
+Input: masterSchemaWithId (uses "id" instead of "tableName_id")
+  → Create DB → Introspect → Normalize
+  → Verify:
+      - Primary key column is "id" (not "tableName_id")
+      - Relationships still work correctly
+      - Exact match with original schema
+  → Result: "id" primary keys work correctly
+
+### Key Test Functions
+
+#### createAndIntrospectDatabase()
+Purpose: Complete round-trip test helper
+1. Takes ISchemaInfo[] as input
+2. Generates SQL
+3. Creates database tables
+4. Introspects database
+5. Returns ISchemaInfo[] from introspection
+
+#### normalizeSchema()
+Purpose: Make schemas comparable
+- Sorts all arrays
+- Normalizes defaults (AUTO_INCREMENT)
+- Handles optional fields consistently
+- Ensures deterministic comparison
+
+#### Comparison Strategy
+- Exact match: All fields must match
+- Deterministic: Normalization ensures consistent ordering
+- Comprehensive: Tests all relationship types and constraints
+
+### Database Cleanup Strategy
+
+#### PostgreSQL
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+- Drops entire schema (all tables, views, sequences, etc.)
+- Creates fresh schema
+- Ensures completely clean slate
+
+#### MySQL
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS all_tables;
+SET FOREIGN_KEY_CHECKS = 1;
+- Disables FK checks temporarily
+- Drops all tables
+- Re-enables FK checks
+- Ensures clean slate without dropping database
+
+### Round-Trip Verification
+
+masterSchema → SQL → Database → Introspect → ISchemaInfo → Compare → masterSchema
+
+Each step must work correctly for the test to pass.
+
+### Why This Testing Approach?
+
+1. Round-trip testing: Verifies the entire pipeline works
+2. Deterministic: Normalization ensures consistent results
+3. Comprehensive: Tests all aspects (PKs, FKs, relationships)
+4. Clean slate: Each test starts fresh
+5. Enterprise-grade: Catches edge cases and ensures reliability
