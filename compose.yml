@@ -44,7 +44,7 @@ services:
       dockerfile: Dockerfile
     container_name: scaffolder_laravel
     volumes:
-      - ./apps/laravel:/var/www/html
+      - ./.apps/laravel:/var/www/html
       - laravel_vendor:/var/www/html/vendor
       - laravel_node_modules:/var/www/html/node_modules
     environment:
