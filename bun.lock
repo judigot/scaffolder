@@ -104,6 +104,56 @@
         "vitest": "^4.0.14",
       },
     },
+    "apps/app1": {
+      "name": "@bigbang/app1",
+      "version": "0.0.0",
+      "dependencies": {
+        "@bigbang/shared-utils": "workspace:*",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+      },
+      "devDependencies": {
+        "@bigbang/tsconfig": "workspace:*",
+        "@tailwindcss/postcss": "^4.1.17",
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
+        "@typescript-eslint/eslint-plugin": "^8.48.0",
+        "@typescript-eslint/parser": "^8.48.0",
+        "@vitejs/plugin-react": "^5.1.1",
+        "autoprefixer": "^10.4.22",
+        "eslint": "^9.39.1",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^4.1.17",
+        "typescript": "^5.9.3",
+        "vite": "^7.2.4",
+        "vite-tsconfig-paths": "^5.1.4",
+      },
+    },
+    "apps/app2": {
+      "name": "@bigbang/app2",
+      "version": "0.0.0",
+      "dependencies": {
+        "@bigbang/shared-utils": "workspace:*",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+      },
+      "devDependencies": {
+        "@bigbang/tsconfig": "workspace:*",
+        "@tailwindcss/postcss": "^4.1.17",
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
+        "@typescript-eslint/eslint-plugin": "^8.48.0",
+        "@typescript-eslint/parser": "^8.48.0",
+        "@vitejs/plugin-react": "^5.1.1",
+        "autoprefixer": "^10.4.22",
+        "eslint": "^9.39.1",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^4.1.17",
+        "typescript": "^5.9.3",
+        "vite": "^7.2.4",
+        "vite-tsconfig-paths": "^5.1.4",
+      },
+    },
     "packages/eslint-config": {
       "name": "@bigbang/eslint-config",
       "version": "0.0.0",
@@ -274,6 +324,10 @@
     "@base-ui-components/utils": ["@base-ui-components/utils@0.1.2", "", { "dependencies": { "@babel/runtime": "^7.28.4", "@floating-ui/utils": "^0.2.10", "reselect": "^5.1.1", "use-sync-external-store": "^1.5.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-aEitDGpMsYO2qnSpYOwZNykn9Rzn2ioyEVk2fyDRH7t+TIHVKpp9CeV7SPTq43M9mMSDxQ+7UeZJVkrj2dCVIQ=="],
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@0.2.3", "", {}, "sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw=="],
+
+    "@bigbang/app1": ["@bigbang/app1@workspace:apps/app1"],
+
+    "@bigbang/app2": ["@bigbang/app2@workspace:apps/app2"],
 
     "@bigbang/eslint-config": ["@bigbang/eslint-config@workspace:packages/eslint-config"],
 
