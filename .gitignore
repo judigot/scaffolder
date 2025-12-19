@@ -31,7 +31,8 @@ docs/.vitepress/cache
 docs/.vitepress/temp
 
 # Apps
-apps/laravel/**
+.apps/laravel/**
+.monorepo
 
 # Dependencies
 .pnp

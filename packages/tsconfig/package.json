@@ -4,9 +4,8 @@
   "private": true,
   "type": "module",
   "files": [
-    "base.json",
-    "react.json",
-    "node.json",
+    "tsconfig.app.json",
+    "tsconfig.node.json",
     "package.json"
   ],
   "scripts": {
