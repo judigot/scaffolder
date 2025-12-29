@@ -27,4 +27,3 @@
 ## Writer's Notes
 
 [[USE_DATA(metadata.notes)]]
-
