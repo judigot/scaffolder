@@ -1,1 +1,2 @@
 CREATE_FILE(badFormat.ts --template ./templates/badFormat.txt):
+CREATE_FILE(.env --template /Templates/env.txt):

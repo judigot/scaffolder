@@ -1,18 +1,11 @@
 import { Hono } from 'hono';
 import { createLocalFilesService } from '@/app/services/createLocalFilesService.ts';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import type { IFormStore } from '@/useFormStore.ts';
+import type { IProjectGenerationRequest } from '@/interfaces/IProjectGenerationRequest.ts';
 
 const router = new Hono();
 
-interface ICreateLocalFilesBody {
-  schemaInfo: ISchemaInfo[];
-  SQLSchema: string | null;
-  formData: IFormStore;
-}
-
 router.post('/', async (c) => {
-  const body = await c.req.json<ICreateLocalFilesBody>();
+  const body = await c.req.json<IProjectGenerationRequest>();
 
   try {
     const result = await createLocalFilesService(body);

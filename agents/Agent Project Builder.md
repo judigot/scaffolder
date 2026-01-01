@@ -44,6 +44,13 @@ The project-builder is a code generation system that scaffolds project files fro
 - **`loadTemplateContent.ts`**: Loads template file content
 - **`loadDataSourceFile.ts`**: Loads data source YAML files
 
+#### 4. Structure Utilities
+- **`updateFilesInStructure.ts`**: Updates multiple files in a structure in a single pass
+  - Takes a structure and a Map of file paths to new content
+  - Returns a new immutable structure with updated files
+  - Efficient for selective rebuilds when only specific files need updating (e.g., files using `USE_USER_ENV`)
+  - Used for optimizing rebuilds when metadata changes
+
 ## Project Actions
 
 ### FILE_LOOP
@@ -250,4 +257,21 @@ if (!match) {
 - Updated `processIterateCommand.ts` to support `--ignore` flag with `USE_CONSTANT(path)`
 - Added support for both relative and absolute paths
 - Added `USE_CONSTANT_OPTION_REGEX` to match `USE_CONSTANT(...)` without brackets (for command options)
+
+### Selective File Updates
+- Added `updateFilesInStructure()` utility function for efficiently updating multiple files in a structure
+- Enables selective rebuilds when only specific files need updating (e.g., when user metadata changes)
+- Returns immutable structure with updated files in a single pass
+- Exported from `buildProjectFiles.ts` for use in project store and other modules
+- Can be used to optimize rebuilds by only updating files that use `USE_USER_ENV` when metadata changes
+
+### Project Generation Endpoints Unification
+- Both `/scaffold` and `/create-local-files` endpoints now use the same project builder system
+- Created shared `IProjectGenerationRequest` interface in `src/interfaces/IProjectGenerationRequest.ts`
+- Both endpoints accept identical request bodies: `schemaInfo`, `SQLSchema`, `formData`, and `userMetadata`
+- **`/scaffold` endpoint**: Generates files using project builder AND executes database operations (creates/resets database with SQL schema) AND validates backend URL
+- **`/create-local-files` endpoint**: Generates files using project builder only (no database operations)
+- Both endpoints generate identical file structures using the same `buildProjectFiles()` function
+- Use `/scaffold` when you need database setup and backend validation
+- Use `/create-local-files` when you only need file generation
 

@@ -256,3 +256,6 @@ export const buildProjectFiles = async (
     };
   }
 };
+
+// Re-export utility functions for use in project store and other modules
+export { updateFilesInStructure } from '@/utils/project-builder/updateFilesInStructure.ts';

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useFormStore } from '@/useFormStore.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 
-import { useModalStore } from '@/useModalStore.ts';
+import { useModalStore as useSQLModalStore } from '@/useModalStore.ts';
+import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
+import type { IGenerationStatus } from '@/interfaces/IGenerationStatus.ts';
 
 import { consolidateInterfaces } from '@/utils/common.ts';
 import FileViewer from '@/components/FileViewer.tsx';
@@ -32,8 +34,7 @@ function App() {
     isLoading: isUserLoading,
     serverConfigStatus,
   } = useUser();
-  const { decryptedMetadata, isLoading: isDecryptingMetadata } =
-    useDecryptedUserMetadata();
+  const { decryptedMetadata } = useDecryptedUserMetadata();
   const {
     backendUrl,
     backendDir,
@@ -105,17 +106,15 @@ function App() {
   }>({ structure: [], filesUsingUserEnv: [], filesFailedToFormat: [] });
 
   useEffect(() => {
-    if (
-      selectedProject !== null &&
-      user !== null &&
-      !isUserLoading &&
-      !isDecryptingMetadata
-    ) {
+    if (selectedProject !== null && user !== null) {
+      // Build immediately, even if metadata is still loading
+      // The builder works gracefully with null metadata (replaces USE_USER_ENV with empty strings)
+      // When metadata becomes available, cache invalidation will trigger a rebuild
       void (async () => {
         const result = await buildProjectFilesForProject(
           selectedProject,
           schemaInfo,
-          decryptedMetadata,
+          decryptedMetadata ?? null,
         );
         setBuildResult(result);
       })();
@@ -130,8 +129,6 @@ function App() {
     selectedProject,
     user,
     decryptedMetadata,
-    isUserLoading,
-    isDecryptingMetadata,
     buildProjectFilesForProject,
     schemaInfo,
   ]);
@@ -204,7 +201,8 @@ function App() {
     useFormStore.setState(newFormData);
   };
 
-  const { setIsSQLSchemaModalOpen, setSQLSchemaEditable } = useModalStore();
+  const { setIsSQLSchemaModalOpen, setSQLSchemaEditable } = useSQLModalStore();
+  const { promptModal } = useModalStore();
 
   // Sanitize GitHub URL by removing spaces and unnecessary characters
   const sanitizeGitHubURL = (url: string): string => {
@@ -256,16 +254,12 @@ function App() {
 
   const stringInterfaces = consolidateInterfaces(interfaces);
 
-  const [generationStatus, setGenerationStatus] = useState<{
-    isBackendUrlValid: boolean;
-    isBackendDirValid: boolean;
-    isFrontendDirValid: boolean;
-    isDBConnectionValid: boolean;
-  }>({
+  const [generationStatus, setGenerationStatus] = useState<IGenerationStatus>({
     isBackendUrlValid: true,
     isBackendDirValid: true,
     isFrontendDirValid: true,
     isDBConnectionValid: true,
+    errorMessage: null,
   });
 
   // Add a new effect for initial app startup
@@ -500,36 +494,115 @@ function App() {
             data-testid="generate-app-button"
             type="button"
             onClick={() => {
-              setIsLoading(true);
-              fetch(`${getApiUrl()}/scaffold`, {
-                method: 'POST',
-                headers: {
-                  Accept: 'application/json',
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  schemaInfo,
-                  SQLSchema,
-                  formData,
-                }),
-              })
-                .then((response) => response.json())
-                .then((result: typeof generationStatus) => {
-                  // Success
-                  setGenerationStatus(result);
-                })
-                .catch((error: unknown) => {
-                  // Failure
-                  if (typeof error === `string`) {
-                    throw Error(`There was an error: error`);
+              void (async () => {
+                setIsLoading(true);
+                try {
+                  const formDataForExport = {
+                    backendDir,
+                    publicRepoURL,
+                    dbConnection,
+                    projectName: selectedProject?.name,
+                    selectedProject: selectedProject
+                      ? {
+                          name: selectedProject.name,
+                          content: selectedProject.content,
+                          type: selectedProject.type,
+                        }
+                      : null,
+                  };
+
+                  const response = await fetch(`${getApiUrl()}/scaffold`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      schemaInfo,
+                      SQLSchema,
+                      formData: formDataForExport,
+                      userMetadata: decryptedMetadata ?? userMetadata ?? null,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const errorData: unknown = await response.json();
+                    const errorMessage =
+                      errorData !== null &&
+                      typeof errorData === 'object' &&
+                      'error' in errorData &&
+                      typeof errorData.error === 'string'
+                        ? errorData.error
+                        : 'Failed to create app';
+                    throw new Error(errorMessage);
                   }
-                  if (error instanceof Error) {
-                    throw Error(`There was an error: ${error.message}`);
+
+                  const data: unknown = await response.json();
+
+                  if (
+                    data !== null &&
+                    typeof data === 'object' &&
+                    'isBackendUrlValid' in data &&
+                    'isBackendDirValid' in data &&
+                    'isFrontendDirValid' in data &&
+                    'isDBConnectionValid' in data
+                  ) {
+                    const status: IGenerationStatus = {
+                      isBackendUrlValid:
+                        typeof data.isBackendUrlValid === 'boolean'
+                          ? data.isBackendUrlValid
+                          : false,
+                      isBackendDirValid:
+                        typeof data.isBackendDirValid === 'boolean'
+                          ? data.isBackendDirValid
+                          : false,
+                      isFrontendDirValid:
+                        typeof data.isFrontendDirValid === 'boolean'
+                          ? data.isFrontendDirValid
+                          : false,
+                      isDBConnectionValid:
+                        typeof data.isDBConnectionValid === 'boolean'
+                          ? data.isDBConnectionValid
+                          : false,
+                      errorMessage:
+                        'errorMessage' in data &&
+                        (typeof data.errorMessage === 'string' ||
+                          data.errorMessage === null)
+                          ? data.errorMessage
+                          : null,
+                    };
+
+                    setGenerationStatus(status);
+
+                    // Show error modal if there's an error message
+                    if (
+                      status.errorMessage !== null &&
+                      status.errorMessage !== ''
+                    ) {
+                      await promptModal({
+                        title: 'Generation Error',
+                        description: status.errorMessage,
+                        confirmButtonText: 'OK',
+                        denyButtonText: '',
+                      });
+                    }
+                  } else {
+                    throw new Error('Invalid response format from server');
                   }
-                })
-                .finally(() => {
+                } catch (error: unknown) {
+                  const errorMsg =
+                    error instanceof Error
+                      ? error.message
+                      : 'An unknown error occurred';
+                  await promptModal({
+                    title: 'Error',
+                    description: `Failed to create app: ${errorMsg}`,
+                    confirmButtonText: 'OK',
+                    denyButtonText: '',
+                  });
+                } finally {
                   setIsLoading(false);
-                });
+                }
+              })();
             }}
             className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
           >

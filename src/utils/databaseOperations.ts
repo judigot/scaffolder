@@ -216,7 +216,15 @@ export const createOrResetDatabase = async (
           : dropTableCommands;
 
       if (sql.trim()) {
-        await executePostgreSQL(connectionString, sql);
+        try {
+          await executePostgreSQL(connectionString, sql);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown PostgreSQL error';
+          throw new Error(
+            `Failed to execute PostgreSQL commands: ${errorMessage}`,
+          );
+        }
       }
     } else {
       // For MySQL, also use selective deletion
@@ -231,7 +239,13 @@ export const createOrResetDatabase = async (
           : dropTableCommands;
 
       if (sql.trim()) {
-        await executeMySQL(connectionString, sql);
+        try {
+          await executeMySQL(connectionString, sql);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown MySQL error';
+          throw new Error(`Failed to execute MySQL commands: ${errorMessage}`);
+        }
       }
     }
 

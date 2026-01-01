@@ -16,7 +16,49 @@ export const executePostgreSQL = async (
       client.release();
     }
   } catch (err) {
-    console.error('PostgreSQL introspection error:', err);
-    throw new Error('Internal Server Error');
+    console.error('PostgreSQL execution error:', err);
+
+    // Extract error details from pg error object
+    let errorMessage = 'Unknown PostgreSQL error';
+
+    if (err instanceof Error) {
+      errorMessage = err.message;
+
+      // Check if error has position property (pg library error objects have this)
+      interface IPgError extends Error {
+        position?: number;
+        detail?: string;
+        hint?: string;
+      }
+
+      const pgError: IPgError = err;
+
+      if (pgError.position !== undefined) {
+        const position = pgError.position;
+        // Calculate line number from character position
+        const linesBeforePosition = query
+          .substring(0, position - 1)
+          .split('\n');
+        const lineNumber = linesBeforePosition.length;
+
+        // If error message doesn't already include line number, add it
+        if (!errorMessage.includes('LINE')) {
+          errorMessage = `${errorMessage} (at line ${String(lineNumber)}, position ${String(position)})`;
+        } else {
+          // If it already has LINE, ensure we also show position if available
+          errorMessage = `${errorMessage} (position ${String(position)})`;
+        }
+      }
+
+      // Include detail and hint if available
+      if (pgError.detail !== undefined && pgError.detail !== '') {
+        errorMessage = `${errorMessage}\nDetail: ${pgError.detail}`;
+      }
+      if (pgError.hint !== undefined && pgError.hint !== '') {
+        errorMessage = `${errorMessage}\nHint: ${pgError.hint}`;
+      }
+    }
+
+    throw new Error(`PostgreSQL error: ${errorMessage}`);
   }
 };

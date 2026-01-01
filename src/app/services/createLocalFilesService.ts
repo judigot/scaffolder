@@ -2,7 +2,6 @@ import path from 'node:path';
 import fs from 'node:fs';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { createFolderStructure } from '@/utils/createFolderStructure.ts';
 import { createOrResetDatabase } from '@/utils/databaseOperations.ts';
 import generateSQLSchema from '@/utils/generateSQLSchema.ts';
@@ -10,15 +9,9 @@ import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables.ts';
 import { format as formatSQL } from 'sql-formatter';
 import generateSQLInserts from '@/utils/generateSQLInserts.ts';
 import generateMockData from '@/utils/generateMockData.ts';
-import type { IFormStore } from '@/useFormStore.ts';
 import { isUsingLocalFiles } from '@/hooks/useUserFiles.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
-
-interface ICreateLocalFilesRequest {
-  schemaInfo: ISchemaInfo[];
-  SQLSchema: string | null;
-  formData: IFormStore;
-}
+import type { IProjectGenerationRequest } from '@/interfaces/IProjectGenerationRequest.ts';
 
 interface ICreateLocalFilesResponse {
   success: boolean;
@@ -33,9 +26,9 @@ const isIStructure = (value: unknown): value is IStructure => {
 };
 
 export const createLocalFilesService = async (
-  data: ICreateLocalFilesRequest,
+  data: IProjectGenerationRequest,
 ): Promise<ICreateLocalFilesResponse> => {
-  const { schemaInfo, SQLSchema, formData } = data;
+  const { schemaInfo, SQLSchema, formData, userMetadata } = data;
   const { publicRepoURL, backendDir, selectedProject } = formData;
 
   // Extract projectName from formData or use default
@@ -102,6 +95,7 @@ export const createLocalFilesService = async (
       userFiles,
       schemaInfo,
       formData,
+      userMetadata,
     );
 
     // Create target directory if it doesn't exist

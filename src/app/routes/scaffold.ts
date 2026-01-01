@@ -1,18 +1,11 @@
 import { Hono } from 'hono';
 import { scaffoldService } from '@/app/services/scaffoldService.ts';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
-import type { IFormStore } from '@/useFormStore.ts';
+import type { IProjectGenerationRequest } from '@/interfaces/IProjectGenerationRequest.ts';
 
 const router = new Hono();
 
-interface IScaffoldBody {
-  schemaInfo: ISchemaInfo[];
-  SQLSchema: string | null;
-  formData: IFormStore;
-}
-
 router.post('/', async (c) => {
-  const body = await c.req.json<IScaffoldBody>();
+  const body = await c.req.json<IProjectGenerationRequest>();
 
   try {
     const result = await scaffoldService(body);

@@ -26,10 +26,10 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { useFileContent } from '@/hooks/useFileContent.ts';
 import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
-import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
 import { useUser } from '@/hooks/useUser.ts';
 import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
 
 export interface IBase {
   name: string;
@@ -108,7 +108,9 @@ function FileViewer({
     githubToken,
     isLoading: isUserLoading,
     serverConfigStatus,
+    userMetadata,
   } = useUser();
+  const { decryptedMetadata } = useDecryptedUserMetadata();
   const { openUserProfile } = useUserProfileStore();
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
@@ -133,7 +135,6 @@ function FileViewer({
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const editorRef = useRef<ICodeEditor | null>(null);
   const fileViewerRef = useRef<HTMLDivElement>(null);
-  const [isCreatingFile, setIsCreatingFile] = useState<boolean>(false);
   const [isCreatingRepository, setIsCreatingRepository] =
     useState<boolean>(false);
   const [githubError, setGitHubError] = useState<string | null>(null);
@@ -1369,221 +1370,6 @@ function FileViewer({
     })();
   };
 
-  const handleCreateTestFile = () => {
-    void (async () => {
-      if (!publicRepoURL || publicRepoURL === '') {
-        console.error('Please provide a GitHub repository URL');
-        return;
-      }
-
-      setIsCreatingFile(true);
-
-      try {
-        const accessTokenResult = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
-          },
-        });
-        if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
-          throw new Error('Failed to get access token');
-        }
-        const accessToken: string = accessTokenResult;
-
-        const tokenResponse = await fetch(`${getApiUrl()}/github-token`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!tokenResponse.ok) {
-          const errorData: unknown = await tokenResponse.json();
-          interface IErrorResponse {
-            error?: string;
-            message?: string;
-            code?: string;
-          }
-          const isErrorResponse = (val: unknown): val is IErrorResponse => {
-            return (
-              typeof val === 'object' &&
-              val !== null &&
-              ('error' in val || 'message' in val)
-            );
-          };
-          if (
-            isErrorResponse(errorData) &&
-            errorData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
-          ) {
-            const errorMessage =
-              errorData.message ??
-              'Auth0 Management API is not configured on the server.';
-            setGitHubError(errorMessage);
-            await promptModal({
-              title: 'Server Configuration Required',
-              description:
-                'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
-                '• VITE_AUTH0_DOMAIN\n' +
-                '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
-                '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
-                'After setting these, restart the server.',
-              confirmButtonText: 'OK',
-              denyButtonText: '',
-            });
-            throw new Error(errorMessage);
-          }
-          throw new Error('Failed to get GitHub token');
-        }
-
-        const tokenData: unknown = await tokenResponse.json();
-        interface ITokenResponse {
-          success?: boolean;
-          token?: string | null;
-          error?: string;
-          message?: string;
-          code?: string;
-        }
-        const isTokenResponse = (val: unknown): val is ITokenResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val || 'token' in val || 'error' in val)
-          );
-        };
-
-        if (
-          isTokenResponse(tokenData) &&
-          tokenData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
-        ) {
-          const errorMessage =
-            tokenData.message ??
-            'Auth0 Management API is not configured on the server.';
-          setGitHubError(errorMessage);
-          await promptModal({
-            title: 'Server Configuration Required',
-            description:
-              'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
-              '• VITE_AUTH0_DOMAIN\n' +
-              '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
-              '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
-              'After setting these, restart the server.',
-            confirmButtonText: 'OK',
-            denyButtonText: '',
-          });
-          throw new Error(errorMessage);
-        }
-
-        if (
-          !isTokenResponse(tokenData) ||
-          tokenData.token === null ||
-          tokenData.token === undefined ||
-          tokenData.token === ''
-        ) {
-          const errorMessage =
-            'GitHub token not found. Please set your GitHub token in your profile.';
-          setGitHubError(errorMessage);
-          const shouldAddToken = await promptModal({
-            title: 'GitHub Token Required',
-            description:
-              'A GitHub token is required to create files in repositories.\n\nWould you like to add one now?',
-            confirmButtonText: 'Add Token',
-            denyButtonText: 'Cancel',
-          });
-          if (shouldAddToken) {
-            openUserProfile('githubToken');
-          }
-          throw new Error(errorMessage);
-        }
-
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filePath = `dist/test-file-${timestamp}.txt`;
-        const content = `Test file created at ${new Date().toISOString()}\nRepository: ${publicRepoURL}`;
-
-        // Security check: Detect USE_USER_ENV usage before committing to GitHub
-        if (USE_USER_ENV_REGEX.test(content)) {
-          throw new Error(
-            `Cannot commit to GitHub: USE_USER_ENV detected in file content. This would expose your secrets.\n\n` +
-              `File: ${filePath}\n\n` +
-              `Options:\n` +
-              `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
-              `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
-              `3. Use environment variable references in code (process.env.KEY_NAME)`,
-          );
-        }
-
-        const response = await fetch(`${getApiUrl()}/create-github-file`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            publicRepoURL,
-            filePath,
-            content,
-            commitMessage: `Create test file: ${filePath}`,
-          }),
-        });
-
-        const result: unknown = await response.json();
-
-        interface ICreateFileResponse {
-          success?: boolean;
-          message?: string;
-          url?: string;
-          error?: string;
-        }
-
-        const isCreateFileResponse = (
-          val: unknown,
-        ): val is ICreateFileResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val ||
-              'message' in val ||
-              'url' in val ||
-              'error' in val)
-          );
-        };
-
-        if (!response.ok) {
-          const errorMessage = isCreateFileResponse(result)
-            ? (result.error ?? 'Failed to create file')
-            : 'Failed to create file';
-          throw new Error(errorMessage);
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          if (
-            !error.message.includes('GitHub token not found') &&
-            !error.message.includes('Auth0 Management API')
-          ) {
-            setGitHubError(error.message);
-            await promptModal({
-              title: 'Error',
-              description: error.message,
-              confirmButtonText: 'OK',
-              denyButtonText: '',
-            });
-          }
-        } else {
-          const errorMessage = 'An unexpected error occurred';
-          setGitHubError(errorMessage);
-          await promptModal({
-            title: 'Error',
-            description: errorMessage,
-            confirmButtonText: 'OK',
-            denyButtonText: '',
-          });
-        }
-      } finally {
-        setIsCreatingFile(false);
-      }
-    })();
-  };
-
   const handleCreateApp = async () => {
     try {
       // Create formData object from the current state
@@ -1611,6 +1397,7 @@ function FileViewer({
           schemaInfo,
           SQLSchema,
           formData,
+          userMetadata: decryptedMetadata ?? userMetadata ?? null,
         }),
       });
 
@@ -1647,16 +1434,6 @@ function FileViewer({
     }
     if (folderStructure.length === 0) {
       return 'No files to export';
-    }
-    return undefined;
-  };
-
-  const getCreateFileTooltip = (): string | undefined => {
-    if (!hasGitHubToken) {
-      return 'GitHub token required. Click your profile to add one.';
-    }
-    if (!publicRepoURL) {
-      return 'Repository URL required';
     }
     return undefined;
   };
@@ -1712,19 +1489,6 @@ function FileViewer({
           className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
         >
           Create App!
-        </button>
-        <button
-          type="button"
-          onClick={handleCreateTestFile}
-          disabled={isCreatingFile || !publicRepoURL || !hasGitHubToken}
-          title={getCreateFileTooltip()}
-          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-            isCreatingFile || !publicRepoURL || !hasGitHubToken
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
-        >
-          {isCreatingFile ? 'Creating...' : 'Create Test File'}
         </button>
         <button
           type="button"
