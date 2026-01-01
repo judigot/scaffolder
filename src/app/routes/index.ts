@@ -16,6 +16,7 @@ import githubTokenRouter from './githubToken.ts';
 import userMetadataRouter from './userMetadata.ts';
 import saveLocalFileRouter from './saveLocalFile.ts';
 import deleteLocalFileRouter from './deleteLocalFile.ts';
+import healthRouter from './health.ts';
 
 const router = new Hono();
 
@@ -39,5 +40,6 @@ router.route('/github-token', githubTokenRouter);
 router.route('/user-metadata', userMetadataRouter);
 router.route('/save-local-file', saveLocalFileRouter);
 router.route('/delete-local-file', deleteLocalFileRouter);
+router.route('/health', healthRouter);
 
 export default router;

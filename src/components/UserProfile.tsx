@@ -3,6 +3,7 @@ import type { ClipboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/useUser.ts';
 import { useUserStore } from '@/useUserStore.ts';
+import { useUserProfileStore } from '@/useUserProfileStore.ts';
 import { ContextMenu } from '@/components/UI/ContextMenu.tsx';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 import tokenPermissionsImage from '@/assets/images/token-permissions.png';
@@ -139,13 +140,27 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     userMetadata,
     encryptionAvailable,
     isTokenEncrypted,
+    serverConfigStatus,
   } = useUser();
   const { setGithubToken, setUserMetadata: setUserMetadataStore } =
     useUserStore();
+  const {
+    isOpen: storeIsOpen,
+    activePanel: storeActivePanel,
+    closeUserProfile,
+    setActivePanel: setStoreActivePanel,
+  } = useUserProfileStore();
   const [isOpen, setIsOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<
     'home' | 'githubToken' | 'env'
   >('home');
+
+  useEffect(() => {
+    if (storeIsOpen) {
+      setIsOpen(true);
+      setActivePanel(storeActivePanel);
+    }
+  }, [storeIsOpen, storeActivePanel]);
   const [inputValue, setInputValue] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -911,8 +926,15 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
   const closePanel = () => {
     setActivePanel('home');
+    setStoreActivePanel('home');
     resetTokenState();
     resetEnvState();
+    closeUserProfile();
+  };
+
+  const handleSetActivePanel = (panel: 'home' | 'githubToken' | 'env') => {
+    setActivePanel(panel);
+    setStoreActivePanel(panel);
   };
 
   const handleInputChange = (value: string) => {
@@ -1185,9 +1207,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       <div className="relative">
         <button
           onClick={() => {
-            setIsOpen(!isOpen);
             if (!isOpen) {
-              setActivePanel('home');
+              setIsOpen(true);
+            } else {
+              setIsOpen(false);
+              closePanel();
             }
           }}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -1240,52 +1264,59 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       {user?.email ?? 'No email'}
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      resetTokenState();
-                      setActivePanel('githubToken');
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 mt-1 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                      />
-                    </svg>
-                    {githubToken !== null && githubToken !== ''
-                      ? 'Manage GitHub Token'
-                      : 'Add GitHub Token'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      resetEnvState();
-                      setActivePanel('env');
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    Environment Variables
-                  </button>
+                  {!isLoading &&
+                    serverConfigStatus !== null &&
+                    serverConfigStatus.auth0ManagementApiConfigured ===
+                      true && (
+                      <>
+                        <button
+                          onClick={() => {
+                            resetTokenState();
+                            handleSetActivePanel('githubToken');
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 mt-1 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                            />
+                          </svg>
+                          {githubToken !== null && githubToken !== ''
+                            ? 'Manage GitHub Token'
+                            : 'Add GitHub Token'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            resetEnvState();
+                            handleSetActivePanel('env');
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 4v16m8-8H4"
+                            />
+                          </svg>
+                          Environment Variables
+                        </button>
+                      </>
+                    )}
                   <button
                     onClick={logout}
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
@@ -1306,12 +1337,15 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     Logout
                   </button>
                 </div>
-              ) : activePanel === 'githubToken' ? (
+              ) : activePanel === 'githubToken' &&
+                !isLoading &&
+                serverConfigStatus !== null &&
+                serverConfigStatus.auth0ManagementApiConfigured === true ? (
                 <>
                   <div className="p-4 border-b border-gray-700 flex items-center justify-between">
                     <button
                       onClick={() => {
-                        setActivePanel('home');
+                        handleSetActivePanel('home');
                         resetTokenState();
                       }}
                       className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
@@ -1401,12 +1435,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           onChange={(e) => {
                             handleInputChange(e.target.value);
                           }}
-                          placeholder={
-                            isLoading
-                              ? 'Loading...'
-                              : 'ghp_xxxxxxxxxxxxxxxxxxxx'
-                          }
-                          disabled={isLoading || isSaving || isDeleting}
+                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                          disabled={isSaving || isDeleting}
                           className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         />
                         <button
@@ -1415,11 +1445,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             setShowToken(!showToken);
                           }}
                           className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors text-sm"
-                          disabled={
-                            isLoading ||
-                            githubToken === null ||
-                            githubToken === ''
-                          }
+                          disabled={githubToken === null || githubToken === ''}
                         >
                           {showToken ? (
                             <svg
@@ -1524,9 +1550,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       <div className="flex gap-2">
                         <button
                           onClick={handleSave}
-                          disabled={
-                            isSaving || isLoading || inputValue.trim() === ''
-                          }
+                          disabled={isSaving || inputValue.trim() === ''}
                           className="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSaving ? (
@@ -1649,12 +1673,15 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     )}
                   </div>
                 </>
-              ) : (
+              ) : activePanel === 'env' &&
+                !isLoading &&
+                serverConfigStatus !== null &&
+                serverConfigStatus.auth0ManagementApiConfigured === true ? (
                 <>
                   <div className="p-4 border-b border-gray-700 flex items-center justify-between">
                     <button
                       onClick={() => {
-                        setActivePanel('home');
+                        handleSetActivePanel('home');
                         handleEnvCancel();
                       }}
                       className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
@@ -2098,6 +2125,20 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     )}
                   </div>
                 </>
+              ) : (
+                <div className="p-2">
+                  <div className="px-3 py-2 border-b border-gray-700">
+                    <p className="text-sm font-medium text-white">
+                      {user?.name ?? user?.email ?? 'User'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {user?.email ?? 'No email'}
+                    </p>
+                  </div>
+                  <p className="p-4 text-sm text-gray-400 text-center">
+                    These features require Auth0 Management API configuration.
+                  </p>
+                </div>
               )}
             </div>
           </>

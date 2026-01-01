@@ -18,6 +18,7 @@ This directory contains documentation for the project builder system, including 
 #### Template Commands
 
 - **[USE_DATA.md](./USE_DATA.md)** - Access data from external YAML files in templates
+- **[USE_USER_ENV.md](./USE_USER_ENV.md)** - Access user environment variables from Auth0 metadata
 - **[USE_ROWS.md](./USE_ROWS.md)** - Generate database row data (seed + mock) in SQL, CSV, or JSON formats
 - **[PLACEHOLDER_FUNCTIONS.md](./PLACEHOLDER_FUNCTIONS.md)** - Built-in placeholder functions (`index()` and `timestamp()`) for dynamic filename generation
 

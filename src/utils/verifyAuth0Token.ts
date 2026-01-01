@@ -2,8 +2,9 @@ import type { Context, Next } from 'hono';
 import jwt from 'jsonwebtoken';
 import jwksClient, { type JwksClient } from 'jwks-rsa';
 import dotenv from 'dotenv';
+import { resolve } from 'path';
 
-dotenv.config();
+dotenv.config({ path: resolve(process.cwd(), '.env') });
 
 interface IJwtPayloadWithSub extends jwt.JwtPayload {
   sub: string;

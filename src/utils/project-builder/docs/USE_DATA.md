@@ -330,6 +330,6 @@ Output: `Item 1, Item 2, Item 3`
 
 - `LOOP_FOLDERS` - Project action that provides data context for `USE_DATA`
 - `USE_FORM_DATA` - Access form data instead of file data
-- `USE_USER_ENV` - Access user environment variables
+- [USE_USER_ENV](./USE_USER_ENV.md) - Access user environment variables
 - `USE_TEMPLATE` - Include other templates
 

@@ -2,6 +2,44 @@
 
 Rules for maintaining consistent, non-duplicated documentation structure and content.
 
+## ⚠️ CRITICAL: Documentation Type Separation
+
+### `docs/` Folder: User-Facing Documentation Only
+
+**Rule**: The `docs/` folder is **EXCLUSIVELY** for **user-facing documentation** about the Scaffolder application's API, features, and usage. This documentation is for **end users** of the Scaffolder tool.
+
+**What belongs in `docs/`**:
+- ✅ User guides for using Scaffolder
+- ✅ API reference for Scaffolder's templating syntax
+- ✅ Feature documentation for end users
+- ✅ How-to guides for Scaffolder users
+- ✅ Structure documentation for organizing Scaffolder projects
+
+**What does NOT belong in `docs/`**:
+- ❌ Developer documentation about the codebase
+- ❌ Implementation details for contributors
+- ❌ Architecture documentation for developers
+- ❌ Code-level technical documentation
+- ❌ Internal system documentation
+
+### `agents/` Folder: Developer Documentation
+
+**Rule**: Developer documentation, architecture guides, and implementation details for AI agents and developers working on the codebase belong in the `agents/` folder.
+
+**What belongs in `agents/`**:
+- ✅ Context guides for AI agents
+- ✅ Architecture documentation
+- ✅ Implementation details
+- ✅ Codebase structure for developers
+- ✅ Recent changes and technical updates
+
+**Examples**:
+- ✅ `agents/Agent Project Builder.md` - Developer context guide
+- ✅ `agents/Agent Health Check System.md` - Implementation documentation
+- ❌ `docs/documentation/api-reference/health-check/` - Should NOT exist (this is developer docs)
+
+**Rationale**: Clear separation prevents confusion and ensures users find user-facing docs in `docs/` while developers find implementation details in `agents/`.
+
 ## File Structure Rules
 
 ### 1. Folder-Based Pages Only
@@ -347,12 +385,22 @@ Core templates are imported using `$USE_CORE`. See the [API Reference](/document
 
 **Rule**: Use this decision tree to determine where content belongs:
 
-1. **Is it about syntax or API usage?** → API Reference
-2. **Is it about directory/folder organization?** → Structure docs
-3. **Is it about business value or capabilities?** → Introduction/Features
+**First, determine documentation type:**
+- **Is it for end users of Scaffolder?** → `docs/` folder
+- **Is it for developers/contributors working on the codebase?** → `agents/` folder
+
+**Then, for user-facing docs in `docs/`:**
+1. **Is it about syntax or API usage?** → API Reference (`/documentation/api-reference/`)
+2. **Is it about directory/folder organization?** → Structure docs (`/documentation/structure/`)
+3. **Is it about business value or capabilities?** → Introduction/Features (`/introduction/` or `/features/`)
 4. **Does it already exist elsewhere?** → Reference it, don't duplicate
 
-**Rationale**: Clear decision framework prevents duplication.
+**For developer docs in `agents/`:**
+- Architecture guides → `agents/Agent [System Name].md`
+- Implementation details → `agents/Agent [System Name].md`
+- Codebase context → `agents/Agent [System Name].md`
+
+**Rationale**: Clear decision framework prevents duplication and ensures proper documentation type separation.
 
 ## Examples of Correct Structure
 

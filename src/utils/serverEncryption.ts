@@ -91,7 +91,12 @@ export function isEncryptionAvailable(): boolean {
   if (encryptionKey === undefined || encryptionKey === '') {
     return false;
   }
-  if (encryptionKey.length !== 64) {
+  const trimmedKey = encryptionKey.trim();
+  if (trimmedKey.length !== 64) {
+    return false;
+  }
+  const hexRegex = /^[0-9a-fA-F]{64}$/;
+  if (!hexRegex.test(trimmedKey)) {
     return false;
   }
   return true;

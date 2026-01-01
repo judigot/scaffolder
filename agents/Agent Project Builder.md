@@ -236,6 +236,14 @@ if (!match) {
 
 ## Recent Changes
 
+### Graceful Handling of Missing User Metadata
+- Updated `fetchUserMetadata()` in `src/hooks/useUser.ts` to return `null` instead of throwing errors when API fails
+- Updated `App.tsx` to allow project building without requiring `decryptedMetadata !== null`
+- Project builder now works without Auth0 Management API credentials
+- `USE_USER_ENV` placeholders are replaced with empty strings when metadata is unavailable
+- Files using `USE_USER_ENV` are tracked in `filesUsingUserEnv` array for user awareness
+- Added error handling to `/api/user-metadata` endpoint to return proper JSON error responses
+
 ### Ignore Flag with USE_CONSTANT Path Support
 - Added `loadConstantFromPath()` function to load constants from any file path
 - Updated `processMultipleFiles.ts` to support `--ignore` flag with `USE_CONSTANT(path)`

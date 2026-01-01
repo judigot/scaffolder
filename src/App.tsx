@@ -26,7 +26,12 @@ import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
 
 function App() {
   const formData = useFormStore();
-  const { user, userMetadata, isLoading: isUserLoading } = useUser();
+  const {
+    user,
+    userMetadata,
+    isLoading: isUserLoading,
+    serverConfigStatus,
+  } = useUser();
   const { decryptedMetadata, isLoading: isDecryptingMetadata } =
     useDecryptedUserMetadata();
   const {
@@ -103,7 +108,6 @@ function App() {
     if (
       selectedProject !== null &&
       user !== null &&
-      decryptedMetadata !== null &&
       !isUserLoading &&
       !isDecryptingMetadata
     ) {
@@ -274,9 +278,51 @@ function App() {
     }
   }, [publicRepoURL, refetchUserFiles]);
 
+  const showConfigBanner =
+    !isUserLoading &&
+    serverConfigStatus !== null &&
+    serverConfigStatus.auth0ManagementApiConfigured === false;
+
   return (
     <div className="text-white bg-black">
-      <nav className="bg-gray-900 text-white p-2 sticky top-0 z-50 text-center border-b border-gray-700">
+      {showConfigBanner && (
+        <div className="bg-black border-b border-red-700 pt-2 pb-2 px-4 sticky top-0 z-[60]">
+          <div className="flex items-center justify-center gap-2">
+            <svg
+              className="w-4 h-4 text-red-400 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="text-xs text-red-300">
+              <span className="font-medium">Developer Notice:</span> Auth0
+              Management API credentials not configured. User metadata and
+              GitHub token features unavailable. Set{' '}
+              <code className="bg-red-900/50 px-1 py-0.5 rounded text-red-200">
+                AUTH0_MANAGEMENT_API_CLIENT_ID
+              </code>{' '}
+              and{' '}
+              <code className="bg-red-900/50 px-1 py-0.5 rounded text-red-200">
+                AUTH0_MANAGEMENT_API_CLIENT_SECRET
+              </code>{' '}
+              in{' '}
+              <code className="bg-red-900/50 px-1 py-0.5 rounded text-red-200">
+                .env
+              </code>
+            </p>
+          </div>
+        </div>
+      )}
+      <nav
+        className={`bg-gray-900 text-white p-2 sticky text-center border-b border-gray-700 ${
+          showConfigBanner ? 'top-[38px]' : 'top-0'
+        } z-50`}
+      >
         <div className="absolute right-4 top-4 flex items-center gap-3">
           <UserProfile />
         </div>

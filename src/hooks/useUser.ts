@@ -3,9 +3,14 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useUserStore } from '@/useUserStore.ts';
 
+interface IServerConfigStatus {
+  auth0ManagementApiConfigured?: boolean;
+}
+
 interface IUserMetadataResponse {
   success?: boolean;
   metadata?: Record<string, unknown> | null;
+  serverConfigStatus?: IServerConfigStatus;
 }
 
 interface ITokenResponse {
@@ -13,6 +18,10 @@ interface ITokenResponse {
   token?: string | null;
   encryptionAvailable?: boolean;
   isTokenEncrypted?: boolean | null;
+  serverConfigStatus?: IServerConfigStatus;
+  error?: string;
+  message?: string;
+  code?: string;
 }
 
 interface IUser {
@@ -35,6 +44,7 @@ interface IUseUserReturn {
   refreshGitHubToken: () => Promise<void>;
   encryptionAvailable: boolean;
   isTokenEncrypted: boolean | null;
+  serverConfigStatus: IServerConfigStatus | null;
 }
 
 const isMetadataResponse = (val: unknown): val is IUserMetadataResponse => {
@@ -57,7 +67,10 @@ import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 const fetchUserMetadata = async (
   accessToken: string,
-): Promise<Record<string, unknown> | null> => {
+): Promise<{
+  metadata: Record<string, unknown> | null;
+  serverConfigStatus: IServerConfigStatus | null;
+}> => {
   const response = await fetch(`${getApiUrl()}/user-metadata`, {
     method: 'GET',
     headers: {
@@ -67,19 +80,19 @@ const fetchUserMetadata = async (
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Failed to load user metadata: ${String(response.status)} ${response.statusText} ${errorText}`,
-    );
+    return { metadata: null, serverConfigStatus: null };
   }
 
   const result: unknown = await response.json();
 
-  if (isMetadataResponse(result) && result.metadata !== undefined) {
-    return result.metadata;
+  if (isMetadataResponse(result)) {
+    return {
+      metadata: result.metadata ?? null,
+      serverConfigStatus: result.serverConfigStatus ?? null,
+    };
   }
 
-  return null;
+  return { metadata: null, serverConfigStatus: null };
 };
 
 const fetchGitHubToken = async (
@@ -88,6 +101,7 @@ const fetchGitHubToken = async (
   token: string | null;
   encryptionAvailable: boolean;
   isTokenEncrypted: boolean | null;
+  serverConfigStatus: IServerConfigStatus | null;
 }> => {
   const response = await fetch(`${getApiUrl()}/github-token`, {
     method: 'GET',
@@ -102,6 +116,7 @@ const fetchGitHubToken = async (
       token: null,
       encryptionAvailable: false,
       isTokenEncrypted: null,
+      serverConfigStatus: null,
     };
   }
 
@@ -112,6 +127,7 @@ const fetchGitHubToken = async (
       token: result.token ?? null,
       encryptionAvailable: result.encryptionAvailable ?? false,
       isTokenEncrypted: result.isTokenEncrypted ?? null,
+      serverConfigStatus: result.serverConfigStatus ?? null,
     };
   }
 
@@ -119,6 +135,7 @@ const fetchGitHubToken = async (
     token: null,
     encryptionAvailable: false,
     isTokenEncrypted: null,
+    serverConfigStatus: null,
   };
 };
 
@@ -172,7 +189,7 @@ export const useUser = (): IUseUserReturn => {
   };
 
   const {
-    data: metadata,
+    data: metadataResult,
     isLoading: metadataLoading,
     error: metadataError,
   } = useQuery({
@@ -180,12 +197,12 @@ export const useUser = (): IUseUserReturn => {
     queryFn: async () => {
       const accessToken = await getAccessToken();
       if (accessToken === null) {
-        return null;
+        return { metadata: null, serverConfigStatus: null };
       }
 
-      const fetchedMetadata = await fetchUserMetadata(accessToken);
-      setUserMetadata(fetchedMetadata);
-      return fetchedMetadata;
+      const result = await fetchUserMetadata(accessToken);
+      setUserMetadata(result.metadata);
+      return result;
     },
     enabled: isAuthenticated && auth0User?.sub !== undefined,
     staleTime: 5 * 60 * 1000,
@@ -207,6 +224,7 @@ export const useUser = (): IUseUserReturn => {
           token: null,
           encryptionAvailable: false,
           isTokenEncrypted: null,
+          serverConfigStatus: null,
         };
       }
 
@@ -239,9 +257,12 @@ export const useUser = (): IUseUserReturn => {
   const isLoading = auth0Loading || metadataLoading || tokenLoading;
   const error = auth0Error ?? metadataError ?? tokenError ?? null;
 
+  const serverConfigStatus =
+    tokenData?.serverConfigStatus ?? metadataResult?.serverConfigStatus ?? null;
+
   return {
     user: auth0User ?? null,
-    userMetadata: metadata ?? userMetadata,
+    userMetadata: metadataResult?.metadata ?? userMetadata,
     githubToken: tokenData?.token ?? githubToken,
     isLoading,
     isAuthenticated,
@@ -251,5 +272,6 @@ export const useUser = (): IUseUserReturn => {
     refreshGitHubToken,
     encryptionAvailable: tokenData?.encryptionAvailable ?? false,
     isTokenEncrypted: tokenData?.isTokenEncrypted ?? null,
+    serverConfigStatus,
   };
 };

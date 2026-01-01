@@ -4,6 +4,8 @@ import {
   setGitHubToken,
   deleteGitHubToken,
   getUserMetadata,
+  Auth0ManagementApiNotConfiguredError,
+  isAuth0ManagementApiConfigured,
 } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 import {
@@ -48,13 +50,27 @@ router.get('/', async (c) => {
         : null;
     const isTokenEncrypted =
       rawToken !== null && rawToken !== '' && isEncryptedValue(rawToken);
+    const isConfigured = isAuth0ManagementApiConfigured();
     return c.json({
       success: true,
       token: token ?? null,
       encryptionAvailable,
       isTokenEncrypted: rawToken !== null ? isTokenEncrypted : null,
+      serverConfigStatus: {
+        auth0ManagementApiConfigured: isConfigured,
+      },
     });
   } catch (error: unknown) {
+    if (error instanceof Auth0ManagementApiNotConfiguredError) {
+      return c.json(
+        {
+          error: 'Auth0 Management API not configured',
+          message: error.message,
+          code: 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED',
+        },
+        500,
+      );
+    }
     if (error instanceof Error) {
       return c.json(
         {
@@ -116,6 +132,16 @@ router.post('/', async (c) => {
   try {
     await setGitHubToken(auth0UserId, token);
   } catch (error: unknown) {
+    if (error instanceof Auth0ManagementApiNotConfiguredError) {
+      return c.json(
+        {
+          error: 'Auth0 Management API not configured',
+          message: error.message,
+          code: 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED',
+        },
+        500,
+      );
+    }
     if (error instanceof Error) {
       return c.json(
         {
@@ -158,6 +184,16 @@ router.delete('/', async (c) => {
   try {
     await deleteGitHubToken(auth0UserId);
   } catch (error: unknown) {
+    if (error instanceof Auth0ManagementApiNotConfiguredError) {
+      return c.json(
+        {
+          error: 'Auth0 Management API not configured',
+          message: error.message,
+          code: 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED',
+        },
+        500,
+      );
+    }
     if (error instanceof Error) {
       return c.json(
         {

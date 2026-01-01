@@ -28,6 +28,8 @@ import { useFileContent } from '@/hooks/useFileContent.ts';
 import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
+import { useUser } from '@/hooks/useUser.ts';
+import { useUserProfileStore } from '@/useUserProfileStore.ts';
 
 export interface IBase {
   name: string;
@@ -102,11 +104,18 @@ function FileViewer({
   const safeFilesUsingUserEnv = filesUsingUserEnv;
 
   const { getAccessTokenSilently } = useAuth0();
+  const {
+    githubToken,
+    isLoading: isUserLoading,
+    serverConfigStatus,
+  } = useUser();
+  const { openUserProfile } = useUserProfileStore();
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
   const { editValue, newValue, promptModal, openRandomModal } = useModalStore();
   const { selectedProject } = useProjectStore();
   const { userFiles } = useMockDatabaseStore();
+
   const [folderStructure, setFolderStructure] = useState<IStructure>(
     initialFolderStructure,
   );
@@ -127,6 +136,23 @@ function FileViewer({
   const [isCreatingFile, setIsCreatingFile] = useState<boolean>(false);
   const [isCreatingRepository, setIsCreatingRepository] =
     useState<boolean>(false);
+  const [githubError, setGitHubError] = useState<string | null>(null);
+
+  // Only check for GitHub token if Auth0 Management API is configured
+  // If Auth0 Management API is not configured, we can't fetch the token,
+  // so showing "GitHub Token Required" would be misleading
+  const isAuth0Configured =
+    !isUserLoading &&
+    serverConfigStatus !== null &&
+    serverConfigStatus.auth0ManagementApiConfigured === true;
+  const hasGitHubToken =
+    isAuth0Configured && githubToken !== null && githubToken !== '';
+
+  useEffect(() => {
+    if (hasGitHubToken && githubError !== null) {
+      setGitHubError(null);
+    }
+  }, [hasGitHubToken, githubError]);
 
   // Save file content changes - wrapped in useCallback
   const saveFileChanges = useCallback(() => {
@@ -961,6 +987,40 @@ function FileViewer({
         });
 
         if (!tokenResponse.ok) {
+          const errorData: unknown = await tokenResponse.json();
+          interface IErrorResponse {
+            error?: string;
+            message?: string;
+            code?: string;
+          }
+          const isErrorResponse = (val: unknown): val is IErrorResponse => {
+            return (
+              typeof val === 'object' &&
+              val !== null &&
+              ('error' in val || 'message' in val)
+            );
+          };
+          if (
+            isErrorResponse(errorData) &&
+            errorData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
+          ) {
+            const errorMessage =
+              errorData.message ??
+              'Auth0 Management API is not configured on the server.';
+            setGitHubError(errorMessage);
+            await promptModal({
+              title: 'Server Configuration Required',
+              description:
+                'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
+                '• VITE_AUTH0_DOMAIN\n' +
+                '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
+                '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
+                'After setting these, restart the server.',
+              confirmButtonText: 'OK',
+              denyButtonText: '',
+            });
+            throw new Error(errorMessage);
+          }
           throw new Error('Failed to get GitHub token');
         }
 
@@ -968,14 +1028,39 @@ function FileViewer({
         interface ITokenResponse {
           success?: boolean;
           token?: string | null;
+          error?: string;
+          message?: string;
+          code?: string;
         }
         const isTokenResponse = (val: unknown): val is ITokenResponse => {
           return (
             typeof val === 'object' &&
             val !== null &&
-            ('success' in val || 'token' in val)
+            ('success' in val || 'token' in val || 'error' in val)
           );
         };
+
+        if (
+          isTokenResponse(tokenData) &&
+          tokenData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
+        ) {
+          const errorMessage =
+            tokenData.message ??
+            'Auth0 Management API is not configured on the server.';
+          setGitHubError(errorMessage);
+          await promptModal({
+            title: 'Server Configuration Required',
+            description:
+              'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
+              '• VITE_AUTH0_DOMAIN\n' +
+              '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
+              '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
+              'After setting these, restart the server.',
+            confirmButtonText: 'OK',
+            denyButtonText: '',
+          });
+          throw new Error(errorMessage);
+        }
 
         if (
           !isTokenResponse(tokenData) ||
@@ -983,9 +1068,20 @@ function FileViewer({
           tokenData.token === undefined ||
           tokenData.token === ''
         ) {
-          throw new Error(
-            'GitHub token not found. Please set your GitHub token in your profile.',
-          );
+          const errorMessage =
+            'GitHub token not found. Please set your GitHub token in your profile.';
+          setGitHubError(errorMessage);
+          const shouldAddToken = await promptModal({
+            title: 'GitHub Token Required',
+            description:
+              'A GitHub token is required to create repositories.\n\nWould you like to add one now?',
+            confirmButtonText: 'Add Token',
+            denyButtonText: 'Cancel',
+          });
+          if (shouldAddToken) {
+            openUserProfile('githubToken');
+          }
+          throw new Error(errorMessage);
         }
 
         const baseRepoName =
@@ -1245,15 +1341,27 @@ function FileViewer({
         });
       } catch (error: unknown) {
         if (error instanceof Error) {
-          console.error('Failed to export project:', error.message);
-          void promptModal({
+          if (
+            !error.message.includes('GitHub token not found') &&
+            !error.message.includes('Auth0 Management API')
+          ) {
+            setGitHubError(error.message);
+            await promptModal({
+              title: 'Error',
+              description: `Failed to export project: ${error.message}`,
+              confirmButtonText: 'OK',
+              denyButtonText: '',
+            });
+          }
+        } else {
+          const errorMessage = 'An unexpected error occurred';
+          setGitHubError(errorMessage);
+          await promptModal({
             title: 'Error',
-            description: `Failed to export project: ${error.message}`,
+            description: errorMessage,
             confirmButtonText: 'OK',
             denyButtonText: '',
           });
-        } else {
-          console.error('An unexpected error occurred');
         }
       } finally {
         setIsCreatingRepository(false);
@@ -1290,6 +1398,40 @@ function FileViewer({
         });
 
         if (!tokenResponse.ok) {
+          const errorData: unknown = await tokenResponse.json();
+          interface IErrorResponse {
+            error?: string;
+            message?: string;
+            code?: string;
+          }
+          const isErrorResponse = (val: unknown): val is IErrorResponse => {
+            return (
+              typeof val === 'object' &&
+              val !== null &&
+              ('error' in val || 'message' in val)
+            );
+          };
+          if (
+            isErrorResponse(errorData) &&
+            errorData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
+          ) {
+            const errorMessage =
+              errorData.message ??
+              'Auth0 Management API is not configured on the server.';
+            setGitHubError(errorMessage);
+            await promptModal({
+              title: 'Server Configuration Required',
+              description:
+                'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
+                '• VITE_AUTH0_DOMAIN\n' +
+                '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
+                '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
+                'After setting these, restart the server.',
+              confirmButtonText: 'OK',
+              denyButtonText: '',
+            });
+            throw new Error(errorMessage);
+          }
           throw new Error('Failed to get GitHub token');
         }
 
@@ -1297,14 +1439,39 @@ function FileViewer({
         interface ITokenResponse {
           success?: boolean;
           token?: string | null;
+          error?: string;
+          message?: string;
+          code?: string;
         }
         const isTokenResponse = (val: unknown): val is ITokenResponse => {
           return (
             typeof val === 'object' &&
             val !== null &&
-            ('success' in val || 'token' in val)
+            ('success' in val || 'token' in val || 'error' in val)
           );
         };
+
+        if (
+          isTokenResponse(tokenData) &&
+          tokenData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
+        ) {
+          const errorMessage =
+            tokenData.message ??
+            'Auth0 Management API is not configured on the server.';
+          setGitHubError(errorMessage);
+          await promptModal({
+            title: 'Server Configuration Required',
+            description:
+              'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
+              '• VITE_AUTH0_DOMAIN\n' +
+              '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
+              '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
+              'After setting these, restart the server.',
+            confirmButtonText: 'OK',
+            denyButtonText: '',
+          });
+          throw new Error(errorMessage);
+        }
 
         if (
           !isTokenResponse(tokenData) ||
@@ -1312,9 +1479,20 @@ function FileViewer({
           tokenData.token === undefined ||
           tokenData.token === ''
         ) {
-          throw new Error(
-            'GitHub token not found. Please set your GitHub token in your profile.',
-          );
+          const errorMessage =
+            'GitHub token not found. Please set your GitHub token in your profile.';
+          setGitHubError(errorMessage);
+          const shouldAddToken = await promptModal({
+            title: 'GitHub Token Required',
+            description:
+              'A GitHub token is required to create files in repositories.\n\nWould you like to add one now?',
+            confirmButtonText: 'Add Token',
+            denyButtonText: 'Cancel',
+          });
+          if (shouldAddToken) {
+            openUserProfile('githubToken');
+          }
+          throw new Error(errorMessage);
         }
 
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1378,9 +1556,27 @@ function FileViewer({
         }
       } catch (error: unknown) {
         if (error instanceof Error) {
-          console.error('Failed to create file:', error.message);
+          if (
+            !error.message.includes('GitHub token not found') &&
+            !error.message.includes('Auth0 Management API')
+          ) {
+            setGitHubError(error.message);
+            await promptModal({
+              title: 'Error',
+              description: error.message,
+              confirmButtonText: 'OK',
+              denyButtonText: '',
+            });
+          }
         } else {
-          console.error('An unexpected error occurred');
+          const errorMessage = 'An unexpected error occurred';
+          setGitHubError(errorMessage);
+          await promptModal({
+            title: 'Error',
+            description: errorMessage,
+            confirmButtonText: 'OK',
+            denyButtonText: '',
+          });
         }
       } finally {
         setIsCreatingFile(false);
@@ -1442,8 +1638,73 @@ function FileViewer({
     }
   };
 
+  const getButtonTooltip = (): string | undefined => {
+    if (!hasGitHubToken) {
+      return 'GitHub token required. Click your profile to add one.';
+    }
+    if (safeFilesUsingUserEnv.length > 0) {
+      return 'Cannot export: USE_USER_ENV detected in files';
+    }
+    if (folderStructure.length === 0) {
+      return 'No files to export';
+    }
+    return undefined;
+  };
+
+  const getCreateFileTooltip = (): string | undefined => {
+    if (!hasGitHubToken) {
+      return 'GitHub token required. Click your profile to add one.';
+    }
+    if (!publicRepoURL) {
+      return 'Repository URL required';
+    }
+    return undefined;
+  };
+
   return (
     <div className="h-96 p-2" ref={fileViewerRef}>
+      {githubError !== null && githubError !== '' && (
+        <div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-red-400 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="text-sm text-red-200">{githubError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setGitHubError(null);
+              }}
+              className="text-red-400 hover:text-red-300 transition-colors"
+              aria-label="Dismiss error"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex gap-2 mb-2">
         <button
           type="button"
@@ -1455,9 +1716,10 @@ function FileViewer({
         <button
           type="button"
           onClick={handleCreateTestFile}
-          disabled={isCreatingFile || !publicRepoURL}
-          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
-            isCreatingFile || !publicRepoURL
+          disabled={isCreatingFile || !publicRepoURL || !hasGitHubToken}
+          title={getCreateFileTooltip()}
+          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
+            isCreatingFile || !publicRepoURL || !hasGitHubToken
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
           }`}
@@ -1470,26 +1732,99 @@ function FileViewer({
           disabled={
             isCreatingRepository ||
             folderStructure.length === 0 ||
-            safeFilesUsingUserEnv.length > 0
+            safeFilesUsingUserEnv.length > 0 ||
+            !hasGitHubToken
           }
-          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 ${
+          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
             isCreatingRepository ||
             folderStructure.length === 0 ||
-            safeFilesUsingUserEnv.length > 0
+            safeFilesUsingUserEnv.length > 0 ||
+            !hasGitHubToken
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
           }`}
-          title={
-            safeFilesUsingUserEnv.length > 0
-              ? 'Cannot export: USE_USER_ENV detected in files'
-              : undefined
-          }
+          title={getButtonTooltip()}
         >
           {isCreatingRepository
             ? `Exporting ${String(countFiles(folderStructure))} files...`
             : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
         </button>
       </div>
+      {!isUserLoading &&
+        serverConfigStatus !== null &&
+        !hasGitHubToken &&
+        isAuth0Configured && (
+          <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md mb-2 w-fit">
+            <div className="flex items-start gap-2">
+              <svg
+                className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-yellow-300">
+                  GitHub Token Required
+                </p>
+                <p className="text-xs text-yellow-200/80 mt-1 mb-2">
+                  A GitHub Personal Access Token is required to create
+                  repositories and files. Add your token to enable GitHub
+                  operations.
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openUserProfile('githubToken');
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium rounded-md transition-colors shadow-sm"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Add GitHub Token
+                  </button>
+                  <a
+                    href="https://github.com/settings/personal-access-tokens/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-yellow-300 hover:text-yellow-200 underline"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                    Create Token on GitHub
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       {safeFilesUsingUserEnv.length > 0 && (
         <div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md mb-2 w-fit">
           <div className="flex items-start gap-2">
