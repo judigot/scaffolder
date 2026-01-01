@@ -1,6 +1,7 @@
 import type { IFile } from '@/components/FileViewer.tsx';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
+import { sanitizeFileName } from '@/utils/project-builder/helpers/sanitizeFileName.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 import type {
   IActionFlags,
@@ -208,9 +209,12 @@ export const processMultipleFiles = async (
         fileName,
       );
 
-      const outputFileName = processedName.includes('/')
+      let outputFileName = processedName.includes('/')
         ? extractFileNameFromPath(processedName)
         : processedName;
+
+      // Sanitize filename to remove invalid Windows characters
+      outputFileName = sanitizeFileName(outputFileName);
 
       // Track file if template uses USE_USER_ENV
       if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {

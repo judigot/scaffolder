@@ -13,6 +13,11 @@ interface IDatabaseInfo {
   type?: DBTypes; // Optional type field, defaults to postgresql if not provided
 }
 
+interface IErrorWithDetails extends Error {
+  errorLine?: number;
+  errorPosition?: number;
+}
+
 /**
  * Helper function to safely extract table name from database row
  * @param row Database row object
@@ -131,10 +136,17 @@ export const cherryPickTablesToDelete = async (
  * @param SQLSchema Optional SQL schema to apply after database creation
  * @returns Object indicating success or failure with a message
  */
+export interface IDatabaseOperationResult {
+  success: boolean;
+  message: string;
+  errorLine?: number;
+  errorPosition?: number;
+}
+
 export const createOrResetDatabase = async (
   database: IDatabaseInfo | string,
   SQLSchema: string | null = null,
-): Promise<{ success: boolean; message: string }> => {
+): Promise<IDatabaseOperationResult> => {
   try {
     let connectionString: string;
     let extractedDbType: DBTypes;
@@ -221,9 +233,58 @@ export const createOrResetDatabase = async (
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown PostgreSQL error';
-          throw new Error(
+          const errorWithDetails: IErrorWithDetails =
+            error instanceof Error ? error : new Error(String(error));
+
+          // Adjust error line and position to account for prepended dropTableCommands
+          // and deleteTablesQueries that are already in SQLSchema from the store
+          // Only adjust if SQLSchema was provided and error is in the SQLSchema portion
+          let adjustedErrorLine = errorWithDetails.errorLine;
+          let adjustedErrorPosition = errorWithDetails.errorPosition;
+
+          if (
+            SQLSchema !== null &&
+            adjustedErrorLine !== undefined &&
+            adjustedErrorPosition !== undefined
+          ) {
+            const dropTableLines = dropTableCommands.split('\n').length;
+            const dropTableCharCount = dropTableCommands.length + 1; // +1 for the newline
+
+            // Extract deleteTablesQueries from SQLSchema (they're at the beginning)
+            // The SQLSchema format is: deleteTablesQueries.join('\n') + '\n\n' + actualSchema
+            const deleteTablesQueriesMatch =
+              /^(DROP TABLE IF EXISTS[^\n]+\n?)+/.exec(SQLSchema);
+            const deleteTablesQueries = deleteTablesQueriesMatch?.[0] ?? '';
+            const deleteTablesLines =
+              deleteTablesQueries !== ''
+                ? deleteTablesQueries
+                    .split('\n')
+                    .filter((line) => line.trim() !== '').length
+                : 0;
+            const deleteTablesCharCount = deleteTablesQueries.length;
+
+            // Total offset: dropTableCommands + deleteTablesQueries + newlines between them
+            const totalOffsetLines = dropTableLines + deleteTablesLines;
+            const totalOffsetChars = dropTableCharCount + deleteTablesCharCount;
+
+            // If error is after both dropTableCommands and deleteTablesQueries, adjust
+            if (adjustedErrorPosition > totalOffsetChars) {
+              adjustedErrorLine = adjustedErrorLine - totalOffsetLines;
+              adjustedErrorPosition = adjustedErrorPosition - totalOffsetChars;
+            }
+            // If error is in dropTableCommands or deleteTablesQueries, set to null
+            else {
+              adjustedErrorLine = undefined;
+              adjustedErrorPosition = undefined;
+            }
+          }
+
+          const enhancedError: IErrorWithDetails = new Error(
             `Failed to execute PostgreSQL commands: ${errorMessage}`,
           );
+          enhancedError.errorLine = adjustedErrorLine;
+          enhancedError.errorPosition = adjustedErrorPosition;
+          throw enhancedError;
         }
       }
     } else {
@@ -244,7 +305,59 @@ export const createOrResetDatabase = async (
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown MySQL error';
-          throw new Error(`Failed to execute MySQL commands: ${errorMessage}`);
+          const errorWithDetails: IErrorWithDetails =
+            error instanceof Error ? error : new Error(String(error));
+
+          // Adjust error line and position to account for prepended dropTableCommands
+          // and deleteTablesQueries that are already in SQLSchema from the store
+          // Only adjust if SQLSchema was provided and error is in the SQLSchema portion
+          let adjustedErrorLine = errorWithDetails.errorLine;
+          let adjustedErrorPosition = errorWithDetails.errorPosition;
+
+          if (
+            SQLSchema !== null &&
+            adjustedErrorLine !== undefined &&
+            adjustedErrorPosition !== undefined
+          ) {
+            const dropTableLines = dropTableCommands.split('\n').length;
+            const dropTableCharCount = dropTableCommands.length + 1; // +1 for the newline
+
+            // Extract deleteTablesQueries from SQLSchema (they're at the beginning)
+            // The SQLSchema format is: deleteTablesQueries.join('\n') + '\n\n' + actualSchema
+            // For MySQL, the pattern might be slightly different (backticks instead of quotes)
+            const deleteTablesQueriesMatch =
+              /^(DROP TABLE IF EXISTS[^\n]+\n?)+/.exec(SQLSchema);
+            const deleteTablesQueries = deleteTablesQueriesMatch?.[0] ?? '';
+            const deleteTablesLines =
+              deleteTablesQueries !== ''
+                ? deleteTablesQueries
+                    .split('\n')
+                    .filter((line) => line.trim() !== '').length
+                : 0;
+            const deleteTablesCharCount = deleteTablesQueries.length;
+
+            // Total offset: dropTableCommands + deleteTablesQueries + newlines between them
+            const totalOffsetLines = dropTableLines + deleteTablesLines;
+            const totalOffsetChars = dropTableCharCount + deleteTablesCharCount;
+
+            // If error is after both dropTableCommands and deleteTablesQueries, adjust
+            if (adjustedErrorPosition > totalOffsetChars) {
+              adjustedErrorLine = adjustedErrorLine - totalOffsetLines;
+              adjustedErrorPosition = adjustedErrorPosition - totalOffsetChars;
+            }
+            // If error is in dropTableCommands or deleteTablesQueries, set to null
+            else {
+              adjustedErrorLine = undefined;
+              adjustedErrorPosition = undefined;
+            }
+          }
+
+          const enhancedError: IErrorWithDetails = new Error(
+            `Failed to execute MySQL commands: ${errorMessage}`,
+          );
+          enhancedError.errorLine = adjustedErrorLine;
+          enhancedError.errorPosition = adjustedErrorPosition;
+          throw enhancedError;
         }
       }
     }
@@ -258,12 +371,16 @@ export const createOrResetDatabase = async (
     };
   } catch (error) {
     console.error('Database operation error:', error);
+    const errorWithDetails: IErrorWithDetails =
+      error instanceof Error ? error : new Error(String(error));
     return {
       success: false,
       message:
         error instanceof Error
           ? error.message
           : 'Unknown database operation error',
+      errorLine: errorWithDetails.errorLine,
+      errorPosition: errorWithDetails.errorPosition,
     };
   }
 };

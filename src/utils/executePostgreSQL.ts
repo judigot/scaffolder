@@ -1,5 +1,18 @@
 import Pool from 'pg-pool';
 
+export interface IPostgreSQLExecutionResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  errorLine?: number;
+  errorPosition?: number;
+}
+
+interface IErrorWithDetails extends Error {
+  errorLine?: number;
+  errorPosition?: number;
+}
+
 export const executePostgreSQL = async (
   connectionString: string,
   query: string,
@@ -20,33 +33,34 @@ export const executePostgreSQL = async (
 
     // Extract error details from pg error object
     let errorMessage = 'Unknown PostgreSQL error';
+    let errorLine: number | undefined;
+    let errorPosition: number | undefined;
+
+    // Check if error has position property (pg library error objects have this)
+    interface IPgError extends Error {
+      position?: number;
+      detail?: string;
+      hint?: string;
+    }
 
     if (err instanceof Error) {
       errorMessage = err.message;
-
-      // Check if error has position property (pg library error objects have this)
-      interface IPgError extends Error {
-        position?: number;
-        detail?: string;
-        hint?: string;
-      }
-
       const pgError: IPgError = err;
 
       if (pgError.position !== undefined) {
-        const position = pgError.position;
+        errorPosition = pgError.position;
         // Calculate line number from character position
         const linesBeforePosition = query
-          .substring(0, position - 1)
+          .substring(0, errorPosition - 1)
           .split('\n');
-        const lineNumber = linesBeforePosition.length;
+        errorLine = linesBeforePosition.length;
 
         // If error message doesn't already include line number, add it
         if (!errorMessage.includes('LINE')) {
-          errorMessage = `${errorMessage} (at line ${String(lineNumber)}, position ${String(position)})`;
+          errorMessage = `${errorMessage} (at line ${String(errorLine)}, position ${String(errorPosition)})`;
         } else {
           // If it already has LINE, ensure we also show position if available
-          errorMessage = `${errorMessage} (position ${String(position)})`;
+          errorMessage = `${errorMessage} (position ${String(errorPosition)})`;
         }
       }
 
@@ -59,6 +73,11 @@ export const executePostgreSQL = async (
       }
     }
 
-    throw new Error(`PostgreSQL error: ${errorMessage}`);
+    const error: IErrorWithDetails = new Error(
+      `PostgreSQL error: ${errorMessage}`,
+    );
+    error.errorLine = errorLine;
+    error.errorPosition = errorPosition;
+    throw error;
   }
 };

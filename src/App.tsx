@@ -5,6 +5,7 @@ import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import { useModalStore as useSQLModalStore } from '@/useModalStore.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import type { IGenerationStatus } from '@/interfaces/IGenerationStatus.ts';
+import { SQLErrorModal } from '@/components/SQLErrorModal.tsx';
 
 import { consolidateInterfaces } from '@/utils/common.ts';
 import FileViewer from '@/components/FileViewer.tsx';
@@ -507,6 +508,7 @@ function App() {
                           name: selectedProject.name,
                           content: selectedProject.content,
                           type: selectedProject.type,
+                          uniqueId: selectedProject.uniqueId,
                         }
                       : null,
                   };
@@ -569,6 +571,24 @@ function App() {
                           data.errorMessage === null)
                           ? data.errorMessage
                           : null,
+                      sqlSchema:
+                        'sqlSchema' in data &&
+                        (typeof data.sqlSchema === 'string' ||
+                          data.sqlSchema === null)
+                          ? data.sqlSchema
+                          : null,
+                      errorLine:
+                        'errorLine' in data &&
+                        (typeof data.errorLine === 'number' ||
+                          data.errorLine === null)
+                          ? data.errorLine
+                          : null,
+                      errorPosition:
+                        'errorPosition' in data &&
+                        (typeof data.errorPosition === 'number' ||
+                          data.errorPosition === null)
+                          ? data.errorPosition
+                          : null,
                     };
 
                     setGenerationStatus(status);
@@ -578,12 +598,34 @@ function App() {
                       status.errorMessage !== null &&
                       status.errorMessage !== ''
                     ) {
-                      await promptModal({
-                        title: 'Generation Error',
-                        description: status.errorMessage,
-                        confirmButtonText: 'OK',
-                        denyButtonText: '',
-                      });
+                      // Use SQLErrorModal if SQL schema and error details are available
+                      if (
+                        status.sqlSchema !== null &&
+                        status.errorLine !== null &&
+                        status.errorLine !== undefined &&
+                        status.errorLine > 0
+                      ) {
+                        const { openRandomModal } = useModalStore.getState();
+                        openRandomModal({
+                          title: 'SQL Error',
+                          content: (
+                            <SQLErrorModal
+                              errorMessage={status.errorMessage}
+                              sqlSchema={status.sqlSchema ?? null}
+                              errorLine={status.errorLine ?? null}
+                              errorPosition={status.errorPosition ?? null}
+                            />
+                          ),
+                          size: 'medium',
+                        });
+                      } else {
+                        await promptModal({
+                          title: 'Generation Error',
+                          description: status.errorMessage,
+                          confirmButtonText: 'OK',
+                          denyButtonText: '',
+                        });
+                      }
                     }
                   } else {
                     throw new Error('Invalid response format from server');

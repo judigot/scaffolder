@@ -260,6 +260,81 @@ FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableName}}.sql --templa
 - `2024-01-15_001_users.sql`
 - `2024-01-15_002_posts.sql`
 
+## Filename Sanitization
+
+### Enterprise-Grade Cross-Platform Compatibility
+
+All generated filenames are automatically sanitized using enterprise-grade validation to ensure compatibility across Windows, Linux, and macOS filesystems. This protects against security vulnerabilities and filesystem errors.
+
+### Security Features
+
+#### Invalid Character Handling
+
+- **Colons (`:`)** → Replaced with hyphens (`-`) - Common in ISO 8601 timestamps
+- **Other invalid characters** (`<`, `>`, `"`, `|`, `?`, `*`, `/`, `\`) → Removed
+- **Control characters** (0x00-0x1F, 0x80-0x9F) → Removed to prevent injection attacks
+
+#### Reserved Filename Protection
+
+Windows reserved filenames are automatically prefixed with underscore:
+- **Device names**: `CON`, `PRN`, `AUX`, `NUL`
+- **Serial ports**: `COM1` through `COM9`
+- **Parallel ports**: `LPT1` through `LPT9`
+
+Case-insensitive matching ensures protection regardless of capitalization.
+
+#### Edge Case Handling
+
+- **Trailing periods/spaces** → Removed (invalid on Windows)
+- **Leading periods/spaces** → Removed
+- **Multiple consecutive dots** → Collapsed to single dot
+- **Empty filenames** → Defaults to `file`
+- **Length limits** → Truncated to 255 characters (preserving extension)
+
+### Example
+
+When using the default ISO 8601 timestamp format:
+
+```yaml
+FILE_LOOP({{timestamp}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+```
+
+**Generated filename (before sanitization):**
+- `2026-01-01T17:45:31.646Z_product.sql` ❌ (contains colons, invalid on Windows)
+
+**Generated filename (after sanitization):**
+- `2026-01-01T17-45-31.646Z_product.sql` ✅ (colons replaced with hyphens)
+
+### Custom Format Recommendations
+
+To avoid sanitization, use formats that don't include colons:
+
+```yaml
+# ✅ Good - No colons
+FILE_LOOP({{timestamp('YYYY-MM-DD-HHmmss')}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+# Output: 2026-01-01-174531_product.sql
+
+# ✅ Good - Underscores instead of colons
+FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+# Output: 2026_01_01_174531_product.sql
+
+# ⚠️ Will be sanitized - Contains colons
+FILE_LOOP({{timestamp('YYYY-MM-DD HH:mm:ss')}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+# Output: 2026-01-01 17-45-31_product.sql (colons replaced)
+```
+
+### Security Considerations
+
+The sanitization function protects against:
+
+1. **Path Traversal**: Invalid path separators (`/`, `\`) are removed
+2. **Control Character Injection**: Non-printable characters are stripped
+3. **Reserved Name Conflicts**: Windows device names are prefixed
+4. **Filesystem Limits**: Filenames are truncated to safe lengths
+5. **Empty/Invalid Names**: Fallback to safe default names
+
+This ensures that user-generated filenames (including from `USE_USER_ENV` and `USE_FORM_DATA`) cannot cause filesystem errors or security vulnerabilities.
+
 ## Security Considerations
 
 ### Input Sanitization

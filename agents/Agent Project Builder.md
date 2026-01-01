@@ -51,6 +51,13 @@ The project-builder is a code generation system that scaffolds project files fro
   - Efficient for selective rebuilds when only specific files need updating (e.g., files using `USE_USER_ENV`)
   - Used for optimizing rebuilds when metadata changes
 
+#### 5. Helpers (`helpers/`)
+- **`sanitizeFileName.ts`**: Enterprise-grade filename and folder name sanitization
+  - Removes invalid characters, control characters, and reserved Windows filenames
+  - Ensures cross-platform compatibility (Windows, Linux, macOS)
+  - Applied to all generated filenames and folder names throughout the system
+  - See "Enterprise-Grade Filename and Folder Name Sanitization" in Recent Changes for details
+
 ## Project Actions
 
 ### FILE_LOOP
@@ -274,4 +281,26 @@ if (!match) {
 - Both endpoints generate identical file structures using the same `buildProjectFiles()` function
 - Use `/scaffold` when you need database setup and backend validation
 - Use `/create-local-files` when you only need file generation
+
+### Enterprise-Grade Filename and Folder Name Sanitization
+- **Implementation**: `src/utils/project-builder/helpers/sanitizeFileName.ts`
+- **Purpose**: Protects against filesystem errors and security vulnerabilities from user-generated filenames
+- **Coverage**: Applied to all generated filenames AND folder names across the entire project builder system
+- **Security Features**:
+  - Removes control characters (0x00-0x1F, 0x80-0x9F) to prevent injection attacks
+  - Removes invalid filesystem characters (`<`, `>`, `"`, `|`, `?`, `*`, `/`, `\`)
+  - Replaces colons (`:`) with hyphens (`-`) for Windows compatibility (common in ISO 8601 timestamps)
+  - Handles Windows reserved filenames (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`) by prefixing with underscore
+  - Removes trailing/leading periods and spaces (invalid on Windows)
+  - Enforces 255-character filename limit (preserving extension)
+  - Defaults empty filenames to `file`
+- **Where Applied**:
+  - `FILE_LOOP` commands: Filenames sanitized in `processMultipleFiles.ts`
+  - `CREATE_FILE` commands: Filenames sanitized in `processYamlStructure.ts`
+  - `LOOP_FOLDERS` commands: Filenames sanitized in `processLoopFolders.ts`
+  - Regular folder names: Sanitized in `processYamlStructure.ts` (conditional folders)
+  - `FOLDER_LOOP` commands: Folder names sanitized in `processDynamicFolders.ts`
+- **Testing**: Comprehensive test suite in `src/tests/utils/project-builder/helpers/sanitizeFileName.test.ts` with 31 test cases covering all edge cases
+- **User Documentation**: See `src/utils/project-builder/docs/PLACEHOLDER_FUNCTIONS.md` for user-facing documentation
+- **Note**: This is a production-grade security feature that ensures cross-platform compatibility and prevents filesystem errors from malicious or malformed user input
 

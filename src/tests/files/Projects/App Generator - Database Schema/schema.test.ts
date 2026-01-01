@@ -1255,12 +1255,13 @@ timestamp-migrations:
           const fileNames = files.map((item) => item.name);
 
           // Check that filenames are processed (ISO 8601 format)
+          // Note: Colons are sanitized to hyphens for Windows compatibility
           fileNames.forEach((fileName) => {
             expect(fileName).not.toContain('{{timestamp');
             expect(fileName).not.toContain('{{timestamp(');
-            // ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sssZ
+            // ISO 8601 format sanitized: YYYY-MM-DDTHH-mm-ss.sssZ (colons replaced with hyphens)
             expect(fileName).toMatch(
-              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z_[a-z_]+\.sql$/,
+              /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z_[a-z_]+\.sql$/,
             );
           });
         }

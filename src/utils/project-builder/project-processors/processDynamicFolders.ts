@@ -8,6 +8,7 @@ import {
   findFilesMatchingGlob,
   createDataContextReplacements,
 } from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { sanitizeFileName } from '@/utils/project-builder/helpers/sanitizeFileName.ts';
 
 export const processDynamicFolders = async (
   ctx: IBuildContext,
@@ -36,10 +37,11 @@ export const processDynamicFolders = async (
           match.folderPath,
         );
 
-        const processedName = replacePlaceholders(folderName, replacements, {
+        let processedName = replacePlaceholders(folderName, replacements, {
           ...ctx,
           dataContext: augmentedData,
         });
+        processedName = sanitizeFileName(processedName);
 
         const newPath =
           currentPath === ''
@@ -66,10 +68,11 @@ export const processDynamicFolders = async (
     schemaInfo.map(async (table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
-      const processedName = replacePlaceholders(folderName, replacements, {
+      let processedName = replacePlaceholders(folderName, replacements, {
         ...ctx,
         table,
       });
+      processedName = sanitizeFileName(processedName);
 
       const newPath =
         currentPath === '' ? processedName : `${currentPath}/${processedName}`;

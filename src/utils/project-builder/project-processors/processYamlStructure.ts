@@ -1,5 +1,6 @@
 import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
+import { sanitizeFileName } from '@/utils/project-builder/helpers/sanitizeFileName.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
@@ -155,9 +156,10 @@ export const processYamlStructure = async (
           command,
         );
 
-        const outputFileName = processedName.includes('/')
+        let outputFileName = processedName.includes('/')
           ? extractFileNameFromPath(processedName)
           : processedName;
+        outputFileName = sanitizeFileName(outputFileName);
 
         if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
           onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
@@ -234,9 +236,10 @@ export const processYamlStructure = async (
         );
 
         // Extract the base filename from the processed path if it contains slashes
-        const outputFileName = processedName.includes('/')
+        let outputFileName = processedName.includes('/')
           ? extractFileNameFromPath(processedName)
           : processedName;
+        outputFileName = sanitizeFileName(outputFileName);
 
         if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
           onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
@@ -716,7 +719,8 @@ export const processYamlStructure = async (
 
         // Handle conditional folders
         const { name, conditions } = parseConditionalFolder(key);
-        const folderName = name.replace(/[()]/g, '');
+        let folderName = name.replace(/[()]/g, '');
+        folderName = sanitizeFileName(folderName);
         const newPath =
           currentPath === '' ? folderName : `${currentPath}/${folderName}`;
 
@@ -849,9 +853,10 @@ export const processYamlStructure = async (
                 table: schemaInfoProcessed,
               },
             );
-            const outputFileName = processedName.includes('/')
+            let outputFileName = processedName.includes('/')
               ? extractFileNameFromPath(processedName)
               : processedName.replace(/[()]/g, '');
+            outputFileName = sanitizeFileName(outputFileName);
 
             if (
               USE_USER_ENV_REGEX.test(templateContent) &&

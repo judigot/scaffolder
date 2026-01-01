@@ -28,6 +28,12 @@ export const createFolderStructure = ({
     if (item.type === 'file') {
       const filePath = path.join(targetDirectory, item.name);
 
+      // Ensure parent directory exists before writing file
+      const parentDir = path.dirname(filePath);
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
+
       if (item.isBinary === true) {
         const binaryData = Buffer.from(item.content, 'base64');
         fs.writeFileSync(filePath, binaryData);

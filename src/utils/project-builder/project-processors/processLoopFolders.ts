@@ -1,6 +1,7 @@
 import type { IFile } from '@/components/FileViewer.tsx';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
+import { sanitizeFileName } from '@/utils/project-builder/helpers/sanitizeFileName.ts';
 import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
 import type {
   IActionFlags,
@@ -89,9 +90,10 @@ export const processLoopFolders = async (
         dataContext: augmentedData,
       });
 
-      const outputFileName = processedName.includes('/')
+      let outputFileName = processedName.includes('/')
         ? extractFileNameFromPath(processedName)
         : processedName;
+      outputFileName = sanitizeFileName(outputFileName);
 
       const processedContent = replacePlaceholders(
         templateContent,

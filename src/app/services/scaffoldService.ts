@@ -34,23 +34,30 @@ export const scaffoldService = async (
     selectedProject,
   } = formData;
 
-  const __dirname = path.dirname(new URL(import.meta.url).pathname);
-  const backendDirPath = path.resolve(__dirname, backendDir);
+  // Resolve backendDir - if it's already absolute, use it as-is; otherwise resolve from current working directory
+  const backendDirPath = path.isAbsolute(backendDir)
+    ? backendDir
+    : path.resolve(process.cwd(), backendDir);
 
   let isDBConnectionValid = false;
   let isBackendUrlValid = false;
   let errorMessage: string | null = null;
+  let errorLine: number | null = null;
+  let errorPosition: number | null = null;
   const isBackendDirValid = backendDir !== '' && fs.existsSync(backendDirPath);
   const isFrontendDirValid = true; // Not used in project builder, but kept for response compatibility
 
-  // Extract projectName from formData or use default
+  // Extract projectName and projectPath from formData or use default
+  // Use the same logic as preview: use uniqueId if available, otherwise use folder-based path
   let projectName = 'my-app';
+  let projectPath = '/Projects/my-app/structure.yaml';
 
   if (
     typeof formData.projectName === 'string' &&
     formData.projectName.trim() !== ''
   ) {
     projectName = formData.projectName;
+    projectPath = `/Projects/${projectName}/structure.yaml`;
   } else if (selectedProject !== null && selectedProject !== undefined) {
     if (
       typeof selectedProject === 'object' &&
@@ -59,6 +66,16 @@ export const scaffoldService = async (
       selectedProject.name.trim() !== ''
     ) {
       projectName = selectedProject.name;
+      // Use uniqueId if available (same as preview), otherwise use folder-based path
+      if (
+        'uniqueId' in selectedProject &&
+        typeof selectedProject.uniqueId === 'string' &&
+        selectedProject.uniqueId.trim() !== ''
+      ) {
+        projectPath = selectedProject.uniqueId;
+      } else {
+        projectPath = `/Projects/${projectName}/structure.yaml`;
+      }
     }
   }
 
@@ -86,6 +103,8 @@ export const scaffoldService = async (
       if (!dbResult.success) {
         console.error('Error executing database command:', dbResult.message);
         errorMessage = `Database operation failed: ${dbResult.message}`;
+        errorLine = dbResult.errorLine ?? null;
+        errorPosition = dbResult.errorPosition ?? null;
       }
     } catch (error: unknown) {
       const errorMsg =
@@ -136,8 +155,9 @@ export const scaffoldService = async (
     }
 
     // Build project files using the project builder (same as createLocalFilesService)
+    // Use projectPath which respects uniqueId if available (same as preview)
     const buildResult = await buildProjectFiles(
-      `/Projects/${projectName}/structure.yaml`,
+      projectPath,
       userFiles,
       schemaInfo,
       formData,
@@ -150,10 +170,19 @@ export const scaffoldService = async (
     }
 
     // Use the utility function to create folder structure
-    createFolderStructure({
-      structure: buildResult.structure,
-      targetDirectory: backendDirPath,
-    });
+    try {
+      createFolderStructure({
+        structure: buildResult.structure,
+        targetDirectory: backendDirPath,
+      });
+    } catch (fileError) {
+      const fileErrorMessage =
+        fileError instanceof Error ? fileError.message : 'Unknown file error';
+      console.error('Error creating folder structure:', fileError);
+      throw new Error(
+        `Failed to create files in ${backendDirPath}: ${fileErrorMessage}`,
+      );
+    }
 
     // Set backend URL status only after the files are created
     isBackendUrlValid = await checkBackendUrlValidity(backendUrl, schemaInfo);
@@ -164,6 +193,9 @@ export const scaffoldService = async (
       isFrontendDirValid,
       isDBConnectionValid,
       errorMessage,
+      sqlSchema: SQLSchema,
+      errorLine,
+      errorPosition,
     };
   } catch (error) {
     const errorMsg =
@@ -175,6 +207,9 @@ export const scaffoldService = async (
       isFrontendDirValid,
       isDBConnectionValid,
       errorMessage: errorMessage ?? `Project generation failed: ${errorMsg}`,
+      sqlSchema: SQLSchema ?? null,
+      errorLine: errorLine ?? null,
+      errorPosition: errorPosition ?? null,
     };
   }
 };
