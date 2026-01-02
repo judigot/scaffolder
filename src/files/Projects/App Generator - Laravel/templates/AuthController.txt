@@ -130,7 +130,7 @@ class AuthController extends BaseController
     }
 
     /**
-     * User-specific access.111
+     * User-specific access
      */
     public function user()
     {
