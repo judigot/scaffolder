@@ -74,7 +74,12 @@ function App() {
   // });
 
   // Use both stores
-  const { setUserFiles, typeMappings, dbTypes } = useMockDatabaseStore();
+  const {
+    setUserFiles,
+    typeMappings,
+    dbTypes,
+    userFiles: storeUserFiles,
+  } = useMockDatabaseStore();
 
   const {
     projects,
@@ -106,8 +111,23 @@ function App() {
     filesFailedToFormat: IFailedFormatEntry[];
   }>({ structure: [], filesUsingUserEnv: [], filesFailedToFormat: [] });
 
+  /**
+   * Builds project files when all prerequisites are met.
+   *
+   * Performance optimization: Checks that userFiles are loaded before triggering
+   * the build process. This prevents unnecessary async work when the app reloads
+   * and selectedProject is restored from localStorage before userFiles are fetched.
+   *
+   * The effect automatically rebuilds when userFiles become available (via storeUserFiles
+   * dependency), ensuring the project builds as soon as data is ready.
+   */
   useEffect(() => {
-    if (selectedProject !== null && user !== null) {
+    const hasSelectedProject = selectedProject !== null;
+    const hasUser = user !== null;
+    const hasUserFiles = storeUserFiles.length > 0;
+    const canBuildProject = hasSelectedProject && hasUser && hasUserFiles;
+
+    if (canBuildProject) {
       // Build immediately, even if metadata is still loading
       // The builder works gracefully with null metadata (replaces USE_USER_ENV with empty strings)
       // When metadata becomes available, cache invalidation will trigger a rebuild
@@ -132,6 +152,7 @@ function App() {
     decryptedMetadata,
     buildProjectFilesForProject,
     schemaInfo,
+    storeUserFiles,
   ]);
 
   const builtProjectFiles = buildResult.structure;

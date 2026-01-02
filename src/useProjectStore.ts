@@ -161,7 +161,12 @@ export const useProjectStore = create<IProjectStore>()(
       },
 
       /**
-       * Builds the files for a project, using cache if available
+       * Builds the files for a project, using cache if available.
+       *
+       * Performance optimization: Returns early if userFiles are not loaded to avoid
+       * unnecessary computation (YAML parsing, file searching, structure processing).
+       * This prevents wasted CPU cycles when the app reloads and selectedProject is
+       * restored from localStorage before userFiles are fetched from the API.
        */
       buildProjectFilesForProject: async (
         project: IFile,
@@ -181,6 +186,32 @@ export const useProjectStore = create<IProjectStore>()(
         }
         // Get all user files
         const { userFiles: allUserFiles } = useMockDatabaseStore.getState();
+
+        // Performance optimization: Early return if userFiles are not loaded
+        // Prevents unnecessary build pipeline execution when data isn't ready
+        const hasNoUserFiles = allUserFiles.length === 0;
+        if (hasNoUserFiles) {
+          return {
+            structure: [
+              {
+                type: 'file',
+                name: 'user-files-not-loaded.log',
+                content: [
+                  '⏳ USER FILES NOT LOADED',
+                  '',
+                  '📅 Timestamp:',
+                  new Date().toISOString(),
+                  '',
+                  '💡 Suggestion:',
+                  'User files are still loading. Please wait for the files to load before building the project.',
+                  '',
+                ].join('\n'),
+              },
+            ],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          };
+        }
 
         // Get form data
         const formData = useFormStore.getState();

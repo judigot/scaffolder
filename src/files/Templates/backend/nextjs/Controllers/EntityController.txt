@@ -11,7 +11,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Get a single {{tableName}} by ID (READ).
+   * 22 Get a single {{tableName}} by ID (READ).
    */
   async show({{getPrimaryKey()}}: number) {
     return prisma.{{tableName}}.findUnique({
@@ -31,7 +31,7 @@ export const {{tableNamePascalCase}} = {
   /**
    * Update a {{tableName}} by ID (UPDATE).
    */
-  async update({{getPrimaryKey()}}: number, data: Partial<{{tableName}}>) {
+222  async update({{getPrimaryKey()}}: number, data: Partial<{{tableName}}>) {
     return prisma.{{tableName}}.update({
       where: { {{getPrimaryKey()}} },
       data,

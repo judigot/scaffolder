@@ -304,3 +304,16 @@ if (!match) {
 - **User Documentation**: See `src/utils/project-builder/docs/PLACEHOLDER_FUNCTIONS.md` for user-facing documentation
 - **Note**: This is a production-grade security feature that ensures cross-platform compatibility and prevents filesystem errors from malicious or malformed user input
 
+### Early Return Performance Optimization for User Files Loading
+- **Problem**: Race condition on app reload where `selectedProject` is restored from localStorage before `userFiles` are fetched, causing unnecessary build attempts
+- **Solution**: Two-level early return strategy implemented in `App.tsx` and `useProjectStore.ts`
+- **Component Level** (`App.tsx`): `useEffect` checks prerequisites (`hasSelectedProject`, `hasUser`, `hasUserFiles`) before triggering build
+  - Prevents unnecessary async function calls when data isn't ready
+  - Automatically rebuilds when `userFiles` become available via dependency array
+- **Store Level** (`useProjectStore.ts`): `buildProjectFilesForProject` returns early if `userFiles` are empty
+  - Prevents expensive operations (YAML parsing, file searching, structure processing)
+  - Returns immediately with clear error message instead of going through entire build pipeline
+- **Performance Impact**: Eliminates wasted CPU cycles by avoiding build pipeline execution when prerequisites aren't met
+- **Implementation**: Uses descriptive boolean variables (`hasSelectedProject`, `hasUser`, `hasUserFiles`, `canBuildProject`, `hasNoUserFiles`) for readability
+- **Documentation**: See `src/utils/project-builder/docs/PERFORMANCE_OPTIMIZATIONS.md` for detailed documentation
+

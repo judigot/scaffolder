@@ -15,6 +15,10 @@ This directory contains documentation for the project builder system, including 
 
 - **[CONTEXT_PATTERN.md](./CONTEXT_PATTERN.md)** - Build context object pattern for managing shared state
 
+#### Performance
+
+- **[PERFORMANCE_OPTIMIZATIONS.md](./PERFORMANCE_OPTIMIZATIONS.md)** - Performance optimizations and early return strategies
+
 #### Template Commands
 
 - **[USE_DATA.md](./USE_DATA.md)** - Access data from external YAML files in templates

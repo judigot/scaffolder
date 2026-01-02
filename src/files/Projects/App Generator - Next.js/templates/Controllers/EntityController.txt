@@ -4,14 +4,14 @@ import { {{tableName}} } from '@prisma/client';
 
 export const {{tableNamePascalCase}} = {
   /**
-   * Get all {{tableName}}s (READ).
+   * Get all {{tableNamePhraseCase}}s (READ).
    */
   async index() {
     return prisma.{{tableName}}.findMany();
   },
 
   /**
-   * Get a single {{tableName}} by ID (READ).
+   * Get a single {{tableNamePhraseCase}} by ID (READ).
    */
   async show({{getPrimaryKey()}}: number) {
     return prisma.{{tableName}}.findUnique({
@@ -20,7 +20,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Create a new {{tableName}} (CREATE).
+   * Create a new {{tableNamePhraseCase}} (CREATE).
    */
   async store(data: Prisma.{{tableName}}CreateInput) {
     return prisma.{{tableName}}.create({
@@ -29,7 +29,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Update a {{tableName}} by ID (UPDATE).
+   * Update a {{tableNamePhraseCase}} by ID (UPDATE).
    */
   async update({{getPrimaryKey()}}: number, data: Partial<{{tableName}}>) {
     return prisma.{{tableName}}.update({
@@ -39,7 +39,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Delete a {{tableName}} by ID (DELETE).
+   * Delete a {{tableNamePhraseCase}} by ID (DELETE).
    */
   async destroy({{getPrimaryKey()}}: number) {
     return prisma.{{tableName}}.delete({
@@ -68,7 +68,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Search {{tableName}}s by query.
+   * Search {{tableNamePhraseCase}}s by query.
    */
   async search(
     query: string,
@@ -92,7 +92,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Count {{tableName}}s based on criteria.
+   * Count {{tableNamePhraseCase}}s based on criteria.
    */
   async count(criteria: Partial<{{tableName}}>) {
     return prisma.{{tableName}}.count({
@@ -101,7 +101,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Get {{tableName}}s with relations.
+   * Get {{tableNamePhraseCase}}s with relations.
    */
   async getWithRelations(relations: string[]) {
     return prisma.{{tableName}}.findMany({
@@ -112,7 +112,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Find a {{tableName}} or fail.
+   * Find a {{tableNamePhraseCase}} or fail.
    */
   async findOrFail({{getPrimaryKey()}}: number) {
     return prisma.{{tableName}}.findUniqueOrThrow({
@@ -121,7 +121,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Update or create a {{tableName}}.
+   * Update or create a {{tableNamePhraseCase}}.
    */
   async updateOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
     return prisma.{{tableName}}.upsert({
@@ -132,7 +132,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Batch update {{tableName}}s.
+   * Batch update {{tableNamePhraseCase}}s.
    */
   async batchUpdate(criteria: Partial<{{tableName}}>, data: Partial<{{tableName}}>) {
     return prisma.{{tableName}}.updateMany({
@@ -142,7 +142,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Check if a {{tableName}} exists based on criteria.
+   * Check if a {{tableNamePhraseCase}} exists based on criteria.
    */
   async exists(criteria: Partial<{{tableName}}>) {
     const count = await prisma.{{tableName}}.count({
@@ -152,7 +152,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Pluck specific columns from {{tableName}}s.
+   * Pluck specific columns from {{tableNamePhraseCase}}s.
    */
   async pluck(column: keyof {{tableName}}, key?: keyof {{tableName}}) {
     const results = await prisma.{{tableName}}.findMany({
@@ -162,7 +162,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * First or create a {{tableName}}.
+   * First or create a {{tableNamePhraseCase}}.
    */
   async firstOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
     return prisma.{{tableName}}.upsert({
@@ -173,7 +173,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * First or return a new instance of a {{tableName}}.
+   * First or return a new instance of a {{tableNamePhraseCase}}.
    */
   async firstOrNew(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
     const existing = await prisma.{{tableName}}.findFirst({
@@ -183,7 +183,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Get a random {{tableName}}.
+   * Get a random {{tableNamePhraseCase}}.
    */
   async random(count: number) {
     return prisma.{{tableName}}.findMany({
@@ -193,7 +193,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Get the latest {{tableName}}.
+   * Get the latest {{tableNamePhraseCase}}.
    */
   async latest(column = 'createdAt') {
     return prisma.{{tableName}}.findFirst({
@@ -202,7 +202,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Get the oldest {{tableName}}.
+   * Get the oldest {{tableNamePhraseCase}}.
    */
   async oldest(column = 'createdAt') {
     return prisma.{{tableName}}.findFirst({
@@ -211,7 +211,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Find Many {{tableName}}s by IDs.
+   * Find Many {{tableNamePhraseCase}}s by IDs.
    */
   async findMany(ids: number[]) {
     return prisma.{{tableName}}.findMany({
@@ -220,7 +220,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Filter {{tableName}}s using \`whereIn\`.
+   * Filter {{tableNamePhraseCase}}s using \`whereIn\`.
    */
   async whereIn(column: keyof {{tableName}}, values: unknown[]) {
     return prisma.{{tableName}}.findMany({
@@ -229,7 +229,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Filter {{tableName}}s using \`whereNotIn\`.
+   * Filter {{tableNamePhraseCase}}s using \`whereNotIn\`.
    */
   async whereNotIn(column: keyof {{tableName}}, values: unknown[]) {
     return prisma.{{tableName}}.findMany({
@@ -238,7 +238,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Filter {{tableName}}s using \`whereBetween\`.
+   * Filter {{tableNamePhraseCase}}s using \`whereBetween\`.
    */
   async whereBetween(column: keyof {{tableName}}, range: [unknown, unknown]) {
     return prisma.{{tableName}}.findMany({
@@ -247,7 +247,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Order {{tableName}}s by a column.
+   * Order {{tableNamePhraseCase}}s by a column.
    */
   async orderBy(column: keyof {{tableName}}, direction: 'asc' | 'desc' = 'asc') {
     return prisma.{{tableName}}.findMany({
@@ -256,7 +256,7 @@ export const {{tableNamePascalCase}} = {
   },
 
   /**
-   * Group {{tableName}}s by a column.
+   * Group {{tableNamePhraseCase}}s by a column.
    */
   async groupBy(column: keyof {{tableName}}) {
     return prisma.{{tableName}}.groupBy({
