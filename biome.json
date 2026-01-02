@@ -1,5 +1,10 @@
 {
-  "files": {
-    "includes": ["**/files/**"]
+  "linter": {
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "error"
+      }
+    }
   }
 }
