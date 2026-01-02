@@ -89,7 +89,7 @@ function extractImportPaths(content: string): string[] {
 export const detectCircularImports = (
   filePath: string,
   userFiles: IStructure,
-  visited: Set<string> = new Set(),
+  visited = new Set<string>(),
   recStack: string[] = [],
 ): ICircularImportResult => {
   // Normalize the file path for consistent matching

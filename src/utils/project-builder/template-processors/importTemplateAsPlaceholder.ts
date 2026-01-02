@@ -16,7 +16,7 @@ import type {
 export const importTemplateAsPlaceholder = (
   template: ReplacementValue,
   replacements: Replacements,
-  processedKeys: Set<string> = new Set(),
+  processedKeys = new Set<string>(),
   path = '',
 ): ReplacementValue => {
   // If the template is an array, process each item
