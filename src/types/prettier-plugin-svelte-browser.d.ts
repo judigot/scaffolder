@@ -3,5 +3,4 @@ declare module 'prettier-plugin-svelte/browser' {
 
   const plugin: Plugin;
   export default plugin;
-  export = plugin;
 }
