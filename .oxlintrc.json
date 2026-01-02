@@ -1,9 +1,9 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "categories": {
-    "correctness": "warn"
+    "correctness": "error"
   },
   "rules": {
-    "no-unused-vars": "error"
+    "eslint/no-unused-vars": "error"
   }
 }
