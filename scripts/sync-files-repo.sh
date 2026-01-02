@@ -14,10 +14,10 @@ sync_files_to_repo() {
     fi
     
     if [ ! -d "$REPO_DIR" ]; then
-        printf '%s\n' "Cloning repository..."
+        printf '%s\n' "Cloning scaffolder-files repository..."
         git clone "$REMOTE_REPO_URL" "$REPO_DIR" >/dev/null 2>&1 || exit 1
     else
-        printf '%s\n' "Updating repository..."
+        printf '%s\n' "Updating scaffolder-files repository..."
         cd "$REPO_DIR" || exit 1
         git fetch origin >/dev/null 2>&1
         if git show-ref --verify --quiet refs/remotes/origin/main; then
@@ -29,14 +29,14 @@ sync_files_to_repo() {
     
     cd "$REPO_DIR" || exit 1
     
-    printf '%s\n' "Cleaning repository..."
+    printf '%s\n' "Cleaning scaffolder-files repository..."
     ls -A | while IFS= read -r item; do
         if [ "$item" != ".git" ]; then
             rm -rf "$item"
         fi
     done
     
-    printf '%s\n' "Copying files..."
+    printf '%s\n' "Copying local files to scaffolder-files repository..."
     cp -r "$FILES_DIRECTORY"/* . 2>/dev/null || {
         printf '%s\n' "Error: Failed to copy files" >&2
         exit 1
