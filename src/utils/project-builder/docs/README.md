@@ -139,5 +139,5 @@ Mix different actions in your structure:
 
 - See individual documentation files for detailed usage
 - Check the test files in `project-processors/` for examples
-- Review existing project structures in `src/files/Projects/` for real-world examples
+- Review existing project structures in `files/Projects/` for real-world examples
 

@@ -46,7 +46,7 @@ router.post('/', async (c) => {
   const normalizedPath = path
     .normalize(filePath)
     .replace(/^(\.\.(\/|\\|$))+/, '');
-  const basePath = 'src/files';
+  const basePath = 'files';
   const fullPath = path.join(basePath, normalizedPath);
 
   /* Ensure the path is within the allowed directory */
@@ -57,7 +57,7 @@ router.post('/', async (c) => {
     return c.json(
       {
         error: 'Invalid file path',
-        message: 'File path must be within the src/files directory',
+        message: 'File path must be within the files directory',
       },
       400,
     );

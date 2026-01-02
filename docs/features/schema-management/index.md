@@ -52,7 +52,7 @@ Schemas/
 
 The system automatically detects the environment:
 
-- **Development Mode**: Schemas are saved to `src/files/Schemas/` locally
+- **Development Mode**: Schemas are saved to `files/Schemas/` locally
 - **Production Mode**: Schemas are saved to your GitHub repository's `Schemas/` directory
 
 ### Schema Lifecycle

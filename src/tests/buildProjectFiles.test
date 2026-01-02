@@ -393,7 +393,7 @@ describe('Build Project Files', () => {
     }
 ]
     `;
-    const userFiles = convertLocalFilesToIStructure('src/files');
+    const userFiles = convertLocalFilesToIStructure('files');
     const buildResult = await buildProjectFiles(
       '/Projects/App Generator - Database Schema/structure.yaml',
       userFiles,
@@ -511,7 +511,7 @@ describe('Build Project Files', () => {
       },
     };
 
-    const userFiles = convertLocalFilesToIStructure('src/files.test');
+    const userFiles = convertLocalFilesToIStructure('files.test');
 
     const userMetadata = {
       env: {

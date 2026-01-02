@@ -64,7 +64,7 @@ const fetchRepoMetadata = async (
       if (!isRecord(obj)) {
         return undefined;
       }
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      if (Object.hasOwn(obj, key)) {
         return obj[key];
       }
       return undefined;

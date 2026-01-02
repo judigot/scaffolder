@@ -52,7 +52,7 @@ The design extends the existing `--data-source` flag to recognize database URI p
 
 ### Configuration File
 
-**Location:** `src/files/DataSources/databases.yaml`
+**Location:** `files/DataSources/databases.yaml`
 
 **Structure:**
 ```yaml
@@ -290,7 +290,7 @@ const resolveEnvironmentVariables = (config: any): any => {
 
 **Configuration:**
 ```yaml
-# src/files/DataSources/databases.yaml
+# files/DataSources/databases.yaml
 connections:
   employees:
     type: postgresql

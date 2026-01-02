@@ -29,5 +29,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "packages", "apps"],
-  "exclude": ["src/files", "apps"]
+  "exclude": ["files", "apps"]
 }

@@ -4,7 +4,7 @@ import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure
 const router = new Hono();
 
 router.get('/', (c) => {
-  const result = convertLocalFilesToIStructure('src/files');
+  const result = convertLocalFilesToIStructure('files');
   return c.json(result);
 });
 

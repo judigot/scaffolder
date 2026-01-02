@@ -51,7 +51,7 @@ $USE_CORE:
 
 ## Creating Core Templates
 
-1. Create folder in `src/files/Core/`
+1. Create folder in `files/Core/`
 2. Add your template files
 3. Reference in `structure.yaml` with `$USE_CORE:`
 

@@ -7,7 +7,6 @@ import { isRecord } from '@/utils/typeGuards.ts';
 export const setupTypeMappings = (): void => {
   const typeMappingsFilePath = join(
     process.cwd(),
-    'src',
     'files',
     'Constants',
     'typeMappings.yaml',
@@ -23,7 +22,6 @@ export const setupTypeMappings = (): void => {
 
   const dbTypesFilePath = join(
     process.cwd(),
-    'src',
     'files',
     'Constants',
     'dbTypes.yaml',

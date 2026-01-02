@@ -79,7 +79,7 @@ src:
 ## File Structure
 
 ```
-src/files/
+files/
 ├── Core/                      # Shared core templates
 │   ├── vite/
 │   │   ├── .gitignore

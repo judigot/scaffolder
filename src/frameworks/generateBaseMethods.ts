@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 // Convert `import.meta.url` to a file path (for ES modules)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const outputDir = path.join(__dirname, '../files/BaseMethodsFileBased'); // Ensures files are created in the same directory
+const outputDir = path.join(__dirname, '../../files/BaseMethodsFileBased'); // Ensures files are created in the same directory
 
 if (fs.existsSync(outputDir)) {
   fs.rmdirSync(outputDir, { recursive: true });

@@ -231,7 +231,7 @@ export const processIndexFunction = (
 ): string => {
   // Default values - no padding unless explicitly specified
   let base = 0;
-  let width: number | 'auto' | undefined = undefined; // undefined means no padding
+  let width: number | 'auto' | undefined ; // undefined means no padding
   let offset = 0;
 
   // Parse arguments

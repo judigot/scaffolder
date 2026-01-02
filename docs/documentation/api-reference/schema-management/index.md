@@ -231,7 +231,7 @@ For API payloads and network transmission, use the **compressed format** (`ISche
 All file operations include path traversal protection:
 
 - Paths are normalized and validated
-- Only paths within `src/files/` are allowed
+- Only paths within `files/` are allowed
 - Relative paths (`../`) are stripped
 
 ### GitHub Authentication
