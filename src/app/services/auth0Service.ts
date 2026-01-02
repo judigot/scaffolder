@@ -239,7 +239,7 @@ export async function setGitHubToken(
       }
     }
     const updatedMetadata = {
-      ...(currentMetadata ?? {}),
+      ...currentMetadata,
       github_token: tokenToStore,
     };
     await updateUserMetadata(auth0UserId, updatedMetadata);

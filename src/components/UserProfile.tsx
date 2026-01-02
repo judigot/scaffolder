@@ -620,7 +620,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       }
 
       const updatedMetadata = {
-        ...(userMetadata ?? {}),
+        ...userMetadata,
         env: {},
       };
       setUserMetadataStore(updatedMetadata);
@@ -882,7 +882,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       }
 
       const updatedMetadata = {
-        ...(userMetadata ?? {}),
+        ...userMetadata,
         env: envRecord,
       };
       setUserMetadataStore(updatedMetadata);
