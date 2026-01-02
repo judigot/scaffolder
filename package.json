@@ -3,6 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
   "scripts": {
     "dev": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "dev with test": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
@@ -25,7 +34,17 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "workspace:dev": "turbo run dev",
+    "workspace:build": "turbo run build",
+    "workspace:test": "turbo run test",
+    "workspace:lint": "turbo run lint",
+    "workspace:typecheck": "turbo run typecheck",
+    "workspace:clean": "turbo run clean",
+    "workspace:graph": "pnpm -r list --depth=0 --json | pnpm-deduplicate-check",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "husky": {
     "hooks": {
@@ -140,6 +159,8 @@
     "vite": "^7.2.4",
     "vite-tsconfig-paths": "^5.1.4",
     "vitepress": "^1.6.4",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.14",
+    "@changesets/cli": "^2.27.9",
+    "turbo": "^2.3.3"
   }
 }

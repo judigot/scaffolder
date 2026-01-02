@@ -31,4 +31,73 @@ docs/.vitepress/cache
 docs/.vitepress/temp
 
 # Apps
-apps/laravel/**
+.apps/laravel/**
+.monorepo
+
+# Dependencies
+.pnp
+.pnp.js
+
+# Build outputs
+build
+.next
+out
+*.tsbuildinfo
+
+# Testing
+coverage
+.nyc_output
+
+# Environment
+.env.local
+.env.*.local
+
+# IDE
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# Turborepo
+.turbo
+.turbo-cache
+
+# pnpm
+.pnpm-store
+pnpm-lock.yaml.bak
+
+# Misc
+.cache
+.temp
+.tmp
+*.bak
+
+# Monorepo specific - Changesets
+.changeset/*.md
+!.changeset/config.json
+.changeset/pre.json
+
+# Monorepo specific - Package build outputs (workspace-level)
+**/dist
+**/build
+**/.next
+**/out
+**/*.tsbuildinfo
+
+# Monorepo specific - Package dependencies
+# Uncomment if you want to ignore workspace node_modules
+# **/node_modules
+
+# IDE - Additional
+*.code-workspace
+.history/
+
+# OS - Additional
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini

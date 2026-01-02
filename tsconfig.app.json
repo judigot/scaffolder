@@ -28,6 +28,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "exclude": ["src/files"]
+  "include": ["src", "packages", "apps"],
+  "exclude": ["src/files", "apps"]
 }
