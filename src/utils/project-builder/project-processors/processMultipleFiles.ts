@@ -21,6 +21,7 @@ import {
   USE_USER_ENV_REGEX,
   USE_CONSTANT_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
+import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
 
 /* Regex to match USE_CONSTANT(...) without brackets (for command options) */
 const USE_CONSTANT_OPTION_REGEX = /USE_CONSTANT\(([^)]+)\)/;
@@ -142,7 +143,10 @@ export const processMultipleFiles = async (
     });
   }
 
-  const filteredSchemaInfo = schemaInfo.filter((table) => {
+  /* Filter out view tables first using centralized function */
+  const schemaInfoWithoutViews = filterViewTables(schemaInfo, schemaInfoParsed);
+
+  const filteredSchemaInfo = schemaInfoWithoutViews.filter((table) => {
     /* Check if table should be ignored */
     if (ignoreList.includes(table.tableName)) {
       return false;

@@ -9,6 +9,7 @@ import {
   createDataContextReplacements,
 } from '@/utils/project-builder/utils/dataSourceUtils.ts';
 import { sanitizeFileName } from '@/utils/project-builder/helpers/sanitizeFileName.ts';
+import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
 
 export const processDynamicFolders = async (
   ctx: IBuildContext,
@@ -64,8 +65,11 @@ export const processDynamicFolders = async (
     );
   }
 
+  /* Filter out view tables using centralized function */
+  const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
+
   return await Promise.all(
-    schemaInfo.map(async (table) => {
+    filteredSchemaInfo.map(async (table) => {
       const replacements = getReplacementsForTable(table, schemaInfoParsed);
 
       let processedName = replacePlaceholders(folderName, replacements, {

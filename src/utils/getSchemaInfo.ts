@@ -16,6 +16,15 @@ interface IRelationships {
   }[];
 }
 
+/**
+ * Represents a database view table with its query definition.
+ * Views are read-only database objects that don't need code generation.
+ */
+export interface IViewTable {
+  tableName: string;
+  viewQuery: string;
+}
+
 export interface ISchemaInfoResult {
   schema: ISchemaInfo[];
   tableNames: string[];
@@ -32,6 +41,7 @@ export interface ISchemaInfoResult {
   isPivot: (tableName: string) => boolean;
   getSeedData: (tableName: string) => Record<string, unknown>[] | undefined;
   getAllSeedData: () => ParsedJSONSchema;
+  getViewTables: () => IViewTable[];
 }
 
 export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
@@ -49,7 +59,17 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     .filter((table) => table.isPivot === true)
     .map((table) => table.tableName);
 
-  /* Get primary key column for a table */
+  /**
+   * Get primary key column name for a table.
+   *
+   * Works with any primary key naming convention:
+   * - "id" (common Laravel/ActiveRecord convention)
+   * - "tableName_id" (common database convention)
+   * - Any other custom primary key name
+   *
+   * For composite primary keys, returns the first primary key column.
+   * Returns empty string if no primary key is found.
+   */
   const getPrimaryKey = (tableName: string): string => {
     const table = tableMap.get(tableName);
     if (!table) {
@@ -231,6 +251,32 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
   /* Get seed data as Record for backward compatibility */
   const seedData: Record<PropertyKey, unknown> = getAllSeedData();
 
+  /**
+   * Get all view tables with their view queries.
+   *
+   * Views are identified by the presence of the `viewQuery` property.
+   * This method is used by the project-builder to exclude views from code generation
+   * (views are read-only and don't need migrations, controllers, models, etc.).
+   *
+   * @returns Array of view table information including table name and view query.
+   *          Returns empty array if no views exist in the schema.
+   *
+   * @example
+   * ```typescript
+   * const schemaInfo = getSchemaInfo(schema);
+   * const views = schemaInfo.getViewTables();
+   * // Returns: [{ tableName: 'user_summary_view', viewQuery: 'SELECT ...' }]
+   * ```
+   */
+  const getViewTables = (): IViewTable[] => {
+    return schema
+      .filter((table) => table.viewQuery !== undefined)
+      .map((table) => ({
+        tableName: table.tableName,
+        viewQuery: table.viewQuery ?? '',
+      }));
+  };
+
   return {
     schema,
     tableNames,
@@ -247,6 +293,7 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     isPivot,
     getSeedData,
     getAllSeedData,
+    getViewTables,
   };
 };
 

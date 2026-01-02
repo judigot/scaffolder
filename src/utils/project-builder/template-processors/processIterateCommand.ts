@@ -4,6 +4,7 @@ import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
 import {
   LOOP_COMMAND_REGEX,
   LOOP_TABLES_REGEX,
@@ -384,7 +385,9 @@ const processAtLoopTablesReversed = (
   const openRegex = /@LOOP\(tablesReversed\)\n?/g;
   let result = content;
   let match;
-  const reversedSchema = [...schemaInfo].reverse();
+  /* Filter out view tables using centralized function */
+  const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
+  const reversedSchema = [...filteredSchemaInfo].reverse();
 
   const matches: {
     start: number;
@@ -612,10 +615,15 @@ const processHtmlLoop = (
       let processed = '';
 
       if (type === 'tables') {
+        /* Filter out view tables using centralized function */
+        const filteredSchemaInfo = filterViewTables(
+          schemaInfo,
+          schemaInfoParsed,
+        );
         processed = processAtLoopTablesTemplate(
           templateContent.replace(/^\n/, '').trimEnd(),
           separator,
-          schemaInfo,
+          filteredSchemaInfo,
           schemaInfoParsed,
           userFiles,
           formData,
@@ -623,7 +631,12 @@ const processHtmlLoop = (
           dataSource,
         );
       } else if (type === 'tablesReversed') {
-        const reversedSchema = [...schemaInfo].reverse();
+        /* Filter out view tables using centralized function */
+        const filteredSchemaInfo = filterViewTables(
+          schemaInfo,
+          schemaInfoParsed,
+        );
+        const reversedSchema = [...filteredSchemaInfo].reverse();
         processed = processAtLoopTablesTemplate(
           templateContent.replace(/^\n/, '').trimEnd(),
           separator,
@@ -1175,10 +1188,13 @@ export const processLoopTables = (
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
 ): string => {
+  /* Filter out view tables using centralized function */
+  const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
+
   // First, process HTML-like <@@LOOP@@> syntax
   let result = processHtmlLoop(
     content,
-    schemaInfo,
+    filteredSchemaInfo,
     schemaInfoParsed,
     userFiles,
     formData,
@@ -1189,7 +1205,7 @@ export const processLoopTables = (
   // Then, process @LOOP(tables) experimental syntax
   result = processAtLoopTables(
     result,
-    schemaInfo,
+    filteredSchemaInfo,
     schemaInfoParsed,
     userFiles,
     formData,
@@ -1225,7 +1241,7 @@ export const processLoopTables = (
       return processTablesTemplate(
         templateContent,
         separator,
-        schemaInfo,
+        filteredSchemaInfo,
         schemaInfoParsed,
         userFiles,
         formData,
@@ -1246,12 +1262,14 @@ export const processLoopTablesReversed = (
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
 ): string => {
-  const reversedSchema = [...schemaInfo].reverse();
+  /* Filter out view tables using centralized function */
+  const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
+  const reversedSchema = [...filteredSchemaInfo].reverse();
 
   // First, process HTML-like <@@LOOP@@> syntax
   let result = processHtmlLoop(
     content,
-    schemaInfo,
+    filteredSchemaInfo,
     schemaInfoParsed,
     userFiles,
     formData,
@@ -1262,7 +1280,7 @@ export const processLoopTablesReversed = (
   // Then, process @LOOP(tablesReversed) experimental syntax
   result = processAtLoopTablesReversed(
     result,
-    schemaInfo,
+    filteredSchemaInfo,
     schemaInfoParsed,
     userFiles,
     formData,

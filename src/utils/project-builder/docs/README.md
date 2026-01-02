@@ -110,6 +110,31 @@ Mix different actions in your structure:
       - CREATE_FILE(Button.tsx --template=./templates/button.txt)
 ```
 
+## View Table Exclusion
+
+**View tables are automatically excluded by default** in all loop operations:
+- `FILE_LOOP` - View tables are excluded from file generation
+- `FOLDER_LOOP` - View tables are excluded from folder generation
+- `LOOP(tables)` - View tables are excluded from template iteration
+- `LOOP(tablesReversed)` - View tables are excluded from reverse template iteration
+
+**Why?** Views are read-only database objects that don't need:
+- Migration files (they use `CREATE VIEW`, not `CREATE TABLE`)
+- CRUD controllers (no create/update/delete operations)
+- Full model generation
+
+**How it works:** 
+- Tables with `viewQuery` property defined are automatically filtered out using the centralized `getViewTables()` function from `getSchemaInfo.ts`
+- The project-builder uses `filterViewTables()` helper utility which leverages `schemaInfoParsed.getViewTables()` for consistent view detection
+- Base tables (without `viewQuery`) are included in all operations
+
+**Implementation Details:**
+- View detection is centralized in `getSchemaInfo.ts` via the `getViewTables()` method
+- All filtering uses `filterViewTables()` helper from `utils/filterViewTables.ts`
+- Uses efficient Set-based lookup for O(1) performance when filtering
+
+**Note:** This exclusion happens automatically and cannot be disabled. Views are fundamentally different from base tables and should not be included in standard code generation workflows.
+
 ## Additional Resources
 
 - See individual documentation files for detailed usage

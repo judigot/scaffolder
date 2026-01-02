@@ -43,6 +43,10 @@ The project-builder is a code generation system that scaffolds project files fro
 - **`processRelativePath.ts`**: Resolves relative paths to absolute paths based on project file location
 - **`loadTemplateContent.ts`**: Loads template file content
 - **`loadDataSourceFile.ts`**: Loads data source YAML files
+- **`filterViewTables.ts`**: Centralized helper for filtering view tables from schema info
+  - Uses `schemaInfoParsed.getViewTables()` for consistent view detection
+  - Returns filtered array with only base tables (excludes views)
+  - Used throughout project-builder for view table exclusion
 
 #### 4. Structure Utilities
 - **`updateFilesInStructure.ts`**: Updates multiple files in a structure in a single pass
@@ -76,6 +80,8 @@ FILE_LOOP(filename --template=path --ignore=value --data-source=path)
 - `--data-source`: Path to data source YAML files
 - `--format`: Enable/disable file formatting (default: true)
 
+**View Table Exclusion:** View tables (tables with `viewQuery` property) are automatically excluded by default. Views are read-only and don't need code generation (migrations, controllers, models, etc.).
+
 **Example:**
 ```yaml
 db:
@@ -92,6 +98,8 @@ Generates files by iterating over folders matching a glob pattern.
 ```yaml
 LOOP_FOLDERS(filename --data-source=pattern --template=path)
 ```
+
+**View Table Exclusion:** View tables are automatically excluded when iterating over schema tables (when `--data-source` is not used).
 
 ### IMPORT_PROJECT
 Imports another project structure.
@@ -144,9 +152,13 @@ Placeholders use double curly braces: `{{placeholderName}}`
 - `{{index(1, 3)}}`: Sequential index (1-based, padded to 3 digits)
 - `{{timestamp('YYYY_MM_DD')}}`: Formatted timestamp
 
+## View Table Exclusion
+
+**View tables are automatically excluded by default** in all loop operations (`FILE_LOOP`, `FOLDER_LOOP`, `LOOP(tables)`, `LOOP(tablesReversed)`). Views are read-only database objects identified by the `viewQuery` property and don't need code generation (migrations, controllers, models, etc.). This exclusion cannot be disabled as views are fundamentally different from base tables.
+
 ## Ignore Functionality
 
-The `--ignore` flag allows filtering out tables or folders during generation.
+The `--ignore` flag allows filtering out tables or folders during generation. **Note:** View tables are already excluded by default, so you don't need to add them to the ignore list.
 
 ### Usage in FILE_LOOP
 
@@ -247,6 +259,8 @@ if (!match) {
 4. **`loadConstant.ts`**: How constants are loaded (including new path support)
 5. **`parseCommand.ts`**: How command options are parsed
 6. **`interfaces/interfaces.ts`**: Type definitions
+7. **`utils/filterViewTables.ts`**: Centralized helper for filtering view tables (uses `getSchemaInfo().getViewTables()`)
+8. **`getSchemaInfo.ts`** (in `src/utils/`): Schema utility with `getViewTables()` method for view table detection
 
 ## Recent Changes
 
@@ -303,6 +317,33 @@ if (!match) {
 - **Testing**: Comprehensive test suite in `src/tests/utils/project-builder/helpers/sanitizeFileName.test.ts` with 31 test cases covering all edge cases
 - **User Documentation**: See `src/utils/project-builder/docs/PLACEHOLDER_FUNCTIONS.md` for user-facing documentation
 - **Note**: This is a production-grade security feature that ensures cross-platform compatibility and prevents filesystem errors from malicious or malformed user input
+
+### View Table Exclusion by Default
+- **Implementation**: Automatic exclusion of view tables in all loop operations
+- **Scope**: Applied to `FILE_LOOP`, `FOLDER_LOOP`, `LOOP(tables)`, and `LOOP(tablesReversed)` commands
+- **Detection**: Uses centralized `getViewTables()` function from `getSchemaInfo.ts` via `filterViewTables()` helper
+- **Rationale**: Views are read-only database objects that don't need code generation (migrations use `CREATE VIEW`, not `CREATE TABLE`; no CRUD operations needed)
+- **Centralized Implementation**:
+  - **`getSchemaInfo.ts`**: Added `getViewTables()` method that returns `IViewTable[]` with `tableName` and `viewQuery`
+  - **`filterViewTables.ts`**: Helper utility that uses `schemaInfoParsed.getViewTables()` to filter out views
+  - All filtering now uses this centralized approach for consistency
+- **Files Using Centralized Filtering**:
+  - `processMultipleFiles.ts`: Uses `filterViewTables()` before file generation
+  - `processDynamicFolders.ts`: Uses `filterViewTables()` before folder generation
+  - `processIterateCommand.ts`: Uses `filterViewTables()` in `processLoopTables`, `processLoopTablesReversed`, and `processHtmlLoop`
+- **Testing**: Comprehensive test suites with 27 test cases covering all scenarios:
+  - `processMultipleFiles-viewTables.test.ts`: 9 tests for FILE_LOOP
+  - `processDynamicFolders-viewTables.test.ts`: 6 tests for FOLDER_LOOP
+  - `processLoopTables-viewTables.test.ts`: 12 tests for template LOOP commands
+  - `useSchemaInfo.test.ts`: 3 tests for `getViewTables()` function
+- **Edge Cases Handled**: Empty viewQuery strings, undefined vs null, mixed schemas with views/base tables/pivot tables
+- **Integration**: Works seamlessly with `--ignore` flag (views excluded first, then manual ignores applied)
+- **Benefits of Centralization**:
+  - Single source of truth for view detection logic
+  - Consistent filtering across all operations
+  - Easy to maintain and extend
+  - Uses efficient Set-based lookup for O(1) performance
+- **Documentation**: See `src/utils/project-builder/docs/README.md` for user-facing documentation
 
 ### Early Return Performance Optimization for User Files Loading
 - **Problem**: Race condition on app reload where `selectedProject` is restored from localStorage before `userFiles` are fetched, causing unnecessary build attempts
