@@ -178,10 +178,10 @@ function CustomModal({
           size === 'fullscreen'
             ? 'w-[98vw] h-[98vh] flex flex-col'
             : size === 'large'
-              ? 'w-[95vw] h-[90vh] max-w-[95vw] max-h-[90vh] flex flex-col'
+              ? 'w-max max-w-[1200px] max-h-[90vh] flex flex-col'
               : size === 'small'
-                ? 'w-[90%] sm:w-[400px]'
-                : 'w-[90%] sm:w-[500px]'
+                ? 'w-[90%] sm:w-[400px] max-w-[400px]'
+                : 'w-[90%] sm:w-[500px] max-w-[500px]'
         }`}
       >
         <div className="flex justify-between items-center flex-shrink-0">

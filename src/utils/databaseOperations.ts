@@ -237,8 +237,9 @@ export const createOrResetDatabase = async (
             error instanceof Error ? error : new Error(String(error));
 
           // Adjust error line and position to account for prepended dropTableCommands
-          // and deleteTablesQueries that are already in SQLSchema from the store
-          // Only adjust if SQLSchema was provided and error is in the SQLSchema portion
+          // SQLSchema already includes deleteTablesQueries, so we only need to adjust for dropTableCommands
+          // The executed SQL is: dropTableCommands + '\n' + SQLSchema
+          // We want errorLine/errorPosition relative to SQLSchema
           let adjustedErrorLine = errorWithDetails.errorLine;
           let adjustedErrorPosition = errorWithDetails.errorPosition;
 
@@ -248,31 +249,16 @@ export const createOrResetDatabase = async (
             adjustedErrorPosition !== undefined
           ) {
             const dropTableLines = dropTableCommands.split('\n').length;
-            const dropTableCharCount = dropTableCommands.length + 1; // +1 for the newline
+            // +1 for the newline between dropTableCommands and SQLSchema
+            const dropTableCharCount = dropTableCommands.length + 1;
 
-            // Extract deleteTablesQueries from SQLSchema (they're at the beginning)
-            // The SQLSchema format is: deleteTablesQueries.join('\n') + '\n\n' + actualSchema
-            const deleteTablesQueriesMatch =
-              /^(DROP TABLE IF EXISTS[^\n]+\n?)+/.exec(SQLSchema);
-            const deleteTablesQueries = deleteTablesQueriesMatch?.[0] ?? '';
-            const deleteTablesLines =
-              deleteTablesQueries !== ''
-                ? deleteTablesQueries
-                    .split('\n')
-                    .filter((line) => line.trim() !== '').length
-                : 0;
-            const deleteTablesCharCount = deleteTablesQueries.length;
-
-            // Total offset: dropTableCommands + deleteTablesQueries + newlines between them
-            const totalOffsetLines = dropTableLines + deleteTablesLines;
-            const totalOffsetChars = dropTableCharCount + deleteTablesCharCount;
-
-            // If error is after both dropTableCommands and deleteTablesQueries, adjust
-            if (adjustedErrorPosition > totalOffsetChars) {
-              adjustedErrorLine = adjustedErrorLine - totalOffsetLines;
-              adjustedErrorPosition = adjustedErrorPosition - totalOffsetChars;
+            // If error is after dropTableCommands, adjust to be relative to SQLSchema
+            if (adjustedErrorPosition > dropTableCharCount) {
+              adjustedErrorLine = adjustedErrorLine - dropTableLines;
+              adjustedErrorPosition =
+                adjustedErrorPosition - dropTableCharCount;
             }
-            // If error is in dropTableCommands or deleteTablesQueries, set to null
+            // If error is in dropTableCommands, set to null (not in SQLSchema)
             else {
               adjustedErrorLine = undefined;
               adjustedErrorPosition = undefined;
@@ -309,8 +295,9 @@ export const createOrResetDatabase = async (
             error instanceof Error ? error : new Error(String(error));
 
           // Adjust error line and position to account for prepended dropTableCommands
-          // and deleteTablesQueries that are already in SQLSchema from the store
-          // Only adjust if SQLSchema was provided and error is in the SQLSchema portion
+          // SQLSchema already includes deleteTablesQueries, so we only need to adjust for dropTableCommands
+          // The executed SQL is: dropTableCommands + '\n' + SQLSchema
+          // We want errorLine/errorPosition relative to SQLSchema
           let adjustedErrorLine = errorWithDetails.errorLine;
           let adjustedErrorPosition = errorWithDetails.errorPosition;
 
@@ -320,32 +307,16 @@ export const createOrResetDatabase = async (
             adjustedErrorPosition !== undefined
           ) {
             const dropTableLines = dropTableCommands.split('\n').length;
-            const dropTableCharCount = dropTableCommands.length + 1; // +1 for the newline
+            // +1 for the newline between dropTableCommands and SQLSchema
+            const dropTableCharCount = dropTableCommands.length + 1;
 
-            // Extract deleteTablesQueries from SQLSchema (they're at the beginning)
-            // The SQLSchema format is: deleteTablesQueries.join('\n') + '\n\n' + actualSchema
-            // For MySQL, the pattern might be slightly different (backticks instead of quotes)
-            const deleteTablesQueriesMatch =
-              /^(DROP TABLE IF EXISTS[^\n]+\n?)+/.exec(SQLSchema);
-            const deleteTablesQueries = deleteTablesQueriesMatch?.[0] ?? '';
-            const deleteTablesLines =
-              deleteTablesQueries !== ''
-                ? deleteTablesQueries
-                    .split('\n')
-                    .filter((line) => line.trim() !== '').length
-                : 0;
-            const deleteTablesCharCount = deleteTablesQueries.length;
-
-            // Total offset: dropTableCommands + deleteTablesQueries + newlines between them
-            const totalOffsetLines = dropTableLines + deleteTablesLines;
-            const totalOffsetChars = dropTableCharCount + deleteTablesCharCount;
-
-            // If error is after both dropTableCommands and deleteTablesQueries, adjust
-            if (adjustedErrorPosition > totalOffsetChars) {
-              adjustedErrorLine = adjustedErrorLine - totalOffsetLines;
-              adjustedErrorPosition = adjustedErrorPosition - totalOffsetChars;
+            // If error is after dropTableCommands, adjust to be relative to SQLSchema
+            if (adjustedErrorPosition > dropTableCharCount) {
+              adjustedErrorLine = adjustedErrorLine - dropTableLines;
+              adjustedErrorPosition =
+                adjustedErrorPosition - dropTableCharCount;
             }
-            // If error is in dropTableCommands or deleteTablesQueries, set to null
+            // If error is in dropTableCommands, set to null (not in SQLSchema)
             else {
               adjustedErrorLine = undefined;
               adjustedErrorPosition = undefined;

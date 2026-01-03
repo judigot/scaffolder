@@ -93,8 +93,8 @@ export const useFormStore = create<IFormStore>()(
     return {
       schemaInput: masterJSONSchema,
       backendUrl: `http://localhost:1214/laravel/api`,
-      backendDir: 'C:/Users/Jude/Desktop/scaffolder/apps/laravel',
-      frontendDir: 'C:/Users/Jude/Desktop/scaffolder/apps/frontend',
+      backendDir: 'C:/Users/Jude/Desktop/scaffolder/.apps/laravel',
+      frontendDir: 'C:/Users/Jude/Desktop/scaffolder/.apps/frontend',
       dbConnection: initialDbConnection,
       framework: frameworks.LARAVEL,
       includeInsertData: true,

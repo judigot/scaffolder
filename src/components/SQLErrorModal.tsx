@@ -1,6 +1,5 @@
-import { useRef, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
-import type { editor } from 'monaco-editor';
 
 interface ISQLErrorModalProps {
   errorMessage: string;
@@ -15,97 +14,18 @@ export function SQLErrorModal({
   errorLine,
   errorPosition,
 }: ISQLErrorModalProps) {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-
-  const handleEditorDidMount: OnMount = (editor, monacoInstance) => {
-    editorRef.current = editor;
-
-    // Highlight error line if available
-    if (errorLine !== null && errorLine !== undefined && errorLine > 0) {
-      const lineNumber = errorLine;
-      let columnNumber = 1;
-
-      // Calculate column from position if available
-      if (
-        errorPosition !== null &&
-        errorPosition !== undefined &&
-        sqlSchema !== null &&
-        sqlSchema !== undefined &&
-        sqlSchema !== ''
-      ) {
-        columnNumber = calculateColumnFromPosition(
-          sqlSchema,
-          errorPosition,
-          lineNumber,
-        );
-      }
-
-      // Get the model to check line length
-      const model = editor.getModel();
-      if (model === null) {
-        return;
-      }
-
-      const lineLength = model.getLineLength(lineNumber);
-      const highlightEndColumn = Math.min(columnNumber + 3, lineLength + 1);
-
-      // Add decoration to highlight the entire error line (subtle background)
-      const lineDecoration = {
-        range: new monacoInstance.Range(
-          lineNumber,
-          1,
-          lineNumber,
-          lineLength + 1,
-        ),
-        options: {
-          isWholeLine: true,
-          className: 'sql-error-line',
-          glyphMarginClassName: 'sql-error-glyph',
-        },
-      };
-
-      // Add decoration to highlight the specific error position (bright highlight)
-      const positionDecoration = {
-        range: new monacoInstance.Range(
-          lineNumber,
-          Math.max(1, columnNumber - 1),
-          lineNumber,
-          highlightEndColumn,
-        ),
-        options: {
-          isWholeLine: false,
-          className: 'sql-error-highlight',
-          inlineClassName: 'sql-error-inline',
-          minimap: {
-            color: '#ff4444',
-            position: 1,
-          },
-          overviewRuler: {
-            color: '#ff4444',
-            position: 1,
-          },
-          hoverMessage: {
-            value: errorMessage,
-          },
-        },
-      };
-
-      const decorationsCollection = editor.createDecorationsCollection([
-        lineDecoration,
-        positionDecoration,
-      ]);
-      // Keep reference to prevent garbage collection
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      decorationsCollection;
-
-      // Scroll to error line and set cursor position
-      editor.revealLineInCenter(lineNumber);
-      editor.setPosition({ lineNumber, column: columnNumber });
-    }
-  };
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
+  const decorationsCollectionRef = useRef<ReturnType<
+    Parameters<OnMount>[0]['createDecorationsCollection']
+  > | null>(null);
+  const [editorWidth, setEditorWidth] = useState<number>(800);
 
   // Calculate column number from character position
-  // PostgreSQL position is 1-indexed character position in the entire SQL string
+  // The errorPosition and errorLine have been adjusted to exclude DROP TABLE commands
+  // at the start of sqlSchema. We need to strip those commands before calculating.
+  // Calculate column number from absolute character position
+  // Position is 1-indexed character position in the full SQL string
   const calculateColumnFromPosition = (
     sql: string,
     position: number,
@@ -123,18 +43,151 @@ export function SQLErrorModal({
     // Calculate total characters up to (but not including) the target line
     let charCount = 0;
     for (let i = 0; i < lineNumber - 1; i++) {
-      charCount += lines[i].length + 1; // +1 for the newline character
+      charCount += lines[i]?.length ?? 0;
+      if (i < lineNumber - 1) {
+        charCount += 1; // +1 for the newline character
+      }
     }
 
     // Position within the target line (1-indexed)
-    // PostgreSQL position is 1-indexed, so position 1 is the first character
-    // If position is at charCount + 1, that's column 1 of the target line
     const positionInLine = position - charCount;
 
     // Ensure it's at least 1 and doesn't exceed the line length
     const lineLength = lines[lineNumber - 1]?.length ?? 0;
     return Math.max(1, Math.min(positionInLine, lineLength + 1));
   };
+
+  const applyDecorations = useCallback(
+    (editor: Parameters<OnMount>[0], monaco: Parameters<OnMount>[1]) => {
+      if (sqlSchema === null || sqlSchema === undefined || sqlSchema === '') {
+        return;
+      }
+
+      // Use errorLine prop directly from backend (extracted from pg error object)
+      if (errorLine === null || errorLine === undefined || errorLine <= 0) {
+        return;
+      }
+
+      const lineNumber = errorLine;
+
+      // Use errorPosition prop (extracted from pg error object) for column calculation
+      let columnNumber = 1;
+      if (
+        errorPosition !== null &&
+        errorPosition !== undefined &&
+        errorPosition > 0
+      ) {
+        columnNumber = calculateColumnFromPosition(
+          sqlSchema,
+          errorPosition,
+          lineNumber,
+        );
+      }
+
+      // Get the model to check line length
+      const model = editor.getModel();
+      if (model === null) {
+        return;
+      }
+
+      const lineLength = model.getLineLength(lineNumber);
+      const highlightEndColumn = Math.min(columnNumber + 3, lineLength + 1);
+
+      // Create decorations using createDecorationsCollection (replaces deprecated deltaDecorations)
+      const newDecorations = [
+        {
+          range: new monaco.Range(lineNumber, 1, lineNumber, lineLength + 1),
+          options: {
+            isWholeLine: true,
+            className: 'sql-error-line',
+            glyphMarginClassName: 'sql-error-glyph',
+          },
+        },
+        {
+          range: new monaco.Range(
+            lineNumber,
+            Math.max(1, columnNumber - 1),
+            lineNumber,
+            highlightEndColumn,
+          ),
+          options: {
+            isWholeLine: false,
+            className: 'sql-error-highlight',
+            inlineClassName: 'sql-error-inline',
+            minimap: {
+              color: '#ff4444',
+              position: 1,
+            },
+            overviewRuler: {
+              color: '#ff4444',
+              position: 1,
+            },
+            hoverMessage: {
+              value: errorMessage,
+            },
+          },
+        },
+      ];
+
+      // Update decorations using createDecorationsCollection (replaces deprecated deltaDecorations)
+      if (decorationsCollectionRef.current === null) {
+        decorationsCollectionRef.current =
+          editor.createDecorationsCollection(newDecorations);
+      } else {
+        decorationsCollectionRef.current.set(newDecorations);
+      }
+
+      // Scroll to error line and set cursor position
+      editor.revealLineInCenter(lineNumber);
+      editor.setPosition({ lineNumber, column: columnNumber });
+    },
+    [sqlSchema, errorLine, errorPosition, errorMessage],
+  );
+
+  const handleEditorDidMount: OnMount = (editor, monacoInstance) => {
+    editorRef.current = editor;
+    monacoRef.current = monacoInstance;
+    // Apply decorations immediately after mount
+    applyDecorations(editor, monacoInstance);
+  };
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+
+    if (editor === null || monaco === null) {
+      return;
+    }
+
+    applyDecorations(editor, monaco);
+
+    // Cleanup: remove decorations when component unmounts or dependencies change
+    return () => {
+      if (decorationsCollectionRef.current !== null) {
+        decorationsCollectionRef.current.clear();
+        decorationsCollectionRef.current = null;
+      }
+    };
+  }, [errorLine, errorPosition, errorMessage, sqlSchema, applyDecorations]);
+
+  useEffect(() => {
+    // Calculate editor width based on longest line in SQL schema
+    if (sqlSchema !== null && sqlSchema !== undefined && sqlSchema !== '') {
+      const lines = sqlSchema.split('\n');
+      const longestLine = lines.reduce(
+        (longest, line) => (line.length > longest.length ? line : longest),
+        '',
+      );
+
+      // Estimate width: character width (monospace ~7.5px at 13px font) + line numbers (~60px) + padding (~40px)
+      // Use a reasonable min/max range for readability
+      const estimatedWidth = Math.max(
+        500,
+        Math.min(1400, longestLine.length * 7.5 + 100),
+      );
+      setEditorWidth(estimatedWidth);
+    }
+  }, [sqlSchema]);
 
   useEffect(() => {
     // Add custom CSS for error highlighting
@@ -165,8 +218,8 @@ export function SQLErrorModal({
   }, []);
 
   return (
-    <div className="space-y-4">
-      <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
+    <div className="space-y-3">
+      <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
         <div className="flex items-start gap-2">
           <svg
             className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
@@ -184,24 +237,19 @@ export function SQLErrorModal({
             <p className="text-xs text-red-200/80 whitespace-pre-wrap">
               {errorMessage}
             </p>
-            {errorLine !== null && errorLine !== undefined && errorLine > 0 && (
-              <p className="text-xs text-red-300/70 mt-2">
-                Error at line {String(errorLine)}
-                {errorPosition !== null &&
-                  errorPosition !== undefined &&
-                  `, position ${String(errorPosition)}`}
-              </p>
-            )}
           </div>
         </div>
       </div>
 
       {sqlSchema !== null && sqlSchema !== undefined && sqlSchema !== '' && (
-        <div>
-          <p className="text-sm font-medium text-gray-300 mb-2">SQL Schema:</p>
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
+        <div className="w-max">
+          <p className="text-sm font-medium text-gray-300 mb-1.5">
+            SQL Schema:
+          </p>
+          <div className="border border-gray-700 rounded-lg overflow-hidden w-max">
             <Editor
-              height="300px"
+              width={editorWidth}
+              height="250px"
               value={sqlSchema}
               language="sql"
               theme="vs-dark"
@@ -211,7 +259,7 @@ export function SQLErrorModal({
                 fontSize: 13,
                 lineNumbers: 'on',
                 scrollBeyondLastLine: false,
-                wordWrap: 'on',
+                wordWrap: 'off',
               }}
               onMount={handleEditorDidMount}
             />

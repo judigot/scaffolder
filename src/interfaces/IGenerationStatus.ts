@@ -8,7 +8,6 @@ export interface IGenerationStatus {
   isFrontendDirValid: boolean;
   isDBConnectionValid: boolean;
   errorMessage: string | null;
-  sqlSchema?: string | null;
   errorLine?: number | null;
   errorPosition?: number | null;
 }

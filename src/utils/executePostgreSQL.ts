@@ -36,35 +36,47 @@ export const executePostgreSQL = async (
     let errorLine: number | undefined;
     let errorPosition: number | undefined;
 
-    // Check if error has position property (pg library error objects have this)
+    // PostgreSQL error objects from node-postgres have these properties
     interface IPgError extends Error {
       position?: number;
+      line?: string;
+      where?: string;
       detail?: string;
       hint?: string;
+      code?: string;
+      severity?: string;
+      file?: string;
+      routine?: string;
+      schema?: string;
+      table?: string;
+      column?: string;
     }
 
     if (err instanceof Error) {
+      // Use raw error message without any modifications
       errorMessage = err.message;
       const pgError: IPgError = err;
 
       if (pgError.position !== undefined) {
         errorPosition = pgError.position;
-        // Calculate line number from character position
-        const linesBeforePosition = query
-          .substring(0, errorPosition - 1)
-          .split('\n');
-        errorLine = linesBeforePosition.length;
 
-        // If error message doesn't already include line number, add it
-        if (!errorMessage.includes('LINE')) {
-          errorMessage = `${errorMessage} (at line ${String(errorLine)}, position ${String(errorPosition)})`;
+        // Extract line number from PostgreSQL error message if it includes LINE
+        // Format: "syntax error at or near "," LINE 122: ,"
+        // PostgreSQL includes LINE in the message, not as a separate property
+        const lineMatch = /LINE (\d+)/.exec(errorMessage);
+        if (lineMatch !== null) {
+          // Use PostgreSQL's LINE number from the message (this is the accurate line number)
+          errorLine = Number.parseInt(lineMatch[1], 10);
         } else {
-          // If it already has LINE, ensure we also show position if available
-          errorMessage = `${errorMessage} (position ${String(errorPosition)})`;
+          // Fallback: Calculate line number from character position if LINE not in message
+          const linesBeforePosition = query
+            .substring(0, errorPosition - 1)
+            .split('\n');
+          errorLine = linesBeforePosition.length;
         }
       }
 
-      // Include detail and hint if available
+      // Include detail and hint if available (these are part of the raw error structure)
       if (pgError.detail !== undefined && pgError.detail !== '') {
         errorMessage = `${errorMessage}\nDetail: ${pgError.detail}`;
       }
@@ -73,9 +85,7 @@ export const executePostgreSQL = async (
       }
     }
 
-    const error: IErrorWithDetails = new Error(
-      `PostgreSQL error: ${errorMessage}`,
-    );
+    const error: IErrorWithDetails = new Error(errorMessage);
     error.errorLine = errorLine;
     error.errorPosition = errorPosition;
     throw error;

@@ -592,12 +592,6 @@ function App() {
                           data.errorMessage === null)
                           ? data.errorMessage
                           : null,
-                      sqlSchema:
-                        'sqlSchema' in data &&
-                        (typeof data.sqlSchema === 'string' ||
-                          data.sqlSchema === null)
-                          ? data.sqlSchema
-                          : null,
                       errorLine:
                         'errorLine' in data &&
                         (typeof data.errorLine === 'number' ||
@@ -621,7 +615,7 @@ function App() {
                     ) {
                       // Use SQLErrorModal if SQL schema and error details are available
                       if (
-                        status.sqlSchema !== null &&
+                        SQLSchema !== '' &&
                         status.errorLine !== null &&
                         status.errorLine !== undefined &&
                         status.errorLine > 0
@@ -632,12 +626,12 @@ function App() {
                           content: (
                             <SQLErrorModal
                               errorMessage={status.errorMessage}
-                              sqlSchema={status.sqlSchema ?? null}
-                              errorLine={status.errorLine ?? null}
+                              sqlSchema={SQLSchema}
+                              errorLine={status.errorLine}
                               errorPosition={status.errorPosition ?? null}
                             />
                           ),
-                          size: 'medium',
+                          size: 'large',
                         });
                       } else {
                         await promptModal({

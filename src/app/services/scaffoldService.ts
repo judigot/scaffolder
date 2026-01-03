@@ -193,7 +193,6 @@ export const scaffoldService = async (
       isFrontendDirValid,
       isDBConnectionValid,
       errorMessage,
-      sqlSchema: SQLSchema,
       errorLine,
       errorPosition,
     };
@@ -207,7 +206,6 @@ export const scaffoldService = async (
       isFrontendDirValid,
       isDBConnectionValid,
       errorMessage: errorMessage ?? `Project generation failed: ${errorMsg}`,
-      sqlSchema: SQLSchema ?? null,
       errorLine: errorLine ?? null,
       errorPosition: errorPosition ?? null,
     };
