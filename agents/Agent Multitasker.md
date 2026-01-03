@@ -56,6 +56,18 @@ If the branch already exists:
 git worktree add .worktrees/wt-<branch-slug> <branch-name>
 ```
 
+3) Push the branch to remote (sets upstream tracking):
+```sh
+git push -u origin <branch-name>
+```
+
+Examples:
+```sh
+git push -u origin feat/add-color
+git push -u origin feat/add-color-v2
+git push -u origin feat/auth
+```
+
 ## Cursor Workflow (mandatory)
 1) Keep one Cursor window opened on the main repo (coordination only).
 2) For each active worktree:
