@@ -175,7 +175,7 @@ FILE_LOOP({{timestamp}}_{{tableName}}.sql --template ./templates/migration.sql.t
 
 **Output:**
 - `2024-01-15T12:00:00.000Z_users.sql`
-- `2024-01-15T12:00:00.000Z_posts.sql`
+- `2024-01-15T12:00:01.000Z_posts.sql`
 
 #### Laravel-style Timestamp
 
@@ -185,7 +185,7 @@ FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName}}_table.sql --te
 
 **Output:**
 - `2024_01_15_120000_create_users_table.sql`
-- `2024_01_15_120000_create_posts_table.sql`
+- `2024_01_15_120001_create_posts_table.sql`
 
 #### Rails-style Timestamp
 
@@ -195,7 +195,7 @@ FILE_LOOP({{timestamp('YYYYMMDDHHmmss')}}_create_{{tableName}}.sql --template ./
 
 **Output:**
 - `20240115120000_create_users.sql`
-- `20240115120000_create_posts.sql`
+- `20240115120001_create_posts.sql`
 
 #### Date Only
 
@@ -215,7 +215,28 @@ FILE_LOOP({{timestamp('YYYY-MM-DD HH:mm:ss')}}_{{tableName}}.sql --template ./te
 
 **Output:**
 - `2024-01-15 12:00:00_users.sql`
-- `2024-01-15 12:00:00_posts.sql`
+- `2024-01-15 12:00:01_posts.sql`
+
+### Automatic Unique Timestamps
+
+When generating multiple files using `FILE_LOOP`, the `timestamp()` function automatically ensures each file gets a unique timestamp. This prevents filename collisions while preserving the order of items being processed.
+
+**How it works:**
+- Each file receives a timestamp offset by its position in the processing order (index)
+- The offset is applied in 1-second increments, ensuring uniqueness even for formats that only include second-level precision
+- The order of items is preserved: earlier items get earlier timestamps
+
+**Example:**
+```yaml
+FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+```
+
+**Output:**
+- `2024_01_15_120000_users.sql` (index 0, base timestamp)
+- `2024_01_15_120001_posts.sql` (index 1, +1 second)
+- `2024_01_15_120002_comments.sql` (index 2, +2 seconds)
+
+This ensures that when processing multiple files in a single operation, each file gets a unique, ordered timestamp without manual intervention.
 
 ### Real-World Use Cases
 
@@ -440,6 +461,10 @@ For reference, here are common format patterns used by popular frameworks:
 - Use zero-padding for proper lexicographic sorting
 - Consider using timestamp for time-based ordering
 - Combine timestamp + index for both uniqueness and ordering
+
+### Timestamp collisions
+
+Timestamps are automatically made unique when generating multiple files. Each file receives a timestamp offset by its processing index (in 1-second increments), ensuring no collisions occur even when multiple files are generated in the same operation.
 
 ## Related Documentation
 

@@ -67,7 +67,18 @@ export const processDynamicProperties = (
     }
 
     if (functionCall.functionName === 'timestamp') {
-      return processTimestampFunction(functionCall.args);
+      // Use tableIndex as offset (in seconds, converted to milliseconds) to ensure unique timestamps
+      // This preserves the order of tables while ensuring no collisions
+      // Using seconds ensures uniqueness even for formats that only include second-level precision
+      const tableIndexStr = replacements.tableIndex;
+      const tableIndex =
+        typeof tableIndexStr === 'string'
+          ? Number.parseInt(tableIndexStr, 10)
+          : 0;
+      // Add seconds based on index, converted to milliseconds (1000ms = 1 second)
+      // This ensures timestamps are unique while preserving order, even for second-level formats
+      const offsetMs = Number.isNaN(tableIndex) ? 0 : tableIndex * 1000;
+      return processTimestampFunction(functionCall.args, offsetMs);
     }
 
     // Handle dynamic properties with separators

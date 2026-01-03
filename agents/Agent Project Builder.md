@@ -150,7 +150,7 @@ Placeholders use double curly braces: `{{placeholderName}}`
 - `{{tableNameCamelCase}}`: Table name in camelCase
 - `{{columnName}}`: Column name
 - `{{index(1, 3)}}`: Sequential index (1-based, padded to 3 digits)
-- `{{timestamp('YYYY_MM_DD')}}`: Formatted timestamp
+- `{{timestamp('YYYY_MM_DD')}}`: Formatted timestamp (automatically unique when generating multiple files)
 
 ## View Table Exclusion
 
@@ -357,4 +357,25 @@ if (!match) {
 - **Performance Impact**: Eliminates wasted CPU cycles by avoiding build pipeline execution when prerequisites aren't met
 - **Implementation**: Uses descriptive boolean variables (`hasSelectedProject`, `hasUser`, `hasUserFiles`, `canBuildProject`, `hasNoUserFiles`) for readability
 - **Documentation**: See `src/utils/project-builder/docs/PERFORMANCE_OPTIMIZATIONS.md` for detailed documentation
+
+### Automatic Unique Timestamps for Multiple File Generation
+- **Problem**: When generating multiple files using `FILE_LOOP` with `{{timestamp()}}`, all files would receive the same timestamp, causing filename collisions
+- **Solution**: Automatic offset mechanism that ensures unique timestamps while preserving order
+- **Implementation**:
+  - **`formatTimestamp()`** (`placeholderFunctions.ts`): Added optional `offsetMs` parameter to apply millisecond offset to base date
+  - **`processTimestampFunction()`** (`placeholderFunctions.ts`): Added optional `offsetMs` parameter and passes it to `formatTimestamp()`
+  - **`processDynamicProperties()`** (`processDynamicProperties.ts`): Automatically calculates offset from `tableIndex` (1 second per index, converted to milliseconds)
+- **How it works**:
+  - Each file receives a timestamp offset by its processing index (`tableIndex`)
+  - Offset is applied in 1-second increments (1000ms per index) to ensure uniqueness even for second-level formats (Laravel, Rails)
+  - Order is preserved: earlier items get earlier timestamps
+- **Example**: When generating 3 files, timestamps are offset by 0s, 1s, and 2s respectively
+- **Benefits**:
+  - No manual intervention required - uniqueness is automatic
+  - Works with all timestamp formats (ISO 8601, Laravel, Rails, custom)
+  - Preserves processing order in timestamps
+  - Prevents filename collisions in batch operations
+- **Testing**: Comprehensive test suite in `placeholderFunctions.test.ts` (7 tests) and `processDynamicProperties-timestamp.test.ts` (10 tests)
+- **Documentation**: See `src/utils/project-builder/docs/PLACEHOLDER_FUNCTIONS.md` for user-facing documentation
+- **Note**: This is a general-purpose feature that works for any use case requiring unique, ordered timestamps, not specific to any framework
 

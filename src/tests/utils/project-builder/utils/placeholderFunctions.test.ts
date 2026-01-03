@@ -194,5 +194,92 @@ describe('placeholderFunctions', () => {
       expect(result1).toBe(result2);
       expect(result1).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
+
+    describe('offset functionality for unique timestamps', () => {
+      it('should apply offset to generate unique timestamps', () => {
+        const baseDate = new Date('2024-01-15T12:00:00.000Z');
+        const result1 = formatTimestamp('YYYY-MM-DD HH:mm:ss', baseDate, 0);
+        const result2 = formatTimestamp('YYYY-MM-DD HH:mm:ss', baseDate, 1000);
+        const result3 = formatTimestamp('YYYY-MM-DD HH:mm:ss', baseDate, 2000);
+
+        expect(result1).toBe('2024-01-15 12:00:00');
+        expect(result2).toBe('2024-01-15 12:00:01');
+        expect(result3).toBe('2024-01-15 12:00:02');
+      });
+
+      it('should apply offset with ISO format', () => {
+        const baseDate = new Date('2024-01-15T12:00:00.000Z');
+        const result1 = formatTimestamp(undefined, baseDate, 0);
+        const result2 = formatTimestamp(undefined, baseDate, 1000);
+
+        const date1 = new Date(result1);
+        const date2 = new Date(result2);
+
+        expect(date2.getTime() - date1.getTime()).toBe(1000);
+      });
+
+      it('should apply offset with Laravel format', () => {
+        const baseDate = new Date('2024-01-15T12:00:00.000Z');
+        const result1 = formatTimestamp('YYYY_MM_DD_HHmmss', baseDate, 0);
+        const result2 = formatTimestamp('YYYY_MM_DD_HHmmss', baseDate, 1000);
+        const result3 = formatTimestamp('YYYY_MM_DD_HHmmss', baseDate, 2000);
+
+        expect(result1).toBe('2024_01_15_120000');
+        expect(result2).toBe('2024_01_15_120001');
+        expect(result3).toBe('2024_01_15_120002');
+      });
+
+      it('should apply offset with Rails format', () => {
+        const baseDate = new Date('2024-01-15T12:00:00.000Z');
+        const result1 = formatTimestamp('YYYYMMDDHHmmss', baseDate, 0);
+        const result2 = formatTimestamp('YYYYMMDDHHmmss', baseDate, 1000);
+        const result3 = formatTimestamp('YYYYMMDDHHmmss', baseDate, 2000);
+
+        expect(result1).toBe('20240115120000');
+        expect(result2).toBe('20240115120001');
+        expect(result3).toBe('20240115120002');
+      });
+
+      it('should handle offset with processTimestampFunction', () => {
+        const result1 = processTimestampFunction(["'YYYY-MM-DD HH:mm:ss'"], 0);
+        const result2 = processTimestampFunction(
+          ["'YYYY-MM-DD HH:mm:ss'"],
+          1000,
+        );
+        const result3 = processTimestampFunction(
+          ["'YYYY-MM-DD HH:mm:ss'"],
+          2000,
+        );
+
+        const date1 = new Date(result1);
+        const date2 = new Date(result2);
+        const date3 = new Date(result3);
+
+        expect(date2.getTime() - date1.getTime()).toBe(1000);
+        expect(date3.getTime() - date2.getTime()).toBe(1000);
+        expect(date3.getTime() - date1.getTime()).toBe(2000);
+      });
+
+      it('should generate unique timestamps for multiple tables', () => {
+        const baseDate = new Date('2024-01-15T12:00:00.000Z');
+        const timestamps = [0, 1, 2, 3, 4].map((offset) =>
+          formatTimestamp('YYYY_MM_DD_HHmmss', baseDate, offset * 1000),
+        );
+
+        const uniqueTimestamps = new Set(timestamps);
+        expect(uniqueTimestamps.size).toBe(timestamps.length);
+      });
+
+      it('should preserve order when applying offsets', () => {
+        const baseDate = new Date('2024-01-15T12:00:00.000Z');
+        const timestamps = [0, 1, 2, 3, 4].map((offset) =>
+          formatTimestamp('YYYY_MM_DD_HHmmss', baseDate, offset * 1000),
+        );
+
+        for (let i = 0; i < timestamps.length - 1; i++) {
+          expect(timestamps[i] < timestamps[i + 1]).toBe(true);
+        }
+      });
+    });
   });
 });

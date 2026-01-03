@@ -51,29 +51,35 @@ const sanitizeString = (input: string): string => {
  *
  * @param format - Format string (e.g., 'YYYY-MM-DD', 'YYYY_MM_DD_HHmmss')
  * @param date - Optional date object (defaults to current date)
+ * @param offsetMs - Optional offset in milliseconds to add to the date (for unique timestamps)
  * @returns Formatted date string
  */
 export const formatTimestamp = (
   format?: string,
   date: Date = new Date(),
+  offsetMs?: number,
 ): string => {
+  // Apply offset if provided (for generating unique timestamps)
+  const finalDate =
+    offsetMs !== undefined ? new Date(date.getTime() + offsetMs) : date;
+
   // If no format provided, return ISO 8601 format (JavaScript default)
   if (format === undefined || format.trim() === '') {
-    return date.toISOString();
+    return finalDate.toISOString();
   }
 
   // Sanitize the format string to prevent injection
   const safeFormat = sanitizeString(format);
 
   // Extract date components (use UTC methods for consistency)
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-  const unixSeconds = Math.floor(date.getTime() / 1000);
-  const unixMilliseconds = date.getTime();
+  const year = finalDate.getUTCFullYear();
+  const month = String(finalDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(finalDate.getUTCDate()).padStart(2, '0');
+  const hours = String(finalDate.getUTCHours()).padStart(2, '0');
+  const minutes = String(finalDate.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(finalDate.getUTCSeconds()).padStart(2, '0');
+  const unixSeconds = Math.floor(finalDate.getTime() / 1000);
+  const unixMilliseconds = finalDate.getTime();
 
   // Replace format tokens using constants
   return safeFormat
@@ -231,7 +237,7 @@ export const processIndexFunction = (
 ): string => {
   // Default values - no padding unless explicitly specified
   let base = 0;
-  let width: number | 'auto' | undefined ; // undefined means no padding
+  let width: number | 'auto' | undefined; // undefined means no padding
   let offset = 0;
 
   // Parse arguments
@@ -280,10 +286,14 @@ export const processIndexFunction = (
  * Processes timestamp() function calls
  *
  * @param args - Function arguments (format string)
+ * @param offsetMs - Optional offset in milliseconds to add to the timestamp (for unique timestamps)
  * @returns Formatted timestamp string
  */
-export const processTimestampFunction = (args: string[]): string => {
+export const processTimestampFunction = (
+  args: string[],
+  offsetMs?: number,
+): string => {
   const format =
     args.length > 0 ? args[0].replace(/^["']|["']$/g, '') : undefined;
-  return formatTimestamp(format);
+  return formatTimestamp(format, new Date(), offsetMs);
 };
