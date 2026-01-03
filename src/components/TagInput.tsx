@@ -168,6 +168,14 @@ function TagInput({
               onClick={() => {
                 handleSuggestionClick(suggestion);
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSuggestionClick(suggestion);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               aria-label={`Suggestion: ${suggestion}`}
             >
               {suggestion}
