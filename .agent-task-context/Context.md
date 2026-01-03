@@ -1,56 +1,46 @@
-# Context: <branch-name>
+# Context: feat/add-file1
 
 ## Goal
-<Clear, one-sentence objective explaining what needs to be accomplished>
+Add a file named `.file1` to the root directory of the repository.
 
 ## Background
-<Why this task exists, what problem it solves, and any relevant context about the codebase or system>
+This is a test task for multiagent parallel work coordination. The task is simple: create a single file in the root directory to verify the worktree workflow functions correctly.
 
 ## Scope
 **Touch only:**
-- <explicit list of files/directories that CAN be modified>
-- <include full paths relative to worktree root>
+- Root directory (`.file1` file)
 
 **Do not touch:**
-- <explicit list of files/directories that MUST NOT be modified>
-- <include full paths relative to worktree root>
+- Any other files or directories
+- Other worktrees (`.worktrees/feat-add-file2/`)
 
 **Dependencies:**
-- <related systems, files, or components to be aware of>
-- <any external dependencies or requirements>
+- None
 
 ## Step-by-Step Instructions
-<Detailed, actionable steps written for a junior developer>
-
-1. **First Step:**
-   - What to do: <specific action>
-   - Why: <explanation of why this step is necessary>
-   - How to verify: <how to check if this step was done correctly>
-   - Common mistakes: <what to avoid>
-
-2. **Second Step:**
-   - <continue with detailed steps...>
+1. Navigate to the worktree root directory: `.worktrees/feat-add-file1/`
+2. Create an empty file named `.file1` in the root directory
+3. Verify the file was created: `ls -la .file1`
+4. Commit the file with a clear message
+5. Push the branch to remote
 
 ## Definition of Done
-- <clear checklist item 1>
-- <clear checklist item 2>
-- <clear checklist item 3>
-- <include verification steps>
+- `.file1` exists in the root directory of the worktree
+- File is committed to the `feat/add-file1` branch
+- Branch is pushed to remote
 
 ## Examples
-<Code examples, patterns to follow, or reference implementations>
-<Include actual code snippets that demonstrate the expected approach>
+```sh
+touch .file1
+git add .file1
+git commit -m "feat: add .file1 to root directory"
+git push -u origin feat/add-file1
+```
 
 ## Troubleshooting
 **Common Issue 1:**
-- Problem: <description>
-- Solution: <how to fix it>
-
-**Common Issue 2:**
-- Problem: <description>
-- Solution: <how to fix it>
+- Problem: File not visible (hidden file)
+- Solution: Use `ls -la` to see hidden files starting with `.`
 
 ## Notes / Decisions
-<important decisions made during implementation>
-<handoff items for future work>
-<future considerations or follow-up tasks>
+- Simple test task for worktree coordination
