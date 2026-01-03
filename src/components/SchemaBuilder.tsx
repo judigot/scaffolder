@@ -1112,7 +1112,7 @@ function SchemaBuilder() {
     field: string;
   }) => {
     return (
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex gap-2 justify-center">
         <button
           onClick={() => {
             if (selectedTableIndex !== null) {
@@ -2423,7 +2423,7 @@ function SchemaBuilder() {
                       <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
                         <div className="overflow-x-auto max-h-96 overflow-y-auto">
                           <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 bg-gray-700/90 backdrop-blur-sm">
+                            <thead className="sticky top-0 z-10 bg-gray-700">
                               <tr>
                                 <th className="border border-gray-600 px-2 py-1 w-12 text-center">
                                   #
