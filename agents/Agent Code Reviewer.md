@@ -464,8 +464,10 @@ git branch -d <branch-name>
 # Remove worktree
 git worktree remove .worktrees/<branch-slug>
 
-# Update STATE file (mark as merged for audit trail)
-rm -f .worktrees/<branch-slug>/.agent-task-context/STATE.* .worktrees/<branch-slug>/.agent-task-context/OWNER.* && touch .worktrees/<branch-slug>/.agent-task-context/STATE.merged
+# Update TASK_STATUS file (mark as merged for audit trail)
+# Note: Since TASK_STATUS files are runtime-only (gitignored), this step may not be necessary
+# as the worktree will be removed. If audit trail is needed, update before removing worktree.
+rm -f .worktrees/<branch-slug>/.agent-task-context/.state/TASK_STATUS.* .worktrees/<branch-slug>/.agent-task-context/.state/TASK_OWNER.* && touch .worktrees/<branch-slug>/.agent-task-context/.state/TASK_STATUS.merged
 
 # Optional: Prune stale worktree metadata
 git worktree prune
@@ -474,7 +476,7 @@ git worktree prune
 **What to check:**
 - Branch deleted successfully
 - Worktree removed successfully
-- STATE file updated
+- TASK_STATUS file updated (if applicable, since files are runtime-only)
 - No orphaned worktrees remain
 
 ### Step 4: Post-Merge Verification
@@ -504,12 +506,12 @@ git log --oneline --graph -5
 ### What to Cleanup
 1. **Local branch** - Delete after merge (`git branch -d`)
 2. **Worktree** - Remove after merge (`git worktree remove`)
-3. **STATE file** - Update to `STATE.merged` (preserve for audit)
+3. **TASK_STATUS file** - Update to `TASK_STATUS.merged` (if applicable, since files are runtime-only and gitignored)
 4. **Stale metadata** - Prune if needed (`git worktree prune`)
 
 ### What NOT to Cleanup
 - **Remote branch** - Leave for reference (can delete later if needed)
-- **STATE file** - Update, don't delete (audit trail)
+- **TASK_STATUS file** - Update, don't delete (if applicable, though runtime-only files are gitignored)
 - **Commit history** - Preserve all commits
 
 ### Error Handling
@@ -519,8 +521,8 @@ git log --oneline --graph -5
 # Do NOT cleanup
 # Report error with details
 # Keep worktree for debugging
-# Update STATE to merge-failed
-rm -f .worktrees/<branch-slug>/.agent-task-context/STATE.* .worktrees/<branch-slug>/.agent-task-context/OWNER.* && touch .worktrees/<branch-slug>/.agent-task-context/STATE.merge-failed
+# Update TASK_STATUS to merge-failed
+rm -f .worktrees/<branch-slug>/.agent-task-context/.state/TASK_STATUS.* .worktrees/<branch-slug>/.agent-task-context/.state/TASK_OWNER.* && touch .worktrees/<branch-slug>/.agent-task-context/.state/TASK_STATUS.merge-failed
 ```
 
 **If branch deletion fails:**

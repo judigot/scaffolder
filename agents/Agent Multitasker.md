@@ -63,14 +63,66 @@ echo "feat/add-color-v2" > .worktrees/feat-add-color-v2/.agent-task-context/BRAN
 echo "feat/auth" > .worktrees/feat-auth/.agent-task-context/BRANCH_NAME
 ```
 
-If the branch already exists:
+3b) Create initial Context.md (required for context preservation):
 ```sh
-git worktree add .worktrees/<branch-slug> <branch-name>
-# Create the BRANCH_NAME file
-echo "<branch-name>" > .worktrees/<branch-slug>/.agent-task-context/BRANCH_NAME
+# Create Context.md with initial template (fill in details as needed)
+cat > .worktrees/<branch-slug>/.agent-task-context/Context.md << 'EOF'
+# Context: <branch-name>
+
+## Goal
+<Clear, one-sentence objective explaining what needs to be accomplished>
+
+## Background
+<Why this task exists, what problem it solves, and any relevant context about the codebase or system>
+
+## Scope
+**Touch only:**
+- <explicit list of files/directories that CAN be modified>
+
+**Do not touch:**
+- <explicit list of files/directories that MUST NOT be modified>
+
+**Dependencies:**
+- <related systems, files, or components to be aware of>
+
+## Step-by-Step Instructions
+<Detailed, actionable steps written for a junior developer>
+
+## Definition of Done
+- <clear checklist item 1>
+- <clear checklist item 2>
+- <clear checklist item 3>
+
+## Examples
+<Code examples, patterns to follow, or reference implementations>
+
+## Troubleshooting
+**Common Issue 1:**
+- Problem: <description>
+- Solution: <how to fix it>
+
+## Notes / Decisions
+<important decisions made during implementation>
+EOF
 ```
 
-4) Push the branch to remote (sets upstream tracking):
+3c) Create .state directory and initial TASK_STATUS file (runtime-only, not committed):
+```sh
+mkdir -p .worktrees/<branch-slug>/.agent-task-context/.state
+touch .worktrees/<branch-slug>/.agent-task-context/.state/TASK_STATUS.unclaimed
+```
+
+**Note:** TASK_STATUS and TASK_OWNER files are created but NOT committed (runtime-only for agent coordination).
+
+4) Commit BRANCH_NAME and Context.md (required for context preservation):
+```sh
+cd .worktrees/<branch-slug>
+git add .agent-task-context/BRANCH_NAME .agent-task-context/Context.md
+git commit -m "chore: initialize worktree context"
+cd ../..
+```
+
+5) Push the branch to remote (sets upstream tracking):
 ```sh
 git push -u origin <branch-name>
 ```
@@ -81,6 +133,8 @@ git push -u origin feat/add-color
 git push -u origin feat/add-color-v2
 git push -u origin feat/auth
 ```
+
+**Important:** Only BRANCH_NAME and Context.md are committed (for context preservation). The `.agent-task-context/.state/` directory is gitignored and contains runtime-only files (TASK_STATUS and TASK_OWNER) for agent coordination.
 
 ## Cursor Workflow (mandatory)
 1) Keep one Cursor window opened on the main repo (coordination only).
@@ -103,98 +157,99 @@ git push -u origin feat/auth
 Treat each worktree like a lightweight ticket with scope, state, and ownership.
 
 Each worktree should contain:
-- `.agent-task-context/Context.md` — detailed ticket description (goal, scope, definition of done, step-by-step instructions)
-- `.agent-task-context/STATE.<status>` — state file (one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
-- `.agent-task-context/OWNER.<chat-id>` — owner file (filename contains the owner chat ID)
-- `.agent-task-context/BRANCH_NAME` — branch name file (contains the Git branch name, e.g., `feat/add-color`)
+- `.agent-task-context/Context.md` — detailed ticket description (goal, scope, definition of done, step-by-step instructions) - **committed**
+- `.agent-task-context/.state/TASK_STATUS.<status>` — task status file (one of: TASK_STATUS.unclaimed, TASK_STATUS.claimed, TASK_STATUS.paused, TASK_STATUS.done, TASK_STATUS.abandoned) - **runtime-only, not committed**
+- `.agent-task-context/.state/TASK_OWNER.<agent-id>` — owner file (filename contains the owner agent ID) - **runtime-only, not committed**
+- `.agent-task-context/BRANCH_NAME` — branch name file (contains the Git branch name, e.g., `feat/add-color`) - **committed**
 
-### File-Based State System
+### File-Based Task Status System
 
-State is stored using separate files for faster directory listing operations:
+Task status is stored using separate files for faster directory listing operations. These files are runtime-only (not committed) and stored in the `.state/` subdirectory:
 
-**State Files:**
-- `.agent-task-context/STATE.unclaimed` — no one is working on it yet
-- `.agent-task-context/STATE.claimed` — actively owned by a specific chat/window
-- `.agent-task-context/STATE.paused` — owned, but temporarily inactive
-- `.agent-task-context/STATE.done` — ready for PR/merge (or ready to remove if abandoned)
-- `.agent-task-context/STATE.abandoned` — intentionally left behind; safe to reclaim
+**Task Status Files:**
+- `.agent-task-context/.state/TASK_STATUS.unclaimed` — no one is working on it yet
+- `.agent-task-context/.state/TASK_STATUS.claimed` — actively owned by a specific agent/window
+- `.agent-task-context/.state/TASK_STATUS.paused` — owned, but temporarily inactive
+- `.agent-task-context/.state/TASK_STATUS.done` — ready for PR/merge (or ready to remove if abandoned)
+- `.agent-task-context/.state/TASK_STATUS.abandoned` — intentionally left behind; safe to reclaim
 
-**Owner File:**
-- `.agent-task-context/OWNER.<chat-id>` — contains the owner chat ID in the filename
-- Example: `.agent-task-context/OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
+**Task Owner File:**
+- `.agent-task-context/.state/TASK_OWNER.<agent-id>` — contains the owner agent ID in the filename
+- Example: `.agent-task-context/.state/TASK_OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
 
 **Rules:**
-- Only ONE STATE.* file should exist at a time
-- Only ONE OWNER.* file should exist at a time (or none if unclaimed)
-- The presence of a STATE.* file indicates the current status
-- The presence of an OWNER.* file indicates ownership (and the filename contains the owner ID)
+- Only ONE TASK_STATUS.* file should exist at a time
+- Only ONE TASK_OWNER.* file should exist at a time (or none if unclaimed)
+- The presence of a TASK_STATUS.* file indicates the current status
+- The presence of a TASK_OWNER.* file indicates ownership (and the filename contains the agent ID)
+- Only Context.md and BRANCH_NAME are committed; .state/ directory is gitignored
 
 ### Ownership rule
-- If a worktree has `STATE.claimed` and an `OWNER.*` file with a different chat ID, do not work on it.
-- If it has `STATE.unclaimed`, `STATE.paused`, or `STATE.abandoned`, claim it before working.
+- If a worktree has `TASK_STATUS.claimed` and a `TASK_OWNER.*` file with a different agent ID, do not work on it.
+- If it has `TASK_STATUS.unclaimed`, `TASK_STATUS.paused`, or `TASK_STATUS.abandoned`, claim it before working.
 
-### State Commands
+### Task Status Commands
 
-Read status (which STATE.* file exists):
+Read status (which TASK_STATUS.* file exists):
 ```sh
-ls .agent-task-context/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'
+ls .agent-task-context/.state/TASK_STATUS.* 2>/dev/null | sed 's|.*/TASK_STATUS\.||'
 ```
 
-Read owner (filename of OWNER.* file):
+Read owner (filename of TASK_OWNER.* file):
 ```sh
-ls .agent-task-context/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'
+ls .agent-task-context/.state/TASK_OWNER.* 2>/dev/null | sed 's|.*/TASK_OWNER\.||'
 ```
 
 Check if claimed:
 ```sh
-[ -f .agent-task-context/STATE.claimed ]
+[ -f .agent-task-context/.state/TASK_STATUS.claimed ]
 ```
 
 Check if unclaimed:
 ```sh
-[ -f .agent-task-context/STATE.unclaimed ]
+[ -f .agent-task-context/.state/TASK_STATUS.unclaimed ]
 ```
 
-Check ownership (replace OWNER_ID with generated ownerChatId):
+Check ownership (replace AGENT_ID with generated ownerAgentId):
 ```sh
-[ -f ".agent-task-context/OWNER.OWNER_ID" ]
+[ -f ".agent-task-context/.state/TASK_OWNER.AGENT_ID" ]
 ```
 
-Check if worktree is mine (STATE.claimed exists AND OWNER file matches):
+Check if worktree is mine (TASK_STATUS.claimed exists AND TASK_OWNER file matches):
 ```sh
-[ -f .agent-task-context/STATE.claimed ] && [ -f ".agent-task-context/OWNER.OWNER_ID" ]
+[ -f .agent-task-context/.state/TASK_STATUS.claimed ] && [ -f ".agent-task-context/.state/TASK_OWNER.AGENT_ID" ]
 ```
 
-Set state (remove all STATE.* files, create new one):
+Set task status (remove all TASK_STATUS.* files, create new one):
 ```sh
-rm -f .agent-task-context/STATE.* && touch .agent-task-context/STATE.<status>
+rm -f .agent-task-context/.state/TASK_STATUS.* && touch .agent-task-context/.state/TASK_STATUS.<status>
 ```
 
-Set owner (remove all OWNER.* files, create new one):
+Set owner (remove all TASK_OWNER.* files, create new one):
 ```sh
-rm -f .agent-task-context/OWNER.* && touch ".agent-task-context/OWNER.OWNER_ID"
+rm -f .agent-task-context/.state/TASK_OWNER.* && touch ".agent-task-context/.state/TASK_OWNER.AGENT_ID"
 ```
 
 Claim a worktree:
 ```sh
-rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.claimed && touch ".agent-task-context/OWNER.OWNER_ID"
+rm -f .agent-task-context/.state/TASK_STATUS.* .agent-task-context/.state/TASK_OWNER.* && touch .agent-task-context/.state/TASK_STATUS.claimed && touch ".agent-task-context/.state/TASK_OWNER.AGENT_ID"
 ```
 
 Pause a worktree (keep owner):
 ```sh
-OWNER_FILE=$(ls .agent-task-context/OWNER.* 2>/dev/null | head -1)
-rm -f .agent-task-context/STATE.* && touch .agent-task-context/STATE.paused
+OWNER_FILE=$(ls .agent-task-context/.state/TASK_OWNER.* 2>/dev/null | head -1)
+rm -f .agent-task-context/.state/TASK_STATUS.* && touch .agent-task-context/.state/TASK_STATUS.paused
 [ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"
 ```
 
 Complete a worktree:
 ```sh
-rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.done
+rm -f .agent-task-context/.state/TASK_STATUS.* .agent-task-context/.state/TASK_OWNER.* && touch .agent-task-context/.state/TASK_STATUS.done
 ```
 
 Abandon a worktree:
 ```sh
-rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.abandoned
+rm -f .agent-task-context/.state/TASK_STATUS.* .agent-task-context/.state/TASK_OWNER.* && touch .agent-task-context/.state/TASK_STATUS.abandoned
 ```
 
 ### Detailed Context.md Structure (for Junior Developers)
@@ -290,7 +345,7 @@ echo "$BRANCH_NAME" > .worktrees/<branch-slug>/.agent-task-context/BRANCH_NAME
 git worktree list
 ```
 
-**Note:** The `.agent-task-context/` files (Context.md, STATE files, OWNER files) will be preserved since they're committed. After adoption, the worktree will be fully functional with all state intact.
+**Note:** The `.agent-task-context/` files (Context.md and BRANCH_NAME) will be preserved since they're committed. The `.agent-task-context/.state/` directory is gitignored (runtime-only), so TASK_STATUS and TASK_OWNER files will not be present after adoption. This indicates unfinished work that can be continued by reading Context.md and reviewing changes.
 
 **Important:** Always ensure the BRANCH_NAME file exists when creating worktrees. Without it, adoption on other machines requires manual branch name lookup.
 
@@ -299,4 +354,5 @@ This workflow is correct if:
 - Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``<branch-slug>`` (kebab-case, no subfolders).
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
-- Each active worktree has `.agent-task-context/Context.md`, `.agent-task-context/STATE.<status>`, optionally `.agent-task-context/OWNER.<chat-id>`, and `.agent-task-context/BRANCH_NAME` so ownership, scope, and branch association are always visible.
+- Each active worktree has `.agent-task-context/Context.md` and `.agent-task-context/BRANCH_NAME` (committed) so scope and branch association are always visible.
+- Runtime task status is tracked in `.agent-task-context/.state/TASK_STATUS.*` and `.agent-task-context/.state/TASK_OWNER.*` files (gitignored, not committed).
