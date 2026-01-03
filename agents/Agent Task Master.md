@@ -176,7 +176,7 @@ If not, proceed directly to auto-selection.
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
 1) Read ``<worktree>/.cursor/STATE`` (create it if missing with `status=unclaimed` and `owner=`).
-2) Extract the branch name from the worktree path to compute branch-slug (worktree path format: `.worktrees/wt-<branch-name>`).
+2) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/wt-<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `wt-feat-add-color` worktree).
 3) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
 4) Read current status: `grep "^status=" .cursor/STATE | cut -d= -f2`
 5) Read current owner: `grep "^owner=" .cursor/STATE | cut -d= -f2`
@@ -195,7 +195,7 @@ Selection rules:
 1) Only consider worktrees under:
    - `.worktrees/`
 2) For each candidate worktree:
-   - Extract branch name from worktree path to compute branch-slug.
+   - Extract branch-slug from worktree path (worktree paths use kebab-case: `.worktrees/wt-<branch-slug>`).
    - Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
 3) Use this command to find eligible worktrees:
    ```sh
