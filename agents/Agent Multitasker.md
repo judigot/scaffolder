@@ -18,11 +18,11 @@ Examples:
 - feat/add-color-v2
 
 Worktree folder:
-- .worktree/wt-<branch-name>
+- .worktrees/wt-<branch-name>
 
 Examples:
-- feat/add-color       → .worktree/wt-feat/add-color
-- feat/add-color-v2    → .worktree/wt-feat/add-color-v2
+- feat/add-color       → .worktrees/wt-feat/add-color
+- feat/add-color-v2    → .worktrees/wt-feat/add-color-v2
 
 Rules:
 - The worktree folder name is always `wt-` + the exact branch name.
@@ -31,24 +31,24 @@ Rules:
 
 ## Create Worktrees (from repo root)
 1) Ensure base folder exists:
-- mkdir -p .worktree
+- mkdir -p .worktrees
 
 2) Create a worktree + branch:
-- git worktree add .worktree/wt-<branch-name> -b <branch-name>
+- git worktree add .worktrees/wt-<branch-name> -b <branch-name>
 
 Examples:
-- git worktree add .worktree/wt-feat/add-color -b feat/add-color
-- git worktree add .worktree/wt-feat/add-color-v2 -b feat/add-color-v2
-- git worktree add .worktree/wt-feat/auth -b feat/auth
+- git worktree add .worktrees/wt-feat/add-color -b feat/add-color
+- git worktree add .worktrees/wt-feat/add-color-v2 -b feat/add-color-v2
+- git worktree add .worktrees/wt-feat/auth -b feat/auth
 
 If the branch already exists:
-- git worktree add .worktree/wt-<branch-name> <branch-name>
+- git worktree add .worktrees/wt-<branch-name> <branch-name>
 
 ## Cursor Workflow (mandatory)
 1) Keep one Cursor window opened on the main repo (coordination only).
 2) For each active worktree:
    - File → New Window
-   - Open Folder… → .worktree/wt-<branch-name>
+   - Open Folder… → .worktrees/wt-<branch-name>
 3) In each worktree window:
    - Work only on that branch’s purpose (a task or a feature variant).
    - Commit early and often.
@@ -102,7 +102,7 @@ List worktrees:
 - git worktree list
 
 Remove a finished worktree (after merging or abandoning):
-- git worktree remove .worktree/wt-<branch-name>
+- git worktree remove .worktrees/wt-<branch-name>
 
 Delete the local branch when done (optional):
 - git branch -d <branch-name>
@@ -113,7 +113,7 @@ Clean stale metadata:
 
 ## Success Criteria
 This workflow is correct if:
-- Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktree/ using `wt-<branch-name>`.
+- Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using `wt-<branch-name>`.
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
 - Each active worktree has `.cursor/Context.md` and `.cursor/OWNER.json` so ownership and scope are always visible.
