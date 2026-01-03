@@ -72,9 +72,25 @@ Treat each worktree like a lightweight ticket with scope, state, and ownership.
 
 Each worktree should contain:
 - `.cursor/Context.md` — ticket description (goal, scope, definition of done)
-- `.cursor/OWNER.json` — ticket state + assignment (who “owns” this worktree)
+- `.cursor/STATE` — ticket state + assignment (file-based, see below)
 
-### Required statuses (OWNER.json)
+### File-Based State System
+
+State is stored in `.cursor/STATE` using a simple key=value format:
+
+**Format:**
+```
+status=unclaimed
+owner=
+```
+
+**Example (claimed):**
+```
+status=claimed
+owner=taskmaster__feat-add-color__2024-01-15__1430__01
+```
+
+### Required statuses
 - `unclaimed`: no one is working on it yet
 - `claimed`: actively owned by a specific chat/window
 - `paused`: owned, but temporarily inactive
@@ -85,14 +101,28 @@ Each worktree should contain:
 - If a worktree is `claimed` by someone else, do not work on it.
 - If it is `unclaimed`, `paused`, or `abandoned`, claim it before working.
 
-### Minimal OWNER.json fields (recommended)
-- `status`
-- `ownerChatId` (a stable identifier you choose for that window/chat)
-- `branch`
-- `worktreePath`
-- `claimedAt`
-- `lastUpdatedAt`
-- `notes`
+### State Commands
+
+Read status:
+```sh
+grep "^status=" .cursor/STATE | cut -d= -f2
+```
+
+Read owner:
+```sh
+grep "^owner=" .cursor/STATE | cut -d= -f2
+```
+
+Check if claimed:
+```sh
+grep -q "^status=claimed" .cursor/STATE
+```
+
+Update state (atomic):
+```sh
+echo "status=claimed
+owner=OWNER_ID" > .cursor/STATE
+```
 
 ### Minimal Context.md sections (recommended)
 - Goal (one sentence)
@@ -133,4 +163,4 @@ This workflow is correct if:
 - Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``wt-<branch-name>``.
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
-- Each active worktree has `.cursor/Context.md` and `.cursor/OWNER.json` so ownership and scope are always visible.
+- Each active worktree has `.cursor/Context.md` and `.cursor/STATE` so ownership and scope are always visible.

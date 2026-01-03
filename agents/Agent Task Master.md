@@ -9,9 +9,9 @@ When I drag this .md into the chat, you must:
 3) Never touch a claimed task unless the claim belongs to you.
 
 ## Worktree Ticketing System (authoritative)
-Each worktree is a “ticket” and must contain:
+Each worktree is a "ticket" and must contain:
 - `.cursor/Context.md` (goal/scope/done)
-- `.cursor/OWNER.json` (ownership/status)
+- `.cursor/STATE` (ownership/status - file-based, see below)
 
 Valid statuses:
 - `unclaimed`, `claimed`, `paused`, `done`, `abandoned`
@@ -21,6 +21,114 @@ Claimable statuses:
 
 Blocking status:
 - `claimed` (unless it is claimed by you)
+
+## File-Based State System
+
+State is stored in a single text file `.cursor/STATE` using a simple key=value format. This is faster than JSON parsing and allows efficient terminal-based operations.
+
+**File format:**
+```
+status=unclaimed
+owner=
+```
+
+**Example (claimed):**
+```
+status=claimed
+owner=taskmaster__feat-add-color__2024-01-15__1430__01
+```
+
+**Benefits:**
+- Single file = atomic writes
+- No JSON parsing needed
+- Fast `grep` operations
+- Human-readable
+- Terminal-friendly
+
+**State Commands (for agents):**
+
+Read status:
+```sh
+grep "^status=" .cursor/STATE | cut -d= -f2
+```
+
+Read owner:
+```sh
+grep "^owner=" .cursor/STATE | cut -d= -f2
+```
+
+Check if claimed:
+```sh
+grep -q "^status=claimed" .cursor/STATE
+```
+
+Check if unclaimed:
+```sh
+grep -q "^status=unclaimed" .cursor/STATE
+```
+
+Check ownership (replace OWNER_ID with generated ownerChatId):
+```sh
+grep -q "^owner=OWNER_ID" .cursor/STATE
+```
+
+Check if worktree is mine (status=claimed AND owner matches):
+```sh
+STATUS=$(grep "^status=" .cursor/STATE | cut -d= -f2)
+OWNER=$(grep "^owner=" .cursor/STATE | cut -d= -f2)
+[ "$STATUS" = "claimed" ] && [ "$OWNER" = "OWNER_ID" ]
+```
+
+Update state (atomic write):
+```sh
+echo "status=claimed
+owner=OWNER_ID" > .cursor/STATE
+```
+
+Claim a worktree:
+```sh
+echo "status=claimed
+owner=OWNER_ID" > .cursor/STATE
+```
+
+Pause a worktree (keep owner):
+```sh
+OWNER=$(grep "^owner=" .cursor/STATE | cut -d= -f2)
+echo "status=paused
+owner=$OWNER" > .cursor/STATE
+```
+
+Complete a worktree:
+```sh
+echo "status=done
+owner=" > .cursor/STATE
+```
+
+Abandon a worktree:
+```sh
+echo "status=abandoned
+owner=" > .cursor/STATE
+```
+
+Find all claimable worktrees:
+```sh
+find .worktrees -name STATE -exec sh -c '
+  STATUS=$(grep "^status=" "$1" 2>/dev/null | cut -d= -f2)
+  case "$STATUS" in
+    unclaimed|paused|abandoned) echo "${1%/.cursor/STATE}" ;;
+  esac
+' _ {} \;
+```
+
+Find worktrees claimed by specific owner:
+```sh
+find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \; | sed 's|/.cursor/STATE||'
+```
+
+Check for collision (ownerChatId already exists):
+```sh
+find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \; | grep -q . && echo "collision"
+```
 
 ## Absolute Rules (non-negotiable)
 1) Do not ask “Should I claim…?” or “Do you want me to proceed?”
@@ -42,7 +150,8 @@ Definitions:
 - `seq` = sequence number starting at `01`, incrementing if collision detected
 
 Collision detection:
-- Before writing OWNER.json, check all `.worktrees/**/.cursor/OWNER.json` files.
+- Before writing STATE, check all `.worktrees/**/.cursor/STATE` files.
+- Use: `find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \;`
 - If the generated ownerChatId already exists in any file, increment `seq` to `02`, `03`, etc. until unique.
 
 Example:
@@ -51,8 +160,8 @@ Example:
 - Date/time: 2024-01-15 14:30 (Asia/Manila)
 - Generated: `taskmaster__feat-add-color__2024-01-15__1430__01`
 
-You must write this value into OWNER.json when claiming.
-You must compare this value to OWNER.json when deciding whether you may work.
+You must write this value into STATE when claiming.
+You must compare this value to STATE when deciding whether you may work.
 
 ## Required Start Behavior (do this immediately)
 
@@ -66,16 +175,18 @@ If not, proceed directly to auto-selection.
 
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
-1) Read ``<worktree>/.cursor/OWNER.json`` (create it if missing).
-2) Extract the branch name from the worktree path or OWNER.json to compute branch-slug.
-3) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions and increment seq if needed).
-4) If status is `claimed` AND ownerChatId != generated ownerChatId:
+1) Read ``<worktree>/.cursor/STATE`` (create it if missing with `status=unclaimed` and `owner=`).
+2) Extract the branch name from the worktree path to compute branch-slug (worktree path format: `.worktrees/wt-<branch-name>`).
+3) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
+4) Read current status: `grep "^status=" .cursor/STATE | cut -d= -f2`
+5) Read current owner: `grep "^owner=" .cursor/STATE | cut -d= -f2`
+6) If status is `claimed` AND owner != generated ownerChatId:
    - Do not touch code in this worktree.
    - Immediately proceed to Step 3 (auto-select another claimable task).
-5) If status is `claimed` AND ownerChatId == generated ownerChatId:
+7) If status is `claimed` AND owner == generated ownerChatId:
    - Continue working in this worktree.
-6) If status is `unclaimed|paused|abandoned`:
-   - Claim it (set status `claimed`, set ownerChatId = generated ownerChatId, set timestamps), then proceed.
+8) If status is `unclaimed|paused|abandoned`:
+   - Claim it: `echo "status=claimed\nowner=OWNER_ID" > .cursor/STATE`, then proceed.
 
 ### Step 3 — Auto-select another claimable task (no questions)
 If the initial worktree is not yours (or no target was provided), you must automatically find another worktree you are allowed to work on:
@@ -84,18 +195,30 @@ Selection rules:
 1) Only consider worktrees under:
    - `.worktrees/`
 2) For each candidate worktree:
-   - Extract branch name to compute branch-slug.
-   - Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions and increment seq if needed).
-3) A worktree is eligible if:
-   - OWNER.json status is `unclaimed|paused|abandoned`, OR
-   - status is `claimed` AND ownerChatId == generated ownerChatId (resume your own work)
-4) Ignore any worktree that is `claimed` by someone else (ownerChatId exists and != generated ownerChatId) or marked `done`.
-5) Choose exactly ONE worktree to work on, using this priority:
-   - First: claimable worktrees with status `paused` AND ownerChatId == generated ownerChatId (resume your paused work)
+   - Extract branch name from worktree path to compute branch-slug.
+   - Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
+3) Use this command to find eligible worktrees:
+   ```sh
+   find .worktrees -name STATE -exec sh -c '
+     WT="${1%/.cursor/STATE}"
+     STATUS=$(grep "^status=" "$1" 2>/dev/null | cut -d= -f2)
+     OWNER=$(grep "^owner=" "$1" 2>/dev/null | cut -d= -f2)
+     case "$STATUS" in
+       unclaimed|paused|abandoned) echo "$WT" ;;
+       claimed) [ "$OWNER" = "OWNER_ID" ] && echo "$WT" ;;
+     esac
+   ' _ {} \;
+   ```
+4) A worktree is eligible if:
+   - STATE status is `unclaimed|paused|abandoned`, OR
+   - status is `claimed` AND owner == generated ownerChatId (resume your own work)
+5) Ignore any worktree that is `claimed` by someone else (owner exists and != generated ownerChatId) or marked `done`.
+6) Choose exactly ONE worktree to work on, using this priority:
+   - First: claimable worktrees with status `paused` AND owner == generated ownerChatId (resume your paused work)
    - Second: `unclaimed`
    - Third: `abandoned`
-   - Fourth: `paused` with ownerChatId missing/null (treat as reclaimable)
-6) If no eligible worktrees exist:
+   - Fourth: `paused` with owner empty (treat as reclaimable)
+7) If no eligible worktrees exist:
    - STOP and output only: "No eligible unclaimed worktrees found under .worktrees/."
 
 ### Step 4 — Read Context and enforce scope
@@ -122,26 +245,25 @@ If either file is missing:
 
 ## Audit Mode (Quick Finished-Task Scan)
 
-When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.cursor/OWNER.json` files and prints whether each worktree is DONE or NOT DONE.
+When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.cursor/STATE` files and prints whether each worktree is DONE or NOT DONE.
 
 Rules:
-- This audit is ONLY about ticket status visibility (OWNER.json presence + status). Do not review code quality.
+- This audit is ONLY about ticket status visibility (STATE presence + status). Do not review code quality.
 - Do not ask questions. Run the command and report the output.
 - If `.worktrees/` does not exist, stop and report that as the only issue.
 
 Inline command:
 ```sh
-find .worktrees -type f -path "*/.cursor/OWNER.json" -print | sort | while IFS= read -r f; do
-  wt="${f%/.cursor/OWNER.json}"
+find .worktrees -name STATE -print | sort | while IFS= read -r f; do
+  wt="${f%/.cursor/STATE}"
+  status=$(grep "^status=" "$f" 2>/dev/null | cut -d= -f2)
 
-  if grep -q '"status"[[:space:]]*:[[:space:]]*"done"' "$f"; then
+  if [ "$status" = "done" ]; then
     printf "DONE     | %s\n" "$wt"
-    continue
+  else
+    [ -n "$status" ] || status="(missing)"
+    printf "NOT DONE | %-10s | %s\n" "$status" "$wt"
   fi
-
-  status="$(sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$f" | head -n 1)"
-  [ -n "$status" ] || status="(missing)"
-  printf "NOT DONE | %-10s | %s\n" "$status" "$wt"
 done
 ```
 
@@ -155,9 +277,8 @@ Otherwise, do not ask questions.
 
 ## Required Stop Behavior
 When you stop working:
-- If Definition of Done is satisfied: set OWNER.json status to `done`
-- If not satisfied: set status to `paused`
-Always update lastUpdatedAt.
+- If Definition of Done is satisfied: `echo "status=done\nowner=" > .cursor/STATE`
+- If not satisfied: read current owner, then `echo "status=paused\nowner=OWNER_ID" > .cursor/STATE`
 
 ## Required End-of-Run Report (always output)
 - Generated ownerChatId:
@@ -202,15 +323,35 @@ Do not touch:
 - <handoff items or decisions>
 ```
 
-### .cursor/OWNER.json
-```json
-{
-  "status": "unclaimed",
-  "ownerChatId": null,
-  "branch": "<branch-name>",
-  "worktreePath": "<worktree-path>",
-  "claimedAt": null,
-  "lastUpdatedAt": null,
-  "notes": ""
-}
+### .cursor/STATE
+```
+status=unclaimed
+owner=
+```
+
+**State transitions:**
+
+Claiming:
+```sh
+echo "status=claimed
+owner=OWNER_ID" > .cursor/STATE
+```
+
+Pausing (keep owner):
+```sh
+OWNER=$(grep "^owner=" .cursor/STATE | cut -d= -f2)
+echo "status=paused
+owner=$OWNER" > .cursor/STATE
+```
+
+Completing:
+```sh
+echo "status=done
+owner=" > .cursor/STATE
+```
+
+Abandoning:
+```sh
+echo "status=abandoned
+owner=" > .cursor/STATE
 ```
