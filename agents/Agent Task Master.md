@@ -175,18 +175,19 @@ If not, proceed directly to auto-selection.
 
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
-1) Read ``<worktree>/.cursor/STATE`` (create it if missing with `status=unclaimed` and `owner=`).
-2) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/wt-<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `wt-feat-add-color` worktree).
-3) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
-4) Read current status: `grep "^status=" .cursor/STATE | cut -d= -f2`
-5) Read current owner: `grep "^owner=" .cursor/STATE | cut -d= -f2`
-6) If status is `claimed` AND owner != generated ownerChatId:
+1) **Store the worktree path**: `WORKTREE_PATH="<worktree>"` (e.g., `WORKTREE_PATH=".worktrees/wt-feat-add-color"`).
+2) Read `${WORKTREE_PATH}/.cursor/STATE` (create it if missing with `status=unclaimed` and `owner=`).
+3) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/wt-<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `wt-feat-add-color` worktree).
+4) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
+5) Read current status: `grep "^status=" ${WORKTREE_PATH}/.cursor/STATE | cut -d= -f2`
+6) Read current owner: `grep "^owner=" ${WORKTREE_PATH}/.cursor/STATE | cut -d= -f2`
+7) If status is `claimed` AND owner != generated ownerChatId:
    - Do not touch code in this worktree.
    - Immediately proceed to Step 3 (auto-select another claimable task).
-7) If status is `claimed` AND owner == generated ownerChatId:
+8) If status is `claimed` AND owner == generated ownerChatId:
    - Continue working in this worktree.
-8) If status is `unclaimed|paused|abandoned`:
-   - Claim it: `echo "status=claimed\nowner=OWNER_ID" > .cursor/STATE`, then proceed.
+9) If status is `unclaimed|paused|abandoned`:
+   - Claim it: `echo "status=claimed\nowner=OWNER_ID" > ${WORKTREE_PATH}/.cursor/STATE`, then proceed.
 
 ### Step 3 — Auto-select another claimable task (no questions)
 If the initial worktree is not yours (or no target was provided), you must automatically find another worktree you are allowed to work on:
@@ -221,31 +222,103 @@ Selection rules:
 7) If no eligible worktrees exist:
    - STOP and output only: "No eligible unclaimed worktrees found under .worktrees/."
 
+8) **CRITICAL: Store the selected worktree path**
+   - After selecting a worktree, store its path: `WORKTREE_PATH=".worktrees/wt-<branch-slug>"`
+   - Example: If selected worktree is `.worktrees/wt-feat-add-color`, then `WORKTREE_PATH=".worktrees/wt-feat-add-color"`
+   - **This path MUST be used as a prefix for ALL file operations** (reading, writing, creating, deleting).
+   - **Failure to use worktree-prefixed paths will result in modifying files in the main repo instead of the worktree.**
+
+**Path Usage Examples:**
+- To read Context.md: `${WORKTREE_PATH}/.cursor/Context.md` ✅
+- To edit FileViewer.tsx: `${WORKTREE_PATH}/src/components/FileViewer.tsx` ✅
+- To create new file: `${WORKTREE_PATH}/src/utils/helper.ts` ✅
+- **WRONG:** `src/components/FileViewer.tsx` ❌ (resolves to main repo)
+- **WRONG:** `.cursor/Context.md` ❌ (resolves to main repo)
+
+**Important: Multiple Agents Running Simultaneously**
+- You are ONE agent instance running in ONE Cursor window/chat.
+- The `WORKTREE_PATH` variable is LOCAL to your execution context (like a local variable in your code).
+- Other agents running in other Cursor windows have their OWN separate `WORKTREE_PATH` variables.
+- Think of it like this: Each agent is like a separate developer with their own computer. You each have your own `WORKTREE_PATH` variable pointing to your own worktree.
+- **You will only work on ONE worktree at a time** - the one you claimed via the STATE file.
+- The STATE file system ensures no two agents claim the same worktree, so your `WORKTREE_PATH` will always be unique to you.
+- Example scenario:
+  - Agent 1 (your chat): `WORKTREE_PATH=".worktrees/wt-feat-add-color"` (you claimed this one)
+  - Agent 2 (different chat): `WORKTREE_PATH=".worktrees/wt-feat-fix-bug"` (they claimed a different one)
+  - Agent 3 (different chat): `WORKTREE_PATH=".worktrees/wt-feat-refactor"` (they claimed yet another one)
+  - No conflict because you're all working in different worktrees, and the STATE files prevent double-claiming.
+
 ### Step 4 — Read Context and enforce scope
 For the selected worktree:
 1) **Work within the worktree directory** - All file operations must happen inside the worktree (e.g., `.worktrees/wt-feat-add-color/`).
-2) Open `.cursor/Context.md` (create if missing).
-3) Extract:
+2) **Use worktree-prefixed paths for ALL file operations:**
+   - Read Context.md: `${WORKTREE_PATH}/.cursor/Context.md`
+   - Read STATE: `${WORKTREE_PATH}/.cursor/STATE`
+   - Edit files: `${WORKTREE_PATH}/src/components/FileViewer.tsx`
+   - Create files: `${WORKTREE_PATH}/src/utils/newFile.ts`
+   - **NEVER use relative paths like `src/components/FileViewer.tsx`** (this resolves to main repo, not worktree)
+3) Open `${WORKTREE_PATH}/.cursor/Context.md` (create if missing).
+4) Extract:
    - Goal
    - Touch-only paths
    - Do-not-touch paths
    - Definition of Done
-4) **Modify files inside the worktree** - Edit, create, and delete files within the worktree directory. All changes are isolated to that branch.
-5) Work ONLY within Touch-only paths and never touch Do-not-touch paths.
+5) **Modify files inside the worktree** - Edit, create, and delete files within the worktree directory using worktree-prefixed paths. All changes are isolated to that branch.
+6) Work ONLY within Touch-only paths and never touch Do-not-touch paths.
 
 If either file is missing:
 - Create it immediately using the templates below, filling in what this document provides.
+- Use worktree-prefixed paths: `${WORKTREE_PATH}/.cursor/Context.md` and `${WORKTREE_PATH}/.cursor/STATE`
 - Then continue.
 
 ## Execution Rules (scope discipline)
+
+### Understanding Your Execution Context (Important for Junior Developers)
+
+**You are one agent instance:**
+- You run in ONE Cursor window/chat.
+- You have your own memory/variable space (like a separate program running).
+- Your `WORKTREE_PATH` variable is private to you - other agents can't see it or modify it.
+- Think of yourself as a junior developer working on your own computer.
+
+**How multiple agents work together:**
+- Each agent (each Cursor window) is like a separate developer.
+- Each agent has their own `WORKTREE_PATH` variable.
+- Each agent claims ONE worktree via the STATE file system.
+- The STATE files coordinate: if Agent 1 claims worktree A, Agent 2 will see it's claimed and pick worktree B instead.
+- Result: Each agent works on a different worktree, so no conflicts.
+
+**Your responsibility:**
+- Work on ONLY the worktree you claimed (stored in YOUR `WORKTREE_PATH`).
+- Don't worry about other agents - the STATE system handles coordination.
+- Use YOUR `WORKTREE_PATH` for all file operations.
+- If you see a worktree is already claimed by someone else (different ownerChatId), skip it and find another.
+
+### Mandatory Path Usage
+**ALL file operations MUST use worktree-prefixed paths:**
+
+**Correct (worktree paths):**
+- `${WORKTREE_PATH}/src/components/FileViewer.tsx`
+- `.worktrees/wt-feat-add-color/src/components/FileViewer.tsx`
+- `${WORKTREE_PATH}/.cursor/Context.md`
+
+**Incorrect (relative paths - resolves to main repo):**
+- `src/components/FileViewer.tsx` ❌
+- `.cursor/Context.md` ❌
+- `package.json` ❌
+
+**Rule:** If Context.md says "Touch only: `src/components/FileViewer.tsx`", you must interpret this as `${WORKTREE_PATH}/src/components/FileViewer.tsx`.
+
+### Execution Rules
 1) **Work inside the worktree directory** - All file modifications must occur within the worktree (e.g., `.worktrees/wt-feat-add-color/`). The worktree is the working directory for that branch.
-2) Modify ONLY what Context.md allows ("Touch only").
-3) Never touch "Do not touch" paths.
-4) **Commit from within the worktree** - All git operations (add, commit, push) should be performed from the worktree directory, committing to that branch.
-5) If you discover necessary work outside scope:
+2) **Use worktree-prefixed paths** - Prefix ALL file paths with `${WORKTREE_PATH}/` or the full worktree path. Never use relative paths that could resolve to the main repo.
+3) Modify ONLY what Context.md allows ("Touch only"), but interpret all paths as relative to the worktree (prefix with `${WORKTREE_PATH}/`).
+4) Never touch "Do not touch" paths.
+5) **Commit from within the worktree** - All git operations (add, commit, push) should be performed from the worktree directory, committing to that branch.
+6) If you discover necessary work outside scope:
    - Do not implement it
-   - Add a bullet under Context.md → "Notes / Decisions" describing the needed work and why
-6) Keep changes minimal, correct, and production-ready.
+   - Add a bullet under `${WORKTREE_PATH}/.cursor/Context.md` → "Notes / Decisions" describing the needed work and why
+7) Keep changes minimal, correct, and production-ready.
 
 ## Audit Mode (Quick Finished-Task Scan)
 
@@ -281,8 +354,8 @@ Otherwise, do not ask questions.
 
 ## Required Stop Behavior
 When you stop working:
-- If Definition of Done is satisfied: `echo "status=done\nowner=" > .cursor/STATE`
-- If not satisfied: read current owner, then `echo "status=paused\nowner=OWNER_ID" > .cursor/STATE`
+- If Definition of Done is satisfied: `echo "status=done\nowner=" > ${WORKTREE_PATH}/.cursor/STATE`
+- If not satisfied: read current owner from `${WORKTREE_PATH}/.cursor/STATE`, then `echo "status=paused\nowner=OWNER_ID" > ${WORKTREE_PATH}/.cursor/STATE`
 
 ## Required End-of-Run Report (always output)
 - Generated ownerChatId:
@@ -306,6 +379,8 @@ When you stop working:
   - ``<messages>``
 
 ## Templates (use only if missing)
+
+**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.cursor/Context.md` and `${WORKTREE_PATH}/.cursor/STATE`
 
 ### .cursor/Context.md
 ```markdown
@@ -333,29 +408,29 @@ status=unclaimed
 owner=
 ```
 
-**State transitions:**
+**State transitions (use `${WORKTREE_PATH}/.cursor/STATE`):**
 
 Claiming:
 ```sh
 echo "status=claimed
-owner=OWNER_ID" > .cursor/STATE
+owner=OWNER_ID" > ${WORKTREE_PATH}/.cursor/STATE
 ```
 
 Pausing (keep owner):
 ```sh
-OWNER=$(grep "^owner=" .cursor/STATE | cut -d= -f2)
+OWNER=$(grep "^owner=" ${WORKTREE_PATH}/.cursor/STATE | cut -d= -f2)
 echo "status=paused
-owner=$OWNER" > .cursor/STATE
+owner=$OWNER" > ${WORKTREE_PATH}/.cursor/STATE
 ```
 
 Completing:
 ```sh
 echo "status=done
-owner=" > .cursor/STATE
+owner=" > ${WORKTREE_PATH}/.cursor/STATE
 ```
 
 Abandoning:
 ```sh
 echo "status=abandoned
-owner=" > .cursor/STATE
+owner=" > ${WORKTREE_PATH}/.cursor/STATE
 ```
