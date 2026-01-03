@@ -89,12 +89,12 @@ git push -u origin feat/auth
 Treat each worktree like a lightweight ticket with scope, state, and ownership.
 
 Each worktree should contain:
-- `.cursor/Context.md` — ticket description (goal, scope, definition of done)
-- `.cursor/STATE` — ticket state + assignment (file-based, see below)
+- `.task/Context.md` — ticket description (goal, scope, definition of done)
+- `.task/STATE` — ticket state + assignment (file-based, see below)
 
 ### File-Based State System
 
-State is stored in `.cursor/STATE` using a simple key=value format:
+State is stored in `.task/STATE` using a simple key=value format:
 
 **Format:**
 ```
@@ -123,23 +123,23 @@ owner=taskmaster__feat-add-color__2024-01-15__1430__01
 
 Read status:
 ```sh
-grep "^status=" .cursor/STATE | cut -d= -f2
+grep "^status=" .task/STATE | cut -d= -f2
 ```
 
 Read owner:
 ```sh
-grep "^owner=" .cursor/STATE | cut -d= -f2
+grep "^owner=" .task/STATE | cut -d= -f2
 ```
 
 Check if claimed:
 ```sh
-grep -q "^status=claimed" .cursor/STATE
+grep -q "^status=claimed" .task/STATE
 ```
 
 Update state (atomic):
 ```sh
 echo "status=claimed
-owner=OWNER_ID" > .cursor/STATE
+owner=OWNER_ID" > .task/STATE
 ```
 
 ### Minimal Context.md sections (recommended)
@@ -181,4 +181,4 @@ This workflow is correct if:
 - Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``wt-<branch-slug>`` (kebab-case, no subfolders).
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
-- Each active worktree has `.cursor/Context.md` and `.cursor/STATE` so ownership and scope are always visible.
+- Each active worktree has `.task/Context.md` and `.task/STATE` so ownership and scope are always visible.

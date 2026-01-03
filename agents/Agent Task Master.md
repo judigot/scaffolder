@@ -10,8 +10,8 @@ When I drag this .md into the chat, you must:
 
 ## Worktree Ticketing System (authoritative)
 Each worktree is a "ticket" and must contain:
-- `.cursor/Context.md` (goal/scope/done)
-- `.cursor/STATE` (ownership/status - file-based, see below)
+- `.task/Context.md` (goal/scope/done)
+- `.task/STATE` (ownership/status - file-based, see below)
 
 Valid statuses:
 - `unclaimed`, `claimed`, `paused`, `done`, `abandoned`
@@ -24,7 +24,7 @@ Blocking status:
 
 ## File-Based State System
 
-State is stored in a single text file `.cursor/STATE` using a simple key=value format. This is faster than JSON parsing and allows efficient terminal-based operations.
+State is stored in a single text file `.task/STATE` using a simple key=value format. This is faster than JSON parsing and allows efficient terminal-based operations.
 
 **File format:**
 ```
@@ -49,65 +49,65 @@ owner=taskmaster__feat-add-color__2024-01-15__1430__01
 
 Read status:
 ```sh
-grep "^status=" .cursor/STATE | cut -d= -f2
+grep "^status=" .task/STATE | cut -d= -f2
 ```
 
 Read owner:
 ```sh
-grep "^owner=" .cursor/STATE | cut -d= -f2
+grep "^owner=" .task/STATE | cut -d= -f2
 ```
 
 Check if claimed:
 ```sh
-grep -q "^status=claimed" .cursor/STATE
+grep -q "^status=claimed" .task/STATE
 ```
 
 Check if unclaimed:
 ```sh
-grep -q "^status=unclaimed" .cursor/STATE
+grep -q "^status=unclaimed" .task/STATE
 ```
 
 Check ownership (replace OWNER_ID with generated ownerChatId):
 ```sh
-grep -q "^owner=OWNER_ID" .cursor/STATE
+grep -q "^owner=OWNER_ID" .task/STATE
 ```
 
 Check if worktree is mine (status=claimed AND owner matches):
 ```sh
-STATUS=$(grep "^status=" .cursor/STATE | cut -d= -f2)
-OWNER=$(grep "^owner=" .cursor/STATE | cut -d= -f2)
+STATUS=$(grep "^status=" .task/STATE | cut -d= -f2)
+OWNER=$(grep "^owner=" .task/STATE | cut -d= -f2)
 [ "$STATUS" = "claimed" ] && [ "$OWNER" = "OWNER_ID" ]
 ```
 
 Update state (atomic write):
 ```sh
 echo "status=claimed
-owner=OWNER_ID" > .cursor/STATE
+owner=OWNER_ID" > .task/STATE
 ```
 
 Claim a worktree:
 ```sh
 echo "status=claimed
-owner=OWNER_ID" > .cursor/STATE
+owner=OWNER_ID" > .task/STATE
 ```
 
 Pause a worktree (keep owner):
 ```sh
-OWNER=$(grep "^owner=" .cursor/STATE | cut -d= -f2)
+OWNER=$(grep "^owner=" .task/STATE | cut -d= -f2)
 echo "status=paused
-owner=$OWNER" > .cursor/STATE
+owner=$OWNER" > .task/STATE
 ```
 
 Complete a worktree:
 ```sh
 echo "status=done
-owner=" > .cursor/STATE
+owner=" > .task/STATE
 ```
 
 Abandon a worktree:
 ```sh
 echo "status=abandoned
-owner=" > .cursor/STATE
+owner=" > .task/STATE
 ```
 
 Find all claimable worktrees:
@@ -115,14 +115,14 @@ Find all claimable worktrees:
 find .worktrees -name STATE -exec sh -c '
   STATUS=$(grep "^status=" "$1" 2>/dev/null | cut -d= -f2)
   case "$STATUS" in
-    unclaimed|paused|abandoned) echo "${1%/.cursor/STATE}" ;;
+    unclaimed|paused|abandoned) echo "${1%/.task/STATE}" ;;
   esac
 ' _ {} \;
 ```
 
 Find worktrees claimed by specific owner:
 ```sh
-find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \; | sed 's|/.cursor/STATE||'
+find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \; | sed 's|/.task/STATE||'
 ```
 
 Check for collision (ownerChatId already exists):
@@ -150,7 +150,7 @@ Definitions:
 - `seq` = sequence number starting at `01`, incrementing if collision detected
 
 Collision detection:
-- Before writing STATE, check all `.worktrees/**/.cursor/STATE` files.
+- Before writing STATE, check all `.worktrees/**/.task/STATE` files.
 - Use: `find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \;`
 - If the generated ownerChatId already exists in any file, increment `seq` to `02`, `03`, etc. until unique.
 
@@ -176,18 +176,18 @@ If not, proceed directly to auto-selection.
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
 1) **Store the worktree path**: `WORKTREE_PATH="<worktree>"` (e.g., `WORKTREE_PATH=".worktrees/wt-feat-add-color"`).
-2) Read `${WORKTREE_PATH}/.cursor/STATE` (create it if missing with `status=unclaimed` and `owner=`).
+2) Read `${WORKTREE_PATH}/.task/STATE` (create it if missing with `status=unclaimed` and `owner=`).
 3) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/wt-<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `wt-feat-add-color` worktree).
 4) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
-5) Read current status: `grep "^status=" ${WORKTREE_PATH}/.cursor/STATE | cut -d= -f2`
-6) Read current owner: `grep "^owner=" ${WORKTREE_PATH}/.cursor/STATE | cut -d= -f2`
+5) Read current status: `grep "^status=" ${WORKTREE_PATH}/.task/STATE | cut -d= -f2`
+6) Read current owner: `grep "^owner=" ${WORKTREE_PATH}/.task/STATE | cut -d= -f2`
 7) If status is `claimed` AND owner != generated ownerChatId:
    - Do not touch code in this worktree.
    - Immediately proceed to Step 3 (auto-select another claimable task).
 8) If status is `claimed` AND owner == generated ownerChatId:
    - Continue working in this worktree.
 9) If status is `unclaimed|paused|abandoned`:
-   - Claim it: `echo "status=claimed\nowner=OWNER_ID" > ${WORKTREE_PATH}/.cursor/STATE`, then proceed.
+   - Claim it: `echo "status=claimed\nowner=OWNER_ID" > ${WORKTREE_PATH}/.task/STATE`, then proceed.
 
 ### Step 3 — Auto-select another claimable task (no questions)
 If the initial worktree is not yours (or no target was provided), you must automatically find another worktree you are allowed to work on:
@@ -201,7 +201,7 @@ Selection rules:
 3) Use this command to find eligible worktrees:
    ```sh
    find .worktrees -name STATE -exec sh -c '
-     WT="${1%/.cursor/STATE}"
+     WT="${1%/.task/STATE}"
      STATUS=$(grep "^status=" "$1" 2>/dev/null | cut -d= -f2)
      OWNER=$(grep "^owner=" "$1" 2>/dev/null | cut -d= -f2)
      case "$STATUS" in
@@ -229,11 +229,11 @@ Selection rules:
    - **Failure to use worktree-prefixed paths will result in modifying files in the main repo instead of the worktree.**
 
 **Path Usage Examples:**
-- To read Context.md: `${WORKTREE_PATH}/.cursor/Context.md` ✅
+- To read Context.md: `${WORKTREE_PATH}/.task/Context.md` ✅
 - To edit FileViewer.tsx: `${WORKTREE_PATH}/src/components/FileViewer.tsx` ✅
 - To create new file: `${WORKTREE_PATH}/src/utils/helper.ts` ✅
 - **WRONG:** `src/components/FileViewer.tsx` ❌ (resolves to main repo)
-- **WRONG:** `.cursor/Context.md` ❌ (resolves to main repo)
+- **WRONG:** `.task/Context.md` ❌ (resolves to main repo)
 
 **Important: Multiple Agents Running Simultaneously**
 - You are ONE agent instance running in ONE Cursor window/chat.
@@ -252,12 +252,12 @@ Selection rules:
 For the selected worktree:
 1) **Work within the worktree directory** - All file operations must happen inside the worktree (e.g., `.worktrees/wt-feat-add-color/`).
 2) **Use worktree-prefixed paths for ALL file operations:**
-   - Read Context.md: `${WORKTREE_PATH}/.cursor/Context.md`
-   - Read STATE: `${WORKTREE_PATH}/.cursor/STATE`
+   - Read Context.md: `${WORKTREE_PATH}/.task/Context.md`
+   - Read STATE: `${WORKTREE_PATH}/.task/STATE`
    - Edit files: `${WORKTREE_PATH}/src/components/FileViewer.tsx`
    - Create files: `${WORKTREE_PATH}/src/utils/newFile.ts`
    - **NEVER use relative paths like `src/components/FileViewer.tsx`** (this resolves to main repo, not worktree)
-3) Open `${WORKTREE_PATH}/.cursor/Context.md` (create if missing).
+3) Open `${WORKTREE_PATH}/.task/Context.md` (create if missing).
 4) Extract:
    - Goal
    - Touch-only paths
@@ -268,7 +268,7 @@ For the selected worktree:
 
 If either file is missing:
 - Create it immediately using the templates below, filling in what this document provides.
-- Use worktree-prefixed paths: `${WORKTREE_PATH}/.cursor/Context.md` and `${WORKTREE_PATH}/.cursor/STATE`
+- Use worktree-prefixed paths: `${WORKTREE_PATH}/.task/Context.md` and `${WORKTREE_PATH}/.task/STATE`
 - Then continue.
 
 ## Execution Rules (scope discipline)
@@ -300,11 +300,11 @@ If either file is missing:
 **Correct (worktree paths):**
 - `${WORKTREE_PATH}/src/components/FileViewer.tsx`
 - `.worktrees/wt-feat-add-color/src/components/FileViewer.tsx`
-- `${WORKTREE_PATH}/.cursor/Context.md`
+- `${WORKTREE_PATH}/.task/Context.md`
 
 **Incorrect (relative paths - resolves to main repo):**
 - `src/components/FileViewer.tsx` ❌
-- `.cursor/Context.md` ❌
+- `.task/Context.md` ❌
 - `package.json` ❌
 
 **Rule:** If Context.md says "Touch only: `src/components/FileViewer.tsx`", you must interpret this as `${WORKTREE_PATH}/src/components/FileViewer.tsx`.
@@ -317,12 +317,12 @@ If either file is missing:
 5) **Commit from within the worktree** - All git operations (add, commit, push) should be performed from the worktree directory, committing to that branch.
 6) If you discover necessary work outside scope:
    - Do not implement it
-   - Add a bullet under `${WORKTREE_PATH}/.cursor/Context.md` → "Notes / Decisions" describing the needed work and why
+   - Add a bullet under `${WORKTREE_PATH}/.task/Context.md` → "Notes / Decisions" describing the needed work and why
 7) Keep changes minimal, correct, and production-ready.
 
 ## Audit Mode (Quick Finished-Task Scan)
 
-When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.cursor/STATE` files and prints whether each worktree is DONE or NOT DONE.
+When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.task/STATE` files and prints whether each worktree is DONE or NOT DONE.
 
 Rules:
 - This audit is ONLY about ticket status visibility (STATE presence + status). Do not review code quality.
@@ -332,7 +332,7 @@ Rules:
 Inline command:
 ```sh
 find .worktrees -name STATE -print | sort | while IFS= read -r f; do
-  wt="${f%/.cursor/STATE}"
+  wt="${f%/.task/STATE}"
   status=$(grep "^status=" "$f" 2>/dev/null | cut -d= -f2)
 
   if [ "$status" = "done" ]; then
@@ -354,8 +354,8 @@ Otherwise, do not ask questions.
 
 ## Required Stop Behavior
 When you stop working:
-- If Definition of Done is satisfied: `echo "status=done\nowner=" > ${WORKTREE_PATH}/.cursor/STATE`
-- If not satisfied: read current owner from `${WORKTREE_PATH}/.cursor/STATE`, then `echo "status=paused\nowner=OWNER_ID" > ${WORKTREE_PATH}/.cursor/STATE`
+- If Definition of Done is satisfied: `echo "status=done\nowner=" > ${WORKTREE_PATH}/.task/STATE`
+- If not satisfied: read current owner from `${WORKTREE_PATH}/.task/STATE`, then `echo "status=paused\nowner=OWNER_ID" > ${WORKTREE_PATH}/.task/STATE`
 
 ## Required End-of-Run Report (always output)
 - Generated ownerChatId:
@@ -380,9 +380,9 @@ When you stop working:
 
 ## Templates (use only if missing)
 
-**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.cursor/Context.md` and `${WORKTREE_PATH}/.cursor/STATE`
+**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.task/Context.md` and `${WORKTREE_PATH}/.task/STATE`
 
-### .cursor/Context.md
+### .task/Context.md
 ```markdown
 # Context: <branch-name>
 
@@ -402,35 +402,35 @@ Do not touch:
 - <handoff items or decisions>
 ```
 
-### .cursor/STATE
+### .task/STATE
 ```
 status=unclaimed
 owner=
 ```
 
-**State transitions (use `${WORKTREE_PATH}/.cursor/STATE`):**
+**State transitions (use `${WORKTREE_PATH}/.task/STATE`):**
 
 Claiming:
 ```sh
 echo "status=claimed
-owner=OWNER_ID" > ${WORKTREE_PATH}/.cursor/STATE
+owner=OWNER_ID" > ${WORKTREE_PATH}/.task/STATE
 ```
 
 Pausing (keep owner):
 ```sh
-OWNER=$(grep "^owner=" ${WORKTREE_PATH}/.cursor/STATE | cut -d= -f2)
+OWNER=$(grep "^owner=" ${WORKTREE_PATH}/.task/STATE | cut -d= -f2)
 echo "status=paused
-owner=$OWNER" > ${WORKTREE_PATH}/.cursor/STATE
+owner=$OWNER" > ${WORKTREE_PATH}/.task/STATE
 ```
 
 Completing:
 ```sh
 echo "status=done
-owner=" > ${WORKTREE_PATH}/.cursor/STATE
+owner=" > ${WORKTREE_PATH}/.task/STATE
 ```
 
 Abandoning:
 ```sh
 echo "status=abandoned
-owner=" > ${WORKTREE_PATH}/.cursor/STATE
+owner=" > ${WORKTREE_PATH}/.task/STATE
 ```
