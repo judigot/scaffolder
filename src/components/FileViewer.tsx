@@ -801,10 +801,9 @@ function FileViewer({
             key={itemId}
             itemId={itemId}
             label={
-              <div
-                className="flex items-center"
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
+                className="flex items-center bg-transparent border-0 p-0 cursor-pointer"
                 onContextMenu={(e) => {
                   handleContextMenuWithCheck(e, item, parentPath);
                 }}
@@ -812,7 +811,7 @@ function FileViewer({
                 <FolderIcon fontSize="small" className={folderColor} />
                 &nbsp;
                 {item.name}
-              </div>
+              </button>
             }
           >
             {renderTree(item.children, onSelectFile, itemId, [
@@ -830,10 +829,9 @@ function FileViewer({
           key={itemId}
           itemId={itemId}
           label={
-            <div
-              className="flex items-center"
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
+              className="flex items-center bg-transparent border-0 p-0 cursor-pointer"
               onContextMenu={(e) => {
                 handleContextMenuWithCheck(e, item, parentPath);
               }}
@@ -841,7 +839,7 @@ function FileViewer({
               <CodeIcon fontSize="small" className="text-yellow-500" />
               &nbsp;
               {item.name}
-            </div>
+            </button>
           }
           onClick={() => {
             // Create a file with uniqueId and filePath, then pass it to the onSelectFile callback

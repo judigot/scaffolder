@@ -981,7 +981,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     className="w-5 h-5 text-red-400 mr-2 mt-0.5 flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
+                    aria-label="Warning icon"
                   >
+                    <title>Warning icon</title>
                     <path
                       fillRule="evenodd"
                       d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -1008,10 +1010,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="passphrase-input" className="block text-sm font-medium text-gray-300 mb-2">
                   {isFirstTimeSetup ? 'Create Passphrase' : 'Enter Passphrase'}
                 </label>
                 <input
+                  id="passphrase-input"
                   type="password"
                   value={passphraseInput}
                   onChange={(e) => {
@@ -1031,10 +1034,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
               {isFirstTimeSetup && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label htmlFor="confirm-passphrase-input" className="block text-sm font-medium text-gray-300 mb-2">
                     Confirm Passphrase
                   </label>
                   <input
+                    id="confirm-passphrase-input"
                     type="password"
                     value={confirmPassphraseInput}
                     onChange={(e) => {
@@ -1092,7 +1096,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
+                        aria-label="Loading spinner"
                       >
+                        <title>Loading spinner</title>
                         <circle
                           className="opacity-25"
                           cx="12"
@@ -1161,7 +1167,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
+                                aria-label="Loading spinner"
                               >
+                                <title>Loading spinner</title>
                                 <circle
                                   className="opacity-25"
                                   cx="12"
@@ -1231,7 +1239,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-label="Dropdown arrow"
           >
+            <title>Dropdown arrow</title>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -1249,6 +1259,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                 setIsOpen(false);
                 closePanel();
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setIsOpen(false);
+                  closePanel();
+                }
+              }}
+              role="button"
+              tabIndex={-1}
             />
             <div className="absolute right-0 top-12 w-auto min-w-[380px] max-w-2xl bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
               {activePanel === 'home' ? (
@@ -1279,6 +1297,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
+                            <title>Key icon</title>
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1303,6 +1322,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
+                            <title>Plus icon</title>
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1324,6 +1344,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
+                      <title>Logout icon</title>
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -1353,13 +1374,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
+                        <title>Back arrow</title>
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
                           d="M15 19l-7-7 7-7"
                         />
-                      </svg>
+                        </svg>
                       Back
                     </button>
                     <h2 className="text-lg font-semibold text-white">
@@ -1378,6 +1400,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
+                          <title>Warning icon</title>
                           <path
                             fillRule="evenodd"
                             d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -1413,6 +1436,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
+                              <title>Checkmark icon</title>
                               <path
                                 fillRule="evenodd"
                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -1492,6 +1516,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >
+                            <title>Error icon</title>
                             <path
                               fillRule="evenodd"
                               d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -1508,6 +1533,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >
+                            <title>Success icon</title>
                             <path
                               fillRule="evenodd"
                               d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -1562,6 +1588,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                 fill="none"
                                 viewBox="0 0 24 24"
                               >
+                                <title>Loading spinner</title>
                                 <circle
                                   className="opacity-25"
                                   cx="12"
@@ -1609,6 +1636,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
+                            <title>Delete icon</title>
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1695,13 +1723,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
+                        <title>Back arrow</title>
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
                           d="M15 19l-7-7 7-7"
                         />
-                      </svg>
+                        </svg>
                       Back
                     </button>
                     <h2 className="text-lg font-semibold text-white">
@@ -1726,6 +1755,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
+                          <title>Lock icon</title>
                           <path
                             fillRule="evenodd"
                             d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
@@ -1745,6 +1775,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
+                          <title>Lock icon</title>
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1778,6 +1809,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
+                          <title>Error icon</title>
                           <path
                             fillRule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -1794,6 +1826,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
+                          <title>Success icon</title>
                           <path
                             fillRule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -2032,6 +2065,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
                                           >
+                                            <title>More options</title>
                                             <path
                                               strokeLinecap="round"
                                               strokeLinejoin="round"
@@ -2104,6 +2138,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                 fill="none"
                                 viewBox="0 0 24 24"
                               >
+                                <title>Loading spinner</title>
                                 <circle
                                   className="opacity-25"
                                   cx="12"
