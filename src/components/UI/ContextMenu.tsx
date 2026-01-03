@@ -84,8 +84,8 @@ export const ContextMenu = ({
 
   // Handle smart positioning to keep menu within viewport
   const [position, setPosition] = useState({
-    left: String(x) + 'px',
-    top: String(y) + 'px',
+    left: `${String(x)}px`,
+    top: `${String(y)}px`,
   });
 
   // Calculate position to ensure menu stays within viewport
@@ -109,8 +109,8 @@ export const ContextMenu = ({
       }
 
       setPosition({
-        left: String(Math.max(0, left)) + 'px',
-        top: String(Math.max(0, top)) + 'px',
+        left: `${String(Math.max(0, left))}px`,
+        top: `${String(Math.max(0, top))}px`,
       });
     }
   }, [x, y]);

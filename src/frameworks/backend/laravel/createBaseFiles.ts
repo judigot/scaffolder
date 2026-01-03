@@ -82,7 +82,7 @@ ${content}
           },
         )
         .join('\n');
-      return groupHeader + '\n' + groupMethods;
+      return `${groupHeader}\n${groupMethods}`;
     })
     .join('\n');
 

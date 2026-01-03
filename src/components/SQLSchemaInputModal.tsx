@@ -96,12 +96,6 @@ function SQLSchemaInputModal() {
     <div
       onClick={handleBackdropClick}
       className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
-      onKeyDown={() => {
-        //
-      }}
-      role="button"
-      tabIndex={0}
-      aria-label="Close modal"
     >
       <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full space-y-4">
         <h1 className="text-lg font-bold text-white">Edit SQL Schema</h1>

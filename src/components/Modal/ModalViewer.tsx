@@ -19,6 +19,7 @@ function ModalViewer() {
   return (
     <div className="p-4">
       <button
+        type="button"
         onClick={() => {
           void (async () => {
             await handleOpenModal();

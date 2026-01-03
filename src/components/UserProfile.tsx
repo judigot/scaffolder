@@ -1026,7 +1026,6 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                   }}
                   placeholder="Enter your encryption passphrase"
                   className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  autoFocus
                 />
               </div>
 
@@ -1131,73 +1130,71 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
               </div>
 
               {!isFirstTimeSetup && hasEncryptedData && (
-                <>
-                  <div className="border-t border-gray-700 pt-4 mt-4">
-                    {!showDeleteAllConfirm ? (
-                      <button
-                        onClick={() => {
-                          setShowDeleteAllConfirm(true);
-                        }}
-                        className="w-full text-sm text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        Forgot passphrase? Delete all secrets and start fresh
-                      </button>
-                    ) : (
-                      <div className="p-3 bg-red-900/30 border border-red-600/50 rounded-md">
-                        <p className="text-sm text-red-300 mb-3">
-                          This will permanently delete all your encrypted
-                          environment variables. This cannot be undone.
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              void handleDeleteAllSecrets();
-                            }}
-                            disabled={isEnvSaving}
-                            className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
-                          >
-                            {isEnvSaving ? (
-                              <>
-                                <svg
-                                  className="animate-spin -ml-1 mr-2 h-4 w-4"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  />
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  />
-                                </svg>
-                                Deleting...
-                              </>
-                            ) : (
-                              'Yes, Delete All'
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowDeleteAllConfirm(false);
-                            }}
-                            disabled={isEnvSaving}
-                            className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                <div className="border-t border-gray-700 pt-4 mt-4">
+                  {!showDeleteAllConfirm ? (
+                    <button
+                      onClick={() => {
+                        setShowDeleteAllConfirm(true);
+                      }}
+                      className="w-full text-sm text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      Forgot passphrase? Delete all secrets and start fresh
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-red-900/30 border border-red-600/50 rounded-md">
+                      <p className="text-sm text-red-300 mb-3">
+                        This will permanently delete all your encrypted
+                        environment variables. This cannot be undone.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            void handleDeleteAllSecrets();
+                          }}
+                          disabled={isEnvSaving}
+                          className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
+                        >
+                          {isEnvSaving ? (
+                            <>
+                              <svg
+                                className="animate-spin -ml-1 mr-2 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                />
+                              </svg>
+                              Deleting...
+                            </>
+                          ) : (
+                            'Yes, Delete All'
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowDeleteAllConfirm(false);
+                          }}
+                          disabled={isEnvSaving}
+                          className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
                       </div>
-                    )}
-                  </div>
-                </>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -1453,7 +1450,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
+                              aria-label="Hide token icon"
                             >
+                              <title>Hide token</title>
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -1467,7 +1466,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
+                              aria-label="Show token icon"
                             >
+                              <title>Show token</title>
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -1638,7 +1639,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                   xmlns="http://www.w3.org/2000/svg"
                                   fill="none"
                                   viewBox="0 0 24 24"
+                                  aria-label="Loading spinner"
                                 >
+                                  <title>Loading</title>
                                   <circle
                                     className="opacity-25"
                                     cx="12"

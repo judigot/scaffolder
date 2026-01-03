@@ -94,14 +94,14 @@ describe('sanitizeFileName', () => {
 
   describe('Length restrictions', () => {
     it('should truncate filenames longer than 255 characters', () => {
-      const longName = 'a'.repeat(300) + '.txt';
+      const longName = `${'a'.repeat(300)}.txt`;
       const result = sanitizeFileName(longName);
       expect(result.length).toBeLessThanOrEqual(255);
       expect(result).toMatch(/\.txt$/);
     });
 
     it('should preserve extension when truncating', () => {
-      const longName = 'a'.repeat(300) + '.verylongextension';
+      const longName = `${'a'.repeat(300)}.verylongextension`;
       const result = sanitizeFileName(longName);
       expect(result).toMatch(/\.verylongextension$/);
       expect(result.length).toBeLessThanOrEqual(255);

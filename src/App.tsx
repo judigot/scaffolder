@@ -192,13 +192,13 @@ function App() {
         setUserFiles(userFiles);
       }
     }
-  }, [userFiles, setUserFiles, publicRepoURL]);
+  }, [userFiles, setUserFiles]);
 
   // Track schema changes
   useEffect(() => {
     // We don't need to rebuild files here - useTransformationsStore.setSchemaInfo already does this
     // The project files are automatically rebuilt when schema info changes
-  }, [schemaInfo]);
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -264,15 +264,7 @@ function App() {
       return;
     }
     setTransformations();
-  }, [
-    dbType, // Don't remove! This changes the quote used in the database schema
-    includeInsertData, // Don't remove! This toggles mock data generation
-    includeTypeGuards, // Don't remove! This toggles type guards generation in the UI
-    schemaInfo,
-    typeMappings, // Don't remove! Transformations must wait for typeMappings to load
-    dbTypes, // Don't remove! Transformations must wait for dbTypes to load
-    setTransformations,
-  ]);
+  }, [typeMappings, dbTypes, setTransformations]);
 
   const stringInterfaces = consolidateInterfaces(interfaces);
 
@@ -308,7 +300,9 @@ function App() {
               className="w-4 h-4 text-red-400 flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
+              aria-label="Error icon"
             >
+              <title>Error icon</title>
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -727,6 +721,7 @@ function App() {
           {process.env.NODE_ENV === 'development' && (
             <>
               <button
+                type="button"
                 title={JSON.stringify(
                   schemaInfo.map(
                     ({
@@ -763,6 +758,7 @@ function App() {
               </button>
 
               <button
+                type="button"
                 title={JSON.stringify(schemaInfo, null, 4)}
                 onClick={(e) => {
                   e.preventDefault();
@@ -851,7 +847,9 @@ function App() {
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
+                            aria-label="Loading"
                           >
+                            <title>Loading spinner</title>
                             <circle
                               className="opacity-25"
                               cx="12"
@@ -882,7 +880,9 @@ function App() {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
+                            aria-label="Error icon"
                           >
+                            <title>Error</title>
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1048,6 +1048,7 @@ function App() {
                 </div>
               )}
               <button
+                type="button"
                 onClick={() => {
                   handleCopy(SQLSchema);
                 }}
@@ -1074,13 +1075,14 @@ function App() {
             <div>
               <h2 className="text-xl font-bold mb-2">Delete Tables</h2>
               <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
-                {deleteTablesQueries.map((value, i) => (
-                  <p key={i} className="whitespace-pre-wrap">
+                {deleteTablesQueries.map((value) => (
+                  <p key={value} className="whitespace-pre-wrap">
                     {value}
                   </p>
                 ))}
               </div>
               <button
+                type="button"
                 onClick={() => {
                   handleCopy(deleteTablesQueries.join('\n'));
                 }}
@@ -1101,6 +1103,7 @@ function App() {
               className="p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
             />
             <button
+              type="button"
               onClick={() => {
                 handleCopy(JSON.stringify(mockData, null, 2));
               }}
@@ -1115,14 +1118,15 @@ function App() {
               <>
                 <h2 className="text-xl font-bold mb-2">Direct Join Queries</h2>
                 <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
-                  {directJoins.map((value, i) => (
-                    <div key={i}>
+                  {directJoins.map((value) => (
+                    <div key={value}>
                       <p className="whitespace-pre-wrap">{value}</p>
                       <br />
                     </div>
                   ))}
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     handleCopy(directJoins.join('\n'));
                   }}
@@ -1140,14 +1144,15 @@ function App() {
                   One-to-One Join Queries (One-to-One)
                 </h2>
                 <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
-                  {oneToOneJoins.map((value, i) => (
-                    <div key={i}>
+                  {oneToOneJoins.map((value) => (
+                    <div key={value}>
                       <p className="whitespace-pre-wrap">{value}</p>
                       <br />
                     </div>
                   ))}
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     handleCopy(oneToOneJoins.join('\n'));
                   }}
@@ -1165,14 +1170,15 @@ function App() {
                   Aggregate Join Queries (One-to-Many and Many-to-Many)
                 </h2>
                 <div className="block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2">
-                  {aggregateJoins.map((value, i) => (
-                    <div key={i}>
+                  {aggregateJoins.map((value) => (
+                    <div key={value}>
                       <p className="whitespace-pre-wrap">{value}</p>
                       <br />
                     </div>
                   ))}
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     handleCopy(aggregateJoins.join('\n'));
                   }}
@@ -1243,6 +1249,7 @@ function App() {
                           className="h-[150px] p-2 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                         />
                         <button
+                          type="button"
                           onClick={() => {
                             handleCopy(content);
                           }}
@@ -1257,6 +1264,7 @@ function App() {
               )}
             </div>
             <button
+              type="button"
               onClick={() => {
                 handleCopy(stringInterfaces);
               }}

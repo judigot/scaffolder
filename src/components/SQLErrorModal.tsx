@@ -26,36 +26,35 @@ export function SQLErrorModal({
   // at the start of sqlSchema. We need to strip those commands before calculating.
   // Calculate column number from absolute character position
   // Position is 1-indexed character position in the full SQL string
-  const calculateColumnFromPosition = (
-    sql: string,
-    position: number,
-    lineNumber: number,
-  ): number => {
-    if (position <= 0 || lineNumber <= 0) {
-      return 1;
-    }
-
-    const lines = sql.split('\n');
-    if (lineNumber > lines.length) {
-      return 1;
-    }
-
-    // Calculate total characters up to (but not including) the target line
-    let charCount = 0;
-    for (let i = 0; i < lineNumber - 1; i++) {
-      charCount += lines[i]?.length ?? 0;
-      if (i < lineNumber - 1) {
-        charCount += 1; // +1 for the newline character
+  const calculateColumnFromPosition = useCallback(
+    (sql: string, position: number, lineNumber: number): number => {
+      if (position <= 0 || lineNumber <= 0) {
+        return 1;
       }
-    }
 
-    // Position within the target line (1-indexed)
-    const positionInLine = position - charCount;
+      const lines = sql.split('\n');
+      if (lineNumber > lines.length) {
+        return 1;
+      }
 
-    // Ensure it's at least 1 and doesn't exceed the line length
-    const lineLength = lines[lineNumber - 1]?.length ?? 0;
-    return Math.max(1, Math.min(positionInLine, lineLength + 1));
-  };
+      // Calculate total characters up to (but not including) the target line
+      let charCount = 0;
+      for (let i = 0; i < lineNumber - 1; i++) {
+        charCount += lines[i]?.length ?? 0;
+        if (i < lineNumber - 1) {
+          charCount += 1; // +1 for the newline character
+        }
+      }
+
+      // Position within the target line (1-indexed)
+      const positionInLine = position - charCount;
+
+      // Ensure it's at least 1 and doesn't exceed the line length
+      const lineLength = lines[lineNumber - 1]?.length ?? 0;
+      return Math.max(1, Math.min(positionInLine, lineLength + 1));
+    },
+    [],
+  );
 
   const applyDecorations = useCallback(
     (editor: Parameters<OnMount>[0], monaco: Parameters<OnMount>[1]) => {
@@ -141,7 +140,13 @@ export function SQLErrorModal({
       editor.revealLineInCenter(lineNumber);
       editor.setPosition({ lineNumber, column: columnNumber });
     },
-    [sqlSchema, errorLine, errorPosition, errorMessage],
+    [
+      sqlSchema,
+      errorLine,
+      errorPosition,
+      errorMessage,
+      calculateColumnFromPosition,
+    ],
   );
 
   const handleEditorDidMount: OnMount = (editor, monacoInstance) => {
@@ -168,7 +173,7 @@ export function SQLErrorModal({
         decorationsCollectionRef.current = null;
       }
     };
-  }, [errorLine, errorPosition, errorMessage, sqlSchema, applyDecorations]);
+  }, [applyDecorations]);
 
   useEffect(() => {
     // Calculate editor width based on longest line in SQL schema
@@ -225,7 +230,9 @@ export function SQLErrorModal({
             className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
+            aria-label="Error icon"
           >
+            <title>Error icon</title>
             <path
               fillRule="evenodd"
               d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"

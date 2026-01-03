@@ -41,7 +41,7 @@ const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
       });
       const modelSpecificMethods =
         modelSpecificMethodsArray.length > 0
-          ? modelSpecificMethodsArray.join(';\n') + ';'
+          ? `${modelSpecificMethodsArray.join(';\n')};`
           : '';
 
       const replacements = {

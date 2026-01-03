@@ -65,7 +65,7 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
     // Generate attributes only for pivot relationships
     relationshipAttributes = pivotRelationships.map(({ relatedTable }) => {
       const relatedClass = changeCase(relatedTable).pascalCase;
-      const relationName = relatedTable + 's';
+      const relationName = `${relatedTable}s`;
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
   } else if (
@@ -77,7 +77,7 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
     // Generate attributes for hasMany and childTables if no pivotRelationships exist
     relationshipAttributes = hasMany.map((relatedTable) => {
       const relatedClass = changeCase(relatedTable).pascalCase;
-      const relationName = relatedTable + 's';
+      const relationName = `${relatedTable}s`;
       return `            '${relationName}' => ${relatedClass}Resource::collection($this->whenLoaded('${relatedTable}')),`;
     });
   }

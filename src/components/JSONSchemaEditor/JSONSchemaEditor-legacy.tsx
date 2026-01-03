@@ -1,12 +1,12 @@
 import type React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import JSON5 from 'json5';
 import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor.ts';
 import type { IJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 
 const App: React.FC = () => {
-  const { schemaInput, setFormData } = useFormStore();
+  const { schemaInput } = useFormStore();
 
   const [schema, setSchema] = useState<IJSONSchema>(schemaInput);
   const [newTableName, setNewTableName] = useState<string>('');
@@ -17,12 +17,12 @@ const App: React.FC = () => {
 
   const { handleWordEdit } = useWordEditor(JSON.stringify(schema, null, 4));
 
-  function repositionCursor() {
+  const repositionCursor = useCallback(() => {
     if (textAreaRef.current) {
       textAreaRef.current.selectionStart = cursorPositionRef.current;
       textAreaRef.current.selectionEnd = cursorPositionRef.current;
     }
-  }
+  }, []);
 
   useEffect(() => {
     setSchema(schemaInput);
@@ -33,7 +33,7 @@ const App: React.FC = () => {
       repositionCursor();
       useFormStore.setState({ schemaInput: schema });
     }
-  }, [schema, setFormData]);
+  }, [schema, repositionCursor]);
 
   const handleAddTable = () => {
     if (newTableName) {
@@ -213,8 +213,7 @@ const App: React.FC = () => {
   ) => {
     if ('key' in e && e.key === 'Enter') {
       const { selectionStart, selectionEnd, value } = e.currentTarget;
-      const newValue =
-        value.slice(0, selectionStart) + '\n' + value.slice(selectionEnd);
+      const newValue = `${value.slice(0, selectionStart)}\n${value.slice(selectionEnd)}`;
       setSchema(JSON5.parse(newValue));
       cursorPositionRef.current = selectionStart + 1;
       e.preventDefault();

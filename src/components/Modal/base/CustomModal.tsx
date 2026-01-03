@@ -192,6 +192,7 @@ function CustomModal({
             {title}
           </h2>
           <button
+            type="button"
             ref={lastFocusableRef}
             onClick={onClose}
             aria-label="Close modal"
@@ -201,11 +202,11 @@ function CustomModal({
           </button>
         </div>
         <div
-          className={
-            (size === 'fullscreen' || size === 'large'
+          className={`${
+            size === 'fullscreen' || size === 'large'
               ? 'mt-4 flex-1 min-h-0 '
-              : 'mt-4 ') + 'text-gray-600 dark:text-gray-300'
-          }
+              : 'mt-4 '
+          }text-gray-600 dark:text-gray-300`}
         >
           {children}
         </div>

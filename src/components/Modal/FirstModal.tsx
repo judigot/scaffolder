@@ -1,6 +1,6 @@
-import { useModalStore } from "./base/modalStore.tsx";
+import { useModalStore } from './base/modalStore.tsx';
 
-import SecondModal from "@/components/Modal/SecondModal.tsx";
+import SecondModal from '@/components/Modal/SecondModal.tsx';
 
 function FirstModal({ data }: { data: { message: string } }) {
   const { openModal } = useModalStore();
@@ -18,6 +18,7 @@ function FirstModal({ data }: { data: { message: string } }) {
       <br />
       <br />
       <button
+        type="button"
         onClick={openSecondModal}
         className="px-4 py-2 bg-blue-600 text-white rounded"
       >

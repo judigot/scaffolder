@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 function TagInput({
   id,
@@ -31,12 +31,23 @@ function TagInput({
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
 
+  const filterAndSetSuggestions = useCallback(
+    (input: string) => {
+      const filtered = suggestions.filter(
+        (suggestion) =>
+          suggestion.toLowerCase().includes(input.toLowerCase()) &&
+          !addedValues.includes(suggestion),
+      );
+      setFilteredSuggestions(filtered);
+    },
+    [suggestions, addedValues],
+  );
+
   useEffect(() => {
     if (inputValue.trim()) {
       filterAndSetSuggestions(inputValue);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue, addedValues]);
+  }, [inputValue, filterAndSetSuggestions]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onInputChange(e);
@@ -52,15 +63,6 @@ function TagInput({
   const removeValue = (index: number) => {
     const newTags = addedValues.filter((_, i) => i !== index);
     onAddValue(newTags);
-  };
-
-  const filterAndSetSuggestions = (input: string) => {
-    const filtered = suggestions.filter(
-      (suggestion) =>
-        suggestion.toLowerCase().includes(input.toLowerCase()) &&
-        !addedValues.includes(suggestion),
-    );
-    setFilteredSuggestions(filtered);
   };
 
   const filterUnselectedSuggestions = (currentSuggestion?: string) => {
@@ -161,18 +163,12 @@ function TagInput({
         <ul className="absolute left-0 top-full mt-1 w-full bg-gray-600 rounded shadow-lg z-50">
           {filteredSuggestions.map((suggestion, index) => (
             <li
-              key={index}
+              key={`suggestion-${String(index)}-${suggestion}`}
               className="p-2 text-white hover:bg-gray-500 rounded-t-md first:rounded-t-md last:rounded-b-md"
               onClick={() => {
                 handleSuggestionClick(suggestion);
               }}
-              onKeyDown={() => {
-                // Handle keyboard interactions if needed
-              }}
-              role="option" // Defines this as an option in a list
-              tabIndex={0} // Makes the suggestion focusable
-              aria-label={`Suggestion: ${suggestion}`} // Provides a label for accessibility
-              aria-selected={false} // Indicates selection state
+              aria-label={`Suggestion: ${suggestion}`}
             >
               {suggestion}
             </li>

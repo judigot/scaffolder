@@ -2,7 +2,7 @@ import type { Context, Next } from 'hono';
 import jwt from 'jsonwebtoken';
 import jwksClient, { type JwksClient } from 'jwks-rsa';
 import dotenv from 'dotenv';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 
 dotenv.config({ path: resolve(process.cwd(), '.env') });
 

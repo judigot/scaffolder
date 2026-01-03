@@ -25,7 +25,6 @@ function SchemaSelector() {
   const {
     availableSchemas,
     selectedSchemaName,
-    originalSchemaContent,
     loadSchemasFromUserFiles,
     selectSchema,
     setOriginalSchemaContent,
@@ -50,11 +49,10 @@ function SchemaSelector() {
     await queryClient.invalidateQueries({ queryKey: ['userFiles'] });
   }, [queryClient]);
 
-  /* Track if schema is dirty - recompute when schemaInfo or originalSchemaContent changes */
+  /* Track if schema is dirty - recompute when schemaInfo changes */
   const isCurrentSchemaDirty = useMemo(() => {
     return isDirty(schemaInfo);
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [schemaInfo, originalSchemaContent]);
+  }, [schemaInfo, isDirty]);
 
   /* Load schemas from userFiles when they change */
   useEffect(() => {
@@ -471,6 +469,7 @@ function SchemaSelector() {
         <div className="flex items-end gap-2">
           {/* Save Button */}
           <button
+            type="button"
             onClick={() => {
               void handleSave();
             }}
@@ -496,6 +495,7 @@ function SchemaSelector() {
 
           {/* Create New Button */}
           <button
+            type="button"
             onClick={() => {
               void handleCreate();
             }}
@@ -509,6 +509,7 @@ function SchemaSelector() {
 
           {/* Duplicate Button */}
           <button
+            type="button"
             onClick={() => {
               void handleDuplicate();
             }}
@@ -522,6 +523,7 @@ function SchemaSelector() {
 
           {/* Delete Button */}
           <button
+            type="button"
             onClick={() => {
               void handleDelete();
             }}

@@ -96,7 +96,7 @@ export function DynamicForm(structure: typeof JSONFormStructure) {
       <div className="step-navigation">
         {structure.steps.map((step, index) => (
           <button
-            key={index}
+            key={`step-nav-${String(index)}-${step.title}`}
             type="button"
             onClick={() => {
               setCurrentStep(index);
@@ -112,11 +112,17 @@ export function DynamicForm(structure: typeof JSONFormStructure) {
       {structure.steps.map(
         (step, stepIndex) =>
           currentStep === stepIndex && (
-            <div key={stepIndex} className="form-step">
+            <div
+              key={`step-${String(stepIndex)}-${step.title}`}
+              className="form-step"
+            >
               <h2>{step.title}</h2>
               <p>{step.description}</p>
               {step.sections.map((section, sectionIndex) => (
-                <div key={sectionIndex} className="form-section">
+                <div
+                  key={`section-${String(stepIndex)}-${String(sectionIndex)}-${section.title}`}
+                  className="form-section"
+                >
                   <h3>{section.title}</h3>
                   <p>{section.description}</p>
                   <div

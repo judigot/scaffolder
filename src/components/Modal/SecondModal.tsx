@@ -1,5 +1,5 @@
-import { useModalStore } from "@/components/Modal/base/modalStore.tsx";
-import ThirdModal from "@/components/Modal/ThirdModal.tsx";
+import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
+import ThirdModal from '@/components/Modal/ThirdModal.tsx';
 
 function SecondModal() {
   const { openModal } = useModalStore();
@@ -12,6 +12,7 @@ function SecondModal() {
     <div>
       <p>This is the second modal.</p>
       <button
+        type="button"
         onClick={openThirdModal}
         className="px-4 py-2 bg-green-600 text-white rounded cursor-pointer"
       >

@@ -23,7 +23,7 @@ const updateOrCreateSection = (
     );
   }
 
-  return content + '\n\n' + startMarker + '\n' + newContent + '\n' + endMarker;
+  return `${content}\n\n${startMarker}\n${newContent}\n${endMarker}`;
 };
 
 const createAppServiceProviderScaffolding = ({

@@ -370,7 +370,7 @@ export function FormParser({
         <h2 className="text-2xl font-bold text-gray-800">{step.title}</h2>
         <p className="text-gray-600">{step.description}</p>
         {step.sections.map((section, index) => (
-          <div key={index}>
+          <div key={`section-${String(index)}-${section.title}`}>
             {renderSection(section)}
             {index < step.sections.length - 1 && <hr className="my-4" />}
           </div>

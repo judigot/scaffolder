@@ -30,7 +30,9 @@ export default function AuthGuard({ children }: IAuthGuardProps) {
               stroke="currentColor"
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
+              aria-label="Error icon"
             >
+              <title>Error icon</title>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -46,6 +48,7 @@ export default function AuthGuard({ children }: IAuthGuardProps) {
             {error.message}
           </p>
           <button
+            type="button"
             onClick={() => {
               void loginWithRedirect();
             }}

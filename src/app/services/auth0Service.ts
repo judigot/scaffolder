@@ -1,6 +1,6 @@
 import { ManagementClient } from 'auth0';
 import dotenv from 'dotenv';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import {
   encryptValue,
   decryptValue,

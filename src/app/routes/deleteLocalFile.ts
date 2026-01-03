@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const router = new Hono();
 

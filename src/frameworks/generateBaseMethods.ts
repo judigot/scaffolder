@@ -1,9 +1,9 @@
 import { methods } from '@/frameworks/backend/laravel/base-methods/index.ts';
 import type { IRepositoryStructure } from '@/interfaces/IRepositoryPatternStructure.ts';
 import { changeCase } from '@/utils/common.ts';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Convert `import.meta.url` to a file path (for ES modules)
 const __filename = fileURLToPath(import.meta.url);

@@ -77,16 +77,17 @@ function SchemaBuilder() {
   const { typeMappings: customTypeMappings } = useMockDatabaseStore();
   const { dbType } = useFormStore();
 
-  const isRecordWithStringValues = (
-    value: unknown,
-  ): value is Record<string, unknown> => {
-    return (
-      value !== null &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      Object.keys(value).length > 0
-    );
-  };
+  const isRecordWithStringValues = useCallback(
+    (value: unknown): value is Record<string, unknown> => {
+      return (
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        Object.keys(value).length > 0
+      );
+    },
+    [],
+  );
 
   const getDatabaseType = useCallback(
     (dataType: string): string => {
@@ -134,7 +135,7 @@ function SchemaBuilder() {
 
       return dataType;
     },
-    [customTypeMappings, dbType],
+    [customTypeMappings, dbType, isRecordWithStringValues],
   );
 
   const getTypeScriptType = useCallback(
@@ -275,39 +276,40 @@ function SchemaBuilder() {
   );
 
   // Parse YAML to JSON
-  const parseYamlToJson = (
-    yamlString: string,
-  ): Record<string, unknown>[] | null => {
-    try {
-      if (!yamlString.trim()) {
+  const parseYamlToJson = useCallback(
+    (yamlString: string): Record<string, unknown>[] | null => {
+      try {
+        if (!yamlString.trim()) {
+          return null;
+        }
+
+        // Parse YAML using the yaml package
+        const parsedData: unknown = yaml.parse(yamlString);
+
+        if (!Array.isArray(parsedData)) {
+          console.error('YAML data must be an array of records');
+          return null;
+        }
+
+        // Validate that all items are objects
+        const records = parsedData.filter(
+          (item): item is Record<string, unknown> =>
+            typeof item === 'object' && item !== null && !Array.isArray(item),
+        );
+
+        if (records.length !== parsedData.length) {
+          console.error('All YAML items must be objects');
+          return null;
+        }
+
+        return records;
+      } catch (error) {
+        console.error('Error parsing YAML:', error);
         return null;
       }
-
-      // Parse YAML using the yaml package
-      const parsedData: unknown = yaml.parse(yamlString);
-
-      if (!Array.isArray(parsedData)) {
-        console.error('YAML data must be an array of records');
-        return null;
-      }
-
-      // Validate that all items are objects
-      const records = parsedData.filter(
-        (item): item is Record<string, unknown> =>
-          typeof item === 'object' && item !== null && !Array.isArray(item),
-      );
-
-      if (records.length !== parsedData.length) {
-        console.error('All YAML items must be objects');
-        return null;
-      }
-
-      return records;
-    } catch (error) {
-      console.error('Error parsing YAML:', error);
-      return null;
-    }
-  };
+    },
+    [],
+  );
 
   // Handle YAML input change
   const handleYamlChange = useCallback(
@@ -352,7 +354,13 @@ function SchemaBuilder() {
         setShowSeedDataSuccess(false);
       }, 2000);
     }
-  }, [schemaInfo, selectedTableIndex, setSchemaInfo, yamlSeedData]);
+  }, [
+    schemaInfo,
+    selectedTableIndex,
+    setSchemaInfo,
+    yamlSeedData,
+    parseYamlToJson,
+  ]);
 
   // Add new empty row to YAML
   const handleAddNewRow = useCallback((): void => {
@@ -606,7 +614,7 @@ function SchemaBuilder() {
     return schemaInfo.filter((table) => table.viewQuery !== undefined);
   }, [schemaInfo]);
 
-  const isStandaloneTable = (table: ITableInfo): boolean => {
+  const isStandaloneTable = useCallback((table: ITableInfo): boolean => {
     const isPivotTable = table.isPivot === true;
     const isViewTable = table.viewQuery !== undefined;
     const hasOneToOneRelations =
@@ -635,11 +643,11 @@ function SchemaBuilder() {
       hasPivotRelationships;
 
     return !isPivotTable && !isViewTable && !hasAnyRelationships;
-  };
+  }, []);
 
   const standaloneTables = useMemo(() => {
     return schemaInfo.filter(isStandaloneTable);
-  }, [schemaInfo]);
+  }, [schemaInfo, isStandaloneTable]);
   const mainTables = useMemo(() => {
     return schemaInfo.filter(
       (table) =>
@@ -647,7 +655,7 @@ function SchemaBuilder() {
         !isStandaloneTable(table) &&
         table.viewQuery === undefined,
     );
-  }, [schemaInfo]);
+  }, [schemaInfo, isStandaloneTable]);
 
   const addNewColumnToTable = useCallback(
     (columnData: INewColumnFormData): boolean => {

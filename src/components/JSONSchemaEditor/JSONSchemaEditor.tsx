@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import JSON5 from 'json5';
 import { useWordEditor } from '@/components/JSONSchemaEditor/hooks/useWordEditor.ts';
 import type { IJSONSchema } from '@/interfaces/interfaces.ts';
@@ -10,7 +10,7 @@ import renameTable from '@/utils/renameTable.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 
 function JSONSchemaEditor() {
-  const { schemaInput, setFormData } = useFormStore();
+  const { schemaInput } = useFormStore();
 
   const { schemaInfo, setSchemaInfo } = useTransformationsStore();
 
@@ -26,19 +26,19 @@ function JSONSchemaEditor() {
     setSchema(schemaInput);
   }, [schemaInput]);
 
-  function repositionCursor() {
+  const repositionCursor = useCallback(() => {
     if (textAreaRef.current) {
       textAreaRef.current.selectionStart = cursorPositionRef.current;
       textAreaRef.current.selectionEnd = cursorPositionRef.current;
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (useFormStore.getState().schemaInput !== schema) {
       repositionCursor();
       useFormStore.setState({ schemaInput: schema });
     }
-  }, [schema, setFormData]);
+  }, [schema, repositionCursor]);
 
   const handleSchemaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { previousWord, newWord } = handleWordEdit(e);
@@ -97,8 +97,7 @@ function JSONSchemaEditor() {
   ) => {
     if ('key' in e && e.key === 'Enter') {
       const { selectionStart, selectionEnd, value } = e.currentTarget;
-      const newValue =
-        value.slice(0, selectionStart) + '\n' + value.slice(selectionEnd);
+      const newValue = `${value.slice(0, selectionStart)}\n${value.slice(selectionEnd)}`;
       setSchema(JSON5.parse(newValue));
       cursorPositionRef.current = selectionStart + 1;
       e.preventDefault();
