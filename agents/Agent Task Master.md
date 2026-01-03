@@ -223,25 +223,29 @@ Selection rules:
 
 ### Step 4 — Read Context and enforce scope
 For the selected worktree:
-1) Open `.cursor/Context.md` (create if missing).
-2) Extract:
+1) **Work within the worktree directory** - All file operations must happen inside the worktree (e.g., `.worktrees/wt-feat-add-color/`).
+2) Open `.cursor/Context.md` (create if missing).
+3) Extract:
    - Goal
    - Touch-only paths
    - Do-not-touch paths
    - Definition of Done
-3) Work ONLY within Touch-only paths and never touch Do-not-touch paths.
+4) **Modify files inside the worktree** - Edit, create, and delete files within the worktree directory. All changes are isolated to that branch.
+5) Work ONLY within Touch-only paths and never touch Do-not-touch paths.
 
 If either file is missing:
 - Create it immediately using the templates below, filling in what this document provides.
 - Then continue.
 
 ## Execution Rules (scope discipline)
-1) Modify ONLY what Context.md allows (“Touch only”).
-2) Never touch “Do not touch” paths.
-3) If you discover necessary work outside scope:
+1) **Work inside the worktree directory** - All file modifications must occur within the worktree (e.g., `.worktrees/wt-feat-add-color/`). The worktree is the working directory for that branch.
+2) Modify ONLY what Context.md allows ("Touch only").
+3) Never touch "Do not touch" paths.
+4) **Commit from within the worktree** - All git operations (add, commit, push) should be performed from the worktree directory, committing to that branch.
+5) If you discover necessary work outside scope:
    - Do not implement it
-   - Add a bullet under Context.md → “Notes / Decisions” describing the needed work and why
-4) Keep changes minimal, correct, and production-ready.
+   - Add a bullet under Context.md → "Notes / Decisions" describing the needed work and why
+6) Keep changes minimal, correct, and production-ready.
 
 ## Audit Mode (Quick Finished-Task Scan)
 

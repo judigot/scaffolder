@@ -62,7 +62,10 @@ git worktree add .worktrees/wt-<branch-slug> <branch-name>
    - File → New Window
    - Open Folder… → ``.worktrees/wt-<branch-slug>``
 3) In each worktree window:
-   - Work only on that branch’s purpose (a task or a feature variant).
+   - **Work inside the worktree directory** - All file modifications happen within the worktree (e.g., `.worktrees/wt-feat-add-color/`). The worktree is the working directory for that branch.
+   - Work only on that branch's purpose (a task or a feature variant).
+   - **Modify files within the worktree** - Edit, create, and delete files inside the worktree directory. All changes are isolated to that branch.
+   - **Commit from within the worktree** - Perform all git operations (add, commit, push) from the worktree directory, committing to that branch.
    - Commit early and often.
    - Push regularly.
 
