@@ -10,8 +10,9 @@ When I drag this .md into the chat, you must:
 
 ## Worktree Ticketing System (authoritative)
 Each worktree is a "ticket" and must contain:
-- `.task/Context.md` (goal/scope/done)
-- `.task/STATE` (ownership/status - file-based, see below)
+- `.task/Context.md` (detailed goal/scope/done/instructions - see Context.md structure)
+- `.task/STATE.<status>` (state file - one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
+- `.task/OWNER.<chat-id>` (owner file - filename contains owner chat ID, optional if unclaimed)
 
 Valid statuses:
 - `unclaimed`, `claimed`, `paused`, `done`, `abandoned`
@@ -24,110 +25,115 @@ Blocking status:
 
 ## File-Based State System
 
-State is stored in a single text file `.task/STATE` using a simple key=value format. This is faster than JSON parsing and allows efficient terminal-based operations.
+State is stored using separate files for faster directory listing operations. This allows agents to quickly check state by listing files rather than parsing text.
 
-**File format:**
-```
-status=unclaimed
-owner=
-```
+**State Files:**
+- `.task/STATE.unclaimed` — no one is working on it yet
+- `.task/STATE.claimed` — actively owned by a specific chat/window
+- `.task/STATE.paused` — owned, but temporarily inactive
+- `.task/STATE.done` — ready for PR/merge (or ready to remove if abandoned)
+- `.task/STATE.abandoned` — intentionally left behind; safe to reclaim
 
-**Example (claimed):**
-```
-status=claimed
-owner=taskmaster__feat-add-color__2024-01-15__1430__01
-```
+**Owner File:**
+- `.task/OWNER.<chat-id>` — contains the owner chat ID in the filename
+- Example: `.task/OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
+
+**Rules:**
+- Only ONE STATE.* file should exist at a time
+- Only ONE OWNER.* file should exist at a time (or none if unclaimed)
+- The presence of a STATE.* file indicates the current status
+- The presence of an OWNER.* file indicates ownership (and the filename contains the owner ID)
 
 **Benefits:**
-- Single file = atomic writes
-- No JSON parsing needed
-- Fast `grep` operations
-- Human-readable
+- Fast directory listing (`ls .task/STATE.*` shows status immediately)
+- No text parsing needed
+- Atomic file operations
+- Human-readable filenames
 - Terminal-friendly
 
 **State Commands (for agents):**
 
-Read status:
+Read status (which STATE.* file exists):
 ```sh
-grep "^status=" .task/STATE | cut -d= -f2
+ls .task/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'
 ```
 
-Read owner:
+Read owner (filename of OWNER.* file):
 ```sh
-grep "^owner=" .task/STATE | cut -d= -f2
+ls .task/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'
 ```
 
 Check if claimed:
 ```sh
-grep -q "^status=claimed" .task/STATE
+[ -f .task/STATE.claimed ]
 ```
 
 Check if unclaimed:
 ```sh
-grep -q "^status=unclaimed" .task/STATE
+[ -f .task/STATE.unclaimed ]
 ```
 
 Check ownership (replace OWNER_ID with generated ownerChatId):
 ```sh
-grep -q "^owner=OWNER_ID" .task/STATE
+[ -f ".task/OWNER.OWNER_ID" ]
 ```
 
-Check if worktree is mine (status=claimed AND owner matches):
+Check if worktree is mine (STATE.claimed exists AND OWNER file matches):
 ```sh
-STATUS=$(grep "^status=" .task/STATE | cut -d= -f2)
-OWNER=$(grep "^owner=" .task/STATE | cut -d= -f2)
-[ "$STATUS" = "claimed" ] && [ "$OWNER" = "OWNER_ID" ]
+[ -f .task/STATE.claimed ] && [ -f ".task/OWNER.OWNER_ID" ]
 ```
 
-Update state (atomic write):
+Set state (remove all STATE.* files, create new one):
 ```sh
-echo "status=claimed
-owner=OWNER_ID" > .task/STATE
+rm -f .task/STATE.* && touch .task/STATE.<status>
+```
+
+Set owner (remove all OWNER.* files, create new one):
+```sh
+rm -f .task/OWNER.* && touch ".task/OWNER.OWNER_ID"
 ```
 
 Claim a worktree:
 ```sh
-echo "status=claimed
-owner=OWNER_ID" > .task/STATE
+rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.claimed && touch ".task/OWNER.OWNER_ID"
 ```
 
 Pause a worktree (keep owner):
 ```sh
-OWNER=$(grep "^owner=" .task/STATE | cut -d= -f2)
-echo "status=paused
-owner=$OWNER" > .task/STATE
+OWNER_FILE=$(ls .task/OWNER.* 2>/dev/null | head -1)
+rm -f .task/STATE.* && touch .task/STATE.paused
+[ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"
 ```
 
 Complete a worktree:
 ```sh
-echo "status=done
-owner=" > .task/STATE
+rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.done
 ```
 
 Abandon a worktree:
 ```sh
-echo "status=abandoned
-owner=" > .task/STATE
+rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.abandoned
 ```
 
 Find all claimable worktrees:
 ```sh
-find .worktrees -name STATE -exec sh -c '
-  STATUS=$(grep "^status=" "$1" 2>/dev/null | cut -d= -f2)
+find .worktrees -name "STATE.*" -exec sh -c '
+  WT="${1%/.task/STATE.*}"
+  STATUS=$(basename "$1" | sed "s|STATE\.||")
   case "$STATUS" in
-    unclaimed|paused|abandoned) echo "${1%/.task/STATE}" ;;
+    unclaimed|paused|abandoned) echo "$WT" ;;
   esac
 ' _ {} \;
 ```
 
 Find worktrees claimed by specific owner:
 ```sh
-find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \; | sed 's|/.task/STATE||'
+find .worktrees -name "OWNER.OWNER_ID" -exec dirname {} \; | sed 's|/.task||'
 ```
 
 Check for collision (ownerChatId already exists):
 ```sh
-find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \; | grep -q . && echo "collision"
+find .worktrees -name "OWNER.OWNER_ID" | grep -q . && echo "collision"
 ```
 
 ## Absolute Rules (non-negotiable)
@@ -150,9 +156,9 @@ Definitions:
 - `seq` = sequence number starting at `01`, incrementing if collision detected
 
 Collision detection:
-- Before writing STATE, check all `.worktrees/**/.task/STATE` files.
-- Use: `find .worktrees -name STATE -exec grep -l "^owner=OWNER_ID" {} \;`
-- If the generated ownerChatId already exists in any file, increment `seq` to `02`, `03`, etc. until unique.
+- Before writing OWNER file, check all `.worktrees/**/.task/OWNER.*` files.
+- Use: `find .worktrees -name "OWNER.OWNER_ID"`
+- If the generated ownerChatId already exists (file found), increment `seq` to `02`, `03`, etc. until unique.
 
 Example:
 - Branch: `feat/add-color`
@@ -160,8 +166,8 @@ Example:
 - Date/time: 2024-01-15 14:30 (Asia/Manila)
 - Generated: `taskmaster__feat-add-color__2024-01-15__1430__01`
 
-You must write this value into STATE when claiming.
-You must compare this value to STATE when deciding whether you may work.
+You must create the OWNER file when claiming: `touch ".task/OWNER.OWNER_ID"`
+You must compare this value to the OWNER file when deciding whether you may work.
 
 ## Required Start Behavior (do this immediately)
 
@@ -176,18 +182,18 @@ If not, proceed directly to auto-selection.
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
 1) **Store the worktree path**: `WORKTREE_PATH="<worktree>"` (e.g., `WORKTREE_PATH=".worktrees/wt-feat-add-color"`).
-2) Read `${WORKTREE_PATH}/.task/STATE` (create it if missing with `status=unclaimed` and `owner=`).
+2) Check `${WORKTREE_PATH}/.task/` directory (create STATE.unclaimed if missing).
 3) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/wt-<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `wt-feat-add-color` worktree).
-4) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
-5) Read current status: `grep "^status=" ${WORKTREE_PATH}/.task/STATE | cut -d= -f2`
-6) Read current owner: `grep "^owner=" ${WORKTREE_PATH}/.task/STATE | cut -d= -f2`
-7) If status is `claimed` AND owner != generated ownerChatId:
+4) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using OWNER files and increment seq if needed).
+5) Read current status: `ls ${WORKTREE_PATH}/.task/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'`
+6) Read current owner: `ls ${WORKTREE_PATH}/.task/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'`
+7) If STATE.claimed exists AND owner != generated ownerChatId:
    - Do not touch code in this worktree.
    - Immediately proceed to Step 3 (auto-select another claimable task).
-8) If status is `claimed` AND owner == generated ownerChatId:
+8) If STATE.claimed exists AND owner == generated ownerChatId:
    - Continue working in this worktree.
-9) If status is `unclaimed|paused|abandoned`:
-   - Claim it: `echo "status=claimed\nowner=OWNER_ID" > ${WORKTREE_PATH}/.task/STATE`, then proceed.
+9) If STATE.unclaimed, STATE.paused, or STATE.abandoned exists:
+   - Claim it: `rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.claimed && touch "${WORKTREE_PATH}/.task/OWNER.OWNER_ID"`, then proceed.
 
 ### Step 3 — Auto-select another claimable task (no questions)
 If the initial worktree is not yours (or no target was provided), you must automatically find another worktree you are allowed to work on:
@@ -200,25 +206,26 @@ Selection rules:
    - Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
 3) Use this command to find eligible worktrees:
    ```sh
-   find .worktrees -name STATE -exec sh -c '
-     WT="${1%/.task/STATE}"
-     STATUS=$(grep "^status=" "$1" 2>/dev/null | cut -d= -f2)
-     OWNER=$(grep "^owner=" "$1" 2>/dev/null | cut -d= -f2)
+   find .worktrees -name "STATE.*" -exec sh -c '
+     WT="${1%/.task/STATE.*}"
+     STATUS=$(basename "$1" | sed "s|STATE\.||")
+     OWNER_FILE=$(ls "${WT}/.task/OWNER.*" 2>/dev/null | head -1)
+     OWNER=$(echo "$OWNER_FILE" | sed "s|.*/OWNER\.||" 2>/dev/null)
      case "$STATUS" in
        unclaimed|paused|abandoned) echo "$WT" ;;
-       claimed) [ "$OWNER" = "OWNER_ID" ] && echo "$WT" ;;
+       claimed) [ -n "$OWNER" ] && [ "$OWNER" = "OWNER_ID" ] && echo "$WT" ;;
      esac
    ' _ {} \;
    ```
 4) A worktree is eligible if:
-   - STATE status is `unclaimed|paused|abandoned`, OR
-   - status is `claimed` AND owner == generated ownerChatId (resume your own work)
-5) Ignore any worktree that is `claimed` by someone else (owner exists and != generated ownerChatId) or marked `done`.
+   - STATE.unclaimed, STATE.paused, or STATE.abandoned exists, OR
+   - STATE.claimed exists AND OWNER file matches generated ownerChatId (resume your own work)
+5) Ignore any worktree that has STATE.claimed with a different OWNER file or has STATE.done.
 6) Choose exactly ONE worktree to work on, using this priority:
-   - First: claimable worktrees with status `paused` AND owner == generated ownerChatId (resume your paused work)
-   - Second: `unclaimed`
-   - Third: `abandoned`
-   - Fourth: `paused` with owner empty (treat as reclaimable)
+   - First: worktrees with STATE.paused AND OWNER file matches generated ownerChatId (resume your paused work)
+   - Second: STATE.unclaimed
+   - Third: STATE.abandoned
+   - Fourth: STATE.paused with no OWNER file (treat as reclaimable)
 7) If no eligible worktrees exist:
    - STOP and output only: "No eligible unclaimed worktrees found under .worktrees/."
 
@@ -322,7 +329,7 @@ If either file is missing:
 
 ## Audit Mode (Quick Finished-Task Scan)
 
-When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.task/STATE` files and prints whether each worktree is DONE or NOT DONE.
+When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.task/STATE.*` files and prints whether each worktree is DONE or NOT DONE.
 
 Rules:
 - This audit is ONLY about ticket status visibility (STATE presence + status). Do not review code quality.
@@ -331,9 +338,9 @@ Rules:
 
 Inline command:
 ```sh
-find .worktrees -name STATE -print | sort | while IFS= read -r f; do
-  wt="${f%/.task/STATE}"
-  status=$(grep "^status=" "$f" 2>/dev/null | cut -d= -f2)
+find .worktrees -name "STATE.*" -print | sort | while IFS= read -r f; do
+  wt="${f%/.task/STATE.*}"
+  status=$(basename "$f" | sed "s|STATE\.||")
 
   if [ "$status" = "done" ]; then
     printf "DONE     | %s\n" "$wt"
@@ -354,8 +361,8 @@ Otherwise, do not ask questions.
 
 ## Required Stop Behavior
 When you stop working:
-- If Definition of Done is satisfied: `echo "status=done\nowner=" > ${WORKTREE_PATH}/.task/STATE`
-- If not satisfied: read current owner from `${WORKTREE_PATH}/.task/STATE`, then `echo "status=paused\nowner=OWNER_ID" > ${WORKTREE_PATH}/.task/STATE`
+- If Definition of Done is satisfied: `rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.done`
+- If not satisfied: read current owner from `${WORKTREE_PATH}/.task/OWNER.*`, then `OWNER_FILE=$(ls ${WORKTREE_PATH}/.task/OWNER.* 2>/dev/null | head -1) && rm -f ${WORKTREE_PATH}/.task/STATE.* && touch ${WORKTREE_PATH}/.task/STATE.paused && [ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"`
 
 ## Required End-of-Run Report (always output)
 - Generated ownerChatId:
@@ -380,57 +387,100 @@ When you stop working:
 
 ## Templates (use only if missing)
 
-**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.task/Context.md` and `${WORKTREE_PATH}/.task/STATE`
+**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.task/Context.md`, `${WORKTREE_PATH}/.task/STATE.<status>`, and `${WORKTREE_PATH}/.task/OWNER.<chat-id>`
 
 ### .task/Context.md
 ```markdown
 # Context: <branch-name>
 
 ## Goal
-<one sentence>
+<Clear, one-sentence objective explaining what needs to be accomplished>
+
+## Background
+<Why this task exists, what problem it solves, and any relevant context about the codebase or system>
 
 ## Scope
-Touch only:
-- <path>
-Do not touch:
-- <path>
+**Touch only:**
+- <explicit list of files/directories that CAN be modified>
+- <include full paths relative to worktree root>
+
+**Do not touch:**
+- <explicit list of files/directories that MUST NOT be modified>
+- <include full paths relative to worktree root>
+
+**Dependencies:**
+- <related systems, files, or components to be aware of>
+- <any external dependencies or requirements>
+
+## Step-by-Step Instructions
+<Detailed, actionable steps written for a junior developer>
+
+1. **First Step:**
+   - What to do: <specific action>
+   - Why: <explanation of why this step is necessary>
+   - How to verify: <how to check if this step was done correctly>
+   - Common mistakes: <what to avoid>
+
+2. **Second Step:**
+   - <continue with detailed steps...>
 
 ## Definition of Done
-- <checklist>
+- <clear checklist item 1>
+- <clear checklist item 2>
+- <clear checklist item 3>
+- <include verification steps>
+
+## Examples
+<Code examples, patterns to follow, or reference implementations>
+<Include actual code snippets that demonstrate the expected approach>
+
+## Troubleshooting
+**Common Issue 1:**
+- Problem: <description>
+- Solution: <how to fix it>
+
+**Common Issue 2:**
+- Problem: <description>
+- Solution: <how to fix it>
 
 ## Notes / Decisions
-- <handoff items or decisions>
+- <important decisions made during implementation>
+- <handoff items for future work>
+- <future considerations or follow-up tasks>
 ```
 
-### .task/STATE
-```
-status=unclaimed
-owner=
-```
+### .task/STATE Files
+Create one of these files to indicate status:
+- `STATE.unclaimed` — no one is working on it yet
+- `STATE.claimed` — actively owned
+- `STATE.paused` — temporarily inactive
+- `STATE.done` — ready for PR/merge
+- `STATE.abandoned` — intentionally left behind
 
-**State transitions (use `${WORKTREE_PATH}/.task/STATE`):**
+### .task/OWNER File
+Create `OWNER.<chat-id>` file with the owner chat ID in the filename.
+Example: `OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
+
+**State transitions (use `${WORKTREE_PATH}/.task/`):**
 
 Claiming:
 ```sh
-echo "status=claimed
-owner=OWNER_ID" > ${WORKTREE_PATH}/.task/STATE
+rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.claimed && touch "${WORKTREE_PATH}/.task/OWNER.OWNER_ID"
 ```
 
 Pausing (keep owner):
 ```sh
-OWNER=$(grep "^owner=" ${WORKTREE_PATH}/.task/STATE | cut -d= -f2)
-echo "status=paused
-owner=$OWNER" > ${WORKTREE_PATH}/.task/STATE
+OWNER_FILE=$(ls ${WORKTREE_PATH}/.task/OWNER.* 2>/dev/null | head -1)
+rm -f ${WORKTREE_PATH}/.task/STATE.* && touch ${WORKTREE_PATH}/.task/STATE.paused
+[ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"
 ```
 
 Completing:
 ```sh
-echo "status=done
-owner=" > ${WORKTREE_PATH}/.task/STATE
+rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.done
 ```
 
 Abandoning:
 ```sh
-echo "status=abandoned
-owner=" > ${WORKTREE_PATH}/.task/STATE
+rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.abandoned
 ```

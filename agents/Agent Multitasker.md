@@ -89,64 +89,126 @@ git push -u origin feat/auth
 Treat each worktree like a lightweight ticket with scope, state, and ownership.
 
 Each worktree should contain:
-- `.task/Context.md` — ticket description (goal, scope, definition of done)
-- `.task/STATE` — ticket state + assignment (file-based, see below)
+- `.task/Context.md` — detailed ticket description (goal, scope, definition of done, step-by-step instructions)
+- `.task/STATE.<status>` — state file (one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
+- `.task/OWNER.<chat-id>` — owner file (filename contains the owner chat ID)
 
 ### File-Based State System
 
-State is stored in `.task/STATE` using a simple key=value format:
+State is stored using separate files for faster directory listing operations:
 
-**Format:**
-```
-status=unclaimed
-owner=
-```
+**State Files:**
+- `.task/STATE.unclaimed` — no one is working on it yet
+- `.task/STATE.claimed` — actively owned by a specific chat/window
+- `.task/STATE.paused` — owned, but temporarily inactive
+- `.task/STATE.done` — ready for PR/merge (or ready to remove if abandoned)
+- `.task/STATE.abandoned` — intentionally left behind; safe to reclaim
 
-**Example (claimed):**
-```
-status=claimed
-owner=taskmaster__feat-add-color__2024-01-15__1430__01
-```
+**Owner File:**
+- `.task/OWNER.<chat-id>` — contains the owner chat ID in the filename
+- Example: `.task/OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
 
-### Required statuses
-- `unclaimed`: no one is working on it yet
-- `claimed`: actively owned by a specific chat/window
-- `paused`: owned, but temporarily inactive
-- `done`: ready for PR/merge (or ready to remove if abandoned)
-- `abandoned`: intentionally left behind; safe to reclaim
+**Rules:**
+- Only ONE STATE.* file should exist at a time
+- Only ONE OWNER.* file should exist at a time (or none if unclaimed)
+- The presence of a STATE.* file indicates the current status
+- The presence of an OWNER.* file indicates ownership (and the filename contains the owner ID)
 
 ### Ownership rule
-- If a worktree is `claimed` by someone else, do not work on it.
-- If it is `unclaimed`, `paused`, or `abandoned`, claim it before working.
+- If a worktree has `STATE.claimed` and an `OWNER.*` file with a different chat ID, do not work on it.
+- If it has `STATE.unclaimed`, `STATE.paused`, or `STATE.abandoned`, claim it before working.
 
 ### State Commands
 
-Read status:
+Read status (which STATE.* file exists):
 ```sh
-grep "^status=" .task/STATE | cut -d= -f2
+ls .task/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'
 ```
 
-Read owner:
+Read owner (filename of OWNER.* file):
 ```sh
-grep "^owner=" .task/STATE | cut -d= -f2
+ls .task/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'
 ```
 
 Check if claimed:
 ```sh
-grep -q "^status=claimed" .task/STATE
+[ -f .task/STATE.claimed ]
 ```
 
-Update state (atomic):
+Check if unclaimed:
 ```sh
-echo "status=claimed
-owner=OWNER_ID" > .task/STATE
+[ -f .task/STATE.unclaimed ]
 ```
 
-### Minimal Context.md sections (recommended)
-- Goal (one sentence)
-- Scope (touch-only / do-not-touch)
-- Definition of Done
-- Notes / Decisions
+Check ownership (replace OWNER_ID with generated ownerChatId):
+```sh
+[ -f ".task/OWNER.OWNER_ID" ]
+```
+
+Check if worktree is mine (STATE.claimed exists AND OWNER file matches):
+```sh
+[ -f .task/STATE.claimed ] && [ -f ".task/OWNER.OWNER_ID" ]
+```
+
+Set state (remove all STATE.* files, create new one):
+```sh
+rm -f .task/STATE.* && touch .task/STATE.<status>
+```
+
+Set owner (remove all OWNER.* files, create new one):
+```sh
+rm -f .task/OWNER.* && touch ".task/OWNER.OWNER_ID"
+```
+
+Claim a worktree:
+```sh
+rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.claimed && touch ".task/OWNER.OWNER_ID"
+```
+
+Pause a worktree (keep owner):
+```sh
+OWNER_FILE=$(ls .task/OWNER.* 2>/dev/null | head -1)
+rm -f .task/STATE.* && touch .task/STATE.paused
+[ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"
+```
+
+Complete a worktree:
+```sh
+rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.done
+```
+
+Abandon a worktree:
+```sh
+rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.abandoned
+```
+
+### Detailed Context.md Structure (for Junior Developers)
+
+The Context.md file should be comprehensive and treat the executing agent as a beginner or junior developer. Include:
+
+**Required Sections:**
+1. **Goal** — Clear, one-sentence objective
+2. **Background** — Why this task exists, what problem it solves
+3. **Scope** — Explicitly list:
+   - Touch-only paths (files/directories that CAN be modified)
+   - Do-not-touch paths (files/directories that MUST NOT be modified)
+   - Dependencies or related systems to be aware of
+4. **Step-by-Step Instructions** — Detailed, actionable steps:
+   - What to do first
+   - What to check before proceeding
+   - Common pitfalls to avoid
+   - How to verify each step
+5. **Definition of Done** — Clear checklist of completion criteria
+6. **Examples** — Code examples, patterns to follow, or reference implementations
+7. **Troubleshooting** — Common issues and how to resolve them
+8. **Notes / Decisions** — Important decisions made, handoff items, or future considerations
+
+**Writing Style:**
+- Use clear, simple language
+- Explain the "why" behind instructions, not just the "what"
+- Include explicit file paths and commands
+- Add warnings about common mistakes
+- Provide context about the codebase structure if relevant
 
 ## Safety Rules
 - Never edit the same file in two worktrees at the same time.
@@ -181,4 +243,4 @@ This workflow is correct if:
 - Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``wt-<branch-slug>`` (kebab-case, no subfolders).
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
-- Each active worktree has `.task/Context.md` and `.task/STATE` so ownership and scope are always visible.
+- Each active worktree has `.task/Context.md`, `.task/STATE.<status>`, and optionally `.task/OWNER.<chat-id>` so ownership and scope are always visible.
