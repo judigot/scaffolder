@@ -189,7 +189,7 @@ export const createOrResetDatabase = async (
       }
 
       // Ensure port is a valid number
-      if (isNaN(parseInt(port, 10))) {
+      if (Number.isNaN(parseInt(port, 10))) {
         return {
           success: false,
           message: 'Database port must be a valid number',

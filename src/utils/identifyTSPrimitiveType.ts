@@ -5,7 +5,7 @@ const identifyTSPrimitiveType = (value: unknown): string => {
 
   if (
     value instanceof Date ||
-    (typeof value === 'string' && !isNaN(Date.parse(value)))
+    (typeof value === 'string' && !Number.isNaN(Date.parse(value)))
   ) {
     return 'Date';
   }

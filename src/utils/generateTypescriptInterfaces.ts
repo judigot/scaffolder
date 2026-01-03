@@ -36,7 +36,7 @@ const generateTypescriptInterfaces = ({
     const typeGuardContent = includeTypeGuards
       ? generateTypeGuard(table, columnsInfo)
       : '';
-    return `${interfaceContent}${typeGuardContent ? '\n' + typeGuardContent : ''}`;
+    return `${interfaceContent}${typeGuardContent ? `\n${typeGuardContent}` : ''}`;
   };
 
   const generateTypeGuard = (
@@ -96,10 +96,10 @@ export function ${typeGuardName}Array(data: unknown): data is I${interfaceName}[
   schemaInfo.forEach(({ tableName, columnsInfo }) => {
     const { pascalCase } = changeCase(tableName);
     const className = pascalCase;
-    return (filesContent[`I${className}`] = generateInterfaceContent(
+    filesContent[`I${className}`] = generateInterfaceContent(
       className,
       columnsInfo,
-    ));
+    );
   });
 
   return filesContent;
