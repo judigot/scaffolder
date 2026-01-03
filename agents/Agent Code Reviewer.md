@@ -408,6 +408,12 @@ When review concludes with **"Safe to merge: YES"**, proceed with merge and clea
 # Worktree path format: .worktrees/<branch-slug>
 # Branch name format: feat/<feature-name> (from worktree or git branch)
 
+# If worktree directory exists but isn't recognized by Git, adopt it first:
+# Read branch name from BRANCH_NAME file
+BRANCH_NAME=$(cat .worktrees/<branch-slug>/.agent-task-context/BRANCH_NAME)
+# Remove and recreate as proper worktree
+rm -rf .worktrees/<branch-slug> && git worktree add .worktrees/<branch-slug> $BRANCH_NAME
+
 # Fetch latest from origin
 git fetch origin
 
@@ -459,8 +465,7 @@ git branch -d <branch-name>
 git worktree remove .worktrees/<branch-slug>
 
 # Update STATE file (mark as merged for audit trail)
-echo "status=merged
-owner=" > .worktrees/<branch-slug>/.cursor/STATE
+rm -f .worktrees/<branch-slug>/.agent-task-context/STATE.* .worktrees/<branch-slug>/.agent-task-context/OWNER.* && touch .worktrees/<branch-slug>/.agent-task-context/STATE.merged
 
 # Optional: Prune stale worktree metadata
 git worktree prune
@@ -499,7 +504,7 @@ git log --oneline --graph -5
 ### What to Cleanup
 1. **Local branch** - Delete after merge (`git branch -d`)
 2. **Worktree** - Remove after merge (`git worktree remove`)
-3. **STATE file** - Update to `status=merged` (preserve for audit)
+3. **STATE file** - Update to `STATE.merged` (preserve for audit)
 4. **Stale metadata** - Prune if needed (`git worktree prune`)
 
 ### What NOT to Cleanup
@@ -515,8 +520,7 @@ git log --oneline --graph -5
 # Report error with details
 # Keep worktree for debugging
 # Update STATE to merge-failed
-echo "status=merge-failed
-owner=" > .worktrees/<branch-slug>/.cursor/STATE
+rm -f .worktrees/<branch-slug>/.agent-task-context/STATE.* .worktrees/<branch-slug>/.agent-task-context/OWNER.* && touch .worktrees/<branch-slug>/.agent-task-context/STATE.merge-failed
 ```
 
 **If branch deletion fails:**

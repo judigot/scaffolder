@@ -51,12 +51,26 @@ git worktree add .worktrees/feat-add-color-v2 -b feat/add-color-v2
 git worktree add .worktrees/feat-auth -b feat/auth
 ```
 
+3) Create the BRANCH_NAME file (for machine-switching support):
+```sh
+echo "<branch-name>" > .worktrees/<branch-slug>/.agent-task-context/BRANCH_NAME
+```
+
+Examples:
+```sh
+echo "feat/add-color" > .worktrees/feat-add-color/.agent-task-context/BRANCH_NAME
+echo "feat/add-color-v2" > .worktrees/feat-add-color-v2/.agent-task-context/BRANCH_NAME
+echo "feat/auth" > .worktrees/feat-auth/.agent-task-context/BRANCH_NAME
+```
+
 If the branch already exists:
 ```sh
 git worktree add .worktrees/<branch-slug> <branch-name>
+# Create the BRANCH_NAME file
+echo "<branch-name>" > .worktrees/<branch-slug>/.agent-task-context/BRANCH_NAME
 ```
 
-3) Push the branch to remote (sets upstream tracking):
+4) Push the branch to remote (sets upstream tracking):
 ```sh
 git push -u origin <branch-name>
 ```
@@ -92,6 +106,7 @@ Each worktree should contain:
 - `.agent-task-context/Context.md` — detailed ticket description (goal, scope, definition of done, step-by-step instructions)
 - `.agent-task-context/STATE.<status>` — state file (one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
 - `.agent-task-context/OWNER.<chat-id>` — owner file (filename contains the owner chat ID)
+- `.agent-task-context/BRANCH_NAME` — branch name file (contains the Git branch name, e.g., `feat/add-color`)
 
 ### File-Based State System
 
@@ -238,9 +253,50 @@ Clean stale metadata:
 git worktree prune
 ```
 
+## Switching Machines / Adopting Committed Worktrees
+
+If `.worktrees/` is committed to the repository, worktree directories will be available on other machines after pulling. However, Git won't recognize them as worktrees until they're "adopted."
+
+### Adopting a Worktree Directory
+
+When you pull on a new machine and see `.worktrees/<branch-slug>/` directories but `git worktree list` doesn't show them:
+
+1) Read the branch name from the BRANCH_NAME file:
+```sh
+BRANCH_NAME=$(cat .worktrees/<branch-slug>/.agent-task-context/BRANCH_NAME)
+```
+
+2) Remove the directory (Git needs to create it as a proper worktree):
+```sh
+rm -rf .worktrees/<branch-slug>
+```
+
+3) Recreate as a proper worktree:
+```sh
+# If branch doesn't exist locally yet
+git worktree add .worktrees/<branch-slug> -b $BRANCH_NAME
+
+# If branch already exists (pulled from remote)
+git worktree add .worktrees/<branch-slug> $BRANCH_NAME
+```
+
+4) Recreate the BRANCH_NAME file (since directory was removed):
+```sh
+echo "$BRANCH_NAME" > .worktrees/<branch-slug>/.agent-task-context/BRANCH_NAME
+```
+
+5) Verify it's now a proper worktree:
+```sh
+git worktree list
+```
+
+**Note:** The `.agent-task-context/` files (Context.md, STATE files, OWNER files) will be preserved since they're committed. After adoption, the worktree will be fully functional with all state intact.
+
+**Important:** Always ensure the BRANCH_NAME file exists when creating worktrees. Without it, adoption on other machines requires manual branch name lookup.
+
 ## Success Criteria
 This workflow is correct if:
 - Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``<branch-slug>`` (kebab-case, no subfolders).
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
-- Each active worktree has `.agent-task-context/Context.md`, `.agent-task-context/STATE.<status>`, and optionally `.agent-task-context/OWNER.<chat-id>` so ownership and scope are always visible.
+- Each active worktree has `.agent-task-context/Context.md`, `.agent-task-context/STATE.<status>`, optionally `.agent-task-context/OWNER.<chat-id>`, and `.agent-task-context/BRANCH_NAME` so ownership, scope, and branch association are always visible.

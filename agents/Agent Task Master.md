@@ -13,6 +13,7 @@ Each worktree is a "ticket" and must contain:
 - `.agent-task-context/Context.md` (detailed goal/scope/done/instructions - see Context.md structure)
 - `.agent-task-context/STATE.<status>` (state file - one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
 - `.agent-task-context/OWNER.<chat-id>` (owner file - filename contains owner chat ID, optional if unclaimed)
+- `.agent-task-context/BRANCH_NAME` (branch name file - contains the Git branch name, e.g., `feat/add-color`, required for machine-switching support)
 
 Valid statuses:
 - `unclaimed`, `claimed`, `paused`, `done`, `abandoned`
@@ -182,17 +183,23 @@ If not, proceed directly to auto-selection.
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
 1) **Store the worktree path**: `WORKTREE_PATH="<worktree>"` (e.g., `WORKTREE_PATH=".worktrees/feat-add-color"`).
-2) Check `${WORKTREE_PATH}/.agent-task-context/` directory (create STATE.unclaimed if missing).
-3) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `feat-add-color` worktree).
-4) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using OWNER files and increment seq if needed).
-5) Read current status: `ls ${WORKTREE_PATH}/.agent-task-context/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'`
-6) Read current owner: `ls ${WORKTREE_PATH}/.agent-task-context/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'`
-7) If STATE.claimed exists AND owner != generated ownerChatId:
+2) Check if worktree is adopted (recognized by Git):
+   ```sh
+   git worktree list | grep -q "${WORKTREE_PATH##*/}" || echo "Not adopted, needs adoption"
+   ```
+   If not adopted, adopt it first (see "Switching Machines / Adopting Committed Worktrees" section below).
+3) Check `${WORKTREE_PATH}/.agent-task-context/` directory (create STATE.unclaimed if missing).
+4) Read branch name from `${WORKTREE_PATH}/.agent-task-context/BRANCH_NAME` file (create it if missing with the branch name derived from worktree path).
+5) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `feat-add-color` worktree).
+6) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using OWNER files and increment seq if needed).
+7) Read current status: `ls ${WORKTREE_PATH}/.agent-task-context/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'`
+8) Read current owner: `ls ${WORKTREE_PATH}/.agent-task-context/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'`
+9) If STATE.claimed exists AND owner != generated ownerChatId:
    - Do not touch code in this worktree.
    - Immediately proceed to Step 3 (auto-select another claimable task).
-8) If STATE.claimed exists AND owner == generated ownerChatId:
+10) If STATE.claimed exists AND owner == generated ownerChatId:
    - Continue working in this worktree.
-9) If STATE.unclaimed, STATE.paused, or STATE.abandoned exists:
+11) If STATE.unclaimed, STATE.paused, or STATE.abandoned exists:
    - Claim it: `rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* ${WORKTREE_PATH}/.agent-task-context/OWNER.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.claimed && touch "${WORKTREE_PATH}/.agent-task-context/OWNER.OWNER_ID"`, then proceed.
 
 ### Step 3 — Auto-select another claimable task (no questions)
@@ -392,7 +399,7 @@ When you stop working:
 
 ## Templates (use only if missing)
 
-**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.agent-task-context/Context.md`, `${WORKTREE_PATH}/.agent-task-context/STATE.<status>`, and `${WORKTREE_PATH}/.agent-task-context/OWNER.<chat-id>`
+**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.agent-task-context/Context.md`, `${WORKTREE_PATH}/.agent-task-context/STATE.<status>`, `${WORKTREE_PATH}/.agent-task-context/OWNER.<chat-id>`, and `${WORKTREE_PATH}/.agent-task-context/BRANCH_NAME`
 
 ### .agent-task-context/Context.md
 ```markdown
@@ -465,6 +472,25 @@ Create one of these files to indicate status:
 ### .agent-task-context/OWNER File
 Create `OWNER.<chat-id>` file with the owner chat ID in the filename.
 Example: `OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
+
+### .agent-task-context/BRANCH_NAME File
+Create `BRANCH_NAME` file containing the Git branch name (with forward slashes).
+Example: `BRANCH_NAME` containing `feat/add-color`
+
+**Purpose:**
+- Stores the exact Git branch name for this worktree
+- Required for machine-switching: allows adoption of committed worktree directories
+- Enables converting directory back to proper Git worktree on new machines
+
+**Read branch name:**
+```sh
+BRANCH_NAME=$(cat .agent-task-context/BRANCH_NAME)
+```
+
+**Create BRANCH_NAME file:**
+```sh
+echo "feat/add-color" > .agent-task-context/BRANCH_NAME
+```
 
 **State transitions (use `${WORKTREE_PATH}/.agent-task-context/`):**
 
