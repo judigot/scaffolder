@@ -377,11 +377,170 @@ If .state/ directory doesn't exist or is empty:
 2) **Use worktree-prefixed paths** - Prefix ALL file paths with `${WORKTREE_PATH}/` or the full worktree path. Never use relative paths that could resolve to the main repo.
 3) Modify ONLY what Context.md allows ("Touch only"), but interpret all paths as relative to the worktree (prefix with `${WORKTREE_PATH}/`).
 4) Never touch "Do not touch" paths.
-5) **Commit from within the worktree** - All git operations (add, commit, push) should be performed from the worktree directory, committing to that branch.
-6) If you discover necessary work outside scope:
+5) **Commit incrementally and meaningfully** - Follow the incremental commit rules below. Do not accumulate large blobs of changes.
+6) **Delegate to skill agents** - Use sub-agents from `agents/skills/` for specialized tasks (linting, testing, etc.) as described in the skill delegation section below.
+7) **Commit from within the worktree** - All git operations (add, commit, push) should be performed from the worktree directory, committing to that branch.
+8) If you discover necessary work outside scope:
    - Do not implement it
    - Add a bullet under `${WORKTREE_PATH}/.agent-task-context/Context.md` → "Notes / Decisions" describing the needed work and why
-7) Keep changes minimal, correct, and production-ready.
+9) Keep changes minimal, correct, and production-ready.
+
+## Incremental Commit Strategy (mandatory)
+
+You must commit incrementally and meaningfully to avoid bloat. Large, monolithic commits make reviews difficult and hide progress.
+
+### When to Commit
+
+Commit after completing each logical unit of work:
+- After implementing a single feature or function
+- After fixing a specific bug or issue
+- After refactoring a cohesive section
+- After adding tests for a specific component
+- After making lint/format fixes (as a separate commit)
+- Before delegating to a skill agent (if significant changes were made)
+
+**Do NOT:**
+- Accumulate unrelated changes in a single commit
+- Wait until the entire task is done to commit
+- Mix feature work with formatting/linting in the same commit (unless the formatting is directly related to the feature)
+
+### Commit Message Format
+
+Use short, semantic commit messages that clearly describe what changed:
+
+**Format:** `<type>: <short summary>`
+
+**Types:**
+- `feat:` - New feature or functionality
+- `fix:` - Bug fix
+- `refactor:` - Code restructuring without changing behavior
+- `style:` - Formatting, whitespace, or lint fixes (no code logic changes)
+- `test:` - Adding or modifying tests
+- `docs:` - Documentation changes
+- `chore:` - Build system, dependencies, or tooling changes
+
+**Examples:**
+- `feat: add user authentication endpoint`
+- `fix: resolve null pointer in file upload`
+- `refactor: extract validation logic to separate module`
+- `style: fix ESLint warnings in UserService`
+- `test: add unit tests for authentication flow`
+
+### Commit Workflow
+
+1) **Stage related changes:**
+   ```sh
+   cd ${WORKTREE_PATH} && git add <specific-files>
+   ```
+
+2) **Verify what will be committed:**
+   ```sh
+   cd ${WORKTREE_PATH} && git diff --cached
+   ```
+
+3) **Commit with meaningful message:**
+   ```sh
+   cd ${WORKTREE_PATH} && git commit -m "<type>: <short summary>"
+   ```
+
+4) **Continue working** - Make next logical change, then commit again.
+
+### Commit Frequency Guidelines
+
+- **Minimum:** Commit at least once per major logical step (e.g., after each function implementation)
+- **Maximum:** No hard limit, but aim for 3-10 commits per work session depending on task complexity
+- **Rule of thumb:** If you can describe what changed in one clear sentence, it's probably ready for a commit
+
+### Special Cases
+
+**Linting/Formatting:**
+- If you made code changes AND linting fixes, commit them separately:
+  1) First commit: `feat: add user validation logic`
+  2) Second commit: `style: fix ESLint warnings in validation module`
+
+**Skill Agent Delegation:**
+- If you made significant changes before delegating to a skill agent, commit first:
+  1) Commit your changes: `feat: implement user service`
+  2) Delegate to skill agent (e.g., linting)
+  3) Commit skill agent results: `style: apply lint fixes from Agent Lint Master`
+
+## Skill Agent Delegation
+
+You must delegate specialized tasks to skill agents located in `agents/skills/`. This ensures consistent, high-quality execution of specific skills across all worktrees.
+
+### Available Skill Agents
+
+Skill agents are located in `agents/skills/`:
+- **Agent Lint Master** (`agents/skills/Agent Lint Master.md`) - Handles linting, code quality, and TypeScript/React best practices
+- **Agent Test Master** (`agents/skills/Agent Test Master.md`) - Handles testing infrastructure and test creation
+- Additional skill agents may be added in the future
+
+### When to Delegate
+
+Delegate to skill agents when:
+- **Linting is needed:** After making code changes, delegate to Agent Lint Master to ensure code quality and fix lint issues
+- **Testing is needed:** When Context.md requires tests or when implementing test infrastructure
+- **Code quality review:** Before finalizing work, delegate to appropriate skill agents for validation
+
+### Delegation Workflow
+
+1) **Identify the need:**
+   - Determine which skill agent is appropriate for the task
+   - Read the skill agent's instructions to understand its capabilities
+
+2) **Prepare context:**
+   - Ensure your current changes are committed (if significant)
+   - Note which files were modified that need the skill agent's attention
+
+3) **Delegate:**
+   - Reference the skill agent file: `@agents/skills/Agent <Skill Name>.md`
+   - Provide context about what needs to be done
+   - Specify the worktree path: `${WORKTREE_PATH}`
+   - Specify which files or areas need attention
+
+4) **Review results:**
+   - Review the skill agent's changes
+   - Commit the results with appropriate message (e.g., `style: apply lint fixes from Agent Lint Master`)
+
+5) **Continue work:**
+   - Integrate skill agent results into your workflow
+   - Continue with next logical step
+
+### Delegation Examples
+
+**Linting Example:**
+```
+I've implemented the user service. Please review and fix any linting issues:
+- Worktree: ${WORKTREE_PATH}
+- Files modified: ${WORKTREE_PATH}/src/services/UserService.ts
+- Reference: @agents/skills/Agent Lint Master.md
+```
+
+**Testing Example:**
+```
+I need to add unit tests for the authentication flow:
+- Worktree: ${WORKTREE_PATH}
+- Component: ${WORKTREE_PATH}/src/components/AuthForm.tsx
+- Reference: @agents/skills/Agent Test Master.md
+```
+
+### Skill Agent Rules
+
+- **Respect skill agent boundaries:** Each skill agent has specific responsibilities. Do not duplicate their work.
+- **Commit skill agent results separately:** Keep skill agent changes in separate commits for clarity
+- **Verify skill agent output:** Review changes before committing to ensure they align with task goals
+- **Extensibility:** New skill agents can be added to `agents/skills/` and will follow the same delegation pattern
+
+### Integration with Incremental Commits
+
+1) Make your code changes
+2) Commit your changes: `feat: implement user service`
+3) Delegate to skill agent (e.g., linting)
+4) Review skill agent results
+5) Commit skill agent results: `style: apply lint fixes from Agent Lint Master`
+6) Continue with next logical step
+
+This keeps commits clean, meaningful, and traceable.
 
 ## Audit Mode (Quick Finished-Task Scan)
 
@@ -438,8 +597,10 @@ When you stop working:
   - why it was necessary (brief)
 - Commands run + outcomes (pass/fail):
   - ``<list>``
-- Commits made:
-  - ``<messages>``
+- Commits made (incremental):
+  - ``<list all commit messages in chronological order>``
+- Skill agents used:
+  - ``<list skill agents delegated to, if any>``
 
 ## Templates (use only if missing)
 
