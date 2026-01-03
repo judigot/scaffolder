@@ -10,9 +10,9 @@ When I drag this .md into the chat, you must:
 
 ## Worktree Ticketing System (authoritative)
 Each worktree is a "ticket" and must contain:
-- `.task/Context.md` (detailed goal/scope/done/instructions - see Context.md structure)
-- `.task/STATE.<status>` (state file - one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
-- `.task/OWNER.<chat-id>` (owner file - filename contains owner chat ID, optional if unclaimed)
+- `.agent-task-context/Context.md` (detailed goal/scope/done/instructions - see Context.md structure)
+- `.agent-task-context/STATE.<status>` (state file - one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
+- `.agent-task-context/OWNER.<chat-id>` (owner file - filename contains owner chat ID, optional if unclaimed)
 
 Valid statuses:
 - `unclaimed`, `claimed`, `paused`, `done`, `abandoned`
@@ -28,15 +28,15 @@ Blocking status:
 State is stored using separate files for faster directory listing operations. This allows agents to quickly check state by listing files rather than parsing text.
 
 **State Files:**
-- `.task/STATE.unclaimed` — no one is working on it yet
-- `.task/STATE.claimed` — actively owned by a specific chat/window
-- `.task/STATE.paused` — owned, but temporarily inactive
-- `.task/STATE.done` — ready for PR/merge (or ready to remove if abandoned)
-- `.task/STATE.abandoned` — intentionally left behind; safe to reclaim
+- `.agent-task-context/STATE.unclaimed` — no one is working on it yet
+- `.agent-task-context/STATE.claimed` — actively owned by a specific chat/window
+- `.agent-task-context/STATE.paused` — owned, but temporarily inactive
+- `.agent-task-context/STATE.done` — ready for PR/merge (or ready to remove if abandoned)
+- `.agent-task-context/STATE.abandoned` — intentionally left behind; safe to reclaim
 
 **Owner File:**
-- `.task/OWNER.<chat-id>` — contains the owner chat ID in the filename
-- Example: `.task/OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
+- `.agent-task-context/OWNER.<chat-id>` — contains the owner chat ID in the filename
+- Example: `.agent-task-context/OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
 
 **Rules:**
 - Only ONE STATE.* file should exist at a time
@@ -45,7 +45,7 @@ State is stored using separate files for faster directory listing operations. Th
 - The presence of an OWNER.* file indicates ownership (and the filename contains the owner ID)
 
 **Benefits:**
-- Fast directory listing (`ls .task/STATE.*` shows status immediately)
+- Fast directory listing (`ls .agent-task-context/STATE.*` shows status immediately)
 - No text parsing needed
 - Atomic file operations
 - Human-readable filenames
@@ -55,70 +55,70 @@ State is stored using separate files for faster directory listing operations. Th
 
 Read status (which STATE.* file exists):
 ```sh
-ls .task/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'
+ls .agent-task-context/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'
 ```
 
 Read owner (filename of OWNER.* file):
 ```sh
-ls .task/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'
+ls .agent-task-context/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'
 ```
 
 Check if claimed:
 ```sh
-[ -f .task/STATE.claimed ]
+[ -f .agent-task-context/STATE.claimed ]
 ```
 
 Check if unclaimed:
 ```sh
-[ -f .task/STATE.unclaimed ]
+[ -f .agent-task-context/STATE.unclaimed ]
 ```
 
 Check ownership (replace OWNER_ID with generated ownerChatId):
 ```sh
-[ -f ".task/OWNER.OWNER_ID" ]
+[ -f ".agent-task-context/OWNER.OWNER_ID" ]
 ```
 
 Check if worktree is mine (STATE.claimed exists AND OWNER file matches):
 ```sh
-[ -f .task/STATE.claimed ] && [ -f ".task/OWNER.OWNER_ID" ]
+[ -f .agent-task-context/STATE.claimed ] && [ -f ".agent-task-context/OWNER.OWNER_ID" ]
 ```
 
 Set state (remove all STATE.* files, create new one):
 ```sh
-rm -f .task/STATE.* && touch .task/STATE.<status>
+rm -f .agent-task-context/STATE.* && touch .agent-task-context/STATE.<status>
 ```
 
 Set owner (remove all OWNER.* files, create new one):
 ```sh
-rm -f .task/OWNER.* && touch ".task/OWNER.OWNER_ID"
+rm -f .agent-task-context/OWNER.* && touch ".agent-task-context/OWNER.OWNER_ID"
 ```
 
 Claim a worktree:
 ```sh
-rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.claimed && touch ".task/OWNER.OWNER_ID"
+rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.claimed && touch ".agent-task-context/OWNER.OWNER_ID"
 ```
 
 Pause a worktree (keep owner):
 ```sh
-OWNER_FILE=$(ls .task/OWNER.* 2>/dev/null | head -1)
-rm -f .task/STATE.* && touch .task/STATE.paused
+OWNER_FILE=$(ls .agent-task-context/OWNER.* 2>/dev/null | head -1)
+rm -f .agent-task-context/STATE.* && touch .agent-task-context/STATE.paused
 [ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"
 ```
 
 Complete a worktree:
 ```sh
-rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.done
+rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.done
 ```
 
 Abandon a worktree:
 ```sh
-rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.abandoned
+rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.abandoned
 ```
 
 Find all claimable worktrees:
 ```sh
 find .worktrees -name "STATE.*" -exec sh -c '
-  WT="${1%/.task/STATE.*}"
+  WT="${1%/.agent-task-context/STATE.*}"
   STATUS=$(basename "$1" | sed "s|STATE\.||")
   case "$STATUS" in
     unclaimed|paused|abandoned) echo "$WT" ;;
@@ -128,7 +128,7 @@ find .worktrees -name "STATE.*" -exec sh -c '
 
 Find worktrees claimed by specific owner:
 ```sh
-find .worktrees -name "OWNER.OWNER_ID" -exec dirname {} \; | sed 's|/.task||'
+find .worktrees -name "OWNER.OWNER_ID" -exec dirname {} \; | sed 's|/.agent-task-context||'
 ```
 
 Check for collision (ownerChatId already exists):
@@ -156,7 +156,7 @@ Definitions:
 - `seq` = sequence number starting at `01`, incrementing if collision detected
 
 Collision detection:
-- Before writing OWNER file, check all `.worktrees/**/.task/OWNER.*` files.
+- Before writing OWNER file, check all `.worktrees/**/.agent-task-context/OWNER.*` files.
 - Use: `find .worktrees -name "OWNER.OWNER_ID"`
 - If the generated ownerChatId already exists (file found), increment `seq` to `02`, `03`, etc. until unique.
 
@@ -166,7 +166,7 @@ Example:
 - Date/time: 2024-01-15 14:30 (Asia/Manila)
 - Generated: `taskmaster__feat-add-color__2024-01-15__1430__01`
 
-You must create the OWNER file when claiming: `touch ".task/OWNER.OWNER_ID"`
+You must create the OWNER file when claiming: `touch ".agent-task-context/OWNER.OWNER_ID"`
 You must compare this value to the OWNER file when deciding whether you may work.
 
 ## Required Start Behavior (do this immediately)
@@ -182,18 +182,18 @@ If not, proceed directly to auto-selection.
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
 1) **Store the worktree path**: `WORKTREE_PATH="<worktree>"` (e.g., `WORKTREE_PATH=".worktrees/wt-feat-add-color"`).
-2) Check `${WORKTREE_PATH}/.task/` directory (create STATE.unclaimed if missing).
+2) Check `${WORKTREE_PATH}/.agent-task-context/` directory (create STATE.unclaimed if missing).
 3) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/wt-<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `wt-feat-add-color` worktree).
 4) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using OWNER files and increment seq if needed).
-5) Read current status: `ls ${WORKTREE_PATH}/.task/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'`
-6) Read current owner: `ls ${WORKTREE_PATH}/.task/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'`
+5) Read current status: `ls ${WORKTREE_PATH}/.agent-task-context/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'`
+6) Read current owner: `ls ${WORKTREE_PATH}/.agent-task-context/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'`
 7) If STATE.claimed exists AND owner != generated ownerChatId:
    - Do not touch code in this worktree.
    - Immediately proceed to Step 3 (auto-select another claimable task).
 8) If STATE.claimed exists AND owner == generated ownerChatId:
    - Continue working in this worktree.
 9) If STATE.unclaimed, STATE.paused, or STATE.abandoned exists:
-   - Claim it: `rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.claimed && touch "${WORKTREE_PATH}/.task/OWNER.OWNER_ID"`, then proceed.
+   - Claim it: `rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* ${WORKTREE_PATH}/.agent-task-context/OWNER.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.claimed && touch "${WORKTREE_PATH}/.agent-task-context/OWNER.OWNER_ID"`, then proceed.
 
 ### Step 3 — Auto-select another claimable task (no questions)
 If the initial worktree is not yours (or no target was provided), you must automatically find another worktree you are allowed to work on:
@@ -207,9 +207,9 @@ Selection rules:
 3) Use this command to find eligible worktrees:
    ```sh
    find .worktrees -name "STATE.*" -exec sh -c '
-     WT="${1%/.task/STATE.*}"
+     WT="${1%/.agent-task-context/STATE.*}"
      STATUS=$(basename "$1" | sed "s|STATE\.||")
-     OWNER_FILE=$(ls "${WT}/.task/OWNER.*" 2>/dev/null | head -1)
+     OWNER_FILE=$(ls "${WT}/.agent-task-context/OWNER.*" 2>/dev/null | head -1)
      OWNER=$(echo "$OWNER_FILE" | sed "s|.*/OWNER\.||" 2>/dev/null)
      case "$STATUS" in
        unclaimed|paused|abandoned) echo "$WT" ;;
@@ -236,11 +236,11 @@ Selection rules:
    - **Failure to use worktree-prefixed paths will result in modifying files in the main repo instead of the worktree.**
 
 **Path Usage Examples:**
-- To read Context.md: `${WORKTREE_PATH}/.task/Context.md` ✅
+- To read Context.md: `${WORKTREE_PATH}/.agent-task-context/Context.md` ✅
 - To edit FileViewer.tsx: `${WORKTREE_PATH}/src/components/FileViewer.tsx` ✅
 - To create new file: `${WORKTREE_PATH}/src/utils/helper.ts` ✅
 - **WRONG:** `src/components/FileViewer.tsx` ❌ (resolves to main repo)
-- **WRONG:** `.task/Context.md` ❌ (resolves to main repo)
+- **WRONG:** `.agent-task-context/Context.md` ❌ (resolves to main repo)
 
 **Important: Multiple Agents Running Simultaneously**
 - You are ONE agent instance running in ONE Cursor window/chat.
@@ -259,12 +259,12 @@ Selection rules:
 For the selected worktree:
 1) **Work within the worktree directory** - All file operations must happen inside the worktree (e.g., `.worktrees/wt-feat-add-color/`).
 2) **Use worktree-prefixed paths for ALL file operations:**
-   - Read Context.md: `${WORKTREE_PATH}/.task/Context.md`
-   - Read STATE: `${WORKTREE_PATH}/.task/STATE`
+   - Read Context.md: `${WORKTREE_PATH}/.agent-task-context/Context.md`
+   - Read STATE: `${WORKTREE_PATH}/.agent-task-context/STATE.*`
    - Edit files: `${WORKTREE_PATH}/src/components/FileViewer.tsx`
    - Create files: `${WORKTREE_PATH}/src/utils/newFile.ts`
    - **NEVER use relative paths like `src/components/FileViewer.tsx`** (this resolves to main repo, not worktree)
-3) Open `${WORKTREE_PATH}/.task/Context.md` (create if missing).
+3) Open `${WORKTREE_PATH}/.agent-task-context/Context.md` (create if missing).
 4) Extract:
    - Goal
    - Touch-only paths
@@ -275,7 +275,7 @@ For the selected worktree:
 
 If either file is missing:
 - Create it immediately using the templates below, filling in what this document provides.
-- Use worktree-prefixed paths: `${WORKTREE_PATH}/.task/Context.md` and `${WORKTREE_PATH}/.task/STATE`
+- Use worktree-prefixed paths: `${WORKTREE_PATH}/.agent-task-context/Context.md` and `${WORKTREE_PATH}/.agent-task-context/STATE.<status>`
 - Then continue.
 
 ## Execution Rules (scope discipline)
@@ -307,11 +307,11 @@ If either file is missing:
 **Correct (worktree paths):**
 - `${WORKTREE_PATH}/src/components/FileViewer.tsx`
 - `.worktrees/wt-feat-add-color/src/components/FileViewer.tsx`
-- `${WORKTREE_PATH}/.task/Context.md`
+- `${WORKTREE_PATH}/.agent-task-context/Context.md`
 
 **Incorrect (relative paths - resolves to main repo):**
 - `src/components/FileViewer.tsx` ❌
-- `.task/Context.md` ❌
+- `.agent-task-context/Context.md` ❌
 - `package.json` ❌
 
 **Rule:** If Context.md says "Touch only: `src/components/FileViewer.tsx`", you must interpret this as `${WORKTREE_PATH}/src/components/FileViewer.tsx`.
@@ -324,12 +324,12 @@ If either file is missing:
 5) **Commit from within the worktree** - All git operations (add, commit, push) should be performed from the worktree directory, committing to that branch.
 6) If you discover necessary work outside scope:
    - Do not implement it
-   - Add a bullet under `${WORKTREE_PATH}/.task/Context.md` → "Notes / Decisions" describing the needed work and why
+   - Add a bullet under `${WORKTREE_PATH}/.agent-task-context/Context.md` → "Notes / Decisions" describing the needed work and why
 7) Keep changes minimal, correct, and production-ready.
 
 ## Audit Mode (Quick Finished-Task Scan)
 
-When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.task/STATE.*` files and prints whether each worktree is DONE or NOT DONE.
+When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.agent-task-context/STATE.*` files and prints whether each worktree is DONE or NOT DONE.
 
 Rules:
 - This audit is ONLY about ticket status visibility (STATE presence + status). Do not review code quality.
@@ -339,7 +339,7 @@ Rules:
 Inline command:
 ```sh
 find .worktrees -name "STATE.*" -print | sort | while IFS= read -r f; do
-  wt="${f%/.task/STATE.*}"
+  wt="${f%/.agent-task-context/STATE.*}"
   status=$(basename "$f" | sed "s|STATE\.||")
 
   if [ "$status" = "done" ]; then
@@ -361,8 +361,8 @@ Otherwise, do not ask questions.
 
 ## Required Stop Behavior
 When you stop working:
-- If Definition of Done is satisfied: `rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.done`
-- If not satisfied: read current owner from `${WORKTREE_PATH}/.task/OWNER.*`, then `OWNER_FILE=$(ls ${WORKTREE_PATH}/.task/OWNER.* 2>/dev/null | head -1) && rm -f ${WORKTREE_PATH}/.task/STATE.* && touch ${WORKTREE_PATH}/.task/STATE.paused && [ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"`
+- If Definition of Done is satisfied: `rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* ${WORKTREE_PATH}/.agent-task-context/OWNER.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.done`
+- If not satisfied: read current owner from `${WORKTREE_PATH}/.agent-task-context/OWNER.*`, then `OWNER_FILE=$(ls ${WORKTREE_PATH}/.agent-task-context/OWNER.* 2>/dev/null | head -1) && rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.paused && [ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"`
 
 ## Required End-of-Run Report (always output)
 - Generated ownerChatId:
@@ -387,9 +387,9 @@ When you stop working:
 
 ## Templates (use only if missing)
 
-**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.task/Context.md`, `${WORKTREE_PATH}/.task/STATE.<status>`, and `${WORKTREE_PATH}/.task/OWNER.<chat-id>`
+**Note:** When creating these files, use worktree-prefixed paths: `${WORKTREE_PATH}/.agent-task-context/Context.md`, `${WORKTREE_PATH}/.agent-task-context/STATE.<status>`, and `${WORKTREE_PATH}/.agent-task-context/OWNER.<chat-id>`
 
-### .task/Context.md
+### .agent-task-context/Context.md
 ```markdown
 # Context: <branch-name>
 
@@ -449,7 +449,7 @@ When you stop working:
 - <future considerations or follow-up tasks>
 ```
 
-### .task/STATE Files
+### .agent-task-context/STATE Files
 Create one of these files to indicate status:
 - `STATE.unclaimed` — no one is working on it yet
 - `STATE.claimed` — actively owned
@@ -457,30 +457,30 @@ Create one of these files to indicate status:
 - `STATE.done` — ready for PR/merge
 - `STATE.abandoned` — intentionally left behind
 
-### .task/OWNER File
+### .agent-task-context/OWNER File
 Create `OWNER.<chat-id>` file with the owner chat ID in the filename.
 Example: `OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
 
-**State transitions (use `${WORKTREE_PATH}/.task/`):**
+**State transitions (use `${WORKTREE_PATH}/.agent-task-context/`):**
 
 Claiming:
 ```sh
-rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.claimed && touch "${WORKTREE_PATH}/.task/OWNER.OWNER_ID"
+rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* ${WORKTREE_PATH}/.agent-task-context/OWNER.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.claimed && touch "${WORKTREE_PATH}/.agent-task-context/OWNER.OWNER_ID"
 ```
 
 Pausing (keep owner):
 ```sh
-OWNER_FILE=$(ls ${WORKTREE_PATH}/.task/OWNER.* 2>/dev/null | head -1)
-rm -f ${WORKTREE_PATH}/.task/STATE.* && touch ${WORKTREE_PATH}/.task/STATE.paused
+OWNER_FILE=$(ls ${WORKTREE_PATH}/.agent-task-context/OWNER.* 2>/dev/null | head -1)
+rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.paused
 [ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"
 ```
 
 Completing:
 ```sh
-rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.done
+rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* ${WORKTREE_PATH}/.agent-task-context/OWNER.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.done
 ```
 
 Abandoning:
 ```sh
-rm -f ${WORKTREE_PATH}/.task/STATE.* ${WORKTREE_PATH}/.task/OWNER.* && touch ${WORKTREE_PATH}/.task/STATE.abandoned
+rm -f ${WORKTREE_PATH}/.agent-task-context/STATE.* ${WORKTREE_PATH}/.agent-task-context/OWNER.* && touch ${WORKTREE_PATH}/.agent-task-context/STATE.abandoned
 ```

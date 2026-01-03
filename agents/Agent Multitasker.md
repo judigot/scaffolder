@@ -89,24 +89,24 @@ git push -u origin feat/auth
 Treat each worktree like a lightweight ticket with scope, state, and ownership.
 
 Each worktree should contain:
-- `.task/Context.md` — detailed ticket description (goal, scope, definition of done, step-by-step instructions)
-- `.task/STATE.<status>` — state file (one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
-- `.task/OWNER.<chat-id>` — owner file (filename contains the owner chat ID)
+- `.agent-task-context/Context.md` — detailed ticket description (goal, scope, definition of done, step-by-step instructions)
+- `.agent-task-context/STATE.<status>` — state file (one of: STATE.unclaimed, STATE.claimed, STATE.paused, STATE.done, STATE.abandoned)
+- `.agent-task-context/OWNER.<chat-id>` — owner file (filename contains the owner chat ID)
 
 ### File-Based State System
 
 State is stored using separate files for faster directory listing operations:
 
 **State Files:**
-- `.task/STATE.unclaimed` — no one is working on it yet
-- `.task/STATE.claimed` — actively owned by a specific chat/window
-- `.task/STATE.paused` — owned, but temporarily inactive
-- `.task/STATE.done` — ready for PR/merge (or ready to remove if abandoned)
-- `.task/STATE.abandoned` — intentionally left behind; safe to reclaim
+- `.agent-task-context/STATE.unclaimed` — no one is working on it yet
+- `.agent-task-context/STATE.claimed` — actively owned by a specific chat/window
+- `.agent-task-context/STATE.paused` — owned, but temporarily inactive
+- `.agent-task-context/STATE.done` — ready for PR/merge (or ready to remove if abandoned)
+- `.agent-task-context/STATE.abandoned` — intentionally left behind; safe to reclaim
 
 **Owner File:**
-- `.task/OWNER.<chat-id>` — contains the owner chat ID in the filename
-- Example: `.task/OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
+- `.agent-task-context/OWNER.<chat-id>` — contains the owner chat ID in the filename
+- Example: `.agent-task-context/OWNER.taskmaster__feat-add-color__2024-01-15__1430__01`
 
 **Rules:**
 - Only ONE STATE.* file should exist at a time
@@ -122,64 +122,64 @@ State is stored using separate files for faster directory listing operations:
 
 Read status (which STATE.* file exists):
 ```sh
-ls .task/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'
+ls .agent-task-context/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'
 ```
 
 Read owner (filename of OWNER.* file):
 ```sh
-ls .task/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'
+ls .agent-task-context/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'
 ```
 
 Check if claimed:
 ```sh
-[ -f .task/STATE.claimed ]
+[ -f .agent-task-context/STATE.claimed ]
 ```
 
 Check if unclaimed:
 ```sh
-[ -f .task/STATE.unclaimed ]
+[ -f .agent-task-context/STATE.unclaimed ]
 ```
 
 Check ownership (replace OWNER_ID with generated ownerChatId):
 ```sh
-[ -f ".task/OWNER.OWNER_ID" ]
+[ -f ".agent-task-context/OWNER.OWNER_ID" ]
 ```
 
 Check if worktree is mine (STATE.claimed exists AND OWNER file matches):
 ```sh
-[ -f .task/STATE.claimed ] && [ -f ".task/OWNER.OWNER_ID" ]
+[ -f .agent-task-context/STATE.claimed ] && [ -f ".agent-task-context/OWNER.OWNER_ID" ]
 ```
 
 Set state (remove all STATE.* files, create new one):
 ```sh
-rm -f .task/STATE.* && touch .task/STATE.<status>
+rm -f .agent-task-context/STATE.* && touch .agent-task-context/STATE.<status>
 ```
 
 Set owner (remove all OWNER.* files, create new one):
 ```sh
-rm -f .task/OWNER.* && touch ".task/OWNER.OWNER_ID"
+rm -f .agent-task-context/OWNER.* && touch ".agent-task-context/OWNER.OWNER_ID"
 ```
 
 Claim a worktree:
 ```sh
-rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.claimed && touch ".task/OWNER.OWNER_ID"
+rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.claimed && touch ".agent-task-context/OWNER.OWNER_ID"
 ```
 
 Pause a worktree (keep owner):
 ```sh
-OWNER_FILE=$(ls .task/OWNER.* 2>/dev/null | head -1)
-rm -f .task/STATE.* && touch .task/STATE.paused
+OWNER_FILE=$(ls .agent-task-context/OWNER.* 2>/dev/null | head -1)
+rm -f .agent-task-context/STATE.* && touch .agent-task-context/STATE.paused
 [ -n "$OWNER_FILE" ] && touch "$OWNER_FILE"
 ```
 
 Complete a worktree:
 ```sh
-rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.done
+rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.done
 ```
 
 Abandon a worktree:
 ```sh
-rm -f .task/STATE.* .task/OWNER.* && touch .task/STATE.abandoned
+rm -f .agent-task-context/STATE.* .agent-task-context/OWNER.* && touch .agent-task-context/STATE.abandoned
 ```
 
 ### Detailed Context.md Structure (for Junior Developers)
@@ -243,4 +243,4 @@ This workflow is correct if:
 - Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``wt-<branch-slug>`` (kebab-case, no subfolders).
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
-- Each active worktree has `.task/Context.md`, `.task/STATE.<status>`, and optionally `.task/OWNER.<chat-id>` so ownership and scope are always visible.
+- Each active worktree has `.agent-task-context/Context.md`, `.agent-task-context/STATE.<status>`, and optionally `.agent-task-context/OWNER.<chat-id>` so ownership and scope are always visible.
