@@ -173,6 +173,46 @@ You must compare this value to the TASK_OWNER file when deciding whether you may
 
 ## Required Start Behavior (do this immediately)
 
+### Step 0 — Detect current worktree context (if already in a worktree)
+Before attempting any target or auto-selection, check if the current working directory is already inside a worktree:
+
+1) **Detect if already in a worktree:**
+   ```sh
+   CURRENT_DIR=$(pwd)
+   if echo "$CURRENT_DIR" | grep -q "\.worktrees/[^/]*$" || echo "$CURRENT_DIR" | grep -q "\.worktrees/[^/]*/"; then
+     # Extract worktree path from current directory
+     # If in .worktrees/feat-add-color/src, extract .worktrees/feat-add-color
+     # If in .worktrees/feat-add-color, use that
+     WORKTREE_PATH=$(echo "$CURRENT_DIR" | sed 's|\(\.worktrees/[^/]*\).*|\1|')
+   fi
+   ```
+
+2) **If already in a worktree directory:**
+   - Set `WORKTREE_PATH` to the detected worktree path (e.g., `.worktrees/feat-add-color`)
+   - Extract branch-slug from worktree path (worktree path format: `.worktrees/<branch-slug>` where branch-slug is kebab-case)
+   - Generate ownerAgentId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using TASK_OWNER files and increment seq if needed)
+   - Check if worktree is adopted (recognized by Git):
+     ```sh
+     git worktree list | grep -q "${WORKTREE_PATH##*/}" || echo "Not adopted, needs adoption"
+     ```
+     If not adopted, adopt it first (see "Switching Machines / Adopting Committed Worktrees" section below)
+   - Check `${WORKTREE_PATH}/.agent-task-context/.state/` directory (create TASK_STATUS.unclaimed if missing)
+   - Read branch name from `${WORKTREE_PATH}/.agent-task-context/BRANCH_NAME` file (create it if missing with the branch name derived from worktree path)
+   - Read current status: `ls ${WORKTREE_PATH}/.agent-task-context/.state/TASK_STATUS.* 2>/dev/null | sed 's|.*/TASK_STATUS\.||'`
+   - Read current owner: `ls ${WORKTREE_PATH}/.agent-task-context/.state/TASK_OWNER.* 2>/dev/null | sed 's|.*/TASK_OWNER\.||'`
+   
+   **Claiming logic (user intent overrides existing claims):**
+   - If TASK_STATUS.unclaimed, paused, or abandoned: claim it normally
+   - If TASK_STATUS.claimed AND owner == generated ownerAgentId: continue working (already yours)
+   - If TASK_STATUS.claimed AND owner != generated ownerAgentId: 
+     - **Reclaim it** (user opened this directory, intent is clear)
+     - Log in output: "Reclaiming worktree previously claimed by: <previous-owner-id>"
+     - Claim it: `rm -f ${WORKTREE_PATH}/.agent-task-context/.state/TASK_STATUS.* ${WORKTREE_PATH}/.agent-task-context/.state/TASK_OWNER.* && touch ${WORKTREE_PATH}/.agent-task-context/.state/TASK_STATUS.claimed && touch "${WORKTREE_PATH}/.agent-task-context/.state/TASK_OWNER.AGENT_ID"`
+   - Proceed to Step 4 (Read Context) - **skip Steps 1, 2, and 3**
+
+3) **If NOT in a worktree directory:**
+   - Proceed to Step 1 (Determine candidate scope)
+
 ### Step 1 — Determine candidate scope from this document
 This document may define either:
 A) A specific target worktree/branch to attempt first, OR
