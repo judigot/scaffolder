@@ -5,20 +5,8 @@
 			"correctness": { "noUnusedVariables": "error" }
 		},
 		"includes": [
-			"**",
-			"!**/dist",
-			"!.next/**",
-			"!out/**",
-			"!build/**",
-			"!coverage/**",
-			"!**/eslint.config.js",
-			"!**/vite.config.ts",
-			"!**/vitest.config.ts",
-			"!**/tailwind.config.js",
-			"!**/postcss.config.js",
-			"!**/vitest.setup.ts",
-			"!next-env.d.ts"
-		]
+		  "**/*.{ts,tsx}"
+		],
 	},
 	"overrides": [
 		{
@@ -92,14 +80,7 @@
 		{ "includes": ["**/*.{ts,tsx}"], "javascript": { "globals": [] } },
 		{
 			"includes": [
-				"**/*.{ts,tsx}",
-				"**/*.ts",
-				"**/*.{ts,tsx}",
-				"**/*.tsx",
-				"**/*.{ts,tsx}",
-				"**/*.mts",
-				"**/*.{ts,tsx}",
-				"**/*.cts"
+			  "**/*.{ts,tsx}"
 			],
 			"linter": {
 				"rules": {
@@ -158,14 +139,7 @@
 		{ "includes": ["**/*.{ts,tsx}"], "javascript": { "globals": [] } },
 		{
 			"includes": [
-				"**/*.{ts,tsx}",
-				"**/*.ts",
-				"**/*.{ts,tsx}",
-				"**/*.tsx",
-				"**/*.{ts,tsx}",
-				"**/*.mts",
-				"**/*.{ts,tsx}",
-				"**/*.cts"
+			  "**/*.{ts,tsx}"
 			],
 			"linter": {
 				"rules": {
@@ -232,14 +206,7 @@
 		{ "includes": ["**/*.{ts,tsx}"], "javascript": { "globals": [] } },
 		{
 			"includes": [
-				"**/*.{ts,tsx}",
-				"**/*.ts",
-				"**/*.{ts,tsx}",
-				"**/*.tsx",
-				"**/*.{ts,tsx}",
-				"**/*.mts",
-				"**/*.{ts,tsx}",
-				"**/*.cts"
+			  "**/*.{ts,tsx}"
 			],
 			"linter": {
 				"rules": {
