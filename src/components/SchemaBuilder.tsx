@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type {
-  ITableInfo,
-  IColumnInfo,
-  ISchemaInfo,
+	ITableInfo,
+	IColumnInfo,
+	ISchemaInfo,
 } from '@/interfaces/interfaces.ts';
 import {
-  addRelationship,
-  purgeForeignKeyTraces,
+	addRelationship,
+	purgeForeignKeyTraces,
 } from '@/helpers/relationshipHelper.ts';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import { Edit as EditIcon, Close as CloseIcon } from '@mui/icons-material';
@@ -1122,6 +1122,7 @@ function SchemaBuilder() {
     return (
       <div className="mt-2 flex gap-2 justify-center">
         <button
+          type="button"
           onClick={() => {
             if (selectedTableIndex !== null) {
               handleCellSave(selectedTableIndex, originalIndex, field);
@@ -1133,6 +1134,7 @@ function SchemaBuilder() {
           ✓
         </button>
         <button
+          type="button"
           onClick={handleCellCancel}
           className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
           title="Cancel changes"
@@ -1390,6 +1392,7 @@ function SchemaBuilder() {
 
       {schemaInfo.length > 0 && (
         <button
+          type="button"
           className="float-right sm:mb-2 px-2 py-0.5 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-900 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50"
           onClick={() => {
             void (async () => {
@@ -1422,6 +1425,7 @@ function SchemaBuilder() {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
+                <title>Empty database</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -1475,6 +1479,7 @@ function SchemaBuilder() {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
+                  <title>Search</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -1502,6 +1507,7 @@ function SchemaBuilder() {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
+                  <title>Database tables</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -1532,14 +1538,10 @@ function SchemaBuilder() {
                     const isSelected = selectedTableIndex === tableIndex;
 
                     return (
-                      <div
+                      <button
                         key={tableName}
-                        role="button"
-                        onKeyDown={() => {
-                          return;
-                        }}
-                        tabIndex={-1}
-                        className={`p-3 rounded-md transition-all duration-200 group ${
+                        type="button"
+                        className={`w-full text-left p-3 rounded-md transition-all duration-200 group ${
                           isSelected
                             ? 'bg-indigo-500/20 border border-indigo-500/30 text-indigo-300'
                             : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
@@ -1555,6 +1557,7 @@ function SchemaBuilder() {
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
+                            <title>Table</title>
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1575,6 +1578,7 @@ function SchemaBuilder() {
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
+                              <title>Selected</title>
                               <path
                                 fillRule="evenodd"
                                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1583,7 +1587,7 @@ function SchemaBuilder() {
                             </svg>
                           )}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
               </div>
@@ -1598,6 +1602,7 @@ function SchemaBuilder() {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
+                    <title>Standalone tables</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1628,14 +1633,10 @@ function SchemaBuilder() {
                       const isSelected = selectedTableIndex === tableIndex;
 
                       return (
-                        <div
+                        <button
                           key={tableName}
-                          role="button"
-                          onKeyDown={() => {
-                            return;
-                          }}
-                          tabIndex={-1}
-                          className={`p-3 rounded-md transition-all duration-200 group ${
+                          type="button"
+                          className={`w-full text-left p-3 rounded-md transition-all duration-200 group ${
                             isSelected
                               ? 'bg-yellow-500/20 border border-yellow-500/30 text-yellow-300'
                               : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
@@ -1651,6 +1652,7 @@ function SchemaBuilder() {
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
+                              <title>Table</title>
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -1665,6 +1667,7 @@ function SchemaBuilder() {
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
+                                <title>Selected</title>
                                 <path
                                   fillRule="evenodd"
                                   d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1673,7 +1676,7 @@ function SchemaBuilder() {
                               </svg>
                             )}
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                 </div>
@@ -1689,6 +1692,7 @@ function SchemaBuilder() {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
+                    <title>View tables</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1725,14 +1729,10 @@ function SchemaBuilder() {
                       const isSelected = selectedTableIndex === tableIndex;
 
                       return (
-                        <div
+                        <button
                           key={tableName}
-                          role="button"
-                          onKeyDown={() => {
-                            return;
-                          }}
-                          tabIndex={-1}
-                          className={`p-3 rounded-md transition-all duration-200 group ${
+                          type="button"
+                          className={`w-full text-left p-3 rounded-md transition-all duration-200 group ${
                             isSelected
                               ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
                               : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
@@ -1748,6 +1748,7 @@ function SchemaBuilder() {
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
+                              <title>View</title>
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -1768,6 +1769,7 @@ function SchemaBuilder() {
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
+                                <title>Selected</title>
                                 <path
                                   fillRule="evenodd"
                                   d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1776,7 +1778,7 @@ function SchemaBuilder() {
                               </svg>
                             )}
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                 </div>
@@ -1792,6 +1794,7 @@ function SchemaBuilder() {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
+                    <title>Pivot tables</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1823,14 +1826,10 @@ function SchemaBuilder() {
                       const isSelected = selectedTableIndex === tableIndex;
 
                       return (
-                        <div
+                        <button
                           key={tableName}
-                          role="button"
-                          onKeyDown={() => {
-                            return;
-                          }}
-                          tabIndex={-1}
-                          className={`p-3 rounded-md transition-all duration-200 group ${
+                          type="button"
+                          className={`w-full text-left p-3 rounded-md transition-all duration-200 group ${
                             isSelected
                               ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
                               : 'hover:bg-gray-700/50 text-gray-300 hover:text-white border border-transparent'
@@ -1846,6 +1845,7 @@ function SchemaBuilder() {
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
+                              <title>Pivot table</title>
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -1860,6 +1860,7 @@ function SchemaBuilder() {
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
+                                <title>Selected</title>
                                 <path
                                   fillRule="evenodd"
                                   d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1868,7 +1869,7 @@ function SchemaBuilder() {
                               </svg>
                             )}
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                 </div>
@@ -1924,6 +1925,7 @@ function SchemaBuilder() {
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
+                          <title>View</title>
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1973,6 +1975,7 @@ function SchemaBuilder() {
                       <>
                         <div className="flex flex-wrap gap-2 mt-4">
                           <button
+                            type="button"
                             onClick={() => {
                               void (async () => {
                                 await handleAddRelationship(
@@ -1986,6 +1989,7 @@ function SchemaBuilder() {
                             Add One-to-One
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               void (async () => {
                                 await handleAddRelationship(
@@ -1999,6 +2003,7 @@ function SchemaBuilder() {
                             Add One-to-Many
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               void (async () => {
                                 await handleAddRelationship(
@@ -2075,6 +2080,7 @@ function SchemaBuilder() {
                                       Has One:
                                     </span>
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         const tableIndex = schemaInfo.findIndex(
                                           (t) => t.tableName === table,
@@ -2107,6 +2113,7 @@ function SchemaBuilder() {
                                       Belongs To:
                                     </span>
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         const tableIndex = schemaInfo.findIndex(
                                           (t) => t.tableName === table,
@@ -2156,6 +2163,7 @@ function SchemaBuilder() {
                                       Has Many:
                                     </span>
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         const tableIndex = schemaInfo.findIndex(
                                           (t) => t.tableName === table,
@@ -2188,6 +2196,7 @@ function SchemaBuilder() {
                                       Belongs To:
                                     </span>
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         const tableIndex = schemaInfo.findIndex(
                                           (t) => t.tableName === table,
@@ -2226,6 +2235,7 @@ function SchemaBuilder() {
                                       Belongs To Many:
                                     </span>
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         const tableIndex = schemaInfo.findIndex(
                                           (t) => t.tableName === table,
@@ -2242,13 +2252,14 @@ function SchemaBuilder() {
                                 ))}
                                 {schemaInfo[
                                   selectedTableIndex
-                                ].pivotRelationships.map((rel, idx) => (
-                                  <li key={idx} className="flex items-center">
+                                ].pivotRelationships.map((rel) => (
+                                  <li key={`${rel.relatedTable}-${rel.pivotTable}`} className="flex items-center">
                                     <span className="text-purple-300">
                                       Through Pivot:
                                     </span>
                                     <span className="ml-2 font-medium">
                                       <button
+                                        type="button"
                                         onClick={() => {
                                           const tableIndex =
                                             schemaInfo.findIndex(
@@ -2268,6 +2279,7 @@ function SchemaBuilder() {
                                         via
                                       </span>
                                       <button
+                                        type="button"
                                         onClick={() => {
                                           const tableIndex =
                                             schemaInfo.findIndex(
@@ -2313,6 +2325,7 @@ function SchemaBuilder() {
                                       ].foreignTables?.map((table, index) => (
                                         <span key={table}>
                                           <button
+                                            type="button"
                                             onClick={() => {
                                               const tableIndex =
                                                 schemaInfo.findIndex(
@@ -2349,6 +2362,7 @@ function SchemaBuilder() {
                                       ].childTables?.map((table, index) => (
                                         <span key={table}>
                                           <button
+                                            type="button"
                                             onClick={() => {
                                               const tableIndex =
                                                 schemaInfo.findIndex(
@@ -2408,6 +2422,7 @@ function SchemaBuilder() {
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
+                              <title>Search</title>
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -3072,6 +3087,7 @@ function SchemaBuilder() {
                                               stroke="currentColor"
                                               viewBox="0 0 24 24"
                                             >
+                                              <title>Locked</title>
                                               <path
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
@@ -3082,6 +3098,7 @@ function SchemaBuilder() {
                                           </div>
                                         ) : (
                                           <button
+                                            type="button"
                                             onClick={() => {
                                               void (async () => {
                                                 await handleRemoveColumn(
@@ -3099,6 +3116,7 @@ function SchemaBuilder() {
                                               stroke="currentColor"
                                               viewBox="0 0 24 24"
                                             >
+                                              <title>Delete</title>
                                               <path
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
@@ -3131,6 +3149,7 @@ function SchemaBuilder() {
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
+                              <title>Add</title>
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -3163,6 +3182,7 @@ function SchemaBuilder() {
                                       stroke="currentColor"
                                       viewBox="0 0 24 24"
                                     >
+                                      <title>Close</title>
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -3372,6 +3392,7 @@ function SchemaBuilder() {
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
+                            <title>Database</title>
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
