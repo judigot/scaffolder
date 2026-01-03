@@ -97,6 +97,31 @@ If either file is missing:
    - Add a bullet under Context.md → “Notes / Decisions” describing the needed work and why
 4) Keep changes minimal, correct, and production-ready.
 
+## Audit Mode (Quick Finished-Task Scan)
+
+When asked to audit finished tasks, run the inline command below from the repo root. It scans all `.worktrees/**/.cursor/OWNER.json` files and prints whether each worktree is DONE or NOT DONE.
+
+Rules:
+- This audit is ONLY about ticket status visibility (OWNER.json presence + status). Do not review code quality.
+- Do not ask questions. Run the command and report the output.
+- If `.worktrees/` does not exist, stop and report that as the only issue.
+
+Inline command:
+```sh
+find .worktrees -type f -path "*/.cursor/OWNER.json" -print | sort | while IFS= read -r f; do
+  wt="${f%/.cursor/OWNER.json}"
+
+  if grep -q '"status"[[:space:]]*:[[:space:]]*"done"' "$f"; then
+    printf "DONE     | %s\n" "$wt"
+    continue
+  fi
+
+  status="$(sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$f" | head -n 1)"
+  [ -n "$status" ] || status="(missing)"
+  printf "NOT DONE | %-10s | %s\n" "$status" "$wt"
+done
+```
+
 ## Allowed Questions (rare)
 You may ask a question ONLY if:
 - Context.md contains a direct contradiction that prevents safe action, OR
