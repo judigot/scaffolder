@@ -107,13 +107,15 @@ function generateDomainCode({
     // Find pivot table by checking which table has both foreign keys
     const pivotTableName =
       relationshipType === 'belongsToMany' || relationshipType === 'manyToMany'
-        ? schemaInfo.find((table) =>
-            Boolean(
-              table.foreignTables &&
-                table.foreignTables.includes(relatedTable) &&
-                table.foreignTables.includes(tableName),
-            ),
-          )?.tableName
+        ? schemaInfo.find((table) => {
+            if (table.foreignTables === undefined) {
+              return false;
+            }
+            return (
+              table.foreignTables.includes(relatedTable) &&
+              table.foreignTables.includes(tableName)
+            );
+          })?.tableName
         : tableInfo.pivotRelationships?.find(
             (rel) => rel.relatedTable === relatedTable,
           )?.pivotTable;

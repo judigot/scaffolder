@@ -68,6 +68,14 @@ const generateSQLInserts = (data: ParsedJSONSchema): string => {
 
           return `'${formattedDate}'`; // Fallback for other databases
         }
+
+        if (typeof value === 'boolean') {
+          return value ? 'TRUE' : 'FALSE';
+        }
+
+        throw new Error(
+          `Unsupported value type in SQL insert: ${typeof value}. Expected null, number, string, Date, or boolean.`,
+        );
       });
 
       return `(${mappedValues.join(', ')})`;
