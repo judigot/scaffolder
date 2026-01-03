@@ -307,10 +307,18 @@ After review, provide:
 - **Reasoning:** Clear explanation
 - **Recommendations:** Any follow-up actions needed
 
-### 4. Evidence
+### 4. Merge Status (if approved)
+- **Merge performed:** Yes/No
+- **Merge commit hash:** (if merged)
+- **Cleanup completed:** Yes/No
+- **Worktree removed:** Yes/No
+- **Branch deleted:** Yes/No
+
+### 5. Evidence
 - **Commands run:** List git commands executed
 - **Key findings:** Specific examples from diff
 - **Character-level analysis:** If performed, note any character-by-character findings
+- **Merge commands:** If merged, list merge and cleanup commands executed
 
 ## Example Review Output
 
@@ -373,6 +381,175 @@ Character-level analysis:
 - Verified with --word-diff-regex=. that no logic characters changed
 - All modifications are attribute additions/modifications
 - No function bodies, conditionals, or logic operators modified
+
+=== Merge Status ===
+
+Merge performed: YES
+Merge commit: <hash>
+Cleanup completed: YES
+- Local branch deleted
+- Worktree removed
+- STATE updated to merged
+```
+
+## Merge Workflow (After Approval)
+
+When review concludes with **"Safe to merge: YES"**, proceed with merge and cleanup.
+
+### Prerequisites
+- Review completed with "Safe to merge: YES"
+- Branch is pushed to origin
+- No merge conflicts detected
+- User approval confirmed (if required)
+
+### Step 1: Pre-Merge Verification
+```bash
+# Determine worktree path and branch name
+# Worktree path format: .worktrees/<branch-slug>
+# Branch name format: feat/<feature-name> (from worktree or git branch)
+
+# Fetch latest from origin
+git fetch origin
+
+# Check for merge conflicts (from repo root)
+cd <repo-root>
+git merge-tree $(git merge-base origin/main HEAD) origin/main HEAD
+
+# Verify branch is up to date
+git status
+```
+
+**What to check:**
+- No merge conflicts detected
+- Branch is pushed to origin
+- Main branch is up to date
+
+### Step 2: Merge to Main
+```bash
+# From repo root (not worktree)
+cd <repo-root>
+
+# Switch to main branch
+git checkout main
+
+# Pull latest main
+git pull origin main
+
+# Merge feature branch (no fast-forward to preserve history)
+git merge --no-ff <branch-name>
+
+# Push merged main
+git push origin main
+```
+
+**What to check:**
+- Merge completed successfully
+- Main branch pushed successfully
+- Merge commit created (verify with `git log --oneline -1`)
+
+### Step 3: Cleanup
+```bash
+# Delete local branch (safe after merge)
+git branch -d <branch-name>
+
+# If branch deletion fails (already merged), force delete is safe
+# git branch -D <branch-name>
+
+# Remove worktree
+git worktree remove .worktrees/<branch-slug>
+
+# Update STATE file (mark as merged for audit trail)
+echo "status=merged
+owner=" > .worktrees/<branch-slug>/.cursor/STATE
+
+# Optional: Prune stale worktree metadata
+git worktree prune
+```
+
+**What to check:**
+- Branch deleted successfully
+- Worktree removed successfully
+- STATE file updated
+- No orphaned worktrees remain
+
+### Step 4: Post-Merge Verification
+```bash
+# Verify worktree is removed
+git worktree list
+
+# Verify branch is deleted
+git branch -a | grep <branch-name>
+
+# Verify merge commit exists
+git log --oneline --graph -5
+```
+
+**What to check:**
+- Worktree no longer appears in `git worktree list`
+- Branch no longer exists locally
+- Merge commit visible in main branch history
+
+## Cleanup Rules
+
+### When to Cleanup
+- **Only if merge succeeded** - Never cleanup if merge failed
+- **Only if explicitly approved** - Safe to merge: YES
+- **Only after successful push** - Verify main branch is updated remotely
+
+### What to Cleanup
+1. **Local branch** - Delete after merge (`git branch -d`)
+2. **Worktree** - Remove after merge (`git worktree remove`)
+3. **STATE file** - Update to `status=merged` (preserve for audit)
+4. **Stale metadata** - Prune if needed (`git worktree prune`)
+
+### What NOT to Cleanup
+- **Remote branch** - Leave for reference (can delete later if needed)
+- **STATE file** - Update, don't delete (audit trail)
+- **Commit history** - Preserve all commits
+
+### Error Handling
+
+**If merge fails:**
+```bash
+# Do NOT cleanup
+# Report error with details
+# Keep worktree for debugging
+# Update STATE to merge-failed
+echo "status=merge-failed
+owner=" > .worktrees/<branch-slug>/.cursor/STATE
+```
+
+**If branch deletion fails:**
+```bash
+# Check if branch is already merged
+git branch --merged main | grep <branch-name>
+
+# If merged, force delete is safe
+git branch -D <branch-name>
+```
+
+**If worktree removal fails:**
+```bash
+# Check if worktree is locked or has uncommitted changes
+git worktree list
+
+# If locked, unlock first
+git worktree unlock .worktrees/<branch-slug>
+
+# Then remove
+git worktree remove .worktrees/<branch-slug>
+```
+
+## State Transitions
+
+```
+unclaimed → claimed → done → merged (cleanup complete)
+                ↓
+            paused (resume later)
+                ↓
+          abandoned (reclaim)
+                ↓
+        merge-failed (debug needed)
 ```
 
 ## Constraints
@@ -384,6 +561,8 @@ Character-level analysis:
 - **Thorough:** Don't skip steps; each serves a purpose
 - **Enterprise-grade:** Use character-level diffs when maximum precision is required
 - **Complete visibility:** No change is too small to detect; use `--word-diff-regex=.` for character-level analysis
+- **Safe cleanup:** Only cleanup after verified successful merge
+- **Preserve audit trail:** Update STATE to `merged`, don't delete
 
 ## When to Stop and Ask
 
@@ -393,6 +572,9 @@ Stop and report if:
 - You detect potential security issues (secrets, SQL injection risks)
 - Breaking changes detected without proper documentation
 - Merge conflicts detected that need resolution
+- Merge fails (do not cleanup, report error)
+- Worktree removal fails (report issue, preserve worktree)
+- Branch deletion fails unexpectedly (investigate before force delete)
 
 ## Notes
 

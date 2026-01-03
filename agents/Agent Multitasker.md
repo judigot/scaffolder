@@ -22,10 +22,10 @@ Branch-slug (for worktree folders):
   - `feat/add-color-v2` → `feat-add-color-v2`
 
 Worktree folder:
-- ``.worktrees/wt-<branch-slug>``
+- ``.worktrees/<branch-slug>``
 - Examples:
-  - `feat/add-color`    → `.worktrees/wt-feat-add-color`
-  - `feat/add-color-v2` → `.worktrees/wt-feat-add-color-v2`
+  - `feat/add-color`    → `.worktrees/feat-add-color`
+  - `feat/add-color-v2` → `.worktrees/feat-add-color-v2`
 
 Rules:
 - Branch names use `/` (e.g., `feat/add-color`).
@@ -41,19 +41,19 @@ mkdir -p .worktrees
 
 2) Create a worktree + branch:
 ```sh
-git worktree add .worktrees/wt-<branch-slug> -b <branch-name>
+git worktree add .worktrees/<branch-slug> -b <branch-name>
 ```
 
 Examples:
 ```sh
-git worktree add .worktrees/wt-feat-add-color -b feat/add-color
-git worktree add .worktrees/wt-feat-add-color-v2 -b feat/add-color-v2
-git worktree add .worktrees/wt-feat-auth -b feat/auth
+git worktree add .worktrees/feat-add-color -b feat/add-color
+git worktree add .worktrees/feat-add-color-v2 -b feat/add-color-v2
+git worktree add .worktrees/feat-auth -b feat/auth
 ```
 
 If the branch already exists:
 ```sh
-git worktree add .worktrees/wt-<branch-slug> <branch-name>
+git worktree add .worktrees/<branch-slug> <branch-name>
 ```
 
 3) Push the branch to remote (sets upstream tracking):
@@ -72,9 +72,9 @@ git push -u origin feat/auth
 1) Keep one Cursor window opened on the main repo (coordination only).
 2) For each active worktree:
    - File → New Window
-   - Open Folder… → ``.worktrees/wt-<branch-slug>``
+   - Open Folder… → ``.worktrees/<branch-slug>``
 3) In each worktree window:
-   - **Work inside the worktree directory** - All file modifications happen within the worktree (e.g., `.worktrees/wt-feat-add-color/`). The worktree is the working directory for that branch.
+   - **Work inside the worktree directory** - All file modifications happen within the worktree (e.g., `.worktrees/feat-add-color/`). The worktree is the working directory for that branch.
    - Work only on that branch's purpose (a task or a feature variant).
    - **Modify files within the worktree** - Edit, create, and delete files inside the worktree directory. All changes are isolated to that branch.
    - **Commit from within the worktree** - Perform all git operations (add, commit, push) from the worktree directory, committing to that branch.
@@ -224,7 +224,7 @@ git worktree list
 
 Remove a finished worktree (after merging or abandoning):
 ```sh
-git worktree remove .worktrees/wt-<branch-slug>
+git worktree remove .worktrees/<branch-slug>
 ```
 
 Delete the local branch when done (optional):
@@ -240,7 +240,7 @@ git worktree prune
 
 ## Success Criteria
 This workflow is correct if:
-- Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``wt-<branch-slug>`` (kebab-case, no subfolders).
+- Each parallel effort (task or feature variant) has its own branch and its own worktree folder under .worktrees/ using ``<branch-slug>`` (kebab-case, no subfolders).
 - Each worktree is opened in its own Cursor window/chat.
 - Work does not leak between branches.
 - Each active worktree has `.agent-task-context/Context.md`, `.agent-task-context/STATE.<status>`, and optionally `.agent-task-context/OWNER.<chat-id>` so ownership and scope are always visible.

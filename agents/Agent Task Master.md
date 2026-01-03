@@ -181,9 +181,9 @@ If not, proceed directly to auto-selection.
 
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
-1) **Store the worktree path**: `WORKTREE_PATH="<worktree>"` (e.g., `WORKTREE_PATH=".worktrees/wt-feat-add-color"`).
+1) **Store the worktree path**: `WORKTREE_PATH="<worktree>"` (e.g., `WORKTREE_PATH=".worktrees/feat-add-color"`).
 2) Check `${WORKTREE_PATH}/.agent-task-context/` directory (create STATE.unclaimed if missing).
-3) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/wt-<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `wt-feat-add-color` worktree).
+3) Extract the branch-slug from the worktree path (worktree path format: `.worktrees/<branch-slug>` where branch-slug is kebab-case, e.g., `feat/add-color` branch → `feat-add-color` worktree).
 4) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using OWNER files and increment seq if needed).
 5) Read current status: `ls ${WORKTREE_PATH}/.agent-task-context/STATE.* 2>/dev/null | sed 's|.*/STATE\.||'`
 6) Read current owner: `ls ${WORKTREE_PATH}/.agent-task-context/OWNER.* 2>/dev/null | sed 's|.*/OWNER\.||'`
@@ -202,7 +202,7 @@ Selection rules:
 1) Only consider worktrees under:
    - `.worktrees/`
 2) For each candidate worktree:
-   - Extract branch-slug from worktree path (worktree paths use kebab-case: `.worktrees/wt-<branch-slug>`).
+   - Extract branch-slug from worktree path (worktree paths use kebab-case: `.worktrees/<branch-slug>`).
    - Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions using STATE files and increment seq if needed).
 3) Use this command to find eligible worktrees:
    ```sh
@@ -230,8 +230,8 @@ Selection rules:
    - STOP and output only: "No eligible unclaimed worktrees found under .worktrees/."
 
 8) **CRITICAL: Store the selected worktree path**
-   - After selecting a worktree, store its path: `WORKTREE_PATH=".worktrees/wt-<branch-slug>"`
-   - Example: If selected worktree is `.worktrees/wt-feat-add-color`, then `WORKTREE_PATH=".worktrees/wt-feat-add-color"`
+   - After selecting a worktree, store its path: `WORKTREE_PATH=".worktrees/<branch-slug>"`
+   - Example: If selected worktree is `.worktrees/feat-add-color`, then `WORKTREE_PATH=".worktrees/feat-add-color"`
    - **This path MUST be used as a prefix for ALL file operations** (reading, writing, creating, deleting).
    - **Failure to use worktree-prefixed paths will result in modifying files in the main repo instead of the worktree.**
 
@@ -242,6 +242,11 @@ Selection rules:
 - **WRONG:** `src/components/FileViewer.tsx` ❌ (resolves to main repo)
 - **WRONG:** `.agent-task-context/Context.md` ❌ (resolves to main repo)
 
+**Example worktree paths:**
+- `.worktrees/feat-add-color` ✅
+- `.worktrees/feat-fix-bug` ✅
+- `.worktrees/feat-refactor` ✅
+
 **Important: Multiple Agents Running Simultaneously**
 - You are ONE agent instance running in ONE Cursor window/chat.
 - The `WORKTREE_PATH` variable is LOCAL to your execution context (like a local variable in your code).
@@ -250,14 +255,14 @@ Selection rules:
 - **You will only work on ONE worktree at a time** - the one you claimed via the STATE file.
 - The STATE file system ensures no two agents claim the same worktree, so your `WORKTREE_PATH` will always be unique to you.
 - Example scenario:
-  - Agent 1 (your chat): `WORKTREE_PATH=".worktrees/wt-feat-add-color"` (you claimed this one)
-  - Agent 2 (different chat): `WORKTREE_PATH=".worktrees/wt-feat-fix-bug"` (they claimed a different one)
-  - Agent 3 (different chat): `WORKTREE_PATH=".worktrees/wt-feat-refactor"` (they claimed yet another one)
+  - Agent 1 (your chat): `WORKTREE_PATH=".worktrees/feat-add-color"` (you claimed this one)
+  - Agent 2 (different chat): `WORKTREE_PATH=".worktrees/feat-fix-bug"` (they claimed a different one)
+  - Agent 3 (different chat): `WORKTREE_PATH=".worktrees/feat-refactor"` (they claimed yet another one)
   - No conflict because you're all working in different worktrees, and the STATE files prevent double-claiming.
 
 ### Step 4 — Read Context and enforce scope
 For the selected worktree:
-1) **Work within the worktree directory** - All file operations must happen inside the worktree (e.g., `.worktrees/wt-feat-add-color/`).
+1) **Work within the worktree directory** - All file operations must happen inside the worktree (e.g., `.worktrees/feat-add-color/`).
 2) **Use worktree-prefixed paths for ALL file operations:**
    - Read Context.md: `${WORKTREE_PATH}/.agent-task-context/Context.md`
    - Read STATE: `${WORKTREE_PATH}/.agent-task-context/STATE.*`
@@ -306,7 +311,7 @@ If either file is missing:
 
 **Correct (worktree paths):**
 - `${WORKTREE_PATH}/src/components/FileViewer.tsx`
-- `.worktrees/wt-feat-add-color/src/components/FileViewer.tsx`
+- `.worktrees/feat-add-color/src/components/FileViewer.tsx`
 - `${WORKTREE_PATH}/.agent-task-context/Context.md`
 
 **Incorrect (relative paths - resolves to main repo):**
@@ -317,7 +322,7 @@ If either file is missing:
 **Rule:** If Context.md says "Touch only: `src/components/FileViewer.tsx`", you must interpret this as `${WORKTREE_PATH}/src/components/FileViewer.tsx`.
 
 ### Execution Rules
-1) **Work inside the worktree directory** - All file modifications must occur within the worktree (e.g., `.worktrees/wt-feat-add-color/`). The worktree is the working directory for that branch.
+1) **Work inside the worktree directory** - All file modifications must occur within the worktree (e.g., `.worktrees/feat-add-color/`). The worktree is the working directory for that branch.
 2) **Use worktree-prefixed paths** - Prefix ALL file paths with `${WORKTREE_PATH}/` or the full worktree path. Never use relative paths that could resolve to the main repo.
 3) Modify ONLY what Context.md allows ("Touch only"), but interpret all paths as relative to the worktree (prefix with `${WORKTREE_PATH}/`).
 4) Never touch "Do not touch" paths.
