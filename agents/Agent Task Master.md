@@ -29,9 +29,27 @@ Blocking status:
 4) Ask a question only if execution is blocked by a true ambiguity or missing requirement (see “Allowed Questions”).
 5) If the initially targeted worktree is not yours, you must stop and move on to a claimable unclaimed task automatically (no questions).
 
-## Chat Identity (required)
-Define a stable chat identifier for THIS chat:
-- `CHAT_ID = <string you choose once per chat>`
+## Auto-Generated ownerChatId (required)
+Generate a unique ownerChatId automatically when claiming a worktree. Do not ask for user input or depend on Cursor providing a chat id.
+
+Format:
+- ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>``
+
+Definitions:
+- `branch-slug` = branch name with `/` replaced by `-` (e.g., `feat/add-color` → `feat-add-color`)
+- `YYYY-MM-DD` = date in Asia/Manila timezone
+- `HHmm` = time in 24-hour format in Asia/Manila timezone (no colon)
+- `seq` = sequence number starting at `01`, incrementing if collision detected
+
+Collision detection:
+- Before writing OWNER.json, check all `.worktrees/**/.cursor/OWNER.json` files.
+- If the generated ownerChatId already exists in any file, increment `seq` to `02`, `03`, etc. until unique.
+
+Example:
+- Branch: `feat/add-color`
+- Branch-slug: `feat-add-color`
+- Date/time: 2024-01-15 14:30 (Asia/Manila)
+- Generated: `taskmaster__feat-add-color__2024-01-15__1430__01`
 
 You must write this value into OWNER.json when claiming.
 You must compare this value to OWNER.json when deciding whether you may work.
@@ -48,14 +66,16 @@ If not, proceed directly to auto-selection.
 
 ### Step 2 — Attempt the specified target (if provided)
 For the specified target:
-1) Read `<worktree>/.cursor/OWNER.json` (create it if missing).
-2) If status is `claimed` AND ownerChatId != CHAT_ID:
+1) Read ``<worktree>/.cursor/OWNER.json`` (create it if missing).
+2) Extract the branch name from the worktree path or OWNER.json to compute branch-slug.
+3) Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions and increment seq if needed).
+4) If status is `claimed` AND ownerChatId != generated ownerChatId:
    - Do not touch code in this worktree.
    - Immediately proceed to Step 3 (auto-select another claimable task).
-3) If status is `claimed` AND ownerChatId == CHAT_ID:
+5) If status is `claimed` AND ownerChatId == generated ownerChatId:
    - Continue working in this worktree.
-4) If status is `unclaimed|paused|abandoned`:
-   - Claim it (set status `claimed`, set ownerChatId = CHAT_ID, set timestamps), then proceed.
+6) If status is `unclaimed|paused|abandoned`:
+   - Claim it (set status `claimed`, set ownerChatId = generated ownerChatId, set timestamps), then proceed.
 
 ### Step 3 — Auto-select another claimable task (no questions)
 If the initial worktree is not yours (or no target was provided), you must automatically find another worktree you are allowed to work on:
@@ -63,17 +83,20 @@ If the initial worktree is not yours (or no target was provided), you must autom
 Selection rules:
 1) Only consider worktrees under:
    - `.worktrees/`
-2) A worktree is eligible if:
+2) For each candidate worktree:
+   - Extract branch name to compute branch-slug.
+   - Generate ownerChatId using the format: ``taskmaster__<branch-slug>__<YYYY-MM-DD>__<HHmm>__<seq>`` (check for collisions and increment seq if needed).
+3) A worktree is eligible if:
    - OWNER.json status is `unclaimed|paused|abandoned`, OR
-   - status is `claimed` AND ownerChatId == CHAT_ID (resume your own work)
-3) Ignore any worktree that is `claimed` by someone else or marked `done`.
-4) Choose exactly ONE worktree to work on, using this priority:
-   - First: claimable worktrees with status `paused` AND ownerChatId == CHAT_ID (resume your paused work)
+   - status is `claimed` AND ownerChatId == generated ownerChatId (resume your own work)
+4) Ignore any worktree that is `claimed` by someone else (ownerChatId exists and != generated ownerChatId) or marked `done`.
+5) Choose exactly ONE worktree to work on, using this priority:
+   - First: claimable worktrees with status `paused` AND ownerChatId == generated ownerChatId (resume your paused work)
    - Second: `unclaimed`
    - Third: `abandoned`
    - Fourth: `paused` with ownerChatId missing/null (treat as reclaimable)
-5) If no eligible worktrees exist:
-   - STOP and output only: “No eligible unclaimed worktrees found under .worktrees/.”
+6) If no eligible worktrees exist:
+   - STOP and output only: "No eligible unclaimed worktrees found under .worktrees/."
 
 ### Step 4 — Read Context and enforce scope
 For the selected worktree:
@@ -137,9 +160,10 @@ When you stop working:
 Always update lastUpdatedAt.
 
 ## Required End-of-Run Report (always output)
-- CHAT_ID:
+- Generated ownerChatId:
 - Selected target:
   - branch:
+  - branch-slug:
   - worktree:
 - Ownership:
   - initial status:
@@ -152,13 +176,14 @@ Always update lastUpdatedAt.
   - what changed (brief)
   - why it was necessary (brief)
 - Commands run + outcomes (pass/fail):
-  - <list>
+  - ``<list>``
 - Commits made:
-  - <messages>
+  - ``<messages>``
 
 ## Templates (use only if missing)
 
 ### .cursor/Context.md
+```markdown
 # Context: <branch-name>
 
 ## Goal
@@ -175,8 +200,10 @@ Do not touch:
 
 ## Notes / Decisions
 - <handoff items or decisions>
+```
 
 ### .cursor/OWNER.json
+```json
 {
   "status": "unclaimed",
   "ownerChatId": null,
@@ -186,3 +213,4 @@ Do not touch:
   "lastUpdatedAt": null,
   "notes": ""
 }
+```
