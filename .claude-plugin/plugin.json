@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Scaffolder project with database, docker, error handling, and project building agents",
   "author": {
-    "name": ""
+    "name": "judigot"
   },
-  "agents": ["./agents/project-specific"]
+  "agents": "./agents"
 }

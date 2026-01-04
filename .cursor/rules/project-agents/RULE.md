@@ -1,11 +1,9 @@
 ---
-description: Use when working with scaffolder project agents, database introspection, Docker environments, error handling, health checks, or project building
+description: Project-specific agents defined in agents/ directory
 globs:
 alwaysApply: false
 ---
 
-@AGENTS.md
+# Project Agents
 
-## Agent Reference
-
-When relevant tasks arise, reference agents with `@agents/project-specific/<agent>.md`
+@agents/README.md

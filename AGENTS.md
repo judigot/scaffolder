@@ -2,17 +2,19 @@
 
 ## Project Overview
 
-This is a **scaffolder** project containing AI agents for software development workflows. Agents are organized in `agents/project-specific/` for specialized functionality.
+This is a **scaffolder** project containing AI agents for software development workflows.
 
-## IDE Compatibility
-
-| Feature | Claude Code | Cursor IDE |
-|---------|-------------|------------|
-| Plugin discovery | `--plugin-dir` | `.cursor/rules/` |
-| Project context | `CLAUDE.md` → `@AGENTS.md` | `AGENTS.md` |
-| Agent auto-invoke | ✅ Native | ❌ Manual `@` reference |
+## IDE Setup
 
 ### Claude Code
+
+Global settings from `~/ai` are automatically loaded via shell function:
+
+```sh
+claude   # Automatically uses --plugin-dir ~/ai
+```
+
+For project-specific agents, add the local plugin:
 
 ```sh
 claude --plugin-dir ~/ai --plugin-dir .
@@ -20,10 +22,10 @@ claude --plugin-dir ~/ai --plugin-dir .
 
 ### Cursor IDE
 
-- `AGENTS.md` is auto-discovered
-- Reference agents with `@agents/project-specific/<agent>.md`
+- Global rules: Maintained in `~/ai/settings/rules.md` (not duplicated here)
+- Project agents: Reference with `@agents/<agent>.md`
 
-## Available Project-Specific Agents
+## Available Agents
 
 | Agent | Purpose |
 |-------|---------|
@@ -33,34 +35,33 @@ claude --plugin-dir ~/ai --plugin-dir .
 | `health-check` | Health monitoring and diagnostics |
 | `project-builder` | Project scaffolding and code generation |
 
-## Coding Standards
+## Directory Structure
 
-### TypeScript
-- No `any` types — use `unknown` instead
-- No `as` type assertions — use type guards and narrowing
-- Explicit return types for exported functions
-- Discriminated unions for complex state
-- Wrap variables in `String()` when interpolating
-- Handle `null`, `undefined`, `0`, or `NaN` explicitly
+```
+scaffolder/
+├── .claude-plugin/
+│   └── plugin.json           # Claude Code plugin manifest
+├── .cursor/                  # Reusable template
+│   └── rules/
+│       ├── global-agents/
+│       │   └── RULE.md       # References ~/ai (always applied)
+│       └── project-agents/
+│           └── RULE.md       # References agents/README.md
+├── agents/                   # Project-specific agents
+│   └── README.md             # Agent documentation
+├── AGENTS.md                 # This file
+└── CLAUDE.md                 # Entry point
+```
 
-### React
-- Function components only
-- Include all dependencies in hooks
-- Small components with logic extracted into hooks
-- Proper `useEffect` usage (external system sync only)
-- Minimal state, derived values preferred
-- Accessibility is mandatory
+## Global Resources
 
-### Linting Priority
-1. ESLint (source of truth)
-2. Oxlint
-3. Biome
+@~/ai/README.md
 
 ## Development Workflow
 
 1. **Before changes**: Review relevant agent instructions
 2. **During development**: Follow lint workflow (`oxlint → biome → lint`)
-3. **After changes**: Run code review agent for PR analysis
+3. **After changes**: Use code-reviewer agent for PR analysis
 
 ## Commands
 
@@ -70,37 +71,8 @@ bun run lint:oxlint # Run Oxlint
 bun run lint:biome  # Run Biome
 ```
 
-## Agent File Format
-
-Agents use YAML frontmatter:
-
-```markdown
----
-name: agent-identifier
-description: Use this agent when [conditions]
-model: inherit
-color: blue
-tools: ["Read", "Write", "Bash", "Grep"]
----
-
-[System prompt content]
-```
-
-## Repository Structure
-
-```
-scaffolder/
-├── .claude-plugin/plugin.json   # Claude Code plugin manifest
-├── .cursor/rules/               # Cursor IDE rules
-├── agents/project-specific/     # Project-specific agents
-├── AGENTS.md                    # This file (shared)
-└── CLAUDE.md                    # References @AGENTS.md
-```
-
 ## Notes for AI Assistants
 
 - Check agent descriptions to understand when to invoke them
-- Follow established patterns in existing agent files
+- Follow coding standards from `~/ai/settings/rules.md`
 - Do not modify linting configurations without explicit approval
-- Testing work is owned by the Test Master agent
-- Code review work is owned by the Code Reviewer agent
