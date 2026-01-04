@@ -1,3 +1,29 @@
+﻿---
+name: project-builder
+description: Use this agent when you need to understand or modify the project-builder code generation system, add new template commands, or work with YAML structure definitions. Examples:
+
+<example>
+Context: User needs to add a new template command
+user: "I want to add a USE_TIMESTAMP command to the template processor"
+assistant: "I'll use the project-builder agent to guide you through adding a new template command following the established patterns."
+<commentary>
+This triggers because the user needs to extend template processing.
+</commentary>
+</example>
+
+<example>
+Context: User wants to understand FILE_LOOP behavior
+user: "How does FILE_LOOP work with the --ignore flag?"
+assistant: "I'll use the project-builder agent to explain FILE_LOOP processing, including the ignore functionality and USE_CONSTANT path support."
+<commentary>
+This triggers because the user needs to understand code generation patterns.
+</commentary>
+</example>
+
+model: inherit
+color: orange
+tools: ["Read", "Write", "Bash", "Grep"]
+---
 # Agent Project Builder - Context Guide
 
 This document provides essential context about the project-builder system for AI agents working on this codebase.
@@ -378,4 +404,36 @@ if (!match) {
 - **Testing**: Comprehensive test suite in `placeholderFunctions.test.ts` (7 tests) and `processDynamicProperties-timestamp.test.ts` (10 tests)
 - **Documentation**: See `src/utils/project-builder/docs/PLACEHOLDER_FUNCTIONS.md` for user-facing documentation
 - **Note**: This is a general-purpose feature that works for any use case requiring unique, ordered timestamps, not specific to any framework
+
+### Repository Viewer Fallback and Projects Folder Convention Enforcement
+- **Problem**: Repositories without valid scaffolder project structure (missing `Projects/` folder) would fail silently or show stale data from localStorage, preventing users from browsing invalid repositories
+- **Solution**: Added repository viewer fallback mode and enforced root-level-only Projects folder convention through self-documenting code
+- **Implementation**:
+  - **`useMockDatabaseStore.ts`**: Fixed state update to occur even when no Projects folder is found, enabling fallback viewer
+  - **`src/utils/project-builder/utils/findProjectsFolderAtRoot.ts`**: Created self-documenting utility function that enforces root-level-only Projects folder lookup (not nested)
+  - **`App.tsx`**: Added repository viewer fallback UI with helpful hints and call-to-action links
+  - **`src/components/FileViewer.tsx`**: Conditionally hide action buttons when in read-only mode
+  - **`useUserFiles.ts`**: Improved error messaging for empty repositories
+- **Features**:
+  - **Fallback Viewer**: Repositories without valid scaffolder structure now display in read-only mode with helpful information
+  - **Structure Hints**: Warning banner shows when `Projects/` folder is missing, explaining where it should be located
+  - **Documentation Links**: Link to structure documentation for users to learn how to set up scaffolder projects
+  - **Convert Repository Button**: UI placeholder for future repository conversion feature
+  - **Root-Level Convention**: Projects folder MUST be at root level (enforced by `findProjectsFolderAtRoot()` function name)
+- **UI Enhancements**:
+  - Action buttons ("Create App", "Export Into A New Repository") are hidden in read-only mode
+  - Info banners explain why repository is in read-only mode
+  - Warning banners show missing structure requirements
+- **Code Quality**:
+  - Self-documenting function names replace comments (aligns with project's no-comments preference)
+  - Centralized Projects folder lookup logic in reusable utility function
+  - Consistent behavior across all three lookup locations (`useMockDatabaseStore`, `App.tsx`, `loadCoreFiles.ts`)
+- **Files Changed**:
+  - `src/useMockDatabaseStore.ts`: Fixed state update logic, uses `findProjectsFolderAtRoot()`
+  - `src/App.tsx`: Added fallback viewer UI, conditional button rendering, uses `findProjectsFolderAtRoot()`
+  - `src/components/FileViewer.tsx`: Conditionally hide buttons when `mode === 'view'`
+  - `src/utils/project-builder/utils/findProjectsFolderAtRoot.ts`: New utility function
+  - `src/utils/project-builder/utils/loadCoreFiles.ts`: Uses `findProjectsFolderAtRoot()`
+  - `src/hooks/useUserFiles.ts`: Improved error messaging for empty repositories
+
 

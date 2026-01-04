@@ -289,4 +289,3 @@ See the [Schema Formats Guide](/documentation/api-reference/schema-management/sc
 - [Schema Formats Guide](/documentation/api-reference/schema-management/schema-formats/) - **When to use full vs compressed format**
 - [Schema Management Feature](/features/schema-management/) - User guide for schema management
 - [Schemas Directory](/documentation/structure/repository-folders/schemas/) - Schema file organization
-

@@ -1,3 +1,29 @@
+﻿---
+name: error-handling
+description: Use this agent when you need to understand or implement error handling patterns, server configuration status tracking, or false-positive prevention in the UI. Examples:
+
+<example>
+Context: User needs to implement atomic error handling
+user: "How do I handle errors atomically in React without race conditions?"
+assistant: "I'll use the error-handling agent to explain the useAtomicError hook and atomic error state management patterns."
+<commentary>
+This triggers because the user needs error handling implementation guidance.
+</commentary>
+</example>
+
+<example>
+Context: User is seeing false-positive error messages
+user: "Why is the UI showing 'GitHub Token Required' when Auth0 isn't configured?"
+assistant: "I'll use the error-handling agent to explain the server configuration status tracking and false-positive prevention patterns."
+<commentary>
+This triggers because the user needs to understand configuration-aware error handling.
+</commentary>
+</example>
+
+model: inherit
+color: red
+tools: ["Read", "Write", "Grep"]
+---
 # Agent Error Handling and Server Configuration - Context Guide
 
 This document provides essential context about the error handling system and server configuration management for AI agents working on this codebase.
@@ -468,17 +494,17 @@ useEffect(() => {
 
 ### When to Use `useAtomicError`
 
-- ✅ When managing error/success messages in components
-- ✅ When handling async operations with error states
-- ✅ When preventing race conditions in error handling
-- ✅ When ensuring mutual exclusivity of messages
+- âœ… When managing error/success messages in components
+- âœ… When handling async operations with error states
+- âœ… When preventing race conditions in error handling
+- âœ… When ensuring mutual exclusivity of messages
 
 ### When to Check Server Configuration
 
-- ✅ Before showing user-facing errors that depend on server config
-- ✅ When determining if optional features are available
-- ✅ When providing developer feedback about configuration
-- ✅ **Always check `!isLoading && serverConfigStatus !== null` first**
+- âœ… Before showing user-facing errors that depend on server config
+- âœ… When determining if optional features are available
+- âœ… When providing developer feedback about configuration
+- âœ… **Always check `!isLoading && serverConfigStatus !== null` first**
 
 ### Loading State Handling
 
@@ -517,10 +543,10 @@ const serverConfigStatus =
 **Solution**: Always check loading state and null before using `serverConfigStatus`:
 
 ```typescript
-// ❌ WRONG - Will flash during loading
+// âŒ WRONG - Will flash during loading
 const isConfigured = serverConfigStatus?.auth0ManagementApiConfigured === true;
 
-// ✅ CORRECT - Waits for data to load
+// âœ… CORRECT - Waits for data to load
 const isConfigured =
   !isLoading &&
   serverConfigStatus !== null &&
@@ -536,18 +562,19 @@ const isConfigured =
 
 ### When to Show Developer-Facing Errors
 
-- ✅ Server configuration issues (missing environment variables)
-- ✅ System-level problems (not user action problems)
-- ✅ Issues that require developer intervention
+- âœ… Server configuration issues (missing environment variables)
+- âœ… System-level problems (not user action problems)
+- âœ… Issues that require developer intervention
 
 ### When to Show User-Facing Errors
 
-- ✅ User action failures (missing GitHub token, invalid input)
-- ✅ Issues users can resolve themselves
-- ✅ Problems with user-specific data
+- âœ… User action failures (missing GitHub token, invalid input)
+- âœ… Issues users can resolve themselves
+- âœ… Problems with user-specific data
 
 ## Related Documentation
 
 - [Agent Health Check System](./Agent%20Health%20Check%20System.md) - Health check endpoint implementation
 - [Agent Project Builder](./Agent%20Project%20Builder.md) - Project builder system context
+
 

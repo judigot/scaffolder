@@ -1,3 +1,29 @@
+﻿---
+name: docker-environment
+description: Use this agent when you need to understand or modify the Docker development environment, add new framework containers, or troubleshoot container issues. Examples:
+
+<example>
+Context: User wants to add a new framework to the Docker environment
+user: "I want to add a Spring Boot container to the Docker setup"
+assistant: "I'll use the docker-environment agent to guide you through adding a new framework container following the established reverse proxy pattern."
+<commentary>
+This triggers because the user needs to extend the Docker environment.
+</commentary>
+</example>
+
+<example>
+Context: User is troubleshooting Docker container issues
+user: "Laravel isn't accessible through the nginx proxy"
+assistant: "I'll use the docker-environment agent to diagnose the proxy configuration and container networking."
+<commentary>
+This triggers because the user needs Docker troubleshooting help.
+</commentary>
+</example>
+
+model: inherit
+color: blue
+tools: ["Read", "Write", "Bash", "Grep"]
+---
 # Agent Docker Environment - Context Guide
 
 This document provides essential context about the Docker development environment setup for AI agents working on this codebase.
@@ -17,10 +43,10 @@ The Docker environment provides a self-contained, multi-framework development an
 ### Architecture Pattern
 
 ```
-Browser → localhost:1214 (Main Nginx)
-         → /laravel → Laravel Container:80 (Nginx + PHP-FPM)
-         → /springboot → Spring Boot Container:8080 (future)
-         → /nextjs → Next.js Container:3000 (future)
+Browser â†’ localhost:1214 (Main Nginx)
+         â†’ /laravel â†’ Laravel Container:80 (Nginx + PHP-FPM)
+         â†’ /springboot â†’ Spring Boot Container:8080 (future)
+         â†’ /nextjs â†’ Next.js Container:3000 (future)
 ```
 
 **Key Principle**: Each framework runs in its own container with its own web server, and the main Nginx routes requests to them via subdirectory paths.
@@ -32,7 +58,7 @@ Browser → localhost:1214 (Main Nginx)
 Reverse proxy that routes requests to framework containers:
 
 - **Port**: `1214:80` (only exposed port to host)
-- **Routing**: Routes `/laravel` → `laravel:80` (internal Docker network)
+- **Routing**: Routes `/laravel` â†’ `laravel:80` (internal Docker network)
 - **Headers**: Preserves host, port, and protocol information
 - **Redirects**: Rewrites backend redirects to maintain subdirectory paths
 
@@ -113,9 +139,9 @@ Handles Laravel container initialization:
 ### Port Exposure Strategy
 
 **Exposed to Host:**
-- `1214` → Main Nginx (only web access point)
-- `15432` → PostgreSQL (for HeidiSQL)
-- `13306` → MySQL (for HeidiSQL)
+- `1214` â†’ Main Nginx (only web access point)
+- `15432` â†’ PostgreSQL (for HeidiSQL)
+- `13306` â†’ MySQL (for HeidiSQL)
 
 **Internal Only:**
 - Laravel container ports (80, 9000)
@@ -125,13 +151,13 @@ Handles Laravel container initialization:
 
 ```
 .
-├── compose.yml                    # Main Docker Compose configuration
-├── Dockerfile                     # Laravel container definition
-└── docker/
-    ├── nginx.conf                 # Main Nginx reverse proxy config
-    ├── laravel-nginx.conf         # Laravel container Nginx config
-    ├── supervisord.conf           # Supervisor config (Nginx + PHP-FPM)
-    └── docker-entrypoint.sh       # Laravel container entrypoint
+â”œâ”€â”€ compose.yml                    # Main Docker Compose configuration
+â”œâ”€â”€ Dockerfile                     # Laravel container definition
+â””â”€â”€ docker/
+    â”œâ”€â”€ nginx.conf                 # Main Nginx reverse proxy config
+    â”œâ”€â”€ laravel-nginx.conf         # Laravel container Nginx config
+    â”œâ”€â”€ supervisord.conf           # Supervisor config (Nginx + PHP-FPM)
+    â””â”€â”€ docker-entrypoint.sh       # Laravel container entrypoint
 ```
 
 ## Adding New Frameworks
@@ -170,17 +196,17 @@ Handles Laravel container initialization:
 #### Next.js (Standalone)
 - Run `next start` on port 3000
 - Container exposes port 3000 internally
-- Main Nginx routes `/nextjs` → `nextjs:3000`
+- Main Nginx routes `/nextjs` â†’ `nextjs:3000`
 
 #### Spring Boot
 - Embedded Tomcat/Jetty on port 8080
 - Container exposes port 8080 internally
-- Main Nginx routes `/springboot` → `springboot:8080`
+- Main Nginx routes `/springboot` â†’ `springboot:8080`
 
 #### Express.js
 - Node.js server on port 3000
 - Container exposes port 3000 internally
-- Main Nginx routes `/express` → `express:3000`
+- Main Nginx routes `/express` â†’ `express:3000`
 
 ## Environment Variables
 
@@ -334,4 +360,5 @@ docker compose ps
 - All web access through single port: `1214`
 - Database ports exposed only for HeidiSQL access
 - Framework containers fully internal (no exposed ports)
+
 

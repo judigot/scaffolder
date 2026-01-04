@@ -1,3 +1,29 @@
+﻿---
+name: health-check
+description: Use this agent when you need to understand or implement health check endpoints, environment variable validation, or monitoring integration. Examples:
+
+<example>
+Context: User needs to add a new environment variable to health checks
+user: "Add a health check for the new STRIPE_API_KEY environment variable"
+assistant: "I'll use the health-check agent to implement a new atomic health check following the established pattern."
+<commentary>
+This triggers because the user needs to extend health check coverage.
+</commentary>
+</example>
+
+<example>
+Context: User wants to integrate health checks with Kubernetes
+user: "How do I configure Kubernetes probes for this application?"
+assistant: "I'll use the health-check agent to explain the liveness and readiness endpoints and provide Kubernetes configuration."
+<commentary>
+This triggers because the user needs monitoring integration guidance.
+</commentary>
+</example>
+
+model: inherit
+color: green
+tools: ["Read", "Write", "Bash", "Grep"]
+---
 # Agent Health Check System - Context Guide
 
 This document provides essential context about the health check system for AI agents working on this codebase.
@@ -217,4 +243,5 @@ healthcheck:
 
 - [Agent Error Handling and Server Configuration](./Agent%20Error%20Handling%20and%20Server%20Configuration.md) - Error handling system and server configuration management
 - [Agent Project Builder](./Agent%20Project%20Builder.md) - Project builder system context
+
 

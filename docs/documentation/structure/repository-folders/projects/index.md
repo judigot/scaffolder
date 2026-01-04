@@ -198,6 +198,57 @@ This is particularly useful when:
 
 For complete syntax and options, see the [IMPORT_PROJECT API Reference](/documentation/api-reference/project-imports/).
 
+## Repository Structure Requirements
+
+### Projects Folder Location
+
+The `Projects/` folder **must be located at the root level** of your repository. Nested `Projects/` folders are not recognized by Scaffolder.
+
+**✅ Correct Structure:**
+```
+repository-root/
+├── Projects/          ← Must be at root level
+│   ├── Laravel/
+│   │   └── structure.yaml
+│   └── Next.js/
+│       └── structure.yaml
+├── Constants/
+└── Templates/
+```
+
+**❌ Incorrect Structure:**
+```
+repository-root/
+├── src/
+│   └── Projects/      ← Nested folders are not recognized
+│       └── Laravel/
+└── config/
+    └── Projects/      ← Nested folders are not recognized
+```
+
+### Repository Viewer Fallback
+
+If a repository doesn't contain a valid `Projects/` folder at the root level, Scaffolder automatically switches to **Repository Viewer mode**, which displays the repository files in read-only mode.
+
+**What you'll see:**
+- **Info Banner**: Explains that the repository doesn't contain a compatible scaffolder structure
+- **Warning Banner**: Shows if the `Projects/` folder is missing, with guidance on where it should be located
+- **File Browser**: Read-only view of all repository files
+- **Documentation Link**: Link to structure documentation to learn how to set up projects
+- **Action Buttons Hidden**: Code generation buttons are hidden since no valid projects are available
+
+**When Repository Viewer Mode Activates:**
+- Repository is empty (no commits yet)
+- Repository exists but has no `Projects/` folder at root level
+- `Projects/` folder exists but contains no valid project structures (no `structure.yaml` files)
+
+**To Fix:**
+1. Ensure the `Projects/` folder is at the root level of your repository
+2. Add at least one project folder with a `structure.yaml` file inside
+3. Refresh the repository in Scaffolder
+
+This fallback mode helps you understand why a repository isn't recognized as a valid scaffolder repository and provides guidance on how to fix it.
+
 ## Next Steps
 
 - Learn about [Core Directory](/documentation/structure/repository-folders/core/) for shared templates

@@ -1,3 +1,29 @@
+﻿---
+name: database-introspector
+description: Use this agent when you need to understand the database introspection system, work with schema extraction, or modify how database schemas are converted to application formats. Examples:
+
+<example>
+Context: User needs to understand how database schemas are extracted
+user: "How does the introspection system work for PostgreSQL?"
+assistant: "I'll use the database-introspector agent to explain the introspection architecture and data flow."
+<commentary>
+This triggers because the user needs to understand database introspection.
+</commentary>
+</example>
+
+<example>
+Context: User wants to add support for a new database type
+user: "I need to add support for SQLite introspection"
+assistant: "I'll use the database-introspector agent to guide you through adding a new database type to the introspection system."
+<commentary>
+This triggers because the user needs to extend database support.
+</commentary>
+</example>
+
+model: inherit
+color: purple
+tools: ["Read", "Write", "Bash", "Grep"]
+---
 # Agent Database Introspector - Context Guide
 
 This document provides essential context about the database introspection system for AI agents working on this codebase.
@@ -18,12 +44,12 @@ The database introspection system connects to PostgreSQL or MySQL databases, ext
 
 ### Data Flow
 
-1. **Connection** → User provides database connection string and type
-2. **Query Execution** → System reads and executes database-specific SQL query
-3. **Raw Results** → Returns `IIntrospectedSchemaInfo[]` with snake_case properties
-4. **Conversion** → `convertIntrospectedStructure()` transforms to `ISchemaInfo[]` with camelCase
-5. **Enrichment** → `addSchemaInfo()` adds relationship information (hasOne, hasMany, etc.)
-6. **Usage** → Converted schema info is used in UI, code generation, and project building
+1. **Connection** â†’ User provides database connection string and type
+2. **Query Execution** â†’ System reads and executes database-specific SQL query
+3. **Raw Results** â†’ Returns `IIntrospectedSchemaInfo[]` with snake_case properties
+4. **Conversion** â†’ `convertIntrospectedStructure()` transforms to `ISchemaInfo[]` with camelCase
+5. **Enrichment** â†’ `addSchemaInfo()` adds relationship information (hasOne, hasMany, etc.)
+6. **Usage** â†’ Converted schema info is used in UI, code generation, and project building
 
 ## Key Components
 
@@ -164,7 +190,7 @@ The system fully supports database views:
 
 ## Type Conversion
 
-### Database Type → TypeScript Type Mapping
+### Database Type â†’ TypeScript Type Mapping
 
 The system uses type mappings from `useMockDatabaseStore`:
 
@@ -173,10 +199,10 @@ The system uses type mappings from `useMockDatabaseStore`:
 3. **Fallback**: Default to `'string'` if no mapping found
 
 ### Example Type Conversions
-- `varchar`, `text` → `'string'`
-- `integer`, `bigint` → `'number'`
-- `boolean` → `'boolean'`
-- `timestamp`, `date` → `'Date'`
+- `varchar`, `text` â†’ `'string'`
+- `integer`, `bigint` â†’ `'number'`
+- `boolean` â†’ `'boolean'`
+- `timestamp`, `date` â†’ `'Date'`
 
 ## Filtering
 
@@ -275,9 +301,9 @@ Tests verify that database schema creation and introspection work correctly thro
      * Set quote character (" or `)
    
    - Step 2: Generate SQL Schema
-     * generateSQLDeleteTables() → DROP TABLE IF EXISTS statements
-     * generateSQLSchema() → CREATE TABLE statements with FOREIGN KEY constraints
-     * formatSQL() → Format SQL for readability
+     * generateSQLDeleteTables() â†’ DROP TABLE IF EXISTS statements
+     * generateSQLSchema() â†’ CREATE TABLE statements with FOREIGN KEY constraints
+     * formatSQL() â†’ Format SQL for readability
    
    - Step 3: Clean Database (Clean Slate)
      * PostgreSQL: DROP SCHEMA public CASCADE; CREATE SCHEMA public;
@@ -297,7 +323,7 @@ Tests verify that database schema creation and introspection work correctly thro
    - Step 6: Convert to ISchemaInfo
      * convertIntrospectedStructure()
        - convertTable() for each table
-         * Maps snake_case → camelCase
+         * Maps snake_case â†’ camelCase
          * Converts data types
          * Normalizes AUTO_INCREMENT
        - addSchemaInfo()
@@ -327,103 +353,103 @@ Tests verify that database schema creation and introspection work correctly thro
 ### Schema Generation Flow
 
 masterSchema (ISchemaInfo[])
-  → generateSQLDeleteTables() → ["DROP TABLE IF EXISTS table1;", ...]
-  → generateSQLSchema()
-      → For each table:
-          → generateColumnDefinition() → Maps TypeScript types → SQL types
-          → generateForeignKeyConstraint() → Creates FK constraints
-      → formatSQL() → Formats SQL for readability
-  → Combined SQL: DROP statements + CREATE statements
+  â†’ generateSQLDeleteTables() â†’ ["DROP TABLE IF EXISTS table1;", ...]
+  â†’ generateSQLSchema()
+      â†’ For each table:
+          â†’ generateColumnDefinition() â†’ Maps TypeScript types â†’ SQL types
+          â†’ generateForeignKeyConstraint() â†’ Creates FK constraints
+      â†’ formatSQL() â†’ Formats SQL for readability
+  â†’ Combined SQL: DROP statements + CREATE statements
 
 ### Introspection Flow
 
 Database (PostgreSQL/MySQL)
-  → introspect()
-      → Reads introspect_*.sql file
-      → Executes query against information_schema
-      → Returns IIntrospectedSchemaInfo[] (snake_case, raw DB types)
+  â†’ introspect()
+      â†’ Reads introspect_*.sql file
+      â†’ Executes query against information_schema
+      â†’ Returns IIntrospectedSchemaInfo[] (snake_case, raw DB types)
   
-  → convertIntrospectedStructure()
-      → convertTable() for each table
-          → convertColumn()
-              → getTypeScriptType() → Maps DB types → TS types
-              → Normalizes AUTO_INCREMENT
-          → getRequiredColumns()
-          → getForeignTables()
-          → getForeignKeys()
+  â†’ convertIntrospectedStructure()
+      â†’ convertTable() for each table
+          â†’ convertColumn()
+              â†’ getTypeScriptType() â†’ Maps DB types â†’ TS types
+              â†’ Normalizes AUTO_INCREMENT
+          â†’ getRequiredColumns()
+          â†’ getForeignTables()
+          â†’ getForeignKeys()
       
-      → addSchemaInfo()
-          → addAssociations()
-              → Detects hasOne/hasMany
-              → Detects belongsTo
-              → Detects belongsToMany
-          → linkChildTables()
-          → identifyPivotTables()
-          → addParentRelationships()
+      â†’ addSchemaInfo()
+          â†’ addAssociations()
+              â†’ Detects hasOne/hasMany
+              â†’ Detects belongsTo
+              â†’ Detects belongsToMany
+          â†’ linkChildTables()
+          â†’ identifyPivotTables()
+          â†’ addParentRelationships()
   
-  → ISchemaInfo[] (camelCase, enriched)
+  â†’ ISchemaInfo[] (camelCase, enriched)
 
 ### Normalization Flow
 
 ISchemaInfo[]
-  → normalizeSchema()
-      → Sort tables by tableName
-      → For each table:
-          → normalizeTable()
-              → Sort arrays:
-                  → requiredColumns
-                  → foreignKeys
-                  → foreignTables
-                  → childTables
-                  → hasOne
-                  → hasMany
-                  → belongsTo
-                  → belongsToMany
-                  → pivotRelationships
-              → normalizeColumns()
-                  → Sort columns by column_name
-                  → normalizeColumn()
-                      → Normalize AUTO_INCREMENT (nextval(...) → AUTO_INCREMENT)
-          → Handle optional fields (undefined vs missing)
-  → Normalized ISchemaInfo[] (deterministic)
+  â†’ normalizeSchema()
+      â†’ Sort tables by tableName
+      â†’ For each table:
+          â†’ normalizeTable()
+              â†’ Sort arrays:
+                  â†’ requiredColumns
+                  â†’ foreignKeys
+                  â†’ foreignTables
+                  â†’ childTables
+                  â†’ hasOne
+                  â†’ hasMany
+                  â†’ belongsTo
+                  â†’ belongsToMany
+                  â†’ pivotRelationships
+              â†’ normalizeColumns()
+                  â†’ Sort columns by column_name
+                  â†’ normalizeColumn()
+                      â†’ Normalize AUTO_INCREMENT (nextval(...) â†’ AUTO_INCREMENT)
+          â†’ Handle optional fields (undefined vs missing)
+  â†’ Normalized ISchemaInfo[] (deterministic)
 
 ### Test Scenarios
 
 #### Test 1: Exact Schema Match
 Input: masterSchema
-  → Create DB → Introspect → Normalize
-  → Compare: normalizedIntrospected === normalizedOriginal
-  → Result: All fields match exactly
+  â†’ Create DB â†’ Introspect â†’ Normalize
+  â†’ Compare: normalizedIntrospected === normalizedOriginal
+  â†’ Result: All fields match exactly
 
 #### Test 2: Primary Key Identification
 Input: masterSchema
-  → Create DB → Introspect
-  → For each table:
+  â†’ Create DB â†’ Introspect
+  â†’ For each table:
       - Find primary key column
       - Verify column_name matches original
       - Verify primary_key flag is true
       - Verify AUTO_INCREMENT normalized
-  → Result: Primary keys correctly identified
+  â†’ Result: Primary keys correctly identified
 
 #### Test 3: Relationship Preservation
 Input: masterSchema
-  → Create DB → Introspect → Normalize
-  → For each table:
+  â†’ Create DB â†’ Introspect â†’ Normalize
+  â†’ For each table:
       - Compare hasOne arrays
       - Compare hasMany arrays
       - Compare belongsTo arrays
       - Compare belongsToMany arrays
       - Compare pivotRelationships
-  → Result: All relationships preserved
+  â†’ Result: All relationships preserved
 
 #### Test 4: "id" Primary Key Test
 Input: masterSchemaWithId (uses "id" instead of "tableName_id")
-  → Create DB → Introspect → Normalize
-  → Verify:
+  â†’ Create DB â†’ Introspect â†’ Normalize
+  â†’ Verify:
       - Primary key column is "id" (not "tableName_id")
       - Relationships still work correctly
       - Exact match with original schema
-  → Result: "id" primary keys work correctly
+  â†’ Result: "id" primary keys work correctly
 
 ### Key Test Functions
 
@@ -467,7 +493,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 ### Round-Trip Verification
 
-masterSchema → SQL → Database → Introspect → ISchemaInfo → Compare → masterSchema
+masterSchema â†’ SQL â†’ Database â†’ Introspect â†’ ISchemaInfo â†’ Compare â†’ masterSchema
 
 Each step must work correctly for the test to pass.
 
@@ -478,3 +504,4 @@ Each step must work correctly for the test to pass.
 3. Comprehensive: Tests all aspects (PKs, FKs, relationships)
 4. Clean slate: Each test starts fresh
 5. Enterprise-grade: Catches edge cases and ensures reliability
+
