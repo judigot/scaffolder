@@ -1481,38 +1481,40 @@ function FileViewer({
           </div>
         </div>
       )}
-      <div className="flex gap-2 mb-2">
-        <button
-          type="button"
-          onClick={() => void handleCreateApp()}
-          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-        >
-          Create App!
-        </button>
-        <button
-          type="button"
-          onClick={handleCreateNewTestRepository}
-          disabled={
-            isCreatingRepository ||
-            folderStructure.length === 0 ||
-            safeFilesUsingUserEnv.length > 0 ||
-            !hasGitHubToken
-          }
-          className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-            isCreatingRepository ||
-            folderStructure.length === 0 ||
-            safeFilesUsingUserEnv.length > 0 ||
-            !hasGitHubToken
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
-          title={getButtonTooltip()}
-        >
-          {isCreatingRepository
-            ? `Exporting ${String(countFiles(folderStructure))} files...`
-            : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
-        </button>
-      </div>
+      {mode === 'edit' && (
+        <div className="flex gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => void handleCreateApp()}
+            className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+          >
+            Create App!
+          </button>
+          <button
+            type="button"
+            onClick={handleCreateNewTestRepository}
+            disabled={
+              isCreatingRepository ||
+              folderStructure.length === 0 ||
+              safeFilesUsingUserEnv.length > 0 ||
+              !hasGitHubToken
+            }
+            className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
+              isCreatingRepository ||
+              folderStructure.length === 0 ||
+              safeFilesUsingUserEnv.length > 0 ||
+              !hasGitHubToken
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
+            title={getButtonTooltip()}
+          >
+            {isCreatingRepository
+              ? `Exporting ${String(countFiles(folderStructure))} files...`
+              : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
+          </button>
+        </div>
+      )}
       {!isUserLoading &&
         serverConfigStatus !== null &&
         !hasGitHubToken &&

@@ -17,7 +17,7 @@ interface IErrorResponse {
 
 const isProduction = import.meta.env.PROD;
 
-export const isUsingLocalFiles = !isProduction;
+export const isUsingLocalFiles = isProduction;
 
 /**
  * Fetches project files from a public GitHub repository
@@ -88,7 +88,7 @@ const fetchGitHubFiles = async (
     if (error instanceof Error) {
       if (error.message === 'invalid zip data') {
         throw new Error(
-          'The repository either does not exist, is not public, or lacks a valid file structure. See documentation for details.',
+          'Unable to fetch repository. This can happen if: the repository is empty (no commits), it does not exist, it is private, or uses a non-standard default branch.',
         );
       }
       throw new Error(`There was an error: ${error.message}`);

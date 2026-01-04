@@ -26,6 +26,7 @@ import UserProfile from '@/components/UserProfile.tsx';
 import { useUser } from '@/hooks/useUser.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
+import { findProjectsFolderAtRoot } from '@/utils/project-builder/utils/findProjectsFolderAtRoot.ts';
 
 function App() {
   const formData = useFormStore();
@@ -506,165 +507,165 @@ function App() {
           </div>
         </form>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button
-            data-testid="generate-app-button"
-            type="button"
-            onClick={() => {
-              void (async () => {
-                setIsLoading(true);
-                try {
-                  const formDataForExport = {
-                    backendDir,
-                    publicRepoURL,
-                    dbConnection,
-                    projectName: selectedProject?.name,
-                    selectedProject: selectedProject
-                      ? {
-                          name: selectedProject.name,
-                          content: selectedProject.content,
-                          type: selectedProject.type,
-                          uniqueId: selectedProject.uniqueId,
-                        }
-                      : null,
-                  };
-
-                  const response = await fetch(`${getApiUrl()}/scaffold`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      schemaInfo,
-                      SQLSchema,
-                      formData: formDataForExport,
-                      userMetadata: decryptedMetadata ?? userMetadata ?? null,
-                    }),
-                  });
-
-                  if (!response.ok) {
-                    const errorData: unknown = await response.json();
-                    const errorMessage =
-                      errorData !== null &&
-                      typeof errorData === 'object' &&
-                      'error' in errorData &&
-                      typeof errorData.error === 'string'
-                        ? errorData.error
-                        : 'Failed to create app';
-                    throw new Error(errorMessage);
-                  }
-
-                  const data: unknown = await response.json();
-
-                  if (
-                    data !== null &&
-                    typeof data === 'object' &&
-                    'isBackendUrlValid' in data &&
-                    'isBackendDirValid' in data &&
-                    'isFrontendDirValid' in data &&
-                    'isDBConnectionValid' in data
-                  ) {
-                    const status: IGenerationStatus = {
-                      isBackendUrlValid:
-                        typeof data.isBackendUrlValid === 'boolean'
-                          ? data.isBackendUrlValid
-                          : false,
-                      isBackendDirValid:
-                        typeof data.isBackendDirValid === 'boolean'
-                          ? data.isBackendDirValid
-                          : false,
-                      isFrontendDirValid:
-                        typeof data.isFrontendDirValid === 'boolean'
-                          ? data.isFrontendDirValid
-                          : false,
-                      isDBConnectionValid:
-                        typeof data.isDBConnectionValid === 'boolean'
-                          ? data.isDBConnectionValid
-                          : false,
-                      errorMessage:
-                        'errorMessage' in data &&
-                        (typeof data.errorMessage === 'string' ||
-                          data.errorMessage === null)
-                          ? data.errorMessage
-                          : null,
-                      errorLine:
-                        'errorLine' in data &&
-                        (typeof data.errorLine === 'number' ||
-                          data.errorLine === null)
-                          ? data.errorLine
-                          : null,
-                      errorPosition:
-                        'errorPosition' in data &&
-                        (typeof data.errorPosition === 'number' ||
-                          data.errorPosition === null)
-                          ? data.errorPosition
-                          : null,
+          {selectedProject !== null && (
+            <button
+              data-testid="generate-app-button"
+              type="button"
+              onClick={() => {
+                void (async () => {
+                  setIsLoading(true);
+                  try {
+                    const formDataForExport = {
+                      backendDir,
+                      publicRepoURL,
+                      dbConnection,
+                      projectName: selectedProject.name,
+                      selectedProject: {
+                        name: selectedProject.name,
+                        content: selectedProject.content,
+                        type: selectedProject.type,
+                        uniqueId: selectedProject.uniqueId,
+                      },
                     };
 
-                    setGenerationStatus(status);
+                    const response = await fetch(`${getApiUrl()}/scaffold`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        schemaInfo,
+                        SQLSchema,
+                        formData: formDataForExport,
+                        userMetadata: decryptedMetadata ?? userMetadata ?? null,
+                      }),
+                    });
 
-                    // Show error modal if there's an error message
-                    if (
-                      status.errorMessage !== null &&
-                      status.errorMessage !== ''
-                    ) {
-                      // Use SQLErrorModal if SQL schema and error details are available
-                      if (
-                        SQLSchema !== '' &&
-                        status.errorLine !== null &&
-                        status.errorLine !== undefined &&
-                        status.errorLine > 0
-                      ) {
-                        const { openRandomModal } = useModalStore.getState();
-                        openRandomModal({
-                          title: 'SQL Error',
-                          content: (
-                            <SQLErrorModal
-                              errorMessage={status.errorMessage}
-                              sqlSchema={SQLSchema}
-                              errorLine={status.errorLine}
-                              errorPosition={status.errorPosition ?? null}
-                            />
-                          ),
-                          size: 'large',
-                        });
-                      } else {
-                        await promptModal({
-                          title: 'Generation Error',
-                          description: status.errorMessage,
-                          confirmButtonText: 'OK',
-                          denyButtonText: '',
-                        });
-                      }
+                    if (!response.ok) {
+                      const errorData: unknown = await response.json();
+                      const errorMessage =
+                        errorData !== null &&
+                        typeof errorData === 'object' &&
+                        'error' in errorData &&
+                        typeof errorData.error === 'string'
+                          ? errorData.error
+                          : 'Failed to create app';
+                      throw new Error(errorMessage);
                     }
-                  } else {
-                    throw new Error('Invalid response format from server');
+
+                    const data: unknown = await response.json();
+
+                    if (
+                      data !== null &&
+                      typeof data === 'object' &&
+                      'isBackendUrlValid' in data &&
+                      'isBackendDirValid' in data &&
+                      'isFrontendDirValid' in data &&
+                      'isDBConnectionValid' in data
+                    ) {
+                      const status: IGenerationStatus = {
+                        isBackendUrlValid:
+                          typeof data.isBackendUrlValid === 'boolean'
+                            ? data.isBackendUrlValid
+                            : false,
+                        isBackendDirValid:
+                          typeof data.isBackendDirValid === 'boolean'
+                            ? data.isBackendDirValid
+                            : false,
+                        isFrontendDirValid:
+                          typeof data.isFrontendDirValid === 'boolean'
+                            ? data.isFrontendDirValid
+                            : false,
+                        isDBConnectionValid:
+                          typeof data.isDBConnectionValid === 'boolean'
+                            ? data.isDBConnectionValid
+                            : false,
+                        errorMessage:
+                          'errorMessage' in data &&
+                          (typeof data.errorMessage === 'string' ||
+                            data.errorMessage === null)
+                            ? data.errorMessage
+                            : null,
+                        errorLine:
+                          'errorLine' in data &&
+                          (typeof data.errorLine === 'number' ||
+                            data.errorLine === null)
+                            ? data.errorLine
+                            : null,
+                        errorPosition:
+                          'errorPosition' in data &&
+                          (typeof data.errorPosition === 'number' ||
+                            data.errorPosition === null)
+                            ? data.errorPosition
+                            : null,
+                      };
+
+                      setGenerationStatus(status);
+
+                      // Show error modal if there's an error message
+                      if (
+                        status.errorMessage !== null &&
+                        status.errorMessage !== ''
+                      ) {
+                        // Use SQLErrorModal if SQL schema and error details are available
+                        if (
+                          SQLSchema !== '' &&
+                          status.errorLine !== null &&
+                          status.errorLine !== undefined &&
+                          status.errorLine > 0
+                        ) {
+                          const { openRandomModal } = useModalStore.getState();
+                          openRandomModal({
+                            title: 'SQL Error',
+                            content: (
+                              <SQLErrorModal
+                                errorMessage={status.errorMessage}
+                                sqlSchema={SQLSchema}
+                                errorLine={status.errorLine}
+                                errorPosition={status.errorPosition ?? null}
+                              />
+                            ),
+                            size: 'large',
+                          });
+                        } else {
+                          await promptModal({
+                            title: 'Generation Error',
+                            description: status.errorMessage,
+                            confirmButtonText: 'OK',
+                            denyButtonText: '',
+                          });
+                        }
+                      }
+                    } else {
+                      throw new Error('Invalid response format from server');
+                    }
+                  } catch (error: unknown) {
+                    const errorMsg =
+                      error instanceof Error
+                        ? error.message
+                        : 'An unknown error occurred';
+                    await promptModal({
+                      title: 'Error',
+                      description: `Failed to create app: ${errorMsg}`,
+                      confirmButtonText: 'OK',
+                      denyButtonText: '',
+                    });
+                  } finally {
+                    setIsLoading(false);
                   }
-                } catch (error: unknown) {
-                  const errorMsg =
-                    error instanceof Error
-                      ? error.message
-                      : 'An unknown error occurred';
-                  await promptModal({
-                    title: 'Error',
-                    description: `Failed to create app: ${errorMsg}`,
-                    confirmButtonText: 'OK',
-                    denyButtonText: '',
-                  });
-                } finally {
-                  setIsLoading(false);
-                }
-              })();
-            }}
-            className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          >
-            {isLoading && 'Generating...'}
-            {!isLoading && (
-              <>
-                Create <strong>{selectedProject?.name ?? 'No'}</strong> App
-                <span className="text-2xl">🪄</span>
-              </>
-            )}
-          </button>
+                })();
+              }}
+              className="mt-4 w-full px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+              {isLoading && 'Generating...'}
+              {!isLoading && (
+                <>
+                  Create <strong>{selectedProject.name}</strong> App
+                  <span className="text-2xl">🪄</span>
+                </>
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -980,6 +981,105 @@ function App() {
                         mode="view"
                         folderStructure={folderStructures.frontend}
                       /> */}
+                      </>
+                    );
+                  }
+
+                  // Fallback: If repository files are loaded but no compatible project found,
+                  // display the repository as a read-only file viewer
+                  if (userFiles && userFiles.length > 0) {
+                    const hasProjectsFolder =
+                      findProjectsFolderAtRoot(userFiles) !== undefined;
+
+                    return (
+                      <>
+                        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-700 rounded-md">
+                          <div className="flex items-start gap-2">
+                            <svg
+                              className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-blue-300">
+                                Repository Viewer
+                              </p>
+                              <p className="text-xs text-blue-200/80 mt-1">
+                                This repository doesn&apos;t contain a
+                                compatible project structure for the scaffolder.
+                                Displaying files in read-only mode.
+                              </p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <a
+                                  href="/documentation/structure/"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                >
+                                  Learn how to set up a scaffolder project →
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!hasProjectsFolder && (
+                          <div className="mb-4 p-3 bg-amber-900/30 border border-amber-700 rounded-md">
+                            <div className="flex items-start gap-2">
+                              <svg
+                                className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-amber-300">
+                                  Missing Projects Folder
+                                </p>
+                                <p className="text-xs text-amber-200/80 mt-1">
+                                  This repository needs a{' '}
+                                  <code className="bg-amber-900/50 px-1 py-0.5 rounded text-amber-200">
+                                    Projects/
+                                  </code>{' '}
+                                  folder at the root level containing project
+                                  structure definitions (
+                                  <code className="bg-amber-900/50 px-1 py-0.5 rounded text-amber-200">
+                                    structure.yaml
+                                  </code>
+                                  ).
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mb-4 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // TODO: Implement repository conversion
+                            }}
+                            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                          >
+                            Convert this repository
+                          </button>
+                          <span className="text-xs text-gray-400">
+                            Scaffold a basic structure for this repository
+                          </span>
+                        </div>
+
+                        <FileViewer mode="view" folderStructure={userFiles} />
                       </>
                     );
                   }

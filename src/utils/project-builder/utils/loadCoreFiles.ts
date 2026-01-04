@@ -1,6 +1,7 @@
 import type { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
 import { mergeCoreFilesWithScaffolded } from './mergeCoreFiles.ts';
+import { findProjectsFolderAtRoot } from './findProjectsFolderAtRoot.ts';
 
 const findProjectFolder = (
   projectYamlPath: string,
@@ -10,12 +11,9 @@ const findProjectFolder = (
     ? projectYamlPath.substring(1)
     : projectYamlPath;
 
-  const projectsFolder = userFiles.find(
-    (item): item is IFolder =>
-      item.type === 'folder' && item.name === 'Projects',
-  );
+  const projectsFolder = findProjectsFolderAtRoot(userFiles);
 
-  if (!projectsFolder) {
+  if (projectsFolder === undefined) {
     return null;
   }
 

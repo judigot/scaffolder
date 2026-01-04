@@ -4,6 +4,7 @@ import { useProjectStore } from '@/useProjectStore.ts';
 import equal from 'fast-deep-equal';
 import yaml from 'yaml';
 import { isRecord } from '@/utils/typeGuards.ts';
+import { findProjectsFolderAtRoot } from '@/utils/project-builder/utils/findProjectsFolderAtRoot.ts';
 
 interface IStore {
   userFiles: IStructure;
@@ -86,57 +87,52 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
     }
 
     // Extract projects from the userFiles
-    const projectsFolder = userFiles.find(
-      (item): item is IFolder =>
-        item.name === 'Projects' && item.type === 'folder',
-    );
-
-    // Validate the Projects folder
-    if (!projectsFolder) {
-      return;
-    }
+    const projectsFolder = findProjectsFolderAtRoot(userFiles);
 
     const projects: IFile[] = [];
 
-    // 1. Extract project folders with structure.yaml (new approach)
-    const projectFolders = projectsFolder.children.filter(
-      (child): child is IFolder => child.type === 'folder',
-    );
-
-    for (const folder of projectFolders) {
-      // Look for structure.yaml in each folder
-      const structureFile = folder.children.find(
-        (child): child is IFile =>
-          child.type === 'file' && child.name === 'structure.yaml',
+    // Only extract projects if the Projects folder exists
+    if (projectsFolder) {
+      // 1. Extract project folders with structure.yaml (new approach)
+      const projectFolders = projectsFolder.children.filter(
+        (child): child is IFolder => child.type === 'folder',
       );
 
-      if (structureFile) {
-        // Create a project file using the folder name as the project name
+      for (const folder of projectFolders) {
+        // Look for structure.yaml in each folder
+        const structureFile = folder.children.find(
+          (child): child is IFile =>
+            child.type === 'file' && child.name === 'structure.yaml',
+        );
+
+        if (structureFile) {
+          // Create a project file using the folder name as the project name
+          projects.push({
+            type: 'file',
+            name: folder.name,
+            content: structureFile.content,
+            uniqueId: `/Projects/${folder.name}/structure.yaml`,
+          });
+        }
+      }
+
+      // 2. Extract direct YAML files in the Projects directory (legacy approach)
+      const yamlFiles = projectsFolder.children.filter(
+        (child): child is IFile =>
+          child.type === 'file' && child.name.endsWith('.yaml'),
+      );
+
+      for (const yamlFile of yamlFiles) {
         projects.push({
           type: 'file',
-          name: folder.name,
-          content: structureFile.content,
-          uniqueId: `/Projects/${folder.name}/structure.yaml`,
+          name: yamlFile.name.replace(/\.yaml$/, ''),
+          content: yamlFile.content,
+          uniqueId: `/Projects/${yamlFile.name}`,
         });
       }
     }
 
-    // 2. Extract direct YAML files in the Projects directory (legacy approach)
-    const yamlFiles = projectsFolder.children.filter(
-      (child): child is IFile =>
-        child.type === 'file' && child.name.endsWith('.yaml'),
-    );
-
-    for (const yamlFile of yamlFiles) {
-      projects.push({
-        type: 'file',
-        name: yamlFile.name.replace(/\.yaml$/, ''),
-        content: yamlFile.content,
-        uniqueId: `/Projects/${yamlFile.name}`,
-      });
-    }
-
-    // Update state with new files
+    // Update state with new files (even if no projects found - enables fallback viewer)
     set({
       userFiles,
       projects,
@@ -145,7 +141,7 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
     // Get the project store
     const projectStore = useProjectStore.getState();
 
-    // Verify processFilesUpdate exists before calling it
+    // Notify project store of the update (handles selectedProject reset when projects is empty)
     if (typeof projectStore.processFilesUpdate === 'function') {
       projectStore.processFilesUpdate(userFiles, projects);
     }
