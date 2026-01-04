@@ -17,7 +17,7 @@ interface IErrorResponse {
 
 const isProduction = import.meta.env.PROD;
 
-export const isUsingLocalFiles = isProduction;
+export const isUsingLocalFiles = !isProduction;
 
 /**
  * Fetches project files from a public GitHub repository

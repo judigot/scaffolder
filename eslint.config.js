@@ -98,6 +98,9 @@ export default defineConfig([
     '**/postcss.config.js',
     '**/vitest.setup.ts',
     'next-env.d.ts',
+
+    // Utility scripts
+    'scripts/**',
   ]),
 
   // Main TypeScript/React configuration
