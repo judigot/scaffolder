@@ -11,7 +11,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
+    "dev": "bun install && docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "dev with test": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "test": "bun test --passWithNoTests",
     "test:watch": "bun test --watch --passWithNoTests",
