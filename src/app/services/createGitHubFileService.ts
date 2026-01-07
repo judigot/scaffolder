@@ -1,10 +1,12 @@
-import { Octokit } from '@octokit/rest';
+import {
+  getGitHubAppConfig,
+  getGitHubAppOctokit,
+} from './githubAppService.ts';
 
 interface ICreateGitHubFileRequest {
   publicRepoURL: string;
   filePath: string;
   content: string;
-  githubToken: string;
   branch?: string;
   commitMessage?: string;
   isBinary?: boolean;
@@ -39,7 +41,6 @@ export const createGitHubFileService = async (
     publicRepoURL,
     filePath,
     content,
-    githubToken,
     branch = 'main',
     commitMessage,
     isBinary = false,
@@ -53,17 +54,21 @@ export const createGitHubFileService = async (
     throw new Error('File path is required');
   }
 
-  if (!githubToken) {
-    throw new Error('GitHub token is required');
-  }
-
   const repoInfo = parseGitHubURL(publicRepoURL);
   if (!repoInfo) {
     throw new Error('Invalid GitHub repository URL');
   }
 
-  const octokit = new Octokit({
-    auth: githubToken,
+  const appConfig = getGitHubAppConfig();
+  if (appConfig === null) {
+    throw new Error(
+      'GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY environment variables.',
+    );
+  }
+
+  const octokit = await getGitHubAppOctokit(appConfig, {
+    owner: repoInfo.owner,
+    repo: repoInfo.repo,
   });
 
   try {

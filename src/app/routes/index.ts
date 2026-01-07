@@ -12,11 +12,13 @@ import createGitHubFileRouter from './createGitHubFile.ts';
 import deleteGitHubFileRouter from './deleteGitHubFile.ts';
 import createGitHubRepositoryRouter from './createGitHubRepository.ts';
 import createGitHubFolderStructureRouter from './createGitHubFolderStructure.ts';
+import checkGitHubAppInstallationRouter from './checkGitHubAppInstallation.ts';
 import githubTokenRouter from './githubToken.ts';
 import userMetadataRouter from './userMetadata.ts';
 import saveLocalFileRouter from './saveLocalFile.ts';
 import deleteLocalFileRouter from './deleteLocalFile.ts';
 import healthRouter from './health.ts';
+import checkGitHubExportOptionsRouter from './checkGitHubExportOptions.ts';
 
 const router = new Hono();
 
@@ -41,5 +43,7 @@ router.route('/user-metadata', userMetadataRouter);
 router.route('/save-local-file', saveLocalFileRouter);
 router.route('/delete-local-file', deleteLocalFileRouter);
 router.route('/health', healthRouter);
+router.route('/check-github-app-installation', checkGitHubAppInstallationRouter);
+router.route('/check-github-export-options', checkGitHubExportOptionsRouter);
 
 export default router;

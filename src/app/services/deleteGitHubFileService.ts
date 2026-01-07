@@ -1,9 +1,11 @@
-import { Octokit } from '@octokit/rest';
+import {
+  getGitHubAppConfig,
+  getGitHubAppOctokit,
+} from './githubAppService.ts';
 
 interface IDeleteGitHubFileRequest {
   publicRepoURL: string;
   filePath: string;
-  githubToken: string;
   branch?: string;
   commitMessage?: string;
 }
@@ -36,7 +38,6 @@ export const deleteGitHubFileService = async (
   const {
     publicRepoURL,
     filePath,
-    githubToken,
     branch = 'main',
     commitMessage,
   } = data;
@@ -49,17 +50,21 @@ export const deleteGitHubFileService = async (
     throw new Error('File path is required');
   }
 
-  if (!githubToken) {
-    throw new Error('GitHub token is required');
-  }
-
   const repoInfo = parseGitHubURL(publicRepoURL);
   if (!repoInfo) {
     throw new Error('Invalid GitHub repository URL');
   }
 
-  const octokit = new Octokit({
-    auth: githubToken,
+  const appConfig = getGitHubAppConfig();
+  if (appConfig === null) {
+    throw new Error(
+      'GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY environment variables.',
+    );
+  }
+
+  const octokit = await getGitHubAppOctokit(appConfig, {
+    owner: repoInfo.owner,
+    repo: repoInfo.repo,
   });
 
   try {

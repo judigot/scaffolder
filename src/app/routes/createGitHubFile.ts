@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { createGitHubFileService } from '@/app/services/createGitHubFileService.ts';
-import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 
@@ -68,19 +67,6 @@ router.post('/', async (c) => {
     );
   }
 
-  const githubToken = await getGitHubToken(auth0UserId);
-
-  if (githubToken === null || githubToken === '') {
-    return c.json(
-      {
-        error: 'GitHub token not found',
-        message:
-          'Please set your GitHub token in the settings before creating files',
-      },
-      400,
-    );
-  }
-
   // Security check: Detect USE_USER_ENV usage before committing to GitHub
   // This prevents secrets from being committed to repositories
   if (USE_USER_ENV_REGEX.test(content)) {
@@ -104,7 +90,6 @@ router.post('/', async (c) => {
       publicRepoURL,
       filePath,
       content,
-      githubToken,
       branch: typeof branch === 'string' && branch !== '' ? branch : undefined,
       commitMessage:
         typeof commitMessage === 'string' && commitMessage !== ''

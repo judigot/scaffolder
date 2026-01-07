@@ -1,16 +1,24 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
 import { Octokit } from '@octokit/rest';
 import pLimit from 'p-limit';
+import {
+  getGitHubAppConfig,
+  getGitHubAppOctokit,
+} from '@/app/services/githubAppService.ts';
+import { getGitHubToken } from '@/app/services/auth0Service.ts';
 
 interface ICreateGitHubFolderStructureRequest {
   structure: IStructure;
   owner: string;
   repo: string;
-  githubToken: string;
   basePath?: string;
   branch?: string;
   commitMessage?: string;
   projectName?: string;
+  /** Auth method: 'personal_token' | 'github_app' */
+  method?: 'personal_token' | 'github_app';
+  /** Auth0 user ID for personal token method */
+  auth0UserId?: string;
 }
 
 interface IFileEntry {
@@ -166,16 +174,41 @@ export const createGitHubFolderStructure = async (
     structure,
     owner,
     repo,
-    githubToken,
     basePath = '',
     branch = 'main',
     commitMessage,
     projectName,
+    method,
+    auth0UserId,
   } = data;
 
-  const octokit = new Octokit({
-    auth: githubToken,
-  });
+  let octokit: Octokit;
+
+  /* Determine which authentication method to use */
+  if (method === 'personal_token') {
+    /* Use personal token */
+    if (auth0UserId === undefined || auth0UserId === '') {
+      throw new Error('User ID required for personal token method');
+    }
+    const userToken = await getGitHubToken(auth0UserId);
+    if (userToken === null || userToken === '') {
+      throw new Error(
+        'GitHub token not found. Please add your personal access token in your profile settings.',
+      );
+    }
+    octokit = new Octokit({ auth: userToken });
+  } else {
+    /* Use GitHub App (default) */
+    const appConfig = getGitHubAppConfig();
+    if (appConfig === null) {
+      throw new Error(
+        'GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY environment variables.',
+      );
+    }
+    octokit = await getGitHubAppOctokit(appConfig, {
+      owner,
+    });
+  }
 
   try {
     const files = collectFiles(structure, basePath, '');

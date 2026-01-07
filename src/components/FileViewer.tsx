@@ -30,6 +30,7 @@ import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFil
 import { useUser } from '@/hooks/useUser.ts';
 import { useUserProfileStore } from '@/useUserProfileStore.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
+import GitHubExportModal from '@/components/GitHubExportModal.tsx';
 
 export interface IBase {
   name: string;
@@ -109,6 +110,7 @@ function FileViewer({
     isLoading: isUserLoading,
     serverConfigStatus,
     userMetadata,
+    user,
   } = useUser();
   const { decryptedMetadata } = useDecryptedUserMetadata();
   const { openUserProfile } = useUserProfileStore();
@@ -137,15 +139,20 @@ function FileViewer({
   const fileViewerRef = useRef<HTMLDivElement>(null);
   const [isCreatingRepository, setIsCreatingRepository] =
     useState<boolean>(false);
+  const [isWaitingForInstallation, setIsWaitingForInstallation] =
+    useState<boolean>(false);
   const [githubError, setGitHubError] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState<boolean>(false);
+  const [exportOwner, setExportOwner] = useState<string>('');
+  const [exportAccessToken, setExportAccessToken] = useState<string>('');
 
-  // Only check for GitHub token if Auth0 Management API is configured
-  // If Auth0 Management API is not configured, we can't fetch the token,
-  // so showing "GitHub Token Required" would be misleading
+  // GitHub App is configured via environment variables, so we don't need to check for user tokens
+  // The button should be enabled as long as the user is authenticated
   const isAuth0Configured =
     !isUserLoading &&
     serverConfigStatus !== null &&
     serverConfigStatus.auth0ManagementApiConfigured === true;
+  // Keep hasGitHubToken for backward compatibility with UI checks, but it's not required for GitHub App
   const hasGitHubToken =
     isAuth0Configured && githubToken !== null && githubToken !== '';
 
@@ -959,10 +966,9 @@ function FileViewer({
     return count;
   };
 
-  const handleCreateNewTestRepository = () => {
+  /* Open the export modal to let user choose authentication method */
+  const handleOpenExportModal = () => {
     void (async () => {
-      setIsCreatingRepository(true);
-
       try {
         const accessTokenResult = await getAccessTokenSilently({
           authorizationParams: {
@@ -972,171 +978,456 @@ function FileViewer({
         if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
           throw new Error('Failed to get access token');
         }
-        const accessToken: string = accessTokenResult;
+        setExportAccessToken(accessTokenResult);
 
-        const tokenResponse = await fetch(`${getApiUrl()}/github-token`, {
-          method: 'GET',
+        /* Get GitHub username from user - try nickname first, then email prefix, or prompt */
+        let githubOwner: string | null = null;
+        if (user !== null) {
+          if (
+            typeof user.nickname === 'string' &&
+            user.nickname !== '' &&
+            user.nickname !== user.email
+          ) {
+            githubOwner = user.nickname;
+          } else if (typeof user.email === 'string' && user.email !== '') {
+            const emailPrefix = user.email.split('@')[0];
+            if (emailPrefix !== '') {
+              githubOwner = emailPrefix;
+            }
+          }
+        }
+
+        /* If we couldn't determine owner, prompt the user */
+        if (githubOwner === null || githubOwner === '') {
+          const ownerInput = await newValue({
+            title: 'GitHub Username Required\nEnter your GitHub username or organization name:',
+          });
+          if (ownerInput === '' || ownerInput.trim() === '') {
+            return;
+          }
+          githubOwner = ownerInput.trim();
+        }
+
+        setExportOwner(githubOwner);
+        setShowExportModal(true);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to initialize export';
+        setGitHubError(message);
+        openRandomModal({
+          title: 'Error',
+          content: <p>{message}</p>,
+        });
+      }
+    })();
+  };
+
+  /* Save GitHub token via API */
+  const saveGitHubToken = async (token: string) => {
+    const response = await fetch(`${getApiUrl()}/github-token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${exportAccessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save token');
+    }
+  };
+
+  /* Handle method selection from export modal */
+  const handleExportMethodSelected = (
+    method: 'personal_token' | 'github_app' | 'existing_repo',
+    tokenOrRepoUrl?: string,
+  ) => {
+    setShowExportModal(false);
+    if (method === 'existing_repo' && tokenOrRepoUrl !== undefined && tokenOrRepoUrl !== '') {
+      /* Push to existing repository */
+      void performExportToExistingRepo(tokenOrRepoUrl);
+    } else {
+      void performExport(exportOwner, method === 'existing_repo' ? 'github_app' : method);
+    }
+  };
+
+  /* Perform the actual export */
+  const performExport = async (githubOwner: string, method: 'personal_token' | 'github_app') => {
+    setIsCreatingRepository(true);
+
+    try {
+      const baseRepoName =
+        typeof projectName === 'string' && projectName !== ''
+          ? projectName.replace(/\s+/g, '-').toLowerCase()
+          : 'scaffolded-project';
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const repoName = `${baseRepoName}-${timestamp}`;
+      const exportedAt = new Date();
+      const humanDate = exportedAt.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      const description = `This project was created using Scaffolder. Exported on ${humanDate}`;
+
+      const createRepoResponse = await fetch(
+        `${getApiUrl()}/create-github-repository`,
+        {
+          method: 'POST',
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${exportAccessToken}`,
+            Accept: 'application/json',
             'Content-Type': 'application/json',
           },
-        });
+          body: JSON.stringify({
+            repoName,
+            description,
+            isPrivate: false,
+            owner: githubOwner,
+            method, /* Pass the selected method to the backend */
+          }),
+        },
+      );
 
-        if (!tokenResponse.ok) {
-          const errorData: unknown = await tokenResponse.json();
-          interface IErrorResponse {
-            error?: string;
-            message?: string;
-            code?: string;
-          }
-          const isErrorResponse = (val: unknown): val is IErrorResponse => {
-            return (
-              typeof val === 'object' &&
-              val !== null &&
-              ('error' in val || 'message' in val)
-            );
+      const createRepoResult: unknown = await createRepoResponse.json();
+
+      interface ICreateRepositoryResponse {
+        success?: boolean;
+        message?: string;
+        repoUrl?: string;
+        error?: string;
+        code?: string;
+        installationUrl?: string;
+      }
+
+      const isCreateRepositoryResponse = (
+        val: unknown,
+      ): val is ICreateRepositoryResponse => {
+        return (
+          typeof val === 'object' &&
+          val !== null &&
+          ('success' in val ||
+            'message' in val ||
+            'repoUrl' in val ||
+            'error' in val ||
+            'code' in val ||
+            'installationUrl' in val)
+        );
+      };
+
+      if (!createRepoResponse.ok) {
+        if (
+          isCreateRepositoryResponse(createRepoResult) &&
+          createRepoResult.code === 'GITHUB_APP_NOT_INSTALLED' &&
+          createRepoResult.installationUrl !== undefined &&
+          createRepoResult.installationUrl !== ''
+        ) {
+          /* Open installation URL directly in new tab */
+          window.open(createRepoResult.installationUrl, '_blank');
+
+          /* Set waiting state to show user we're polling */
+          setIsWaitingForInstallation(true);
+
+          /* Poll for installation status */
+          const maxPollingTime = 5 * 60 * 1000; /* 5 minutes */
+          const pollInterval = 2000; /* 2 seconds */
+          const startTime = Date.now();
+
+          const checkInstallation = async (): Promise<boolean> => {
+            try {
+              const checkResponse = await fetch(
+                `${getApiUrl()}/check-github-app-installation`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${exportAccessToken}`,
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    owner: githubOwner,
+                  }),
+                },
+              );
+
+              if (!checkResponse.ok) {
+                return false;
+              }
+
+              const checkResult: unknown = await checkResponse.json();
+              interface ICheckInstallationResponse {
+                installed?: boolean;
+                message?: string;
+              }
+
+              const isCheckInstallationResponse = (
+                val: unknown,
+              ): val is ICheckInstallationResponse => {
+                return (
+                  typeof val === 'object' &&
+                  val !== null &&
+                  ('installed' in val || 'message' in val)
+                );
+              };
+
+              if (
+                isCheckInstallationResponse(checkResult) &&
+                checkResult.installed === true
+              ) {
+                return true;
+              }
+
+              return false;
+            } catch {
+              return false;
+            }
           };
-          if (
-            isErrorResponse(errorData) &&
-            errorData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
-          ) {
-            const errorMessage =
-              errorData.message ??
-              'Auth0 Management API is not configured on the server.';
-            setGitHubError(errorMessage);
-            await promptModal({
-              title: 'Server Configuration Required',
-              description:
-                'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
-                '• VITE_AUTH0_DOMAIN\n' +
-                '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
-                '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
-                'After setting these, restart the server.',
-              confirmButtonText: 'OK',
-              denyButtonText: '',
+
+          /* Poll until installed or timeout */
+          while (Date.now() - startTime < maxPollingTime) {
+            const isInstalled = await checkInstallation();
+            if (isInstalled) {
+              /* Installation complete, retry the repository creation */
+              break;
+            }
+
+            /* Wait before next poll */
+            await new Promise((resolve) => {
+              setTimeout(resolve, pollInterval);
             });
+          }
+
+          /* Check one more time before giving up */
+          const finalCheck = await checkInstallation();
+          setIsWaitingForInstallation(false);
+          if (!finalCheck) {
+            throw new Error(
+              'GitHub App installation timed out. Please ensure the app is installed and try again.',
+            );
+          }
+
+          /* Retry repository creation now that app is installed */
+          const retryResponse = await fetch(
+            `${getApiUrl()}/create-github-repository`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${exportAccessToken}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                repoName,
+                description,
+                isPrivate: false,
+                owner: githubOwner,
+                method,
+              }),
+            },
+          );
+
+          if (!retryResponse.ok) {
+            const retryResult: unknown = await retryResponse.json();
+            const errorMessage = isCreateRepositoryResponse(retryResult)
+              ? (retryResult.error ?? 'Failed to create repository')
+              : 'Failed to create repository after installation';
             throw new Error(errorMessage);
           }
-          throw new Error('Failed to get GitHub token');
-        }
 
-        const tokenData: unknown = await tokenResponse.json();
-        interface ITokenResponse {
-          success?: boolean;
-          token?: string | null;
-          error?: string;
-          message?: string;
-          code?: string;
-        }
-        const isTokenResponse = (val: unknown): val is ITokenResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val || 'token' in val || 'error' in val)
-          );
-        };
-
-        if (
-          isTokenResponse(tokenData) &&
-          tokenData.code === 'AUTH0_MANAGEMENT_API_NOT_CONFIGURED'
-        ) {
-          const errorMessage =
-            tokenData.message ??
-            'Auth0 Management API is not configured on the server.';
-          setGitHubError(errorMessage);
-          await promptModal({
-            title: 'Server Configuration Required',
-            description:
-              'The server is missing Auth0 Management API credentials. Please set the following environment variables in your .env file:\n\n' +
-              '• VITE_AUTH0_DOMAIN\n' +
-              '• AUTH0_MANAGEMENT_API_CLIENT_ID\n' +
-              '• AUTH0_MANAGEMENT_API_CLIENT_SECRET\n\n' +
-              'After setting these, restart the server.',
-            confirmButtonText: 'OK',
-            denyButtonText: '',
-          });
-          throw new Error(errorMessage);
-        }
-
-        if (
-          !isTokenResponse(tokenData) ||
-          tokenData.token === null ||
-          tokenData.token === undefined ||
-          tokenData.token === ''
-        ) {
-          const errorMessage =
-            'GitHub token not found. Please set your GitHub token in your profile.';
-          setGitHubError(errorMessage);
-          const shouldAddToken = await promptModal({
-            title: 'GitHub Token Required',
-            description:
-              'A GitHub token is required to create repositories.\n\nWould you like to add one now?',
-            confirmButtonText: 'Add Token',
-            denyButtonText: 'Cancel',
-          });
-          if (shouldAddToken) {
-            openUserProfile('githubToken');
+          const retryResult: unknown = await retryResponse.json();
+          if (
+            !isCreateRepositoryResponse(retryResult) ||
+            retryResult.repoUrl === undefined ||
+            retryResult.repoUrl === ''
+          ) {
+            throw new Error('Failed to get repository URL after installation');
           }
-          throw new Error(errorMessage);
-        }
 
-        const baseRepoName =
-          typeof projectName === 'string' && projectName !== ''
-            ? projectName.replace(/\s+/g, '-').toLowerCase()
-            : 'scaffolded-project';
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const repoName = `${baseRepoName}-${timestamp}`;
-        const exportedAt = new Date();
-        const humanDate = exportedAt.toLocaleString(undefined, {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        });
-        const description = `This project was created using Scaffolder. Exported on ${humanDate}`;
+          /* Continue with the rest of the flow using retryResult */
+          const repoUrl = retryResult.repoUrl;
+          const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
+          const match = githubRegex.exec(repoUrl);
 
-        const createRepoResponse = await fetch(
-          `${getApiUrl()}/create-github-repository`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
+          if (match?.length !== 3) {
+            throw new Error('Invalid repository URL format');
+          }
+
+          const repoOwner = match[1];
+          const repo = match[2];
+
+          /* Continue with file upload (skip the duplicate repo creation check) */
+          /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
+          const userEnvDetection = detectUserEnvInStructure(folderStructure);
+          if (userEnvDetection.hasUserEnv) {
+            const fileList = userEnvDetection.locations
+              .map((loc) => `  - ${loc.filePath}`)
+              .join('\n');
+            throw new Error(
+              `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
+                `Found in:\n${fileList}\n\n` +
+                `Options:\n` +
+                `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+                `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+                `3. Use environment variable references in code (process.env.KEY_NAME)`,
+            );
+          }
+
+          const uploadResponse = await fetch(
+            `${getApiUrl()}/create-github-folder-structure`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${exportAccessToken}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                structure: folderStructure,
+                owner: repoOwner,
+                repo,
+                branch: 'main',
+                projectName,
+                method, /* Pass the auth method */
+              }),
             },
-            body: JSON.stringify({
-              repoName,
-              description,
-              isPrivate: false,
-            }),
-          },
-        );
-
-        const createRepoResult: unknown = await createRepoResponse.json();
-
-        interface ICreateRepositoryResponse {
-          success?: boolean;
-          message?: string;
-          repoUrl?: string;
-          error?: string;
-        }
-
-        const isCreateRepositoryResponse = (
-          val: unknown,
-        ): val is ICreateRepositoryResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val ||
-              'message' in val ||
-              'repoUrl' in val ||
-              'error' in val)
           );
-        };
 
-        if (!createRepoResponse.ok) {
+            const uploadResult: unknown = await uploadResponse.json();
+
+            interface IUploadResponse {
+              success?: boolean;
+              message?: string;
+              filesCreated?: number;
+              error?: string;
+            }
+
+            const isUploadResponse = (val: unknown): val is IUploadResponse => {
+              return (
+                typeof val === 'object' &&
+                val !== null &&
+                ('success' in val ||
+                  'message' in val ||
+                  'filesCreated' in val ||
+                  'error' in val)
+              );
+            };
+
+            if (!uploadResponse.ok) {
+              const errorMessage = isUploadResponse(uploadResult)
+                ? (uploadResult.error ?? 'Failed to upload files')
+                : 'Failed to upload files';
+              throw new Error(errorMessage);
+            }
+
+            const filesCreated =
+              isUploadResponse(uploadResult) &&
+              uploadResult.filesCreated !== undefined
+                ? uploadResult.filesCreated
+                : 0;
+
+            const cloneCommand = `git clone ${repoUrl}.git`;
+
+            openRandomModal({
+              title: 'Project Exported Successfully',
+              content: (
+                <div className="space-y-6">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg
+                        className="w-5 h-5 text-green-600 dark:text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-label="Success icon"
+                      >
+                        <title>Success</title>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
+                        Export Complete
+                      </h3>
+                    </div>
+                    <p className="text-sm text-green-700 dark:text-green-400">
+                      {filesCreated > 0
+                        ? `Successfully exported ${String(filesCreated)} file(s) to GitHub.`
+                        : 'Repository created successfully.'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Clone Command
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg font-mono text-sm break-all">
+                        {cloneCommand}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopy(cloneCommand);
+                        }}
+                        className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+                        title="Copy clone command"
+                      >
+                        <CopyIcon fontSize="small" />
+                        <span className="text-sm">Copy</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Repository
+                    </div>
+                    <a
+                      href={repoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-label="GitHub icon"
+                      >
+                        <title>GitHub</title>
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                      </svg>
+                      <span>Open Repository</span>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              ),
+            });
+
+            setIsCreatingRepository(false);
+            return;
+          }
+
           const errorMessage = isCreateRepositoryResponse(createRepoResult)
             ? (createRepoResult.error ?? 'Failed to create repository')
             : 'Failed to create repository';
@@ -1159,43 +1450,44 @@ function FileViewer({
           throw new Error('Invalid repository URL format');
         }
 
-        const owner = match[1];
-        const repo = match[2];
+      const repoOwner2 = match[1];
+      const repo = match[2];
 
-        // Security check: Detect USE_USER_ENV usage before committing to GitHub
-        const userEnvDetection = detectUserEnvInStructure(folderStructure);
-        if (userEnvDetection.hasUserEnv) {
-          const fileList = userEnvDetection.locations
-            .map((loc) => `  - ${loc.filePath}`)
-            .join('\n');
-          throw new Error(
-            `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
-              `Found in:\n${fileList}\n\n` +
-              `Options:\n` +
-              `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
-              `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
-              `3. Use environment variable references in code (process.env.KEY_NAME)`,
-          );
-        }
-
-        const uploadResponse = await fetch(
-          `${getApiUrl()}/create-github-folder-structure`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              structure: folderStructure,
-              owner,
-              repo,
-              branch: 'main',
-              projectName,
-            }),
-          },
+      /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
+      const userEnvDetection = detectUserEnvInStructure(folderStructure);
+      if (userEnvDetection.hasUserEnv) {
+        const fileList = userEnvDetection.locations
+          .map((loc) => `  - ${loc.filePath}`)
+          .join('\n');
+        throw new Error(
+          `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
+            `Found in:\n${fileList}\n\n` +
+            `Options:\n` +
+            `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+            `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+            `3. Use environment variable references in code (process.env.KEY_NAME)`,
         );
+      }
+
+      const uploadResponse = await fetch(
+        `${getApiUrl()}/create-github-folder-structure`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${exportAccessToken}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            structure: folderStructure,
+            owner: repoOwner2,
+            repo,
+            branch: 'main',
+            projectName,
+            method, /* Pass the auth method */
+          }),
+        },
+      );
 
         const uploadResult: unknown = await uploadResponse.json();
 
@@ -1339,34 +1631,251 @@ function FileViewer({
             </div>
           ),
         });
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          if (
-            !error.message.includes('GitHub token not found') &&
-            !error.message.includes('Auth0 Management API')
-          ) {
-            setGitHubError(error.message);
-            await promptModal({
-              title: 'Error',
-              description: `Failed to export project: ${error.message}`,
-              confirmButtonText: 'OK',
-              denyButtonText: '',
-            });
-          }
-        } else {
-          const errorMessage = 'An unexpected error occurred';
-          setGitHubError(errorMessage);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        if (
+          !error.message.includes('GitHub token not found') &&
+          !error.message.includes('Auth0 Management API')
+        ) {
+          setGitHubError(error.message);
           await promptModal({
             title: 'Error',
-            description: errorMessage,
+            description: `Failed to export project: ${error.message}`,
             confirmButtonText: 'OK',
             denyButtonText: '',
           });
         }
-      } finally {
-        setIsCreatingRepository(false);
+      } else {
+        const errorMessage = 'An unexpected error occurred';
+        setGitHubError(errorMessage);
+        await promptModal({
+          title: 'Error',
+          description: errorMessage,
+          confirmButtonText: 'OK',
+          denyButtonText: '',
+        });
       }
-    })();
+    } finally {
+      setIsCreatingRepository(false);
+    }
+  };
+
+  /* Push to an existing repository (using GitHub App) */
+  const performExportToExistingRepo = async (repoUrl: string) => {
+    setIsCreatingRepository(true);
+
+    try {
+      /* Parse the repo URL */
+      const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
+      const match = githubRegex.exec(repoUrl);
+
+      if (match?.length !== 3) {
+        throw new Error('Invalid GitHub repository URL. Expected format: https://github.com/owner/repo');
+      }
+
+      const repoOwner = match[1];
+      const repo = match[2].replace(/\.git$/, ''); /* Remove .git suffix if present */
+
+      /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
+      const userEnvDetection = detectUserEnvInStructure(folderStructure);
+      if (userEnvDetection.hasUserEnv) {
+        const fileList = userEnvDetection.locations
+          .map((loc) => `  - ${loc.filePath}`)
+          .join('\n');
+        throw new Error(
+          `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
+            `Found in:\n${fileList}\n\n` +
+            `Options:\n` +
+            `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+            `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+            `3. Use environment variable references in code (process.env.KEY_NAME)`,
+        );
+      }
+
+      /* Upload files to the existing repo using GitHub App */
+      const uploadResponse = await fetch(
+        `${getApiUrl()}/create-github-folder-structure`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${exportAccessToken}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            structure: folderStructure,
+            owner: repoOwner,
+            repo,
+            branch: 'main',
+            projectName,
+            method: 'github_app', /* Always use GitHub App for existing repo flow */
+          }),
+        },
+      );
+
+      const uploadResult: unknown = await uploadResponse.json();
+
+      interface IUploadResponse {
+        success?: boolean;
+        message?: string;
+        filesCreated?: number;
+        error?: string;
+      }
+
+      const isUploadResponse = (val: unknown): val is IUploadResponse => {
+        return (
+          typeof val === 'object' &&
+          val !== null &&
+          ('success' in val ||
+            'message' in val ||
+            'filesCreated' in val ||
+            'error' in val)
+        );
+      };
+
+      if (!uploadResponse.ok) {
+        const errorMessage = isUploadResponse(uploadResult)
+          ? (uploadResult.error ?? 'Failed to upload files')
+          : 'Failed to upload files';
+        throw new Error(errorMessage);
+      }
+
+      const filesCreated =
+        isUploadResponse(uploadResult) &&
+        uploadResult.filesCreated !== undefined
+          ? uploadResult.filesCreated
+          : 0;
+
+      const cloneCommand = `git clone ${repoUrl}.git`;
+
+      openRandomModal({
+        title: 'Files Pushed Successfully',
+        content: (
+          <div className="space-y-6">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg
+                  className="w-5 h-5 text-green-600 dark:text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-label="Success icon"
+                >
+                  <title>Success</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <p className="text-green-800 dark:text-green-200 font-semibold">
+                  Successfully pushed {String(filesCreated)} file(s) to repository
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Clone Repository
+                </div>
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
+                  <code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+                    {cloneCommand}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCopy(cloneCommand);
+                    }}
+                    className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+                    title="Copy clone command"
+                  >
+                    <CopyIcon fontSize="small" />
+                    <span className="text-sm">Copy</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Repository
+                </div>
+                <a
+                  href={repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-label="GitHub icon"
+                  >
+                    <title>GitHub</title>
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  <span>Open Repository</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => {
+                  const modals = useModalStore.getState().modals;
+                  if (modals.length > 0) {
+                    useModalStore
+                      .getState()
+                      .closeModal(modals[modals.length - 1].id);
+                  }
+                }}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ),
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setGitHubError(error.message);
+        await promptModal({
+          title: 'Error',
+          description: `Failed to push to repository: ${error.message}`,
+          confirmButtonText: 'OK',
+          denyButtonText: '',
+        });
+      } else {
+        const errorMessage = 'An unexpected error occurred';
+        setGitHubError(errorMessage);
+        await promptModal({
+          title: 'Error',
+          description: errorMessage,
+          confirmButtonText: 'OK',
+          denyButtonText: '',
+        });
+      }
+    } finally {
+      setIsCreatingRepository(false);
+    }
   };
 
   const handleCreateApp = async () => {
@@ -1492,26 +2001,36 @@ function FileViewer({
           </button>
           <button
             type="button"
-            onClick={handleCreateNewTestRepository}
+            onClick={handleOpenExportModal}
             disabled={
               isCreatingRepository ||
+              isWaitingForInstallation ||
               folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0 ||
-              !hasGitHubToken
+              safeFilesUsingUserEnv.length > 0
             }
             className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
               isCreatingRepository ||
+              isWaitingForInstallation ||
               folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0 ||
-              !hasGitHubToken
+              safeFilesUsingUserEnv.length > 0
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 : 'bg-indigo-600 text-white hover:bg-indigo-700'
             }`}
+            // className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
+            //   isCreatingRepository ||
+            //   folderStructure.length === 0 ||
+            //   safeFilesUsingUserEnv.length > 0 ||
+            //   !hasGitHubToken
+            //     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            //     : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            // }`}
             title={getButtonTooltip()}
           >
-            {isCreatingRepository
-              ? `Exporting ${String(countFiles(folderStructure))} files...`
-              : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
+            {isWaitingForInstallation
+              ? 'Waiting for GitHub App installation...'
+              : isCreatingRepository
+                ? `Exporting ${String(countFiles(folderStructure))} files...`
+                : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
           </button>
         </div>
       )}
@@ -2128,6 +2647,16 @@ function FileViewer({
           onClose={handleCloseContextMenu}
         />
       )}
+
+      {/* GitHub Export Options Modal */}
+      <GitHubExportModal
+        isOpen={showExportModal}
+        onClose={() => { setShowExportModal(false); }}
+        owner={exportOwner}
+        accessToken={exportAccessToken}
+        onSelectMethod={handleExportMethodSelected}
+        onSaveToken={saveGitHubToken}
+      />
     </div>
   );
 }

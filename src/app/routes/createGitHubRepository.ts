@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { createGitHubRepositoryService } from '@/app/services/createGitHubRepositoryService.ts';
-import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
 const router = new Hono();
@@ -9,6 +8,8 @@ interface ICreateRepositoryBody {
   repoName?: unknown;
   description?: unknown;
   isPrivate?: unknown;
+  owner?: unknown;
+  method?: unknown;
 }
 
 const isCreateRepositoryBody = (val: unknown): val is ICreateRepositoryBody => {
@@ -45,6 +46,8 @@ router.post('/', async (c) => {
   const repoName = body.repoName;
   const description = body.description;
   const isPrivate = body.isPrivate;
+  const owner = body.owner;
+  const method = body.method;
 
   if (typeof repoName !== 'string' || repoName === '') {
     return c.json(
@@ -56,14 +59,11 @@ router.post('/', async (c) => {
     );
   }
 
-  const githubToken = await getGitHubToken(auth0UserId);
-
-  if (githubToken === null || githubToken === '') {
+  if (typeof owner !== 'string' || owner === '') {
     return c.json(
       {
-        error: 'GitHub token not found',
-        message:
-          'Please set your GitHub token in the settings before creating repositories',
+        error: 'Missing required field',
+        message: 'owner is required (GitHub username or organization name)',
       },
       400,
     );
@@ -77,13 +77,41 @@ router.post('/', async (c) => {
           ? description
           : undefined,
       isPrivate: typeof isPrivate === 'boolean' ? isPrivate : undefined,
-      githubToken,
+      owner,
+      auth0UserId,
+      method:
+        method === 'personal_token' || method === 'github_app'
+          ? method
+          : undefined,
     });
 
     return c.json(result);
   } catch (error) {
     if (error instanceof Error) {
-      return c.json({ error: error.message }, 400);
+      const errorResponse: {
+        error: string;
+        code?: string;
+        installationUrl?: string;
+      } = {
+        error: error.message,
+      };
+
+      if ('code' in error && error.code === 'GITHUB_APP_NOT_INSTALLED') {
+        errorResponse.code = 'GITHUB_APP_NOT_INSTALLED';
+        if (
+          'installationUrl' in error &&
+          error.installationUrl instanceof Promise
+        ) {
+          errorResponse.installationUrl = await error.installationUrl;
+        } else if (
+          'installationUrl' in error &&
+          typeof error.installationUrl === 'string'
+        ) {
+          errorResponse.installationUrl = error.installationUrl;
+        }
+      }
+
+      return c.json(errorResponse, 400);
     }
     return c.json({ error: 'An unexpected error occurred' }, 500);
   }

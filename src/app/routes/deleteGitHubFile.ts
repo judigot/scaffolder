@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { deleteGitHubFileService } from '@/app/services/deleteGitHubFileService.ts';
-import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
 const router = new Hono();
@@ -63,24 +62,10 @@ router.post('/', async (c) => {
     );
   }
 
-  const githubToken = await getGitHubToken(auth0UserId);
-
-  if (githubToken === null || githubToken === '') {
-    return c.json(
-      {
-        error: 'GitHub token not found',
-        message:
-          'Please set your GitHub token in the settings before deleting files',
-      },
-      400,
-    );
-  }
-
   try {
     const result = await deleteGitHubFileService({
       publicRepoURL,
       filePath,
-      githubToken,
       branch: typeof branch === 'string' && branch !== '' ? branch : undefined,
       commitMessage:
         typeof commitMessage === 'string' && commitMessage !== ''

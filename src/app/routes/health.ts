@@ -176,6 +176,66 @@ function checkAuth0ManagementApiClientSecret(): Promise<IHealthCheck> {
 }
 
 /**
+ * Individual health check for GITHUB_APP_ID
+ */
+function checkGitHubAppId(): Promise<IHealthCheck> {
+  return Promise.resolve(
+    checkEnvironmentVariable('GITHUB_APP_ID', {
+      severity: 'warning',
+      description:
+        'Required for GitHub App authentication. Should be your GitHub App ID (numeric)',
+      validator: (value: string) => {
+        if (Number.isNaN(Number.parseInt(value, 10))) {
+          return {
+            valid: false,
+            message: 'GITHUB_APP_ID must be a valid number',
+          };
+        }
+        return { valid: true };
+      },
+    }),
+  );
+}
+
+/**
+ * Individual health check for GITHUB_APP_PRIVATE_KEY
+ */
+function checkGitHubAppPrivateKey(): Promise<IHealthCheck> {
+  return Promise.resolve(
+    checkEnvironmentVariable('GITHUB_APP_PRIVATE_KEY', {
+      severity: 'warning',
+      description:
+        'Required for GitHub App authentication. Should be your GitHub App private key (PEM format)',
+      validator: (value: string) => {
+        const hasBeginMarker = value.includes('-----BEGIN');
+        const hasEndMarker = value.includes('-----END');
+        if (!hasBeginMarker || !hasEndMarker) {
+          return {
+            valid: false,
+            message:
+              'GITHUB_APP_PRIVATE_KEY must be in PEM format (should contain -----BEGIN and -----END markers)',
+          };
+        }
+        return { valid: true };
+      },
+    }),
+  );
+}
+
+/**
+ * Individual health check for GITHUB_APP_SLUG
+ */
+function checkGitHubAppSlug(): Promise<IHealthCheck> {
+  return Promise.resolve(
+    checkEnvironmentVariable('GITHUB_APP_SLUG', {
+      severity: 'info',
+      description:
+        'Optional: GitHub App slug (name) for generating installation URLs. Found in your GitHub App settings URL: github.com/settings/apps/{slug}',
+    }),
+  );
+}
+
+/**
  * Atomic health check function for process liveness.
  * Each check is independent and isolated - no shared state or side effects.
  */
@@ -228,6 +288,9 @@ router.get('/', async (c) => {
       encryptionKeyCheck,
       auth0ManagementApiClientIdCheck,
       auth0ManagementApiClientSecretCheck,
+      githubAppIdCheck,
+      githubAppPrivateKeyCheck,
+      githubAppSlugCheck,
       livenessCheck,
     ] = await Promise.all([
       checkViteAuth0Domain(),
@@ -236,6 +299,9 @@ router.get('/', async (c) => {
       checkEncryptionKey(),
       checkAuth0ManagementApiClientId(),
       checkAuth0ManagementApiClientSecret(),
+      checkGitHubAppId(),
+      checkGitHubAppPrivateKey(),
+      checkGitHubAppSlug(),
       checkLiveness(),
     ]);
 
@@ -246,6 +312,9 @@ router.get('/', async (c) => {
       encryptionKeyCheck,
       auth0ManagementApiClientIdCheck,
       auth0ManagementApiClientSecretCheck,
+      githubAppIdCheck,
+      githubAppPrivateKeyCheck,
+      githubAppSlugCheck,
       livenessCheck,
     ];
 

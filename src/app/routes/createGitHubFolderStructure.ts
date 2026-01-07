@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { createGitHubFolderStructure } from '@/utils/createGitHubFolderStructure.ts';
-import { getGitHubToken } from '@/app/services/auth0Service.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
@@ -15,6 +14,7 @@ interface ICreateGitHubFolderStructureBody {
   branch?: unknown;
   commitMessage?: unknown;
   projectName?: unknown;
+  method?: unknown;
 }
 
 const isCreateGitHubFolderStructureBody = (
@@ -94,6 +94,7 @@ router.post('/', async (c) => {
   const branch = body.branch;
   const commitMessage = body.commitMessage;
   const projectName = body.projectName;
+  const method = body.method;
 
   if (!Array.isArray(structure)) {
     return c.json(
@@ -120,19 +121,6 @@ router.post('/', async (c) => {
       {
         error: 'Missing required field',
         message: 'repo is required',
-      },
-      400,
-    );
-  }
-
-  const githubToken = await getGitHubToken(auth0UserId);
-
-  if (githubToken === null || githubToken === '') {
-    return c.json(
-      {
-        error: 'GitHub token not found',
-        message:
-          'Please set your GitHub token in the settings before uploading files',
       },
       400,
     );
@@ -176,7 +164,6 @@ router.post('/', async (c) => {
       structure,
       owner,
       repo,
-      githubToken,
       basePath:
         typeof basePath === 'string' && basePath !== '' ? basePath : undefined,
       branch: typeof branch === 'string' && branch !== '' ? branch : undefined,
@@ -188,6 +175,11 @@ router.post('/', async (c) => {
         typeof projectName === 'string' && projectName !== ''
           ? projectName
           : undefined,
+      method:
+        method === 'personal_token' || method === 'github_app'
+          ? method
+          : undefined,
+      auth0UserId,
     });
 
     return c.json(result);
