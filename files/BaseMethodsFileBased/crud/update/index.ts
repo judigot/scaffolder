@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 import fs from 'fs';
 import path from 'path';
 
-const currentDir = path.dirname(new URL(import.meta.url).pathname);
+const currentDir = __dirname;
 
 export default {
   methodName: fs.readFileSync(path.join(currentDir, 'methodName.txt'), 'utf8'),
