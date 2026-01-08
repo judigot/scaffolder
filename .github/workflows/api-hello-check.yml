@@ -18,23 +18,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.0
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
       - name: Install dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Build project
-        run: pnpm build
+        run: bun run build
 
       - name: Start server in background
         run: |
-          pnpm start &
+          bun start &
           echo $! > server.pid
         env:
           VITE_API_URL: api
