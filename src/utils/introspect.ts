@@ -1,12 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import type { DBTypes } from '@/interfaces/interfaces.ts';
 import { IGNORED_TABLES_LARAVEL } from '@/constants.ts';
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const readSqlFile = (filename: string): string => {
   return fs.readFileSync(path.join(__dirname, `../${filename}`), 'utf8');
