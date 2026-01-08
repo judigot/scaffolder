@@ -1,0 +1,114 @@
+name: API Hello Check
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-node:
+    name: Test /api/hello with Node.js
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Start server in background
+        run: |
+          pnpm start &
+          echo $! > server.pid
+        env:
+          VITE_API_URL: api
+          VITE_BACKEND_PORT: 3000
+          NODE_ENV: production
+
+      - name: Wait for server to be ready
+        run: |
+          timeout 30 bash -c 'until curl -f http://localhost:3000/api/hello; do sleep 1; done'
+
+      - name: Test /api/hello endpoint
+        run: |
+          response=$(curl -s http://localhost:3000/api/hello)
+          echo "Response: $response"
+          if echo "$response" | grep -q "Hello, world!"; then
+            echo "✓ /api/hello returned expected response"
+          else
+            echo "✗ /api/hello did not return expected response"
+            exit 1
+          fi
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
+
+  test-bun:
+    name: Test /api/hello with Bun
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build project
+        run: bun run build
+
+      - name: Start server in background
+        run: |
+          bun start &
+          echo $! > server.pid
+        env:
+          VITE_API_URL: api
+          VITE_BACKEND_PORT: 3000
+          NODE_ENV: production
+
+      - name: Wait for server to be ready
+        run: |
+          timeout 30 bash -c 'until curl -f http://localhost:3000/api/hello; do sleep 1; done'
+
+      - name: Test /api/hello endpoint
+        run: |
+          response=$(curl -s http://localhost:3000/api/hello)
+          echo "Response: $response"
+          if echo "$response" | grep -q "Hello, world!"; then
+            echo "✓ /api/hello returned expected response"
+          else
+            echo "✗ /api/hello did not return expected response"
+            exit 1
+          fi
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
