@@ -222,18 +222,6 @@ function checkGitHubAppPrivateKey(): Promise<IHealthCheck> {
   );
 }
 
-/**
- * Individual health check for GITHUB_APP_SLUG
- */
-function checkGitHubAppSlug(): Promise<IHealthCheck> {
-  return Promise.resolve(
-    checkEnvironmentVariable('GITHUB_APP_SLUG', {
-      severity: 'info',
-      description:
-        'Optional: GitHub App slug (name) for generating installation URLs. Found in your GitHub App settings URL: github.com/settings/apps/{slug}',
-    }),
-  );
-}
 
 /**
  * Atomic health check function for process liveness.
@@ -290,7 +278,6 @@ router.get('/', async (c) => {
       auth0ManagementApiClientSecretCheck,
       githubAppIdCheck,
       githubAppPrivateKeyCheck,
-      githubAppSlugCheck,
       livenessCheck,
     ] = await Promise.all([
       checkViteAuth0Domain(),
@@ -301,7 +288,6 @@ router.get('/', async (c) => {
       checkAuth0ManagementApiClientSecret(),
       checkGitHubAppId(),
       checkGitHubAppPrivateKey(),
-      checkGitHubAppSlug(),
       checkLiveness(),
     ]);
 
@@ -314,7 +300,6 @@ router.get('/', async (c) => {
       auth0ManagementApiClientSecretCheck,
       githubAppIdCheck,
       githubAppPrivateKeyCheck,
-      githubAppSlugCheck,
       livenessCheck,
     ];
 

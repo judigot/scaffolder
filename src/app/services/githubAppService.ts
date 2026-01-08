@@ -204,15 +204,20 @@ export async function getInstallationUrl(
   owner?: string,
   appJWT?: string,
 ): Promise<string> {
-  const appSlugEnv: unknown = process.env.GITHUB_APP_SLUG;
-  let appSlug: string | null =
-    typeof appSlugEnv === 'string' && appSlugEnv !== ''
-      ? appSlugEnv
-      : null;
+  let jwt = appJWT;
 
-  /* If app slug is not configured, try to get it from the API */
-  if (appSlug === null && appJWT !== undefined) {
-    appSlug = await getAppSlug(appJWT);
+  /* If appJWT is not provided, try to generate it from config */
+  if (jwt === undefined) {
+    const config = getGitHubAppConfig();
+    if (config !== null) {
+      jwt = getAppJWT(config.appId, config.privateKey);
+    }
+  }
+
+  /* Try to get app slug dynamically from the API */
+  let appSlug: string | null = null;
+  if (jwt !== undefined) {
+    appSlug = await getAppSlug(jwt);
   }
 
   /* If we still don't have a slug, use fallback */
