@@ -6,6 +6,8 @@ import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
 import type { DBTypes } from '@/interfaces/interfaces.ts';
 import { IGNORED_TABLES_LARAVEL } from '@/constants.ts';
 
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
 const readSqlFile = (filename: string): string => {
   return fs.readFileSync(path.join(__dirname, `../${filename}`), 'utf8');
 };
