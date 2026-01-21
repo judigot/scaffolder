@@ -1,4 +1,0 @@
-    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/each`, {
-      callback: callback.toString()
-    });
-    return response.data;

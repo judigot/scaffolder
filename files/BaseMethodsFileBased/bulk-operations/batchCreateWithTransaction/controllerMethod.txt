@@ -1,1 +1,0 @@
-{{methodNameCamelCase}}(Request $request) 

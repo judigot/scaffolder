@@ -1,4 +1,0 @@
-const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/batch-update`, {
-  records
-});
-return response.data; 

@@ -1,2 +1,0 @@
-// http://127.0.0.1:8000/api/{{url}} - Retrieves all {{tableNamePascalCaseSingular}} resources including soft-deleted ones
-Route::get('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.with-trashed');

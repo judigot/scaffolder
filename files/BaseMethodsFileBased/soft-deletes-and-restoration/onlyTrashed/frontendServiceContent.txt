@@ -1,2 +1,0 @@
-const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/only-trashed`);
-return response.data; 

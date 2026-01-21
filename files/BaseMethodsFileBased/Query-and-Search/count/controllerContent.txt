@@ -1,0 +1,5 @@
+
+        $criteria = $request->all();
+        $count = $this->service->{{methodName}}($criteria);
+        return response()->json(['count' => $count]);
+      

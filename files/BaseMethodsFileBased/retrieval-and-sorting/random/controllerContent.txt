@@ -1,3 +1,0 @@
-      $count = $request->input('count', 1);
-      $items = $this->service->{{methodNameCamelCase}}($count);
-      return response()->json($items);

@@ -1,3 +1,0 @@
-      $column = $request->input('column', 'created_at');
-      $item = $this->service->{{methodNameCamelCase}}($column);
-      return response()->json($item);

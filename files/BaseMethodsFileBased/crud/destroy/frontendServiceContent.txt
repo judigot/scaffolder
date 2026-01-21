@@ -1,2 +1,0 @@
-const response = await axiosInstance.delete(`{{tableNameKebabCasePlural}}/${id}`);
-return response.data; 

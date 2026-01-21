@@ -1,4 +1,0 @@
-const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/find-by-attributes`, {
-  attributes
-});
-return response.data; 

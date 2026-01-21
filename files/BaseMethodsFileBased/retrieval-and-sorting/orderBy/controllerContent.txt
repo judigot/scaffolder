@@ -1,4 +1,0 @@
-      $column = $request->input('column');
-      $direction = $request->input('direction', 'asc');
-      $items = $this->service->{{methodNameCamelCase}}($column, $direction);
-      return response()->json($items);

@@ -1,0 +1,1 @@
+{{methodName}}(array $attributes, array $values = []): Model

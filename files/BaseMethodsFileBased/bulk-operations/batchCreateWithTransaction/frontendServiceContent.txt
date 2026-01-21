@@ -1,4 +1,0 @@
-return axiosInstance.post('/{{tableNameKebabCasePlural}}/batch-create', {
-  dataArray: data,
-  options: options
-}); 

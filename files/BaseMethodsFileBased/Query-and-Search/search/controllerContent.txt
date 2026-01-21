@@ -1,0 +1,7 @@
+
+        $query = $request->input('query');
+        $fields = $request->input('fields', []);
+        $perPage = $request->input('per_page', 15);
+        $results = $this->service->{{methodName}}($query, $fields, $perPage);
+        return response()->json($results);
+      

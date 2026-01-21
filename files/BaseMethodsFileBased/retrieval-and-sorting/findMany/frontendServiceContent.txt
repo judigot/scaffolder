@@ -1,4 +1,0 @@
-const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/find-many`, {
-  ids
-});
-return response.data; 

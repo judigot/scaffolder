@@ -1,4 +1,0 @@
-const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/order-by`, {
-  params: { column, direction }
-});
-return response.data; 

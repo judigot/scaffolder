@@ -1,2 +1,0 @@
-// http://127.0.0.1:8000/api/{{url}} - Retrieves a specific {{tableNamePascalCaseSingular}} resource by ID
-Route::get('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, 'show'])->name('{{tableNameKebabCasePlural}}.show');

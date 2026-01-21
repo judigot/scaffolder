@@ -1,4 +1,0 @@
-      $result = $this->service->{{methodNameCamelCase}}($id);
-      return $result
-            ? response()->json(['message' => 'Resource soft-deleted'])
-            : response()->json(['message' => 'Resource not found'], 404);

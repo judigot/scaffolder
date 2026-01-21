@@ -1,3 +1,0 @@
-
-        $record = $this->model->find($id);
-        return $record ? $record->delete() : false;

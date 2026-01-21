@@ -1,1 +1,0 @@
-{{methodNameCamelCase}}(int $count = 1): Collection

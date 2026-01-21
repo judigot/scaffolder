@@ -1,4 +1,0 @@
-        $callback = function ($item) {
-            return response()->json($item);
-        };
-        $this->service->{{methodNameCamelCase}}($callback);

@@ -1,1 +1,0 @@
-(query, options = {}): Promise<unknown>

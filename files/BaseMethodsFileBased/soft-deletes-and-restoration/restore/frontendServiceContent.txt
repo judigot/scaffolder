@@ -1,2 +1,0 @@
-const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/${id}/restore`);
-return response.data; 

@@ -1,0 +1,206 @@
+name: Deploy Health Check
+
+on:
+  deployment:
+    branches: [main, master]
+    types: [created]
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'tsconfig.*.json'
+      - 'vite.config.*'
+
+env:
+  DEPLOY_URL: https://app-scaffolder.vercel.app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment-url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Check build output
+        run: |
+          echo "Checking build artifacts..."
+          if [ ! -d "api" ]; then
+            echo "❌ Build output directory 'api' not found"
+            exit 1
+          fi
+
+          if [ ! -f "api/index.js" ]; then
+            echo "❌ Build output file 'api/index.js' not found"
+            exit 1
+          fi
+
+          echo "✅ Build artifacts verified"
+
+      - name: Deploy to Vercel
+        id: deploy
+        uses: vercel/action@v1
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+  health-check:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: needs.build-and-deploy.result == 'success'
+
+    steps:
+      - name: Wait for deployment propagation
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 30
+
+      - name: Install curl and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+
+      - name: Test critical API endpoints
+        id: test-endpoints
+        run: |
+          echo "🔍 Testing critical API endpoints..."
+
+          # Function to test endpoint
+          test_endpoint() {
+            local url="$1"
+            local name="$2"
+            local expected_status="${3:-200}"
+            
+            echo "Testing $name: $url"
+            
+            # Get HTTP status code and response time
+            response=$(curl -s -w "HTTPSTATUS:%{http_code};TIME:%{time_total}" "$url")
+            http_code=$(echo "$response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+            time_total=$(echo "$response" | grep -o "TIME:[0-9.]*" | cut -d: -f2)
+            
+            echo "Status: $http_code, Response time: ${time_total}s"
+            
+            if [ "$http_code" = "$expected_status" ]; then
+              echo "✅ $name is healthy"
+              echo "$name=healthy" >> $GITHUB_OUTPUT
+              echo "$name-status=$http_code" >> $GITHUB_OUTPUT
+              echo "$name-time=$time_total" >> $GITHUB_OUTPUT
+            else
+              echo "❌ $name failed (expected $expected_status, got $http_code)"
+              echo "$name=unhealthy" >> $GITHUB_OUTPUT
+              echo "$name-status=$http_code" >> $GITHUB_OUTPUT
+            fi
+          }
+
+          # Test critical endpoints
+          test_endpoint "${{ env.DEPLOY_URL }}/api/hello" "Hello API"
+          test_endpoint "${{ env.DEPLOY_URL }}/api/health" "Health API"
+          test_endpoint "${{ env.DEPLOY_URL }}/" "Main App"
+
+      - name: Validate responses
+        run: |
+          echo "🔬 Validating API responses..."
+
+          # Test that /api/hello returns valid response
+          hello_response=$(curl -s "${{ env.DEPLOY_URL }}/api/hello")
+          if echo "$hello_response" | grep -q "Hello\|World\|API"; then
+            echo "✅ Hello API response is valid"
+          else
+            echo "❌ Hello API response is invalid: $hello_response"
+            echo "Hello API returned unexpected content"
+            exit 1
+          fi
+
+          # Test that /api/health returns health status
+          health_response=$(curl -s "${{ env.DEPLOY_URL }}/api/health")
+          if echo "$health_response" | grep -q "healthy\|ok\|status"; then
+            echo "✅ Health API response is valid"
+          else
+            echo "❌ Health API response is invalid: $health_response"
+            exit 1
+          fi
+
+      - name: Performance check
+        run: |
+          echo "⚡ Checking performance..."
+
+          # Check response times from previous step
+          if [ "${{ steps.test-endpoints.outputs.Hello-API-time }}" != "" ] && \
+             [ "${{ steps.test-endpoints.outputs.Health-API-time }}" != "" ]; then
+            
+            hello_time="${{ steps.test-endpoints.outputs.Hello-API-time }}"
+            health_time="${{ steps.test-endpoints.outputs.Health-API-time }}"
+            
+            # Convert to milliseconds and check threshold (3 seconds)
+            if (( $(echo "$hello_time < 3.0" | bc -l) )) && \
+               (( $(echo "$health_time < 3.0" | bc -l) )); then
+              echo "✅ All endpoints responding within acceptable time"
+            else
+              echo "⚠️ Some endpoints responding slowly"
+              echo "Hello API: ${hello_time}s"
+              echo "Health API: ${health_time}s"
+            fi
+          fi
+
+      - name: Final health check report
+        run: |
+          echo ""
+          echo "## 📊 Deployment Health Report"
+          echo "**Deployment URL:** ${{ env.DEPLOY_URL }}"
+          echo "**Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo ""
+          echo "### Endpoint Status:"
+          echo "| Endpoint | Status | Response Time |"
+          echo "|----------|--------|---------------|"
+          echo "| /api/hello | ${{ steps.test-endpoints.outputs.Hello-API == 'healthy' && '✅ Healthy' || '❌ Unhealthy' }} | ${{ steps.test-endpoints.outputs.Hello-API-time }}s |"
+          echo "| /api/health | ${{ steps.test-endpoints.outputs.Health-API == 'healthy' && '✅ Healthy' || '❌ Unhealthy' }} | ${{ steps.test-endpoints.outputs.Health-API-time }}s |"
+          echo "| / | ${{ steps.test-endpoints.outputs.Main-App == 'healthy' && '✅ Healthy' || '❌ Unhealthy' }} | ${{ steps.test-endpoints.outputs.Main-App-time }}s |"
+          echo ""
+
+          # Exit with error if any endpoint is unhealthy
+          if [ "${{ steps.test-endpoints.outputs.Hello-API }}" != "healthy" ] || \
+             [ "${{ steps.test-endpoints.outputs.Health-API }}" != "healthy" ] || \
+             [ "${{ steps.test-endpoints.outputs.Main-App }}" != "healthy" ]; then
+            echo "❌ Deployment health check failed"
+            exit 1
+          else
+            echo "✅ All health checks passed"
+          fi
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [build-and-deploy, health-check]
+    if: always()
+
+    steps:
+      - name: Deployment success notification
+        if: needs.health-check.result == 'success'
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "📊 Health checks: All passed"
+          echo "🌐 URL: ${{ env.DEPLOY_URL }}"
+
+      - name: Deployment failure notification
+        if: needs.health-check.result == 'failure'
+        run: |
+          echo "❌ Deployment failed or health checks failed!"
+          echo "🌐 URL: ${{ env.DEPLOY_URL }}"
+          echo "🔍 Check Vercel logs for details: https://vercel.com/dashboard"
+          exit 1

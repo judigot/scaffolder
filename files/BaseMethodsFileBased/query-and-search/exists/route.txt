@@ -1,2 +1,0 @@
-// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}?{{getAllColumns()[0]}}=value&{{getAllColumns()[1]}}=value - Checks if a {{tableNamePascalCaseSingular}} resource exists based on provided criteria
-Route::get('{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');

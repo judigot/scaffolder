@@ -1,0 +1,1 @@
+whereBetween(string $column, array $range): Collection

@@ -1,0 +1,4 @@
+
+        $item = $this->service->{{methodName}}($request->all());
+        return response()->json($item, 201);
+      

@@ -1,3 +1,0 @@
-      $attributes = $request->all();
-      $item = $this->service->{{methodNameCamelCase}}($attributes);
-      return $item ? response()->json($item) : response()->json(['message' => 'Resource not found'], 404);

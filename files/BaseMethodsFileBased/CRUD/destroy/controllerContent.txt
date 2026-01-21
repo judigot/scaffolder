@@ -1,0 +1,4 @@
+
+        $deleted = $this->service->{{methodName}}($id);
+        return $deleted ? response()->json(['message' => 'Resource deleted']) : response()->json(['message' => 'Resource not found'], 404);
+      

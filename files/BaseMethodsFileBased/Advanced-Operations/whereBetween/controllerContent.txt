@@ -1,0 +1,6 @@
+
+        $column = $request->input('column');
+        $range = $request->input('range', []);
+        $items = $this->service->whereBetween($column, $range);
+        return response()->json($items);
+      

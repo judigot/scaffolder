@@ -1,0 +1,5 @@
+
+      $ids = $request->input('ids', []);
+      $items = $this->service->{{methodName}}($ids);
+      return response()->json($items);
+      

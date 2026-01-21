@@ -1,0 +1,1 @@
+whereNotIn(string $column, array $values): Collection

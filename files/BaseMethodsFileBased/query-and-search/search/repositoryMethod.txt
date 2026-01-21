@@ -1,1 +1,0 @@
-{{methodNameCamelCase}}(string $query, array $fields, int $perPage = 15)

@@ -1,1 +1,0 @@
-{{methodNameCamelCase}}(int $id, array $data): bool

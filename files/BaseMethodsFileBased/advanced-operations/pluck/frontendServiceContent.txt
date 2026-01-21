@@ -1,4 +1,0 @@
-const response = await axiosInstance.get(`{{url}}`, {
-  params: { column, key }
-});
-return response.data; 

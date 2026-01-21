@@ -1,0 +1,6 @@
+
+        $column = $request->input('column');
+        $key = $request->input('key', null);
+        $values = $this->service->pluck($column, $key);
+        return response()->json($values);
+      

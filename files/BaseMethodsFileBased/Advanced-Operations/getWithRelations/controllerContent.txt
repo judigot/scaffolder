@@ -1,0 +1,5 @@
+
+        $relations = $request->input('relations', []);
+        $items = $this->service->{{methodName}}($relations);
+        return response()->json($items);
+      

@@ -1,3 +1,0 @@
-
-        $record = $this->model->onlyTrashed()->find($id);
-        return $record ? $record->{{methodNameCamelCase}}() : false;

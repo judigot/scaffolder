@@ -1,0 +1,6 @@
+
+      $restored = $this->service->{{methodName}}($id);
+      return $restored
+            ? response()->json(['message' => 'Resource restored'])
+            : response()->json(['message' => 'Resource not found'], 404);
+      

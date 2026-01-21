@@ -1,5 +1,0 @@
-        $size = $request->input('size', 100);
-        $callback = function ($items) {
-            return response()->json($items);
-        };
-        $this->service->{{methodNameCamelCase}}($size, $callback);

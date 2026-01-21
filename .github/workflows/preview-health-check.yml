@@ -1,0 +1,74 @@
+name: Vercel Preview Health Check
+
+on:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+
+env:
+  VERCEL_URL: https://${{ github.event.pull_request.number }}-${{ github.repository_owner }}-${{ github.event.repository.name }}.vercel.app
+
+jobs:
+  preview-health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for Vercel preview
+        run: |
+          echo "⏳ Waiting for Vercel preview deployment..."
+          sleep 60
+
+      - name: Test preview deployment
+        run: |
+          echo "🔍 Testing preview deployment: ${{ env.VERCEL_URL }}"
+
+          # Test if preview deployment is accessible
+          status=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.VERCEL_URL }}")
+
+          if [ "$status" = "200" ]; then
+            echo "✅ Preview deployment is accessible"
+            
+            # Test API endpoints on preview
+            hello_status=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.VERCEL_URL }}/api/hello")
+            health_status=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.VERCEL_URL }}/api/health")
+            
+            echo "Hello API: $hello_status"
+            echo "Health API: $health_status"
+            
+            if [ "$hello_status" = "200" ] && [ "$health_status" = "200" ]; then
+              echo "✅ All API endpoints working on preview"
+            else
+              echo "⚠️ Some API endpoints not working on preview"
+            fi
+          else
+            echo "❌ Preview deployment not accessible (status: $status)"
+            exit 1
+          fi
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const vercelUrl = '${{ env.VERCEL_URL }}';
+
+            const comment = `
+            ## 🚀 Preview Deployment Status
+
+            **URL:** ${vercelUrl}
+            **Status:** ${status === 'success' ? '✅ Healthy' : '❌ Failed'}
+
+            ### API Endpoints:
+            - [Hello API](${vercelUrl}/api/hello)
+            - [Health API](${vercelUrl}/api/health)
+
+            ---
+            *This comment will be updated as the preview deployment progresses.*
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

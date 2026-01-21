@@ -1,5 +1,0 @@
-const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/chunk`, {
-    data,
-    chunkSize
-});
-return response.data;

@@ -1,1 +1,0 @@
-(searchCriteria, values = {}): Promise<unknown>
