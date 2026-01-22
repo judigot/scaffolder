@@ -19,11 +19,11 @@ import {
 	validateSchemaInfoFromResponse,
 } from "@/utils/schemaInfoValidator.ts";
 
-interface ChatMessageProps {
+interface IChatMessageProps {
 	message: UIMessage;
 }
 
-function ChatMessage({ message }: ChatMessageProps) {
+function ChatMessage({ message }: IChatMessageProps) {
 	const isUser = message.role === "user";
 
 	return (
@@ -39,27 +39,30 @@ function ChatMessage({ message }: ChatMessageProps) {
 					if (part.type === "text") {
 						// Remove hidden schemaInfo from display
 						const displayText = removeHiddenSchemaFromText(part.text);
-						if (!displayText) return null;
+						if (!displayText) {return null;}
 
 						return (
 							<div
-								key={`${message.id}-${index}`}
+								key={`message-${message.id}-${String(index)}`}
 								className="text-sm prose prose-invert prose-sm max-w-none"
 							>
 								<Markdown
 									components={{
-										code({ className, children, ...props }) {
+										code(codeProps) {
+											const { className } = codeProps;
+											const childrenValue = codeProps.children;
+											// eslint-disable-next-line @typescript-eslint/no-base-to-string
+											const children = String(childrenValue);
 											const match = /language-(\w+)/.exec(className ?? "");
-											const codeString = String(children).replace(/\n$/, "");
+											const codeString = children.replace(/\n$/, "");
 
 											// Check if it's an inline code or block code
-											const isInline = !className && !codeString.includes("\n");
+											const isInline = className === undefined && !codeString.includes("\n");
 
 											if (isInline) {
 												return (
 													<code
 														className="bg-gray-800 px-1.5 py-0.5 rounded text-blue-300 text-xs"
-														{...props}
 													>
 														{children}
 													</code>
@@ -135,7 +138,7 @@ function ChatMessage({ message }: ChatMessageProps) {
 					}
 					if (part.type === "reasoning") {
 						return (
-							<details key={`${message.id}-${index}`} className="mt-2">
+							<details key={`reasoning-${message.id}-${String(index)}`} className="mt-2">
 								<summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">
 									View reasoning
 								</summary>
@@ -152,12 +155,12 @@ function ChatMessage({ message }: ChatMessageProps) {
 	);
 }
 
-interface ChatMessagesProps {
+interface IChatMessagesProps {
 	messages: UIMessage[];
 	isLoading: boolean;
 }
 
-function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
+function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -381,21 +384,21 @@ function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
 	);
 }
 
-interface ChatInputProps {
+interface IChatInputProps {
 	input: string;
 	onChange: (value: string) => void;
 	onSubmit: (e: React.FormEvent) => void;
 	isLoading: boolean;
 }
 
-function ChatInput({ input, onChange, onSubmit, isLoading }: ChatInputProps) {
+function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
 	const adjustHeight = useCallback(() => {
 		const textarea = textareaRef.current;
 		if (textarea) {
 			textarea.style.height = "auto";
-			textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+			textarea.style.height = `${String(Math.min(textarea.scrollHeight, 200))}px`;
 		}
 	}, []);
 
@@ -485,12 +488,12 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: ChatInputProps) {
 	);
 }
 
-interface ChatErrorProps {
+interface IChatErrorProps {
 	error: Error;
 	onRetry: () => void;
 }
 
-function ChatError({ error, onRetry }: ChatErrorProps) {
+function ChatError({ error, onRetry }: IChatErrorProps) {
 	// Parse error message for user-friendly display
 	const getErrorInfo = (err: Error) => {
 		const message = err.message;
@@ -575,7 +578,7 @@ function extractSchemaFromMessages(
 	// Search messages from newest to oldest to find the latest valid schema
 	for (let i = messages.length - 1; i >= 0; i--) {
 		const message = messages[i];
-		if (message.role !== "assistant") continue;
+		if (message.role !== "assistant") {continue;}
 
 		// Get full text content from message parts
 		const fullText = message.parts
@@ -629,12 +632,14 @@ export function AIChatContainer() {
 	const reload = () => {
 		// Reload last message by stopping and resubmitting
 		if (messages.length > 0) {
+			// eslint-disable-next-line @typescript-eslint/no-floating-promises
 			stop();
 			const lastUserMessage = [...messages]
 				.reverse()
 				.find((m) => m.role === "user");
-			if (lastUserMessage?.parts[0]?.type === "text") {
-				sendMessage({ text: lastUserMessage.parts[0].text });
+			const firstPart = lastUserMessage?.parts[0];
+			if (firstPart && firstPart.type === "text") {
+				void sendMessage({ text: firstPart.text });
 			}
 		}
 	};
@@ -649,26 +654,25 @@ export function AIChatContainer() {
 	// Set default project when projects load
 	useEffect(() => {
 		if (appGeneratorProjects.length > 0 && selectedProject === null) {
-			selectProject(appGeneratorProjects[0]);
+			const firstProject = appGeneratorProjects[0];
+			// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+			if (firstProject !== undefined) {
+				 
+				selectProject(firstProject);
+			}
 		}
 	}, [appGeneratorProjects, selectedProject, selectProject]);
 
 	// Extract schema from messages when not loading (streaming complete)
 	const extractedSchema = useMemo(() => {
-		if (isLoading) return null;
+		if (isLoading) {return null;}
 		const schema = extractSchemaFromMessages(messages);
-		if (schema !== null) {
-			console.log("[AI Chat] Extracted schema from AI:", schema);
-		}
 		return schema;
 	}, [messages, isLoading]);
 
 	// Update global schemaInfo when AI generates a schema - EXACTLY like SchemaBuilder does!
 	useEffect(() => {
 		if (extractedSchema !== null) {
-			console.log(
-				"[AI Chat] Updating global schemaInfo with AI-generated schema",
-			);
 			setSchemaInfo(extractedSchema);
 			// Auto-expand FileViewer when new schema is generated
 			setIsFileViewerMinimized(false);
@@ -685,18 +689,18 @@ export function AIChatContainer() {
 			hasSelectedProject && hasUser && hasUserFiles && hasSchema;
 
 		if (canBuildProject) {
-			console.log(
-				"[AI Chat] Building project with global schemaInfo:",
-				schemaInfo,
-			);
-			void (async () => {
+			const buildProject = async () => {
 				const result = await buildProjectFilesForProject(
 					selectedProject,
 					schemaInfo, // Use GLOBAL schemaInfo, not extractedSchema
 					decryptedMetadata ?? null,
 				);
 				setBuildResult(result);
-			})();
+			};
+
+			buildProject().catch((err: unknown) => {
+				console.error("Failed to build project:", err);
+			});
 		} else {
 			setBuildResult({
 				structure: [],
@@ -715,8 +719,8 @@ export function AIChatContainer() {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (input.trim() && !isLoading) {
-			sendMessage({ text: input });
+		if (input.trim().length > 0 && !isLoading) {
+			void sendMessage({ text: input });
 			setInput("");
 		}
 	};
@@ -738,15 +742,6 @@ export function AIChatContainer() {
 		builtProjectFiles.length > 0 &&
 		selectedProject !== null;
 
-	// Debug logging
-	useEffect(() => {
-		console.log("[AI Chat] FileViewer visibility check:", {
-			schemaInfoLength: schemaInfo.length,
-			builtProjectFilesLength: builtProjectFiles.length,
-			selectedProject: selectedProject?.name ?? "null",
-			shouldShowFileViewer,
-		});
-	}, [schemaInfo, builtProjectFiles, selectedProject, shouldShowFileViewer]);
 
 	// Keyboard shortcut: Ctrl+B to toggle FileViewer (like VS Code)
 	useEffect(() => {
@@ -760,7 +755,7 @@ export function AIChatContainer() {
 		};
 
 		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
+		return () => { window.removeEventListener("keydown", handleKeyDown); };
 	}, [shouldShowFileViewer]);
 
 	return (
@@ -776,7 +771,7 @@ export function AIChatContainer() {
 						/* Minimized state - vertical tab */
 						<button
 							type="button"
-							onClick={() => setIsFileViewerMinimized(false)}
+							onClick={() => { setIsFileViewerMinimized(false); }}
 							className="flex-1 flex flex-col items-center justify-center gap-4 py-6 hover:bg-gray-700/50 transition-all duration-200 group"
 							title="Expand Code View"
 						>
@@ -800,7 +795,8 @@ export function AIChatContainer() {
 								Code
 							</span>
 						</button>
-					) : (
+					) : /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions */
+					selectedProject ? (
 						/* Expanded state */
 						<>
 							<div className="flex items-center justify-between px-6 py-4 bg-gray-900/50 backdrop-blur-sm border-b border-gray-700/50">
@@ -830,7 +826,7 @@ export function AIChatContainer() {
 								</div>
 								<button
 									type="button"
-									onClick={() => setIsFileViewerMinimized(true)}
+									onClick={() => { setIsFileViewerMinimized(true); }}
 									className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700/50 rounded-lg"
 									title="Minimize"
 								>
@@ -860,7 +856,7 @@ export function AIChatContainer() {
 								/>
 							</div>
 						</>
-					)}
+					) : null}
 				</div>
 			)}
 

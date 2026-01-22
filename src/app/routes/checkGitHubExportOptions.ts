@@ -84,7 +84,9 @@ router.post('/', async (c) => {
     const { data: ownerData } = await publicOctokit.users.getByUsername({
       username: owner,
     });
-    ownerType = ownerData.type as 'User' | 'Organization';
+    if (ownerData.type === 'User' || ownerData.type === 'Organization') {
+      ownerType = ownerData.type;
+    }
   } catch {
     /* Could not determine owner type */
   }

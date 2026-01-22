@@ -4,7 +4,7 @@ import {
 	validateSchemaInfo,
 	parseAndValidateSchemaInfo,
 	extractSchemaInfoFromResponse,
-	validateSchemaInfoFromResponse,
+	type SchemaInfo,
 } from "@/utils/schemaInfoValidator.ts";
 
 const app = new Hono();
@@ -18,12 +18,25 @@ app.use("*", cors());
  */
 app.post("/", async (c) => {
 	try {
-		const body = await c.req.json();
-		const { schemaInfo } = body as { schemaInfo: unknown };
+		const body: unknown = await c.req.json();
 
-		if (!schemaInfo) {
+		if (typeof body !== 'object' || body === null || !('schemaInfo' in body)) {
 			return c.json({ error: "schemaInfo is required" }, 400);
 		}
+
+		interface IRequestBody {
+			schemaInfo: unknown;
+		}
+
+		function isRequestBody(obj: object): obj is IRequestBody {
+			return 'schemaInfo' in obj;
+		}
+
+		if (!isRequestBody(body)) {
+			return c.json({ error: "schemaInfo is required" }, 400);
+		}
+
+		const { schemaInfo } = body;
 
 		const result = validateSchemaInfo(schemaInfo);
 
@@ -32,7 +45,7 @@ app.post("/", async (c) => {
 				valid: true,
 				message: "Schema is valid",
 				tableCount: result.data?.length ?? 0,
-				tables: result.data?.map((t) => t.tableName) ?? [],
+				tables: result.data?.map((t: SchemaInfo) => t.tableName) ?? [],
 			});
 		}
 
@@ -54,10 +67,27 @@ app.post("/", async (c) => {
  */
 app.post("/json", async (c) => {
 	try {
-		const body = await c.req.json();
-		const { json } = body as { json: string };
+		const body: unknown = await c.req.json();
 
-		if (!json || typeof json !== "string") {
+		if (typeof body !== 'object' || body === null || !('json' in body)) {
+			return c.json({ error: "json string is required" }, 400);
+		}
+
+		interface IRequestBody {
+			json: unknown;
+		}
+
+		function isRequestBody(obj: object): obj is IRequestBody {
+			return 'json' in obj;
+		}
+
+		if (!isRequestBody(body)) {
+			return c.json({ error: "json string is required" }, 400);
+		}
+
+		const { json } = body;
+
+		if (typeof json !== "string" || json.length === 0) {
 			return c.json({ error: "json string is required" }, 400);
 		}
 
@@ -68,7 +98,7 @@ app.post("/json", async (c) => {
 				valid: true,
 				message: "Schema is valid",
 				tableCount: result.data?.length ?? 0,
-				tables: result.data?.map((t) => t.tableName) ?? [],
+				tables: result.data?.map((t: SchemaInfo) => t.tableName) ?? [],
 				schemaInfo: result.data,
 			});
 		}
@@ -91,16 +121,33 @@ app.post("/json", async (c) => {
  */
 app.post("/extract", async (c) => {
 	try {
-		const body = await c.req.json();
-		const { responseText } = body as { responseText: string };
+		const body: unknown = await c.req.json();
 
-		if (!responseText || typeof responseText !== "string") {
+		if (typeof body !== 'object' || body === null || !('responseText' in body)) {
+			return c.json({ error: "responseText is required" }, 400);
+		}
+
+		interface IRequestBody {
+			responseText: unknown;
+		}
+
+		function isRequestBody(obj: object): obj is IRequestBody {
+			return 'responseText' in obj;
+		}
+
+		if (!isRequestBody(body)) {
+			return c.json({ error: "responseText is required" }, 400);
+		}
+
+		const { responseText } = body;
+
+		if (typeof responseText !== "string" || responseText.length === 0) {
 			return c.json({ error: "responseText is required" }, 400);
 		}
 
 		const extracted = extractSchemaInfoFromResponse(responseText);
 
-		if (!extracted) {
+		if (extracted === null) {
 			return c.json({
 				valid: false,
 				extracted: false,
@@ -116,7 +163,7 @@ app.post("/extract", async (c) => {
 				extracted: true,
 				message: "Schema extracted and validated successfully",
 				tableCount: result.data?.length ?? 0,
-				tables: result.data?.map((t) => t.tableName) ?? [],
+				tables: result.data?.map((t: SchemaInfo) => t.tableName) ?? [],
 				schemaInfo: result.data,
 			});
 		}

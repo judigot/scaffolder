@@ -59,7 +59,7 @@ export function generateSchemaPreview(schemaInfo: ISchemaInfo[]): IStructure {
  */
 function generateTypescriptInterfacesPreview(schemaInfo: ISchemaInfo[]): string {
 	const interfaces = schemaInfo.map((table) => {
-		const interfaceName = changeCase(table.tableName, "PascalCase");
+		const interfaceName = changeCase(table.tableName).pascalCase;
 		const properties = table.columnsInfo
 			.map((col) => {
 				const tsType = mapDataTypeToTypescript(col.data_type);
@@ -97,9 +97,9 @@ function generateSQLSchemaPreview(schemaInfo: ISchemaInfo[]): string {
 			.map((col) => {
 				const sqlType = mapDataTypeToSQL(col.data_type);
 				const nullable = col.is_nullable === "NO" ? " NOT NULL" : "";
-				const primaryKey = col.primary_key ? " PRIMARY KEY" : "";
-				const unique = col.unique ? " UNIQUE" : "";
-				const defaultVal = col.column_default ? ` DEFAULT ${col.column_default}` : "";
+				const primaryKey = col.primary_key === true ? " PRIMARY KEY" : "";
+				const unique = col.unique === true ? " UNIQUE" : "";
+				const defaultVal = col.column_default !== undefined && col.column_default !== null ? ` DEFAULT ${col.column_default}` : "";
 
 				return `  "${col.column_name}" ${sqlType}${nullable}${primaryKey}${unique}${defaultVal}`;
 			})
@@ -107,10 +107,10 @@ function generateSQLSchemaPreview(schemaInfo: ISchemaInfo[]): string {
 
 		// Add foreign key constraints
 		const foreignKeys = table.columnsInfo
-			.filter((col) => col.foreign_key)
+			.filter((col) => col.foreign_key !== undefined)
 			.map((col) => {
 				const fk = col.foreign_key;
-				return `  FOREIGN KEY ("${col.column_name}") REFERENCES "${fk?.foreign_table_name}"("${fk?.foreign_column_name}")`;
+				return `  FOREIGN KEY ("${col.column_name}") REFERENCES "${fk?.foreign_table_name ?? ""}"("${fk?.foreign_column_name ?? ""}")`;
 			});
 
 		const allConstraints = foreignKeys.length > 0 ? `,\n${foreignKeys.join(",\n")}` : "";
@@ -144,22 +144,22 @@ function generateSchemaSummary(schemaInfo: ISchemaInfo[]): string {
 			const columnCount = table.columnsInfo.length;
 			const relationships: string[] = [];
 
-			if (table.hasOne?.length) {
-				relationships.push(`has one: ${table.hasOne.join(", ")}`);
+			if ((table.hasOne?.length ?? 0) > 0) {
+				relationships.push(`has one: ${table.hasOne?.join(", ") ?? ""}`);
 			}
-			if (table.hasMany?.length) {
-				relationships.push(`has many: ${table.hasMany.join(", ")}`);
+			if ((table.hasMany?.length ?? 0) > 0) {
+				relationships.push(`has many: ${table.hasMany?.join(", ") ?? ""}`);
 			}
-			if (table.belongsTo?.length) {
-				relationships.push(`belongs to: ${table.belongsTo.join(", ")}`);
+			if ((table.belongsTo?.length ?? 0) > 0) {
+				relationships.push(`belongs to: ${table.belongsTo?.join(", ") ?? ""}`);
 			}
-			if (table.belongsToMany?.length) {
-				relationships.push(`belongs to many: ${table.belongsToMany.join(", ")}`);
+			if ((table.belongsToMany?.length ?? 0) > 0) {
+				relationships.push(`belongs to many: ${table.belongsToMany?.join(", ") ?? ""}`);
 			}
 
 			const relText = relationships.length > 0 ? `\n  - ${relationships.join("\n  - ")}` : "";
 
-			return `- **${table.tableName}** (${columnCount} columns)${relText}`;
+			return `- **${table.tableName}** (${String(columnCount)} columns)${relText}`;
 		})
 		.join("\n");
 
@@ -171,7 +171,7 @@ ${tableList}
 
 ## Total
 
-- ${schemaInfo.length} table(s)
-- ${schemaInfo.reduce((acc, t) => acc + t.columnsInfo.length, 0)} column(s)
+- ${String(schemaInfo.length)} table(s)
+- ${String(schemaInfo.reduce((acc, t) => acc + t.columnsInfo.length, 0))} column(s)
 `;
 }

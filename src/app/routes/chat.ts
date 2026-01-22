@@ -1,6 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText } from "ai";
-import type { UIMessage } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
@@ -85,16 +84,35 @@ app.use("*", cors());
 
 app.post("/", async (c) => {
 	try {
-		const { messages } = (await c.req.json()) as { messages: UIMessage[] };
+		const body: unknown = await c.req.json();
 
-		if (!messages || !Array.isArray(messages)) {
+		if (typeof body !== 'object' || body === null || !('messages' in body)) {
+			return c.json({ error: "Invalid request body" }, 400);
+		}
+
+		interface IRequestBody {
+			messages: unknown;
+		}
+
+		function isRequestBody(obj: object): obj is IRequestBody {
+			return 'messages' in obj;
+		}
+
+		if (!isRequestBody(body)) {
+			return c.json({ error: "Invalid request body" }, 400);
+		}
+
+		if (!Array.isArray(body.messages)) {
 			return c.json({ error: "Invalid messages format" }, 400);
 		}
+
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+		const convertedMessages = await convertToModelMessages(body.messages);
 
 		const result = streamText({
 			model: anthropic("claude-3-haiku-20240307"),
 			system: SCHEMA_BUILDER_SYSTEM_PROMPT,
-			messages: await convertToModelMessages(messages),
+			messages: convertedMessages,
 			temperature: 0.7,
 		});
 

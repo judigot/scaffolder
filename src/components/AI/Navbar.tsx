@@ -4,21 +4,12 @@ interface IServerConfigStatus {
 	auth0ManagementApiConfigured?: boolean;
 }
 
-interface IUser {
-	sub?: string;
-	email?: string;
-	name?: string;
-	picture?: string;
-	[key: string]: unknown;
-}
-
-interface NavbarProps {
-	user: IUser | null;
+interface INavbarProps {
 	isUserLoading: boolean;
 	serverConfigStatus: IServerConfigStatus | null;
 }
 
-function Navbar({ isUserLoading, serverConfigStatus }: NavbarProps) {
+function Navbar({ isUserLoading, serverConfigStatus }: INavbarProps) {
 	const showConfigBanner =
 		!isUserLoading &&
 		serverConfigStatus !== null &&

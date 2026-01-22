@@ -74,13 +74,20 @@ function GitHubExportModal({
           throw new Error('Failed to fetch export options');
         }
 
-        const data = (await response.json()) as IExportOptionsResponse;
-        setOptions(data);
+        const data: unknown = await response.json();
 
-        /* Auto-select recommended method */
-        const recommendedOption = data.options.find((o) => o.recommended);
-        if (recommendedOption !== undefined) {
-          setSelectedMethod(recommendedOption.method);
+        function isExportOptionsResponse(obj: unknown): obj is IExportOptionsResponse {
+          return typeof obj === 'object' && obj !== null && 'options' in obj && 'owner' in obj && 'ownerType' in obj;
+        }
+
+        if (isExportOptionsResponse(data)) {
+          setOptions(data);
+
+          /* Auto-select recommended method */
+          const recommendedOption = data.options.find((o) => o.recommended);
+          if (recommendedOption !== undefined) {
+            setSelectedMethod(recommendedOption.method);
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -114,7 +121,7 @@ function GitHubExportModal({
 
     /* Poll for installation */
     const pollInterval = setInterval(() => {
-      void (async () => {
+      const checkInstallation = async () => {
         try {
           const response = await fetch(`${getApiUrl()}/check-github-app-installation`, {
             method: 'POST',
@@ -126,8 +133,17 @@ function GitHubExportModal({
           });
 
           if (response.ok) {
-            const data = (await response.json()) as { installed?: boolean };
-            if (data.installed === true) {
+            const data: unknown = await response.json();
+
+            interface IInstallData {
+              installed?: boolean;
+            }
+
+            function isInstallData(obj: unknown): obj is IInstallData {
+              return typeof obj === 'object' && obj !== null && 'installed' in obj;
+            }
+
+            if (isInstallData(data) && data.installed === true) {
               clearInterval(pollInterval);
               setIsWaitingForInstall(false);
               onSelectMethod('github_app');
@@ -136,7 +152,11 @@ function GitHubExportModal({
         } catch {
           /* Continue polling */
         }
-      })();
+      };
+
+      checkInstallation().catch(() => {
+        /* Continue polling */
+      });
     }, 2000);
 
     /* Clear after 5 minutes */

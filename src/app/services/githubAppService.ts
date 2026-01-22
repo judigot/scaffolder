@@ -84,7 +84,11 @@ async function getInstallationId(
 
     /* If no exact match, try to find any installation */
     if (installations.data.length > 0) {
-      return installations.data[0]?.id ?? null;
+      const firstInstallation = installations.data[0];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (firstInstallation !== undefined) {
+        return firstInstallation.id;
+      }
     }
 
     return null;
@@ -136,9 +140,15 @@ export async function getGitHubAppToken(
   }
 
   if (finalInstallationId === null) {
-    const error = new Error(
-      `GitHub App is not installed for ${owner ?? 'the specified account'}`,
-    ) as Error & { code?: string; installationUrl?: Promise<string> };
+    interface IGitHubAppError extends Error {
+      code?: string;
+      installationUrl?: Promise<string>;
+    }
+
+    const ownerText = owner ?? 'the specified account';
+    const error: IGitHubAppError = new Error(
+      `GitHub App is not installed for ${ownerText}`,
+    );
     error.code = 'GITHUB_APP_NOT_INSTALLED';
     error.installationUrl = getInstallationUrl(owner, appJWT);
     throw error;
@@ -183,13 +193,12 @@ async function getAppSlug(appJWT: string): Promise<string | null> {
     const app = await octokit.apps.getAuthenticated();
     /* The slug is in the app name, but we need to make it URL-friendly */
     /* GitHub uses the app name as the slug, but it's URL-encoded */
-    if (app.data === null || app.data === undefined) {
-      return null;
-    }
-    const appName = app.data.name;
-    if (typeof appName === 'string' && appName !== '') {
-      /* Convert app name to slug format (lowercase, replace spaces with hyphens) */
-      return appName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (app.data) {
+      const appName = app.data.name;
+      if (typeof appName === 'string' && appName !== '') {
+        /* Convert app name to slug format (lowercase, replace spaces with hyphens) */
+        return appName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      }
     }
     return null;
   } catch (error: unknown) {
@@ -282,15 +291,17 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
   /* Also handle case where newlines might be missing in the middle of the key */
   /* If we have BEGIN and END but the key content looks compressed, try to format it */
   const beginMatch = /-----BEGIN RSA PRIVATE KEY-----(.+?)-----END RSA PRIVATE KEY-----/s.exec(privateKey);
-  if (beginMatch?.[1] !== undefined) {
-    const keyContent = beginMatch[1].trim();
+  const keyContent = beginMatch?.[1];
+  if (keyContent !== undefined && keyContent.length > 0) {
+    const trimmedContent = keyContent.trim();
     /* Remove any existing whitespace/newlines from the key content */
-    const cleanContent = keyContent.replace(/\s+/g, '');
+    const cleanContent = trimmedContent.replace(/\s+/g, '');
     /* If the key content has no newlines and is very long, it's likely compressed */
     if (cleanContent.length > 100) {
       /* Base64 encoded keys are typically 64 characters per line */
       /* Split into chunks of 64 characters */
-      const formattedContent = cleanContent.match(/.{1,64}/g)?.join('\n') ?? cleanContent;
+      const chunks = cleanContent.match(/.{1,64}/g);
+      const formattedContent = chunks ? chunks.join('\n') : cleanContent;
       privateKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedContent}\n-----END RSA PRIVATE KEY-----`;
     }
   }
