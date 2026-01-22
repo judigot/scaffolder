@@ -11,7 +11,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-	"dev": "bun install && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",  
+    "dev": "bun install && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "dev:original": "bun install && docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "dev with test": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "test": "bun test --passWithNoTests",
@@ -70,6 +70,8 @@
     ]
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.18",
+    "@ai-sdk/react": "^3.0.47",
     "@auth0/auth0-react": "^2.9.0",
     "@biomejs/biome": "^2.3.8",
     "@emotion/react": "^11.14.0",
@@ -82,6 +84,7 @@
     "@octokit/rest": "^22.0.1",
     "@prettier/plugin-php": "0.23.0",
     "@tanstack/react-query": "^5.90.11",
+    "ai": "^6.0.45",
     "auth0": "^4.37.0",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
@@ -106,8 +109,10 @@
     "prettier-plugin-svelte": "^3.4.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.0",
     "yaml": "^2.8.2",
+    "zod": "^4.3.5",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
