@@ -3,16 +3,8 @@ import path from 'node:path';
 import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
-import process from 'node:process';
 import type { DBTypes } from '@/interfaces/interfaces.ts';
 import { IGNORED_TABLES_LARAVEL } from '@/constants.ts';
-
-const platform: string = process.platform;
-let __dirname = path.dirname(decodeURI(new URL(import.meta.url).pathname));
-
-if (platform === 'win32') {
-  __dirname = __dirname.substring(1);
-}
 
 const readSqlFile = (filename: string): string => {
   return fs.readFileSync(path.join(__dirname, `../${filename}`), 'utf8');
