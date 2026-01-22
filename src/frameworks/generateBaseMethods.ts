@@ -84,7 +84,7 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
 import fs from 'fs';
 import path from 'path';
 
-const currentDir = __dirname;
+const currentDir = path.dirname(new URL(import.meta.url).pathname);
 
 export default {
   methodName: fs.readFileSync(path.join(currentDir, 'methodName.txt'), 'utf8'),
