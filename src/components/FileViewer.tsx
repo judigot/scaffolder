@@ -1,36 +1,36 @@
-import type React from 'react';
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
-import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import { useAuth0, useAuth0 } from '@auth0/auth0-react';
+import Editor, { type OnMount } from '@monaco-editor/react';
 import {
   Close as CloseIcon,
-  ContentCopy as CopyIcon,
   Code as CodeIcon,
-  Folder as FolderIcon,
+  ContentCopy as CopyIcon,
   CreateNewFolder as CreateNewFolderIcon,
-  NoteAdd as NoteAddIcon,
-  Save as SaveIcon,
   Download as DownloadIcon,
+  Folder as FolderIcon,
+  NoteAdd as NoteAddIcon,
   PictureAsPdf as PictureAsPdfIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
-import { handleCopy } from '@/helpers/stringHelper.ts';
-import Editor, { type OnMount } from '@monaco-editor/react';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import GitHubExportModal from '@/components/GitHubExportModal.tsx';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
-import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
-import { useFormStore } from '@/useFormStore.ts';
-import useTransformationsStore from '@/useTransformationsStore.ts';
-import { useProjectStore } from '@/useProjectStore.ts';
-import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
-import { useFileContent } from '@/hooks/useFileContent.ts';
-import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
-import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
-import { useUser } from '@/hooks/useUser.ts';
-import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { handleCopy } from '@/helpers/stringHelper.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
-import GitHubExportModal from '@/components/GitHubExportModal.tsx';
+import { useFileContent } from '@/hooks/useFileContent.ts';
+import { useUser } from '@/hooks/useUser.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useProjectStore } from '@/useProjectStore.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
+import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
+import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
+import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
+import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
 
 export interface IBase {
   name: string;
@@ -116,7 +116,8 @@ function FileViewer({
   const { openUserProfile } = useUserProfileStore();
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
-  const { editValue, newValue, promptModal, openRandomModal } = useModalStore();
+  const { openModal, editValue, newValue, promptModal, openRandomModal } =
+    useModalStore();
   const { selectedProject } = useProjectStore();
   const { userFiles } = useMockDatabaseStore();
 
@@ -1000,7 +1001,8 @@ function FileViewer({
         /* If we couldn't determine owner, prompt the user */
         if (githubOwner === null || githubOwner === '') {
           const ownerInput = await newValue({
-            title: 'GitHub Username Required\nEnter your GitHub username or organization name:',
+            title:
+              'GitHub Username Required\nEnter your GitHub username or organization name:',
           });
           if (ownerInput === '' || ownerInput.trim() === '') {
             return;
@@ -1012,7 +1014,9 @@ function FileViewer({
         setShowExportModal(true);
       } catch (error: unknown) {
         const message =
-          error instanceof Error ? error.message : 'Failed to initialize export';
+          error instanceof Error
+            ? error.message
+            : 'Failed to initialize export';
         setGitHubError(message);
         openRandomModal({
           title: 'Error',
@@ -1044,16 +1048,26 @@ function FileViewer({
     tokenOrRepoUrl?: string,
   ) => {
     setShowExportModal(false);
-    if (method === 'existing_repo' && tokenOrRepoUrl !== undefined && tokenOrRepoUrl !== '') {
+    if (
+      method === 'existing_repo' &&
+      tokenOrRepoUrl !== undefined &&
+      tokenOrRepoUrl !== ''
+    ) {
       /* Push to existing repository */
       void performExportToExistingRepo(tokenOrRepoUrl);
     } else {
-      void performExport(exportOwner, method === 'existing_repo' ? 'github_app' : method);
+      void performExport(
+        exportOwner,
+        method === 'existing_repo' ? 'github_app' : method,
+      );
     }
   };
 
   /* Perform the actual export */
-  const performExport = async (githubOwner: string, method: 'personal_token' | 'github_app') => {
+  const performExport = async (
+    githubOwner: string,
+    method: 'personal_token' | 'github_app',
+  ) => {
     setIsCreatingRepository(true);
 
     try {
@@ -1088,7 +1102,7 @@ function FileViewer({
             description,
             isPrivate: false,
             owner: githubOwner,
-            method, /* Pass the selected method to the backend */
+            method /* Pass the selected method to the backend */,
           }),
         },
       );
@@ -1291,274 +1305,84 @@ function FileViewer({
                 repo,
                 branch: 'main',
                 projectName,
-                method, /* Pass the auth method */
+                method /* Pass the auth method */,
               }),
             },
           );
 
-            const uploadResult: unknown = await uploadResponse.json();
+          const uploadResult: unknown = await uploadResponse.json();
 
-            interface IUploadResponse {
-              success?: boolean;
-              message?: string;
-              filesCreated?: number;
-              error?: string;
-            }
-
-            const isUploadResponse = (val: unknown): val is IUploadResponse => {
-              return (
-                typeof val === 'object' &&
-                val !== null &&
-                ('success' in val ||
-                  'message' in val ||
-                  'filesCreated' in val ||
-                  'error' in val)
-              );
-            };
-
-            if (!uploadResponse.ok) {
-              const errorMessage = isUploadResponse(uploadResult)
-                ? (uploadResult.error ?? 'Failed to upload files')
-                : 'Failed to upload files';
-              throw new Error(errorMessage);
-            }
-
-            const filesCreated =
-              isUploadResponse(uploadResult) &&
-              uploadResult.filesCreated !== undefined
-                ? uploadResult.filesCreated
-                : 0;
-
-            const cloneCommand = `git clone ${repoUrl}.git`;
-
-            openRandomModal({
-              title: 'Project Exported Successfully',
-              content: (
-                <div className="space-y-6">
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg
-                        className="w-5 h-5 text-green-600 dark:text-green-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-label="Success icon"
-                      >
-                        <title>Success</title>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
-                        Export Complete
-                      </h3>
-                    </div>
-                    <p className="text-sm text-green-700 dark:text-green-400">
-                      {filesCreated > 0
-                        ? `Successfully exported ${String(filesCreated)} file(s) to GitHub.`
-                        : 'Repository created successfully.'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Clone Command
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg font-mono text-sm break-all">
-                        {cloneCommand}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleCopy(cloneCommand);
-                        }}
-                        className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
-                        title="Copy clone command"
-                      >
-                        <CopyIcon fontSize="small" />
-                        <span className="text-sm">Copy</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Repository
-                    </div>
-                    <a
-                      href={repoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-label="GitHub icon"
-                      >
-                        <title>GitHub</title>
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                      <span>Open Repository</span>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              ),
-            });
-
-            setIsCreatingRepository(false);
-            return;
+          interface IUploadResponse {
+            success?: boolean;
+            message?: string;
+            filesCreated?: number;
+            error?: string;
           }
 
-          const errorMessage = isCreateRepositoryResponse(createRepoResult)
-            ? (createRepoResult.error ?? 'Failed to create repository')
-            : 'Failed to create repository';
-          throw new Error(errorMessage);
-        }
+          const isUploadResponse = (val: unknown): val is IUploadResponse => {
+            return (
+              typeof val === 'object' &&
+              val !== null &&
+              ('success' in val ||
+                'message' in val ||
+                'filesCreated' in val ||
+                'error' in val)
+            );
+          };
 
-        if (
-          !isCreateRepositoryResponse(createRepoResult) ||
-          createRepoResult.repoUrl === undefined ||
-          createRepoResult.repoUrl === ''
-        ) {
-          throw new Error('Failed to get repository URL');
-        }
+          if (!uploadResponse.ok) {
+            const errorMessage = isUploadResponse(uploadResult)
+              ? (uploadResult.error ?? 'Failed to upload files')
+              : 'Failed to upload files';
+            throw new Error(errorMessage);
+          }
 
-        const repoUrl = createRepoResult.repoUrl;
-        const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
-        const match = githubRegex.exec(repoUrl);
+          const filesCreated =
+            isUploadResponse(uploadResult) &&
+            uploadResult.filesCreated !== undefined
+              ? uploadResult.filesCreated
+              : 0;
 
-        if (match?.length !== 3) {
-          throw new Error('Invalid repository URL format');
-        }
+          const cloneCommand = `git clone ${repoUrl}.git`;
 
-      const repoOwner2 = match[1];
-      const repo = match[2];
-
-      /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
-      const userEnvDetection = detectUserEnvInStructure(folderStructure);
-      if (userEnvDetection.hasUserEnv) {
-        const fileList = userEnvDetection.locations
-          .map((loc) => `  - ${loc.filePath}`)
-          .join('\n');
-        throw new Error(
-          `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
-            `Found in:\n${fileList}\n\n` +
-            `Options:\n` +
-            `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
-            `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
-            `3. Use environment variable references in code (process.env.KEY_NAME)`,
-        );
-      }
-
-      const uploadResponse = await fetch(
-        `${getApiUrl()}/create-github-folder-structure`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${exportAccessToken}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            structure: folderStructure,
-            owner: repoOwner2,
-            repo,
-            branch: 'main',
-            projectName,
-            method, /* Pass the auth method */
-          }),
-        },
-      );
-
-        const uploadResult: unknown = await uploadResponse.json();
-
-        interface IUploadResponse {
-          success?: boolean;
-          message?: string;
-          filesCreated?: number;
-          error?: string;
-        }
-
-        const isUploadResponse = (val: unknown): val is IUploadResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val ||
-              'message' in val ||
-              'filesCreated' in val ||
-              'error' in val)
-          );
-        };
-
-        if (!uploadResponse.ok) {
-          const errorMessage = isUploadResponse(uploadResult)
-            ? (uploadResult.error ?? 'Failed to upload files')
-            : 'Failed to upload files';
-          throw new Error(errorMessage);
-        }
-
-        const filesCreated =
-          isUploadResponse(uploadResult) &&
-          uploadResult.filesCreated !== undefined
-            ? uploadResult.filesCreated
-            : 0;
-
-        const cloneCommand = `git clone ${repoUrl}.git`;
-
-        openRandomModal({
-          title: 'Project Exported Successfully',
-          content: (
-            <div className="space-y-6">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg
-                    className="w-5 h-5 text-green-600 dark:text-green-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-label="Success icon"
-                  >
-                    <title>Success</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <p className="text-green-800 dark:text-green-200 font-semibold">
-                    Successfully exported {String(filesCreated)} file(s) to
-                    GitHub
+          openRandomModal({
+            title: 'Project Exported Successfully',
+            content: (
+              <div className="space-y-6">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg
+                      className="w-5 h-5 text-green-600 dark:text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-label="Success icon"
+                    >
+                      <title>Success</title>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
+                      Export Complete
+                    </h3>
+                  </div>
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    {filesCreated > 0
+                      ? `Successfully exported ${String(filesCreated)} file(s) to GitHub.`
+                      : 'Repository created successfully.'}
                   </p>
                 </div>
-              </div>
 
-              <div className="space-y-4">
                 <div>
                   <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Clone Repository
+                    Clone Command
                   </div>
-                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
-                    <code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg font-mono text-sm break-all">
                       {cloneCommand}
                     </code>
                     <button
@@ -1611,26 +1435,215 @@ function FileViewer({
                   </a>
                 </div>
               </div>
+            ),
+          });
 
-              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const modals = useModalStore.getState().modals;
-                    if (modals.length > 0) {
-                      useModalStore
-                        .getState()
-                        .closeModal(modals[modals.length - 1].id);
-                    }
-                  }}
-                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+          setIsCreatingRepository(false);
+          return;
+        }
+
+        const errorMessage = isCreateRepositoryResponse(createRepoResult)
+          ? (createRepoResult.error ?? 'Failed to create repository')
+          : 'Failed to create repository';
+        throw new Error(errorMessage);
+      }
+
+      if (
+        !isCreateRepositoryResponse(createRepoResult) ||
+        createRepoResult.repoUrl === undefined ||
+        createRepoResult.repoUrl === ''
+      ) {
+        throw new Error('Failed to get repository URL');
+      }
+
+      const repoUrl = createRepoResult.repoUrl;
+      const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
+      const match = githubRegex.exec(repoUrl);
+
+      if (match?.length !== 3) {
+        throw new Error('Invalid repository URL format');
+      }
+
+      const repoOwner2 = match[1];
+      const repo = match[2];
+
+      /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
+      const userEnvDetection = detectUserEnvInStructure(folderStructure);
+      if (userEnvDetection.hasUserEnv) {
+        const fileList = userEnvDetection.locations
+          .map((loc) => `  - ${loc.filePath}`)
+          .join('\n');
+        throw new Error(
+          `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
+            `Found in:\n${fileList}\n\n` +
+            `Options:\n` +
+            `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+            `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+            `3. Use environment variable references in code (process.env.KEY_NAME)`,
+        );
+      }
+
+      const uploadResponse = await fetch(
+        `${getApiUrl()}/create-github-folder-structure`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${exportAccessToken}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            structure: folderStructure,
+            owner: repoOwner2,
+            repo,
+            branch: 'main',
+            projectName,
+            method /* Pass the auth method */,
+          }),
+        },
+      );
+
+      const uploadResult: unknown = await uploadResponse.json();
+
+      interface IUploadResponse {
+        success?: boolean;
+        message?: string;
+        filesCreated?: number;
+        error?: string;
+      }
+
+      const isUploadResponse = (val: unknown): val is IUploadResponse => {
+        return (
+          typeof val === 'object' &&
+          val !== null &&
+          ('success' in val ||
+            'message' in val ||
+            'filesCreated' in val ||
+            'error' in val)
+        );
+      };
+
+      if (!uploadResponse.ok) {
+        const errorMessage = isUploadResponse(uploadResult)
+          ? (uploadResult.error ?? 'Failed to upload files')
+          : 'Failed to upload files';
+        throw new Error(errorMessage);
+      }
+
+      const filesCreated =
+        isUploadResponse(uploadResult) &&
+        uploadResult.filesCreated !== undefined
+          ? uploadResult.filesCreated
+          : 0;
+
+      const cloneCommand = `git clone ${repoUrl}.git`;
+
+      openRandomModal({
+        title: 'Project Exported Successfully',
+        content: (
+          <div className="space-y-6">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg
+                  className="w-5 h-5 text-green-600 dark:text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-label="Success icon"
                 >
-                  Done
-                </button>
+                  <title>Success</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <p className="text-green-800 dark:text-green-200 font-semibold">
+                  Successfully exported {String(filesCreated)} file(s) to GitHub
+                </p>
               </div>
             </div>
-          ),
-        });
+
+            <div className="space-y-4">
+              <div>
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Clone Repository
+                </div>
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
+                  <code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+                    {cloneCommand}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCopy(cloneCommand);
+                    }}
+                    className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+                    title="Copy clone command"
+                  >
+                    <CopyIcon fontSize="small" />
+                    <span className="text-sm">Copy</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Repository
+                </div>
+                <a
+                  href={repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-label="GitHub icon"
+                  >
+                    <title>GitHub</title>
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  <span>Open Repository</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => {
+                  const modals = useModalStore.getState().modals;
+                  if (modals.length > 0) {
+                    useModalStore
+                      .getState()
+                      .closeModal(modals[modals.length - 1].id);
+                  }
+                }}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ),
+      });
     } catch (error: unknown) {
       if (error instanceof Error) {
         if (
@@ -1670,11 +1683,16 @@ function FileViewer({
       const match = githubRegex.exec(repoUrl);
 
       if (match?.length !== 3) {
-        throw new Error('Invalid GitHub repository URL. Expected format: https://github.com/owner/repo');
+        throw new Error(
+          'Invalid GitHub repository URL. Expected format: https://github.com/owner/repo',
+        );
       }
 
       const repoOwner = match[1];
-      const repo = match[2].replace(/\.git$/, ''); /* Remove .git suffix if present */
+      const repo = match[2].replace(
+        /\.git$/,
+        '',
+      ); /* Remove .git suffix if present */
 
       /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
       const userEnvDetection = detectUserEnvInStructure(folderStructure);
@@ -1708,7 +1726,8 @@ function FileViewer({
             repo,
             branch: 'main',
             projectName,
-            method: 'github_app', /* Always use GitHub App for existing repo flow */
+            method:
+              'github_app' /* Always use GitHub App for existing repo flow */,
           }),
         },
       );
@@ -1770,7 +1789,8 @@ function FileViewer({
                   />
                 </svg>
                 <p className="text-green-800 dark:text-green-200 font-semibold">
-                  Successfully pushed {String(filesCreated)} file(s) to repository
+                  Successfully pushed {String(filesCreated)} file(s) to
+                  repository
                 </p>
               </div>
             </div>
@@ -1917,9 +1937,261 @@ function FileViewer({
         'success' in data &&
         data.success === true
       ) {
-        /*prettier-ignore*/ (($= 'Success!') => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
+        /*prettier-ignore*/ (($ = "Success!") => {
+					const isObject = (obj: unknown): obj is Record<string, unknown> => {
+						return obj !== null && typeof obj === "object";
+					};
+					const isArrayOfObjects = (
+						arr: unknown,
+					): arr is Record<string, unknown>[] => {
+						return Array.isArray(arr) && arr.every(isObject);
+					};
+					const parentDiv: HTMLElement =
+						document.getElementById("quicklogContainer") ??
+						(() => {
+							const div = document.createElement("div");
+							div.id = "quicklogContainer";
+							div.style.cssText =
+								"position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;";
+							const helperButtonsDiv = document.createElement("div");
+							helperButtonsDiv.style.cssText =
+								"position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;";
+							const clearButton = document.createElement("button");
+							clearButton.textContent = "Clear";
+							clearButton.style.cssText =
+								"margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;";
+							clearButton.onclick = () => {
+								if (parentDiv instanceof HTMLElement) {
+									parentDiv.remove();
+								}
+							};
+							helperButtonsDiv.appendChild(clearButton);
+							document.body.appendChild(div);
+							div.appendChild(helperButtonsDiv);
+							return div;
+						})();
+					const createTable = (
+						obj: Record<string, unknown>,
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						Object.entries(obj).forEach(([key, value]) => {
+							const row = document.createElement("tr");
+							const keyCell = document.createElement("td");
+							const valueCell = document.createElement("td");
+							keyCell.textContent = key;
+							valueCell.textContent = String(value);
+							keyCell.style.cssText = "border: 1px solid black; padding: 5px;";
+							valueCell.style.cssText =
+								"border: 1px solid black; padding: 5px;";
+							row.appendChild(keyCell);
+							row.appendChild(valueCell);
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createTableFromArray = (
+						arr: Record<string, unknown>[],
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						const headers = Object.keys(arr[0]);
+						const headerRow = document.createElement("tr");
+						headers.forEach((header) => {
+							const th = document.createElement("th");
+							th.textContent = header;
+							th.style.cssText = "border: 1px solid black; padding: 5px;";
+							headerRow.appendChild(th);
+						});
+						table.appendChild(headerRow);
+						arr.forEach((obj) => {
+							const row = document.createElement("tr");
+							headers.forEach((header) => {
+								const td = document.createElement("td");
+								td.textContent = String(obj[header]);
+								td.style.cssText = "border: 1px solid black; padding: 5px;";
+								row.appendChild(td);
+							});
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createChildDiv = (data: unknown): HTMLElement => {
+						const newDiv = document.createElement("div");
+						const jsonData = JSON.stringify(data, null, 2);
+						if (isArrayOfObjects(data)) {
+							const table = createTableFromArray(data);
+							newDiv.appendChild(table);
+						} else if (isObject(data)) {
+							const table = createTable(data);
+							newDiv.appendChild(table);
+						} else {
+							newDiv.textContent = String(data);
+						}
+						newDiv.style.cssText =
+							'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;';
+						const handleMouseDown = (e: MouseEvent) => {
+							e.preventDefault();
+							const clickedDiv =
+								e.target instanceof Element && e.target.closest("div");
+							if (
+								clickedDiv !== null &&
+								e.button === 0 &&
+								clickedDiv === newDiv
+							) {
+								void navigator.clipboard.writeText(jsonData).then(() => {
+									clickedDiv.style.backgroundColor = "gold";
+									setTimeout(() => {
+										clickedDiv.style.backgroundColor = "yellow";
+									}, 1000);
+								});
+							}
+						};
+						const handleRightClick = (e: MouseEvent) => {
+							e.preventDefault();
+							if (parentDiv.contains(newDiv)) {
+								parentDiv.removeChild(newDiv);
+								if (!parentDiv.hasChildNodes()) {
+									parentDiv.remove();
+								}
+							}
+						};
+						newDiv.addEventListener("mousedown", handleMouseDown);
+						newDiv.addEventListener("contextmenu", handleRightClick);
+						return newDiv;
+					};
+					parentDiv.prepend(createChildDiv($));
+				})();
       } else {
-        /*prettier-ignore*/ (($= 'Fail!') => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
+        /*prettier-ignore*/ (($ = "Fail!") => {
+					const isObject = (obj: unknown): obj is Record<string, unknown> => {
+						return obj !== null && typeof obj === "object";
+					};
+					const isArrayOfObjects = (
+						arr: unknown,
+					): arr is Record<string, unknown>[] => {
+						return Array.isArray(arr) && arr.every(isObject);
+					};
+					const parentDiv: HTMLElement =
+						document.getElementById("quicklogContainer") ??
+						(() => {
+							const div = document.createElement("div");
+							div.id = "quicklogContainer";
+							div.style.cssText =
+								"position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;";
+							const helperButtonsDiv = document.createElement("div");
+							helperButtonsDiv.style.cssText =
+								"position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;";
+							const clearButton = document.createElement("button");
+							clearButton.textContent = "Clear";
+							clearButton.style.cssText =
+								"margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;";
+							clearButton.onclick = () => {
+								if (parentDiv instanceof HTMLElement) {
+									parentDiv.remove();
+								}
+							};
+							helperButtonsDiv.appendChild(clearButton);
+							document.body.appendChild(div);
+							div.appendChild(helperButtonsDiv);
+							return div;
+						})();
+					const createTable = (
+						obj: Record<string, unknown>,
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						Object.entries(obj).forEach(([key, value]) => {
+							const row = document.createElement("tr");
+							const keyCell = document.createElement("td");
+							const valueCell = document.createElement("td");
+							keyCell.textContent = key;
+							valueCell.textContent = String(value);
+							keyCell.style.cssText = "border: 1px solid black; padding: 5px;";
+							valueCell.style.cssText =
+								"border: 1px solid black; padding: 5px;";
+							row.appendChild(keyCell);
+							row.appendChild(valueCell);
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createTableFromArray = (
+						arr: Record<string, unknown>[],
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						const headers = Object.keys(arr[0]);
+						const headerRow = document.createElement("tr");
+						headers.forEach((header) => {
+							const th = document.createElement("th");
+							th.textContent = header;
+							th.style.cssText = "border: 1px solid black; padding: 5px;";
+							headerRow.appendChild(th);
+						});
+						table.appendChild(headerRow);
+						arr.forEach((obj) => {
+							const row = document.createElement("tr");
+							headers.forEach((header) => {
+								const td = document.createElement("td");
+								td.textContent = String(obj[header]);
+								td.style.cssText = "border: 1px solid black; padding: 5px;";
+								row.appendChild(td);
+							});
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createChildDiv = (data: unknown): HTMLElement => {
+						const newDiv = document.createElement("div");
+						const jsonData = JSON.stringify(data, null, 2);
+						if (isArrayOfObjects(data)) {
+							const table = createTableFromArray(data);
+							newDiv.appendChild(table);
+						} else if (isObject(data)) {
+							const table = createTable(data);
+							newDiv.appendChild(table);
+						} else {
+							newDiv.textContent = String(data);
+						}
+						newDiv.style.cssText =
+							'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;';
+						const handleMouseDown = (e: MouseEvent) => {
+							e.preventDefault();
+							const clickedDiv =
+								e.target instanceof Element && e.target.closest("div");
+							if (
+								clickedDiv !== null &&
+								e.button === 0 &&
+								clickedDiv === newDiv
+							) {
+								void navigator.clipboard.writeText(jsonData).then(() => {
+									clickedDiv.style.backgroundColor = "gold";
+									setTimeout(() => {
+										clickedDiv.style.backgroundColor = "yellow";
+									}, 1000);
+								});
+							}
+						};
+						const handleRightClick = (e: MouseEvent) => {
+							e.preventDefault();
+							if (parentDiv.contains(newDiv)) {
+								parentDiv.removeChild(newDiv);
+								if (!parentDiv.hasChildNodes()) {
+									parentDiv.remove();
+								}
+							}
+						};
+						newDiv.addEventListener("mousedown", handleMouseDown);
+						newDiv.addEventListener("contextmenu", handleRightClick);
+						return newDiv;
+					};
+					parentDiv.prepend(createChildDiv($));
+				})();
       }
     } catch (error) {
       console.error('Error creating app:', error);
@@ -2651,7 +2923,9 @@ function FileViewer({
       {/* GitHub Export Options Modal */}
       <GitHubExportModal
         isOpen={showExportModal}
-        onClose={() => { setShowExportModal(false); }}
+        onClose={() => {
+          setShowExportModal(false);
+        }}
         owner={exportOwner}
         accessToken={exportAccessToken}
         onSelectMethod={handleExportMethodSelected}
