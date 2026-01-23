@@ -10,6 +10,10 @@ import {
   setupTypeMappings,
   teardownTypeMappings,
 } from '@/tests/helpers/setupTypeMappings.ts';
+import {
+  setupFormStore,
+  getTestConnectionString,
+} from '@/tests/helpers/introspectTestHelpers.ts';
 
 describe('generateSQLSchema', () => {
   const userPostOneToOneSchemaInfo = oneToOne;
@@ -17,6 +21,7 @@ describe('generateSQLSchema', () => {
   const POSSchemaInfo = manyToMany;
 
   beforeEach(() => {
+    setupFormStore(getTestConnectionString('postgresql'));
     setupTypeMappings();
   });
 

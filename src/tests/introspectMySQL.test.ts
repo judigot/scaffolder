@@ -13,13 +13,16 @@ import { normalizeSchema } from '@/tests/helpers/normalizeSchema.ts';
 import {
   createAndIntrospectDatabase,
   getTestConnectionString,
+  checkDatabaseConnection,
 } from '@/tests/helpers/introspectTestHelpers.ts';
 import {
   setupTypeMappings,
   teardownTypeMappings,
 } from '@/tests/helpers/setupTypeMappings.ts';
 
-describe('Introspection Test - MySQL', () => {
+const isMySQLAvailable = await checkDatabaseConnection('mysql');
+
+describe.skipIf(!isMySQLAvailable)('Introspection Test - MySQL', () => {
   const dbConnection = getTestConnectionString('mysql');
 
   beforeAll(() => {

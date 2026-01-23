@@ -14,13 +14,16 @@ import {
   createAndIntrospectDatabase,
   getTestConnectionString,
   executeSQLFileAndIntrospect,
+  checkDatabaseConnection,
 } from '@/tests/helpers/introspectTestHelpers.ts';
 import {
   setupTypeMappings,
   teardownTypeMappings,
 } from '@/tests/helpers/setupTypeMappings.ts';
 
-describe('Introspection Test - PostgreSQL', () => {
+const isPostgresAvailable = await checkDatabaseConnection('postgresql');
+
+describe.skipIf(!isPostgresAvailable)('Introspection Test - PostgreSQL', () => {
   const dbConnection = getTestConnectionString('postgresql');
 
   beforeAll(() => {
