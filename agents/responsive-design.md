@@ -170,67 +170,67 @@ useEffect(() => {
 
 ## Desktop View Invariants
 
-### 1. Side-by-Side Layout
+### 1. Three-Panel Layout
 
 **Location**: `src/components/FileViewer.tsx`
 
 **Invariants**:
 
-- Desktop uses **horizontal split**: file tree (left) + editor (right)
-- File tree panel has **fixed width of 288px** (`w-72`)
-- File tree panel **does not grow/shrink** with content (`shrink-0`)
-- Deep nesting handled via **horizontal scroll** within the panel
-- Editor takes **remaining space** (`flex-1`)
+- Desktop uses **three-panel horizontal split**:
+  - Left: File tree panel (224px, `w-56`)
+  - Center: Editor (flexible, `flex-1`)
+  - Right: Actions panel (192px, `w-48`)
+- All panels use `shrink-0` except editor
+- Deep nesting handled via **horizontal scroll** within file tree
 
-**Panel Structure**:
+**Layout Structure**:
 
 ```tsx
 {
-  /* Desktop: Side-by-side file tree panel */
+  /* Desktop layout */
 }
 {
   !isMobile && (
-    <div className="w-72 bg-gray-800 select-none flex flex-col shrink-0 rounded-md overflow-hidden">
-      {/* Toolbar with action buttons */}
-      {mode === 'edit' && (
-        <div className="p-2 border-b border-gray-700 space-y-1 shrink-0">
-          {/* Action buttons: Create App, Export, Download, New File, New Folder */}
-        </div>
-      )}
-
-      {/* File tree with horizontal scroll */}
-      <div className="flex-1 overflow-auto p-2">
-        <div className="min-w-max">
-          <SimpleTreeView>
-            {renderTree(folderStructure, setSelectedFile)}
-          </SimpleTreeView>
-        </div>
+    <>
+      {/* Left: File tree panel */}
+      <div className="w-56 bg-gray-800 shrink-0">
+        {/* Project selector + New File/Folder buttons */}
+        {/* File tree with horizontal scroll */}
       </div>
-    </div>
+
+      {/* Center: Editor */}
+      <div className="flex-1 bg-gray-900">{/* Monaco editor */}</div>
+
+      {/* Right: Actions panel */}
+      <div className="w-48 bg-gray-800 shrink-0 border-l border-gray-700">
+        {/* Create App, Export, Download buttons */}
+        {/* Dev tools (development only) */}
+      </div>
+    </>
   );
 }
 ```
 
-### 2. File Tree Panel (VS Code Pattern)
+### 2. File Tree Panel (Left)
 
 **Invariants**:
 
-- Panel width is **fixed at 288px** (`w-72`) - no dynamic sizing
+- Panel width is **fixed at 224px** (`w-56`)
+- Contains **project selector dropdown** and **file action buttons** (New File, New Folder)
 - Content uses `min-w-max` to **prevent text wrapping**
 - Container uses `overflow-auto` for **horizontal and vertical scroll**
 - **No JavaScript width tracking** - pure CSS solution
-- **No resize delays** - instant response
 
-**Why Fixed Width**:
+### 3. Actions Panel (Right)
 
-- Dynamic width (`w-fit`) causes shrinking delays when folders collapse
-- ResizeObserver-based solutions add JavaScript complexity
-- VS Code uses fixed sidebar width - proven UX pattern
-- Horizontal scroll is expected behavior for deep nesting
+**Location**: `src/components/FileViewer.tsx`
 
-### 3. Desktop Action Toolbar
+**Invariants**:
 
-**Location**: `src/components/FileViewer.tsx` (lines ~2703-2837)
+- Panel width is **fixed at 192px** (`w-48`)
+- Contains **export/download actions** separated from file navigation
+- Has **left border** (`border-l border-gray-700`) to visually separate from editor
+- Only visible in **edit mode** (`mode === 'edit'`)
 
 **Button Layout**:
 

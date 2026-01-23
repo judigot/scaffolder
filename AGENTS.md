@@ -31,6 +31,7 @@ claude --plugin-dir ~/ai --plugin-dir .
 | ------------------------ | --------------------------------------------------- |
 | `ai-chat-schema-builder` | Conversational app schema generation and validation |
 | `database-introspector`  | Database schema analysis and documentation          |
+| `design-system`          | Design system maintenance and styling architecture  |
 | `docker-environment`     | Container configuration and deployment              |
 | `error-handling`         | Error handling patterns and server configuration    |
 | `health-check`           | Health monitoring and diagnostics                   |

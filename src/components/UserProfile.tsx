@@ -1129,7 +1129,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     setPassphraseErrors([]);
                   }}
                   disabled={isDecrypting}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -1158,7 +1158,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             void handleDeleteAllSecrets();
                           }}
                           disabled={isEnvSaving}
-                          className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
+                          className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
                         >
                           {isEnvSaving ? (
                             <>
@@ -1195,7 +1195,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             setShowDeleteAllConfirm(false);
                           }}
                           disabled={isEnvSaving}
-                          className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
+                          className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -1465,7 +1465,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           onClick={() => {
                             setShowToken(!showToken);
                           }}
-                          className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors text-sm"
+                          className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded-md transition-colors text-sm"
                           disabled={githubToken === null || githubToken === ''}
                         >
                           {showToken ? (
@@ -1612,7 +1612,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         <button
                           onClick={handleCancel}
                           disabled={isSaving || isLoading}
-                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Cancel
                         </button>
@@ -1628,7 +1628,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             setShowDeleteConfirm(true);
                           }}
                           disabled={isDeleting || isLoading}
-                          className="w-full flex items-center justify-center px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center px-4 py-2 bg-gray-600/10 hover:bg-gray-600/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <svg
                             className="w-4 h-4 mr-2"
@@ -1658,7 +1658,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           <button
                             onClick={handleDelete}
                             disabled={isDeleting}
-                            className="flex-1 flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isDeleting ? (
                               <>
@@ -1695,7 +1695,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                               setShowDeleteConfirm(false);
                             }}
                             disabled={isDeleting}
-                            className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Cancel
                           </button>
