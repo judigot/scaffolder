@@ -86,7 +86,7 @@ router.post('/', async (c) => {
     });
 
     return c.json(result);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof Error) {
       const errorResponse: {
         error: string;
@@ -98,16 +98,16 @@ router.post('/', async (c) => {
 
       if ('code' in error && error.code === 'GITHUB_APP_NOT_INSTALLED') {
         errorResponse.code = 'GITHUB_APP_NOT_INSTALLED';
-        if (
-          'installationUrl' in error &&
-          error.installationUrl instanceof Promise
-        ) {
-          errorResponse.installationUrl = await error.installationUrl;
-        } else if (
-          'installationUrl' in error &&
-          typeof error.installationUrl === 'string'
-        ) {
-          errorResponse.installationUrl = error.installationUrl;
+        if ('installationUrl' in error) {
+          const installationUrl: unknown = error.installationUrl;
+          if (installationUrl instanceof Promise) {
+            const resolvedUrl: unknown = await installationUrl;
+            if (typeof resolvedUrl === 'string') {
+              errorResponse.installationUrl = resolvedUrl;
+            }
+          } else if (typeof installationUrl === 'string') {
+            errorResponse.installationUrl = installationUrl;
+          }
         }
       }
 

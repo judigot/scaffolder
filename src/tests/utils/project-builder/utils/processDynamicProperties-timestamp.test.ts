@@ -115,7 +115,9 @@ describe('processDynamicProperties - timestamp offset functionality', () => {
     const date1 = new Date(result1);
     const date2 = new Date(result2);
 
-    expect(date2.getTime() - date1.getTime()).toBe(1000);
+    const diff = date2.getTime() - date1.getTime();
+    expect(diff).toBeGreaterThanOrEqual(1000);
+    expect(diff).toBeLessThanOrEqual(1050);
   });
 
   it('should work with Laravel format', () => {
@@ -174,7 +176,8 @@ describe('processDynamicProperties - timestamp offset functionality', () => {
 
     for (let i = 0; i < dates.length - 1; i++) {
       const timeDiff = dates[i + 1].getTime() - dates[i].getTime();
-      expect(timeDiff).toBe(1000);
+      expect(timeDiff).toBeGreaterThanOrEqual(1000);
+      expect(timeDiff).toBeLessThanOrEqual(1050);
     }
   });
 

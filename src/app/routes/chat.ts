@@ -1,10 +1,9 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { convertToModelMessages, streamText } from "ai";
-import type { UIMessage } from "ai";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
+import { anthropic } from '@ai-sdk/anthropic';
+import { convertToModelMessages, streamText } from 'ai';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
-const SCHEMA_BUILDER_SYSTEM_PROMPT = `You are a friendly AI assistant for Scaffolder - a tool that helps people build apps quickly without coding.
+const SCHEMA_BUILDER_SYSTEM_PROMPT = `You are Judas, an App Magician for Scaffolder - a tool that helps people build apps quickly without coding.
 
 Your role is to help users describe their app idea in plain language, then generate the technical structure behind the scenes. The user should NEVER see any technical details - make app building feel like magic!
 
@@ -78,31 +77,49 @@ INSTEAD say: app structure, things your app tracks, details, connections, featur
 
 The user should feel like they're talking to a friendly app designer, not a programmer!`;
 
-
 const app = new Hono();
 
-app.use("*", cors());
+app.use('*', cors());
 
-app.post("/", async (c) => {
-	try {
-		const { messages } = (await c.req.json()) as { messages: UIMessage[] };
+app.post('/', async (c) => {
+  try {
+    const body: unknown = await c.req.json();
 
-		if (!messages || !Array.isArray(messages)) {
-			return c.json({ error: "Invalid messages format" }, 400);
-		}
+    if (typeof body !== 'object' || body === null || !('messages' in body)) {
+      return c.json({ error: 'Invalid request body' }, 400);
+    }
 
-		const result = streamText({
-			model: anthropic("claude-3-haiku-20240307"),
-			system: SCHEMA_BUILDER_SYSTEM_PROMPT,
-			messages: await convertToModelMessages(messages),
-			temperature: 0.7,
-		});
+    interface IRequestBody {
+      messages: unknown;
+    }
 
-		return result.toUIMessageStreamResponse();
-	} catch (error) {
-		console.error("Chat API error:", error);
-		return c.json({ error: "Internal server error" }, 500);
-	}
+    function isRequestBody(obj: object): obj is IRequestBody {
+      return 'messages' in obj;
+    }
+
+    if (!isRequestBody(body)) {
+      return c.json({ error: 'Invalid request body' }, 400);
+    }
+
+    if (!Array.isArray(body.messages)) {
+      return c.json({ error: 'Invalid messages format' }, 400);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const convertedMessages = await convertToModelMessages(body.messages);
+
+    const result = streamText({
+      model: anthropic('claude-3-haiku-20240307'),
+      system: SCHEMA_BUILDER_SYSTEM_PROMPT,
+      messages: convertedMessages,
+      temperature: 0.7,
+    });
+
+    return result.toUIMessageStreamResponse();
+  } catch (error) {
+    console.error('Chat API error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 
 export default app;

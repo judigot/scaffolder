@@ -1,11 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 import generateSQLDirectJoins from '@/utils/generateSQLDirectJoins.ts';
 import manyToMany from '@/schema-infos/manyToMany.ts';
 import oneToMany from '@/schema-infos/oneToMany.ts';
 import oneToOne from '@/schema-infos/oneToOne.ts';
+import {
+  setupFormStore,
+  getTestConnectionString,
+} from '@/tests/helpers/introspectTestHelpers.ts';
 
 describe('generateSQLDirectJoins', () => {
+  beforeEach(() => {
+    setupFormStore(getTestConnectionString('postgresql'));
+  });
+
   const userPostOneToOneSchemaInfo = oneToOne;
   const userPostsOneToManySchemaInfo = oneToMany;
   const POSSchemaInfo = manyToMany;

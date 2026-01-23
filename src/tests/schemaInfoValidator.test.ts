@@ -4,7 +4,6 @@ import {
 	parseAndValidateSchemaInfo,
 	extractSchemaInfoFromResponse,
 	validateSchemaInfoFromResponse,
-	schemaInfoArraySchema,
 } from "@/utils/schemaInfoValidator.ts";
 
 describe("schemaInfoValidator", () => {
@@ -267,7 +266,9 @@ describe("schemaInfoValidator", () => {
 			it("should reject empty schema array", () => {
 				const result = validateSchemaInfo([]);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("at least one table");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("at least one table");
+				}
 			});
 
 			it("should reject non-array input", () => {
@@ -292,7 +293,9 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("id");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("id");
+				}
 			});
 
 			it("should reject table without primary key", () => {
@@ -312,7 +315,9 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("primary key");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("primary key");
+				}
 			});
 
 			it("should reject invalid table name (camelCase)", () => {
@@ -332,7 +337,9 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("snake_case");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("snake_case");
+				}
 			});
 
 			it("should reject invalid column name (camelCase)", () => {
@@ -357,7 +364,9 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("snake_case");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("snake_case");
+				}
 			});
 
 			it("should reject invalid data type", () => {
@@ -383,7 +392,9 @@ describe("schemaInfoValidator", () => {
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
 				// Zod 4 error message format
-				expect(result.errors?.[0]?.message).toMatch(/string|number|boolean|Date|object|Invalid/i);
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toMatch(/string|number|boolean|Date|object|Invalid/i);
+				}
 			});
 
 			it("should reject invalid is_nullable value", () => {
@@ -438,7 +449,9 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("Duplicate");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("Duplicate");
+				}
 			});
 
 			it("should reject foreign key to non-existent table", () => {
@@ -467,7 +480,9 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("non-existent table");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("non-existent table");
+				}
 			});
 
 			it("should reject hasMany reference to non-existent table", () => {
@@ -488,7 +503,9 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				expect(result.errors?.[0]?.message).toContain("non-existent table");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message).toContain("non-existent table");
+				}
 			});
 
 			it("should reject table without any columns", () => {
@@ -502,7 +519,9 @@ describe("schemaInfoValidator", () => {
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
 				// Match case-insensitive
-				expect(result.errors?.[0]?.message.toLowerCase()).toContain("at least one column");
+				if (result.errors?.[0]) {
+					expect(result.errors[0].message.toLowerCase()).toContain("at least one column");
+				}
 			});
 
 			it("should reject column name starting with number", () => {
@@ -554,7 +573,9 @@ describe("schemaInfoValidator", () => {
 		it("should reject invalid JSON string", () => {
 			const result = parseAndValidateSchemaInfo("not valid json {");
 			expect(result.success).toBe(false);
-			expect(result.errors?.[0]?.message).toContain("Invalid JSON");
+			if (result.errors?.[0]) {
+				expect(result.errors[0].message).toContain("Invalid JSON");
+			}
 		});
 
 		it("should reject valid JSON but invalid schema", () => {
@@ -632,7 +653,9 @@ Here's your schema:
 
 			const extracted = extractSchemaInfoFromResponse(response);
 			expect(extracted).not.toBeNull();
-			expect(JSON.parse(extracted!)).toHaveLength(1);
+			if (extracted !== null) {
+				expect(JSON.parse(extracted)).toHaveLength(1);
+			}
 		});
 	});
 

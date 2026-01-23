@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "bun install && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
+    "postinstall": "git config core.fileMode false",
     "dev:original": "bun install && docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "dev with test": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\"",
     "test": "bun test --passWithNoTests",

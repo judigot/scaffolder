@@ -13,7 +13,6 @@ import { useTransformationsStore } from "@/useTransformationsStore.ts";
 function AI() {
 	const formData = useFormStore();
 	const {
-		user,
 		userMetadata,
 		isLoading: isUserLoading,
 		serverConfigStatus,
@@ -21,8 +20,8 @@ function AI() {
 	const { decryptedMetadata } = useDecryptedUserMetadata();
 	const { publicRepoURL, setPublicRepoURL } = formData;
 
-	const { typeMappings, dbTypes, setTransformations } =
-		useTransformationsStore();
+	const { setTransformations } = useTransformationsStore();
+	const { typeMappings, dbTypes } = useMockDatabaseStore();
 
 	const { setUserFiles } = useMockDatabaseStore();
 
@@ -42,7 +41,7 @@ function AI() {
 		invalidateProjectCache,
 	]);
 
-	const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
+	const [inputRepoURL] = useState<string>(publicRepoURL);
 
 	const { refetch: refetchUserFiles, data: userFiles } = useUserFiles(
 		{
@@ -99,7 +98,6 @@ function AI() {
 	return (
 		<div className="text-white bg-black h-screen flex flex-col overflow-hidden">
 			<Navbar
-				user={user}
 				isUserLoading={isUserLoading}
 				serverConfigStatus={serverConfigStatus}
 			/>

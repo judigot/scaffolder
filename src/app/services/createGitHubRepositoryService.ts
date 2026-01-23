@@ -93,7 +93,10 @@ async function getOwnerType(owner: string): Promise<'User' | 'Organization' | 'u
   try {
     const publicOctokit = new Octokit();
     const { data } = await publicOctokit.users.getByUsername({ username: owner });
-    return data.type as 'User' | 'Organization';
+    if (data.type === 'User' || data.type === 'Organization') {
+      return data.type;
+    }
+    return 'unknown';
   } catch {
     return 'unknown';
   }
@@ -250,10 +253,10 @@ async function createWithGitHubApp(
   const isInstalled = await checkGitHubAppInstalled(owner, ownerType);
   if (!isInstalled) {
     const installUrl = await getInstallationUrl(owner);
-    const error = new Error(
+    const error: Error & { code?: string; installationUrl?: string } = new Error(
       `GitHub App is not installed for organization "${owner}".\n\n` +
         `Please install the app first: ${installUrl}`,
-    ) as Error & { code?: string; installationUrl?: string };
+    );
     error.code = 'GITHUB_APP_NOT_INSTALLED';
     error.installationUrl = installUrl;
     throw error;

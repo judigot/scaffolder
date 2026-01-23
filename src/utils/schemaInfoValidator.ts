@@ -17,12 +17,10 @@ const columnInfoSchema = z.object({
 		.min(1, "Column name is required")
 		.regex(/^[a-z][a-z0-9_]*$/, "Column name must be snake_case"),
 	data_type: z.enum(["string", "number", "boolean", "Date", "object"], {
-		errorMap: () => ({
-			message: "Data type must be: string, number, boolean, Date, or object",
-		}),
+		message: "Data type must be: string, number, boolean, Date, or object",
 	}),
 	is_nullable: z.enum(["YES", "NO"], {
-		errorMap: () => ({ message: "is_nullable must be 'YES' or 'NO'" }),
+		message: "is_nullable must be 'YES' or 'NO'",
 	}),
 	column_default: z.string().nullable().optional(),
 	primary_key: z.literal(true).optional(),
@@ -146,7 +144,7 @@ export type ColumnInfo = z.infer<typeof columnInfoSchema>;
 /**
  * Validation result with detailed error information
  */
-export interface ValidationResult {
+export interface IValidationResult {
 	success: boolean;
 	data?: SchemaInfoArray;
 	errors?: {
@@ -158,7 +156,7 @@ export interface ValidationResult {
 /**
  * Validates a schemaInfo array and returns detailed results
  */
-export function validateSchemaInfo(data: unknown): ValidationResult {
+export function validateSchemaInfo(data: unknown): IValidationResult {
 	const result = schemaInfoArraySchema.safeParse(data);
 
 	if (result.success) {
@@ -168,14 +166,14 @@ export function validateSchemaInfo(data: unknown): ValidationResult {
 		};
 	}
 
-	// Zod 4 uses result.error.issues instead of result.error.errors
-	const issues = result.error?.issues ?? result.error?.errors ?? [];
+	// Zod 4 uses result.error.issues
+	const issues = result.error.issues;
 	return {
 		success: false,
 		errors: Array.isArray(issues)
-			? issues.map((err: { path?: (string | number)[]; message?: string }) => ({
+			? issues.map((err) => ({
 					path: Array.isArray(err.path) ? err.path.join(".") : "",
-					message: err.message ?? "Validation error",
+					message: err.message,
 				}))
 			: [{ path: "", message: "Validation failed" }],
 	};
@@ -184,9 +182,9 @@ export function validateSchemaInfo(data: unknown): ValidationResult {
 /**
  * Parses and validates schemaInfo from a JSON string
  */
-export function parseAndValidateSchemaInfo(jsonString: string): ValidationResult {
+export function parseAndValidateSchemaInfo(jsonString: string): IValidationResult {
 	try {
-		const parsed = JSON.parse(jsonString);
+		const parsed: unknown = JSON.parse(jsonString);
 		return validateSchemaInfo(parsed);
 	} catch {
 		return {
@@ -205,25 +203,25 @@ export function extractSchemaInfoFromResponse(
 ): string | null {
 	// Primary: Match hidden HTML comment format <!--schemaInfo:[...]-->
 	const hiddenSchemaRegex = /<!--schemaInfo:([\s\S]*?)-->/;
-	const hiddenMatch = responseText.match(hiddenSchemaRegex);
+	const hiddenMatch = hiddenSchemaRegex.exec(responseText);
 
-	if (hiddenMatch?.[1]) {
+	if (hiddenMatch?.[1] !== undefined) {
 		return hiddenMatch[1].trim();
 	}
 
 	// Fallback 1: Match ```json:schemaInfo ... ``` blocks
 	const schemaInfoRegex = /```json:schemaInfo\s*([\s\S]*?)```/;
-	const match = responseText.match(schemaInfoRegex);
+	const match = schemaInfoRegex.exec(responseText);
 
-	if (match?.[1]) {
+	if (match?.[1] !== undefined) {
 		return match[1].trim();
 	}
 
 	// Fallback 2: try to match regular ```json blocks that contain schemaInfo-like content
 	const jsonRegex = /```json\s*([\s\S]*?)```/;
-	const jsonMatch = responseText.match(jsonRegex);
+	const jsonMatch = jsonRegex.exec(responseText);
 
-	if (jsonMatch?.[1]) {
+	if (jsonMatch?.[1] !== undefined) {
 		const content = jsonMatch[1].trim();
 		// Check if it looks like a schemaInfo array
 		if (content.startsWith("[") && content.includes("tableName")) {
@@ -244,10 +242,10 @@ export function removeHiddenSchemaFromText(text: string): string {
 /**
  * Validates schemaInfo extracted from AI response
  */
-export function validateSchemaInfoFromResponse(responseText: string): ValidationResult & { extracted: boolean } {
+export function validateSchemaInfoFromResponse(responseText: string): IValidationResult & { extracted: boolean } {
 	const extracted = extractSchemaInfoFromResponse(responseText);
 
-	if (!extracted) {
+	if (extracted === null) {
 		return {
 			success: false,
 			extracted: false,

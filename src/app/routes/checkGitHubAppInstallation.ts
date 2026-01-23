@@ -75,15 +75,13 @@ router.post('/', async (c) => {
         username: owner,
       });
 
-      if (userInstallation.data.id !== undefined) {
-        return c.json({
-          installed: true,
-          message: 'GitHub App is installed',
-          installationId: userInstallation.data.id,
-          repositorySelection: userInstallation.data.repository_selection,
-          permissions: userInstallation.data.permissions,
-        });
-      }
+      return c.json({
+        installed: true,
+        message: 'GitHub App is installed',
+        installationId: userInstallation.data.id,
+        repositorySelection: userInstallation.data.repository_selection,
+        permissions: userInstallation.data.permissions,
+      });
     } catch (userError: unknown) {
       /* If user installation fails, try organization */
       try {
@@ -91,15 +89,13 @@ router.post('/', async (c) => {
           org: owner,
         });
 
-        if (orgInstallation.data.id !== undefined) {
-          return c.json({
-            installed: true,
-            message: 'GitHub App is installed',
-            installationId: orgInstallation.data.id,
-            repositorySelection: orgInstallation.data.repository_selection,
-            permissions: orgInstallation.data.permissions,
-          });
-        }
+        return c.json({
+          installed: true,
+          message: 'GitHub App is installed',
+          installationId: orgInstallation.data.id,
+          repositorySelection: orgInstallation.data.repository_selection,
+          permissions: orgInstallation.data.permissions,
+        });
       } catch (orgError: unknown) {
         /* Both failed, app is not installed */
         if (

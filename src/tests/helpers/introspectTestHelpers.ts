@@ -104,6 +104,26 @@ export const getTestConnectionString = (dbType: DBTypes): string => {
 };
 
 /**
+ * Checks if a database is reachable by attempting a simple connection.
+ * Returns true if the database is available, false otherwise.
+ */
+export const checkDatabaseConnection = async (
+  dbType: DBTypes,
+): Promise<boolean> => {
+  const dbConnection = getTestConnectionString(dbType);
+  try {
+    if (dbType === 'postgresql') {
+      await executePostgreSQL(dbConnection, 'SELECT 1');
+    } else {
+      await executeMySQL(dbConnection, 'SELECT 1');
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Executes a SQL file and introspects the resulting database.
  * Used for testing comprehensive SQL schemas.
  */
