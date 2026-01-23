@@ -1,36 +1,36 @@
-import type React from 'react';
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import Editor, { type OnMount } from '@monaco-editor/react';
 import {
   Close as CloseIcon,
-  ContentCopy as CopyIcon,
   Code as CodeIcon,
-  Folder as FolderIcon,
+  ContentCopy as CopyIcon,
   CreateNewFolder as CreateNewFolderIcon,
-  NoteAdd as NoteAddIcon,
-  Save as SaveIcon,
   Download as DownloadIcon,
+  Folder as FolderIcon,
+  NoteAdd as NoteAddIcon,
   PictureAsPdf as PictureAsPdfIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
-import { handleCopy } from '@/helpers/stringHelper.ts';
-import Editor, { type OnMount } from '@monaco-editor/react';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import GitHubExportModal from '@/components/GitHubExportModal.tsx';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
-import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
-import { useFormStore } from '@/useFormStore.ts';
-import useTransformationsStore from '@/useTransformationsStore.ts';
-import { useProjectStore } from '@/useProjectStore.ts';
-import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
-import { useFileContent } from '@/hooks/useFileContent.ts';
-import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
-import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
-import { useUser } from '@/hooks/useUser.ts';
-import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { handleCopy } from '@/helpers/stringHelper.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
-import GitHubExportModal from '@/components/GitHubExportModal.tsx';
+import { useFileContent } from '@/hooks/useFileContent.ts';
+import { useUser } from '@/hooks/useUser.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useProjectStore } from '@/useProjectStore.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
+import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
+import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
+import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
+import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
 
 export interface IBase {
   name: string;
@@ -89,18 +89,28 @@ const createUniqueFileId = (path: string[], fileName: string): string => {
   return [...path, fileName].join('/');
 };
 
+interface IProjectOption {
+  name: string;
+}
+
 function FileViewer({
   folderStructure: initialFolderStructure,
   mode,
   projectName,
   filesUsingUserEnv = [],
   filesFailedToFormat = [],
+  projects = [],
+  selectedProject: selectedProjectProp,
+  onProjectChange,
 }: {
   folderStructure: IStructure;
   mode: 'edit' | 'view';
   projectName?: string;
   filesUsingUserEnv?: string[];
   filesFailedToFormat?: IFailedFormatEntry[];
+  projects?: IProjectOption[];
+  selectedProject?: IProjectOption;
+  onProjectChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
   const safeFilesUsingUserEnv = filesUsingUserEnv;
 
@@ -135,6 +145,9 @@ function FileViewer({
     parentPath?: string[];
   } | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
+  const [isTreeOpen, setIsTreeOpen] = useState<boolean>(true);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
   const editorRef = useRef<ICodeEditor | null>(null);
   const fileViewerRef = useRef<HTMLDivElement>(null);
   const [isCreatingRepository, setIsCreatingRepository] =
@@ -161,6 +174,25 @@ function FileViewer({
       setGitHubError(null);
     }
   }, [hasGitHubToken, githubError]);
+
+  // Detect mobile width for responsive behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+
+  // Auto-expand accordion on mobile when no file is selected
+  useEffect(() => {
+    if (isMobile && selectedFile === null) {
+      setIsTreeOpen(true);
+    }
+  }, [isMobile, selectedFile]);
 
   // Save file content changes - wrapped in useCallback
   const saveFileChanges = useCallback(() => {
@@ -1000,7 +1032,8 @@ function FileViewer({
         /* If we couldn't determine owner, prompt the user */
         if (githubOwner === null || githubOwner === '') {
           const ownerInput = await newValue({
-            title: 'GitHub Username Required\nEnter your GitHub username or organization name:',
+            title:
+              'GitHub Username Required\nEnter your GitHub username or organization name:',
           });
           if (ownerInput === '' || ownerInput.trim() === '') {
             return;
@@ -1012,7 +1045,9 @@ function FileViewer({
         setShowExportModal(true);
       } catch (error: unknown) {
         const message =
-          error instanceof Error ? error.message : 'Failed to initialize export';
+          error instanceof Error
+            ? error.message
+            : 'Failed to initialize export';
         setGitHubError(message);
         openRandomModal({
           title: 'Error',
@@ -1044,16 +1079,26 @@ function FileViewer({
     tokenOrRepoUrl?: string,
   ) => {
     setShowExportModal(false);
-    if (method === 'existing_repo' && tokenOrRepoUrl !== undefined && tokenOrRepoUrl !== '') {
+    if (
+      method === 'existing_repo' &&
+      tokenOrRepoUrl !== undefined &&
+      tokenOrRepoUrl !== ''
+    ) {
       /* Push to existing repository */
       void performExportToExistingRepo(tokenOrRepoUrl);
     } else {
-      void performExport(exportOwner, method === 'existing_repo' ? 'github_app' : method);
+      void performExport(
+        exportOwner,
+        method === 'existing_repo' ? 'github_app' : method,
+      );
     }
   };
 
   /* Perform the actual export */
-  const performExport = async (githubOwner: string, method: 'personal_token' | 'github_app') => {
+  const performExport = async (
+    githubOwner: string,
+    method: 'personal_token' | 'github_app',
+  ) => {
     setIsCreatingRepository(true);
 
     try {
@@ -1088,7 +1133,7 @@ function FileViewer({
             description,
             isPrivate: false,
             owner: githubOwner,
-            method, /* Pass the selected method to the backend */
+            method /* Pass the selected method to the backend */,
           }),
         },
       );
@@ -1291,274 +1336,84 @@ function FileViewer({
                 repo,
                 branch: 'main',
                 projectName,
-                method, /* Pass the auth method */
+                method /* Pass the auth method */,
               }),
             },
           );
 
-            const uploadResult: unknown = await uploadResponse.json();
+          const uploadResult: unknown = await uploadResponse.json();
 
-            interface IUploadResponse {
-              success?: boolean;
-              message?: string;
-              filesCreated?: number;
-              error?: string;
-            }
-
-            const isUploadResponse = (val: unknown): val is IUploadResponse => {
-              return (
-                typeof val === 'object' &&
-                val !== null &&
-                ('success' in val ||
-                  'message' in val ||
-                  'filesCreated' in val ||
-                  'error' in val)
-              );
-            };
-
-            if (!uploadResponse.ok) {
-              const errorMessage = isUploadResponse(uploadResult)
-                ? (uploadResult.error ?? 'Failed to upload files')
-                : 'Failed to upload files';
-              throw new Error(errorMessage);
-            }
-
-            const filesCreated =
-              isUploadResponse(uploadResult) &&
-              uploadResult.filesCreated !== undefined
-                ? uploadResult.filesCreated
-                : 0;
-
-            const cloneCommand = `git clone ${repoUrl}.git`;
-
-            openRandomModal({
-              title: 'Project Exported Successfully',
-              content: (
-                <div className="space-y-6">
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg
-                        className="w-5 h-5 text-green-600 dark:text-green-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-label="Success icon"
-                      >
-                        <title>Success</title>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
-                        Export Complete
-                      </h3>
-                    </div>
-                    <p className="text-sm text-green-700 dark:text-green-400">
-                      {filesCreated > 0
-                        ? `Successfully exported ${String(filesCreated)} file(s) to GitHub.`
-                        : 'Repository created successfully.'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Clone Command
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg font-mono text-sm break-all">
-                        {cloneCommand}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleCopy(cloneCommand);
-                        }}
-                        className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
-                        title="Copy clone command"
-                      >
-                        <CopyIcon fontSize="small" />
-                        <span className="text-sm">Copy</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Repository
-                    </div>
-                    <a
-                      href={repoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-label="GitHub icon"
-                      >
-                        <title>GitHub</title>
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                      <span>Open Repository</span>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              ),
-            });
-
-            setIsCreatingRepository(false);
-            return;
+          interface IUploadResponse {
+            success?: boolean;
+            message?: string;
+            filesCreated?: number;
+            error?: string;
           }
 
-          const errorMessage = isCreateRepositoryResponse(createRepoResult)
-            ? (createRepoResult.error ?? 'Failed to create repository')
-            : 'Failed to create repository';
-          throw new Error(errorMessage);
-        }
+          const isUploadResponse = (val: unknown): val is IUploadResponse => {
+            return (
+              typeof val === 'object' &&
+              val !== null &&
+              ('success' in val ||
+                'message' in val ||
+                'filesCreated' in val ||
+                'error' in val)
+            );
+          };
 
-        if (
-          !isCreateRepositoryResponse(createRepoResult) ||
-          createRepoResult.repoUrl === undefined ||
-          createRepoResult.repoUrl === ''
-        ) {
-          throw new Error('Failed to get repository URL');
-        }
+          if (!uploadResponse.ok) {
+            const errorMessage = isUploadResponse(uploadResult)
+              ? (uploadResult.error ?? 'Failed to upload files')
+              : 'Failed to upload files';
+            throw new Error(errorMessage);
+          }
 
-        const repoUrl = createRepoResult.repoUrl;
-        const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
-        const match = githubRegex.exec(repoUrl);
+          const filesCreated =
+            isUploadResponse(uploadResult) &&
+            uploadResult.filesCreated !== undefined
+              ? uploadResult.filesCreated
+              : 0;
 
-        if (match?.length !== 3) {
-          throw new Error('Invalid repository URL format');
-        }
+          const cloneCommand = `git clone ${repoUrl}.git`;
 
-      const repoOwner2 = match[1];
-      const repo = match[2];
-
-      /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
-      const userEnvDetection = detectUserEnvInStructure(folderStructure);
-      if (userEnvDetection.hasUserEnv) {
-        const fileList = userEnvDetection.locations
-          .map((loc) => `  - ${loc.filePath}`)
-          .join('\n');
-        throw new Error(
-          `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
-            `Found in:\n${fileList}\n\n` +
-            `Options:\n` +
-            `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
-            `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
-            `3. Use environment variable references in code (process.env.KEY_NAME)`,
-        );
-      }
-
-      const uploadResponse = await fetch(
-        `${getApiUrl()}/create-github-folder-structure`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${exportAccessToken}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            structure: folderStructure,
-            owner: repoOwner2,
-            repo,
-            branch: 'main',
-            projectName,
-            method, /* Pass the auth method */
-          }),
-        },
-      );
-
-        const uploadResult: unknown = await uploadResponse.json();
-
-        interface IUploadResponse {
-          success?: boolean;
-          message?: string;
-          filesCreated?: number;
-          error?: string;
-        }
-
-        const isUploadResponse = (val: unknown): val is IUploadResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val ||
-              'message' in val ||
-              'filesCreated' in val ||
-              'error' in val)
-          );
-        };
-
-        if (!uploadResponse.ok) {
-          const errorMessage = isUploadResponse(uploadResult)
-            ? (uploadResult.error ?? 'Failed to upload files')
-            : 'Failed to upload files';
-          throw new Error(errorMessage);
-        }
-
-        const filesCreated =
-          isUploadResponse(uploadResult) &&
-          uploadResult.filesCreated !== undefined
-            ? uploadResult.filesCreated
-            : 0;
-
-        const cloneCommand = `git clone ${repoUrl}.git`;
-
-        openRandomModal({
-          title: 'Project Exported Successfully',
-          content: (
-            <div className="space-y-6">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg
-                    className="w-5 h-5 text-green-600 dark:text-green-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-label="Success icon"
-                  >
-                    <title>Success</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <p className="text-green-800 dark:text-green-200 font-semibold">
-                    Successfully exported {String(filesCreated)} file(s) to
-                    GitHub
+          openRandomModal({
+            title: 'Project Exported Successfully',
+            content: (
+              <div className="space-y-6">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg
+                      className="w-5 h-5 text-green-600 dark:text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-label="Success icon"
+                    >
+                      <title>Success</title>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
+                      Export Complete
+                    </h3>
+                  </div>
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    {filesCreated > 0
+                      ? `Successfully exported ${String(filesCreated)} file(s) to GitHub.`
+                      : 'Repository created successfully.'}
                   </p>
                 </div>
-              </div>
 
-              <div className="space-y-4">
                 <div>
                   <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Clone Repository
+                    Clone Command
                   </div>
-                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
-                    <code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg font-mono text-sm break-all">
                       {cloneCommand}
                     </code>
                     <button
@@ -1611,26 +1466,215 @@ function FileViewer({
                   </a>
                 </div>
               </div>
+            ),
+          });
 
-              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const modals = useModalStore.getState().modals;
-                    if (modals.length > 0) {
-                      useModalStore
-                        .getState()
-                        .closeModal(modals[modals.length - 1].id);
-                    }
-                  }}
-                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+          setIsCreatingRepository(false);
+          return;
+        }
+
+        const errorMessage = isCreateRepositoryResponse(createRepoResult)
+          ? (createRepoResult.error ?? 'Failed to create repository')
+          : 'Failed to create repository';
+        throw new Error(errorMessage);
+      }
+
+      if (
+        !isCreateRepositoryResponse(createRepoResult) ||
+        createRepoResult.repoUrl === undefined ||
+        createRepoResult.repoUrl === ''
+      ) {
+        throw new Error('Failed to get repository URL');
+      }
+
+      const repoUrl = createRepoResult.repoUrl;
+      const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
+      const match = githubRegex.exec(repoUrl);
+
+      if (match?.length !== 3) {
+        throw new Error('Invalid repository URL format');
+      }
+
+      const repoOwner2 = match[1];
+      const repo = match[2];
+
+      /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
+      const userEnvDetection = detectUserEnvInStructure(folderStructure);
+      if (userEnvDetection.hasUserEnv) {
+        const fileList = userEnvDetection.locations
+          .map((loc) => `  - ${loc.filePath}`)
+          .join('\n');
+        throw new Error(
+          `Cannot commit to GitHub: USE_USER_ENV detected in generated files. This would expose your secrets.\n\n` +
+            `Found in:\n${fileList}\n\n` +
+            `Options:\n` +
+            `1. Remove USE_USER_ENV from templates and use placeholders (e.g., \${KEY_NAME} or process.env.KEY_NAME)\n` +
+            `2. Download files locally instead (USE_USER_ENV works for local files)\n` +
+            `3. Use environment variable references in code (process.env.KEY_NAME)`,
+        );
+      }
+
+      const uploadResponse = await fetch(
+        `${getApiUrl()}/create-github-folder-structure`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${exportAccessToken}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            structure: folderStructure,
+            owner: repoOwner2,
+            repo,
+            branch: 'main',
+            projectName,
+            method /* Pass the auth method */,
+          }),
+        },
+      );
+
+      const uploadResult: unknown = await uploadResponse.json();
+
+      interface IUploadResponse {
+        success?: boolean;
+        message?: string;
+        filesCreated?: number;
+        error?: string;
+      }
+
+      const isUploadResponse = (val: unknown): val is IUploadResponse => {
+        return (
+          typeof val === 'object' &&
+          val !== null &&
+          ('success' in val ||
+            'message' in val ||
+            'filesCreated' in val ||
+            'error' in val)
+        );
+      };
+
+      if (!uploadResponse.ok) {
+        const errorMessage = isUploadResponse(uploadResult)
+          ? (uploadResult.error ?? 'Failed to upload files')
+          : 'Failed to upload files';
+        throw new Error(errorMessage);
+      }
+
+      const filesCreated =
+        isUploadResponse(uploadResult) &&
+        uploadResult.filesCreated !== undefined
+          ? uploadResult.filesCreated
+          : 0;
+
+      const cloneCommand = `git clone ${repoUrl}.git`;
+
+      openRandomModal({
+        title: 'Project Exported Successfully',
+        content: (
+          <div className="space-y-6">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg
+                  className="w-5 h-5 text-green-600 dark:text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-label="Success icon"
                 >
-                  Done
-                </button>
+                  <title>Success</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <p className="text-green-800 dark:text-green-200 font-semibold">
+                  Successfully exported {String(filesCreated)} file(s) to GitHub
+                </p>
               </div>
             </div>
-          ),
-        });
+
+            <div className="space-y-4">
+              <div>
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Clone Repository
+                </div>
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
+                  <code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+                    {cloneCommand}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCopy(cloneCommand);
+                    }}
+                    className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+                    title="Copy clone command"
+                  >
+                    <CopyIcon fontSize="small" />
+                    <span className="text-sm">Copy</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Repository
+                </div>
+                <a
+                  href={repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-label="GitHub icon"
+                  >
+                    <title>GitHub</title>
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  <span>Open Repository</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => {
+                  const modals = useModalStore.getState().modals;
+                  if (modals.length > 0) {
+                    useModalStore
+                      .getState()
+                      .closeModal(modals[modals.length - 1].id);
+                  }
+                }}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ),
+      });
     } catch (error: unknown) {
       if (error instanceof Error) {
         if (
@@ -1670,11 +1714,16 @@ function FileViewer({
       const match = githubRegex.exec(repoUrl);
 
       if (match?.length !== 3) {
-        throw new Error('Invalid GitHub repository URL. Expected format: https://github.com/owner/repo');
+        throw new Error(
+          'Invalid GitHub repository URL. Expected format: https://github.com/owner/repo',
+        );
       }
 
       const repoOwner = match[1];
-      const repo = match[2].replace(/\.git$/, ''); /* Remove .git suffix if present */
+      const repo = match[2].replace(
+        /\.git$/,
+        '',
+      ); /* Remove .git suffix if present */
 
       /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
       const userEnvDetection = detectUserEnvInStructure(folderStructure);
@@ -1708,7 +1757,8 @@ function FileViewer({
             repo,
             branch: 'main',
             projectName,
-            method: 'github_app', /* Always use GitHub App for existing repo flow */
+            method:
+              'github_app' /* Always use GitHub App for existing repo flow */,
           }),
         },
       );
@@ -1770,7 +1820,8 @@ function FileViewer({
                   />
                 </svg>
                 <p className="text-green-800 dark:text-green-200 font-semibold">
-                  Successfully pushed {String(filesCreated)} file(s) to repository
+                  Successfully pushed {String(filesCreated)} file(s) to
+                  repository
                 </p>
               </div>
             </div>
@@ -1917,9 +1968,261 @@ function FileViewer({
         'success' in data &&
         data.success === true
       ) {
-        /*prettier-ignore*/ (($= 'Success!') => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
+        /*prettier-ignore*/ (($ = "Success!") => {
+					const isObject = (obj: unknown): obj is Record<string, unknown> => {
+						return obj !== null && typeof obj === "object";
+					};
+					const isArrayOfObjects = (
+						arr: unknown,
+					): arr is Record<string, unknown>[] => {
+						return Array.isArray(arr) && arr.every(isObject);
+					};
+					const parentDiv: HTMLElement =
+						document.getElementById("quicklogContainer") ??
+						(() => {
+							const div = document.createElement("div");
+							div.id = "quicklogContainer";
+							div.style.cssText =
+								"position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;";
+							const helperButtonsDiv = document.createElement("div");
+							helperButtonsDiv.style.cssText =
+								"position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;";
+							const clearButton = document.createElement("button");
+							clearButton.textContent = "Clear";
+							clearButton.style.cssText =
+								"margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;";
+							clearButton.onclick = () => {
+								if (parentDiv instanceof HTMLElement) {
+									parentDiv.remove();
+								}
+							};
+							helperButtonsDiv.appendChild(clearButton);
+							document.body.appendChild(div);
+							div.appendChild(helperButtonsDiv);
+							return div;
+						})();
+					const createTable = (
+						obj: Record<string, unknown>,
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						Object.entries(obj).forEach(([key, value]) => {
+							const row = document.createElement("tr");
+							const keyCell = document.createElement("td");
+							const valueCell = document.createElement("td");
+							keyCell.textContent = key;
+							valueCell.textContent = String(value);
+							keyCell.style.cssText = "border: 1px solid black; padding: 5px;";
+							valueCell.style.cssText =
+								"border: 1px solid black; padding: 5px;";
+							row.appendChild(keyCell);
+							row.appendChild(valueCell);
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createTableFromArray = (
+						arr: Record<string, unknown>[],
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						const headers = Object.keys(arr[0]);
+						const headerRow = document.createElement("tr");
+						headers.forEach((header) => {
+							const th = document.createElement("th");
+							th.textContent = header;
+							th.style.cssText = "border: 1px solid black; padding: 5px;";
+							headerRow.appendChild(th);
+						});
+						table.appendChild(headerRow);
+						arr.forEach((obj) => {
+							const row = document.createElement("tr");
+							headers.forEach((header) => {
+								const td = document.createElement("td");
+								td.textContent = String(obj[header]);
+								td.style.cssText = "border: 1px solid black; padding: 5px;";
+								row.appendChild(td);
+							});
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createChildDiv = (data: unknown): HTMLElement => {
+						const newDiv = document.createElement("div");
+						const jsonData = JSON.stringify(data, null, 2);
+						if (isArrayOfObjects(data)) {
+							const table = createTableFromArray(data);
+							newDiv.appendChild(table);
+						} else if (isObject(data)) {
+							const table = createTable(data);
+							newDiv.appendChild(table);
+						} else {
+							newDiv.textContent = String(data);
+						}
+						newDiv.style.cssText =
+							'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;';
+						const handleMouseDown = (e: MouseEvent) => {
+							e.preventDefault();
+							const clickedDiv =
+								e.target instanceof Element && e.target.closest("div");
+							if (
+								clickedDiv !== null &&
+								e.button === 0 &&
+								clickedDiv === newDiv
+							) {
+								void navigator.clipboard.writeText(jsonData).then(() => {
+									clickedDiv.style.backgroundColor = "gold";
+									setTimeout(() => {
+										clickedDiv.style.backgroundColor = "yellow";
+									}, 1000);
+								});
+							}
+						};
+						const handleRightClick = (e: MouseEvent) => {
+							e.preventDefault();
+							if (parentDiv.contains(newDiv)) {
+								parentDiv.removeChild(newDiv);
+								if (!parentDiv.hasChildNodes()) {
+									parentDiv.remove();
+								}
+							}
+						};
+						newDiv.addEventListener("mousedown", handleMouseDown);
+						newDiv.addEventListener("contextmenu", handleRightClick);
+						return newDiv;
+					};
+					parentDiv.prepend(createChildDiv($));
+				})();
       } else {
-        /*prettier-ignore*/ (($= 'Fail!') => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
+        /*prettier-ignore*/ (($ = "Fail!") => {
+					const isObject = (obj: unknown): obj is Record<string, unknown> => {
+						return obj !== null && typeof obj === "object";
+					};
+					const isArrayOfObjects = (
+						arr: unknown,
+					): arr is Record<string, unknown>[] => {
+						return Array.isArray(arr) && arr.every(isObject);
+					};
+					const parentDiv: HTMLElement =
+						document.getElementById("quicklogContainer") ??
+						(() => {
+							const div = document.createElement("div");
+							div.id = "quicklogContainer";
+							div.style.cssText =
+								"position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;";
+							const helperButtonsDiv = document.createElement("div");
+							helperButtonsDiv.style.cssText =
+								"position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;";
+							const clearButton = document.createElement("button");
+							clearButton.textContent = "Clear";
+							clearButton.style.cssText =
+								"margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;";
+							clearButton.onclick = () => {
+								if (parentDiv instanceof HTMLElement) {
+									parentDiv.remove();
+								}
+							};
+							helperButtonsDiv.appendChild(clearButton);
+							document.body.appendChild(div);
+							div.appendChild(helperButtonsDiv);
+							return div;
+						})();
+					const createTable = (
+						obj: Record<string, unknown>,
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						Object.entries(obj).forEach(([key, value]) => {
+							const row = document.createElement("tr");
+							const keyCell = document.createElement("td");
+							const valueCell = document.createElement("td");
+							keyCell.textContent = key;
+							valueCell.textContent = String(value);
+							keyCell.style.cssText = "border: 1px solid black; padding: 5px;";
+							valueCell.style.cssText =
+								"border: 1px solid black; padding: 5px;";
+							row.appendChild(keyCell);
+							row.appendChild(valueCell);
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createTableFromArray = (
+						arr: Record<string, unknown>[],
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						const headers = Object.keys(arr[0]);
+						const headerRow = document.createElement("tr");
+						headers.forEach((header) => {
+							const th = document.createElement("th");
+							th.textContent = header;
+							th.style.cssText = "border: 1px solid black; padding: 5px;";
+							headerRow.appendChild(th);
+						});
+						table.appendChild(headerRow);
+						arr.forEach((obj) => {
+							const row = document.createElement("tr");
+							headers.forEach((header) => {
+								const td = document.createElement("td");
+								td.textContent = String(obj[header]);
+								td.style.cssText = "border: 1px solid black; padding: 5px;";
+								row.appendChild(td);
+							});
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createChildDiv = (data: unknown): HTMLElement => {
+						const newDiv = document.createElement("div");
+						const jsonData = JSON.stringify(data, null, 2);
+						if (isArrayOfObjects(data)) {
+							const table = createTableFromArray(data);
+							newDiv.appendChild(table);
+						} else if (isObject(data)) {
+							const table = createTable(data);
+							newDiv.appendChild(table);
+						} else {
+							newDiv.textContent = String(data);
+						}
+						newDiv.style.cssText =
+							'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;';
+						const handleMouseDown = (e: MouseEvent) => {
+							e.preventDefault();
+							const clickedDiv =
+								e.target instanceof Element && e.target.closest("div");
+							if (
+								clickedDiv !== null &&
+								e.button === 0 &&
+								clickedDiv === newDiv
+							) {
+								void navigator.clipboard.writeText(jsonData).then(() => {
+									clickedDiv.style.backgroundColor = "gold";
+									setTimeout(() => {
+										clickedDiv.style.backgroundColor = "yellow";
+									}, 1000);
+								});
+							}
+						};
+						const handleRightClick = (e: MouseEvent) => {
+							e.preventDefault();
+							if (parentDiv.contains(newDiv)) {
+								parentDiv.removeChild(newDiv);
+								if (!parentDiv.hasChildNodes()) {
+									parentDiv.remove();
+								}
+							}
+						};
+						newDiv.addEventListener("mousedown", handleMouseDown);
+						newDiv.addEventListener("contextmenu", handleRightClick);
+						return newDiv;
+					};
+					parentDiv.prepend(createChildDiv($));
+				})();
       }
     } catch (error) {
       console.error('Error creating app:', error);
@@ -1947,7 +2250,7 @@ function FileViewer({
   };
 
   return (
-    <div className="h-96 p-2" ref={fileViewerRef}>
+    <div className="h-full flex flex-col" ref={fileViewerRef}>
       {githubError !== null && githubError !== '' && (
         <div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-md">
           <div className="flex items-center justify-between">
@@ -1990,50 +2293,7 @@ function FileViewer({
           </div>
         </div>
       )}
-      {mode === 'edit' && (
-        <div className="flex gap-2 mb-2">
-          <button
-            type="button"
-            onClick={() => void handleCreateApp()}
-            className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          >
-            Create App!
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenExportModal}
-            disabled={
-              isCreatingRepository ||
-              isWaitingForInstallation ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-            }
-            className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-              isCreatingRepository ||
-              isWaitingForInstallation ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            }`}
-            // className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-            //   isCreatingRepository ||
-            //   folderStructure.length === 0 ||
-            //   safeFilesUsingUserEnv.length > 0 ||
-            //   !hasGitHubToken
-            //     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-            //     : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            // }`}
-            title={getButtonTooltip()}
-          >
-            {isWaitingForInstallation
-              ? 'Waiting for GitHub App installation...'
-              : isCreatingRepository
-                ? `Exporting ${String(countFiles(folderStructure))} files...`
-                : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
-          </button>
-        </div>
-      )}
+
       {!isUserLoading &&
         serverConfigStatus !== null &&
         !hasGitHubToken &&
@@ -2245,250 +2505,509 @@ function FileViewer({
           </div>
         </div>
       )}
-      <br />
-      <div className="grid grid-cols-1 md:grid-cols-3 text-white">
-        <div className="col-span-1 bg-gray-800 select-none mr-2">
-          <div>
-            <div className="flex justify-between mb-4">
+      {/* Main content area - flex to fill remaining space */}
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 text-white overflow-hidden">
+        {/* Mobile: Accordion file explorer */}
+        {isMobile && (
+          <div className="flex flex-col shrink-0">
+            {/* Accordion header - always visible on mobile */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsTreeOpen(!isTreeOpen);
+              }}
+              className="flex items-center justify-between bg-gray-800 px-3 py-2"
+            >
+              <div className="flex items-center gap-2 text-gray-200">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <title>Files</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                  />
+                </svg>
+                <span className="text-sm font-medium">Files</span>
+              </div>
+              <svg
+                className={`w-4 h-4 text-gray-400 transition-transform ${isTreeOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <title>Toggle</title>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Accordion panel - partial height to show editor below */}
+            <div
+              className={`max-h-[66vh] bg-gray-800 flex flex-col overflow-hidden ${isTreeOpen ? '' : 'hidden'}`}
+            >
+              {/* Action buttons toolbar */}
               {mode === 'edit' && (
-                <div className="flex items-center justify-between w-full">
+                <div className="p-3 border-b border-gray-700 space-y-3 shrink-0">
+                  {/* Primary actions row */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateApp()}
+                      className="flex-1 text-xs font-medium px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                    >
+                      Create App
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenExportModal}
+                      disabled={
+                        isCreatingRepository ||
+                        isWaitingForInstallation ||
+                        folderStructure.length === 0 ||
+                        safeFilesUsingUserEnv.length > 0
+                      }
+                      className={`flex-1 text-xs font-medium px-3 py-2 transition-colors ${
+                        isCreatingRepository ||
+                        isWaitingForInstallation ||
+                        folderStructure.length === 0 ||
+                        safeFilesUsingUserEnv.length > 0
+                          ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
+                      title={getButtonTooltip()}
+                    >
+                      {isWaitingForInstallation
+                        ? 'Installing...'
+                        : isCreatingRepository
+                          ? 'Exporting...'
+                          : `Export (${String(countFiles(folderStructure))})`}
+                    </button>
+                  </div>
+
+                  {/* Secondary actions row */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        zipAndDownloadIStructure(
+                          folderStructure,
+                          getZipFileName(),
+                        );
+                      }}
+                      className="flex-1 text-xs px-3 py-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors flex items-center justify-center gap-1.5"
+                      title="Download ZIP"
+                    >
+                      <DownloadIcon sx={{ fontSize: 16 }} />
+                      <span>Download</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void (async () => {
+                          await handleOpenDialog('newFile');
+                        })();
+                      }}
+                      className="p-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
+                      title="New File"
+                      aria-label="New File"
+                    >
+                      <NoteAddIcon sx={{ fontSize: 18 }} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void (async () => {
+                          await handleOpenDialog('newFolder');
+                        })();
+                      }}
+                      className="p-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
+                      title="New Folder"
+                      aria-label="New Folder"
+                    >
+                      <CreateNewFolderIcon sx={{ fontSize: 18 }} />
+                    </button>
+                  </div>
+
+                  {/* Dev copy buttons row */}
                   {process.env.NODE_ENV === 'development' && (
-                    <>
-                      <div>
-                        <button
-                          onClick={() => {
-                            handleCopy(JSON.stringify(userFiles, null, 4));
-                          }}
-                          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                          Copy User Files
-                        </button>
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => {
-                            handleCopy(
-                              JSON.stringify(folderStructure, null, 4),
-                            );
-                          }}
-                          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                          Copy Project Structure
-                        </button>
-                      </div>
-                    </>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopy(JSON.stringify(userFiles, null, 4));
+                        }}
+                        className="flex-1 text-xs px-3 py-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
+                      >
+                        Copy User Files
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopy(JSON.stringify(folderStructure, null, 4));
+                        }}
+                        className="flex-1 text-xs px-3 py-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
+                      >
+                        Copy Structure
+                      </button>
+                    </div>
                   )}
+
+                  {/* Project selector row */}
+                  {projects.length > 0 &&
+                    selectedProjectProp &&
+                    onProjectChange && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400 shrink-0">
+                          Project:
+                        </span>
+                        <select
+                          value={selectedProjectProp.name}
+                          onChange={onProjectChange}
+                          className="flex-1 text-xs bg-gray-700 text-gray-200 border border-gray-600 px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          {projects.map((project) => (
+                            <option key={project.name} value={project.name}>
+                              {project.name.replace('App Generator - ', '')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                </div>
+              )}
+              {/* File tree */}
+              <div
+                className="flex-1 overflow-auto p-2"
+                onContextMenu={(e) => {
+                  if (mode === 'edit') {
+                    handleContextMenu(e);
+                  }
+                }}
+              >
+                <div className="min-w-max">
+                  <SimpleTreeView>
+                    {renderTree(folderStructure, setSelectedFile)}
+                  </SimpleTreeView>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop: Side-by-side file tree panel - fixed width with horizontal scroll */}
+        {!isMobile && (
+          <div className="w-72 bg-gray-800 select-none flex flex-col shrink-0 overflow-hidden">
+            {/* Action buttons toolbar */}
+            {mode === 'edit' && (
+              <div className="p-3 border-b border-gray-700 space-y-3 shrink-0">
+                {/* Primary actions row */}
+                <div className="flex gap-2">
                   <button
+                    type="button"
+                    onClick={() => void handleCreateApp()}
+                    className="flex-1 text-xs font-medium px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  >
+                    Create App
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenExportModal}
+                    disabled={
+                      isCreatingRepository ||
+                      isWaitingForInstallation ||
+                      folderStructure.length === 0 ||
+                      safeFilesUsingUserEnv.length > 0
+                    }
+                    className={`flex-1 text-xs font-medium px-3 py-2 transition-colors ${
+                      isCreatingRepository ||
+                      isWaitingForInstallation ||
+                      folderStructure.length === 0 ||
+                      safeFilesUsingUserEnv.length > 0
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                    title={getButtonTooltip()}
+                  >
+                    {isWaitingForInstallation
+                      ? 'Installing...'
+                      : isCreatingRepository
+                        ? 'Exporting...'
+                        : `Export (${String(countFiles(folderStructure))})`}
+                  </button>
+                </div>
+
+                {/* Secondary actions row */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
                     onClick={() => {
                       zipAndDownloadIStructure(
                         folderStructure,
                         getZipFileName(),
                       );
                     }}
-                    className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
-                    title="Download Project Files"
-                    aria-label="Download Project Files"
+                    className="flex-1 text-xs px-3 py-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors flex items-center justify-center gap-1.5"
+                    title="Download ZIP"
                   >
-                    <DownloadIcon fontSize="small" />
+                    <DownloadIcon sx={{ fontSize: 16 }} />
+                    <span>Download</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        await handleOpenDialog('newFile');
+                      })();
+                    }}
+                    className="p-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
+                    title="New File"
+                    aria-label="New File"
+                  >
+                    <NoteAddIcon sx={{ fontSize: 18 }} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        await handleOpenDialog('newFolder');
+                      })();
+                    }}
+                    className="p-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
+                    title="New Folder"
+                    aria-label="New Folder"
+                  >
+                    <CreateNewFolderIcon sx={{ fontSize: 18 }} />
+                  </button>
+                </div>
 
-                  <div className="flex space-x-2">
+                {/* Dev copy buttons row */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => {
-                        void (async () => {
-                          await handleOpenDialog('newFile');
-                        })();
+                        handleCopy(JSON.stringify(userFiles, null, 4));
                       }}
-                      className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
-                      title="New File"
-                      aria-label="New File"
+                      className="flex-1 text-xs px-3 py-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
                     >
-                      <NoteAddIcon fontSize="small" />
+                      Copy User Files
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
-                        void (async () => {
-                          await handleOpenDialog('newFolder');
-                        })();
+                        handleCopy(JSON.stringify(folderStructure, null, 4));
                       }}
-                      className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
-                      title="New Folder"
-                      aria-label="New Folder"
+                      className="flex-1 text-xs px-3 py-2 bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors"
                     >
-                      <CreateNewFolderIcon fontSize="small" />
+                      Copy Structure
                     </button>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
 
+                {/* Project selector row */}
+                {projects.length > 0 &&
+                  selectedProjectProp &&
+                  onProjectChange && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-400 shrink-0">
+                        Project:
+                      </span>
+                      <select
+                        value={selectedProjectProp.name}
+                        onChange={onProjectChange}
+                        className="flex-1 text-xs bg-gray-700 text-gray-200 border border-gray-600 px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        {projects.map((project) => (
+                          <option key={project.name} value={project.name}>
+                            {project.name.replace('App Generator - ', '')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+              </div>
+            )}
+            {/* File tree */}
             <div
-              className="overflow-auto max-h-80"
+              className="flex-1 overflow-auto p-2"
               onContextMenu={(e) => {
                 if (mode === 'edit') {
                   handleContextMenu(e);
                 }
               }}
             >
-              <SimpleTreeView>
-                {renderTree(folderStructure, setSelectedFile)}
-              </SimpleTreeView>
+              <div className="min-w-max">
+                <SimpleTreeView>
+                  {renderTree(folderStructure, setSelectedFile)}
+                </SimpleTreeView>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="col-span-1 md:col-span-2">
-          {selectedFile && (
-            <div className="bg-gray-900">
-              <div className="mt-2 sticky left-0 top-0 z-20 bg-gray-800 grid grid-cols-[auto_auto] items-center m-0">
-                <div>
-                  <div className="bg-[#1f1f1f] w-max p-2 rounded-t-md flex items-center">
-                    <span>
-                      {selectedFile.name}
-                      {isFileEdited ? ' •' : ''}&nbsp;
-                    </span>
-                    <button
-                      onClick={() => void handleCloseFile()}
-                      className="hover:bg-gray-700 text-white px-1 pb-1 rounded transition-colors duration-150"
-                    >
-                      <CloseIcon fontSize="small" />
-                    </button>
-                  </div>
+        )}
+
+        {/* Editor panel - takes remaining space */}
+        <div className="flex-1 flex flex-col min-h-0 bg-gray-900 overflow-hidden">
+          {selectedFile ? (
+            <>
+              <div className="flex items-center justify-between bg-gray-800 px-2 py-1 border-b border-gray-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm truncate">
+                    {selectedFile.name}
+                    {isFileEdited ? ' •' : ''}
+                  </span>
                 </div>
-                <div>
+                <div className="flex items-center gap-1">
+                  {mode === 'edit' && isFileEdited && (
+                    <button
+                      type="button"
+                      onClick={saveFileChanges}
+                      className="hover:bg-gray-700 text-white p-1 rounded transition-colors"
+                      title="Save"
+                    >
+                      <SaveIcon fontSize="small" />
+                    </button>
+                  )}
                   <button
+                    type="button"
                     onClick={() => {
                       if (selectedFile.content) {
                         handleCopy(selectedFile.content);
                       }
                     }}
                     disabled={!selectedFile.content}
-                    className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="hover:bg-gray-700 text-white p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Copy"
                   >
                     <CopyIcon fontSize="small" />
                   </button>
-                  {mode === 'edit' && isFileEdited && (
-                    <button
-                      onClick={saveFileChanges}
-                      className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right transition-all duration-150"
-                    >
-                      <SaveIcon fontSize="small" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => void handleCloseFile()}
+                    className="hover:bg-gray-700 text-white p-1 rounded transition-colors"
+                    title="Close"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </button>
                 </div>
               </div>
-              {isFileContentLoading ? (
-                <div
-                  className="flex items-center justify-center bg-gray-900 p-4"
-                  style={{ height: '20rem' }}
-                >
-                  <div className="text-white">Loading file content...</div>
-                </div>
-              ) : fileContentError ? (
-                <div
-                  className="flex items-center justify-center bg-gray-900 p-4"
-                  style={{ height: '20rem' }}
-                >
-                  <div className="text-red-400">
-                    Error loading file:{' '}
-                    {fileContentError instanceof Error
-                      ? fileContentError.message
-                      : 'Unknown error'}
+              <div className="flex-1 min-h-0">
+                {isFileContentLoading ? (
+                  <div className="flex items-center justify-center h-full bg-gray-900 p-4">
+                    <div className="text-white">Loading file content...</div>
                   </div>
-                </div>
-              ) : isImageFile(selectedFile.name) && fileContent ? (
-                <div
-                  className="flex items-center justify-center bg-gray-900 p-4"
-                  style={{ height: '20rem' }}
-                >
-                  {selectedFile.name.toLowerCase().endsWith('.svg') &&
-                  !fileContent.startsWith('data:') &&
-                  !fileContent.includes('base64') &&
-                  fileContent.trim().startsWith('<') ? (
-                    <div
-                      className="max-h-full max-w-full"
-                      dangerouslySetInnerHTML={{ __html: fileContent }}
-                    />
-                  ) : (
-                    <img
-                      src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${fileContent}`}
-                      alt={selectedFile.name}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  )}
-                </div>
-              ) : (
-                <Editor
-                  height="20rem"
-                  defaultValue={selectedFile.content}
-                  value={fileContent}
-                  beforeMount={(monaco) => {
-                    // Disable import/type errors
-                    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
-                      {
-                        noSemanticValidation: true, // ignore type errors
-                        noSyntaxValidation: false, // keep syntax highlighting
-                      },
-                    );
-                  }}
-                  language={(() => {
-                    const fileExtension: string | undefined = selectedFile.name
-                      .split('.')
-                      .pop();
-                    if (fileExtension === undefined) {
-                      return 'plaintext';
-                    }
-                    const languageMap: Record<string, string> = {
-                      ts: 'typescript',
-                      js: 'javascript',
-                      php: 'php',
-                      css: 'css',
-                      sass: 'sass',
-                      scss: 'scss',
-                      java: 'java',
-                      sql: 'sql',
-                      txt: 'plaintext',
-                      jsx: 'javascript',
-                      tsx: 'typescript',
-                      html: 'html',
-                      htm: 'html',
-                      xml: 'xml',
-                      json: 'json',
-                      yaml: 'yaml',
-                      yml: 'yaml',
-                      md: 'markdown',
-                      markdown: 'markdown',
-                      sh: 'shell',
-                      bash: 'shell',
-                      zsh: 'shell',
-                      py: 'python',
-                      rb: 'ruby',
-                      go: 'go',
-                      rs: 'rust',
-                      cpp: 'cpp',
-                      c: 'c',
-                      h: 'c',
-                      hpp: 'cpp',
-                      cs: 'csharp',
-                      swift: 'swift',
-                      kt: 'kotlin',
-                      dockerfile: 'dockerfile',
-                      tf: 'hcl',
-                      terraform: 'hcl',
-                    };
-                    return languageMap[fileExtension] ?? 'plaintext';
-                  })()}
-                  theme="vs-dark"
-                  options={{
-                    readOnly: mode === 'view',
-                    domReadOnly: mode === 'view',
-                    minimap: { enabled: true },
-                    fontSize: 14,
-                    lineNumbers: 'on',
-                  }}
-                  onChange={handleEditorChange}
-                  onMount={handleEditorDidMount}
-                />
-              )}
+                ) : fileContentError ? (
+                  <div className="flex items-center justify-center h-full bg-gray-900 p-4">
+                    <div className="text-red-400">
+                      Error loading file:{' '}
+                      {fileContentError instanceof Error
+                        ? fileContentError.message
+                        : 'Unknown error'}
+                    </div>
+                  </div>
+                ) : isImageFile(selectedFile.name) && fileContent ? (
+                  <div className="flex items-center justify-center h-full bg-gray-900 p-4">
+                    {selectedFile.name.toLowerCase().endsWith('.svg') &&
+                    !fileContent.startsWith('data:') &&
+                    !fileContent.includes('base64') &&
+                    fileContent.trim().startsWith('<') ? (
+                      <div
+                        className="max-h-full max-w-full"
+                        dangerouslySetInnerHTML={{ __html: fileContent }}
+                      />
+                    ) : (
+                      <img
+                        src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${fileContent}`}
+                        alt={selectedFile.name}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <Editor
+                    height="100%"
+                    defaultValue={selectedFile.content}
+                    value={fileContent}
+                    beforeMount={(monaco) => {
+                      monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
+                        {
+                          noSemanticValidation: true,
+                          noSyntaxValidation: false,
+                        },
+                      );
+                    }}
+                    language={(() => {
+                      const fileExtension: string | undefined =
+                        selectedFile.name.split('.').pop();
+                      if (fileExtension === undefined) {
+                        return 'plaintext';
+                      }
+                      const languageMap: Record<string, string> = {
+                        ts: 'typescript',
+                        js: 'javascript',
+                        php: 'php',
+                        css: 'css',
+                        sass: 'sass',
+                        scss: 'scss',
+                        java: 'java',
+                        sql: 'sql',
+                        txt: 'plaintext',
+                        jsx: 'javascript',
+                        tsx: 'typescript',
+                        html: 'html',
+                        htm: 'html',
+                        xml: 'xml',
+                        json: 'json',
+                        yaml: 'yaml',
+                        yml: 'yaml',
+                        md: 'markdown',
+                        markdown: 'markdown',
+                        sh: 'shell',
+                        bash: 'shell',
+                        zsh: 'shell',
+                        py: 'python',
+                        rb: 'ruby',
+                        go: 'go',
+                        rs: 'rust',
+                        cpp: 'cpp',
+                        c: 'c',
+                        h: 'c',
+                        hpp: 'cpp',
+                        cs: 'csharp',
+                        swift: 'swift',
+                        kt: 'kotlin',
+                        dockerfile: 'dockerfile',
+                        tf: 'hcl',
+                        terraform: 'hcl',
+                      };
+                      return languageMap[fileExtension] ?? 'plaintext';
+                    })()}
+                    theme="vs-dark"
+                    options={{
+                      readOnly: mode === 'view',
+                      domReadOnly: mode === 'view',
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: 'on',
+                    }}
+                    onChange={handleEditorChange}
+                    onMount={handleEditorDidMount}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <p>Select a file to view</p>
             </div>
           )}
         </div>
@@ -2647,11 +3166,11 @@ function FileViewer({
           onClose={handleCloseContextMenu}
         />
       )}
-
-      {/* GitHub Export Options Modal */}
       <GitHubExportModal
         isOpen={showExportModal}
-        onClose={() => { setShowExportModal(false); }}
+        onClose={() => {
+          setShowExportModal(false);
+        }}
         owner={exportOwner}
         accessToken={exportAccessToken}
         onSelectMethod={handleExportMethodSelected}

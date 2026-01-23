@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import type { TabType } from '@/components/AI/TabBar.tsx';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import FileViewer from '@/components/FileViewer.tsx';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
@@ -402,7 +403,11 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${String(Math.min(textarea.scrollHeight, 200))}px`;
+      const maxHeight = 200;
+      const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+      textarea.style.height = `${String(newHeight)}px`;
+      textarea.style.overflowY =
+        textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
     }
   }, []);
 
@@ -420,9 +425,33 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
   };
 
   return (
-    <div className="border-t border-gray-800 bg-gray-900/50 backdrop-blur-sm p-6">
-      <form onSubmit={onSubmit} className="flex gap-3 max-w-5xl mx-auto">
-        <div className="flex-1 relative">
+    <div className="border-t border-gray-800 bg-gray-900/50 backdrop-blur-sm p-4">
+      <form onSubmit={onSubmit} className="max-w-5xl mx-auto">
+        {/* ChatGPT-style composer - single row layout */}
+        <div className="flex items-end gap-2 bg-gray-800 border border-gray-700 rounded-full px-3 py-2">
+          {/* Leading control (left) */}
+          <button
+            type="button"
+            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-colors shrink-0"
+            title="Add attachment"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <title>Add attachment</title>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </button>
+
+          {/* Textarea - grows to fill space */}
           <textarea
             ref={textareaRef}
             value={input}
@@ -430,24 +459,24 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
               onChange(e.target.value);
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Describe your application idea in detail... (Shift+Enter for new line)"
+            placeholder="Describe your application idea..."
             disabled={isLoading}
             rows={1}
-            className="w-full px-5 py-4 bg-gray-800 text-white border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 resize-none min-h-[56px] max-h-[200px] placeholder-gray-500"
+            className="flex-1 bg-transparent text-white resize-none focus:outline-none disabled:opacity-50 placeholder-gray-500 text-sm leading-relaxed py-1.5 min-h-[28px]"
+            style={{ overflow: 'hidden' }}
           />
-        </div>
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="px-6 py-4 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg shadow-blue-900/20 flex items-center gap-2"
-        >
-          {isLoading ? (
-            <>
+
+          {/* Trailing control (right) */}
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="p-1.5 bg-white text-black rounded-full hover:bg-gray-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+          >
+            {isLoading ? (
               <svg
-                className="animate-spin h-5 w-5"
+                className="animate-spin w-5 h-5"
                 fill="none"
                 viewBox="0 0 24 24"
-                aria-label="Loading"
               >
                 <title>Loading</title>
                 <circle
@@ -457,36 +486,31 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
                   r="10"
                   stroke="currentColor"
                   strokeWidth="4"
-                ></circle>
+                />
                 <path
                   className="opacity-75"
                   fill="currentColor"
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
+                />
               </svg>
-              <span>Generating...</span>
-            </>
-          ) : (
-            <>
-              <span>Send</span>
+            ) : (
               <svg
                 className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                aria-label="Send message"
               >
                 <title>Send message</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  d="M5 15l7-7 7 7"
                 />
               </svg>
-            </>
-          )}
-        </button>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );
@@ -604,9 +628,16 @@ function extractSchemaFromMessages(
   return null;
 }
 
-export function AIChatContainer() {
+interface IAIChatContainerProps {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+}
+
+export function AIChatContainer({
+  activeTab,
+  onTabChange,
+}: IAIChatContainerProps) {
   const [input, setInput] = useState('');
-  const [isFileViewerMinimized, setIsFileViewerMinimized] = useState(false);
 
   // Use the SAME store as SchemaBuilder.tsx - this is the key!
   const { schemaInfo, setSchemaInfo } = useTransformationsStore();
@@ -681,10 +712,10 @@ export function AIChatContainer() {
   useEffect(() => {
     if (extractedSchema !== null) {
       setSchemaInfo(extractedSchema);
-      // Auto-expand FileViewer when new schema is generated
-      setIsFileViewerMinimized(false);
+      // Switch to fileViewer tab when new schema is generated
+      onTabChange('fileViewer');
     }
-  }, [extractedSchema, setSchemaInfo]);
+  }, [extractedSchema, setSchemaInfo, onTabChange]);
 
   // Build project files using the GLOBAL schemaInfo - same logic as App.tsx lines 125-157
   useEffect(() => {
@@ -749,164 +780,64 @@ export function AIChatContainer() {
     builtProjectFiles.length > 0 &&
     selectedProject !== null;
 
-  // Keyboard shortcut: Ctrl+B to toggle FileViewer (like VS Code)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-        e.preventDefault();
-        if (shouldShowFileViewer) {
-          setIsFileViewerMinimized((prev) => !prev);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [shouldShowFileViewer]);
+  // We no longer need the Ctrl+B shortcut here as it's handled in the parent component
+  // This effect has been removed since we're using the parent component for tab switching
 
   return (
     <div className="flex h-full w-full bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 overflow-hidden">
-      {/* FileViewer panel - Left side (like Cursor IDE) */}
-      {shouldShowFileViewer && (
-        <div
-          className={`flex flex-col bg-gray-800/80 backdrop-blur-xl border-r border-gray-700/50 overflow-hidden transition-all duration-300 shadow-2xl ${
-            isFileViewerMinimized ? 'w-14' : 'w-1/2'
-          }`}
-        >
-          {isFileViewerMinimized ? (
-            /* Minimized state - vertical tab */
-            <button
-              type="button"
-              onClick={() => {
-                setIsFileViewerMinimized(false);
-              }}
-              className="flex-1 flex flex-col items-center justify-center gap-4 py-6 hover:bg-gray-700/50 transition-all duration-200 group"
-              title="Expand Code View"
-            >
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+      {/* FileViewer panel - Show only when fileViewer tab is active */}
+      {shouldShowFileViewer && activeTab === 'fileViewer' && (
+        <div className="flex flex-col overflow-hidden w-full">
+          <FileViewer
+            mode="edit"
+            folderStructure={builtProjectFiles}
+            projectName={selectedProject.name}
+            filesUsingUserEnv={filesUsingUserEnv}
+            filesFailedToFormat={filesFailedToFormat}
+            projects={appGeneratorProjects}
+            selectedProject={selectedProject}
+            onProjectChange={handleProjectChange}
+          />
+        </div>
+      )}
+
+      {/* Chat panel - Show only when chat tab is active */}
+      {activeTab === 'chat' && (
+        <div className="flex flex-col flex-1 min-w-0 bg-gray-900/50 backdrop-blur-sm">
+          <div className="border-b border-gray-800/50 px-6 py-4 bg-gray-900/30 backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
                 <svg
-                  className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors"
+                  className="w-5 h-5 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <title>Expand</title>
+                  <title>Judas - App Magician</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 5l7 7-7 7"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                   />
                 </svg>
               </div>
-              <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">
-                Code
-              </span>
-            </button>
-          ) : /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions */
-          selectedProject ? (
-            /* Expanded state */
-            <>
-              <div className="flex items-center justify-between px-6 py-4 bg-gray-900/50 backdrop-blur-sm border-b border-gray-700/50">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <h3 className="text-base font-semibold text-white">
-                      Generated Code
-                    </h3>
-                  </div>
-                  {appGeneratorProjects.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Template:</span>
-                      <select
-                        value={selectedProject.name}
-                        onChange={handleProjectChange}
-                        className="text-sm bg-gray-800 text-gray-200 border border-gray-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:bg-gray-700 transition-colors"
-                      >
-                        {appGeneratorProjects.map((project) => (
-                          <option key={project.name} value={project.name}>
-                            {project.name.replace('App Generator - ', '')}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsFileViewerMinimized(true);
-                  }}
-                  className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700/50 rounded-lg"
-                  title="Minimize"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <title>Minimize</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
+              <div>
+                <h2 className="text-lg font-bold text-white">Judas</h2>
+                <p className="text-xs text-gray-400">App Magician</p>
               </div>
-              <div className="flex-1 overflow-hidden">
-                <FileViewer
-                  mode="edit"
-                  folderStructure={builtProjectFiles}
-                  projectName={selectedProject.name}
-                  filesUsingUserEnv={filesUsingUserEnv}
-                  filesFailedToFormat={filesFailedToFormat}
-                />
-              </div>
-            </>
-          ) : null}
-        </div>
-      )}
-
-      {/* Chat panel - Right side (like Cursor IDE) */}
-      <div className="flex flex-col flex-1 min-w-0 bg-gray-900/50 backdrop-blur-sm">
-        <div className="border-b border-gray-800/50 px-6 py-4 bg-gray-900/30 backdrop-blur-sm">
-          <div className="flex items-center gap-3 max-w-5xl mx-auto">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
-              <svg
-                className="w-5 h-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <title>Judas - App Magician</title>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Judas</h2>
-              <p className="text-xs text-gray-400">App Magician</p>
             </div>
           </div>
+          <ChatMessages messages={messages} isLoading={isLoading} />
+          {error && <ChatError error={error} onRetry={reload} />}
+          <ChatInput
+            input={input}
+            onChange={setInput}
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+          />
         </div>
-        <ChatMessages messages={messages} isLoading={isLoading} />
-        {error && <ChatError error={error} onRetry={reload} />}
-        <ChatInput
-          input={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-        />
-      </div>
+      )}
     </div>
   );
 }
