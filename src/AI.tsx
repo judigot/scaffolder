@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AIChatContainer } from "@/components/AI/AIChatContainer.tsx";
 import Navbar from "@/components/AI/Navbar.tsx";
+import TabBar from "@/components/AI/TabBar.tsx";
 import useDebouncedValue from "@/hooks/useDebouncedValue.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
@@ -9,8 +10,11 @@ import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
+import { useUIStore } from "@/useUIStore.ts";
 
 function AI() {
+	const { activeTab, setActiveTab } = useUIStore();
+
 	const formData = useFormStore();
 	const {
 		userMetadata,
@@ -20,7 +24,7 @@ function AI() {
 	const { decryptedMetadata } = useDecryptedUserMetadata();
 	const { publicRepoURL, setPublicRepoURL } = formData;
 
-	const { setTransformations } = useTransformationsStore();
+	const { setTransformations, schemaInfo } = useTransformationsStore();
 	const { typeMappings, dbTypes } = useMockDatabaseStore();
 
 	const { setUserFiles } = useMockDatabaseStore();
@@ -95,15 +99,38 @@ function AI() {
 		}
 	}, [publicRepoURL, refetchUserFiles]);
 
+	// Add keyboard shortcut to toggle between tabs (Ctrl+B)
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+				e.preventDefault();
+				const currentTab = useUIStore.getState().activeTab;
+				setActiveTab(currentTab === "chat" ? "fileViewer" : "chat");
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [setActiveTab]);
+
 	return (
-		<div className="text-white bg-black h-screen flex flex-col overflow-hidden">
+		<div className="text-fg bg-bg h-screen flex flex-col overflow-hidden">
 			<Navbar
 				isUserLoading={isUserLoading}
 				serverConfigStatus={serverConfigStatus}
 			/>
-			<div className="flex-1 overflow-hidden">
-				<AIChatContainer />
+			<div className="flex-1 overflow-hidden min-h-0">
+				<AIChatContainer activeTab={activeTab} onTabChange={setActiveTab} />
 			</div>
+
+			{/* Bottom Tab Bar */}
+			<TabBar
+				activeTab={activeTab}
+				onTabChange={setActiveTab}
+				hasGeneratedCode={schemaInfo.length > 0}
+			/>
 		</div>
 	);
 }

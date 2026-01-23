@@ -120,7 +120,7 @@ export const useModalStore = create<IModalState>((set) => ({
                     &nbsp;
                     <button
                       type="submit"
-                      className="mt-4 px-4 py-2 bg-blue-500 text-gray-800 rounded-lg hover:bg-gray-400"
+                      className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500"
                     >
                       {confirmButtonText}
                     </button>

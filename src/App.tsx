@@ -993,10 +993,10 @@ function App() {
 
                     return (
                       <>
-                        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-700 rounded-md">
+                        <div className="mb-4 p-3 bg-gray-900/30 border border-gray-700 rounded-md">
                           <div className="flex items-start gap-2">
                             <svg
-                              className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0"
+                              className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -1020,7 +1020,7 @@ function App() {
                                   href="/documentation/structure/"
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                  className="text-xs text-gray-400 hover:text-blue-300 underline"
                                 >
                                   Learn how to set up a scaffolder project →
                                 </a>

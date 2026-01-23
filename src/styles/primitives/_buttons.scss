@@ -1,0 +1,27 @@
+/**
+ * Primitives > Buttons
+ * Button-specific semantic tokens
+ */
+
+@theme {
+  /* Primary Button */
+  --btn-primary-bg: #3b82f6;
+  --btn-primary-hover: #2563eb;
+  --btn-primary-active: #1d4ed8;
+  --btn-primary-border: #60a5fa;
+  --btn-primary-text: #ffffff;
+
+  /* Secondary Button */
+  --btn-secondary-bg: #111827;
+  --btn-secondary-hover: #1f2937;
+  --btn-secondary-active: #374151;
+  --btn-secondary-border: #374151;
+  --btn-secondary-text: #ffffff;
+
+  /* Danger Button */
+  --btn-danger-bg: #dc2626;
+  --btn-danger-hover: #b91c1c;
+  --btn-danger-active: #991b1b;
+  --btn-danger-border: #f87171;
+  --btn-danger-text: #ffffff;
+}

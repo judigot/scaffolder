@@ -89,18 +89,28 @@ const createUniqueFileId = (path: string[], fileName: string): string => {
 	return [...path, fileName].join("/");
 };
 
+interface IProjectOption {
+	name: string;
+}
+
 function FileViewer({
 	folderStructure: initialFolderStructure,
 	mode,
 	projectName,
 	filesUsingUserEnv = [],
 	filesFailedToFormat = [],
+	projects = [],
+	selectedProject: selectedProjectProp,
+	onProjectChange,
 }: {
 	folderStructure: IStructure;
 	mode: "edit" | "view";
 	projectName?: string;
 	filesUsingUserEnv?: string[];
 	filesFailedToFormat?: IFailedFormatEntry[];
+	projects?: IProjectOption[];
+	selectedProject?: IProjectOption;
+	onProjectChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
 	const safeFilesUsingUserEnv = filesUsingUserEnv;
 
@@ -116,19 +126,74 @@ function FileViewer({
 	const { openUserProfile } = useUserProfileStore();
 	const { schemaInfo, SQLSchema } = useTransformationsStore();
 	const { backendDir, publicRepoURL, dbConnection } = useFormStore();
-	const { openModal, editValue, newValue, promptModal, openRandomModal } =
-		useModalStore();
+	const { editValue, newValue, promptModal, openRandomModal } = useModalStore();
 	const { selectedProject } = useProjectStore();
 	const { userFiles } = useMockDatabaseStore();
 
 	const [folderStructure, setFolderStructure] = useState<IStructure>(
 		initialFolderStructure,
 	);
-	const [selectedFile, setSelectedFile] = useState<
-		(IFile & { uniqueId: string }) | null
-	>(null);
+	const [openFiles, setOpenFiles] = useState<(IFile & { uniqueId: string })[]>(
+		[],
+	);
+	const [activeFileId, setActiveFileId] = useState<string | null>(null);
+	const [editedFiles, setEditedFiles] = useState<Set<string>>(new Set());
 	const [fileContent, setFileContent] = useState<string>("");
-	const [isFileEdited, setIsFileEdited] = useState<boolean>(false);
+
+	// Derived state: get the currently active file from openFiles
+	const selectedFile =
+		openFiles.find((f) => f.uniqueId === activeFileId) ?? null;
+	const isFileEdited = activeFileId !== null && editedFiles.has(activeFileId);
+
+	// Helper: open a file (add to tabs if not already open, then activate)
+	const openFile = useCallback((file: IFile & { uniqueId: string }) => {
+		setOpenFiles((prev) => {
+			const exists = prev.some((f) => f.uniqueId === file.uniqueId);
+			if (exists) {
+				return prev;
+			}
+			return [...prev, file];
+		});
+		setActiveFileId(file.uniqueId);
+	}, []);
+
+	// Helper: close a file tab
+	const closeFile = useCallback(
+		(uniqueId: string) => {
+			setOpenFiles((prev) => {
+				const newFiles = prev.filter((f) => f.uniqueId !== uniqueId);
+				// If closing active file, activate the previous or next file
+				if (activeFileId === uniqueId && newFiles.length > 0) {
+					const closedIndex = prev.findIndex((f) => f.uniqueId === uniqueId);
+					const newActiveIndex = Math.min(closedIndex, newFiles.length - 1);
+					setActiveFileId(newFiles[newActiveIndex]?.uniqueId ?? null);
+				} else if (newFiles.length === 0) {
+					setActiveFileId(null);
+				}
+				return newFiles;
+			});
+			setEditedFiles((prev) => {
+				const next = new Set(prev);
+				next.delete(uniqueId);
+				return next;
+			});
+		},
+		[activeFileId],
+	);
+
+	// Helper: mark file as edited
+	const markFileEdited = useCallback((uniqueId: string, edited: boolean) => {
+		setEditedFiles((prev) => {
+			const next = new Set(prev);
+			if (edited) {
+				next.add(uniqueId);
+			} else {
+				next.delete(uniqueId);
+			}
+			return next;
+		});
+	}, []);
+
 	const [contextMenu, setContextMenu] = useState<{
 		mouseX: number;
 		mouseY: number;
@@ -136,6 +201,9 @@ function FileViewer({
 		parentPath?: string[];
 	} | null>(null);
 	const [currentPath, setCurrentPath] = useState<string[]>([]);
+	const [isTreeOpen, setIsTreeOpen] = useState<boolean>(true);
+	const [isMobile, setIsMobile] = useState<boolean>(false);
+
 	const editorRef = useRef<ICodeEditor | null>(null);
 	const fileViewerRef = useRef<HTMLDivElement>(null);
 	const [isCreatingRepository, setIsCreatingRepository] =
@@ -162,6 +230,25 @@ function FileViewer({
 			setGitHubError(null);
 		}
 	}, [hasGitHubToken, githubError]);
+
+	// Detect mobile width for responsive behavior
+	useEffect(() => {
+		const checkMobile = () => {
+			setIsMobile(window.innerWidth < 768); // md breakpoint
+		};
+		checkMobile();
+		window.addEventListener("resize", checkMobile);
+		return () => {
+			window.removeEventListener("resize", checkMobile);
+		};
+	}, []);
+
+	// Auto-expand accordion on mobile when no file is selected
+	useEffect(() => {
+		if (isMobile && selectedFile === null) {
+			setIsTreeOpen(true);
+		}
+	}, [isMobile, selectedFile]);
 
 	// Save file content changes - wrapped in useCallback
 	const saveFileChanges = useCallback(() => {
@@ -214,8 +301,16 @@ function FileViewer({
 
 		setFolderStructure(updatedStructure);
 		setFileContent(newContent);
-		setIsFileEdited(false); // Mark as saved
-	}, [selectedFile, folderStructure, currentPath]);
+		if (activeFileId !== null && activeFileId !== "") {
+			markFileEdited(activeFileId, false);
+		}
+	}, [
+		selectedFile,
+		folderStructure,
+		currentPath,
+		activeFileId,
+		markFileEdited,
+	]);
 
 	// Restore the missing useEffect that syncs folderStructure with initialFolderStructure
 	useEffect(() => {
@@ -324,9 +419,11 @@ function FileViewer({
 			} else {
 				setFileContent("");
 			}
-			setIsFileEdited(false);
+			if (activeFileId !== null && activeFileId !== "") {
+				markFileEdited(activeFileId, false);
+			}
 		}
-	}, [selectedFile, fetchedFileContent]);
+	}, [selectedFile, fetchedFileContent, activeFileId, markFileEdited]);
 
 	// Modified effect to find file by uniqueId instead of just name
 	// This syncs selectedFile with the latest content from folderStructure
@@ -368,15 +465,26 @@ function FileViewer({
 					fileWithUniqueId.content !== selectedFile.content ||
 					fileWithUniqueId.filePath !== selectedFile.filePath
 				) {
-					setSelectedFile(fileWithUniqueId);
+					// Update the file in openFiles array
+					setOpenFiles((prev) =>
+						prev.map((f) =>
+							f.uniqueId === fileWithUniqueId.uniqueId ? fileWithUniqueId : f,
+						),
+					);
 				}
 				setCurrentPath(path);
 			} else {
-				setSelectedFile(null);
+				// File was deleted from structure, remove from open files
+				setOpenFiles((prev) =>
+					prev.filter((f) => f.uniqueId !== selectedFile.uniqueId),
+				);
+				if (activeFileId === selectedFile.uniqueId) {
+					setActiveFileId(null);
+				}
 				setCurrentPath([]);
 			}
 		}
-	}, [folderStructure, selectedFile]);
+	}, [folderStructure, selectedFile, activeFileId]);
 
 	// Add keyboard event listener for shortcuts
 	useEffect(() => {
@@ -408,16 +516,24 @@ function FileViewer({
 	};
 
 	// Handle closing a file with confirmation if unsaved
-	const handleCloseFile = async () => {
-		if (!selectedFile) {
+	const handleCloseFile = async (fileId?: string) => {
+		const targetId = fileId ?? activeFileId;
+		if (targetId === null || targetId === "") {
 			return;
 		}
 
-		if (isFileEdited) {
+		const targetFile = openFiles.find((f) => f.uniqueId === targetId);
+		if (!targetFile) {
+			return;
+		}
+
+		const isTargetEdited = editedFiles.has(targetId);
+
+		if (isTargetEdited) {
 			// Get user's decision about saving changes
 			const result = await promptModal({
 				title: "Unsaved Changes",
-				description: `Do you want to save the changes you made to ${selectedFile.name}?`,
+				description: `Do you want to save the changes you made to ${targetFile.name}?`,
 				confirmButtonText: "Save and Close",
 				denyButtonText: "Close without Saving",
 			});
@@ -426,13 +542,10 @@ function FileViewer({
 			if (result) {
 				saveFileChanges();
 			}
-
-			// The promptModal should return true or false based on the button clicked
-			// We continue with closing only if a button was clicked (not dialog cancelled)
 		}
 
 		// Close the file
-		setSelectedFile(null);
+		closeFile(targetId);
 	};
 
 	// Update file content and track edited state
@@ -441,10 +554,15 @@ function FileViewer({
 		setFileContent(newContent);
 
 		// Check if content is different from the saved file
-		if (selectedFile && newContent !== selectedFile.content) {
-			setIsFileEdited(true);
-		} else {
-			setIsFileEdited(false);
+		if (
+			selectedFile &&
+			activeFileId !== null &&
+			activeFileId !== "" &&
+			newContent !== selectedFile.content
+		) {
+			markFileEdited(activeFileId, true);
+		} else if (activeFileId !== null && activeFileId !== "") {
+			markFileEdited(activeFileId, false);
 		}
 	};
 
@@ -671,7 +789,12 @@ function FileViewer({
 			selectedFile.name === item.name &&
 			item.type === "file"
 		) {
-			setSelectedFile({ ...selectedFile, name: newName });
+			// Update the renamed file in openFiles
+			setOpenFiles((prev) =>
+				prev.map((f) =>
+					f.uniqueId === selectedFile.uniqueId ? { ...f, name: newName } : f,
+				),
+			);
 		}
 	};
 
@@ -749,7 +872,7 @@ function FileViewer({
 
 		// Clear selectedFile if it was deleted
 		if (selectedFile && selectedFile.name === item.name) {
-			setSelectedFile(null);
+			closeFile(selectedFile.uniqueId);
 		}
 	};
 
@@ -789,7 +912,7 @@ function FileViewer({
 		parentId = "",
 		parentPath: string[] = [],
 	) {
-		const folderColor = mode === "edit" ? "text-yellow-500" : "text-gray-200";
+		const folderColor = mode === "edit" ? "text-yellow-500" : "text-content";
 		const sortedItems = [...items].sort((a, b) => {
 			if (a.type === "folder" && b.type === "file") {
 				return -1;
@@ -1378,11 +1501,11 @@ function FileViewer({
 								</div>
 
 								<div>
-									<div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+									<div className="block text-sm font-medium text-content-muted mb-2">
 										Clone Command
 									</div>
 									<div className="flex items-center gap-2">
-										<code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg font-mono text-sm break-all">
+										<code className="flex-1 px-4 py-2 bg-bg-muted text-content rounded-lg font-mono text-sm break-all">
 											{cloneCommand}
 										</code>
 										<button
@@ -1390,7 +1513,7 @@ function FileViewer({
 											onClick={() => {
 												handleCopy(cloneCommand);
 											}}
-											className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+											className="flex-shrink-0 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md transition-colors duration-200 flex items-center gap-2"
 											title="Copy clone command"
 										>
 											<CopyIcon fontSize="small" />
@@ -1400,14 +1523,14 @@ function FileViewer({
 								</div>
 
 								<div>
-									<div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+									<div className="block text-sm font-medium text-content-muted mb-2">
 										Repository
 									</div>
 									<a
 										href={repoUrl}
 										target="_blank"
 										rel="noopener noreferrer"
-										className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+										className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
 									>
 										<svg
 											className="w-5 h-5"
@@ -1567,11 +1690,11 @@ function FileViewer({
 
 						<div className="space-y-4">
 							<div>
-								<div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								<div className="block text-sm font-medium text-content-muted mb-2">
 									Clone Repository
 								</div>
-								<div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
-									<code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+								<div className="flex items-center gap-2 bg-surface-raised border border-layout-border rounded-lg p-3">
+									<code className="flex-1 text-sm text-content font-mono break-all">
 										{cloneCommand}
 									</code>
 									<button
@@ -1579,7 +1702,7 @@ function FileViewer({
 										onClick={() => {
 											handleCopy(cloneCommand);
 										}}
-										className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+										className="flex-shrink-0 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md transition-colors duration-200 flex items-center gap-2"
 										title="Copy clone command"
 									>
 										<CopyIcon fontSize="small" />
@@ -1589,14 +1712,14 @@ function FileViewer({
 							</div>
 
 							<div>
-								<div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								<div className="block text-sm font-medium text-content-muted mb-2">
 									Repository
 								</div>
 								<a
 									href={repoUrl}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+									className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
 								>
 									<svg
 										className="w-5 h-5"
@@ -1625,7 +1748,7 @@ function FileViewer({
 							</div>
 						</div>
 
-						<div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+						<div className="flex justify-end pt-4 border-t border-layout-border">
 							<button
 								type="button"
 								onClick={() => {
@@ -1636,7 +1759,7 @@ function FileViewer({
 											.closeModal(modals[modals.length - 1].id);
 									}
 								}}
-								className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+								className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors duration-200 font-medium"
 							>
 								Done
 							</button>
@@ -1797,11 +1920,11 @@ function FileViewer({
 
 						<div className="space-y-4">
 							<div>
-								<div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								<div className="block text-sm font-medium text-content-muted mb-2">
 									Clone Repository
 								</div>
-								<div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
-									<code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+								<div className="flex items-center gap-2 bg-surface-raised border border-layout-border rounded-lg p-3">
+									<code className="flex-1 text-sm text-content font-mono break-all">
 										{cloneCommand}
 									</code>
 									<button
@@ -1809,7 +1932,7 @@ function FileViewer({
 										onClick={() => {
 											handleCopy(cloneCommand);
 										}}
-										className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+										className="flex-shrink-0 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md transition-colors duration-200 flex items-center gap-2"
 										title="Copy clone command"
 									>
 										<CopyIcon fontSize="small" />
@@ -1819,14 +1942,14 @@ function FileViewer({
 							</div>
 
 							<div>
-								<div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								<div className="block text-sm font-medium text-content-muted mb-2">
 									Repository
 								</div>
 								<a
 									href={repoUrl}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+									className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
 								>
 									<svg
 										className="w-5 h-5"
@@ -1855,7 +1978,7 @@ function FileViewer({
 							</div>
 						</div>
 
-						<div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+						<div className="flex justify-end pt-4 border-t border-layout-border">
 							<button
 								type="button"
 								onClick={() => {
@@ -1866,7 +1989,7 @@ function FileViewer({
 											.closeModal(modals[modals.length - 1].id);
 									}
 								}}
-								className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+								className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors duration-200 font-medium"
 							>
 								Done
 							</button>
@@ -2219,7 +2342,7 @@ function FileViewer({
 	};
 
 	return (
-		<div className="h-96 p-2" ref={fileViewerRef}>
+		<div className="h-full flex flex-col" ref={fileViewerRef}>
 			{githubError !== null && githubError !== "" && (
 				<div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-md">
 					<div className="flex items-center justify-between">
@@ -2262,50 +2385,7 @@ function FileViewer({
 					</div>
 				</div>
 			)}
-			{mode === "edit" && (
-				<div className="flex gap-2 mb-2">
-					<button
-						type="button"
-						onClick={() => void handleCreateApp()}
-						className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-					>
-						Create App!
-					</button>
-					<button
-						type="button"
-						onClick={handleOpenExportModal}
-						disabled={
-							isCreatingRepository ||
-							isWaitingForInstallation ||
-							folderStructure.length === 0 ||
-							safeFilesUsingUserEnv.length > 0
-						}
-						className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-							isCreatingRepository ||
-							isWaitingForInstallation ||
-							folderStructure.length === 0 ||
-							safeFilesUsingUserEnv.length > 0
-								? "bg-gray-600 text-gray-400 cursor-not-allowed"
-								: "bg-indigo-600 text-white hover:bg-indigo-700"
-						}`}
-						// className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-						//   isCreatingRepository ||
-						//   folderStructure.length === 0 ||
-						//   safeFilesUsingUserEnv.length > 0 ||
-						//   !hasGitHubToken
-						//     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-						//     : 'bg-indigo-600 text-white hover:bg-indigo-700'
-						// }`}
-						title={getButtonTooltip()}
-					>
-						{isWaitingForInstallation
-							? "Waiting for GitHub App installation..."
-							: isCreatingRepository
-								? `Exporting ${String(countFiles(folderStructure))} files...`
-								: `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
-					</button>
-				</div>
-			)}
+
 			{!isUserLoading &&
 				serverConfigStatus !== null &&
 				!hasGitHubToken &&
@@ -2381,389 +2461,860 @@ function FileViewer({
 						</div>
 					</div>
 				)}
-			{safeFilesUsingUserEnv.length > 0 && (
-				<div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md mb-2 w-fit">
-					<div className="flex items-start gap-2">
-						<svg
-							className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0"
-							fill="currentColor"
-							viewBox="0 0 20 20"
+			{/* Main content area - flex to fill remaining space */}
+			<div className="flex-1 flex flex-col md:flex-row min-h-0 text-white overflow-hidden">
+				{/* Mobile: Accordion file explorer */}
+				{isMobile && (
+					<div className="flex flex-col shrink-0">
+						{/* Accordion header - always visible on mobile */}
+						<button
+							type="button"
+							onClick={() => {
+								setIsTreeOpen(!isTreeOpen);
+							}}
+							className="flex items-center justify-between bg-panel px-3 py-2"
 						>
-							<path
-								fillRule="evenodd"
-								d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-								clipRule="evenodd"
-							/>
-						</svg>
-						<div className="flex-1 min-w-0">
-							<p className="text-xs font-medium text-orange-300 mb-1">
-								Security Warning: Secrets Detected
-							</p>
-							<p className="text-xs text-orange-200/80 mb-2">
-								{safeFilesUsingUserEnv.length} file(s) contain sensitive data.
-								Exporting to GitHub will leak your secrets (API keys, passwords,
-								tokens, etc.).
-							</p>
-							<ul className="text-xs text-orange-200/80 list-disc list-inside mb-2 space-y-1">
-								{safeFilesUsingUserEnv.map((filePath: string) => (
-									<li key={filePath} className="font-mono">
-										{filePath}
-									</li>
-								))}
-							</ul>
-							<p className="text-xs text-orange-200/70">
-								<button
-									type="button"
-									onClick={() => {
-										zipAndDownloadIStructure(folderStructure, getZipFileName());
-									}}
-									className="text-orange-300 hover:text-orange-200 underline font-medium"
+							<div className="flex items-center gap-2 text-content">
+								<svg
+									className="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
 								>
-									Download ZIP
-								</button>{" "}
-								instead or use placeholders.
-							</p>
-						</div>
-					</div>
-				</div>
-			)}
-			{filesFailedToFormat.length > 0 && (
-				<div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md mb-2 w-fit">
-					<div className="flex items-start gap-2">
-						<svg
-							className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
-							fill="currentColor"
-							viewBox="0 0 20 20"
-						>
-							<path
-								fillRule="evenodd"
-								d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-								clipRule="evenodd"
-							/>
-						</svg>
-						<div className="flex-1 min-w-0">
-							<p className="text-xs font-medium text-yellow-300 mb-1">
-								Formatting Failed
-							</p>
-							<p className="text-xs text-yellow-200/80 mb-2">
-								{filesFailedToFormat.length} file(s) could not be formatted due
-								to syntax errors in the generated code.
-							</p>
-							<ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
-								{filesFailedToFormat
-									.filter((entry): entry is IFailedFormatEntry => {
-										if (typeof entry === "string") {
-											return false;
-										}
-										return (
-											typeof entry === "object" &&
-											"filePath" in entry &&
-											typeof entry.filePath === "string"
-										);
-									})
-									.map((entry, index) => {
-										const filePath = entry.filePath;
-										const errorMessage =
-											entry.errorMessage || "Unknown formatting error";
-										return (
-											<li
-												key={`failed-format-${filePath}-${String(index)}`}
-												className="font-mono"
-											>
-												<span className="inline-block mr-2">{filePath}</span>
-												<button
-													type="button"
-													onClick={() => {
-														openRandomModal({
-															title: `Formatting Error: ${filePath}`,
-															content: (
-																<div className="space-y-4">
-																	<div>
-																		<p className="text-sm font-medium text-gray-300 mb-2">
-																			File:
-																		</p>
-																		<code className="block p-2 bg-gray-800 rounded text-xs text-gray-200 break-all">
-																			{filePath}
-																		</code>
-																	</div>
-																	<div>
-																		<p className="text-sm font-medium text-gray-300 mb-2">
-																			Error Message:
-																		</p>
-																		<pre className="p-3 bg-gray-800 rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
-																			{errorMessage}
-																		</pre>
-																	</div>
-																	<p className="text-xs text-gray-400">
-																		Fix the syntax error in your template and
-																		regenerate the project.
-																	</p>
-																</div>
-															),
-														});
-													}}
-													className="text-yellow-300 hover:text-yellow-200 underline font-medium text-xs"
-												>
-													View error
-												</button>
-											</li>
-										);
-									})}
-							</ul>
-							<p className="text-xs text-yellow-200/70">
-								Check your templates for syntax errors.
-							</p>
-						</div>
-					</div>
-				</div>
-			)}
-			<br />
-			<div className="grid grid-cols-1 md:grid-cols-3 text-white">
-				<div className="col-span-1 bg-gray-800 select-none mr-2">
-					<div>
-						<div className="flex justify-between mb-4">
-							{mode === "edit" && (
-								<div className="flex items-center justify-between w-full">
-									{process.env.NODE_ENV === "development" && (
-										<>
-											<div>
-												<button
-													onClick={() => {
-														handleCopy(JSON.stringify(userFiles, null, 4));
-													}}
-													className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-												>
-													Copy User Files
-												</button>
-											</div>
-											<div>
-												<button
-													onClick={() => {
-														handleCopy(
-															JSON.stringify(folderStructure, null, 4),
-														);
-													}}
-													className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-												>
-													Copy Project Structure
-												</button>
-											</div>
-										</>
-									)}
-									<button
-										onClick={() => {
-											zipAndDownloadIStructure(
-												folderStructure,
-												getZipFileName(),
-											);
-										}}
-										className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
-										title="Download Project Files"
-										aria-label="Download Project Files"
-									>
-										<DownloadIcon fontSize="small" />
-									</button>
+									<title>Files</title>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+									/>
+								</svg>
+								<span className="text-sm font-medium">Files</span>
+							</div>
+							<svg
+								className={`w-4 h-4 text-content-muted transition-transform ${isTreeOpen ? "rotate-180" : ""}`}
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<title>Toggle</title>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M19 9l-7 7-7-7"
+								/>
+							</svg>
+						</button>
 
-									<div className="flex space-x-2">
+						{/* Accordion panel - partial height to show editor below */}
+						<div
+							className={`max-h-[66vh] bg-panel flex flex-col overflow-hidden ${isTreeOpen ? "" : "hidden"}`}
+						>
+							{/* Action buttons toolbar */}
+							{mode === "edit" && (
+								<div className="p-3 border-b border-layout-border space-y-3 shrink-0">
+									{/* Primary actions row */}
+									<div className="flex gap-2">
+										{process.env.NODE_ENV === "development" && (
+											<button
+												type="button"
+												onClick={() => void handleCreateApp()}
+												className="btn-primary flex-1"
+											>
+												Create App
+											</button>
+										)}
 										<button
+											type="button"
+											onClick={handleOpenExportModal}
+											disabled={
+												isCreatingRepository ||
+												isWaitingForInstallation ||
+												folderStructure.length === 0 ||
+												safeFilesUsingUserEnv.length > 0
+											}
+											className={`btn-primary flex-1 ${
+												isCreatingRepository ||
+												isWaitingForInstallation ||
+												folderStructure.length === 0 ||
+												safeFilesUsingUserEnv.length > 0
+													? "opacity-50"
+													: ""
+											}`}
+											title={getButtonTooltip()}
+										>
+											{isWaitingForInstallation
+												? "Installing..."
+												: isCreatingRepository
+													? "Exporting..."
+													: `Export (${String(countFiles(folderStructure))})`}
+										</button>
+									</div>
+
+									{/* Secondary actions row */}
+									<div className="flex gap-2">
+										<button
+											type="button"
+											onClick={() => {
+												zipAndDownloadIStructure(
+													folderStructure,
+													getZipFileName(),
+												);
+											}}
+											className="flex-1 text-xs px-3 py-2 bg-secondary text-fg hover:bg-secondary-hover transition-colors flex items-center justify-center gap-1.5"
+											title="Download ZIP"
+										>
+											<DownloadIcon sx={{ fontSize: 16 }} />
+											<span>Download</span>
+										</button>
+										<button
+											type="button"
 											onClick={() => {
 												void (async () => {
 													await handleOpenDialog("newFile");
 												})();
 											}}
-											className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+											className="p-2 bg-secondary text-fg hover:bg-secondary-hover transition-colors"
 											title="New File"
 											aria-label="New File"
 										>
-											<NoteAddIcon fontSize="small" />
+											<NoteAddIcon sx={{ fontSize: 18 }} />
 										</button>
 										<button
+											type="button"
 											onClick={() => {
 												void (async () => {
 													await handleOpenDialog("newFolder");
 												})();
 											}}
-											className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+											className="p-2 bg-secondary text-fg hover:bg-secondary-hover transition-colors"
 											title="New Folder"
 											aria-label="New Folder"
 										>
-											<CreateNewFolderIcon fontSize="small" />
+											<CreateNewFolderIcon sx={{ fontSize: 18 }} />
 										</button>
 									</div>
+
+									{/* Dev copy buttons row */}
+									{process.env.NODE_ENV === "development" && (
+										<div className="flex gap-2">
+											<button
+												type="button"
+												onClick={() => {
+													handleCopy(JSON.stringify(userFiles, null, 4));
+												}}
+												className="flex-1 text-xs px-3 py-2 bg-bg-muted text-content hover:bg-secondary-hover transition-colors"
+											>
+												Copy User Files
+											</button>
+											<button
+												type="button"
+												onClick={() => {
+													handleCopy(JSON.stringify(folderStructure, null, 4));
+												}}
+												className="flex-1 text-xs px-3 py-2 bg-bg-muted text-content hover:bg-secondary-hover transition-colors"
+											>
+												Copy Structure
+											</button>
+										</div>
+									)}
+
+									{/* Project selector row */}
+									{projects.length > 0 &&
+										selectedProjectProp &&
+										onProjectChange && (
+											<div className="flex items-center gap-3">
+												<span className="text-xs text-content-muted shrink-0">
+													Project:
+												</span>
+												<select
+													value={selectedProjectProp.name}
+													onChange={onProjectChange}
+													className="flex-1 text-xs bg-bg-muted text-content border border-layout-border px-2 py-2 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
+												>
+													{projects.map((project) => (
+														<option
+															key={project.name}
+															value={project.name}
+															className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
+														>
+															{project.name.replace("App Generator - ", "")}
+														</option>
+													))}
+												</select>
+											</div>
+										)}
+
+									{/* Warning banners */}
+									{safeFilesUsingUserEnv.length > 0 && (
+										<div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md">
+											<div className="flex flex-col items-center gap-3">
+												<svg
+													className="w-6 h-6 text-orange-400 flex-shrink-0"
+													fill="currentColor"
+													viewBox="0 0 20 20"
+												>
+													<path
+														fillRule="evenodd"
+														d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+														clipRule="evenodd"
+													/>
+												</svg>
+												<div className="flex-1 min-w-0 text-center">
+													<p className="text-xs font-medium text-orange-300 mb-1">
+														Security Warning: Secrets Detected
+													</p>
+													<p className="text-xs text-orange-200/80 mb-2">
+														{safeFilesUsingUserEnv.length} file(s) contain
+														sensitive data. Exporting to GitHub will leak your
+														secrets (API keys, passwords, tokens, etc.).
+													</p>
+													<ul className="text-xs text-orange-200/80 list-disc list-inside mb-2 space-y-1">
+														{safeFilesUsingUserEnv.map((filePath: string) => (
+															<li key={filePath} className="font-mono">
+																{filePath}
+															</li>
+														))}
+													</ul>
+													<p className="text-xs text-orange-200/70">
+														<button
+															type="button"
+															onClick={() => {
+																zipAndDownloadIStructure(
+																	folderStructure,
+																	getZipFileName(),
+																);
+															}}
+															className="text-orange-300 hover:text-orange-200 underline font-medium"
+														>
+															Download ZIP
+														</button>{" "}
+														instead or use placeholders.
+													</p>
+												</div>
+											</div>
+										</div>
+									)}
+									{filesFailedToFormat.length > 0 && (
+										<div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
+											<div className="flex items-start gap-2">
+												<svg
+													className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
+													fill="currentColor"
+													viewBox="0 0 20 20"
+												>
+													<path
+														fillRule="evenodd"
+														d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+														clipRule="evenodd"
+													/>
+												</svg>
+												<div className="flex-1 min-w-0">
+													<p className="text-xs font-medium text-yellow-300 mb-1">
+														Formatting Failed
+													</p>
+													<p className="text-xs text-yellow-200/80 mb-2">
+														{filesFailedToFormat.length} file(s) could not be
+														formatted due to syntax errors in the generated
+														code.
+													</p>
+													<ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
+														{filesFailedToFormat
+															.filter((entry): entry is IFailedFormatEntry => {
+																if (typeof entry === "string") {
+																	return false;
+																}
+																return (
+																	typeof entry === "object" &&
+																	"filePath" in entry &&
+																	"errorMessage" in entry
+																);
+															})
+															.map((entry) => {
+																const { filePath, errorMessage } = entry;
+																return (
+																	<li key={filePath}>
+																		<span className="font-mono">
+																			{filePath}
+																		</span>{" "}
+																		-{" "}
+																		<button
+																			type="button"
+																			onClick={() => {
+																				void openModal({
+																					id: "format-error-modal",
+																					title: "Format Error Details",
+																					children: (
+																						<div className="space-y-4">
+																							<div>
+																								<p className="text-sm font-medium text-content-muted mb-2">
+																									File:
+																								</p>
+																								<code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
+																									{filePath}
+																								</code>
+																							</div>
+																							<div>
+																								<p className="text-sm font-medium text-content-muted mb-2">
+																									Error Message:
+																								</p>
+																								<pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
+																									{errorMessage}
+																								</pre>
+																							</div>
+																							<p className="text-xs text-content-subtle">
+																								Fix the syntax error in your
+																								template and regenerate the
+																								project.
+																							</p>
+																						</div>
+																					),
+																				});
+																			}}
+																			className="text-yellow-300 hover:text-yellow-200 underline font-medium text-xs"
+																		>
+																			View error
+																		</button>
+																	</li>
+																);
+															})}
+													</ul>
+													<p className="text-xs text-yellow-200/70">
+														Check your templates for syntax errors.
+													</p>
+												</div>
+											</div>
+										</div>
+									)}
 								</div>
 							)}
-						</div>
 
+							{/* File tree */}
+							<div
+								className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
+								onContextMenu={(e) => {
+									if (mode === "edit") {
+										handleContextMenu(e);
+									}
+								}}
+							>
+								<div className="min-w-max pb-2">
+									<SimpleTreeView>
+										{renderTree(folderStructure, openFile)}
+									</SimpleTreeView>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Desktop: Side-by-side file tree panel - fixed width with horizontal scroll */}
+				{!isMobile && (
+					<div className="w-64 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-r border-layout-border">
+						{/* File tree toolbar */}
+						{mode === "edit" && (
+							<div className="p-2 border-b border-layout-border space-y-2 shrink-0">
+								{/* Dev copy buttons */}
+								{process.env.NODE_ENV === "development" && (
+									<div className="flex gap-2">
+										<button
+											type="button"
+											onClick={() => {
+												handleCopy(JSON.stringify(userFiles, null, 4));
+											}}
+											className="btn-secondary flex-1"
+										>
+											Copy Files
+										</button>
+										<button
+											type="button"
+											onClick={() => {
+												handleCopy(JSON.stringify(folderStructure, null, 4));
+											}}
+											className="btn-secondary flex-1"
+										>
+											Copy Structure
+										</button>
+									</div>
+								)}
+								{/* File actions row */}
+								<div className="flex items-center gap-2">
+									<button
+										type="button"
+										onClick={() => {
+											void (async () => {
+												await handleOpenDialog("newFile");
+											})();
+										}}
+										className="btn-secondary btn-icon flex-1"
+										title="New File"
+									>
+										<NoteAddIcon sx={{ fontSize: 14 }} />
+										<span>New File</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => {
+											void (async () => {
+												await handleOpenDialog("newFolder");
+											})();
+										}}
+										className="btn-secondary btn-icon flex-1"
+										title="New Folder"
+									>
+										<CreateNewFolderIcon sx={{ fontSize: 14 }} />
+										<span>New Folder</span>
+									</button>
+								</div>
+								{/* Project selector */}
+								{projects.length > 0 &&
+									selectedProjectProp &&
+									onProjectChange && (
+										<div className="space-y-1">
+											<span className="text-xs text-content-muted block text-center">
+												Project:
+											</span>
+											<select
+												value={selectedProjectProp.name}
+												onChange={onProjectChange}
+												className="w-full text-xs bg-secondary text-content-muted border border-layout-border px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
+											>
+												{projects.map((project) => (
+													<option
+														key={project.name}
+														value={project.name}
+														className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
+													>
+														{project.name.replace("App Generator - ", "")}
+													</option>
+												))}
+											</select>
+										</div>
+									)}
+							</div>
+						)}
+						{/* File tree */}
 						<div
-							className="overflow-auto max-h-80"
+							className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
 							onContextMenu={(e) => {
 								if (mode === "edit") {
 									handleContextMenu(e);
 								}
 							}}
 						>
-							<SimpleTreeView>
-								{renderTree(folderStructure, setSelectedFile)}
-							</SimpleTreeView>
+							<div className="min-w-max pb-2">
+								<SimpleTreeView>
+									{renderTree(folderStructure, openFile)}
+								</SimpleTreeView>
+							</div>
 						</div>
 					</div>
-				</div>
-				<div className="col-span-1 md:col-span-2">
-					{selectedFile && (
-						<div className="bg-gray-900">
-							<div className="mt-2 sticky left-0 top-0 z-20 bg-gray-800 grid grid-cols-[auto_auto] items-center m-0">
-								<div>
-									<div className="bg-[#1f1f1f] w-max p-2 rounded-t-md flex items-center">
-										<span>
-											{selectedFile.name}
-											{isFileEdited ? " •" : ""}&nbsp;
-										</span>
-										<button
-											onClick={() => void handleCloseFile()}
-											className="hover:bg-gray-700 text-white px-1 pb-1 rounded transition-colors duration-150"
+				)}
+
+				{/* Editor panel - takes remaining space */}
+				<div className="flex-1 flex flex-col min-h-0 bg-surface overflow-hidden">
+					{/* Tab bar for open files */}
+					{openFiles.length > 0 && (
+						<div className="flex items-center bg-panel border-b border-layout-border overflow-x-auto">
+							<div className="flex">
+								{openFiles.map((file) => {
+									const isActive = file.uniqueId === activeFileId;
+									const isEdited = editedFiles.has(file.uniqueId);
+									return (
+										<div
+											key={file.uniqueId}
+											className={`group flex items-center gap-3 px-4 py-2 border-r border-layout-border cursor-pointer text-sm ${
+												isActive
+													? "text-content"
+													: "bg-panel text-content-muted hover:bg-secondary-hover hover:text-content"
+											}`}
+											style={
+												isActive
+													? { backgroundColor: "var(--btn-secondary-bg)" }
+													: undefined
+											}
+											onClick={() => {
+												setActiveFileId(file.uniqueId);
+											}}
+											onKeyDown={(e) => {
+												if (e.key === "Enter" || e.key === " ") {
+													setActiveFileId(file.uniqueId);
+												}
+											}}
+											role="tab"
+											tabIndex={0}
+											aria-selected={isActive}
 										>
-											<CloseIcon fontSize="small" />
+											<span className="truncate max-w-32">{file.name}</span>
+											<button
+												type="button"
+												onClick={(e) => {
+													e.stopPropagation();
+													void handleCloseFile(file.uniqueId);
+												}}
+												className={`w-5 h-5 flex items-center justify-center rounded hover:bg-surface-hover transition-colors ${
+													isEdited
+														? "text-white"
+														: "text-content-subtle hover:text-white"
+												}`}
+												title="Close"
+											>
+												{isEdited ? (
+													<span className="w-3 h-3 flex items-center justify-center text-xs">
+														●
+													</span>
+												) : (
+													<CloseIcon sx={{ fontSize: 14 }} />
+												)}
+											</button>
+										</div>
+									);
+								})}
+							</div>
+							{/* Actions for active file */}
+							{selectedFile && (
+								<div className="flex items-center gap-1 ml-auto px-2">
+									{mode === "edit" && isFileEdited && (
+										<button
+											type="button"
+											onClick={saveFileChanges}
+											className="hover:bg-secondary-hover text-content p-1 rounded transition-colors"
+											title="Save"
+										>
+											<SaveIcon fontSize="small" />
 										</button>
-									</div>
-								</div>
-								<div>
+									)}
 									<button
+										type="button"
 										onClick={() => {
 											if (selectedFile.content) {
 												handleCopy(selectedFile.content);
 											}
 										}}
 										disabled={!selectedFile.content}
-										className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right disabled:opacity-50 disabled:cursor-not-allowed"
+										className="hover:bg-secondary-hover text-content p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+										title="Copy"
 									>
 										<CopyIcon fontSize="small" />
 									</button>
-									{mode === "edit" && isFileEdited && (
-										<button
-											onClick={saveFileChanges}
-											className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right transition-all duration-150"
-										>
-											<SaveIcon fontSize="small" />
-										</button>
-									)}
 								</div>
-							</div>
-							{isFileContentLoading ? (
-								<div
-									className="flex items-center justify-center bg-gray-900 p-4"
-									style={{ height: "20rem" }}
-								>
-									<div className="text-white">Loading file content...</div>
-								</div>
-							) : fileContentError ? (
-								<div
-									className="flex items-center justify-center bg-gray-900 p-4"
-									style={{ height: "20rem" }}
-								>
-									<div className="text-red-400">
-										Error loading file:{" "}
-										{fileContentError instanceof Error
-											? fileContentError.message
-											: "Unknown error"}
-									</div>
-								</div>
-							) : isImageFile(selectedFile.name) && fileContent ? (
-								<div
-									className="flex items-center justify-center bg-gray-900 p-4"
-									style={{ height: "20rem" }}
-								>
-									{selectedFile.name.toLowerCase().endsWith(".svg") &&
-									!fileContent.startsWith("data:") &&
-									!fileContent.includes("base64") &&
-									fileContent.trim().startsWith("<") ? (
-										<div
-											className="max-h-full max-w-full"
-											dangerouslySetInnerHTML={{ __html: fileContent }}
-										/>
-									) : (
-										<img
-											src={`data:image/${selectedFile.name.split(".").pop() ?? "png"};base64,${fileContent}`}
-											alt={selectedFile.name}
-											className="max-h-full max-w-full object-contain"
-										/>
-									)}
-								</div>
-							) : (
-								<Editor
-									height="20rem"
-									defaultValue={selectedFile.content}
-									value={fileContent}
-									beforeMount={(monaco) => {
-										// Disable import/type errors
-										monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
-											{
-												noSemanticValidation: true, // ignore type errors
-												noSyntaxValidation: false, // keep syntax highlighting
-											},
-										);
-									}}
-									language={(() => {
-										const fileExtension: string | undefined = selectedFile.name
-											.split(".")
-											.pop();
-										if (fileExtension === undefined) {
-											return "plaintext";
-										}
-										const languageMap: Record<string, string> = {
-											ts: "typescript",
-											js: "javascript",
-											php: "php",
-											css: "css",
-											sass: "sass",
-											scss: "scss",
-											java: "java",
-											sql: "sql",
-											txt: "plaintext",
-											jsx: "javascript",
-											tsx: "typescript",
-											html: "html",
-											htm: "html",
-											xml: "xml",
-											json: "json",
-											yaml: "yaml",
-											yml: "yaml",
-											md: "markdown",
-											markdown: "markdown",
-											sh: "shell",
-											bash: "shell",
-											zsh: "shell",
-											py: "python",
-											rb: "ruby",
-											go: "go",
-											rs: "rust",
-											cpp: "cpp",
-											c: "c",
-											h: "c",
-											hpp: "cpp",
-											cs: "csharp",
-											swift: "swift",
-											kt: "kotlin",
-											dockerfile: "dockerfile",
-											tf: "hcl",
-											terraform: "hcl",
-										};
-										return languageMap[fileExtension] ?? "plaintext";
-									})()}
-									theme="vs-dark"
-									options={{
-										readOnly: mode === "view",
-										domReadOnly: mode === "view",
-										minimap: { enabled: true },
-										fontSize: 14,
-										lineNumbers: "on",
-									}}
-									onChange={handleEditorChange}
-									onMount={handleEditorDidMount}
-								/>
 							)}
 						</div>
 					)}
+					{selectedFile ? (
+						<>
+							<div className="flex-1 min-h-0">
+								{isFileContentLoading ? (
+									<div className="flex items-center justify-center h-full bg-surface p-4">
+										<div className="text-content">Loading file content...</div>
+									</div>
+								) : fileContentError ? (
+									<div className="flex items-center justify-center h-full bg-surface p-4">
+										<div className="text-red-400">
+											Error loading file:{" "}
+											{fileContentError instanceof Error
+												? fileContentError.message
+												: "Unknown error"}
+										</div>
+									</div>
+								) : isImageFile(selectedFile.name) && fileContent ? (
+									<div className="flex items-center justify-center h-full bg-surface p-4">
+										{selectedFile.name.toLowerCase().endsWith(".svg") &&
+										!fileContent.startsWith("data:") &&
+										!fileContent.includes("base64") &&
+										fileContent.trim().startsWith("<") ? (
+											<div
+												className="max-h-full max-w-full"
+												dangerouslySetInnerHTML={{ __html: fileContent }}
+											/>
+										) : (
+											<img
+												src={`data:image/${selectedFile.name.split(".").pop() ?? "png"};base64,${fileContent}`}
+												alt={selectedFile.name}
+												className="max-h-full max-w-full object-contain"
+											/>
+										)}
+									</div>
+								) : (
+									<Editor
+										height="100%"
+										defaultValue={selectedFile.content}
+										value={fileContent}
+										beforeMount={(monaco) => {
+											monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
+												{
+													noSemanticValidation: true,
+													noSyntaxValidation: false,
+												},
+											);
+										}}
+										language={(() => {
+											const fileExtension: string | undefined =
+												selectedFile.name.split(".").pop();
+											if (fileExtension === undefined) {
+												return "plaintext";
+											}
+											const languageMap: Record<string, string> = {
+												ts: "typescript",
+												js: "javascript",
+												php: "php",
+												css: "css",
+												sass: "sass",
+												scss: "scss",
+												java: "java",
+												sql: "sql",
+												txt: "plaintext",
+												jsx: "javascript",
+												tsx: "typescript",
+												html: "html",
+												htm: "html",
+												xml: "xml",
+												json: "json",
+												yaml: "yaml",
+												yml: "yaml",
+												md: "markdown",
+												markdown: "markdown",
+												sh: "shell",
+												bash: "shell",
+												zsh: "shell",
+												py: "python",
+												rb: "ruby",
+												go: "go",
+												rs: "rust",
+												cpp: "cpp",
+												c: "c",
+												h: "c",
+												hpp: "cpp",
+												cs: "csharp",
+												swift: "swift",
+												kt: "kotlin",
+												dockerfile: "dockerfile",
+												tf: "hcl",
+												terraform: "hcl",
+											};
+											return languageMap[fileExtension] ?? "plaintext";
+										})()}
+										theme="vs-dark"
+										options={{
+											readOnly: mode === "view",
+											domReadOnly: mode === "view",
+											minimap: { enabled: false },
+											fontSize: 14,
+											lineNumbers: "on",
+										}}
+										onChange={handleEditorChange}
+										onMount={handleEditorDidMount}
+									/>
+								)}
+							</div>
+						</>
+					) : (
+						<div className="flex items-center justify-center h-full text-content-subtle">
+							<p>Select a file to view</p>
+						</div>
+					)}
 				</div>
+
+				{/* Right panel - Export/Download actions (Desktop only) */}
+				{!isMobile && mode === "edit" && (
+					<div className="w-56 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-l border-layout-border">
+						<div className="p-3 space-y-3">
+							{/* Section header */}
+							<h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
+								Actions
+							</h3>
+
+							{/* Create App - Dev only */}
+							{process.env.NODE_ENV === "development" && (
+								<button
+									type="button"
+									onClick={() => void handleCreateApp()}
+									className="btn-primary w-full"
+								>
+									Create App
+								</button>
+							)}
+
+							{/* Export to GitHub */}
+							<button
+								type="button"
+								onClick={handleOpenExportModal}
+								disabled={
+									isCreatingRepository ||
+									isWaitingForInstallation ||
+									folderStructure.length === 0 ||
+									safeFilesUsingUserEnv.length > 0
+								}
+								className={`btn-primary btn-full ${
+									isCreatingRepository ||
+									isWaitingForInstallation ||
+									folderStructure.length === 0 ||
+									safeFilesUsingUserEnv.length > 0
+										? "opacity-50"
+										: ""
+								}`}
+								title={getButtonTooltip()}
+							>
+								{isWaitingForInstallation
+									? "Installing..."
+									: isCreatingRepository
+										? "Exporting..."
+										: `Export (${String(countFiles(folderStructure))})`}
+							</button>
+
+							{/* Download ZIP */}
+							<button
+								type="button"
+								onClick={() => {
+									zipAndDownloadIStructure(folderStructure, getZipFileName());
+								}}
+								className="btn-secondary btn-full btn-icon"
+								title="Download ZIP"
+							>
+								<DownloadIcon sx={{ fontSize: 16 }} />
+								<span>Download ZIP</span>
+							</button>
+
+							{/* Warning banners */}
+							{safeFilesUsingUserEnv.length > 0 && (
+								<div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md">
+									<div className="flex flex-col items-center gap-3">
+										<svg
+											className="w-6 h-6 text-orange-400 flex-shrink-0"
+											fill="currentColor"
+											viewBox="0 0 20 20"
+										>
+											<path
+												fillRule="evenodd"
+												d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+												clipRule="evenodd"
+											/>
+										</svg>
+										<div className="flex-1 min-w-0 text-center">
+											<p className="text-xs font-medium text-orange-300 mb-1">
+												Security Warning: Secrets Detected
+											</p>
+											<p className="text-xs text-orange-200/80 mb-2">
+												{safeFilesUsingUserEnv.length} file(s) contain sensitive
+												data. Exporting to GitHub will leak your secrets (API
+												keys, passwords, tokens, etc.).
+											</p>
+											<ul className="text-xs text-orange-200/80 list-disc list-inside mb-2 space-y-1">
+												{safeFilesUsingUserEnv.map((filePath: string) => (
+													<li key={filePath} className="font-mono">
+														{filePath}
+													</li>
+												))}
+											</ul>
+											<p className="text-xs text-orange-200/70">
+												<button
+													type="button"
+													onClick={() => {
+														zipAndDownloadIStructure(
+															folderStructure,
+															getZipFileName(),
+														);
+													}}
+													className="text-orange-300 hover:text-orange-200 underline font-medium"
+												>
+													Download ZIP
+												</button>{" "}
+												instead or use placeholders.
+											</p>
+										</div>
+									</div>
+								</div>
+							)}
+							{filesFailedToFormat.length > 0 && (
+								<div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
+									<div className="flex items-start gap-2">
+										<svg
+											className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
+											fill="currentColor"
+											viewBox="0 0 20 20"
+										>
+											<path
+												fillRule="evenodd"
+												d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+												clipRule="evenodd"
+											/>
+										</svg>
+										<div className="flex-1 min-w-0">
+											<p className="text-xs font-medium text-yellow-300 mb-1">
+												Formatting Failed
+											</p>
+											<p className="text-xs text-yellow-200/80 mb-2">
+												{filesFailedToFormat.length} file(s) could not be
+												formatted due to syntax errors in the generated code.
+											</p>
+											<ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
+												{filesFailedToFormat
+													.filter((entry): entry is IFailedFormatEntry => {
+														if (typeof entry === "string") {
+															return false;
+														}
+														return (
+															typeof entry === "object" &&
+															"filePath" in entry &&
+															"errorMessage" in entry
+														);
+													})
+													.map((entry) => {
+														const { filePath, errorMessage } = entry;
+														return (
+															<li key={filePath}>
+																<span className="font-mono">{filePath}</span> -{" "}
+																<button
+																	type="button"
+																	onClick={() => {
+																		void openModal({
+																			id: "format-error-modal",
+																			title: "Format Error Details",
+																			children: (
+																				<div className="space-y-4">
+																					<div>
+																						<p className="text-sm font-medium text-content-muted mb-2">
+																							File:
+																						</p>
+																						<code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
+																							{filePath}
+																						</code>
+																					</div>
+																					<div>
+																						<p className="text-sm font-medium text-content-muted mb-2">
+																							Error Message:
+																						</p>
+																						<pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
+																							{errorMessage}
+																						</pre>
+																					</div>
+																					<p className="text-xs text-content-subtle">
+																						Fix the syntax error in your
+																						template and regenerate the project.
+																					</p>
+																				</div>
+																			),
+																		});
+																	}}
+																	className="text-yellow-300 hover:text-yellow-200 underline font-medium text-xs"
+																>
+																	View error
+																</button>
+															</li>
+														);
+													})}
+											</ul>
+											<p className="text-xs text-yellow-200/70">
+												Check your templates for syntax errors.
+											</p>
+										</div>
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
 			</div>
 
 			{/* Custom Context Menu */}
@@ -2919,8 +3470,6 @@ function FileViewer({
 					onClose={handleCloseContextMenu}
 				/>
 			)}
-
-			{/* GitHub Export Options Modal */}
 			<GitHubExportModal
 				isOpen={showExportModal}
 				onClose={() => {

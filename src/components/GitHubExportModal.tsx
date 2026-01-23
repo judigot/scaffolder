@@ -179,7 +179,7 @@ function GitHubExportModal({
         className={`
           relative p-5 rounded-xl border-2 transition-all duration-200
           ${isSelected
-            ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20 cursor-pointer'
+            ? 'border-gray-600 bg-gray-600/10 shadow-lg shadow-gray-600/20 cursor-pointer'
             : isExistingRepo && !isExistingRepoSelectable
               ? 'border-gray-700 bg-gray-800/30 cursor-default'
               : 'border-gray-600 hover:border-gray-500 bg-gray-800/50 cursor-pointer'
@@ -222,7 +222,7 @@ function GitHubExportModal({
           {(!isExistingRepo || isExistingRepoSelectable) && (
             <div className={`
               w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
-              ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-500'}
+              ${isSelected ? 'border-gray-600 bg-gray-600' : 'border-gray-500'}
             `}>
               {isSelected && (
                 <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -428,7 +428,7 @@ function GitHubExportModal({
         )}
 
         {error !== null && (
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
+          <div className="p-4 bg-gray-500/10 border border-red-500/30 rounded-lg text-red-400">
             {error}
           </div>
         )}
@@ -455,7 +455,7 @@ function GitHubExportModal({
 
             {/* Info banner for personal accounts */}
             {options.ownerType === 'User' && (
-              <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <div className="p-4 bg-gray-600/10 border border-gray-600/30 rounded-lg">
                 <div className="flex gap-3">
                   <span className="text-blue-400 text-xl">ℹ️</span>
                   <div className="text-sm text-blue-300">

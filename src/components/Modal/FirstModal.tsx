@@ -20,7 +20,7 @@ function FirstModal({ data }: { data: { message: string } }) {
       <button
         type="button"
         onClick={openSecondModal}
-        className="px-4 py-2 bg-blue-600 text-white rounded"
+        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
       >
         Open Second Modal
       </button>

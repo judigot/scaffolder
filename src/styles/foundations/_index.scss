@@ -1,0 +1,9 @@
+/**
+ * Foundations
+ * Base design tokens - the atomic elements of the design system
+ * These are raw values that should not be used directly in components
+ */
+
+@forward './colors';
+@forward './spacing';
+@forward './typography';

@@ -27,14 +27,16 @@ claude --plugin-dir ~/ai --plugin-dir .
 
 ## Available Agents
 
-| Agent | Purpose |
-|-------|---------|
+| Agent                    | Purpose                                             |
+| ------------------------ | --------------------------------------------------- |
 | `ai-chat-schema-builder` | Conversational app schema generation and validation |
-| `database-introspector` | Database schema analysis and documentation |
-| `docker-environment` | Container configuration and deployment |
-| `error-handling` | Error handling patterns and server configuration |
-| `health-check` | Health monitoring and diagnostics |
-| `project-builder` | Project scaffolding and code generation |
+| `database-introspector`  | Database schema analysis and documentation          |
+| `design-system`          | Design system maintenance and styling architecture  |
+| `docker-environment`     | Container configuration and deployment              |
+| `error-handling`         | Error handling patterns and server configuration    |
+| `health-check`           | Health monitoring and diagnostics                   |
+| `project-builder`        | Project scaffolding and code generation             |
+| `responsive-design`      | Mobile/desktop responsive layouts and UI patterns   |
 
 ## Directory Structure
 
