@@ -1,4 +1,4 @@
-interface ITerraformConfig {
+export interface ITerraformConfig {
 	apiBaseUrl: string;
 	token: string;
 	organization: string;
@@ -25,36 +25,13 @@ interface ITerraformRunResult {
 	status: string;
 }
 
-const WORKSPACE_ID_CACHE: { value: string | null } = { value: null };
-
-const getTerraformConfig = (): ITerraformConfig => {
-	const token = process.env.TERRAFORM_CLOUD_TOKEN;
-	const organization = process.env.TERRAFORM_CLOUD_ORG;
-	const workspace = process.env.TERRAFORM_CLOUD_WORKSPACE;
-
-	if (token === undefined || token === "") {
-		throw new Error("TERRAFORM_CLOUD_TOKEN is not configured");
-	}
-	if (organization === undefined || organization === "") {
-		throw new Error("TERRAFORM_CLOUD_ORG is not configured");
-	}
-	if (workspace === undefined || workspace === "") {
-		throw new Error("TERRAFORM_CLOUD_WORKSPACE is not configured");
-	}
-
-	return {
-		apiBaseUrl: "https://app.terraform.io/api/v2",
-		token,
-		organization,
-		workspace,
-	};
-};
+const TFC_API_BASE_URL = "https://app.terraform.io/api/v2";
 
 const terraformFetch = async (
+	config: ITerraformConfig,
 	path: string,
 	options?: RequestInit,
 ): Promise<Response> => {
-	const config = getTerraformConfig();
 	const headers: Record<string, string> = {
 		Authorization: `Bearer ${config.token}`,
 		"Content-Type": "application/vnd.api+json",
@@ -68,17 +45,50 @@ const terraformFetch = async (
 	});
 };
 
-export const getTerraformWorkspaceId = async (): Promise<string> => {
-	if (WORKSPACE_ID_CACHE.value !== null) {
-		return WORKSPACE_ID_CACHE.value;
+export const validateTerraformConfig = (config: ITerraformConfig): void => {
+	if (!config.token || config.token.trim() === "") {
+		throw new Error("Terraform Cloud token is missing");
 	}
+	if (!config.organization || config.organization.trim() === "") {
+		throw new Error("Terraform Cloud organization is missing");
+	}
+	if (!config.workspace || config.workspace.trim() === "") {
+		throw new Error("Terraform Cloud workspace is missing");
+	}
+};
 
-	const config = getTerraformConfig();
+export const createTerraformConfigFromCredentials = (creds: {
+	tfcToken: string;
+	tfcOrg: string;
+	tfcWorkspace: string;
+}): ITerraformConfig => {
+	return {
+		apiBaseUrl: TFC_API_BASE_URL,
+		token: creds.tfcToken,
+		organization: creds.tfcOrg,
+		workspace: creds.tfcWorkspace,
+	};
+};
+
+export const getTerraformWorkspaceId = async (
+	config: ITerraformConfig,
+): Promise<string> => {
 	const response = await terraformFetch(
+		config,
 		`/organizations/${config.organization}/workspaces/${config.workspace}`,
 	);
 
 	if (!response.ok) {
+		if (response.status === 404) {
+			throw new Error(
+				`Workspace "${config.workspace}" not found in organization "${config.organization}"`,
+			);
+		}
+		if (response.status === 401) {
+			throw new Error(
+				"Terraform Cloud token is invalid or expired",
+			);
+		}
 		throw new Error("Failed to fetch Terraform workspace");
 	}
 
@@ -92,18 +102,20 @@ export const getTerraformWorkspaceId = async (): Promise<string> => {
 		"id" in data.data &&
 		typeof data.data.id === "string"
 	) {
-		WORKSPACE_ID_CACHE.value = data.data.id;
 		return data.data.id;
 	}
 
 	throw new Error("Terraform workspace response missing ID");
 };
 
-export const getTerraformWorkspaceVariables = async (): Promise<
-	ITerraformVariable[]
-> => {
-	const workspaceId = await getTerraformWorkspaceId();
-	const response = await terraformFetch(`/workspaces/${workspaceId}/vars`);
+export const getTerraformWorkspaceVariables = async (
+	config: ITerraformConfig,
+): Promise<ITerraformVariable[]> => {
+	const workspaceId = await getTerraformWorkspaceId(config);
+	const response = await terraformFetch(
+		config,
+		`/workspaces/${workspaceId}/vars`,
+	);
 
 	if (!response.ok) {
 		throw new Error("Failed to fetch Terraform workspace variables");
@@ -167,10 +179,11 @@ export const getTerraformWorkspaceVariables = async (): Promise<
 };
 
 export const upsertTerraformVariables = async (
+	config: ITerraformConfig,
 	variables: ITerraformVariableInput[],
 ): Promise<void> => {
-	const workspaceId = await getTerraformWorkspaceId();
-	const existing = await getTerraformWorkspaceVariables();
+	const workspaceId = await getTerraformWorkspaceId(config);
+	const existing = await getTerraformWorkspaceVariables(config);
 	const existingMap = new Map<string, ITerraformVariable>();
 	for (const item of existing) {
 		existingMap.set(`${item.category}:${item.key}`, item);
@@ -180,7 +193,7 @@ export const upsertTerraformVariables = async (
 		const existingVar = existingMap.get(`${variable.category}:${variable.key}`);
 
 		if (existingVar) {
-			const response = await terraformFetch(`/vars/${existingVar.id}`, {
+			const response = await terraformFetch(config, `/vars/${existingVar.id}`, {
 				method: "PATCH",
 				body: JSON.stringify({
 					data: {
@@ -198,29 +211,33 @@ export const upsertTerraformVariables = async (
 				throw new Error(`Failed to update Terraform variable ${variable.key}`);
 			}
 		} else {
-			const response = await terraformFetch(`/workspaces/${workspaceId}/vars`, {
-				method: "POST",
-				body: JSON.stringify({
-					data: {
-						type: "vars",
-						attributes: {
-							key: variable.key,
-							value: variable.value,
-							category: variable.category,
-							sensitive: variable.sensitive,
-							hcl: false,
-						},
-						relationships: {
-							workspace: {
-								data: {
-									id: workspaceId,
-									type: "workspaces",
+			const response = await terraformFetch(
+				config,
+				`/workspaces/${workspaceId}/vars`,
+				{
+					method: "POST",
+					body: JSON.stringify({
+						data: {
+							type: "vars",
+							attributes: {
+								key: variable.key,
+								value: variable.value,
+								category: variable.category,
+								sensitive: variable.sensitive,
+								hcl: false,
+							},
+							relationships: {
+								workspace: {
+									data: {
+										id: workspaceId,
+										type: "workspaces",
+									},
 								},
 							},
 						},
-					},
-				}),
-			});
+					}),
+				},
+			);
 
 			if (!response.ok) {
 				throw new Error(`Failed to create Terraform variable ${variable.key}`);
@@ -230,16 +247,18 @@ export const upsertTerraformVariables = async (
 };
 
 export const createTerraformRun = async (
+	config: ITerraformConfig,
 	message: string,
 ): Promise<ITerraformRunResult> => {
-	const workspaceId = await getTerraformWorkspaceId();
-	const response = await terraformFetch("/runs", {
+	const workspaceId = await getTerraformWorkspaceId(config);
+	const response = await terraformFetch(config, "/runs", {
 		method: "POST",
 		body: JSON.stringify({
 			data: {
 				type: "runs",
 				attributes: {
 					message,
+					"auto-apply": true,
 				},
 				relationships: {
 					workspace: {
@@ -285,9 +304,10 @@ export const createTerraformRun = async (
 };
 
 export const getTerraformRun = async (
+	config: ITerraformConfig,
 	runId: string,
 ): Promise<ITerraformRunResult> => {
-	const response = await terraformFetch(`/runs/${runId}`);
+	const response = await terraformFetch(config, `/runs/${runId}`);
 	if (!response.ok) {
 		throw new Error("Failed to fetch Terraform run status");
 	}
@@ -319,11 +339,12 @@ export const getTerraformRun = async (
 	throw new Error("Terraform run response missing ID");
 };
 
-export const getTerraformOutputs = async (): Promise<
-	Record<string, unknown>
-> => {
-	const workspaceId = await getTerraformWorkspaceId();
+export const getTerraformOutputs = async (
+	config: ITerraformConfig,
+): Promise<Record<string, unknown>> => {
+	const workspaceId = await getTerraformWorkspaceId(config);
 	const response = await terraformFetch(
+		config,
 		`/workspaces/${workspaceId}/current-state-version`,
 	);
 
@@ -346,6 +367,7 @@ export const getTerraformOutputs = async (): Promise<
 
 	const stateVersionId = payload.data.id;
 	const outputsResponse = await terraformFetch(
+		config,
 		`/state-versions/${stateVersionId}/outputs`,
 	);
 	if (!outputsResponse.ok) {

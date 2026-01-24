@@ -40,6 +40,9 @@ interface IInfraCredentials {
 	awsAccessKeyId: string;
 	awsSecretAccessKey: string;
 	awsSessionToken: string;
+	tfcToken: string;
+	tfcOrg: string;
+	tfcWorkspace: string;
 }
 
 const createEmptyEnvEntry = (): IEnvEntry => ({
@@ -54,6 +57,9 @@ const createEmptyInfraCredentials = (): IInfraCredentials => ({
 	awsAccessKeyId: "",
 	awsSecretAccessKey: "",
 	awsSessionToken: "",
+	tfcToken: "",
+	tfcOrg: "",
+	tfcWorkspace: "",
 });
 
 const extractEnvEntriesFromMetadata = (
@@ -95,6 +101,18 @@ const extractInfraCredentialsFromMetadata = (
 			awsSessionToken:
 				typeof infraRecord.awsSessionToken === "string"
 					? infraRecord.awsSessionToken
+					: "",
+			tfcToken:
+				typeof infraRecord.tfcToken === "string"
+					? infraRecord.tfcToken
+					: "",
+			tfcOrg:
+				typeof infraRecord.tfcOrg === "string"
+					? infraRecord.tfcOrg
+					: "",
+			tfcWorkspace:
+				typeof infraRecord.tfcWorkspace === "string"
+					? infraRecord.tfcWorkspace
 					: "",
 		};
 	}
@@ -173,7 +191,10 @@ const areInfraCredentialsEqual = (
 		first.sshPublicKey.trim() === second.sshPublicKey.trim() &&
 		first.awsAccessKeyId.trim() === second.awsAccessKeyId.trim() &&
 		first.awsSecretAccessKey.trim() === second.awsSecretAccessKey.trim() &&
-		first.awsSessionToken.trim() === second.awsSessionToken.trim()
+		first.awsSessionToken.trim() === second.awsSessionToken.trim() &&
+		first.tfcToken.trim() === second.tfcToken.trim() &&
+		first.tfcOrg.trim() === second.tfcOrg.trim() &&
+		first.tfcWorkspace.trim() === second.tfcWorkspace.trim()
 	);
 };
 
@@ -396,6 +417,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				"awsAccessKeyId",
 				"awsSecretAccessKey",
 				"awsSessionToken",
+				"tfcToken",
+				"tfcOrg",
+				"tfcWorkspace",
 			];
 			const decrypted: IInfraCredentials = createEmptyInfraCredentials();
 
@@ -810,6 +834,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				awsAccessKeyId: infraCredentials.awsAccessKeyId.trim(),
 				awsSecretAccessKey: infraCredentials.awsSecretAccessKey.trim(),
 				awsSessionToken: infraCredentials.awsSessionToken.trim(),
+				tfcToken: infraCredentials.tfcToken.trim(),
+				tfcOrg: infraCredentials.tfcOrg.trim(),
+				tfcWorkspace: infraCredentials.tfcWorkspace.trim(),
 			};
 
 			if (
@@ -818,6 +845,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				sanitized.awsSecretAccessKey === ""
 			) {
 				throw new Error("SSH public key and AWS credentials are required.");
+			}
+
+			if (
+				sanitized.tfcToken === "" ||
+				sanitized.tfcOrg === "" ||
+				sanitized.tfcWorkspace === ""
+			) {
+				throw new Error(
+					"Terraform Cloud token, organization, and workspace are required.",
+				);
 			}
 
 			const encryptedEntries = {
@@ -844,6 +881,15 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 									passphrase,
 								),
 							),
+				tfcToken: JSON.stringify(
+					await encryptSecret(sanitized.tfcToken, user.sub, passphrase),
+				),
+				tfcOrg: JSON.stringify(
+					await encryptSecret(sanitized.tfcOrg, user.sub, passphrase),
+				),
+				tfcWorkspace: JSON.stringify(
+					await encryptSecret(sanitized.tfcWorkspace, user.sub, passphrase),
+				),
 			};
 
 			const response = await fetch(`${getApiUrl()}/user-metadata/infra`, {
@@ -2415,6 +2461,77 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 															placeholder="Optional session token"
 															className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
 														/>
+													</div>
+
+													<div className="pt-4 border-t border-border">
+														<p className="text-sm font-medium text-fg mb-3">
+															Terraform Cloud
+														</p>
+														<div className="space-y-4">
+															<div>
+																<label
+																	htmlFor="infra-tfc-token"
+																	className="block text-sm font-medium text-fg-muted mb-2"
+																>
+																	API Token
+																</label>
+																<input
+																	id="infra-tfc-token"
+																	type="password"
+																	value={infraCredentials.tfcToken}
+																	onChange={(e) => {
+																		updateInfraField(
+																			"tfcToken",
+																			e.target.value,
+																		);
+																	}}
+																	placeholder="Your Terraform Cloud API token"
+																	className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+																/>
+															</div>
+															<div>
+																<label
+																	htmlFor="infra-tfc-org"
+																	className="block text-sm font-medium text-fg-muted mb-2"
+																>
+																	Organization
+																</label>
+																<input
+																	id="infra-tfc-org"
+																	type="text"
+																	value={infraCredentials.tfcOrg}
+																	onChange={(e) => {
+																		updateInfraField(
+																			"tfcOrg",
+																			e.target.value,
+																		);
+																	}}
+																	placeholder="my-org"
+																	className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+																/>
+															</div>
+															<div>
+																<label
+																	htmlFor="infra-tfc-workspace"
+																	className="block text-sm font-medium text-fg-muted mb-2"
+																>
+																	Workspace
+																</label>
+																<input
+																	id="infra-tfc-workspace"
+																	type="text"
+																	value={infraCredentials.tfcWorkspace}
+																	onChange={(e) => {
+																		updateInfraField(
+																			"tfcWorkspace",
+																			e.target.value,
+																		);
+																	}}
+																	placeholder="my-workspace"
+																	className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+																/>
+															</div>
+														</div>
 													</div>
 												</div>
 

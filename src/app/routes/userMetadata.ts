@@ -76,6 +76,9 @@ interface IInfraPayload {
 		awsAccessKeyId?: unknown;
 		awsSecretAccessKey?: unknown;
 		awsSessionToken?: unknown;
+		tfcToken?: unknown;
+		tfcOrg?: unknown;
+		tfcWorkspace?: unknown;
 	};
 }
 
@@ -211,8 +214,15 @@ router.post("/infra", async (c) => {
 	}
 
 	const infraPayload = body.infra;
-	const { sshPublicKey, awsAccessKeyId, awsSecretAccessKey, awsSessionToken } =
-		infraPayload;
+	const {
+		sshPublicKey,
+		awsAccessKeyId,
+		awsSecretAccessKey,
+		awsSessionToken,
+		tfcToken,
+		tfcOrg,
+		tfcWorkspace,
+	} = infraPayload;
 
 	if (
 		typeof sshPublicKey !== "string" ||
@@ -229,11 +239,28 @@ router.post("/infra", async (c) => {
 		);
 	}
 
+	if (
+		typeof tfcToken !== "string" ||
+		typeof tfcOrg !== "string" ||
+		typeof tfcWorkspace !== "string"
+	) {
+		return c.json(
+			{
+				error: "Invalid payload",
+				message: "tfcToken, tfcOrg, and tfcWorkspace are required.",
+			},
+			400,
+		);
+	}
+
 	const infraRecord: Record<string, string> = {
 		sshPublicKey,
 		awsAccessKeyId,
 		awsSecretAccessKey,
 		awsSessionToken: typeof awsSessionToken === "string" ? awsSessionToken : "",
+		tfcToken,
+		tfcOrg,
+		tfcWorkspace,
 	};
 
 	try {
