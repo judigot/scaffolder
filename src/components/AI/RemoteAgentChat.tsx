@@ -9,6 +9,7 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 interface IRemoteAgentChatProps {
 	sshPrivateKey: string;
 	host: string;
+	accessToken: string | null;
 }
 
 interface IToolInvocationPart {
@@ -288,6 +289,7 @@ function AgentEmptyState() {
 export default function RemoteAgentChat({
 	sshPrivateKey,
 	host,
+	accessToken,
 }: IRemoteAgentChatProps) {
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -297,6 +299,9 @@ export default function RemoteAgentChat({
 		() =>
 			new DefaultChatTransport({
 				api: "/api/agent/chat",
+				headers: accessToken
+					? { Authorization: `Bearer ${accessToken}` }
+					: undefined,
 				body: {
 					infraCredentials: {
 						sshPrivateKey,
@@ -304,7 +309,7 @@ export default function RemoteAgentChat({
 					},
 				},
 			}),
-		[sshPrivateKey, host],
+		[sshPrivateKey, host, accessToken],
 	);
 
 	const { messages, sendMessage, status, error, stop } = useChat({
