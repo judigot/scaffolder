@@ -17,6 +17,7 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import GitHubExportModal from '@/components/GitHubExportModal.tsx';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
+import { Banner } from '@/components/UI/Banner.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
 import { handleCopy } from '@/helpers/stringHelper.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
@@ -2501,14 +2502,14 @@ function FileViewer({
               {/* Action buttons toolbar */}
               {mode === 'edit' && (
                 <div className="p-3 border-b border-layout-border space-y-3 shrink-0">
-                  {/* Dev: Create App button */}
+                  {/* Dev: Export Locally button */}
                   {process.env.NODE_ENV === 'development' && (
                     <button
                       type="button"
                       onClick={() => void handleCreateApp()}
-                      className="btn-primary w-full"
+                      className="btn-success w-full"
                     >
-                      Create App
+                      Export Locally
                     </button>
                   )}
 
@@ -2619,7 +2620,7 @@ function FileViewer({
                         onClick={() => {
                           handleCopy(JSON.stringify(userFiles, null, 4));
                         }}
-                        className="btn-secondary flex-1"
+                        className="btn-success flex-1"
                       >
                         Copy User Files
                       </button>
@@ -2628,7 +2629,7 @@ function FileViewer({
                         onClick={() => {
                           handleCopy(JSON.stringify(folderStructure, null, 4));
                         }}
-                        className="btn-secondary flex-1"
+                        className="btn-success flex-1"
                       >
                         Copy Structure
                       </button>
@@ -2637,143 +2638,103 @@ function FileViewer({
 
                   {/* Warning banners */}
                   {safeFilesUsingUserEnv.length > 0 && (
-                    <div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md">
-                      <div className="flex flex-col items-center gap-3">
-                        <svg
-                          className="w-6 h-6 text-orange-400 flex-shrink-0"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+                    <Banner
+                      variant="warning"
+                      title="Security Warning: Secrets Detected"
+                    >
+                      <p className="mb-2">
+                        {safeFilesUsingUserEnv.length} file(s) contain sensitive
+                        data. Exporting to GitHub will leak your secrets (API
+                        keys, passwords, tokens, etc.).
+                      </p>
+                      <ul className="list-disc list-inside mb-2 space-y-1">
+                        {safeFilesUsingUserEnv.map((filePath: string) => (
+                          <li key={filePath} className="font-mono">
+                            {filePath}
+                          </li>
+                        ))}
+                      </ul>
+                      <p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            zipAndDownloadIStructure(
+                              folderStructure,
+                              getZipFileName(),
+                            );
+                          }}
+                          className="text-orange-300 hover:text-orange-200 underline font-medium"
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <div className="flex-1 min-w-0 text-center">
-                          <p className="text-xs font-medium text-orange-300 mb-1">
-                            Security Warning: Secrets Detected
-                          </p>
-                          <p className="text-xs text-orange-200/80 mb-2">
-                            {safeFilesUsingUserEnv.length} file(s) contain
-                            sensitive data. Exporting to GitHub will leak your
-                            secrets (API keys, passwords, tokens, etc.).
-                          </p>
-                          <ul className="text-xs text-orange-200/80 list-disc list-inside mb-2 space-y-1">
-                            {safeFilesUsingUserEnv.map((filePath: string) => (
-                              <li key={filePath} className="font-mono">
-                                {filePath}
-                              </li>
-                            ))}
-                          </ul>
-                          <p className="text-xs text-orange-200/70">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                zipAndDownloadIStructure(
-                                  folderStructure,
-                                  getZipFileName(),
-                                );
-                              }}
-                              className="text-orange-300 hover:text-orange-200 underline font-medium"
-                            >
-                              Download ZIP
-                            </button>{' '}
-                            instead or use placeholders.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                          Download ZIP
+                        </button>{' '}
+                        instead or use placeholders.
+                      </p>
+                    </Banner>
                   )}
                   {filesFailedToFormat.length > 0 && (
-                    <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
-                      <div className="flex items-start gap-2">
-                        <svg
-                          className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-yellow-300 mb-1">
-                            Formatting Failed
-                          </p>
-                          <p className="text-xs text-yellow-200/80 mb-2">
-                            {filesFailedToFormat.length} file(s) could not be
-                            formatted due to syntax errors in the generated
-                            code.
-                          </p>
-                          <ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
-                            {filesFailedToFormat
-                              .filter((entry): entry is IFailedFormatEntry => {
-                                if (typeof entry === 'string') {
-                                  return false;
-                                }
-                                return (
-                                  typeof entry === 'object' &&
-                                  'filePath' in entry &&
-                                  'errorMessage' in entry
-                                );
-                              })
-                              .map((entry) => {
-                                const { filePath, errorMessage } = entry;
-                                return (
-                                  <li key={filePath}>
-                                    <span className="font-mono">
-                                      {filePath}
-                                    </span>{' '}
-                                    -{' '}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        openModal(
-                                          'format-error-modal',
-                                          'Format Error Details',
+                    <Banner variant="error" title="Formatting Failed">
+                      <p className="mb-2">
+                        {filesFailedToFormat.length} file(s) could not be
+                        formatted due to syntax errors in the generated code.
+                      </p>
+                      <ul className="list-disc list-inside mb-2 space-y-1">
+                        {filesFailedToFormat
+                          .filter((entry): entry is IFailedFormatEntry => {
+                            if (typeof entry === 'string') {
+                              return false;
+                            }
+                            return (
+                              typeof entry === 'object' &&
+                              'filePath' in entry &&
+                              'errorMessage' in entry
+                            );
+                          })
+                          .map((entry) => {
+                            const { filePath, errorMessage } = entry;
+                            return (
+                              <li key={filePath}>
+                                <span className="font-mono">{filePath}</span> -{' '}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openModal(
+                                      'format-error-modal',
+                                      'Format Error Details',
 
-                                          <div className="space-y-4">
-                                            <div>
-                                              <p className="text-sm font-medium text-content-muted mb-2">
-                                                File:
-                                              </p>
-                                              <code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
-                                                {filePath}
-                                              </code>
-                                            </div>
-                                            <div>
-                                              <p className="text-sm font-medium text-content-muted mb-2">
-                                                Error Message:
-                                              </p>
-                                              <pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
-                                                {errorMessage}
-                                              </pre>
-                                            </div>
-                                            <p className="text-xs text-content-subtle">
-                                              Fix the syntax error in your
-                                              template and regenerate the
-                                              project.
-                                            </p>
-                                          </div>,
-                                        );
-                                      }}
-                                      className="text-yellow-300 hover:text-yellow-200 underline font-medium text-xs"
-                                    >
-                                      View error
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                          </ul>
-                          <p className="text-xs text-yellow-200/70">
-                            Check your templates for syntax errors.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                                      <div className="space-y-4">
+                                        <div>
+                                          <p className="text-sm font-medium text-content-muted mb-2">
+                                            File:
+                                          </p>
+                                          <code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
+                                            {filePath}
+                                          </code>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium text-content-muted mb-2">
+                                            Error Message:
+                                          </p>
+                                          <pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
+                                            {errorMessage}
+                                          </pre>
+                                        </div>
+                                        <p className="text-xs text-content-subtle">
+                                          Fix the syntax error in your template
+                                          and regenerate the project.
+                                        </p>
+                                      </div>,
+                                    );
+                                  }}
+                                  className="text-yellow-300 hover:text-yellow-200 underline font-medium"
+                                >
+                                  View error
+                                </button>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                      <p>Check your templates for syntax errors.</p>
+                    </Banner>
                   )}
                 </div>
               )}
@@ -2811,7 +2772,7 @@ function FileViewer({
                       onClick={() => {
                         handleCopy(JSON.stringify(userFiles, null, 4));
                       }}
-                      className="btn-secondary flex-1"
+                      className="btn-success flex-1"
                     >
                       Copy Files
                     </button>
@@ -2820,7 +2781,7 @@ function FileViewer({
                       onClick={() => {
                         handleCopy(JSON.stringify(folderStructure, null, 4));
                       }}
-                      className="btn-secondary flex-1"
+                      className="btn-success flex-1"
                     >
                       Copy Structure
                     </button>
@@ -3113,14 +3074,14 @@ function FileViewer({
                 Actions
               </h3>
 
-              {/* Create App - Dev only */}
+              {/* Export Locally - Dev only */}
               {process.env.NODE_ENV === 'development' && (
                 <button
                   type="button"
                   onClick={() => void handleCreateApp()}
-                  className="btn-primary w-full"
+                  className="btn-success w-full"
                 >
-                  Create App
+                  Export Locally
                 </button>
               )}
 
@@ -3168,138 +3129,103 @@ function FileViewer({
 
               {/* Warning banners */}
               {safeFilesUsingUserEnv.length > 0 && (
-                <div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md">
-                  <div className="flex flex-col items-center gap-3">
-                    <svg
-                      className="w-6 h-6 text-orange-400 flex-shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
+                <Banner
+                  variant="warning"
+                  title="Security Warning: Secrets Detected"
+                >
+                  <p className="mb-2">
+                    {safeFilesUsingUserEnv.length} file(s) contain sensitive
+                    data. Exporting to GitHub will leak your secrets (API keys,
+                    passwords, tokens, etc.).
+                  </p>
+                  <ul className="list-disc list-inside mb-2 space-y-1">
+                    {safeFilesUsingUserEnv.map((filePath: string) => (
+                      <li key={filePath} className="font-mono">
+                        {filePath}
+                      </li>
+                    ))}
+                  </ul>
+                  <p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        zipAndDownloadIStructure(
+                          folderStructure,
+                          getZipFileName(),
+                        );
+                      }}
+                      className="text-orange-300 hover:text-orange-200 underline font-medium"
                     >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <div className="flex-1 min-w-0 text-center">
-                      <p className="text-xs font-medium text-orange-300 mb-1">
-                        Security Warning: Secrets Detected
-                      </p>
-                      <p className="text-xs text-orange-200/80 mb-2">
-                        {safeFilesUsingUserEnv.length} file(s) contain sensitive
-                        data. Exporting to GitHub will leak your secrets (API
-                        keys, passwords, tokens, etc.).
-                      </p>
-                      <ul className="text-xs text-orange-200/80 list-disc list-inside mb-2 space-y-1">
-                        {safeFilesUsingUserEnv.map((filePath: string) => (
-                          <li key={filePath} className="font-mono">
-                            {filePath}
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="text-xs text-orange-200/70">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            zipAndDownloadIStructure(
-                              folderStructure,
-                              getZipFileName(),
-                            );
-                          }}
-                          className="text-orange-300 hover:text-orange-200 underline font-medium"
-                        >
-                          Download ZIP
-                        </button>{' '}
-                        instead or use placeholders.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                      Download ZIP
+                    </button>{' '}
+                    instead or use placeholders.
+                  </p>
+                </Banner>
               )}
               {filesFailedToFormat.length > 0 && (
-                <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
-                  <div className="flex items-start gap-2">
-                    <svg
-                      className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-yellow-300 mb-1">
-                        Formatting Failed
-                      </p>
-                      <p className="text-xs text-yellow-200/80 mb-2">
-                        {filesFailedToFormat.length} file(s) could not be
-                        formatted due to syntax errors in the generated code.
-                      </p>
-                      <ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
-                        {filesFailedToFormat
-                          .filter((entry): entry is IFailedFormatEntry => {
-                            if (typeof entry === 'string') {
-                              return false;
-                            }
-                            return (
-                              typeof entry === 'object' &&
-                              'filePath' in entry &&
-                              'errorMessage' in entry
-                            );
-                          })
-                          .map((entry) => {
-                            const { filePath, errorMessage } = entry;
-                            return (
-                              <li key={filePath}>
-                                <span className="font-mono">{filePath}</span> -{' '}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    openModal(
-                                      'format-error-modal',
-                                      'Format Error Details',
+                <Banner variant="error" title="Formatting Failed">
+                  <p className="mb-2">
+                    {filesFailedToFormat.length} file(s) could not be formatted
+                    due to syntax errors in the generated code.
+                  </p>
+                  <ul className="list-disc list-inside mb-2 space-y-1">
+                    {filesFailedToFormat
+                      .filter((entry): entry is IFailedFormatEntry => {
+                        if (typeof entry === 'string') {
+                          return false;
+                        }
+                        return (
+                          typeof entry === 'object' &&
+                          'filePath' in entry &&
+                          'errorMessage' in entry
+                        );
+                      })
+                      .map((entry) => {
+                        const { filePath, errorMessage } = entry;
+                        return (
+                          <li key={filePath}>
+                            <span className="font-mono">{filePath}</span> -{' '}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                openModal(
+                                  'format-error-modal',
+                                  'Format Error Details',
 
-                                      <div className="space-y-4">
-                                        <div>
-                                          <p className="text-sm font-medium text-content-muted mb-2">
-                                            File:
-                                          </p>
-                                          <code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
-                                            {filePath}
-                                          </code>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm font-medium text-content-muted mb-2">
-                                            Error Message:
-                                          </p>
-                                          <pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
-                                            {errorMessage}
-                                          </pre>
-                                        </div>
-                                        <p className="text-xs text-content-subtle">
-                                          Fix the syntax error in your template
-                                          and regenerate the project.
-                                        </p>
-                                      </div>,
-                                    );
-                                  }}
-                                  className="text-yellow-300 hover:text-yellow-200 underline font-medium text-xs"
-                                >
-                                  View error
-                                </button>
-                              </li>
-                            );
-                          })}
-                      </ul>
-                      <p className="text-xs text-yellow-200/70">
-                        Check your templates for syntax errors.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <p className="text-sm font-medium text-content-muted mb-2">
+                                        File:
+                                      </p>
+                                      <code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
+                                        {filePath}
+                                      </code>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-content-muted mb-2">
+                                        Error Message:
+                                      </p>
+                                      <pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
+                                        {errorMessage}
+                                      </pre>
+                                    </div>
+                                    <p className="text-xs text-content-subtle">
+                                      Fix the syntax error in your template and
+                                      regenerate the project.
+                                    </p>
+                                  </div>,
+                                );
+                              }}
+                              className="text-yellow-300 hover:text-yellow-200 underline font-medium"
+                            >
+                              View error
+                            </button>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                  <p>Check your templates for syntax errors.</p>
+                </Banner>
               )}
             </div>
           </div>

@@ -59,7 +59,7 @@ function ChatMessage({ message }: IChatMessageProps) {
                           customStyle={{
                             margin: 0,
                             borderRadius: '0.5rem',
-                            fontSize: '0.875rem',
+                            fontSize: 'var(--font-size-sm)',
                           }}
                         >
                           {/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
@@ -197,7 +197,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
               />
             </div>
 
-            <InfoBanner title="Pro tip:">
+            <InfoBanner title="Pro tip:" inline className="w-fit mx-auto">
               List roles, key features, and any special rules.
             </InfoBanner>
           </EmptyState>
@@ -299,7 +299,7 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
             placeholder="Describe your application idea..."
             disabled={isLoading}
             rows={1}
-            className="flex-1 bg-transparent text-fg resize-none focus:outline-none disabled:opacity-50 placeholder-fg-subtle text-sm leading-relaxed py-1.5 min-h-[28px]"
+            className="flex-1 bg-transparent text-fg resize-none focus:outline-none disabled:opacity-50 placeholder-fg-subtle text-md leading-relaxed py-1.5 min-h-[28px]"
             style={{ overflow: 'hidden' }}
           />
 

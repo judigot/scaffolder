@@ -31,7 +31,7 @@ export function FeatureCard({
 
   return (
     <div
-      className={`bg-bg-muted/30 backdrop-blur-sm border border-border/50 rounded-2xl p-3 md:p-5 ${variantStyles[variant]} transition-all duration-300 cursor-pointer group`}
+      className={`bg-bg-muted/30 backdrop-blur-sm border border-border rounded-2xl p-3 md:p-5 ${variantStyles[variant]} transition-all duration-300 cursor-pointer group`}
       onClick={onClick}
     >
       <div className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-3 text-center md:text-left">
@@ -41,10 +41,10 @@ export function FeatureCard({
           {icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-xs md:text-sm font-semibold text-fg mb-1 md:mb-1.5 leading-tight">
+          <h3 className="text-sm md:text-md font-semibold text-fg mb-1 md:mb-1.5 leading-tight">
             {title}
           </h3>
-          <p className="text-[10px] md:text-xs text-fg-muted/70 leading-snug line-clamp-2">
+          <p className="text-xs md:text-sm text-fg-muted/70 leading-snug line-clamp-2">
             {description}
           </p>
         </div>
