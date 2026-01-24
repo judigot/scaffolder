@@ -113,7 +113,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <title>Judas - App Magician</title>
+                    <title>Judas - Application Architect</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -126,9 +126,8 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                   Build Your Application with Judas
                 </h2>
                 <p className="text-base text-fg-muted leading-relaxed">
-                  Describe your app idea and I'll make it happen like magic.
-                  Just tell me what you're dreaming of and I'll bring it to
-                  life!
+                  Professional schema generation with industry best practices
+                  applied by default. Describe your requirements.
                 </p>
               </div>
 
