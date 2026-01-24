@@ -11,6 +11,7 @@ import {
 	InfoBanner,
 } from "@/components/AI/chat/index.ts";
 import InfraPanel from "@/components/AI/InfraPanel.tsx";
+import RemoteAgentChat from "@/components/AI/RemoteAgentChat.tsx";
 import type { TabType } from "@/components/AI/TabBar.tsx";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
@@ -21,6 +22,7 @@ import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
 import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
+import { getApiUrl } from "@/utils/getApiUrl.ts";
 import { getRandomIntro } from "@/utils/randomIntro.ts";
 import { validateSchemaInfoFromResponse } from "@/utils/schemaInfoValidator.ts";
 
@@ -449,11 +451,13 @@ function extractSchemaFromMessages(
 interface IAIChatContainerProps {
 	activeTab: TabType;
 	onTabChange: (tab: TabType) => void;
+	onAgentAvailabilityChange?: (available: boolean) => void;
 }
 
 export function AIChatContainer({
 	activeTab,
 	onTabChange,
+	onAgentAvailabilityChange,
 }: IAIChatContainerProps) {
 	const [input, setInput] = useState("");
 
@@ -469,7 +473,83 @@ export function AIChatContainer({
 	} = useProjectStore();
 	const { userFiles: storeUserFiles } = useMockDatabaseStore();
 	const { decryptedMetadata } = useDecryptedUserMetadata();
-	const { user } = useUser();
+	const { user, accessToken } = useUser();
+
+	// Agent credentials from decrypted metadata
+	const agentSshPrivateKey = useMemo(() => {
+		if (
+			decryptedMetadata &&
+			typeof decryptedMetadata === "object" &&
+			"infra" in decryptedMetadata &&
+			decryptedMetadata.infra &&
+			typeof decryptedMetadata.infra === "object" &&
+			"sshPrivateKey" in decryptedMetadata.infra &&
+			typeof (decryptedMetadata.infra as Record<string, unknown>)
+				.sshPrivateKey === "string"
+		) {
+			return (decryptedMetadata.infra as Record<string, string>).sshPrivateKey;
+		}
+		return "";
+	}, [decryptedMetadata]);
+
+	const [agentHost, setAgentHost] = useState<string>("");
+
+	// Fetch terraform outputs to get agent host
+	useEffect(() => {
+		if (!accessToken || !decryptedMetadata) return;
+		const infra = decryptedMetadata.infra as
+			| Record<string, unknown>
+			| undefined;
+		if (
+			!infra ||
+			typeof infra.tfcToken !== "string" ||
+			typeof infra.tfcOrg !== "string" ||
+			typeof infra.tfcWorkspace !== "string" ||
+			infra.tfcToken === "" ||
+			infra.tfcOrg === "" ||
+			infra.tfcWorkspace === ""
+		)
+			return;
+
+		const fetchOutputs = async () => {
+			try {
+				const response = await fetch(`${getApiUrl()}/terraform/status`, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						tfcToken: infra.tfcToken,
+						tfcOrg: infra.tfcOrg,
+						tfcWorkspace: infra.tfcWorkspace,
+					}),
+				});
+				if (response.ok) {
+					const result = (await response.json()) as {
+						outputs?: Record<string, unknown>;
+					};
+					if (
+						result.outputs &&
+						typeof result.outputs.dev_ip === "string" &&
+						result.outputs.dev_ip !== ""
+					) {
+						setAgentHost(result.outputs.dev_ip);
+					}
+				}
+			} catch {
+				// Silently fail — agent tab just won't be available
+			}
+		};
+		void fetchOutputs();
+	}, [accessToken, decryptedMetadata]);
+
+	const isAgentAvailable =
+		agentHost !== "" && agentSshPrivateKey !== "";
+
+	useEffect(() => {
+		onAgentAvailabilityChange?.(isAgentAvailable);
+	}, [isAgentAvailable, onAgentAvailabilityChange]);
 
 	// Local state for build results
 	const [buildResult, setBuildResult] = useState<{
@@ -633,10 +713,64 @@ export function AIChatContainer({
 				</div>
 			)}
 
+			{/* Agent panel - Show only when agent tab is active */}
+			{activeTab === "agent" && (
+				<div className="flex flex-col flex-1 min-w-0 bg-bg">
+					{isAgentAvailable ? (
+						<RemoteAgentChat
+							sshPrivateKey={agentSshPrivateKey}
+							host={agentHost}
+						/>
+					) : (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<div className="text-center max-w-md space-y-3">
+								<div className="w-12 h-12 mx-auto rounded-xl bg-secondary border border-border flex items-center justify-center">
+									<svg
+										className="w-6 h-6 text-fg-muted"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<title>Disconnected</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={1.5}
+											d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+										/>
+									</svg>
+								</div>
+								<h3 className="text-base font-medium text-fg">
+									Agent Not Available
+								</h3>
+								<p className="text-sm text-fg-subtle">
+									{agentHost === ""
+										? "Provision an EC2 instance from the Infra tab first."
+										: "Add your SSH private key in the profile to connect."}
+								</p>
+								<button
+									type="button"
+									onClick={() => {
+										onTabChange(agentHost === "" ? "infra" : "infra");
+									}}
+									className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg text-sm rounded-lg transition-colors"
+								>
+									{agentHost === "" ? "Go to Infra" : "Go to Infra"}
+								</button>
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+
 			{/* Infra panel - Show only when infra tab is active */}
 			{activeTab === "infra" && (
 				<div className="flex flex-col flex-1 min-w-0 bg-bg">
-					<InfraPanel />
+					<InfraPanel
+						onConnectAgent={() => {
+							onTabChange("agent");
+						}}
+					/>
 				</div>
 			)}
 		</div>

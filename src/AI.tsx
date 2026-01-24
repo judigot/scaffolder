@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AIChatContainer } from "@/components/AI/AIChatContainer.tsx";
 import Navbar from "@/components/AI/Navbar.tsx";
 import TabBar from "@/components/AI/TabBar.tsx";
@@ -44,6 +44,11 @@ function AI() {
 		selectedProject,
 		invalidateProjectCache,
 	]);
+
+	const [isAgentAvailable, setIsAgentAvailable] = useState(false);
+	const handleAgentAvailabilityChange = useCallback((available: boolean) => {
+		setIsAgentAvailable(available);
+	}, []);
 
 	const [inputRepoURL] = useState<string>(publicRepoURL);
 
@@ -109,8 +114,10 @@ function AI() {
 					currentTab === "fileViewer"
 						? "chat"
 						: currentTab === "chat"
-							? "infra"
-							: "fileViewer";
+							? "agent"
+							: currentTab === "agent"
+								? "infra"
+								: "fileViewer";
 				setActiveTab(nextTab);
 			}
 		};
@@ -128,7 +135,11 @@ function AI() {
 				serverConfigStatus={serverConfigStatus}
 			/>
 			<div className="flex-1 overflow-hidden min-h-0">
-				<AIChatContainer activeTab={activeTab} onTabChange={setActiveTab} />
+				<AIChatContainer
+					activeTab={activeTab}
+					onTabChange={setActiveTab}
+					onAgentAvailabilityChange={handleAgentAvailabilityChange}
+				/>
 			</div>
 
 			{/* Bottom Tab Bar */}
@@ -136,6 +147,7 @@ function AI() {
 				activeTab={activeTab}
 				onTabChange={setActiveTab}
 				hasGeneratedCode={schemaInfo.length > 0}
+				isAgentAvailable={isAgentAvailable}
 			/>
 		</div>
 	);

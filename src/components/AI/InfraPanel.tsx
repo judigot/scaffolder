@@ -10,6 +10,7 @@ import { parseEncryptedValue } from "@/utils/zeroKnowledgeEncryption.ts";
 
 interface IInfraCredentials {
 	sshPublicKey: string;
+	sshPrivateKey: string;
 	awsAccessKeyId: string;
 	awsSecretAccessKey: string;
 	awsSessionToken: string;
@@ -47,6 +48,10 @@ const parseInfraCredentials = (
 				typeof metadata.infra.sshPublicKey === "string"
 					? metadata.infra.sshPublicKey
 					: "",
+			sshPrivateKey:
+				typeof metadata.infra.sshPrivateKey === "string"
+					? metadata.infra.sshPrivateKey
+					: "",
 			awsAccessKeyId:
 				typeof metadata.infra.awsAccessKeyId === "string"
 					? metadata.infra.awsAccessKeyId
@@ -75,6 +80,7 @@ const parseInfraCredentials = (
 	}
 	return {
 		sshPublicKey: "",
+		sshPrivateKey: "",
 		awsAccessKeyId: "",
 		awsSecretAccessKey: "",
 		awsSessionToken: "",
@@ -84,7 +90,13 @@ const parseInfraCredentials = (
 	};
 };
 
-export default function InfraPanel() {
+export type { IInfraCredentials };
+
+interface IInfraPanelProps {
+	onConnectAgent?: () => void;
+}
+
+export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	const { accessToken } = useUser();
 	const { decryptedMetadata } = useDecryptedUserMetadata();
 	const { openUserProfile } = useUserProfileStore();
@@ -433,6 +445,42 @@ export default function InfraPanel() {
 								</p>
 							</div>
 						</div>
+						{enableEc2 &&
+							typeof publicIp === "string" &&
+							publicIp !== "" &&
+							infraCredentials.sshPrivateKey.trim() !== "" &&
+							onConnectAgent && (
+								<button
+									type="button"
+									onClick={onConnectAgent}
+									className="w-full mt-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+								>
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<title>Terminal</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+										/>
+									</svg>
+									Connect Agent
+								</button>
+							)}
+						{enableEc2 &&
+							typeof publicIp === "string" &&
+							publicIp !== "" &&
+							infraCredentials.sshPrivateKey.trim() === "" && (
+								<div className="p-2 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200 mt-2">
+									Add your SSH private key in the profile to enable the remote
+									agent.
+								</div>
+							)}
 					</div>
 				</div>
 			</div>
