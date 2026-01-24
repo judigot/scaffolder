@@ -73,6 +73,7 @@ interface IEnvVariablePayload {
 interface IInfraPayload {
 	infra?: {
 		sshPublicKey?: unknown;
+		sshPrivateKey?: unknown;
 		awsAccessKeyId?: unknown;
 		awsSecretAccessKey?: unknown;
 		awsSessionToken?: unknown;
@@ -216,6 +217,7 @@ router.post("/infra", async (c) => {
 	const infraPayload = body.infra;
 	const {
 		sshPublicKey,
+		sshPrivateKey,
 		awsAccessKeyId,
 		awsSecretAccessKey,
 		awsSessionToken,
@@ -255,6 +257,7 @@ router.post("/infra", async (c) => {
 
 	const infraRecord: Record<string, string> = {
 		sshPublicKey,
+		sshPrivateKey: typeof sshPrivateKey === "string" ? sshPrivateKey : "",
 		awsAccessKeyId,
 		awsSecretAccessKey,
 		awsSessionToken: typeof awsSessionToken === "string" ? awsSessionToken : "",
