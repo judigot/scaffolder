@@ -2473,25 +2473,11 @@ function FileViewer({
               onClick={() => {
                 setIsTreeOpen(!isTreeOpen);
               }}
-              className="flex items-center justify-between bg-panel px-3 py-2"
+              className="flex items-center justify-center gap-2 bg-panel px-3 py-2"
             >
-              <div className="flex items-center gap-2 text-content">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <title>Files</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                  />
-                </svg>
-                <span className="text-sm font-medium">Files</span>
-              </div>
+              <span className="text-sm font-medium text-content">
+                {isTreeOpen ? 'Hide Files' : 'View Files'}
+              </span>
               <svg
                 className={`w-4 h-4 text-content-muted transition-transform ${isTreeOpen ? 'rotate-180' : ''}`}
                 fill="none"
@@ -2913,7 +2899,7 @@ function FileViewer({
         )}
 
         {/* Editor panel - takes remaining space */}
-        <div className="flex-1 flex flex-col min-h-0 bg-surface overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 bg-surface overflow-hidden md:border-t-0 border-t border-layout-border">
           {/* Tab bar for open files */}
           {openFiles.length > 0 && (
             <div className="flex items-center bg-panel border-b border-layout-border overflow-x-auto">
