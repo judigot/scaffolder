@@ -34,7 +34,7 @@ export function EmptyState({
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <div className="max-w-2xl w-full space-y-4 md:space-y-8">
+      <div className="max-w-2xl w-full space-y-4 md:space-y-8 pb-6">
         <div className="text-center space-y-4">
           {icon ?? defaultIcon}
           <h2 className="text-2xl md:text-3xl font-bold text-fg">{title}</h2>

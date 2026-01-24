@@ -105,7 +105,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
       <div className="max-w-5xl mx-auto px-3 py-3 md:px-6 md:py-6 space-y-4 md:space-y-6 h-full">
         {messages.length === 0 && (
           <EmptyState title="Build Your Application with Judas">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               <FeatureCard
                 title="E-commerce Platform"
                 description="Build an online store with products, cart, and checkout"
