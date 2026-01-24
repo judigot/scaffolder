@@ -1,6 +1,6 @@
-import { Chat as ChatIcon } from "@mui/icons-material";
+import { Chat as ChatIcon, CloudQueue as CloudIcon } from "@mui/icons-material";
 
-export type TabType = "chat" | "fileViewer";
+export type TabType = "chat" | "fileViewer" | "infra";
 
 interface ITabBarProps {
 	activeTab: TabType;
@@ -59,6 +59,22 @@ export default function TabBar({
 			>
 				<ChatIcon className="w-5 h-5 mb-1" />
 				<span className="text-xs font-medium">Chat</span>
+			</button>
+
+			<button
+				type="button"
+				className={`flex-1 py-3 flex flex-col items-center justify-center border-l border-layout-border transition-colors ${
+					activeTab === "infra"
+						? "text-content bg-secondary-hover"
+						: "text-fg-muted bg-secondary hover:bg-secondary-hover"
+				}`}
+				onClick={() => {
+					onTabChange("infra");
+				}}
+				aria-label="Infrastructure View"
+			>
+				<CloudIcon className="w-5 h-5 mb-1" />
+				<span className="text-xs font-medium">Infra</span>
 			</button>
 		</div>
 	);

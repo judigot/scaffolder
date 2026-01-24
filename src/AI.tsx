@@ -105,7 +105,13 @@ function AI() {
 			if ((e.ctrlKey || e.metaKey) && e.key === "b") {
 				e.preventDefault();
 				const currentTab = useUIStore.getState().activeTab;
-				setActiveTab(currentTab === "chat" ? "fileViewer" : "chat");
+				const nextTab =
+					currentTab === "fileViewer"
+						? "chat"
+						: currentTab === "chat"
+							? "infra"
+							: "fileViewer";
+				setActiveTab(nextTab);
 			}
 		};
 

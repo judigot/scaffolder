@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import chatRouter from "./chat.ts";
-import validateSchemaRouter from "./validateSchema.ts";
 import checkGitHubAppInstallationRouter from "./checkGitHubAppInstallation.ts";
 import checkGitHubExportOptionsRouter from "./checkGitHubExportOptions.ts";
 import createGitHubFileRouter from "./createGitHubFile.ts";
@@ -20,7 +19,9 @@ import helloRouter from "./hello.ts";
 import introspectRouter from "./introspect.ts";
 import saveLocalFileRouter from "./saveLocalFile.ts";
 import scaffoldRouter from "./scaffold.ts";
+import terraformRouter from "./terraform.ts";
 import userMetadataRouter from "./userMetadata.ts";
+import validateSchemaRouter from "./validateSchema.ts";
 
 const router = new Hono();
 
@@ -41,6 +42,7 @@ router.route(
 	createGitHubFolderStructureRouter,
 );
 router.route("/github-token", githubTokenRouter);
+router.route("/terraform", terraformRouter);
 router.route("/user-metadata", userMetadataRouter);
 router.route("/save-local-file", saveLocalFileRouter);
 router.route("/delete-local-file", deleteLocalFileRouter);
