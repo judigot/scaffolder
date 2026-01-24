@@ -6,6 +6,11 @@ import Markdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import type { TabType } from '@/components/AI/TabBar.tsx';
+import {
+  EmptyState,
+  FeatureCard,
+  InfoBanner,
+} from '@/components/AI/chat/index.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import FileViewer from '@/components/FileViewer.tsx';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
@@ -15,6 +20,7 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
+import { getRandomIntro } from '@/utils/randomIntro.ts';
 import { validateSchemaInfoFromResponse } from '@/utils/schemaInfoValidator.ts';
 
 interface IChatMessageProps {
@@ -88,194 +94,113 @@ interface IChatMessagesProps {
 
 function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [randomIntro] = useState(() => getRandomIntro());
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll when there are messages
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   return (
     <div
-      className={`flex-1 overflow-x-hidden ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
-      style={{
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#374151 transparent',
-      }}
+      className={`flex-1 overflow-x-hidden scrollbar-thin ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
     >
-      <div className="max-w-5xl mx-auto px-6 py-6 space-y-6 h-full">
+      <div className="max-w-5xl mx-auto px-3 pt-6 pb-3 md:px-6 md:pt-8 md:pb-6 space-y-4 md:space-y-6 h-full">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="max-w-2xl w-full space-y-8">
-              <div className="text-center space-y-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 mb-4">
+          <EmptyState title="I am Judas" description={randomIntro}>
+            <div className="grid grid-cols-2 gap-4 md:gap-5">
+              <FeatureCard
+                title="E-commerce Platform"
+                description="Build an online store with products, cart, and checkout"
+                variant="primary"
+                icon={
                   <svg
-                    className="w-8 h-8 text-fg"
+                    className="w-5 h-5 text-primary-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <title>Judas - Application Architect</title>
+                    <title>E-commerce</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                     />
                   </svg>
-                </div>
-                <h2 className="text-3xl font-bold text-fg">
-                  Build Your Application with Judas
-                </h2>
-                <p className="text-base text-fg-muted leading-relaxed">
-                  Professional schema generation with industry best practices
-                  applied by default. Describe your requirements.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-primary-500/50 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-500/20 transition-colors">
-                      <svg
-                        className="w-5 h-5 text-primary-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <title>E-commerce</title>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-fg mb-1">
-                        E-commerce Platform
-                      </h3>
-                      <p className="text-xs text-fg-muted">
-                        Build an online store with products, cart, and checkout
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-info-500/50 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-info-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-info-500/20 transition-colors">
-                      <svg
-                        className="w-5 h-5 text-info-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Social Network</title>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-fg mb-1">
-                        Social Network
-                      </h3>
-                      <p className="text-xs text-fg-muted">
-                        Create a platform with posts, comments, and user
-                        profiles
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-success-500/50 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-success-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-success-500/20 transition-colors">
-                      <svg
-                        className="w-5 h-5 text-success-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Task Manager</title>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-fg mb-1">
-                        Task Management
-                      </h3>
-                      <p className="text-xs text-fg-muted">
-                        Manage projects, tasks, and team collaboration
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-warning-500/50 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-warning-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-warning-500/20 transition-colors">
-                      <svg
-                        className="w-5 h-5 text-warning-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Content Platform</title>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-fg mb-1">
-                        Content Platform
-                      </h3>
-                      <p className="text-xs text-fg-muted">
-                        Build a blog, news site, or content management system
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-primary-500/10 to-primary-700/10 border border-primary-500/20 rounded-xl p-4">
-                <div className="flex items-start gap-3">
+                }
+              />
+              <FeatureCard
+                title="Social Network"
+                description="Create a platform with posts, comments, and user profiles"
+                variant="info"
+                icon={
                   <svg
-                    className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5"
+                    className="w-5 h-5 text-info-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <title>Info</title>
+                    <title>Social Network</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                     />
                   </svg>
-                  <div className="text-xs text-fg-muted leading-relaxed">
-                    <strong className="text-fg">Pro Tip:</strong> Be specific
-                    about your requirements. Mention key features, user roles,
-                    and any special functionality you need. The more detail you
-                    provide, the better I can design your database schema.
-                  </div>
-                </div>
-              </div>
+                }
+              />
+              <FeatureCard
+                title="Task Management"
+                description="Manage projects, tasks, and team collaboration"
+                variant="success"
+                icon={
+                  <svg
+                    className="w-5 h-5 text-success-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Task Manager</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                }
+              />
+              <FeatureCard
+                title="Content Platform"
+                description="Build a blog, news site, or content management system"
+                variant="warning"
+                icon={
+                  <svg
+                    className="w-5 h-5 text-warning-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Content Platform</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+                    />
+                  </svg>
+                }
+              />
             </div>
-          </div>
+
+            <InfoBanner title="Pro tip:">
+              List roles, key features, and any special rules.
+            </InfoBanner>
+          </EmptyState>
         )}
         {messages.map((message, index) => {
           // Don't show the last assistant message while it's still loading/streaming
@@ -337,7 +262,7 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
   };
 
   return (
-    <div className="border-t border-border bg-bg p-4">
+    <div className="border-t border-border bg-bg p-3 md:p-4">
       <form onSubmit={onSubmit} className="max-w-5xl mx-auto">
         {/* ChatGPT-style composer - single row layout */}
         <div className="flex items-end gap-2 bg-secondary border border-border rounded-full px-3 py-2">

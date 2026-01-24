@@ -2473,25 +2473,11 @@ function FileViewer({
               onClick={() => {
                 setIsTreeOpen(!isTreeOpen);
               }}
-              className="flex items-center justify-between bg-panel px-3 py-2"
+              className="flex items-center justify-center gap-2 bg-panel px-3 py-2"
             >
-              <div className="flex items-center gap-2 text-content">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <title>Files</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                  />
-                </svg>
-                <span className="text-sm font-medium">Files</span>
-              </div>
+              <span className="text-sm font-medium text-content">
+                {isTreeOpen ? 'Hide Files' : 'View Files'}
+              </span>
               <svg
                 className={`w-4 h-4 text-content-muted transition-transform ${isTreeOpen ? 'rotate-180' : ''}`}
                 fill="none"
@@ -2515,60 +2501,88 @@ function FileViewer({
               {/* Action buttons toolbar */}
               {mode === 'edit' && (
                 <div className="p-3 border-b border-layout-border space-y-3 shrink-0">
-                  {/* Primary actions row */}
-                  <div className="flex gap-2">
-                    {process.env.NODE_ENV === 'development' && (
-                      <button
-                        type="button"
-                        onClick={() => void handleCreateApp()}
-                        className="btn-primary flex-1"
-                      >
-                        Create App
-                      </button>
-                    )}
+                  {/* Dev: Create App button */}
+                  {process.env.NODE_ENV === 'development' && (
                     <button
                       type="button"
-                      onClick={handleOpenExportModal}
-                      disabled={
-                        isCreatingRepository ||
-                        isWaitingForInstallation ||
-                        folderStructure.length === 0 ||
-                        safeFilesUsingUserEnv.length > 0
-                      }
-                      className={`btn-primary flex-1 ${
-                        isCreatingRepository ||
-                        isWaitingForInstallation ||
-                        folderStructure.length === 0 ||
-                        safeFilesUsingUserEnv.length > 0
-                          ? 'opacity-50'
-                          : ''
-                      }`}
-                      title={getButtonTooltip()}
+                      onClick={() => void handleCreateApp()}
+                      className="btn-primary w-full"
                     >
-                      {isWaitingForInstallation
-                        ? 'Installing...'
-                        : isCreatingRepository
-                          ? 'Exporting...'
-                          : `Export (${String(countFiles(folderStructure))})`}
+                      Create App
                     </button>
-                  </div>
+                  )}
 
-                  {/* Secondary actions row */}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        zipAndDownloadIStructure(
-                          folderStructure,
-                          getZipFileName(),
-                        );
-                      }}
-                      className="flex-1 text-xs px-3 py-2 bg-secondary text-fg hover:bg-secondary-hover transition-colors flex items-center justify-center gap-1.5"
-                      title="Download ZIP"
-                    >
-                      <DownloadIcon sx={{ fontSize: 16 }} />
-                      <span>Download</span>
-                    </button>
+                  {/* Row 1: Export button */}
+                  <button
+                    type="button"
+                    onClick={handleOpenExportModal}
+                    disabled={
+                      isCreatingRepository ||
+                      isWaitingForInstallation ||
+                      folderStructure.length === 0 ||
+                      safeFilesUsingUserEnv.length > 0
+                    }
+                    className={`btn-primary w-full ${
+                      isCreatingRepository ||
+                      isWaitingForInstallation ||
+                      folderStructure.length === 0 ||
+                      safeFilesUsingUserEnv.length > 0
+                        ? 'opacity-50'
+                        : ''
+                    }`}
+                    title={getButtonTooltip()}
+                  >
+                    {isWaitingForInstallation
+                      ? 'Installing...'
+                      : isCreatingRepository
+                        ? 'Exporting...'
+                        : process.env.NODE_ENV === 'development'
+                          ? `Export (${String(countFiles(folderStructure))})`
+                          : 'Export'}
+                  </button>
+
+                  {/* Row 2: Download button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      zipAndDownloadIStructure(
+                        folderStructure,
+                        getZipFileName(),
+                      );
+                    }}
+                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                    title="Download ZIP"
+                  >
+                    <DownloadIcon sx={{ fontSize: 16 }} />
+                    <span>Download</span>
+                  </button>
+
+                  {/* Row 3: Project selector + New File/Folder buttons */}
+                  <div className="flex items-center gap-2">
+                    {projects.length > 0 &&
+                      selectedProjectProp &&
+                      onProjectChange && (
+                        <>
+                          <span className="text-xs text-content-muted shrink-0">
+                            Project:
+                          </span>
+                          <select
+                            value={selectedProjectProp.name}
+                            onChange={onProjectChange}
+                            className="flex-1 text-xs bg-secondary text-content border border-layout-border px-2 py-2 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
+                          >
+                            {projects.map((project) => (
+                              <option
+                                key={project.name}
+                                value={project.name}
+                                className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
+                              >
+                                {project.name.replace('App Generator - ', '')}
+                              </option>
+                            ))}
+                          </select>
+                        </>
+                      )}
                     <button
                       type="button"
                       onClick={() => {
@@ -2576,7 +2590,7 @@ function FileViewer({
                           await handleOpenDialog('newFile');
                         })();
                       }}
-                      className="p-2 bg-secondary text-fg hover:bg-secondary-hover transition-colors"
+                      className="btn-secondary btn-icon p-2"
                       title="New File"
                       aria-label="New File"
                     >
@@ -2589,7 +2603,7 @@ function FileViewer({
                           await handleOpenDialog('newFolder');
                         })();
                       }}
-                      className="p-2 bg-secondary text-fg hover:bg-secondary-hover transition-colors"
+                      className="btn-secondary btn-icon p-2"
                       title="New Folder"
                       aria-label="New Folder"
                     >
@@ -2597,7 +2611,7 @@ function FileViewer({
                     </button>
                   </div>
 
-                  {/* Dev copy buttons row */}
+                  {/* Dev: Copy buttons */}
                   {process.env.NODE_ENV === 'development' && (
                     <div className="flex gap-2">
                       <button
@@ -2605,7 +2619,7 @@ function FileViewer({
                         onClick={() => {
                           handleCopy(JSON.stringify(userFiles, null, 4));
                         }}
-                        className="flex-1 text-xs px-3 py-2 bg-bg-muted text-content hover:bg-secondary-hover transition-colors"
+                        className="btn-secondary flex-1"
                       >
                         Copy User Files
                       </button>
@@ -2614,38 +2628,12 @@ function FileViewer({
                         onClick={() => {
                           handleCopy(JSON.stringify(folderStructure, null, 4));
                         }}
-                        className="flex-1 text-xs px-3 py-2 bg-bg-muted text-content hover:bg-secondary-hover transition-colors"
+                        className="btn-secondary flex-1"
                       >
                         Copy Structure
                       </button>
                     </div>
                   )}
-
-                  {/* Project selector row */}
-                  {projects.length > 0 &&
-                    selectedProjectProp &&
-                    onProjectChange && (
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-content-muted shrink-0">
-                          Project:
-                        </span>
-                        <select
-                          value={selectedProjectProp.name}
-                          onChange={onProjectChange}
-                          className="flex-1 text-xs bg-bg-muted text-content border border-layout-border px-2 py-2 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
-                        >
-                          {projects.map((project) => (
-                            <option
-                              key={project.name}
-                              value={project.name}
-                              className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
-                            >
-                              {project.name.replace('App Generator - ', '')}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
 
                   {/* Warning banners */}
                   {safeFilesUsingUserEnv.length > 0 && (
@@ -2913,7 +2901,7 @@ function FileViewer({
         )}
 
         {/* Editor panel - takes remaining space */}
-        <div className="flex-1 flex flex-col min-h-0 bg-surface overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 bg-surface overflow-hidden md:border-t-0 border-t border-layout-border">
           {/* Tab bar for open files */}
           {openFiles.length > 0 && (
             <div className="flex items-center bg-panel border-b border-layout-border overflow-x-auto">
@@ -3160,7 +3148,9 @@ function FileViewer({
                   ? 'Installing...'
                   : isCreatingRepository
                     ? 'Exporting...'
-                    : `Export (${String(countFiles(folderStructure))})`}
+                    : process.env.NODE_ENV === 'development'
+                      ? `Export (${String(countFiles(folderStructure))})`
+                      : 'Export'}
               </button>
 
               {/* Download ZIP */}
