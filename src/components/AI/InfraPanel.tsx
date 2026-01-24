@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import { useUserProfileStore } from "@/useUserProfileStore.ts";
@@ -232,18 +234,10 @@ export default function InfraPanel() {
 		};
 	}, [runId, accessToken, fetchStatus, infraReady, infraCredentials.tfcToken, infraCredentials.tfcOrg, infraCredentials.tfcWorkspace]);
 
-	const handleToggle = async () => {
-		if (accessToken === null || accessToken === "") {
-			return;
-		}
-		if (!infraReady) {
-			setError("Add and unlock your infrastructure credentials first.");
-			return;
-		}
-		setIsLoading(true);
-		setError(null);
-		const nextValue = !enableEc2;
-		try {
+	const previousValueRef = useRef<boolean>(false);
+
+	const toggleMutation = useMutation({
+		mutationFn: async (nextValue: boolean) => {
 			const response = await fetch(`${getApiUrl()}/terraform/run`, {
 				method: "POST",
 				headers: {
@@ -272,20 +266,38 @@ export default function InfraPanel() {
 						: "Failed to trigger Terraform run";
 				throw new Error(serverMessage);
 			}
-			const result = (await response.json()) as ITerraformRunResponse & {
-				success?: boolean;
-			};
+			return (await response.json()) as ITerraformRunResponse;
+		},
+		onMutate: (nextValue: boolean) => {
+			previousValueRef.current = enableEc2;
 			setEnableEc2(nextValue);
-			setRunId(result.run.id);
-			setRunStatus(result.run.status);
-		} catch (toggleError: unknown) {
+			setError(null);
+			setIsLoading(true);
+		},
+		onSuccess: (data) => {
+			setRunId(data.run.id);
+			setRunStatus(data.run.status);
+		},
+		onError: (err: unknown) => {
+			setEnableEc2(previousValueRef.current);
 			setIsLoading(false);
-			if (toggleError instanceof Error) {
-				setError(toggleError.message);
+			if (err instanceof Error) {
+				setError(err.message);
 			} else {
 				setError("Failed to trigger Terraform run");
 			}
+		},
+	});
+
+	const handleToggle = () => {
+		if (accessToken === null || accessToken === "") {
+			return;
 		}
+		if (!infraReady) {
+			setError("Add and unlock your infrastructure credentials first.");
+			return;
+		}
+		toggleMutation.mutate(!enableEc2);
 	};
 
 	const publicIp = outputs.dev_ip;
@@ -323,27 +335,12 @@ export default function InfraPanel() {
 									{enableEc2 ? "Provisioned" : "Stopped"}
 								</p>
 							</div>
-							<button
-								type="button"
-								role="switch"
-								aria-checked={enableEc2}
-								aria-label="Toggle EC2 instance"
-								onClick={handleToggle}
+							<ToggleSwitch
+								checked={enableEc2}
+								onChange={handleToggle}
 								disabled={isLoading || !infraReady}
-								className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-									enableEc2 ? "bg-success-500" : "bg-secondary-hover"
-								} ${
-									isLoading || !infraReady
-										? "opacity-50 cursor-not-allowed"
-										: ""
-								}`}
-							>
-								<span
-									className={`inline-block h-5 w-5 transform rounded-full bg-bg transition-transform ${
-										enableEc2 ? "translate-x-6" : "translate-x-1"
-									}`}
-								/>
-							</button>
+								label="Toggle EC2 instance"
+							/>
 						</div>
 
 						{!infraReady && !tfcReady && (
