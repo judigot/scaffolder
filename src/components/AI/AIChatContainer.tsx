@@ -101,10 +101,10 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
         scrollbarColor: '#374151 transparent',
       }}
     >
-      <div className="max-w-5xl mx-auto px-6 py-6 space-y-6 h-full">
+      <div className="max-w-5xl mx-auto px-3 py-3 md:px-6 md:py-6 space-y-4 md:space-y-6 h-full">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full">
-            <div className="max-w-2xl w-full space-y-8">
+            <div className="max-w-2xl w-full space-y-4 md:space-y-8">
               <div className="text-center space-y-4">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 mb-4">
                   <svg
@@ -122,18 +122,18 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                     />
                   </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-fg">
+                <h2 className="text-2xl md:text-3xl font-bold text-fg">
                   Build Your Application with Judas
                 </h2>
-                <p className="text-base text-fg-muted leading-relaxed">
+                <p className="text-sm md:text-base text-fg-muted leading-snug md:leading-relaxed">
                   Describe your app idea and I'll make it happen like magic.
                   Just tell me what you're dreaming of and I'll bring it to
                   life!
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-primary-500/50 transition-all duration-200 cursor-pointer group">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-4 md:p-5 hover:border-primary-500/50 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-500/20 transition-colors">
                       <svg
@@ -162,7 +162,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                   </div>
                 </div>
 
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-info-500/50 transition-all duration-200 cursor-pointer group">
+                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-4 md:p-5 hover:border-info-500/50 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-info-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-info-500/20 transition-colors">
                       <svg
@@ -192,7 +192,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                   </div>
                 </div>
 
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-success-500/50 transition-all duration-200 cursor-pointer group">
+                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-4 md:p-5 hover:border-success-500/50 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-success-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-success-500/20 transition-colors">
                       <svg
@@ -221,7 +221,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                   </div>
                 </div>
 
-                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-warning-500/50 transition-all duration-200 cursor-pointer group">
+                <div className="bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-4 md:p-5 hover:border-warning-500/50 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-warning-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-warning-500/20 transition-colors">
                       <svg
@@ -251,7 +251,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-primary-500/10 to-primary-700/10 border border-primary-500/20 rounded-xl p-4">
+              <div className="bg-gradient-to-r from-primary-500/10 to-primary-700/10 border border-primary-500/20 rounded-xl p-3 md:p-4">
                 <div className="flex items-start gap-3">
                   <svg
                     className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5"
@@ -267,7 +267,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
                       d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <div className="text-xs text-fg-muted leading-relaxed">
+                  <div className="text-xs text-fg-muted leading-snug md:leading-relaxed">
                     <strong className="text-fg">Pro Tip:</strong> Be specific
                     about your requirements. Mention key features, user roles,
                     and any special functionality you need. The more detail you
@@ -338,7 +338,7 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
   };
 
   return (
-    <div className="border-t border-border bg-bg p-4">
+    <div className="border-t border-border bg-bg p-3 md:p-4">
       <form onSubmit={onSubmit} className="max-w-5xl mx-auto">
         {/* ChatGPT-style composer - single row layout */}
         <div className="flex items-end gap-2 bg-secondary border border-border rounded-full px-3 py-2">
