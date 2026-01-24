@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 export interface IEmptyStateProps {
   icon?: ReactNode;
   title: string;
-  description: string;
+  description?: string;
   children?: ReactNode;
 }
 
@@ -38,9 +38,11 @@ export function EmptyState({
         <div className="text-center space-y-4">
           {icon ?? defaultIcon}
           <h2 className="text-2xl md:text-3xl font-bold text-fg">{title}</h2>
-          <p className="text-sm md:text-base text-fg-muted leading-snug md:leading-relaxed">
-            {description}
-          </p>
+          {description && (
+            <p className="text-sm md:text-base text-fg-muted leading-snug md:leading-relaxed">
+              {description}
+            </p>
+          )}
         </div>
         {children}
       </div>
