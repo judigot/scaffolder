@@ -37,6 +37,7 @@ interface IEnvEntry {
 
 interface IInfraCredentials {
 	sshPublicKey: string;
+	sshPrivateKey: string;
 	awsAccessKeyId: string;
 	awsSecretAccessKey: string;
 	awsSessionToken: string;
@@ -54,6 +55,7 @@ const createEmptyEnvEntry = (): IEnvEntry => ({
 
 const createEmptyInfraCredentials = (): IInfraCredentials => ({
 	sshPublicKey: "",
+	sshPrivateKey: "",
 	awsAccessKeyId: "",
 	awsSecretAccessKey: "",
 	awsSessionToken: "",
@@ -89,6 +91,10 @@ const extractInfraCredentialsFromMetadata = (
 			sshPublicKey:
 				typeof infraRecord.sshPublicKey === "string"
 					? infraRecord.sshPublicKey
+					: "",
+			sshPrivateKey:
+				typeof infraRecord.sshPrivateKey === "string"
+					? infraRecord.sshPrivateKey
 					: "",
 			awsAccessKeyId:
 				typeof infraRecord.awsAccessKeyId === "string"
@@ -189,6 +195,7 @@ const areInfraCredentialsEqual = (
 ): boolean => {
 	return (
 		first.sshPublicKey.trim() === second.sshPublicKey.trim() &&
+		first.sshPrivateKey.trim() === second.sshPrivateKey.trim() &&
 		first.awsAccessKeyId.trim() === second.awsAccessKeyId.trim() &&
 		first.awsSecretAccessKey.trim() === second.awsSecretAccessKey.trim() &&
 		first.awsSessionToken.trim() === second.awsSessionToken.trim() &&
@@ -414,6 +421,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 			const infraRecord = metadata.infra;
 			const fields: (keyof IInfraCredentials)[] = [
 				"sshPublicKey",
+				"sshPrivateKey",
 				"awsAccessKeyId",
 				"awsSecretAccessKey",
 				"awsSessionToken",
@@ -831,6 +839,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 		try {
 			const sanitized: IInfraCredentials = {
 				sshPublicKey: infraCredentials.sshPublicKey.trim(),
+				sshPrivateKey: infraCredentials.sshPrivateKey.trim(),
 				awsAccessKeyId: infraCredentials.awsAccessKeyId.trim(),
 				awsSecretAccessKey: infraCredentials.awsSecretAccessKey.trim(),
 				awsSessionToken: infraCredentials.awsSessionToken.trim(),
@@ -861,6 +870,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				sshPublicKey: JSON.stringify(
 					await encryptSecret(sanitized.sshPublicKey, user.sub, passphrase),
 				),
+				sshPrivateKey:
+					sanitized.sshPrivateKey === ""
+						? ""
+						: JSON.stringify(
+								await encryptSecret(
+									sanitized.sshPrivateKey,
+									user.sub,
+									passphrase,
+								),
+							),
 				awsAccessKeyId: JSON.stringify(
 					await encryptSecret(sanitized.awsAccessKeyId, user.sub, passphrase),
 				),
@@ -2382,6 +2401,31 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 															}}
 															placeholder="ssh-ed25519 AAAA..."
 															rows={3}
+															className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all font-mono"
+														/>
+													</div>
+
+													<div>
+														<label
+															htmlFor="infra-ssh-private-key"
+															className="block text-sm font-medium text-fg-muted mb-2"
+														>
+															SSH Private Key
+															<span className="ml-2 text-xs text-fg-subtle font-normal">
+																(for remote agent)
+															</span>
+														</label>
+														<textarea
+															id="infra-ssh-private-key"
+															value={infraCredentials.sshPrivateKey}
+															onChange={(e) => {
+																updateInfraField(
+																	"sshPrivateKey",
+																	e.target.value,
+																);
+															}}
+															placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;..."
+															rows={4}
 															className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all font-mono"
 														/>
 													</div>
