@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { validateAwsCredentials } from "@/app/services/awsCredentialValidator.ts";
 import {
 	type ITerraformConfig,
 	createTerraformConfigFromCredentials,
@@ -168,6 +169,29 @@ router.post("/run", async (c) => {
 
 	try {
 		validateTerraformConfig(config);
+
+		const awsValidation = await validateAwsCredentials({
+			accessKeyId: body.awsAccessKeyId,
+			secretAccessKey: body.awsSecretAccessKey,
+			sessionToken:
+				typeof body.awsSessionToken === "string" &&
+				body.awsSessionToken.trim() !== ""
+					? body.awsSessionToken
+					: undefined,
+		});
+
+		if (!awsValidation.valid) {
+			return c.json(
+				{
+					error: "Invalid AWS credentials",
+					message:
+						awsValidation.error ??
+						"AWS credentials are invalid. Update them in your profile.",
+				},
+				422,
+			);
+		}
+
 		await getTerraformWorkspaceId(config);
 
 		const variables = [

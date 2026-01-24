@@ -262,7 +262,15 @@ export default function InfraPanel() {
 				}),
 			});
 			if (!response.ok) {
-				throw new Error("Failed to trigger Terraform run");
+				const errorBody: unknown = await response.json().catch(() => null);
+				const serverMessage =
+					errorBody !== null &&
+					typeof errorBody === "object" &&
+					"message" in errorBody &&
+					typeof (errorBody as Record<string, unknown>).message === "string"
+						? (errorBody as Record<string, string>).message
+						: "Failed to trigger Terraform run";
+				throw new Error(serverMessage);
 			}
 			const result = (await response.json()) as ITerraformRunResponse & {
 				success?: boolean;
