@@ -221,17 +221,16 @@ router.post("/run", async (c) => {
 			},
 		];
 
-		if (
-			typeof body.awsSessionToken === "string" &&
-			body.awsSessionToken.trim() !== ""
-		) {
-			variables.push({
-				key: "AWS_SESSION_TOKEN",
-				value: body.awsSessionToken,
-				category: "env" as const,
-				sensitive: true,
-			});
-		}
+		variables.push({
+			key: "AWS_SESSION_TOKEN",
+			value:
+				typeof body.awsSessionToken === "string" &&
+				body.awsSessionToken.trim() !== ""
+					? body.awsSessionToken
+					: "",
+			category: "env" as const,
+			sensitive: true,
+		});
 
 		await upsertTerraformVariables(config, variables);
 		const run = await createTerraformRun(
