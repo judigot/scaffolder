@@ -8,6 +8,13 @@ import { useUserProfileStore } from "@/useUserProfileStore.ts";
 import { useUserStore } from "@/useUserStore.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
 import {
+	parseInfraFromEnv,
+	serializeInfraToEnv,
+	parseEnvString,
+	serializeEnvEntries,
+	INFRA_ENV_MAP,
+} from "@/utils/envParser.ts";
+import {
 	clearPassphraseSession,
 	getPassphraseFromSession,
 	storePassphraseInSession,
@@ -304,6 +311,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 	>(null);
 	const [showDeleteAllConfirm, setShowDeleteAllConfirm] =
 		useState<boolean>(false);
+	const [clipboardToast, setClipboardToast] = useState<string | null>(null);
+	const clipboardToastTimerRef = useRef<number | null>(null);
+
+	const showClipboardToast = useCallback((message: string) => {
+		setClipboardToast(message);
+		if (clipboardToastTimerRef.current !== null) {
+			window.clearTimeout(clipboardToastTimerRef.current);
+		}
+		clipboardToastTimerRef.current = window.setTimeout(() => {
+			setClipboardToast(null);
+			clipboardToastTimerRef.current = null;
+		}, 2500);
+	}, []);
 
 	useEffect(() => {
 		if (githubToken !== null && githubToken !== "") {
@@ -817,6 +837,111 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 		setInfraCredentials(originalInfraCredentials);
 		setInfraError(null);
 		setInfraSuccessMessage(null);
+	};
+
+	const handleInfraPaste = async () => {
+		try {
+			const text = await navigator.clipboard.readText();
+			if (!text.trim()) {
+				showClipboardToast("Clipboard is empty");
+				return;
+			}
+			const { fields, matchedCount, unmatchedKeys } =
+				parseInfraFromEnv(text);
+			if (matchedCount === 0) {
+				const expectedKeys = Object.keys(INFRA_ENV_MAP).join(", ");
+				showClipboardToast(
+					`No matching keys found. Expected: ${expectedKeys}`,
+				);
+				return;
+			}
+			setInfraCredentials((prev) => ({ ...prev, ...fields }));
+			setInfraError(null);
+			const unmatchedNote =
+				unmatchedKeys.length > 0
+					? ` (${String(unmatchedKeys.length)} skipped)`
+					: "";
+			showClipboardToast(
+				`Imported ${String(matchedCount)} credential${matchedCount > 1 ? "s" : ""}${unmatchedNote}`,
+			);
+		} catch {
+			showClipboardToast("Failed to read clipboard");
+		}
+	};
+
+	const handleInfraCopy = async () => {
+		const credentialRecord: Record<string, string> = {
+			sshPublicKey: infraCredentials.sshPublicKey,
+			sshPrivateKey: infraCredentials.sshPrivateKey,
+			awsAccessKeyId: infraCredentials.awsAccessKeyId,
+			awsSecretAccessKey: infraCredentials.awsSecretAccessKey,
+			awsSessionToken: infraCredentials.awsSessionToken,
+			tfcToken: infraCredentials.tfcToken,
+			tfcOrg: infraCredentials.tfcOrg,
+			tfcWorkspace: infraCredentials.tfcWorkspace,
+		};
+		const envString = serializeInfraToEnv(credentialRecord);
+		if (!envString.trim()) {
+			showClipboardToast("No credentials to copy");
+			return;
+		}
+		try {
+			await navigator.clipboard.writeText(envString);
+			showClipboardToast("Copied to clipboard");
+		} catch {
+			showClipboardToast("Failed to copy");
+		}
+	};
+
+	const handleEnvPaste = async () => {
+		try {
+			const text = await navigator.clipboard.readText();
+			if (!text.trim()) {
+				showClipboardToast("Clipboard is empty");
+				return;
+			}
+			const parsed = parseEnvString(text);
+			if (parsed.length === 0) {
+				showClipboardToast("No valid KEY=VALUE pairs found");
+				return;
+			}
+			const newEntries = parsed.map((entry) => ({
+				id: generateEntryId(),
+				key: entry.key,
+				value: entry.value,
+				isSaved: false,
+			}));
+			setEnvEntries((prev) => {
+				const existing = prev.filter(
+					(e) => e.key.trim() !== "" || e.value.trim() !== "",
+				);
+				return [...existing, ...newEntries];
+			});
+			showClipboardToast(
+				`Imported ${String(parsed.length)} variable${parsed.length > 1 ? "s" : ""}`,
+			);
+		} catch {
+			showClipboardToast("Failed to read clipboard");
+		}
+	};
+
+	const handleEnvCopy = async () => {
+		const entries = envEntries
+			.filter((e) => e.key.trim() !== "")
+			.map((e) => ({ key: e.key.trim(), value: e.value }));
+		if (entries.length === 0) {
+			showClipboardToast("No variables to copy");
+			return;
+		}
+		const envString = serializeEnvEntries(entries);
+		try {
+			await navigator.clipboard.writeText(envString);
+			showClipboardToast(
+				`Copied ${String(entries.length)} variable${entries.length > 1 ? "s" : ""}`,
+			);
+		} catch {
+			showClipboardToast("Failed to copy");
+		}
 	};
 
 	const saveInfraCredentials = async () => {
@@ -2363,6 +2488,41 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 															<span>{infraSuccessMessage}</span>
 														</div>
 													)}
+												<div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+													<p className="text-xs text-fg-subtle">
+														Paste a <code className="px-1 py-0.5 bg-secondary rounded text-[11px] font-mono">.env</code> file to auto-fill credentials
+													</p>
+													<div className="flex gap-1.5">
+														<button
+															type="button"
+															onClick={() => {
+																void handleInfraPaste();
+															}}
+															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
+															aria-label="Paste .env credentials from clipboard"
+														>
+															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<title>Paste</title>
+																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+															</svg>
+															Paste
+														</button>
+														<button
+															type="button"
+															onClick={() => {
+																void handleInfraCopy();
+															}}
+															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
+															aria-label="Copy credentials as .env format"
+														>
+															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<title>Copy</title>
+																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+															</svg>
+															Copy
+														</button>
+													</div>
+												</div>
 												<div className="space-y-4">
 													<div>
 														<div className="flex items-center justify-between mb-2">
@@ -2740,6 +2900,41 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 										)}
 										{passphraseUnlocked && (
 											<>
+												<div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+													<p className="text-xs text-fg-subtle">
+														Paste a <code className="px-1 py-0.5 bg-secondary rounded text-[11px] font-mono">.env</code> file to bulk-import variables
+													</p>
+													<div className="flex gap-1.5">
+														<button
+															type="button"
+															onClick={() => {
+																void handleEnvPaste();
+															}}
+															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
+															aria-label="Paste .env variables from clipboard"
+														>
+															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<title>Paste</title>
+																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+															</svg>
+															Paste
+														</button>
+														<button
+															type="button"
+															onClick={() => {
+																void handleEnvCopy();
+															}}
+															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
+															aria-label="Copy variables as .env format"
+														>
+															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<title>Copy</title>
+																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+															</svg>
+															Copy
+														</button>
+													</div>
+												</div>
 												<div className="space-y-4">
 													<div className="border border-border rounded-md p-4">
 														<div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-border mb-3">
@@ -3085,6 +3280,17 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 					</>
 				)}
 			</div>
+			{clipboardToast !== null && (
+				<div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none animate-in fade-in slide-in-from-bottom-2">
+					<div className="px-4 py-2.5 bg-neutral-900 border border-neutral-700 text-fg text-sm font-medium rounded-lg shadow-xl pointer-events-auto flex items-center gap-2">
+						<svg className="w-4 h-4 text-success-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<title>Info</title>
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						{clipboardToast}
+					</div>
+				</div>
+			)}
 		</>
 	);
 }
