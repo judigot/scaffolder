@@ -97,14 +97,17 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
   const [randomIntro] = useState(() => getRandomIntro());
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll when there are messages
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   return (
     <div
       className={`flex-1 overflow-x-hidden scrollbar-thin ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
     >
-      <div className="max-w-5xl mx-auto px-3 py-3 md:px-6 md:py-6 space-y-4 md:space-y-6 h-full">
+      <div className="max-w-5xl mx-auto px-3 pt-6 pb-3 md:px-6 md:pt-8 md:pb-6 space-y-4 md:space-y-6 h-full">
         {messages.length === 0 && (
           <EmptyState title="I am Judas" description={randomIntro}>
             <div className="grid grid-cols-2 gap-4 md:gap-5">
@@ -194,10 +197,8 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
               />
             </div>
 
-            <InfoBanner title="Pro Tip:">
-              Be specific about your requirements. Mention key features, user
-              roles, and any special functionality you need. The more detail you
-              provide, the better I can design your database schema.
+            <InfoBanner title="Pro tip:">
+              List roles, key features, and any special rules.
             </InfoBanner>
           </EmptyState>
         )}

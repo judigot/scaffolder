@@ -14,9 +14,9 @@ export function EmptyState({
   children,
 }: IEmptyStateProps) {
   const defaultIcon = (
-    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 mb-6">
+    <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 mb-4 md:mb-6">
       <svg
-        className="w-10 h-10 text-fg"
+        className="w-8 h-8 md:w-10 md:h-10 text-fg"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -34,15 +34,15 @@ export function EmptyState({
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
-      <div className="max-w-2xl w-full space-y-8 md:space-y-10 pb-8 pt-6">
-        <div className="text-center space-y-6">
+      <div className="max-w-2xl w-full space-y-5 md:space-y-8 pb-6 md:pb-8">
+        <div className="text-center space-y-4 md:space-y-5">
           {icon ?? defaultIcon}
-          <div className="space-y-3">
-            <h2 className="text-2xl md:text-3xl font-bold text-fg tracking-tight">
+          <div className="space-y-2 md:space-y-3">
+            <h2 className="text-xl md:text-3xl font-bold text-fg tracking-tight">
               {title}
             </h2>
             {description && (
-              <p className="text-sm md:text-base text-fg-muted/80 leading-relaxed font-light">
+              <p className="text-xs md:text-base text-fg-muted/80 leading-relaxed font-light">
                 {description}
               </p>
             )}

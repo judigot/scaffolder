@@ -2562,21 +2562,26 @@ function FileViewer({
                     {projects.length > 0 &&
                       selectedProjectProp &&
                       onProjectChange && (
-                        <select
-                          value={selectedProjectProp.name}
-                          onChange={onProjectChange}
-                          className="flex-1 text-xs bg-secondary text-content border border-layout-border px-2 py-2 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
-                        >
-                          {projects.map((project) => (
-                            <option
-                              key={project.name}
-                              value={project.name}
-                              className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
-                            >
-                              {project.name.replace('App Generator - ', '')}
-                            </option>
-                          ))}
-                        </select>
+                        <>
+                          <span className="text-xs text-content-muted shrink-0">
+                            Project:
+                          </span>
+                          <select
+                            value={selectedProjectProp.name}
+                            onChange={onProjectChange}
+                            className="flex-1 text-xs bg-secondary text-content border border-layout-border px-2 py-2 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
+                          >
+                            {projects.map((project) => (
+                              <option
+                                key={project.name}
+                                value={project.name}
+                                className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
+                              >
+                                {project.name.replace('App Generator - ', '')}
+                              </option>
+                            ))}
+                          </select>
+                        </>
                       )}
                     <button
                       type="button"
