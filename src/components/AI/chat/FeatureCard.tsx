@@ -16,33 +16,35 @@ export function FeatureCard({
   onClick,
 }: IFeatureCardProps) {
   const variantStyles = {
-    primary: 'hover:border-primary-500/50',
-    info: 'hover:border-info-500/50',
-    success: 'hover:border-success-500/50',
-    warning: 'hover:border-warning-500/50',
+    primary: 'hover:border-primary-500/30',
+    info: 'hover:border-info-500/30',
+    success: 'hover:border-success-500/30',
+    warning: 'hover:border-warning-500/30',
   };
 
   const iconBgStyles = {
-    primary: 'bg-primary-500/10 group-hover:bg-primary-500/20',
-    info: 'bg-info-500/10 group-hover:bg-info-500/20',
-    success: 'bg-success-500/10 group-hover:bg-success-500/20',
-    warning: 'bg-warning-500/10 group-hover:bg-warning-500/20',
+    primary: 'bg-primary-500/10 group-hover:bg-primary-500/15',
+    info: 'bg-info-500/10 group-hover:bg-info-500/15',
+    success: 'bg-success-500/10 group-hover:bg-success-500/15',
+    warning: 'bg-warning-500/10 group-hover:bg-warning-500/15',
   };
 
   return (
     <div
-      className={`bg-bg-muted/50 backdrop-blur-sm border border-border rounded-xl p-4 md:p-5 ${variantStyles[variant]} transition-all duration-200 cursor-pointer group`}
+      className={`bg-bg-muted/30 backdrop-blur-sm border border-border/50 rounded-2xl p-5 md:p-6 ${variantStyles[variant]} transition-all duration-300 cursor-pointer group`}
       onClick={onClick}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-3 text-center md:text-left">
         <div
-          className={`w-10 h-10 rounded-lg ${iconBgStyles[variant]} flex items-center justify-center flex-shrink-0 transition-colors`}
+          className={`w-12 h-12 rounded-xl ${iconBgStyles[variant]} flex items-center justify-center flex-shrink-0 transition-colors`}
         >
           {icon}
         </div>
-        <div>
-          <h3 className="text-sm font-semibold text-fg mb-1">{title}</h3>
-          <p className="text-xs text-fg-muted">{description}</p>
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-fg mb-1.5">{title}</h3>
+          <p className="text-xs text-fg-muted/70 leading-relaxed">
+            {description}
+          </p>
         </div>
       </div>
     </div>

@@ -25,11 +25,14 @@ export function InfoBanner({ title, children, icon }: IInfoBannerProps) {
   );
 
   return (
-    <div className="bg-gradient-to-r from-primary-500/10 to-primary-700/10 border border-primary-500/20 rounded-xl p-3 md:p-4">
+    <div className="bg-gradient-to-r from-primary-500/5 to-primary-700/5 border border-primary-500/10 rounded-2xl p-4 md:p-5">
       <div className="flex items-start gap-3">
         {icon ?? defaultIcon}
-        <div className="text-xs text-fg-muted leading-snug md:leading-relaxed">
-          {title && <strong className="text-fg">{title}</strong>} {children}
+        <div className="text-xs text-fg-muted/60 leading-relaxed font-light">
+          {title && (
+            <span className="text-fg-muted font-normal">{title}</span>
+          )}{' '}
+          {children}
         </div>
       </div>
     </div>
