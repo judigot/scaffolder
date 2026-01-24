@@ -196,6 +196,19 @@
   animation-duration: 0ms !important;
 }
 
+/* File tree hover/active states using design tokens */
+.MuiTreeItem-content:hover {
+  background-color: var(--color-secondary-hover) !important;
+}
+
+.MuiTreeItem-content.Mui-selected {
+  background-color: var(--color-secondary) !important;
+}
+
+.MuiTreeItem-content.Mui-selected:hover {
+  background-color: var(--color-secondary-hover) !important;
+}
+
 /* Custom scrollbar styling using design tokens */
 .scrollbar-thin {
   scrollbar-width: thin;

@@ -967,8 +967,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     <>
       {showPassphraseModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="bg-bg-muted border border-border rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="text-xl font-bold text-fg mb-4">
               {isFirstTimeSetup
                 ? 'Set Encryption Passphrase'
                 : 'Enter Encryption Passphrase'}
@@ -1010,7 +1010,10 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="passphrase-input" className="block text-sm font-medium text-gray-300 mb-2">
+                <label
+                  htmlFor="passphrase-input"
+                  className="block text-sm font-medium text-fg-muted mb-2"
+                >
                   {isFirstTimeSetup ? 'Create Passphrase' : 'Enter Passphrase'}
                 </label>
                 <input
@@ -1028,13 +1031,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     }
                   }}
                   placeholder="Enter your encryption passphrase"
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
               {isFirstTimeSetup && (
                 <div>
-                  <label htmlFor="confirm-passphrase-input" className="block text-sm font-medium text-gray-300 mb-2">
+                  <label
+                    htmlFor="confirm-passphrase-input"
+                    className="block text-sm font-medium text-fg-muted mb-2"
+                  >
                     Confirm Passphrase
                   </label>
                   <input
@@ -1052,7 +1058,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       }
                     }}
                     placeholder="Confirm your passphrase"
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               )}
@@ -1068,7 +1074,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
               )}
 
               {isFirstTimeSetup && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-fg-subtle">
                   Minimum 12 characters with uppercase, lowercase, numbers, and
                   special characters
                 </p>
@@ -1087,12 +1093,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         passphraseInput !== confirmPassphraseInput ||
                         !validatePassphraseStrength(passphraseInput).isValid))
                   }
-                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isDecrypting ? (
                     <>
                       <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -1129,14 +1135,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     setPassphraseErrors([]);
                   }}
                   disabled={isDecrypting}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50"
                 >
                   Cancel
                 </button>
               </div>
 
               {!isFirstTimeSetup && hasEncryptedData && (
-                <div className="border-t border-gray-700 pt-4 mt-4">
+                <div className="border-t border-border pt-4 mt-4">
                   {!showDeleteAllConfirm ? (
                     <button
                       onClick={() => {
@@ -1158,7 +1164,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             void handleDeleteAllSecrets();
                           }}
                           disabled={isEnvSaving}
-                          className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
+                          className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-hover text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
                         >
                           {isEnvSaving ? (
                             <>
@@ -1195,7 +1201,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             setShowDeleteAllConfirm(false);
                           }}
                           disabled={isEnvSaving}
-                          className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
+                          className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -1221,19 +1227,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
           }}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-semibold">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-sm font-semibold">
             {user?.name?.charAt(0).toUpperCase() ??
               user?.email?.charAt(0).toUpperCase() ??
               'U'}
           </div>
-          <span className="text-gray-300 text-sm">
+          <span className="text-fg-muted text-sm">
             Hi,{' '}
-            <span className="font-medium text-white">
+            <span className="font-medium text-fg">
               {user?.name ?? user?.email ?? 'User'}
             </span>
           </span>
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform ${
+            className={`w-4 h-4 text-fg-subtle transition-transform ${
               isOpen ? 'rotate-180' : ''
             }`}
             fill="none"
@@ -1268,14 +1274,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
               role="button"
               tabIndex={-1}
             />
-            <div className="absolute right-0 top-12 w-auto min-w-[380px] max-w-2xl bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+            <div className="fixed inset-x-0 bottom-0 w-full max-h-[80vh] overflow-y-auto rounded-t-lg md:absolute md:inset-auto md:right-0 md:top-12 md:w-auto md:min-w-[var(--dropdown-width-md)] md:max-w-2xl md:max-h-none md:overflow-visible md:rounded-lg bg-bg-muted border border-border shadow-xl z-50">
               {activePanel === 'home' ? (
                 <div className="p-2">
-                  <div className="px-3 py-2 border-b border-gray-700">
-                    <p className="text-sm font-medium text-white">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-fg">
                       {user?.name ?? user?.email ?? 'User'}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-fg-subtle mt-1">
                       {user?.email ?? 'No email'}
                     </p>
                   </div>
@@ -1289,7 +1295,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             resetTokenState();
                             handleSetActivePanel('githubToken');
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2 mt-1 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
+                          className="w-full flex items-center gap-3 px-3 py-2 mt-1 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
                         >
                           <svg
                             className="w-5 h-5"
@@ -1314,7 +1320,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             resetEnvState();
                             handleSetActivePanel('env');
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
                         >
                           <svg
                             className="w-5 h-5"
@@ -1336,7 +1342,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     )}
                   <button
                     onClick={logout}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
                   >
                     <svg
                       className="w-5 h-5"
@@ -1360,13 +1366,13 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                 serverConfigStatus !== null &&
                 serverConfigStatus.auth0ManagementApiConfigured === true ? (
                 <>
-                  <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+                  <div className="p-4 border-b border-border flex items-center justify-between">
                     <button
                       onClick={() => {
                         handleSetActivePanel('home');
                         resetTokenState();
                       }}
-                      className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                      className="flex items-center gap-2 text-fg-subtle hover:text-fg transition-colors"
                     >
                       <svg
                         className="w-4 h-4"
@@ -1381,10 +1387,10 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           strokeWidth={2}
                           d="M15 19l-7-7 7-7"
                         />
-                        </svg>
+                      </svg>
                       Back
                     </button>
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-fg">
                       Manage GitHub Token
                     </h2>
                     <div className="w-16" />
@@ -1425,7 +1431,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       <div className="flex items-center justify-between mb-2">
                         <label
                           htmlFor="github-token-input"
-                          className="block text-sm font-medium text-gray-300"
+                          className="block text-sm font-medium text-fg-muted"
                         >
                           GitHub Personal Access Token
                         </label>
@@ -1458,14 +1464,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           }}
                           placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                           disabled={isSaving || isDeleting}
-                          className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         />
                         <button
                           type="button"
                           onClick={() => {
                             setShowToken(!showToken);
                           }}
-                          className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded-md transition-colors text-sm"
+                          className="px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg-muted rounded-md transition-colors text-sm"
                           disabled={githubToken === null || githubToken === ''}
                         >
                           {showToken ? (
@@ -1545,30 +1551,30 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           </span>
                         </div>
                       )}
-                      <div className="mt-2 text-xs text-gray-500 space-y-3">
+                      <div className="mt-2 text-xs text-fg-subtle space-y-3">
                         <p>
                           <a
                             href="https://github.com/settings/personal-access-tokens/new"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-indigo-400 hover:text-indigo-300 underline"
+                            className="text-primary-400 hover:text-primary-300 underline"
                           >
                             Create a fine-grained personal access token
                           </a>{' '}
                           with{' '}
-                          <span className="text-gray-400">Read and Write</span>{' '}
+                          <span className="text-fg-subtle">Read and Write</span>{' '}
                           permissions for{' '}
-                          <span className="text-gray-400">Administration</span>{' '}
-                          and <span className="text-gray-400">Contents</span>.
+                          <span className="text-fg-subtle">Administration</span>{' '}
+                          and <span className="text-fg-subtle">Contents</span>.
                         </p>
-                        <div className="mt-3 p-3 bg-gray-900/50 border border-gray-700 rounded-md">
-                          <p className="text-xs text-gray-400 mb-2">
+                        <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-md">
+                          <p className="text-xs text-fg-subtle mb-2">
                             Example token permissions:
                           </p>
                           <img
                             src={tokenPermissionsImage}
                             alt="GitHub token permissions example showing Administration, Contents, and Metadata sections"
-                            className="w-full rounded border border-gray-700"
+                            className="w-full rounded border border-border"
                           />
                         </div>
                       </div>
@@ -1578,12 +1584,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         <button
                           onClick={handleSave}
                           disabled={isSaving || inputValue.trim() === ''}
-                          className="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSaving ? (
                             <>
                               <svg
-                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -1612,7 +1618,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         <button
                           onClick={handleCancel}
                           disabled={isSaving || isLoading}
-                          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Cancel
                         </button>
@@ -1628,7 +1634,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             setShowDeleteConfirm(true);
                           }}
                           disabled={isDeleting || isLoading}
-                          className="w-full flex items-center justify-center px-4 py-2 bg-gray-600/10 hover:bg-gray-600/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center px-4 py-2 bg-secondary-hover/10 hover:bg-secondary-hover/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <svg
                             className="w-4 h-4 mr-2"
@@ -1658,7 +1664,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           <button
                             onClick={handleDelete}
                             disabled={isDeleting}
-                            className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center px-3 py-2 bg-secondary-hover hover:bg-secondary-hover text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isDeleting ? (
                               <>
@@ -1695,7 +1701,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                               setShowDeleteConfirm(false);
                             }}
                             disabled={isDeleting}
-                            className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Cancel
                           </button>
@@ -1709,13 +1715,13 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                 serverConfigStatus !== null &&
                 serverConfigStatus.auth0ManagementApiConfigured === true ? (
                 <>
-                  <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+                  <div className="p-4 border-b border-border flex items-center justify-between">
                     <button
                       onClick={() => {
                         handleSetActivePanel('home');
                         handleEnvCancel();
                       }}
-                      className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                      className="flex items-center gap-2 text-fg-subtle hover:text-fg transition-colors"
                     >
                       <svg
                         className="w-4 h-4"
@@ -1730,19 +1736,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           strokeWidth={2}
                           d="M15 19l-7-7 7-7"
                         />
-                        </svg>
+                      </svg>
                       Back
                     </button>
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-fg">
                       Environment Variables
                     </h2>
                     <div className="w-16" />
                   </div>
                   <div className="p-4 space-y-4">
-                    <div className="p-3 border-b border-gray-700">
-                      <p className="text-sm text-gray-400 text-justify leading-relaxed">
+                    <div className="p-3 border-b border-border">
+                      <p className="text-sm text-fg-subtle text-justify leading-relaxed">
                         These values are available via{' '}
-                        <span className="text-indigo-300 font-mono">
+                        <span className="text-primary-300 font-mono">
                           [[USE_USER_ENV(key)]]
                         </span>
                         . Paste one or more{' '}
@@ -1768,9 +1774,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     </div>
 
                     {hasEncryptedData && !passphraseUnlocked && (
-                      <div className="p-6 border border-gray-700 rounded-md text-center">
+                      <div className="p-6 border border-border rounded-md text-center">
                         <svg
-                          className="w-12 h-12 text-gray-500 mx-auto mb-4"
+                          className="w-12 h-12 text-fg-subtle mx-auto mb-4"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1783,10 +1789,10 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                           />
                         </svg>
-                        <h3 className="text-lg font-medium text-white mb-2">
+                        <h3 className="text-lg font-medium text-fg mb-2">
                           Secrets Locked
                         </h3>
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm text-fg-subtle mb-4">
                           Your environment variables are encrypted. Enter your
                           passphrase to view and edit them.
                         </p>
@@ -1795,7 +1801,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             setIsFirstTimeSetup(false);
                             setShowPassphraseModal(true);
                           }}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium"
+                          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium"
                         >
                           Unlock Secrets
                         </button>
@@ -1839,12 +1845,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     {passphraseUnlocked && (
                       <>
                         <div className="space-y-4">
-                          <div className="border border-gray-700 rounded-md p-4">
-                            <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-gray-700 mb-3">
-                              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                          <div className="border border-border rounded-md p-4">
+                            <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-border mb-3">
+                              <label className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                 Key
                               </label>
-                              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                              <label className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                 Value
                               </label>
                               <div className="w-20" />
@@ -1928,7 +1934,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                             }}
                                             name="apiKey"
                                             placeholder="API_KEY"
-                                            className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full text-left"
+                                            className="px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full text-left"
                                             autoComplete="off"
                                           />
                                           <input
@@ -1999,7 +2005,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                             }}
                                             name="apiValue"
                                             placeholder="Value"
-                                            className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full text-left"
+                                            className="px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full text-left"
                                           />
                                           <div className="w-5" />
                                         </div>
@@ -2022,12 +2028,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             }
 
                             return (
-                              <div className="border border-gray-700 rounded-md p-4">
-                                <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-gray-700 mb-3">
-                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                              <div className="border border-border rounded-md p-4">
+                                <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-border mb-3">
+                                  <label className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                     Key
                                   </label>
-                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                                  <label className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                     Value
                                   </label>
                                   <div className="w-20" />
@@ -2038,10 +2044,10 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                       key={entry.id}
                                       className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center"
                                     >
-                                      <div className="px-3 py-2 text-gray-300 text-sm min-h-[2.5rem] flex items-center text-left">
+                                      <div className="px-3 py-2 text-fg-muted text-sm min-h-[2.5rem] flex items-center text-left">
                                         {entry.key}
                                       </div>
-                                      <div className="px-3 py-2 text-gray-300 text-sm min-h-[2.5rem] flex items-center text-left">
+                                      <div className="px-3 py-2 text-fg-muted text-sm min-h-[2.5rem] flex items-center text-left">
                                         {entry.value}
                                       </div>
                                       <div className="flex gap-1 items-center h-[2.5rem]">
@@ -2056,7 +2062,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                               entryId: entry.id,
                                             });
                                           }}
-                                          className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
+                                          className="p-2 text-fg-subtle hover:text-fg-muted hover:bg-secondary-hover rounded-md transition-colors"
                                           title="More options"
                                         >
                                           <svg
@@ -2128,12 +2134,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             void saveEnvironmentVariables();
                           }}
                           disabled={isEnvSaving || !isEnvDirty}
-                          className="w-full flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isEnvSaving ? (
                             <>
                               <svg
-                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -2165,15 +2171,15 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                 </>
               ) : (
                 <div className="p-2">
-                  <div className="px-3 py-2 border-b border-gray-700">
-                    <p className="text-sm font-medium text-white">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-fg">
                       {user?.name ?? user?.email ?? 'User'}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-fg-subtle mt-1">
                       {user?.email ?? 'No email'}
                     </p>
                   </div>
-                  <p className="p-4 text-sm text-gray-400 text-center">
+                  <p className="p-4 text-sm text-fg-subtle text-center">
                     These features require Auth0 Management API configuration.
                   </p>
                 </div>

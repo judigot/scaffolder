@@ -5,12 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import type { TabType } from '@/components/AI/TabBar.tsx';
 import {
   EmptyState,
   FeatureCard,
   InfoBanner,
 } from '@/components/AI/chat/index.ts';
+import type { TabType } from '@/components/AI/TabBar.tsx';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import FileViewer from '@/components/FileViewer.tsx';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
@@ -33,15 +33,13 @@ function ChatMessage({ message }: IChatMessageProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-3xl px-6 py-4 rounded-2xl backdrop-blur-sm ${
+        className={
           isUser
-            ? 'bg-gradient-to-br from-primary-600 to-primary-700 text-fg shadow-lg shadow-primary-900/20'
-            : 'bg-bg-muted/50 border border-border text-fg'
-        }`}
+            ? 'max-w-3xl px-6 py-4 rounded-2xl backdrop-blur-sm bg-gradient-to-br from-primary-600 to-primary-700 text-fg shadow-lg shadow-primary-900/20'
+            : 'max-w-3xl px-2 py-2 text-fg'
+        }
       >
-        <div
-          className={`prose prose-invert max-w-none ${!isUser ? 'italic font-bold' : ''}`}
-        >
+        <div className="prose prose-invert max-w-none">
           {message.parts.map((part, index) => {
             if (part.type === 'text') {
               return (
@@ -249,7 +247,9 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
   }, []);
 
   useEffect(() => {
-    adjustHeight();
+    if (input.length >= 0) {
+      adjustHeight();
+    }
   }, [input, adjustHeight]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -266,28 +266,6 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
       <form onSubmit={onSubmit} className="max-w-5xl mx-auto">
         {/* ChatGPT-style composer - single row layout */}
         <div className="flex items-end gap-2 bg-secondary border border-border rounded-full px-3 py-2">
-          {/* Leading control (left) */}
-          <button
-            type="button"
-            className="p-1.5 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded-full transition-colors shrink-0"
-            title="Add attachment"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <title>Add attachment</title>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-          </button>
-
           {/* Textarea - grows to fill space */}
           <textarea
             ref={textareaRef}

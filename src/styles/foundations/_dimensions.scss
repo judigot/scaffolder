@@ -1,0 +1,22 @@
+/**
+ * Foundations > Dimensions
+ * Breakpoints, modal sizes, and component dimensions
+ */
+
+@theme {
+  /* Breakpoints (industry standard) */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+
+  /* Modal widths (mobile-first) */
+  --modal-width-sm: 400px;
+  --modal-width-md: 500px;
+  --modal-width-lg: 1200px;
+  --modal-max-height: 90vh;
+
+  /* Dropdown widths */
+  --dropdown-width-sm: 320px;
+  --dropdown-width-md: 380px;
+}

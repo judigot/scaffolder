@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ICustomModalProps {
@@ -11,6 +11,8 @@ interface ICustomModalProps {
   /** Optional ID of the element that triggered the modal */
   initialFocusRef?: React.RefObject<HTMLElement>;
   size?: 'small' | 'medium' | 'large' | 'fullscreen';
+  /** Fixed footer content (action buttons) pinned below the scrollable area */
+  footer?: React.ReactNode;
 }
 
 function CustomModal({
@@ -21,6 +23,7 @@ function CustomModal({
   useStaticPortal = false,
   initialFocusRef,
   size = 'medium',
+  footer,
 }: ICustomModalProps) {
   const modal = useRef<HTMLDivElement>(null);
   const modalRoot = useStaticPortal
@@ -163,7 +166,7 @@ function CustomModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[1000] transition-opacity duration-300 ease-in-out"
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-[1000] transition-opacity duration-300 ease-in-out"
     >
       <button
         ref={firstFocusableRef}
@@ -174,20 +177,21 @@ function CustomModal({
       />
       <div
         role="document"
-        className={`relative bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 animate-scale-up cursor-auto ${
+        className={`relative bg-bg-muted shadow-lg rounded-lg animate-scale-up cursor-auto flex flex-col ${
           size === 'fullscreen'
-            ? 'w-[98vw] h-[98vh] flex flex-col'
+            ? 'w-[98vw] h-[98vh]'
             : size === 'large'
-              ? 'w-max max-w-[1200px] max-h-[90vh] flex flex-col'
+              ? 'w-[calc(100%-2rem)] mx-4 sm:mx-0 sm:max-w-[var(--modal-width-lg)] max-h-[calc(100vh-2rem)] md:max-h-[var(--modal-max-height)]'
               : size === 'small'
-                ? 'w-[90%] sm:w-[400px] max-w-[400px]'
-                : 'w-[90%] sm:w-[500px] max-w-[500px]'
+                ? 'w-[calc(100%-2rem)] mx-4 sm:mx-0 sm:w-[var(--modal-width-sm)] max-h-[calc(100vh-2rem)] md:max-h-[var(--modal-max-height)]'
+                : 'w-[calc(100%-2rem)] mx-4 sm:mx-0 sm:w-[var(--modal-width-md)] max-h-[calc(100vh-2rem)] md:max-h-[var(--modal-max-height)]'
         }`}
       >
-        <div className="flex justify-between items-center flex-shrink-0">
+        {/* Fixed header */}
+        <div className="flex justify-between items-center flex-shrink-0 px-[var(--spacing-06)] pt-[var(--spacing-06)] pb-[var(--spacing-05)]">
           <h2
             id="modal-title"
-            className="text-2xl font-semibold text-gray-800 dark:text-gray-200"
+            className="text-xl md:text-2xl font-semibold text-fg"
           >
             {title}
           </h2>
@@ -196,20 +200,34 @@ function CustomModal({
             ref={lastFocusableRef}
             onClick={onClose}
             aria-label="Close modal"
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 select-none rounded-lg p-1"
+            className="text-fg-muted hover:text-fg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200 select-none rounded-lg p-1"
           >
-            ❌
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <title>Close</title>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </button>
         </div>
-        <div
-          className={`${
-            size === 'fullscreen' || size === 'large'
-              ? 'mt-4 flex-1 min-h-0 '
-              : 'mt-4 '
-          }text-gray-600 dark:text-gray-300`}
-        >
+        {/* Scrollable content */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-[var(--spacing-06)] pb-[var(--spacing-06)] text-fg-muted scrollbar-thin">
           {children}
         </div>
+        {/* Fixed footer */}
+        {footer != null && (
+          <div className="flex-shrink-0 border-t border-border px-[var(--spacing-06)] pt-[var(--spacing-05)] pb-[var(--spacing-06)]">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     modalRoot,
