@@ -20,6 +20,7 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
 import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
+import { getRandomIntro } from '@/utils/randomIntro.ts';
 import { validateSchemaInfoFromResponse } from '@/utils/schemaInfoValidator.ts';
 
 interface IChatMessageProps {
@@ -93,6 +94,7 @@ interface IChatMessagesProps {
 
 function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [randomIntro] = useState(() => getRandomIntro());
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,10 +106,7 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
     >
       <div className="max-w-5xl mx-auto px-3 py-3 md:px-6 md:py-6 space-y-4 md:space-y-6 h-full">
         {messages.length === 0 && (
-          <EmptyState
-            title="I am Judas"
-            description="I am Judas. I am at your service."
-          >
+          <EmptyState title="I am Judas" description={randomIntro}>
             <div className="grid grid-cols-2 gap-4 md:gap-5">
               <FeatureCard
                 title="E-commerce Platform"
