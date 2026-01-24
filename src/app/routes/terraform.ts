@@ -1,10 +1,14 @@
 import { Hono } from "hono";
 import {
+	type ITerraformConfig,
+	createTerraformConfigFromCredentials,
 	createTerraformRun,
 	getTerraformOutputs,
 	getTerraformRun,
+	getTerraformWorkspaceId,
 	getTerraformWorkspaceVariables,
 	upsertTerraformVariables,
+	validateTerraformConfig,
 } from "@/app/services/terraformCloudService.ts";
 import { verifyAuth0TokenFromAuthHeader } from "@/utils/verifyAuth0Token.ts";
 
@@ -14,11 +18,45 @@ interface ITerraformRunPayload {
 	awsSecretAccessKey?: unknown;
 	awsSessionToken?: unknown;
 	sshPublicKey?: unknown;
+	tfcToken?: unknown;
+	tfcOrg?: unknown;
+	tfcWorkspace?: unknown;
 }
+
+interface ITerraformStatusPayload {
+	tfcToken?: unknown;
+	tfcOrg?: unknown;
+	tfcWorkspace?: unknown;
+}
+
+interface ITerraformRunIdPayload {
+	tfcToken?: unknown;
+	tfcOrg?: unknown;
+	tfcWorkspace?: unknown;
+}
+
+const extractTfcConfig = (body: {
+	tfcToken?: unknown;
+	tfcOrg?: unknown;
+	tfcWorkspace?: unknown;
+}): ITerraformConfig | null => {
+	if (
+		typeof body.tfcToken !== "string" ||
+		typeof body.tfcOrg !== "string" ||
+		typeof body.tfcWorkspace !== "string"
+	) {
+		return null;
+	}
+	return createTerraformConfigFromCredentials({
+		tfcToken: body.tfcToken,
+		tfcOrg: body.tfcOrg,
+		tfcWorkspace: body.tfcWorkspace,
+	});
+};
 
 const router = new Hono();
 
-router.get("/status", async (c) => {
+router.post("/status", async (c) => {
 	const verification = await verifyAuth0TokenFromAuthHeader(
 		c.req.header("authorization"),
 	);
@@ -27,12 +65,29 @@ router.get("/status", async (c) => {
 		return c.json(verification.body, verification.status);
 	}
 
+	const body = await c.req.json<ITerraformStatusPayload>();
+	const config = extractTfcConfig(body);
+
+	if (config === null) {
+		return c.json(
+			{
+				error: "Missing Terraform Cloud credentials",
+				message:
+					"tfcToken, tfcOrg, and tfcWorkspace are required. Add them in your profile.",
+			},
+			400,
+		);
+	}
+
 	try {
-		const variables = await getTerraformWorkspaceVariables();
+		validateTerraformConfig(config);
+		await getTerraformWorkspaceId(config);
+
+		const variables = await getTerraformWorkspaceVariables(config);
 		const enableVar = variables.find(
 			(item) => item.category === "env" && item.key === "TF_VAR_enable_ec2",
 		);
-		const outputs = await getTerraformOutputs();
+		const outputs = await getTerraformOutputs(config);
 		const enableEc2 = enableVar?.value === "true";
 		return c.json(
 			{
@@ -73,6 +128,19 @@ router.post("/run", async (c) => {
 
 	const body = await c.req.json<ITerraformRunPayload>();
 
+	const config = extractTfcConfig(body);
+
+	if (config === null) {
+		return c.json(
+			{
+				error: "Missing Terraform Cloud credentials",
+				message:
+					"tfcToken, tfcOrg, and tfcWorkspace are required. Add them in your profile.",
+			},
+			400,
+		);
+	}
+
 	if (typeof body.enableEc2 !== "boolean") {
 		return c.json(
 			{
@@ -99,6 +167,9 @@ router.post("/run", async (c) => {
 	}
 
 	try {
+		validateTerraformConfig(config);
+		await getTerraformWorkspaceId(config);
+
 		const variables = [
 			{
 				key: "AWS_ACCESS_KEY_ID",
@@ -138,8 +209,9 @@ router.post("/run", async (c) => {
 			});
 		}
 
-		await upsertTerraformVariables(variables);
+		await upsertTerraformVariables(config, variables);
 		const run = await createTerraformRun(
+			config,
 			`App toggle: enable_ec2 ${body.enableEc2 ? "true" : "false"}`,
 		);
 
@@ -170,7 +242,7 @@ router.post("/run", async (c) => {
 	}
 });
 
-router.get("/run/:runId", async (c) => {
+router.post("/run/:runId", async (c) => {
 	const verification = await verifyAuth0TokenFromAuthHeader(
 		c.req.header("authorization"),
 	);
@@ -189,8 +261,22 @@ router.get("/run/:runId", async (c) => {
 		);
 	}
 
+	const body = await c.req.json<ITerraformRunIdPayload>();
+	const config = extractTfcConfig(body);
+
+	if (config === null) {
+		return c.json(
+			{
+				error: "Missing Terraform Cloud credentials",
+				message:
+					"tfcToken, tfcOrg, and tfcWorkspace are required.",
+			},
+			400,
+		);
+	}
+
 	try {
-		const run = await getTerraformRun(runId);
+		const run = await getTerraformRun(config, runId);
 		return c.json(
 			{
 				success: true,

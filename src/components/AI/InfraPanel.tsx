@@ -11,6 +11,9 @@ interface IInfraCredentials {
 	awsAccessKeyId: string;
 	awsSecretAccessKey: string;
 	awsSessionToken: string;
+	tfcToken: string;
+	tfcOrg: string;
+	tfcWorkspace: string;
 }
 
 interface ITerraformRunResponse {
@@ -54,6 +57,18 @@ const parseInfraCredentials = (
 				typeof metadata.infra.awsSessionToken === "string"
 					? metadata.infra.awsSessionToken
 					: "",
+			tfcToken:
+				typeof metadata.infra.tfcToken === "string"
+					? metadata.infra.tfcToken
+					: "",
+			tfcOrg:
+				typeof metadata.infra.tfcOrg === "string"
+					? metadata.infra.tfcOrg
+					: "",
+			tfcWorkspace:
+				typeof metadata.infra.tfcWorkspace === "string"
+					? metadata.infra.tfcWorkspace
+					: "",
 		};
 	}
 	return {
@@ -61,6 +76,9 @@ const parseInfraCredentials = (
 		awsAccessKeyId: "",
 		awsSecretAccessKey: "",
 		awsSessionToken: "",
+		tfcToken: "",
+		tfcOrg: "",
+		tfcWorkspace: "",
 	};
 };
 
@@ -86,6 +104,9 @@ export default function InfraPanel() {
 			infraCredentials.awsAccessKeyId,
 			infraCredentials.awsSecretAccessKey,
 			infraCredentials.awsSessionToken,
+			infraCredentials.tfcToken,
+			infraCredentials.tfcOrg,
+			infraCredentials.tfcWorkspace,
 		].some((value) => {
 			if (value.trim() === "") {
 				return false;
@@ -94,24 +115,45 @@ export default function InfraPanel() {
 		});
 	}, [infraCredentials]);
 
-	const infraReady = useMemo(() => {
+	const awsReady = useMemo(() => {
 		return (
 			infraCredentials.sshPublicKey.trim() !== "" &&
 			infraCredentials.awsAccessKeyId.trim() !== "" &&
-			infraCredentials.awsSecretAccessKey.trim() !== "" &&
-			!infraHasEncryptedValues
+			infraCredentials.awsSecretAccessKey.trim() !== ""
 		);
-	}, [infraCredentials, infraHasEncryptedValues]);
+	}, [infraCredentials]);
+
+	const tfcReady = useMemo(() => {
+		return (
+			infraCredentials.tfcToken.trim() !== "" &&
+			infraCredentials.tfcOrg.trim() !== "" &&
+			infraCredentials.tfcWorkspace.trim() !== ""
+		);
+	}, [infraCredentials]);
+
+	const infraReady = useMemo(() => {
+		return awsReady && tfcReady && !infraHasEncryptedValues;
+	}, [awsReady, tfcReady, infraHasEncryptedValues]);
 
 	const fetchStatus = useCallback(async () => {
 		if (accessToken === null || accessToken === "") {
 			return;
 		}
+		if (!infraReady) {
+			return;
+		}
 		try {
 			const response = await fetch(`${getApiUrl()}/terraform/status`, {
+				method: "POST",
 				headers: {
 					Authorization: `Bearer ${accessToken}`,
+					"Content-Type": "application/json",
 				},
+				body: JSON.stringify({
+					tfcToken: infraCredentials.tfcToken,
+					tfcOrg: infraCredentials.tfcOrg,
+					tfcWorkspace: infraCredentials.tfcWorkspace,
+				}),
 			});
 			if (!response.ok) {
 				throw new Error("Failed to fetch Terraform status");
@@ -126,7 +168,7 @@ export default function InfraPanel() {
 				setError(fetchError.message);
 			}
 		}
-	}, [accessToken]);
+	}, [accessToken, infraReady, infraCredentials.tfcToken, infraCredentials.tfcOrg, infraCredentials.tfcWorkspace]);
 
 	useEffect(() => {
 		void fetchStatus();
@@ -134,6 +176,9 @@ export default function InfraPanel() {
 
 	useEffect(() => {
 		if (!runId || accessToken === null || accessToken === "") {
+			return;
+		}
+		if (!infraReady) {
 			return;
 		}
 		let timeoutId: number | null = null;
@@ -145,9 +190,16 @@ export default function InfraPanel() {
 			}
 			try {
 				const response = await fetch(`${getApiUrl()}/terraform/run/${runId}`, {
+					method: "POST",
 					headers: {
 						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
 					},
+					body: JSON.stringify({
+						tfcToken: infraCredentials.tfcToken,
+						tfcOrg: infraCredentials.tfcOrg,
+						tfcWorkspace: infraCredentials.tfcWorkspace,
+					}),
 				});
 				if (!response.ok) {
 					throw new Error("Failed to fetch Terraform run status");
@@ -178,7 +230,7 @@ export default function InfraPanel() {
 				window.clearTimeout(timeoutId);
 			}
 		};
-	}, [runId, accessToken, fetchStatus]);
+	}, [runId, accessToken, fetchStatus, infraReady, infraCredentials.tfcToken, infraCredentials.tfcOrg, infraCredentials.tfcWorkspace]);
 
 	const handleToggle = async () => {
 		if (accessToken === null || accessToken === "") {
@@ -204,6 +256,9 @@ export default function InfraPanel() {
 					awsSecretAccessKey: infraCredentials.awsSecretAccessKey,
 					awsSessionToken: infraCredentials.awsSessionToken,
 					sshPublicKey: infraCredentials.sshPublicKey,
+					tfcToken: infraCredentials.tfcToken,
+					tfcOrg: infraCredentials.tfcOrg,
+					tfcWorkspace: infraCredentials.tfcWorkspace,
 				}),
 			});
 			if (!response.ok) {
@@ -283,10 +338,37 @@ export default function InfraPanel() {
 							</button>
 						</div>
 
-						{!infraReady && (
+						{!infraReady && !tfcReady && (
+							<div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200 space-y-2">
+								<p className="font-medium">Connect Terraform Cloud</p>
+								<p>
+									Add your Terraform Cloud API token, organization, and
+									workspace in the profile panel to enable infrastructure
+									control.
+								</p>
+								<button
+									type="button"
+									onClick={() => {
+										openUserProfile("infra");
+									}}
+									className="mt-1 px-3 py-1.5 bg-blue-700/40 hover:bg-blue-700/60 text-blue-100 rounded text-xs transition-colors"
+								>
+									Open Profile
+								</button>
+							</div>
+						)}
+
+						{!infraReady && tfcReady && !awsReady && (
 							<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
 								Add your SSH public key and AWS credentials in the profile panel
 								to enable toggling.
+							</div>
+						)}
+
+						{!infraReady && infraHasEncryptedValues && (
+							<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
+								Unlock your credentials with your passphrase to enable
+								toggling.
 							</div>
 						)}
 
@@ -333,6 +415,16 @@ export default function InfraPanel() {
 									{typeof sshCommand === "string" && sshCommand !== ""
 										? sshCommand
 										: "Not available"}
+								</p>
+							</div>
+							<div>
+								<p className="text-[11px] uppercase tracking-wide text-fg-muted">
+									Terraform Cloud
+								</p>
+								<p className="text-sm text-fg break-all">
+									{tfcReady && !infraHasEncryptedValues
+										? `${infraCredentials.tfcOrg} / ${infraCredentials.tfcWorkspace}`
+										: "Not connected"}
 								</p>
 							</div>
 						</div>
