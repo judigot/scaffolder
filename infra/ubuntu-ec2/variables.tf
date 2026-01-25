@@ -5,13 +5,15 @@ variable "region" {
 }
 
 variable "vpc_id" {
-  description = "VPC ID for resources"
+  description = "VPC ID for resources (leave empty for default VPC)"
   type        = string
+  default     = ""
 }
 
 variable "subnet_id" {
-  description = "Subnet ID for the EC2 instance"
+  description = "Subnet ID for the EC2 instance (leave empty for auto-select)"
   type        = string
+  default     = ""
 }
 
 variable "db_subnet_ids" {

@@ -36,6 +36,11 @@ export interface ICreateWorkspaceOptions {
 	terraformVersion?: string;
 }
 
+interface IConfigurationVersion {
+	id: string;
+	uploadUrl: string;
+}
+
 type ITerraformBaseConfig = Omit<ITerraformConfig, "workspace">;
 
 const TFC_API_BASE_URL = "https://app.terraform.io/api/v2";
@@ -302,7 +307,53 @@ export const createTerraformRun = async (
 	});
 
 	if (!response.ok) {
-		throw new Error("Failed to create Terraform run");
+		if (response.status === 409) {
+			throw new Error(
+				"A run is already in progress. Wait for it to complete before starting a new one.",
+			);
+		}
+		const errorBody: unknown = await response.json().catch(() => null);
+		if (response.status === 422) {
+			if (
+				errorBody !== null &&
+				typeof errorBody === "object" &&
+				"errors" in errorBody &&
+				Array.isArray(errorBody.errors) &&
+				errorBody.errors.length > 0
+			) {
+				const firstError = errorBody.errors[0];
+				if (
+					typeof firstError === "object" &&
+					firstError !== null &&
+					"detail" in firstError &&
+					typeof firstError.detail === "string"
+				) {
+					throw new Error(firstError.detail);
+				}
+			}
+			throw new Error(
+				"Workspace has no Terraform configuration. Upload configuration first.",
+			);
+		}
+		// Try to extract error message from response
+		if (
+			errorBody !== null &&
+			typeof errorBody === "object" &&
+			"errors" in errorBody &&
+			Array.isArray(errorBody.errors) &&
+			errorBody.errors.length > 0
+		) {
+			const firstError = errorBody.errors[0];
+			if (
+				typeof firstError === "object" &&
+				firstError !== null &&
+				"detail" in firstError &&
+				typeof firstError.detail === "string"
+			) {
+				throw new Error(firstError.detail);
+			}
+		}
+		throw new Error(`Failed to create Terraform run (HTTP ${response.status})`);
 	}
 
 	const payload: unknown = await response.json();
@@ -585,4 +636,575 @@ export const createTerraformBaseConfig = (creds: {
 		token: creds.tfcToken,
 		organization: creds.tfcOrg,
 	};
+};
+
+export const listTerraformWorkspaces = async (
+	config: ITerraformBaseConfig,
+): Promise<ITerraformWorkspace[]> => {
+	const response = await terraformBaseFetch(
+		config,
+		`/organizations/${config.organization}/workspaces`,
+	);
+
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 404) {
+			throw new Error(`Organization "${config.organization}" not found`);
+		}
+		throw new Error("Failed to fetch Terraform workspaces");
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload !== "object" ||
+		payload === null ||
+		!("data" in payload) ||
+		!Array.isArray(payload.data)
+	) {
+		return [];
+	}
+
+	const workspaces: ITerraformWorkspace[] = [];
+	for (const item of payload.data) {
+		if (
+			typeof item !== "object" ||
+			item === null ||
+			!("id" in item) ||
+			typeof item.id !== "string"
+		) {
+			continue;
+		}
+		const attributes =
+			"attributes" in item && typeof item.attributes === "object"
+				? item.attributes
+				: null;
+		const name =
+			attributes !== null &&
+			"name" in attributes &&
+			typeof attributes.name === "string"
+				? attributes.name
+				: null;
+		if (name !== null) {
+			workspaces.push({ id: item.id, name });
+		}
+	}
+
+	return workspaces;
+};
+
+export const deleteTerraformWorkspace = async (
+	config: ITerraformBaseConfig,
+	workspaceName: string,
+): Promise<void> => {
+	const workspace = await getTerraformWorkspaceByName(config, workspaceName);
+	if (workspace === null) {
+		return;
+	}
+
+	const response = await terraformBaseFetch(
+		config,
+		`/workspaces/${workspace.id}`,
+		{
+			method: "DELETE",
+		},
+	);
+
+	if (!response.ok && response.status !== 404) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 403) {
+			throw new Error(
+				"Terraform Cloud token lacks permission to delete workspaces",
+			);
+		}
+		throw new Error("Failed to delete Terraform workspace");
+	}
+};
+
+export const createConfigurationVersion = async (
+	config: ITerraformBaseConfig,
+	workspaceId: string,
+	autoQueueRuns = false,
+): Promise<IConfigurationVersion> => {
+	const response = await terraformBaseFetch(
+		config,
+		`/workspaces/${workspaceId}/configuration-versions`,
+		{
+			method: "POST",
+			body: JSON.stringify({
+				data: {
+					type: "configuration-versions",
+					attributes: {
+						"auto-queue-runs": autoQueueRuns,
+					},
+				},
+			}),
+		},
+	);
+
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 403) {
+			throw new Error(
+				"Terraform Cloud token lacks permission to create configuration versions",
+			);
+		}
+		throw new Error("Failed to create configuration version");
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload !== "object" ||
+		payload === null ||
+		!("data" in payload) ||
+		typeof payload.data !== "object" ||
+		payload.data === null ||
+		!("id" in payload.data) ||
+		typeof payload.data.id !== "string"
+	) {
+		throw new Error("Configuration version response missing ID");
+	}
+
+	const attributes =
+		"attributes" in payload.data &&
+		typeof payload.data.attributes === "object" &&
+		payload.data.attributes !== null
+			? payload.data.attributes
+			: null;
+	const uploadUrl =
+		attributes !== null &&
+		"upload-url" in attributes &&
+		typeof attributes["upload-url"] === "string"
+			? attributes["upload-url"]
+			: null;
+
+	if (uploadUrl === null) {
+		throw new Error("Configuration version response missing upload URL");
+	}
+
+	return {
+		id: payload.data.id,
+		uploadUrl,
+	};
+};
+
+export const uploadConfigurationTar = async (
+	uploadUrl: string,
+	tarGzBuffer: Uint8Array,
+): Promise<void> => {
+	const response = await fetch(uploadUrl, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/octet-stream",
+			"Content-Length": String(tarGzBuffer.length),
+		},
+		body: tarGzBuffer as unknown as BodyInit,
+	});
+
+	if (!response.ok) {
+		throw new Error("Failed to upload Terraform configuration");
+	}
+};
+
+export const getConfigurationVersionStatus = async (
+	config: ITerraformBaseConfig,
+	configVersionId: string,
+): Promise<string> => {
+	const response = await terraformBaseFetch(
+		config,
+		`/configuration-versions/${configVersionId}`,
+	);
+
+	if (!response.ok) {
+		throw new Error("Failed to fetch configuration version status");
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload !== "object" ||
+		payload === null ||
+		!("data" in payload) ||
+		typeof payload.data !== "object" ||
+		payload.data === null
+	) {
+		throw new Error("Invalid configuration version response");
+	}
+
+	const attributes =
+		"attributes" in payload.data &&
+		typeof payload.data.attributes === "object" &&
+		payload.data.attributes !== null
+			? payload.data.attributes
+			: null;
+
+	const status =
+		attributes !== null &&
+		"status" in attributes &&
+		typeof attributes.status === "string"
+			? attributes.status
+			: "unknown";
+
+	return status;
+};
+
+export const waitForConfigurationReady = async (
+	config: ITerraformBaseConfig,
+	configVersionId: string,
+	maxAttempts = 30,
+	intervalMs = 1000,
+): Promise<void> => {
+	for (let attempt = 0; attempt < maxAttempts; attempt++) {
+		const status = await getConfigurationVersionStatus(config, configVersionId);
+
+		if (status === "uploaded") {
+			return;
+		}
+
+		if (status === "errored") {
+			throw new Error("Configuration version upload failed");
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+	}
+
+	throw new Error("Timeout waiting for configuration to be ready");
+};
+
+export interface IOAuthClient {
+	id: string;
+	name: string | null;
+	serviceProvider: string;
+}
+
+export interface IOAuthToken {
+	id: string;
+	serviceProviderUser: string | null;
+}
+
+export const listOAuthClients = async (
+	config: ITerraformBaseConfig,
+): Promise<IOAuthClient[]> => {
+	const response = await terraformBaseFetch(
+		config,
+		`/organizations/${config.organization}/oauth-clients`,
+	);
+
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 404) {
+			throw new Error(`Organization "${config.organization}" not found`);
+		}
+		throw new Error("Failed to fetch OAuth clients");
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload !== "object" ||
+		payload === null ||
+		!("data" in payload) ||
+		!Array.isArray(payload.data)
+	) {
+		return [];
+	}
+
+	const clients: IOAuthClient[] = [];
+	for (const item of payload.data) {
+		if (
+			typeof item !== "object" ||
+			item === null ||
+			!("id" in item) ||
+			typeof item.id !== "string"
+		) {
+			continue;
+		}
+		const attributes =
+			"attributes" in item && typeof item.attributes === "object"
+				? item.attributes
+				: null;
+		const name =
+			attributes !== null &&
+			"name" in attributes &&
+			typeof attributes.name === "string"
+				? attributes.name
+				: null;
+		const serviceProvider =
+			attributes !== null &&
+			"service-provider" in attributes &&
+			typeof attributes["service-provider"] === "string"
+				? attributes["service-provider"]
+				: "";
+		clients.push({ id: item.id, name, serviceProvider });
+	}
+
+	return clients;
+};
+
+export const getOAuthTokens = async (
+	config: ITerraformBaseConfig,
+	oauthClientId: string,
+): Promise<IOAuthToken[]> => {
+	const response = await terraformBaseFetch(
+		config,
+		`/oauth-clients/${oauthClientId}/oauth-tokens`,
+	);
+
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 404) {
+			throw new Error("OAuth client not found");
+		}
+		throw new Error("Failed to fetch OAuth tokens");
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload !== "object" ||
+		payload === null ||
+		!("data" in payload) ||
+		!Array.isArray(payload.data)
+	) {
+		return [];
+	}
+
+	const tokens: IOAuthToken[] = [];
+	for (const item of payload.data) {
+		if (
+			typeof item !== "object" ||
+			item === null ||
+			!("id" in item) ||
+			typeof item.id !== "string"
+		) {
+			continue;
+		}
+		const attributes =
+			"attributes" in item && typeof item.attributes === "object"
+				? item.attributes
+				: null;
+		const serviceProviderUser =
+			attributes !== null &&
+			"service-provider-user" in attributes &&
+			typeof attributes["service-provider-user"] === "string"
+				? attributes["service-provider-user"]
+				: null;
+		tokens.push({ id: item.id, serviceProviderUser });
+	}
+
+	return tokens;
+};
+
+export interface IGitHubAppInstallation {
+	id: string;
+	name: string;
+	installationId: number;
+}
+
+export const listGitHubAppInstallations = async (
+	config: ITerraformBaseConfig,
+): Promise<IGitHubAppInstallation[]> => {
+	const response = await terraformBaseFetch(
+		config,
+		"/github-app/installations",
+	);
+
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		return [];
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload !== "object" ||
+		payload === null ||
+		!("data" in payload) ||
+		!Array.isArray(payload.data)
+	) {
+		return [];
+	}
+
+	const installations: IGitHubAppInstallation[] = [];
+	for (const item of payload.data) {
+		if (
+			typeof item !== "object" ||
+			item === null ||
+			!("id" in item) ||
+			typeof item.id !== "string"
+		) {
+			continue;
+		}
+		const attributes =
+			"attributes" in item && typeof item.attributes === "object"
+				? item.attributes
+				: null;
+		const name =
+			attributes !== null &&
+			"name" in attributes &&
+			typeof attributes.name === "string"
+				? attributes.name
+				: "";
+		const installationId =
+			attributes !== null &&
+			"installation-id" in attributes &&
+			typeof attributes["installation-id"] === "number"
+				? attributes["installation-id"]
+				: 0;
+		installations.push({ id: item.id, name, installationId });
+	}
+
+	return installations;
+};
+
+export type IGitHubConnection =
+	| { type: "github-app"; id: string }
+	| { type: "oauth"; id: string };
+
+export const getGitHubConnection = async (
+	config: ITerraformBaseConfig,
+	githubOrgOrUser: string,
+): Promise<IGitHubConnection | null> => {
+	const installations = await listGitHubAppInstallations(config);
+	const matchingInstallation = installations.find(
+		(inst) => inst.name.toLowerCase() === githubOrgOrUser.toLowerCase(),
+	);
+
+	if (matchingInstallation) {
+		return { type: "github-app", id: matchingInstallation.id };
+	}
+
+	const clients = await listOAuthClients(config);
+	const githubClient = clients.find(
+		(client) =>
+			client.serviceProvider === "github" ||
+			client.serviceProvider === "github_enterprise",
+	);
+
+	if (!githubClient) {
+		return null;
+	}
+
+	const tokens = await getOAuthTokens(config, githubClient.id);
+	if (tokens.length === 0) {
+		return null;
+	}
+
+	return { type: "oauth", id: tokens[0].id };
+};
+
+export interface IVcsRepoSettings {
+	identifier: string;
+	connection: IGitHubConnection;
+	branch?: string;
+}
+
+export const createTerraformWorkspaceWithVcs = async (
+	config: ITerraformBaseConfig,
+	workspaceName: string,
+	vcsRepo: IVcsRepoSettings,
+	options?: ICreateWorkspaceOptions,
+): Promise<ITerraformWorkspace> => {
+	const existing = await getTerraformWorkspaceByName(config, workspaceName);
+	if (existing !== null) {
+		return existing;
+	}
+
+	const vcsRepoAttributes: Record<string, string> = {
+		identifier: vcsRepo.identifier,
+		branch: vcsRepo.branch ?? "",
+	};
+
+	if (vcsRepo.connection.type === "github-app") {
+		vcsRepoAttributes["github-app-installation-id"] = vcsRepo.connection.id;
+	} else {
+		vcsRepoAttributes["oauth-token-id"] = vcsRepo.connection.id;
+	}
+
+	const response = await terraformBaseFetch(
+		config,
+		`/organizations/${config.organization}/workspaces`,
+		{
+			method: "POST",
+			body: JSON.stringify({
+				data: {
+					type: "workspaces",
+					attributes: {
+						name: workspaceName,
+						"execution-mode": options?.executionMode ?? "remote",
+						"auto-apply": options?.autoApply ?? true,
+						"terraform-version": options?.terraformVersion ?? "latest",
+						"vcs-repo": vcsRepoAttributes,
+					},
+				},
+			}),
+		},
+	);
+
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 403) {
+			throw new Error(
+				"Terraform Cloud token lacks permission to create workspaces",
+			);
+		}
+		if (response.status === 404) {
+			throw new Error(`Organization "${config.organization}" not found`);
+		}
+		if (response.status === 422) {
+			const errorBody: unknown = await response.json().catch(() => null);
+			if (
+				errorBody !== null &&
+				typeof errorBody === "object" &&
+				"errors" in errorBody &&
+				Array.isArray(errorBody.errors) &&
+				errorBody.errors.length > 0
+			) {
+				const firstError = errorBody.errors[0];
+				if (
+					typeof firstError === "object" &&
+					firstError !== null &&
+					"detail" in firstError &&
+					typeof firstError.detail === "string"
+				) {
+					throw new Error(firstError.detail);
+				}
+			}
+			throw new Error("Workspace validation failed");
+		}
+		throw new Error("Failed to create Terraform workspace with VCS");
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload === "object" &&
+		payload !== null &&
+		"data" in payload &&
+		typeof payload.data === "object" &&
+		payload.data !== null &&
+		"id" in payload.data &&
+		typeof payload.data.id === "string"
+	) {
+		const attributes =
+			"attributes" in payload.data ? payload.data.attributes : null;
+		const name =
+			typeof attributes === "object" &&
+			attributes !== null &&
+			"name" in attributes &&
+			typeof attributes.name === "string"
+				? attributes.name
+				: workspaceName;
+		return { id: payload.data.id, name };
+	}
+
+	throw new Error("Terraform workspace creation response missing ID");
 };

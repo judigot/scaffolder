@@ -877,42 +877,6 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 		setInfraSuccessMessage(null);
 	};
 
-	const updateInfraWorkspaces = (nextWorkspaces: string[]) => {
-		const primaryWorkspace = nextWorkspaces
-			.find((workspace) => workspace.trim() !== "")
-			?.trim();
-		setInfraCredentials((prev) => ({
-			...prev,
-			tfcWorkspaces: nextWorkspaces,
-			tfcWorkspace:
-				primaryWorkspace ??
-				(nextWorkspaces.length === 0 ? "" : prev.tfcWorkspace),
-		}));
-		setInfraError(null);
-		setInfraSuccessMessage(null);
-	};
-
-	const handleWorkspaceChange = (index: number, value: string) => {
-		const next = [...infraCredentials.tfcWorkspaces];
-		next[index] = value;
-		updateInfraWorkspaces(next);
-	};
-
-	const handleWorkspaceAdd = () => {
-		const hasEmpty = infraCredentials.tfcWorkspaces.some(
-			(workspace) => workspace.trim() === "",
-		);
-		if (hasEmpty) {
-			return;
-		}
-		updateInfraWorkspaces([...infraCredentials.tfcWorkspaces, ""]);
-	};
-
-	const handleWorkspaceRemove = (index: number) => {
-		const next = infraCredentials.tfcWorkspaces.filter((_, i) => i !== index);
-		updateInfraWorkspaces(next);
-	};
-
 	const handleInfraCancel = () => {
 		setInfraCredentials(originalInfraCredentials);
 		setInfraError(null);
@@ -1077,12 +1041,6 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
 			if (sanitized.tfcToken === "" || sanitized.tfcOrg === "") {
 				throw new Error("Terraform Cloud token and organization are required.");
-			}
-
-			if (sanitized.tfcWorkspaces.length === 0) {
-				throw new Error(
-					"Add at least one Terraform Cloud workspace to continue.",
-				);
 			}
 
 			const encryptedEntries = {
@@ -2836,60 +2794,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 																	className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
 																/>
 															</div>
-															<fieldset>
-																<legend className="block text-sm font-medium text-fg-muted mb-2">
-																	Workspaces
-																</legend>
-																<div className="space-y-2">
-																	{(infraCredentials.tfcWorkspaces.length > 0
-																		? infraCredentials.tfcWorkspaces
-																		: [""]
-																	).map((workspace, index) => {
-																		const workspaceKey =
-																			workspace.trim() !== ""
-																				? `workspace-${workspace}`
-																				: "workspace-new";
-																		return (
-																			<div
-																				key={workspaceKey}
-																				className="flex gap-2"
-																			>
-																				<input
-																					type="text"
-																					value={workspace}
-																					onChange={(e) => {
-																						handleWorkspaceChange(
-																							index,
-																							e.target.value,
-																						);
-																					}}
-																					placeholder="my-workspace"
-																					className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-																				/>
-																				{infraCredentials.tfcWorkspaces.length >
-																					1 && (
-																					<button
-																						type="button"
-																						onClick={() => {
-																							handleWorkspaceRemove(index);
-																						}}
-																						className="px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg-muted rounded-md transition-colors text-sm"
-																					>
-																						Remove
-																					</button>
-																				)}
-																			</div>
-																		);
-																	})}
-																	<button
-																		type="button"
-																		onClick={handleWorkspaceAdd}
-																		className="w-full px-3 py-2 border border-dashed border-border/70 rounded-md text-sm text-fg-muted hover:text-fg hover:border-border transition-colors"
-																	>
-																		+ Add workspace
-																	</button>
-																</div>
-															</fieldset>
+															<p className="text-xs text-fg-muted pt-2">
+																Manage workspaces from the Infrastructure tab.
+															</p>
 														</div>
 													</div>
 												</div>
