@@ -135,6 +135,7 @@ interface IInfraWorkspaceCardProps {
 	infraHasEncryptedValues: boolean;
 	isMetadataLoading: boolean;
 	isDeleting: boolean;
+	isDevWorkspace?: boolean;
 	onConnectAgent?: () => void;
 	onOpenProfile: () => void;
 	onDelete: () => void;
@@ -150,6 +151,7 @@ function InfraWorkspaceCard({
 	infraHasEncryptedValues,
 	isMetadataLoading,
 	isDeleting,
+	isDevWorkspace = false,
 	onConnectAgent,
 	onOpenProfile,
 	onDelete,
@@ -579,7 +581,13 @@ function InfraWorkspaceCard({
 	const showConnectionDetails = enableEc2 && hasPublicIp;
 
 	return (
-		<div className="p-4 bg-bg-muted border border-border rounded-lg space-y-4">
+		<div
+			className={`p-4 border rounded-lg space-y-4 ${
+				isDevWorkspace
+					? "bg-success-900/20 border-success-700/50"
+					: "bg-bg-muted border-border"
+			}`}
+		>
 			<div className="flex items-start justify-between gap-4">
 				<div>
 					<p className="text-xs uppercase tracking-wide text-fg-muted">
@@ -1069,6 +1077,8 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	const { decryptedMetadata, isLoading: isMetadataLoading } =
 		useDecryptedUserMetadata();
 	const { openUserProfile } = useUserProfileStore();
+
+	const isDevMode = user?.nickname === "judigot";
 	const queryClient = useQueryClient();
 	const [newWorkspace, setNewWorkspace] = useState<string>("");
 	const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
@@ -1397,6 +1407,30 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 								</div>
 							</div>
 						</div>
+					)}
+
+					{/* Dev mode: SSH Backend workspace */}
+					{!showInitialSkeleton && isDevMode && (
+						<InfraWorkspaceCard
+							key="ssh-backend-dev"
+							workspace="ssh-backend"
+							accessToken={accessToken}
+							infraCredentials={infraCredentials}
+							infraReady={infraReady}
+							awsReady={awsReady}
+							tfcReady={tfcReady}
+							infraHasEncryptedValues={infraHasEncryptedValues}
+							isMetadataLoading={isMetadataPending}
+							isDeleting={deletingWorkspace === "ssh-backend"}
+							onConnectAgent={onConnectAgent}
+							onOpenProfile={() => {
+								openUserProfile("infra");
+							}}
+							onDelete={() => {
+								setWorkspaceToDelete("ssh-backend");
+							}}
+							isDevWorkspace
+						/>
 					)}
 
 					{!showInitialSkeleton &&
