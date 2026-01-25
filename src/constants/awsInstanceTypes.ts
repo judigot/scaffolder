@@ -334,7 +334,7 @@ export const AWS_REGION_GROUPS: IAwsRegionGroup[] = [
 	},
 ] as const;
 
-export const DEFAULT_AWS_REGION = "us-east-1";
+export const DEFAULT_AWS_REGION = "us-east-2";
 export const DEFAULT_EC2_INSTANCE_TYPE = "t3.small";
 export const DEFAULT_RDS_INSTANCE_TYPE = "db.t3.small";
 
