@@ -562,6 +562,7 @@ function InfraWorkspaceCard({
 						enableRds: editEnableRds,
 						rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
 						awsRegion: editRegion,
+						enableEc2,
 					}),
 				},
 			);

@@ -523,6 +523,7 @@ interface IUpdateWorkspaceConfigPayload {
 	enableRds?: unknown;
 	rdsInstanceClass?: unknown;
 	awsRegion?: unknown;
+	enableEc2?: unknown;
 }
 
 router.post("/workspace/:workspaceName/config", async (c) => {
@@ -637,18 +638,31 @@ router.post("/workspace/:workspaceName/config", async (c) => {
 
 		await upsertTerraformVariables(config, variables);
 
-		const changeDescriptions = variables
-			.map((v) => `${v.key}=${v.value}`)
-			.join(", ");
-		const run = await createTerraformRun(
-			config,
-			`Config update: ${changeDescriptions}`,
-		);
+		const isEc2Running = body.enableEc2 === true;
+
+		if (isEc2Running) {
+			const changeDescriptions = variables
+				.map((v) => `${v.key}=${v.value}`)
+				.join(", ");
+			const run = await createTerraformRun(
+				config,
+				`Config update: ${changeDescriptions}`,
+			);
+
+			return c.json(
+				{
+					success: true,
+					run,
+					updatedVariables: variables.map((v) => v.key),
+				},
+				200,
+			);
+		}
 
 		return c.json(
 			{
 				success: true,
-				run,
+				run: null,
 				updatedVariables: variables.map((v) => v.key),
 			},
 			200,
