@@ -847,20 +847,72 @@ function InfraWorkspaceCard({
 						>
 							Disk Size (GB)
 						</label>
-						<input
-							id={`edit-disk-${workspaceValue}`}
-							type="number"
-							min={10}
-							max={500}
-							value={editDiskSize}
-							onChange={(e) => {
-								const val = parseInt(e.target.value, 10);
-								if (!isNaN(val)) {
-									setEditDiskSize(Math.max(10, Math.min(500, val)));
-								}
-							}}
-							className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-						/>
+						<div className="flex items-center">
+							<button
+								type="button"
+								onClick={() => {
+									setEditDiskSize(Math.max(10, editDiskSize - 10));
+								}}
+								disabled={editDiskSize <= 10}
+								className="px-3 py-2 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg hover:bg-secondary-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+								aria-label="Decrease disk size"
+							>
+								<svg
+									className="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<title>Decrease</title>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M20 12H4"
+									/>
+								</svg>
+							</button>
+							<input
+								id={`edit-disk-${workspaceValue}`}
+								type="text"
+								inputMode="numeric"
+								pattern="[0-9]*"
+								value={editDiskSize}
+								onChange={(e) => {
+									const val = parseInt(e.target.value, 10);
+									if (!isNaN(val)) {
+										setEditDiskSize(Math.max(10, Math.min(500, val)));
+									} else if (e.target.value === "") {
+										setEditDiskSize(10);
+									}
+								}}
+								className="flex-1 min-w-0 px-3 py-2 bg-bg-muted border-y border-border text-fg text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+							/>
+							<button
+								type="button"
+								onClick={() => {
+									setEditDiskSize(Math.min(500, editDiskSize + 10));
+								}}
+								disabled={editDiskSize >= 500}
+								className="px-3 py-2 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg hover:bg-secondary-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+								aria-label="Increase disk size"
+							>
+								<svg
+									className="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<title>Increase</title>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M12 4v16m8-8H4"
+									/>
+								</svg>
+							</button>
+						</div>
 						<p className="text-[10px] text-fg-subtle mt-1">
 							Min: 10 GB, Max: 500 GB (can only increase)
 						</p>
