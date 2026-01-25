@@ -480,17 +480,76 @@ function InfraWorkspaceCard({
 							<p className="text-[11px] uppercase tracking-wide text-fg-muted">
 								Public IP
 							</p>
-							<p className="text-sm text-fg break-all">{publicIp}</p>
+							<div className="flex items-center gap-2">
+								<a
+									href={`http://${publicIp}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-sm text-primary-400 hover:text-primary-300 hover:underline break-all"
+								>
+									{publicIp}
+								</a>
+								<button
+									type="button"
+									onClick={() => {
+										void navigator.clipboard.writeText(publicIp ?? "");
+									}}
+									className="p-1 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+									title="Copy IP"
+								>
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<title>Copy</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+										/>
+									</svg>
+								</button>
+							</div>
 						</div>
 						<div>
 							<p className="text-[11px] uppercase tracking-wide text-fg-muted">
 								SSH Command
 							</p>
-							<p className="text-sm text-fg break-all">
-								{typeof sshCommand === "string" && sshCommand !== ""
-									? sshCommand
-									: "Not available"}
-							</p>
+							<div className="flex items-start gap-2">
+								<p className="text-sm text-fg break-all">
+									{typeof sshCommand === "string" && sshCommand !== ""
+										? sshCommand
+										: "Not available"}
+								</p>
+								{typeof sshCommand === "string" && sshCommand !== "" && (
+									<button
+										type="button"
+										onClick={() => {
+											void navigator.clipboard.writeText(sshCommand);
+										}}
+										className="p-1 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+										title="Copy SSH command"
+									>
+										<svg
+											className="w-4 h-4"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<title>Copy</title>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+											/>
+										</svg>
+									</button>
+								)}
+							</div>
 						</div>
 						<div>
 							<p className="text-[11px] uppercase tracking-wide text-fg-muted">
@@ -625,11 +684,9 @@ function InfraWorkspaceCard({
 							onClick={() => {
 								setIsEditing(true);
 							}}
-							disabled={isLoading || isDeleting || enableEc2}
+							disabled={isLoading || isDeleting}
 							className="flex-1 px-3 py-2 text-sm text-fg-muted hover:text-fg hover:bg-secondary-hover border border-transparent hover:border-border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-							title={
-								enableEc2 ? "Stop EC2 before editing" : "Edit configuration"
-							}
+							title="Edit configuration"
 						>
 							<svg
 								className="w-4 h-4"
@@ -706,7 +763,7 @@ function InfraWorkspaceCard({
 }
 
 export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
-	const { accessToken } = useUser();
+	const { user, accessToken } = useUser();
 	const { decryptedMetadata, isLoading: isMetadataLoading } =
 		useDecryptedUserMetadata();
 	const { openUserProfile } = useUserProfileStore();
@@ -787,6 +844,19 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 		return workspacesQuery.data?.workspaces.map((ws) => ws.name) ?? [];
 	}, [workspacesQuery.data]);
 
+	const githubUsername = useMemo(() => {
+		if (user !== null) {
+			if (
+				typeof user.nickname === "string" &&
+				user.nickname !== "" &&
+				user.nickname !== user.email
+			) {
+				return user.nickname;
+			}
+		}
+		return null;
+	}, [user]);
+
 	const awsReady = useMemo(() => {
 		return (
 			infraCredentials.sshPublicKey.trim() !== "" &&
@@ -827,13 +897,18 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 			setWorkspaceError("That workspace already exists.");
 			return;
 		}
-		if (workspaceMode === WORKSPACE_MODES.VCS && githubOrg.trim() === "") {
-			setWorkspaceError(
-				useGithubUsername
-					? "Enter your GitHub username for VCS mode."
-					: "Enter a GitHub organization for VCS mode.",
-			);
-			return;
+		if (workspaceMode === WORKSPACE_MODES.VCS) {
+			if (useGithubUsername) {
+				if (githubUsername === null) {
+					setWorkspaceError(
+						"Could not determine your GitHub username. Please log in with GitHub.",
+					);
+					return;
+				}
+			} else if (githubOrg.trim() === "") {
+				setWorkspaceError("Enter a GitHub organization for VCS mode.");
+				return;
+			}
 		}
 
 		setIsWorkspaceSaving(true);
@@ -858,7 +933,9 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							: undefined,
 					githubOrg:
 						workspaceMode === WORKSPACE_MODES.VCS
-							? githubOrg.trim()
+							? useGithubUsername
+								? githubUsername
+								: githubOrg.trim()
 							: undefined,
 				}),
 			});
@@ -975,7 +1052,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	};
 
 	return (
-		<div className="flex-1 overflow-y-auto scrollbar-thin">
+		<div className="flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable_both-edges]">
 			<div className="max-w-5xl mx-auto px-3 pt-6 pb-6 md:px-6 md:pt-8 md:pb-8 space-y-6">
 				<div className="flex items-center justify-between gap-4">
 					<div>
@@ -1186,38 +1263,50 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 											label="Toggle personal account"
 										/>
 									</div>
-									<div>
-										<label
-											htmlFor="github-org"
-											className="block text-xs font-medium text-fg-muted mb-1.5"
-										>
-											{useGithubUsername
-												? "GitHub Username"
-												: "GitHub Organization"}
-										</label>
-										<input
-											id="github-org"
-											type="text"
-											value={githubOrg}
-											onChange={(event) => {
-												setGithubOrg(event.target.value);
-												setWorkspaceError(null);
-											}}
-											placeholder={
-												useGithubUsername ? "your-username" : "org-name"
-											}
-											className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-											disabled={!canAddWorkspace}
-										/>
-										<p className="text-[11px] text-fg-subtle mt-1">
-											The workspace will be linked to{" "}
-											<span className="font-mono text-fg-muted">
-												{githubOrg.trim() ||
-													(useGithubUsername ? "username" : "org")}
-												/{newWorkspace.trim() || "repo"}
-											</span>
-										</p>
-									</div>
+									{useGithubUsername ? (
+										<div className="p-3 bg-bg-muted border border-border rounded-md">
+											<p className="text-[11px] text-fg-subtle">
+												The workspace will be linked to{" "}
+												<span className="font-mono text-fg-muted">
+													{githubUsername ?? "your-username"}/
+													{newWorkspace.trim() || "repo"}
+												</span>
+											</p>
+											{githubUsername === null && (
+												<p className="text-[11px] text-amber-400 mt-1">
+													Could not detect GitHub username from your account.
+												</p>
+											)}
+										</div>
+									) : (
+										<div>
+											<label
+												htmlFor="github-org"
+												className="block text-xs font-medium text-fg-muted mb-1.5"
+											>
+												Organization
+											</label>
+											<input
+												id="github-org"
+												type="text"
+												value={githubOrg}
+												onChange={(event) => {
+													setGithubOrg(event.target.value);
+													setWorkspaceError(null);
+												}}
+												placeholder="org-name"
+												className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+												disabled={!canAddWorkspace}
+											/>
+											<p className="text-[11px] text-fg-subtle mt-1">
+												The workspace will be linked to{" "}
+												<span className="font-mono text-fg-muted">
+													{githubOrg.trim() || "org"}/
+													{newWorkspace.trim() || "repo"}
+												</span>
+											</p>
+										</div>
+									)}
 									<div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200">
 										<p className="font-medium mb-1">VCS-connected workspace</p>
 										<p>

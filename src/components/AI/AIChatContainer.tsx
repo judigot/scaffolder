@@ -740,7 +740,7 @@ export function AIChatContainer({
 
 			{/* Infra panel - Show only when infra tab is active */}
 			{activeTab === "infra" && (
-				<div className="flex flex-col flex-1 min-w-0 bg-bg">
+				<div className="flex flex-col flex-1 w-full min-w-0 bg-bg">
 					<InfraPanel
 						onConnectAgent={() => {
 							onTabChange("terminal");
