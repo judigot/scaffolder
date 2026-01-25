@@ -5,6 +5,8 @@ import CustomModal from "@/components/Modal/base/CustomModal.tsx";
 import GroupedSelect, { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
 import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
 import {
+	AWS_REGION_GROUPS,
+	DEFAULT_AWS_REGION,
 	DEFAULT_EC2_INSTANCE_TYPE,
 	DEFAULT_RDS_INSTANCE_TYPE,
 	EC2_INSTANCE_GROUPS,
@@ -168,6 +170,8 @@ function InfraWorkspaceCard({
 		DEFAULT_RDS_INSTANCE_TYPE,
 	);
 	const [editDiskSize, setEditDiskSize] = useState<number>(10);
+	const [editRegion, setEditRegion] = useState<string>(DEFAULT_AWS_REGION);
+	const [currentRegion, setCurrentRegion] = useState<string | null>(null);
 	const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
 	const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
 	const previousValueRef = useRef<boolean>(false);
@@ -458,11 +462,14 @@ function InfraWorkspaceCard({
 			const enableRds = getVar("TF_VAR_enable_rds");
 			const rdsClass = getVar("TF_VAR_db_instance_class");
 			const diskSize = getVar("TF_VAR_disk_size");
+			const region = getVar("TF_VAR_aws_region");
 
 			setEditEc2Type(instanceType ?? DEFAULT_EC2_INSTANCE_TYPE);
 			setEditEnableRds(enableRds === "true");
 			setEditRdsClass(rdsClass ?? DEFAULT_RDS_INSTANCE_TYPE);
 			setEditDiskSize(diskSize !== null ? parseInt(diskSize, 10) : 10);
+			setEditRegion(region ?? DEFAULT_AWS_REGION);
+			setCurrentRegion(region);
 
 			setIsEditing(true);
 		} catch (err) {
@@ -502,6 +509,7 @@ function InfraWorkspaceCard({
 						diskSize: editDiskSize,
 						enableRds: editEnableRds,
 						rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
+						awsRegion: editRegion,
 					}),
 				},
 			);
@@ -739,6 +747,43 @@ function InfraWorkspaceCard({
 						>
 							Cancel
 						</button>
+					</div>
+					<div>
+						<label
+							htmlFor={`edit-region-${workspaceValue}`}
+							className="block text-[11px] text-fg-subtle mb-1"
+						>
+							AWS Region
+						</label>
+						<GroupedSelect
+							id={`edit-region-${workspaceValue}`}
+							value={editRegion}
+							onChange={setEditRegion}
+							groups={AWS_REGION_GROUPS}
+							aria-label="AWS region"
+						/>
+						{currentRegion !== null && editRegion !== currentRegion && (
+							<div className="mt-2 p-2 bg-amber-900/30 border border-amber-700/50 rounded-md">
+								<p className="text-[10px] text-amber-300 flex items-start gap-1.5">
+									<svg
+										className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+									>
+										<title>Warning</title>
+										<path
+											fillRule="evenodd"
+											d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+											clipRule="evenodd"
+										/>
+									</svg>
+									<span>
+										Changing region will destroy and recreate all resources.
+										Data will be lost.
+									</span>
+								</p>
+							</div>
+						)}
 					</div>
 					<div>
 						<label

@@ -424,6 +424,7 @@ interface IUpdateWorkspaceConfigPayload {
 	diskSize?: unknown;
 	enableRds?: unknown;
 	rdsInstanceClass?: unknown;
+	awsRegion?: unknown;
 }
 
 router.post("/workspace/:workspaceName/config", async (c) => {
@@ -516,12 +517,21 @@ router.post("/workspace/:workspaceName/config", async (c) => {
 			});
 		}
 
+		if (typeof body.awsRegion === "string" && body.awsRegion !== "") {
+			variables.push({
+				key: "TF_VAR_aws_region",
+				value: body.awsRegion,
+				category: "env",
+				sensitive: false,
+			});
+		}
+
 		if (variables.length === 0) {
 			return c.json(
 				{
 					error: "No configuration changes provided",
 					message:
-						"Provide at least one of: ec2InstanceType, enableRds, rdsInstanceClass",
+						"Provide at least one of: awsRegion, ec2InstanceType, diskSize, enableRds, rdsInstanceClass",
 				},
 				400,
 			);

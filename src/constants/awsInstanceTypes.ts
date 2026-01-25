@@ -210,6 +210,131 @@ export const RDS_INSTANCE_GROUPS: IInstanceTypeGroup[] = [
 	},
 ] as const;
 
+export interface IAwsRegion {
+	value: string;
+	label: string;
+	description: string;
+}
+
+export interface IAwsRegionGroup {
+	label: string;
+	options: IAwsRegion[];
+}
+
+export const AWS_REGION_GROUPS: IAwsRegionGroup[] = [
+	{
+		label: "US East",
+		options: [
+			{
+				value: "us-east-1",
+				label: "us-east-1",
+				description: "N. Virginia",
+			},
+			{
+				value: "us-east-2",
+				label: "us-east-2",
+				description: "Ohio",
+			},
+		],
+	},
+	{
+		label: "US West",
+		options: [
+			{
+				value: "us-west-1",
+				label: "us-west-1",
+				description: "N. California",
+			},
+			{
+				value: "us-west-2",
+				label: "us-west-2",
+				description: "Oregon",
+			},
+		],
+	},
+	{
+		label: "Europe",
+		options: [
+			{
+				value: "eu-west-1",
+				label: "eu-west-1",
+				description: "Ireland",
+			},
+			{
+				value: "eu-west-2",
+				label: "eu-west-2",
+				description: "London",
+			},
+			{
+				value: "eu-west-3",
+				label: "eu-west-3",
+				description: "Paris",
+			},
+			{
+				value: "eu-central-1",
+				label: "eu-central-1",
+				description: "Frankfurt",
+			},
+			{
+				value: "eu-north-1",
+				label: "eu-north-1",
+				description: "Stockholm",
+			},
+		],
+	},
+	{
+		label: "Asia Pacific",
+		options: [
+			{
+				value: "ap-northeast-1",
+				label: "ap-northeast-1",
+				description: "Tokyo",
+			},
+			{
+				value: "ap-northeast-2",
+				label: "ap-northeast-2",
+				description: "Seoul",
+			},
+			{
+				value: "ap-southeast-1",
+				label: "ap-southeast-1",
+				description: "Singapore",
+			},
+			{
+				value: "ap-southeast-2",
+				label: "ap-southeast-2",
+				description: "Sydney",
+			},
+			{
+				value: "ap-south-1",
+				label: "ap-south-1",
+				description: "Mumbai",
+			},
+		],
+	},
+	{
+		label: "South America",
+		options: [
+			{
+				value: "sa-east-1",
+				label: "sa-east-1",
+				description: "São Paulo",
+			},
+		],
+	},
+	{
+		label: "Canada",
+		options: [
+			{
+				value: "ca-central-1",
+				label: "ca-central-1",
+				description: "Montreal",
+			},
+		],
+	},
+] as const;
+
+export const DEFAULT_AWS_REGION = "us-east-1";
 export const DEFAULT_EC2_INSTANCE_TYPE = "t3.small";
 export const DEFAULT_RDS_INSTANCE_TYPE = "db.t3.small";
 
