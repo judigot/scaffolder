@@ -95,7 +95,7 @@ app.post("/chat", async (c) => {
 		const tools = createRemoteAgentTools(client);
 
 		const result = streamText({
-			model: openai("gpt-5-nano"),
+			model: openai("gpt-4o-mini"),
 			system: REMOTE_AGENT_SYSTEM_PROMPT,
 			messages: convertedMessages,
 			tools,
@@ -108,8 +108,9 @@ app.post("/chat", async (c) => {
 		return result.toUIMessageStreamResponse();
 	} catch (err: unknown) {
 		disconnect(client);
-		console.error("Agent chat error:", err);
-		return c.json({ error: "Internal server error" }, 500);
+		const errorMessage = err instanceof Error ? err.message : String(err);
+		console.error("Agent chat error:", errorMessage, err);
+		return c.json({ error: "Internal server error", details: errorMessage }, 500);
 	}
 });
 
