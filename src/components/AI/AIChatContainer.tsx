@@ -14,16 +14,12 @@ import InfraPanel from "@/components/AI/InfraPanel.tsx";
 import type { TabType } from "@/components/AI/TabBar.tsx";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
-import { TerminalMode } from "@/components/Terminal/index.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
-import { useTerminalStore } from "@/useTerminalStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
-import { getApiUrl } from "@/utils/getApiUrl.ts";
-import { parseWorkspaceValue } from "@/utils/infraWorkspaces.ts";
 import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
 import { getRandomIntro } from "@/utils/randomIntro.ts";
 import { validateSchemaInfoFromResponse } from "@/utils/schemaInfoValidator.ts";
@@ -453,13 +449,11 @@ function extractSchemaFromMessages(
 interface IAIChatContainerProps {
 	activeTab: TabType;
 	onTabChange: (tab: TabType) => void;
-	onTerminalConnectionChange?: (connected: boolean) => void;
 }
 
 export function AIChatContainer({
 	activeTab,
 	onTabChange,
-	onTerminalConnectionChange,
 }: IAIChatContainerProps) {
 	const [input, setInput] = useState("");
 
@@ -475,95 +469,7 @@ export function AIChatContainer({
 	} = useProjectStore();
 	const { userFiles: storeUserFiles } = useMockDatabaseStore();
 	const { decryptedMetadata } = useDecryptedUserMetadata();
-	const { user, accessToken } = useUser();
-
-	// Terminal credentials from decrypted metadata
-	const terminalSshPrivateKey = useMemo(() => {
-		if (
-			decryptedMetadata &&
-			typeof decryptedMetadata === "object" &&
-			"infra" in decryptedMetadata &&
-			decryptedMetadata.infra &&
-			typeof decryptedMetadata.infra === "object" &&
-			"sshPrivateKey" in decryptedMetadata.infra &&
-			typeof (decryptedMetadata.infra as Record<string, unknown>)
-				.sshPrivateKey === "string"
-		) {
-			return (decryptedMetadata.infra as Record<string, string>).sshPrivateKey;
-		}
-		return "";
-	}, [decryptedMetadata]);
-
-	const [terminalHost, setTerminalHost] = useState<string>("");
-
-	// Terminal store for connection status
-	const { connectionStatus } = useTerminalStore();
-
-	// Fetch terraform outputs to get terminal host
-	useEffect(() => {
-		if (!accessToken || !decryptedMetadata) {
-			return;
-		}
-		const infra = decryptedMetadata.infra as
-			| Record<string, unknown>
-			| undefined;
-		if (
-			!infra ||
-			typeof infra.tfcToken !== "string" ||
-			typeof infra.tfcOrg !== "string" ||
-			infra.tfcToken === "" ||
-			infra.tfcOrg === ""
-		) {
-			return;
-		}
-
-		const workspaceList = parseWorkspaceValue(infra.tfcWorkspaces);
-		const legacyWorkspace =
-			typeof infra.tfcWorkspace === "string" ? infra.tfcWorkspace : "";
-		const workspace =
-			workspaceList.length > 0 ? workspaceList[0] : legacyWorkspace;
-		if (workspace.trim() === "") {
-			return;
-		}
-
-		const fetchOutputs = async () => {
-			try {
-				const response = await fetch(`${getApiUrl()}/terraform/status`, {
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						tfcToken: infra.tfcToken,
-						tfcOrg: infra.tfcOrg,
-						tfcWorkspace: workspace,
-					}),
-				});
-				if (response.ok) {
-					const result = (await response.json()) as {
-						outputs?: Record<string, unknown>;
-					};
-					if (
-						result.outputs &&
-						typeof result.outputs.dev_ip === "string" &&
-						result.outputs.dev_ip !== ""
-					) {
-						setTerminalHost(result.outputs.dev_ip);
-					}
-				}
-			} catch {
-				// Silently fail — terminal tab works in local mode
-			}
-		};
-		void fetchOutputs();
-	}, [accessToken, decryptedMetadata]);
-
-	const isTerminalConnected = connectionStatus === "connected";
-
-	useEffect(() => {
-		onTerminalConnectionChange?.(isTerminalConnected);
-	}, [isTerminalConnected, onTerminalConnectionChange]);
+	const { user } = useUser();
 
 	// Local state for build results
 	const [buildResult, setBuildResult] = useState<{
@@ -727,25 +633,10 @@ export function AIChatContainer({
 				</div>
 			)}
 
-			{/* Terminal panel - Show only when terminal tab is active */}
-			{activeTab === "terminal" && (
-				<div className="flex flex-col flex-1 min-w-0">
-					<TerminalMode
-						host={terminalHost}
-						sshPrivateKey={terminalSshPrivateKey}
-						accessToken={accessToken ?? undefined}
-					/>
-				</div>
-			)}
-
 			{/* Infra panel - Show only when infra tab is active */}
 			{activeTab === "infra" && (
 				<div className="flex flex-col flex-1 w-full min-w-0 bg-bg">
-					<InfraPanel
-						onConnectAgent={() => {
-							onTabChange("terminal");
-						}}
-					/>
+					<InfraPanel />
 				</div>
 			)}
 		</div>

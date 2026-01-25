@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WorkspaceVariablesPanel } from "@/components/AI/WorkspaceVariablesPanel.tsx";
 import CustomModal from "@/components/Modal/base/CustomModal.tsx";
+import { TerminalMode } from "@/components/Terminal/index.ts";
 import GroupedSelect, { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
 import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
 import {
@@ -121,9 +122,7 @@ const parseInfraCredentials = (
 
 export type { IInfraCredentials };
 
-interface IInfraPanelProps {
-	onConnectAgent?: () => void;
-}
+type IInfraPanelProps = {};
 
 interface IInfraWorkspaceCardProps {
 	workspace: string;
@@ -136,7 +135,7 @@ interface IInfraWorkspaceCardProps {
 	isMetadataLoading: boolean;
 	isDeleting: boolean;
 	isDevWorkspace?: boolean;
-	onConnectAgent?: () => void;
+	onOpenTerminal?: (host: string) => void;
 	onOpenProfile: () => void;
 	onDelete: () => void;
 }
@@ -152,7 +151,7 @@ function InfraWorkspaceCard({
 	isMetadataLoading,
 	isDeleting,
 	isDevWorkspace = false,
-	onConnectAgent,
+	onOpenTerminal,
 	onOpenProfile,
 	onDelete,
 }: IInfraWorkspaceCardProps) {
@@ -759,29 +758,33 @@ function InfraWorkspaceCard({
 							</p>
 						</div>
 					</div>
-					{infraCredentials.sshPrivateKey.trim() !== "" && onConnectAgent && (
-						<button
-							type="button"
-							onClick={onConnectAgent}
-							className="w-full mt-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-						>
-							<svg
-								className="w-4 h-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
+					{infraCredentials.sshPrivateKey.trim() !== "" &&
+						onOpenTerminal &&
+						hasPublicIp && (
+							<button
+								type="button"
+								onClick={() => {
+									onOpenTerminal(publicIp as string);
+								}}
+								className="w-full mt-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
 							>
-								<title>Terminal</title>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-								/>
-							</svg>
-							Connect Agent
-						</button>
-					)}
+								<svg
+									className="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<title>Terminal</title>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+									/>
+								</svg>
+								Open Terminal
+							</button>
+						)}
 					{infraCredentials.sshPrivateKey.trim() === "" && (
 						<div className="p-2 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200 mt-2">
 							Add your SSH private key in the profile to enable the remote
@@ -1087,7 +1090,7 @@ function InfraWorkspaceCard({
 	);
 }
 
-export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
+export default function InfraPanel(_props: IInfraPanelProps) {
 	const { user, accessToken } = useUser();
 	const { decryptedMetadata, isLoading: isMetadataLoading } =
 		useDecryptedUserMetadata();
@@ -1117,6 +1120,8 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(
 		null,
 	);
+	const [terminalHost, setTerminalHost] = useState<string | null>(null);
+	const [isTerminalExpanded, setIsTerminalExpanded] = useState<boolean>(false);
 
 	const infraCredentials = useMemo(
 		() => parseInfraCredentials(decryptedMetadata),
@@ -1440,7 +1445,9 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							infraHasEncryptedValues={infraHasEncryptedValues}
 							isMetadataLoading={isMetadataPending}
 							isDeleting={deletingWorkspace === DEV_WORKSPACE_NAME}
-							onConnectAgent={onConnectAgent}
+							onOpenTerminal={(host) => {
+								setTerminalHost(host);
+							}}
 							onOpenProfile={() => {
 								openUserProfile("infra");
 							}}
@@ -1464,7 +1471,9 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 								infraHasEncryptedValues={infraHasEncryptedValues}
 								isMetadataLoading={isMetadataPending}
 								isDeleting={deletingWorkspace === workspace}
-								onConnectAgent={onConnectAgent}
+								onOpenTerminal={(host) => {
+									setTerminalHost(host);
+								}}
 								onOpenProfile={() => {
 									openUserProfile("infra");
 								}}
@@ -1767,6 +1776,112 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 					</p>
 				</div>
 			</CustomModal>
+
+			{/* Terminal Overlay */}
+			{terminalHost !== null && (
+				<div
+					className={`fixed inset-0 z-50 flex flex-col bg-bg ${
+						isTerminalExpanded ? "" : "top-1/2"
+					}`}
+				>
+					{/* Terminal Header */}
+					<div className="flex items-center justify-between px-4 py-2 bg-secondary border-b border-border">
+						<div className="flex items-center gap-2">
+							<svg
+								className="w-4 h-4 text-fg-muted"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<title>Terminal</title>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+								/>
+							</svg>
+							<span className="text-sm font-medium text-fg">
+								{terminalHost}
+							</span>
+						</div>
+						<div className="flex items-center gap-1">
+							<button
+								type="button"
+								onClick={() => {
+									setIsTerminalExpanded(!isTerminalExpanded);
+								}}
+								className="p-1.5 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+								title={isTerminalExpanded ? "Minimize" : "Expand"}
+							>
+								{isTerminalExpanded ? (
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<title>Minimize</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M19 9l-7 7-7-7"
+										/>
+									</svg>
+								) : (
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<title>Expand</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M5 15l7-7 7 7"
+										/>
+									</svg>
+								)}
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setTerminalHost(null);
+									setIsTerminalExpanded(false);
+								}}
+								className="p-1.5 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+								title="Close terminal"
+							>
+								<svg
+									className="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<title>Close</title>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
+							</button>
+						</div>
+					</div>
+					{/* Terminal Content */}
+					<div className="flex-1 min-h-0">
+						<TerminalMode
+							host={terminalHost}
+							sshPrivateKey={infraCredentials.sshPrivateKey}
+							accessToken={accessToken ?? undefined}
+						/>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
