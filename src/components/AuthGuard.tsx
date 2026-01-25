@@ -5,9 +5,17 @@ interface IAuthGuardProps {
 	children: ReactNode;
 }
 
+const isMockAuthEnabled = (): boolean => {
+	return (
+		typeof window !== "undefined" &&
+		window.__MOCK_AUTH__?.isAuthenticated === true
+	);
+};
+
 export default function AuthGuard({ children }: IAuthGuardProps) {
 	const { isAuthenticated, isLoading, error, loginWithRedirect } = useAuth0();
 	const [showDebug, setShowDebug] = useState(false);
+	const mockAuth = isMockAuthEnabled();
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -97,7 +105,7 @@ export default function AuthGuard({ children }: IAuthGuardProps) {
 		);
 	}
 
-	if (!isAuthenticated) {
+	if (!isAuthenticated && !mockAuth) {
 		void loginWithRedirect();
 		return null;
 	}

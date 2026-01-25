@@ -5,6 +5,24 @@
 
 import { test as base, expect } from "@playwright/test";
 
+declare global {
+	interface Window {
+		__MOCK_AUTH__?: {
+			isAuthenticated: boolean;
+			isLoading: boolean;
+			user: {
+				sub: string;
+				email: string;
+				name: string;
+				nickname: string;
+				picture: string;
+			};
+			accessToken: string;
+			userMetadata: Record<string, unknown>;
+		};
+	}
+}
+
 // Mock user data matching Auth0 structure
 const mockUser = {
 	sub: "auth0|test-user-123",
@@ -100,7 +118,12 @@ export const test = base.extend<{
 			const command = body?.command || "";
 
 			// Simulate command responses
-			let response;
+			let response: {
+				success: boolean;
+				exitCode: number;
+				stdout: string;
+				stderr: string;
+			};
 
 			if (command.startsWith("ls")) {
 				response = {
@@ -201,7 +224,39 @@ export const test = base.extend<{
 	},
 
 	// Fixture that mocks infrastructure panel API responses
-	mockInfraApi: async ({ page }, use) => {
+	mockInfraApi: async ({ page, context }, use) => {
+		// Inject mock auth state for infrastructure panel
+		await context.addInitScript(() => {
+			window.__MOCK_AUTH__ = {
+				isAuthenticated: true,
+				isLoading: false,
+				user: {
+					sub: "auth0|test-user-123",
+					email: "test@example.com",
+					name: "Test User",
+					nickname: "testuser",
+					picture: "https://example.com/avatar.png",
+				},
+				accessToken: "mock-access-token-for-testing",
+				userMetadata: {
+					github_token: "gho_mock_github_token_for_testing",
+					env: { NODE_ENV: "development" },
+					infra: {
+						sshPublicKey: "ssh-rsa AAAA... test@example.com",
+						sshPrivateKey:
+							"-----BEGIN OPENSSH PRIVATE KEY-----\nmock-key\n-----END OPENSSH PRIVATE KEY-----",
+						awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+						awsSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+						awsRegion: "us-east-2",
+						tfcToken: "mock_tfc_token_for_testing",
+						tfcOrg: "test-org",
+						tfcWorkspace: "test-workspace",
+						tfcWorkspaces: ["test-workspace"],
+					},
+				},
+			};
+		});
+
 		// Mock user metadata endpoint with full infra credentials
 		await page.route("**/api/user-metadata", async (route) => {
 			await route.fulfill({
