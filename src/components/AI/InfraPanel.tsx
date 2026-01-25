@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import GroupedSelect, { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
 import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
+import {
+	DEFAULT_EC2_INSTANCE_TYPE,
+	DEFAULT_RDS_INSTANCE_TYPE,
+	EC2_INSTANCE_GROUPS,
+	RDS_INSTANCE_GROUPS,
+	WORKSPACE_MODES,
+	type WorkspaceMode,
+} from "@/constants/awsInstanceTypes.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import { useUserProfileStore } from "@/useUserProfileStore.ts";
@@ -14,6 +23,19 @@ import {
 import { getPassphraseFromSession } from "@/utils/passphraseSession.ts";
 import { isRecord } from "@/utils/typeGuards.ts";
 import { encryptSecret } from "@/utils/zeroKnowledgeEncryption.ts";
+
+const WORKSPACE_MODE_OPTIONS = [
+	{
+		value: WORKSPACE_MODES.API,
+		label: "Ubuntu EC2",
+		description: "API-driven with Ubuntu template",
+	},
+	{
+		value: WORKSPACE_MODES.VCS,
+		label: "VCS-connected",
+		description: "Link to a GitHub repository",
+	},
+];
 
 interface IInfraCredentials {
 	sshPublicKey: string;
@@ -528,6 +550,16 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	const { setUserMetadata: setUserMetadataStore } = useUserStore();
 	const queryClient = useQueryClient();
 	const [newWorkspace, setNewWorkspace] = useState<string>("");
+	const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
+		WORKSPACE_MODES.API,
+	);
+	const [ec2InstanceType, setEc2InstanceType] = useState<string>(
+		DEFAULT_EC2_INSTANCE_TYPE,
+	);
+	const [rdsInstanceClass, setRdsInstanceClass] = useState<string>(
+		DEFAULT_RDS_INSTANCE_TYPE,
+	);
+	const [enableRds, setEnableRds] = useState<boolean>(false);
 	const [workspaceError, setWorkspaceError] = useState<string | null>(null);
 	const [isWorkspaceSaving, setIsWorkspaceSaving] = useState<boolean>(false);
 
@@ -625,14 +657,53 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 			return;
 		}
 
-		const nextWorkspaces = normalizeWorkspaceList([
-			...existingWorkspaces,
-			trimmed,
-		]);
-		const primaryWorkspace = nextWorkspaces[0] ?? trimmed;
 		setIsWorkspaceSaving(true);
 
 		try {
+			const createResponse = await fetch(`${getApiUrl()}/terraform/workspace`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					tfcToken: infraCredentials.tfcToken,
+					tfcOrg: infraCredentials.tfcOrg,
+					workspaceName: trimmed,
+					mode: workspaceMode,
+					ec2InstanceType:
+						workspaceMode === WORKSPACE_MODES.API ? ec2InstanceType : undefined,
+					rdsInstanceClass:
+						workspaceMode === WORKSPACE_MODES.API && enableRds
+							? rdsInstanceClass
+							: undefined,
+				}),
+			});
+
+			if (!createResponse.ok) {
+				let message = "Failed to create workspace in Terraform Cloud.";
+				try {
+					const errorBody: unknown = await createResponse.json();
+					if (
+						errorBody !== null &&
+						typeof errorBody === "object" &&
+						"message" in errorBody &&
+						typeof (errorBody as Record<string, unknown>).message === "string"
+					) {
+						message = (errorBody as Record<string, string>).message;
+					}
+				} catch {
+					message = "Failed to create workspace in Terraform Cloud.";
+				}
+				throw new Error(message);
+			}
+
+			const nextWorkspaces = normalizeWorkspaceList([
+				...existingWorkspaces,
+				trimmed,
+			]);
+			const primaryWorkspace = nextWorkspaces[0] ?? trimmed;
+
 			const encryptedEntries = {
 				sshPublicKey: JSON.stringify(
 					await encryptSecret(
@@ -740,6 +811,10 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 				queryKey: ["userMetadata", user.sub],
 			});
 			setNewWorkspace("");
+			setWorkspaceMode(WORKSPACE_MODES.API);
+			setEc2InstanceType(DEFAULT_EC2_INSTANCE_TYPE);
+			setRdsInstanceClass(DEFAULT_RDS_INSTANCE_TYPE);
+			setEnableRds(false);
 		} catch (error: unknown) {
 			if (error instanceof Error) {
 				setWorkspaceError(error.message);
@@ -822,7 +897,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 						</div>
 					)}
 
-					<div className="p-4 bg-secondary border border-border rounded-lg space-y-3">
+					<div className="p-4 bg-secondary border border-border rounded-lg space-y-4">
 						<div className="flex items-center justify-between">
 							<p className="text-sm font-medium text-fg">Add workspace</p>
 							<button
@@ -835,32 +910,135 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 								Manage credentials
 							</button>
 						</div>
-						<div className="flex flex-col gap-2 md:flex-row">
-							<input
-								type="text"
-								value={newWorkspace}
-								onChange={(event) => {
-									setNewWorkspace(event.target.value);
-									setWorkspaceError(null);
-								}}
-								placeholder="my-workspace"
-								className="flex-1 px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-								disabled={!canAddWorkspace}
-							/>
+
+						<div className="space-y-3">
+							<div>
+								<label
+									htmlFor="workspace-name"
+									className="block text-xs font-medium text-fg-muted mb-1.5"
+								>
+									Workspace name
+								</label>
+								<input
+									id="workspace-name"
+									type="text"
+									value={newWorkspace}
+									onChange={(event) => {
+										setNewWorkspace(event.target.value);
+										setWorkspaceError(null);
+									}}
+									placeholder="my-workspace"
+									className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+									disabled={!canAddWorkspace}
+								/>
+							</div>
+
+							<div>
+								<label
+									htmlFor="workspace-mode"
+									className="block text-xs font-medium text-fg-muted mb-1.5"
+								>
+									Mode
+								</label>
+								<SimpleSelect
+									id="workspace-mode"
+									value={workspaceMode}
+									onChange={(value) => {
+										setWorkspaceMode(value as WorkspaceMode);
+									}}
+									options={WORKSPACE_MODE_OPTIONS}
+									disabled={!canAddWorkspace}
+									aria-label="Workspace mode"
+								/>
+							</div>
+
+							{workspaceMode === WORKSPACE_MODES.API && (
+								<>
+									<div>
+										<label
+											htmlFor="ec2-instance-type"
+											className="block text-xs font-medium text-fg-muted mb-1.5"
+										>
+											EC2 Instance Type
+										</label>
+										<GroupedSelect
+											id="ec2-instance-type"
+											value={ec2InstanceType}
+											onChange={setEc2InstanceType}
+											groups={EC2_INSTANCE_GROUPS}
+											disabled={!canAddWorkspace}
+											aria-label="EC2 instance type"
+										/>
+									</div>
+
+									<div className="flex items-center justify-between py-2">
+										<div>
+											<p className="text-xs font-medium text-fg-muted">
+												Include RDS Database
+											</p>
+											<p className="text-[11px] text-fg-subtle mt-0.5">
+												Add a managed PostgreSQL database
+											</p>
+										</div>
+										<ToggleSwitch
+											checked={enableRds}
+											onChange={() => {
+												setEnableRds(!enableRds);
+											}}
+											disabled={!canAddWorkspace}
+											label="Toggle RDS"
+										/>
+									</div>
+
+									{enableRds && (
+										<div>
+											<label
+												htmlFor="rds-instance-class"
+												className="block text-xs font-medium text-fg-muted mb-1.5"
+											>
+												RDS Instance Class
+											</label>
+											<GroupedSelect
+												id="rds-instance-class"
+												value={rdsInstanceClass}
+												onChange={setRdsInstanceClass}
+												groups={RDS_INSTANCE_GROUPS}
+												disabled={!canAddWorkspace}
+												aria-label="RDS instance class"
+											/>
+										</div>
+									)}
+								</>
+							)}
+
+							{workspaceMode === WORKSPACE_MODES.VCS && (
+								<div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200">
+									<p className="font-medium mb-1">VCS-connected workspace</p>
+									<p>
+										After creating the workspace, connect it to your GitHub
+										repository in Terraform Cloud.
+									</p>
+								</div>
+							)}
+						</div>
+
+						<div className="flex flex-col gap-2 pt-2 border-t border-border md:flex-row">
 							<button
 								type="button"
 								onClick={() => {
 									void handleAddWorkspace();
 								}}
 								disabled={!canAddWorkspace}
-								className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+								className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								{isWorkspaceSaving ? "Saving..." : "Add"}
+								{isWorkspaceSaving ? "Creating..." : "Create Workspace"}
 							</button>
 						</div>
+
 						{workspaceError && (
 							<p className="text-xs text-red-200">{workspaceError}</p>
 						)}
+
 						<p className="text-xs text-fg-muted">
 							Workspaces use your global Terraform Cloud organization.
 						</p>
