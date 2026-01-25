@@ -96,7 +96,8 @@ interface IInfraPanelProps {
 
 export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	const { accessToken } = useUser();
-	const { decryptedMetadata } = useDecryptedUserMetadata();
+	const { decryptedMetadata, isLoading: isMetadataLoading } =
+		useDecryptedUserMetadata();
 	const { openUserProfile } = useUserProfileStore();
 	const [enableEc2, setEnableEc2] = useState<boolean>(false);
 	const [runStatus, setRunStatus] = useState<string | null>(null);
@@ -155,7 +156,11 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 			infraCredentials.tfcWorkspace,
 		],
 		enabled:
-			infraReady && accessToken !== null && accessToken !== "" && !isLoading,
+			!isMetadataLoading &&
+			infraReady &&
+			accessToken !== null &&
+			accessToken !== "" &&
+			!isLoading,
 		staleTime: 30_000,
 		queryFn: async () => {
 			if (accessToken === null || accessToken === "") {
@@ -194,6 +199,10 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	}, [statusQuery.error]);
 
 	const isStatusFetching = statusQuery.isLoading || statusQuery.isFetching;
+	const isMetadataResolved = decryptedMetadata !== null;
+	const shouldShowSkeleton =
+		isMetadataLoading || !isMetadataResolved || isStatusFetching;
+	const shouldShowNotices = !shouldShowSkeleton;
 
 	useEffect(() => {
 		if (!runId || accessToken === null || accessToken === "") {
@@ -372,7 +381,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 									Terraform Workspace
 								</p>
 								<p className="text-lg font-semibold text-fg">{workspaceName}</p>
-								{isStatusFetching ? (
+								{shouldShowSkeleton ? (
 									<div className="mt-2 h-3 w-20 bg-border rounded animate-pulse" />
 								) : (
 									<p className="text-xs text-fg-subtle mt-1">
@@ -383,12 +392,12 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							<ToggleSwitch
 								checked={enableEc2}
 								onChange={handleToggle}
-								disabled={isLoading || !infraReady || isStatusFetching}
+								disabled={isLoading || !infraReady || shouldShowSkeleton}
 								label="Toggle EC2 instance"
 							/>
 						</div>
 
-						{!infraReady && !tfcReady && !isStatusFetching && (
+						{!infraReady && !tfcReady && shouldShowNotices && (
 							<div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200 space-y-2">
 								<p className="font-medium">Connect Terraform Cloud</p>
 								<p>
@@ -408,14 +417,14 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							</div>
 						)}
 
-						{!infraReady && tfcReady && !awsReady && !isStatusFetching && (
+						{!infraReady && tfcReady && !awsReady && shouldShowNotices && (
 							<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
 								Add your SSH public key and AWS credentials in the profile panel
 								to enable toggling.
 							</div>
 						)}
 
-						{!infraReady && infraHasEncryptedValues && !isStatusFetching && (
+						{!infraReady && infraHasEncryptedValues && shouldShowNotices && (
 							<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
 								Unlock your credentials with your passphrase to enable toggling.
 							</div>
@@ -427,7 +436,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							</div>
 						)}
 
-						{isStatusFetching ? (
+						{shouldShowSkeleton ? (
 							<div className="grid gap-3 md:grid-cols-2">
 								<div className="p-3 bg-secondary border border-border rounded-md animate-pulse">
 									<div className="h-3 w-16 bg-border rounded" />
@@ -453,7 +462,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							</div>
 						)}
 
-						{showConnectionDetails && !isStatusFetching && (
+						{showConnectionDetails && !shouldShowSkeleton && (
 							<div className="pt-2 border-t border-border space-y-3">
 								<p className="text-sm font-medium text-fg">
 									Connection Details
