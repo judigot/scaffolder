@@ -4,55 +4,56 @@
  * Inspired by Termux-style terminal UIs
  */
 
-@theme {
+/* CSS Custom Properties - Available for JS and inline styles */
+:root {
   /* ============================================
      TERMINAL VIEWPORT
      ============================================ */
-  --terminal-bg: oklch(8% 0 0);
-  --terminal-fg: oklch(92% 0 0);
-  --terminal-cursor: oklch(72% 0.18 140);
-  --terminal-selection: oklch(35% 0.1 250);
+  --terminal-bg: #141414;
+  --terminal-fg: #e5e5e5;
+  --terminal-cursor: #4ade80;
+  --terminal-selection: #3b4261;
 
   /* Terminal text colors (xterm-compatible) */
-  --terminal-black: oklch(15% 0 0);
-  --terminal-red: oklch(63.7% 0.237 25.331);
-  --terminal-green: oklch(72.3% 0.219 149.579);
-  --terminal-yellow: oklch(82.8% 0.189 84.429);
-  --terminal-blue: oklch(55% 0.18 250);
-  --terminal-magenta: oklch(60% 0.2 320);
-  --terminal-cyan: oklch(68.5% 0.153 215.221);
-  --terminal-white: oklch(92% 0 0);
+  --terminal-black: #262626;
+  --terminal-red: #ef4444;
+  --terminal-green: #4ade80;
+  --terminal-yellow: #facc15;
+  --terminal-blue: #3b82f6;
+  --terminal-magenta: #c084fc;
+  --terminal-cyan: #22d3ee;
+  --terminal-white: #e5e5e5;
 
   /* Bright variants */
-  --terminal-bright-black: oklch(40% 0 0);
-  --terminal-bright-red: oklch(70% 0.25 25);
-  --terminal-bright-green: oklch(80% 0.22 150);
-  --terminal-bright-yellow: oklch(90% 0.19 85);
-  --terminal-bright-blue: oklch(65% 0.18 250);
-  --terminal-bright-magenta: oklch(70% 0.2 320);
-  --terminal-bright-cyan: oklch(75% 0.15 215);
-  --terminal-bright-white: oklch(98% 0 0);
+  --terminal-bright-black: #525252;
+  --terminal-bright-red: #f87171;
+  --terminal-bright-green: #86efac;
+  --terminal-bright-yellow: #fde047;
+  --terminal-bright-blue: #60a5fa;
+  --terminal-bright-magenta: #d8b4fe;
+  --terminal-bright-cyan: #67e8f9;
+  --terminal-bright-white: #fafafa;
 
   /* ============================================
      TERMINAL TOP BAR
      ============================================ */
-  --terminal-topbar-bg: oklch(12% 0 0);
-  --terminal-topbar-border: oklch(22% 0 0);
-  --terminal-topbar-text: oklch(75% 0 0);
-  --terminal-topbar-text-active: oklch(95% 0 0);
+  --terminal-topbar-bg: #1a1a1a;
+  --terminal-topbar-border: #2a2a2a;
+  --terminal-topbar-text: #a0a0a0;
+  --terminal-topbar-text-active: #f0f0f0;
 
   /* Secondary tabs */
   --terminal-tab-bg: transparent;
-  --terminal-tab-bg-hover: oklch(18% 0 0);
-  --terminal-tab-bg-active: oklch(22% 0 0);
-  --terminal-tab-border-active: oklch(72% 0.18 140);
+  --terminal-tab-bg-hover: #252525;
+  --terminal-tab-bg-active: #2a2a2a;
+  --terminal-tab-border-active: #4ade80;
 
   /* ============================================
      CONNECTION STATUS INDICATORS
      ============================================ */
-  --terminal-status-connected: oklch(72.3% 0.219 149.579);
-  --terminal-status-reconnecting: oklch(82.8% 0.189 84.429);
-  --terminal-status-disconnected: oklch(63.7% 0.237 25.331);
+  --terminal-status-connected: #4ade80;
+  --terminal-status-reconnecting: #facc15;
+  --terminal-status-disconnected: #ef4444;
 
   /* ============================================
      ACTION BUTTONS (Thumb-Optimized)
@@ -64,98 +65,117 @@
   --terminal-action-btn-font-weight: 600;
 
   /* YES button - success/confirm */
-  --terminal-btn-yes-bg: oklch(25% 0.08 150);
-  --terminal-btn-yes-bg-hover: oklch(30% 0.1 150);
-  --terminal-btn-yes-bg-active: oklch(35% 0.12 150);
-  --terminal-btn-yes-text: oklch(85% 0.15 150);
-  --terminal-btn-yes-border: oklch(40% 0.12 150);
+  --terminal-btn-yes-bg: #1a3326;
+  --terminal-btn-yes-bg-hover: #224433;
+  --terminal-btn-yes-bg-active: #2a5540;
+  --terminal-btn-yes-text: #86efac;
+  --terminal-btn-yes-border: #2f7d4f;
 
   /* NO button - reject/cancel */
-  --terminal-btn-no-bg: oklch(25% 0.08 25);
-  --terminal-btn-no-bg-hover: oklch(30% 0.1 25);
-  --terminal-btn-no-bg-active: oklch(35% 0.12 25);
-  --terminal-btn-no-text: oklch(85% 0.15 25);
-  --terminal-btn-no-border: oklch(40% 0.12 25);
+  --terminal-btn-no-bg: #331a1a;
+  --terminal-btn-no-bg-hover: #442222;
+  --terminal-btn-no-bg-active: #552a2a;
+  --terminal-btn-no-text: #fca5a5;
+  --terminal-btn-no-border: #7d2f2f;
 
   /* INTERRUPT button - Ctrl+C */
-  --terminal-btn-interrupt-bg: oklch(25% 0.08 60);
-  --terminal-btn-interrupt-bg-hover: oklch(30% 0.1 60);
-  --terminal-btn-interrupt-bg-active: oklch(35% 0.12 60);
-  --terminal-btn-interrupt-text: oklch(85% 0.15 60);
-  --terminal-btn-interrupt-border: oklch(40% 0.12 60);
+  --terminal-btn-interrupt-bg: #33291a;
+  --terminal-btn-interrupt-bg-hover: #443622;
+  --terminal-btn-interrupt-bg-active: #55442a;
+  --terminal-btn-interrupt-text: #fde68a;
+  --terminal-btn-interrupt-border: #7d5f2f;
 
   /* EXIT button - close/exit */
-  --terminal-btn-exit-bg: oklch(18% 0 0);
-  --terminal-btn-exit-bg-hover: oklch(22% 0 0);
-  --terminal-btn-exit-bg-active: oklch(26% 0 0);
-  --terminal-btn-exit-text: oklch(70% 0 0);
-  --terminal-btn-exit-border: oklch(30% 0 0);
+  --terminal-btn-exit-bg: #1f1f1f;
+  --terminal-btn-exit-bg-hover: #2a2a2a;
+  --terminal-btn-exit-bg-active: #333333;
+  --terminal-btn-exit-text: #808080;
+  --terminal-btn-exit-border: #404040;
 
   /* ============================================
      MODE INDICATOR BAR
      ============================================ */
-  --terminal-mode-bar-bg: oklch(10% 0 0);
-  --terminal-mode-bar-border: oklch(20% 0 0);
+  --terminal-mode-bar-bg: #181818;
+  --terminal-mode-bar-border: #282828;
   --terminal-mode-indicator-bg: transparent;
-  --terminal-mode-indicator-bg-active: oklch(22% 0.05 250);
-  --terminal-mode-indicator-text: oklch(55% 0 0);
-  --terminal-mode-indicator-text-active: oklch(90% 0 0);
-  --terminal-mode-indicator-accent: oklch(65% 0.18 250);
+  --terminal-mode-indicator-bg-active: #2a2a40;
+  --terminal-mode-indicator-text: #666666;
+  --terminal-mode-indicator-text-active: #e0e0e0;
+  --terminal-mode-indicator-accent: #3b82f6;
 
   /* ============================================
      TERMINAL COMPOSER (Input)
      ============================================ */
-  --terminal-composer-bg: oklch(10% 0 0);
-  --terminal-composer-input-bg: oklch(14% 0 0);
-  --terminal-composer-input-border: oklch(25% 0 0);
-  --terminal-composer-input-border-focus: oklch(55% 0.15 250);
-  --terminal-composer-placeholder: oklch(45% 0 0);
-  --terminal-composer-text: oklch(92% 0 0);
-  --terminal-composer-send-bg: oklch(55% 0.18 250);
-  --terminal-composer-send-bg-hover: oklch(60% 0.18 250);
-  --terminal-composer-send-text: oklch(98% 0 0);
-  --terminal-composer-send-disabled: oklch(35% 0 0);
+  --terminal-composer-bg: #181818;
+  --terminal-composer-input-bg: #1f1f1f;
+  --terminal-composer-input-border: #333333;
+  --terminal-composer-input-border-focus: #3b82f6;
+  --terminal-composer-placeholder: #555555;
+  --terminal-composer-text: #e5e5e5;
+  --terminal-composer-send-bg: #3b82f6;
+  --terminal-composer-send-bg-hover: #4a90f7;
+  --terminal-composer-send-text: #ffffff;
+  --terminal-composer-send-disabled: #404040;
 
   /* ============================================
      MESSAGE STATES
      ============================================ */
-  --terminal-msg-pending-bg: oklch(20% 0.05 250);
-  --terminal-msg-pending-border: oklch(35% 0.1 250);
-  --terminal-msg-applied-bg: oklch(18% 0.05 150);
-  --terminal-msg-applied-border: oklch(35% 0.1 150);
-  --terminal-msg-failed-bg: oklch(20% 0.08 25);
-  --terminal-msg-failed-border: oklch(40% 0.12 25);
+  --terminal-msg-pending-bg: #1f2937;
+  --terminal-msg-pending-border: #374151;
+  --terminal-msg-applied-bg: #1a332a;
+  --terminal-msg-applied-border: #2f5a45;
+  --terminal-msg-failed-bg: #331f1f;
+  --terminal-msg-failed-border: #5a2f2f;
 
   /* ============================================
      SCROLLBAR (Terminal-style)
      ============================================ */
-  --terminal-scrollbar-track: oklch(12% 0 0);
-  --terminal-scrollbar-thumb: oklch(28% 0 0);
-  --terminal-scrollbar-thumb-hover: oklch(35% 0 0);
+  --terminal-scrollbar-track: #1a1a1a;
+  --terminal-scrollbar-thumb: #3a3a3a;
+  --terminal-scrollbar-thumb-hover: #4a4a4a;
   --terminal-scrollbar-width: 8px;
 
   /* ============================================
      OUTPUT BLOCKS (Warp-inspired)
      ============================================ */
-  --terminal-output-block-bg: oklch(11% 0 0);
-  --terminal-output-block-border: oklch(20% 0 0);
+  --terminal-output-block-bg: #191919;
+  --terminal-output-block-border: #282828;
   --terminal-output-block-radius: 0.5rem;
-  --terminal-output-prompt-color: oklch(65% 0.15 250);
-  --terminal-output-command-color: oklch(90% 0 0);
-  --terminal-output-stdout-color: oklch(75% 0 0);
-  --terminal-output-stderr-color: oklch(70% 0.2 25);
+  --terminal-output-prompt-color: #60a5fa;
+  --terminal-output-command-color: #e5e5e5;
+  --terminal-output-stdout-color: #a0a0a0;
+  --terminal-output-stderr-color: #f87171;
 
   /* ============================================
      GESTURE INDICATORS
      ============================================ */
-  --terminal-gesture-indicator-bg: oklch(20% 0.05 250);
-  --terminal-gesture-indicator-border: oklch(35% 0.1 250);
+  --terminal-gesture-indicator-bg: #2a2a40;
+  --terminal-gesture-indicator-border: #404060;
 
   /* ============================================
      MOBILE TOUCH TARGETS
      ============================================ */
   --terminal-touch-target-min: 44px;
   --terminal-thumb-zone-height: 80px;
+}
+
+/* Terminal viewport container */
+.terminal-viewport {
+  background: var(--terminal-bg);
+
+  /* Ensure xterm.js fills the container */
+  .xterm {
+    height: 100%;
+    padding: 8px;
+  }
+
+  .xterm-viewport {
+    overflow-y: auto !important;
+  }
+
+  .xterm-screen {
+    height: 100% !important;
+  }
 }
 
 /* Terminal scrollbar styling */
