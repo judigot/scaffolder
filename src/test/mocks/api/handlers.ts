@@ -8,7 +8,12 @@ import {
 	mockInfraCredentials,
 	mockUserMetadata,
 } from "../../fixtures/users.ts";
-import type { IMockCommandResponse } from "../auth/types.ts";
+import type {
+	IMockCommandResponse,
+	IMockTerraformRunResponse,
+	IMockWorkspaceCreateRequest,
+	IMockWorkspaceCreateResponse,
+} from "../auth/types.ts";
 
 // =============================================================================
 // CONFIGURABLE MOCK STATE
@@ -19,9 +24,13 @@ interface IMockApiState {
 	terraformStatus: "applied" | "planning" | "applying" | "errored" | "pending";
 	terraformOutputs: {
 		dev_ip?: string;
+		ssh_command?: string;
 	};
 	commandResponses: Map<string, IMockCommandResponse>;
 	isConnected: boolean;
+	workspaces: Map<string, { id: string; name: string; mode: string }>;
+	lastRunId: string | null;
+	enableEc2: boolean;
 }
 
 export const mockApiState: IMockApiState = {
@@ -29,18 +38,38 @@ export const mockApiState: IMockApiState = {
 	terraformStatus: "applied",
 	terraformOutputs: {
 		dev_ip: "54.123.45.67",
+		ssh_command: "ssh ubuntu@54.123.45.67",
 	},
 	commandResponses: new Map(),
 	isConnected: true,
+	workspaces: new Map([
+		[
+			"test-workspace",
+			{ id: "ws-test123", name: "test-workspace", mode: "api" },
+		],
+	]),
+	lastRunId: null,
+	enableEc2: true,
 };
 
 /** Reset mock state to defaults */
 export function resetMockApiState() {
 	mockApiState.userMetadata = mockUserMetadata;
 	mockApiState.terraformStatus = "applied";
-	mockApiState.terraformOutputs = { dev_ip: "54.123.45.67" };
+	mockApiState.terraformOutputs = {
+		dev_ip: "54.123.45.67",
+		ssh_command: "ssh ubuntu@54.123.45.67",
+	};
 	mockApiState.commandResponses.clear();
 	mockApiState.isConnected = true;
+	mockApiState.workspaces = new Map([
+		[
+			"test-workspace",
+			{ id: "ws-test123", name: "test-workspace", mode: "api" },
+		],
+	]);
+	mockApiState.lastRunId = null;
+	mockApiState.enableEc2 = true;
 }
 
 /** Set a mock command response */
@@ -343,5 +372,118 @@ export const handlers = [
 				"Content-Type": "text/event-stream",
 			},
 		});
+	}),
+
+	// -------------------------------------------------------------------------
+	// Terraform Workspace Creation
+	// -------------------------------------------------------------------------
+
+	http.post("/api/terraform/workspace", async ({ request }) => {
+		const authHeader = request.headers.get("Authorization");
+
+		if (!authHeader?.startsWith("Bearer ")) {
+			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		const body = (await request.json()) as IMockWorkspaceCreateRequest;
+
+		if (!body.tfcToken || !body.tfcOrg || !body.workspaceName) {
+			return HttpResponse.json(
+				{
+					error: "Missing required fields",
+					message: "tfcToken, tfcOrg, and workspaceName are required.",
+				},
+				{ status: 400 },
+			);
+		}
+
+		const workspaceId = `ws-${Date.now()}`;
+		const workspace = {
+			id: workspaceId,
+			name: body.workspaceName,
+			mode: body.mode || "api",
+		};
+
+		mockApiState.workspaces.set(body.workspaceName, workspace);
+
+		const response: IMockWorkspaceCreateResponse = {
+			success: true,
+			workspace: {
+				id: workspaceId,
+				name: body.workspaceName,
+			},
+			mode: body.mode || "api",
+			ec2InstanceType: body.ec2InstanceType ?? null,
+			rdsInstanceClass: body.rdsInstanceClass ?? null,
+		};
+
+		return HttpResponse.json(response);
+	}),
+
+	// -------------------------------------------------------------------------
+	// Terraform Run (Trigger apply/destroy)
+	// -------------------------------------------------------------------------
+
+	http.post("/api/terraform/run", async ({ request }) => {
+		const authHeader = request.headers.get("Authorization");
+
+		if (!authHeader?.startsWith("Bearer ")) {
+			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		const body = (await request.json()) as {
+			enableEc2: boolean;
+			tfcToken: string;
+			tfcOrg: string;
+			tfcWorkspace: string;
+			awsAccessKeyId: string;
+			awsSecretAccessKey: string;
+			sshPublicKey: string;
+		};
+
+		if (!body.tfcToken || !body.tfcOrg || !body.tfcWorkspace) {
+			return HttpResponse.json(
+				{ error: "Missing Terraform Cloud credentials" },
+				{ status: 400 },
+			);
+		}
+
+		mockApiState.enableEc2 = body.enableEc2;
+		const runId = `run-${Date.now()}`;
+		mockApiState.lastRunId = runId;
+
+		const response: IMockTerraformRunResponse = {
+			success: true,
+			run: {
+				id: runId,
+				status: "planning",
+			},
+		};
+
+		return HttpResponse.json(response);
+	}),
+
+	// -------------------------------------------------------------------------
+	// Terraform Run Status (Poll for run completion)
+	// -------------------------------------------------------------------------
+
+	http.post("/api/terraform/run/:runId", async ({ request, params }) => {
+		const authHeader = request.headers.get("Authorization");
+
+		if (!authHeader?.startsWith("Bearer ")) {
+			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		const { runId } = params;
+
+		const response: IMockTerraformRunResponse = {
+			success: true,
+			run: {
+				id: runId as string,
+				status: "applied",
+			},
+		};
+
+		return HttpResponse.json(response);
 	}),
 ];

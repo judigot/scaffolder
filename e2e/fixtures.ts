@@ -24,6 +24,10 @@ QyNTUxOQAAACBKMock-test-key-for-playwright...
 	awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
 	awsSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 	awsRegion: "us-east-2",
+	tfcToken: "mock_tfc_token_for_testing",
+	tfcOrg: "test-org",
+	tfcWorkspace: "test-workspace",
+	tfcWorkspaces: ["test-workspace"],
 };
 
 // Mock user metadata
@@ -35,10 +39,23 @@ const mockUserMetadata = {
 	infra: mockInfraCredentials,
 };
 
+// Mock terraform state
+const mockTerraformState = {
+	enableEc2: true,
+	workspaces: new Map<string, { id: string; name: string; mode: string }>([
+		[
+			"test-workspace",
+			{ id: "ws-test123", name: "test-workspace", mode: "api" },
+		],
+	]),
+	lastRunId: null as string | null,
+};
+
 // Extend base test with custom fixtures
 export const test = base.extend<{
 	authenticatedPage: typeof base.prototype;
 	mockTerminalApi: void;
+	mockInfraApi: void;
 }>({
 	// Fixture that sets up authentication state
 	authenticatedPage: async ({ page, context }, use) => {
@@ -61,7 +78,8 @@ export const test = base.extend<{
 					env: { NODE_ENV: "development" },
 					infra: {
 						sshPublicKey: "ssh-rsa AAAA... test@example.com",
-						sshPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\nmock-key\n-----END OPENSSH PRIVATE KEY-----",
+						sshPrivateKey:
+							"-----BEGIN OPENSSH PRIVATE KEY-----\nmock-key\n-----END OPENSSH PRIVATE KEY-----",
 						awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
 						awsSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 						awsRegion: "us-east-2",
@@ -106,7 +124,9 @@ export const test = base.extend<{
 					stderr: "",
 				};
 			} else if (command.startsWith("echo")) {
-				const echoContent = command.replace(/^echo\s+/, "").replace(/["']/g, "");
+				const echoContent = command
+					.replace(/^echo\s+/, "")
+					.replace(/["']/g, "");
 				response = {
 					success: true,
 					exitCode: 0,
@@ -179,9 +199,126 @@ export const test = base.extend<{
 
 		await use();
 	},
+
+	// Fixture that mocks infrastructure panel API responses
+	mockInfraApi: async ({ page }, use) => {
+		// Mock user metadata endpoint with full infra credentials
+		await page.route("**/api/user-metadata", async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					env: mockUserMetadata.env,
+					infra: mockInfraCredentials,
+				}),
+			});
+		});
+
+		// Mock user metadata infra update
+		await page.route("**/api/user-metadata/infra", async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					success: true,
+					infra: mockInfraCredentials,
+				}),
+			});
+		});
+
+		// Mock terraform status with enableEc2 flag
+		await page.route("**/api/terraform/status", async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					success: true,
+					enableEc2: mockTerraformState.enableEc2,
+					outputs: {
+						dev_ip: "54.123.45.67",
+						ssh_command: "ssh ubuntu@54.123.45.67",
+					},
+				}),
+			});
+		});
+
+		// Mock workspace creation
+		await page.route("**/api/terraform/workspace", async (route) => {
+			const request = route.request();
+			const body = request.postDataJSON();
+			const workspaceName = body?.workspaceName || "new-workspace";
+			const workspaceId = `ws-${Date.now()}`;
+
+			mockTerraformState.workspaces.set(workspaceName, {
+				id: workspaceId,
+				name: workspaceName,
+				mode: body?.mode || "api",
+			});
+
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					success: true,
+					workspace: {
+						id: workspaceId,
+						name: workspaceName,
+					},
+					mode: body?.mode || "api",
+					ec2InstanceType: body?.ec2InstanceType || null,
+					rdsInstanceClass: body?.rdsInstanceClass || null,
+				}),
+			});
+		});
+
+		// Mock terraform run (toggle EC2)
+		await page.route("**/api/terraform/run", async (route, request) => {
+			if (request.url().includes("/run/")) {
+				return;
+			}
+			const body = request.postDataJSON();
+			mockTerraformState.enableEc2 = body?.enableEc2 ?? true;
+			const runId = `run-${Date.now()}`;
+			mockTerraformState.lastRunId = runId;
+
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					success: true,
+					run: {
+						id: runId,
+						status: "planning",
+					},
+				}),
+			});
+		});
+
+		// Mock terraform run status polling
+		await page.route("**/api/terraform/run/*", async (route) => {
+			const url = route.request().url();
+			const runIdMatch = url.match(/\/run\/([^/]+)$/);
+			const runId =
+				runIdMatch?.[1] || mockTerraformState.lastRunId || "run-unknown";
+
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					success: true,
+					run: {
+						id: runId,
+						status: "applied",
+					},
+				}),
+			});
+		});
+
+		await use();
+	},
 });
 
 export { expect };
 
 // Re-export for convenience
-export { mockUser, mockInfraCredentials, mockUserMetadata };
+export { mockUser, mockInfraCredentials, mockUserMetadata, mockTerraformState };

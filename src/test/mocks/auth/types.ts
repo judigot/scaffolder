@@ -13,6 +13,9 @@ export interface IMockUser {
 	updated_at: string;
 }
 
+/** Workspace mode */
+export type MockWorkspaceMode = "vcs" | "api";
+
 /** Mock infrastructure credentials */
 export interface IMockInfraCredentials {
 	sshPublicKey: string;
@@ -23,6 +26,29 @@ export interface IMockInfraCredentials {
 	tfcToken: string;
 	tfcOrg: string;
 	tfcWorkspace: string;
+	tfcWorkspaces?: string[];
+}
+
+/** Mock workspace creation request */
+export interface IMockWorkspaceCreateRequest {
+	tfcToken: string;
+	tfcOrg: string;
+	workspaceName: string;
+	mode: MockWorkspaceMode;
+	ec2InstanceType?: string;
+	rdsInstanceClass?: string;
+}
+
+/** Mock workspace creation response */
+export interface IMockWorkspaceCreateResponse {
+	success: boolean;
+	workspace: {
+		id: string;
+		name: string;
+	};
+	mode: MockWorkspaceMode;
+	ec2InstanceType?: string | null;
+	rdsInstanceClass?: string | null;
 }
 
 /** Mock user metadata (matches Auth0 user_metadata) */
@@ -72,4 +98,13 @@ export interface IMockCommandResponse {
 	success: boolean;
 	output: string;
 	error?: string;
+}
+
+/** Mock Terraform run response */
+export interface IMockTerraformRunResponse {
+	success: boolean;
+	run: {
+		id: string;
+		status: string;
+	};
 }
