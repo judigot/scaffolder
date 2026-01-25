@@ -720,6 +720,7 @@ export function AIChatContainer({
 						<RemoteAgentChat
 							sshPrivateKey={agentSshPrivateKey}
 							host={agentHost}
+							accessToken={accessToken}
 						/>
 					) : (
 						<div className="flex-1 flex items-center justify-center p-6">

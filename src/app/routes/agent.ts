@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
 import { convertToModelMessages, stepCountIs, streamText } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -95,7 +95,7 @@ app.post("/chat", async (c) => {
 		const tools = createRemoteAgentTools(client);
 
 		const result = streamText({
-			model: anthropic("claude-sonnet-4-20250514"),
+			model: openai("gpt-5-nano"),
 			system: REMOTE_AGENT_SYSTEM_PROMPT,
 			messages: convertedMessages,
 			tools,

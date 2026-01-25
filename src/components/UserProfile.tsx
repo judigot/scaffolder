@@ -3,6 +3,7 @@ import type { ClipboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import tokenPermissionsImage from "@/assets/images/token-permissions.png";
 import { ContextMenu } from "@/components/UI/ContextMenu.tsx";
+import { SmartEnvPaste } from "@/components/UI/SmartEnvPaste.tsx";
 import { useUser } from "@/hooks/useUser.ts";
 import { useUserProfileStore } from "@/useUserProfileStore.ts";
 import { useUserStore } from "@/useUserStore.ts";
@@ -10,7 +11,6 @@ import { getApiUrl } from "@/utils/getApiUrl.ts";
 import {
 	parseInfraFromEnv,
 	serializeInfraToEnv,
-	parseEnvString,
 	serializeEnvEntries,
 	INFRA_ENV_MAP,
 } from "@/utils/envParser.ts";
@@ -893,37 +893,41 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 		}
 	};
 
-	const handleEnvPaste = async () => {
-		try {
-			const text = await navigator.clipboard.readText();
-			if (!text.trim()) {
-				showClipboardToast("Clipboard is empty");
-				return;
-			}
-			const parsed = parseEnvString(text);
-			if (parsed.length === 0) {
-				showClipboardToast("No valid KEY=VALUE pairs found");
-				return;
-			}
-			const newEntries = parsed.map((entry) => ({
-				id: generateEntryId(),
-				key: entry.key,
-				value: entry.value,
-				isSaved: false,
-			}));
-			setEnvEntries((prev) => {
-				const existing = prev.filter(
-					(e) => e.key.trim() !== "" || e.value.trim() !== "",
-				);
-				return [...existing, ...newEntries];
-			});
-			showClipboardToast(
-				`Imported ${String(parsed.length)} variable${parsed.length > 1 ? "s" : ""}`,
+	const handleSmartEnvMerge = useCallback(
+		(result: {
+			entries: IEnvEntry[];
+			added: string[];
+			updated: string[];
+		}) => {
+			const hasEmpty = result.entries.some(
+				(e) => e.key.trim() === "" && e.value.trim() === "",
 			);
-		} catch {
-			showClipboardToast("Failed to read clipboard");
-		}
-	};
+			setEnvEntries(
+				hasEmpty ? result.entries : [...result.entries, createEmptyEnvEntry()],
+			);
+			const parts: string[] = [];
+			if (result.added.length > 0) {
+				parts.push(`${String(result.added.length)} added`);
+			}
+			if (result.updated.length > 0) {
+				parts.push(`${String(result.updated.length)} updated`);
+			}
+			if (parts.length > 0) {
+				showClipboardToast(parts.join(", "));
+			}
+		},
+		[showClipboardToast],
+	);
+
+	const createEnvEntry = useCallback(
+		(key: string, value: string): IEnvEntry => ({
+			id: generateEntryId(),
+			key,
+			value,
+			isSaved: false,
+		}),
+		[],
+	);
 
 	const handleEnvCopy = async () => {
 		const entries = envEntries
@@ -2901,39 +2905,29 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 										{passphraseUnlocked && (
 											<>
 												<div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
-													<p className="text-xs text-fg-subtle">
-														Paste a <code className="px-1 py-0.5 bg-secondary rounded text-[11px] font-mono">.env</code> file to bulk-import variables
-													</p>
-													<div className="flex gap-1.5">
-														<button
-															type="button"
-															onClick={() => {
-																void handleEnvPaste();
-															}}
-															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
-															aria-label="Paste .env variables from clipboard"
-														>
-															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																<title>Paste</title>
-																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-															</svg>
-															Paste
-														</button>
-														<button
-															type="button"
-															onClick={() => {
-																void handleEnvCopy();
-															}}
-															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
-															aria-label="Copy variables as .env format"
-														>
-															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																<title>Copy</title>
-																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-															</svg>
-															Copy
-														</button>
+													<div className="flex-1 mr-3">
+														<SmartEnvPaste
+															existing={envEntries.filter(
+																(e) => e.key.trim() !== "" || e.value.trim() !== "",
+															)}
+															createEntry={createEnvEntry}
+															onMerge={handleSmartEnvMerge}
+														/>
 													</div>
+													<button
+														type="button"
+														onClick={() => {
+															void handleEnvCopy();
+														}}
+														className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-300 rounded-md text-xs font-medium transition-colors self-start"
+														aria-label="Copy variables as .env format"
+													>
+														<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<title>Copy</title>
+															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+														</svg>
+														Copy
+													</button>
 												</div>
 												<div className="space-y-4">
 													<div className="border border-border rounded-md p-4">

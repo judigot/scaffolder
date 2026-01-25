@@ -197,6 +197,104 @@ export function serializeInfraToEnv(
 	return lines.join("\n");
 }
 
+export interface ISmartEnvMergeResult<T extends { key: string; value: string }> {
+	entries: T[];
+	added: string[];
+	updated: string[];
+	unchanged: string[];
+	ignored: string[];
+}
+
+/**
+ * Smart-merge pasted .env text into an existing set of env entries.
+ *
+ * Behavior:
+ * - Parses the pasted text into key-value pairs
+ * - Deduplicates within the pasted block (last occurrence wins)
+ * - Updates existing keys with new values (preserving entry order)
+ * - Appends new keys that don't exist yet
+ * - Preserves all existing entries not mentioned in the pasted block
+ * - Returns a summary of what changed
+ *
+ * Invariants:
+ * - Never creates duplicate keys
+ * - Non-destructive: keys not in paste are never removed
+ * - Idempotent: applying the same paste twice produces the same result
+ * - Deterministic output regardless of paste size or order
+ */
+export function smartEnvMerge<T extends { key: string; value: string }>(
+	existing: T[],
+	pastedText: string,
+	createEntry: (key: string, value: string) => T,
+): ISmartEnvMergeResult<T> {
+	const parsed = parseEnvString(pastedText);
+
+	if (parsed.length === 0) {
+		return {
+			entries: [...existing],
+			added: [],
+			updated: [],
+			unchanged: [],
+			ignored: [],
+		};
+	}
+
+	// Deduplicate within pasted block: last occurrence wins
+	const deduped = new Map<string, string>();
+	const ignored: string[] = [];
+	const seenKeys = new Set<string>();
+	for (const entry of parsed) {
+		if (seenKeys.has(entry.key)) {
+			ignored.push(`${entry.key} (duplicate in paste, last value used)`);
+		}
+		seenKeys.add(entry.key);
+		deduped.set(entry.key, entry.value);
+	}
+
+	const added: string[] = [];
+	const updated: string[] = [];
+	const unchanged: string[] = [];
+
+	// Build a map of existing keys → index for fast lookup
+	const existingKeyIndex = new Map<string, number>();
+	for (let i = 0; i < existing.length; i++) {
+		const key = existing[i].key.trim();
+		if (key !== "") {
+			existingKeyIndex.set(key, i);
+		}
+	}
+
+	// Clone existing entries to mutate
+	const result: T[] = existing.map((e) => ({ ...e }));
+
+	// Process each pasted key
+	const newEntries: T[] = [];
+	for (const [key, value] of deduped) {
+		const idx = existingKeyIndex.get(key);
+		if (idx !== undefined) {
+			// Key exists: check if value changed
+			if (result[idx].value === value) {
+				unchanged.push(key);
+			} else {
+				result[idx] = createEntry(key, value);
+				updated.push(key);
+			}
+		} else {
+			// Key doesn't exist: append
+			newEntries.push(createEntry(key, value));
+			added.push(key);
+		}
+	}
+
+	return {
+		entries: [...result, ...newEntries],
+		added,
+		updated,
+		unchanged,
+		ignored,
+	};
+}
+
 /**
  * Serialize environment variable entries to .env format string.
  * Only includes entries with non-empty keys.
