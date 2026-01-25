@@ -11,8 +11,8 @@ import {
 	InfoBanner,
 } from "@/components/AI/chat/index.ts";
 import InfraPanel from "@/components/AI/InfraPanel.tsx";
-import RemoteAgentChat from "@/components/AI/RemoteAgentChat.tsx";
 import type { TabType } from "@/components/AI/TabBar.tsx";
+import { TerminalMode } from "@/components/Terminal/index.ts";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
@@ -20,6 +20,7 @@ import { useUser } from "@/hooks/useUser.ts";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
+import { useTerminalStore } from "@/useTerminalStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
 import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
@@ -451,13 +452,13 @@ function extractSchemaFromMessages(
 interface IAIChatContainerProps {
 	activeTab: TabType;
 	onTabChange: (tab: TabType) => void;
-	onAgentAvailabilityChange?: (available: boolean) => void;
+	onTerminalConnectionChange?: (connected: boolean) => void;
 }
 
 export function AIChatContainer({
 	activeTab,
 	onTabChange,
-	onAgentAvailabilityChange,
+	onTerminalConnectionChange,
 }: IAIChatContainerProps) {
 	const [input, setInput] = useState("");
 
@@ -475,8 +476,8 @@ export function AIChatContainer({
 	const { decryptedMetadata } = useDecryptedUserMetadata();
 	const { user, accessToken } = useUser();
 
-	// Agent credentials from decrypted metadata
-	const agentSshPrivateKey = useMemo(() => {
+	// Terminal credentials from decrypted metadata
+	const terminalSshPrivateKey = useMemo(() => {
 		if (
 			decryptedMetadata &&
 			typeof decryptedMetadata === "object" &&
@@ -492,9 +493,12 @@ export function AIChatContainer({
 		return "";
 	}, [decryptedMetadata]);
 
-	const [agentHost, setAgentHost] = useState<string>("");
+	const [terminalHost, setTerminalHost] = useState<string>("");
 
-	// Fetch terraform outputs to get agent host
+	// Terminal store for connection status
+	const { connectionStatus } = useTerminalStore();
+
+	// Fetch terraform outputs to get terminal host
 	useEffect(() => {
 		if (!accessToken || !decryptedMetadata) return;
 		const infra = decryptedMetadata.infra as
@@ -534,22 +538,21 @@ export function AIChatContainer({
 						typeof result.outputs.dev_ip === "string" &&
 						result.outputs.dev_ip !== ""
 					) {
-						setAgentHost(result.outputs.dev_ip);
+						setTerminalHost(result.outputs.dev_ip);
 					}
 				}
 			} catch {
-				// Silently fail — agent tab just won't be available
+				// Silently fail — terminal tab works in local mode
 			}
 		};
 		void fetchOutputs();
 	}, [accessToken, decryptedMetadata]);
 
-	const isAgentAvailable =
-		agentHost !== "" && agentSshPrivateKey !== "";
+	const isTerminalConnected = connectionStatus === "connected";
 
 	useEffect(() => {
-		onAgentAvailabilityChange?.(isAgentAvailable);
-	}, [isAgentAvailable, onAgentAvailabilityChange]);
+		onTerminalConnectionChange?.(isTerminalConnected);
+	}, [isTerminalConnected, onTerminalConnectionChange]);
 
 	// Local state for build results
 	const [buildResult, setBuildResult] = useState<{
@@ -713,54 +716,14 @@ export function AIChatContainer({
 				</div>
 			)}
 
-			{/* Agent panel - Show only when agent tab is active */}
-			{activeTab === "agent" && (
-				<div className="flex flex-col flex-1 min-w-0 bg-bg">
-					{isAgentAvailable ? (
-						<RemoteAgentChat
-							sshPrivateKey={agentSshPrivateKey}
-							host={agentHost}
-							accessToken={accessToken}
-						/>
-					) : (
-						<div className="flex-1 flex items-center justify-center p-6">
-							<div className="text-center max-w-md space-y-3">
-								<div className="w-12 h-12 mx-auto rounded-xl bg-secondary border border-border flex items-center justify-center">
-									<svg
-										className="w-6 h-6 text-fg-muted"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<title>Disconnected</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={1.5}
-											d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-										/>
-									</svg>
-								</div>
-								<h3 className="text-base font-medium text-fg">
-									Agent Not Available
-								</h3>
-								<p className="text-sm text-fg-subtle">
-									{agentHost === ""
-										? "Provision an EC2 instance from the Infra tab first."
-										: "Add your SSH private key in the profile to connect."}
-								</p>
-								<button
-									type="button"
-									onClick={() => {
-										onTabChange(agentHost === "" ? "infra" : "infra");
-									}}
-									className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg text-sm rounded-lg transition-colors"
-								>
-									{agentHost === "" ? "Go to Infra" : "Go to Infra"}
-								</button>
-							</div>
-						</div>
-					)}
+			{/* Terminal panel - Show only when terminal tab is active */}
+			{activeTab === "terminal" && (
+				<div className="flex flex-col flex-1 min-w-0">
+					<TerminalMode
+						host={terminalHost}
+						sshPrivateKey={terminalSshPrivateKey}
+						accessToken={accessToken ?? undefined}
+					/>
 				</div>
 			)}
 
@@ -769,7 +732,7 @@ export function AIChatContainer({
 				<div className="flex flex-col flex-1 min-w-0 bg-bg">
 					<InfraPanel
 						onConnectAgent={() => {
-							onTabChange("agent");
+							onTabChange("terminal");
 						}}
 					/>
 				</div>
