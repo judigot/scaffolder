@@ -788,6 +788,14 @@ function InfraWorkspaceCard({
 							Cancel
 						</button>
 					</div>
+					<WorkspaceVariablesPanel
+						workspace={workspaceValue}
+						accessToken={accessToken}
+						tfcToken={infraCredentials.tfcToken}
+						tfcOrg={infraCredentials.tfcOrg}
+						isExpanded={showVariables}
+						onToggle={toggleVariables}
+					/>
 					<div>
 						<label
 							htmlFor={`edit-region-${workspaceValue}`}
@@ -957,7 +965,7 @@ function InfraWorkspaceCard({
 				</div>
 			)}
 
-			{!shouldShowSkeleton && infraReady && (
+			{!shouldShowSkeleton && !isEditing && infraReady && (
 				<WorkspaceVariablesPanel
 					workspace={workspaceValue}
 					accessToken={accessToken}
