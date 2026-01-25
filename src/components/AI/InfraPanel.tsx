@@ -773,21 +773,7 @@ function InfraWorkspaceCard({
 			)}
 
 			{!shouldShowSkeleton && isEditing && (
-				<div className="pt-3 border-t border-border space-y-3">
-					<div className="flex items-center justify-between">
-						<p className="text-xs font-medium text-fg-muted">
-							Edit Configuration
-						</p>
-						<button
-							type="button"
-							onClick={() => {
-								setIsEditing(false);
-							}}
-							className="text-xs text-fg-muted hover:text-fg transition-colors"
-						>
-							Cancel
-						</button>
-					</div>
+				<>
 					<WorkspaceVariablesPanel
 						workspace={workspaceValue}
 						accessToken={accessToken}
@@ -796,173 +782,189 @@ function InfraWorkspaceCard({
 						isExpanded={showVariables}
 						onToggle={toggleVariables}
 					/>
-					<div>
-						<label
-							htmlFor={`edit-region-${workspaceValue}`}
-							className="block text-[11px] text-fg-subtle mb-1"
-						>
-							AWS Region
-						</label>
-						<GroupedSelect
-							id={`edit-region-${workspaceValue}`}
-							value={editRegion}
-							onChange={setEditRegion}
-							groups={AWS_REGION_GROUPS}
-							aria-label="AWS region"
-						/>
-						{currentRegion !== null && editRegion !== currentRegion && (
-							<div className="mt-2 p-2 bg-amber-900/30 border border-amber-700/50 rounded-md">
-								<p className="text-[10px] text-amber-300 flex items-start gap-1.5">
-									<svg
-										className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
-										fill="currentColor"
-										viewBox="0 0 20 20"
-									>
-										<title>Warning</title>
-										<path
-											fillRule="evenodd"
-											d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-											clipRule="evenodd"
-										/>
-									</svg>
-									<span>
-										Changing region will destroy and recreate all resources.
-										Data will be lost.
-									</span>
-								</p>
-							</div>
-						)}
-					</div>
-					<div>
-						<label
-							htmlFor={`edit-ec2-${workspaceValue}`}
-							className="block text-[11px] text-fg-subtle mb-1"
-						>
-							EC2 Instance Type
-						</label>
-						<GroupedSelect
-							id={`edit-ec2-${workspaceValue}`}
-							value={editEc2Type}
-							onChange={setEditEc2Type}
-							groups={EC2_INSTANCE_GROUPS}
-							aria-label="EC2 instance type"
-						/>
-					</div>
-					<div>
-						<label
-							htmlFor={`edit-disk-${workspaceValue}`}
-							className="block text-[11px] text-fg-subtle mb-1"
-						>
-							Disk Size (GB)
-						</label>
-						<div className="flex items-stretch">
+					<div className="pt-3 border-t border-border space-y-3">
+						<div className="flex items-center justify-between">
+							<p className="text-xs font-medium text-fg-muted">
+								Edit Configuration
+							</p>
 							<button
 								type="button"
 								onClick={() => {
-									setEditDiskSize(Math.max(10, editDiskSize - 10));
+									setIsEditing(false);
 								}}
-								disabled={editDiskSize <= 10}
-								className="px-4 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
-								aria-label="Decrease disk size"
+								className="text-xs text-fg-muted hover:text-fg transition-colors"
 							>
-								<svg
-									className="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<title>Decrease</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M20 12H4"
-									/>
-								</svg>
-							</button>
-							<input
-								id={`edit-disk-${workspaceValue}`}
-								type="text"
-								inputMode="numeric"
-								pattern="[0-9]*"
-								value={editDiskSize}
-								onChange={(e) => {
-									const val = parseInt(e.target.value, 10);
-									if (!isNaN(val)) {
-										setEditDiskSize(Math.max(10, Math.min(500, val)));
-									} else if (e.target.value === "") {
-										setEditDiskSize(10);
-									}
-								}}
-								className="flex-1 min-w-0 px-3 py-2 bg-bg-muted border-y border-border text-fg text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-							/>
-							<button
-								type="button"
-								onClick={() => {
-									setEditDiskSize(Math.min(500, editDiskSize + 10));
-								}}
-								disabled={editDiskSize >= 500}
-								className="px-4 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
-								aria-label="Increase disk size"
-							>
-								<svg
-									className="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<title>Increase</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M12 4v16m8-8H4"
-									/>
-								</svg>
+								Cancel
 							</button>
 						</div>
-						<p className="text-[10px] text-fg-subtle mt-1">
-							Min: 10 GB, Max: 500 GB (can only increase)
-						</p>
-					</div>
-					<div className="flex items-center justify-between py-1">
-						<span className="text-[11px] text-fg-subtle">Include RDS</span>
-						<ToggleSwitch
-							checked={editEnableRds}
-							onChange={() => {
-								setEditEnableRds(!editEnableRds);
-							}}
-							label="Toggle RDS"
-						/>
-					</div>
-					{editEnableRds && (
 						<div>
 							<label
-								htmlFor={`edit-rds-${workspaceValue}`}
+								htmlFor={`edit-region-${workspaceValue}`}
 								className="block text-[11px] text-fg-subtle mb-1"
 							>
-								RDS Instance Class
+								AWS Region
 							</label>
 							<GroupedSelect
-								id={`edit-rds-${workspaceValue}`}
-								value={editRdsClass}
-								onChange={setEditRdsClass}
-								groups={RDS_INSTANCE_GROUPS}
-								aria-label="RDS instance class"
+								id={`edit-region-${workspaceValue}`}
+								value={editRegion}
+								onChange={setEditRegion}
+								groups={AWS_REGION_GROUPS}
+								aria-label="AWS region"
+							/>
+							{currentRegion !== null && editRegion !== currentRegion && (
+								<div className="mt-2 p-2 bg-amber-900/30 border border-amber-700/50 rounded-md">
+									<p className="text-[10px] text-amber-300 flex items-start gap-1.5">
+										<svg
+											className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
+											fill="currentColor"
+											viewBox="0 0 20 20"
+										>
+											<title>Warning</title>
+											<path
+												fillRule="evenodd"
+												d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+												clipRule="evenodd"
+											/>
+										</svg>
+										<span>
+											Changing region will destroy and recreate all resources.
+											Data will be lost.
+										</span>
+									</p>
+								</div>
+							)}
+						</div>
+						<div>
+							<label
+								htmlFor={`edit-ec2-${workspaceValue}`}
+								className="block text-[11px] text-fg-subtle mb-1"
+							>
+								EC2 Instance Type
+							</label>
+							<GroupedSelect
+								id={`edit-ec2-${workspaceValue}`}
+								value={editEc2Type}
+								onChange={setEditEc2Type}
+								groups={EC2_INSTANCE_GROUPS}
+								aria-label="EC2 instance type"
 							/>
 						</div>
-					)}
-					<button
-						type="button"
-						onClick={() => {
-							void handleApplyConfig();
-						}}
-						disabled={isSavingConfig}
-						className="w-full px-3 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-600/50 text-white text-xs rounded-md transition-colors disabled:cursor-not-allowed"
-					>
-						{isSavingConfig ? "Applying..." : "Apply Changes"}
-					</button>
-				</div>
+						<div>
+							<label
+								htmlFor={`edit-disk-${workspaceValue}`}
+								className="block text-[11px] text-fg-subtle mb-1"
+							>
+								Disk Size (GB)
+							</label>
+							<div className="flex items-stretch">
+								<button
+									type="button"
+									onClick={() => {
+										setEditDiskSize(Math.max(10, editDiskSize - 10));
+									}}
+									disabled={editDiskSize <= 10}
+									className="px-4 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
+									aria-label="Decrease disk size"
+								>
+									<svg
+										className="w-5 h-5"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<title>Decrease</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M20 12H4"
+										/>
+									</svg>
+								</button>
+								<input
+									id={`edit-disk-${workspaceValue}`}
+									type="text"
+									inputMode="numeric"
+									pattern="[0-9]*"
+									value={editDiskSize}
+									onChange={(e) => {
+										const val = parseInt(e.target.value, 10);
+										if (!isNaN(val)) {
+											setEditDiskSize(Math.max(10, Math.min(500, val)));
+										} else if (e.target.value === "") {
+											setEditDiskSize(10);
+										}
+									}}
+									className="flex-1 min-w-0 px-3 py-2 bg-bg-muted border-y border-border text-fg text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+								/>
+								<button
+									type="button"
+									onClick={() => {
+										setEditDiskSize(Math.min(500, editDiskSize + 10));
+									}}
+									disabled={editDiskSize >= 500}
+									className="px-4 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
+									aria-label="Increase disk size"
+								>
+									<svg
+										className="w-5 h-5"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<title>Increase</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M12 4v16m8-8H4"
+										/>
+									</svg>
+								</button>
+							</div>
+							<p className="text-[10px] text-fg-subtle mt-1">
+								Min: 10 GB, Max: 500 GB (can only increase)
+							</p>
+						</div>
+						<div className="flex items-center justify-between py-1">
+							<span className="text-[11px] text-fg-subtle">Include RDS</span>
+							<ToggleSwitch
+								checked={editEnableRds}
+								onChange={() => {
+									setEditEnableRds(!editEnableRds);
+								}}
+								label="Toggle RDS"
+							/>
+						</div>
+						{editEnableRds && (
+							<div>
+								<label
+									htmlFor={`edit-rds-${workspaceValue}`}
+									className="block text-[11px] text-fg-subtle mb-1"
+								>
+									RDS Instance Class
+								</label>
+								<GroupedSelect
+									id={`edit-rds-${workspaceValue}`}
+									value={editRdsClass}
+									onChange={setEditRdsClass}
+									groups={RDS_INSTANCE_GROUPS}
+									aria-label="RDS instance class"
+								/>
+							</div>
+						)}
+						<button
+							type="button"
+							onClick={() => {
+								void handleApplyConfig();
+							}}
+							disabled={isSavingConfig}
+							className="w-full px-3 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-600/50 text-white text-xs rounded-md transition-colors disabled:cursor-not-allowed"
+						>
+							{isSavingConfig ? "Applying..." : "Apply Changes"}
+						</button>
+					</div>
+				</>
 			)}
 
 			{!shouldShowSkeleton && !isEditing && infraReady && (
