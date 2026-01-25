@@ -854,7 +854,7 @@ function InfraWorkspaceCard({
 									setEditDiskSize(Math.max(10, editDiskSize - 10));
 								}}
 								disabled={editDiskSize <= 10}
-								className="px-4 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg hover:bg-secondary-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+								className="px-4 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
 								aria-label="Decrease disk size"
 							>
 								<svg
@@ -894,7 +894,7 @@ function InfraWorkspaceCard({
 									setEditDiskSize(Math.min(500, editDiskSize + 10));
 								}}
 								disabled={editDiskSize >= 500}
-								className="px-4 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg hover:bg-secondary-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+								className="px-4 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
 								aria-label="Increase disk size"
 							>
 								<svg
