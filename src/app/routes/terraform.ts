@@ -417,6 +417,154 @@ router.post("/run/:runId", async (c) => {
 	}
 });
 
+interface IUpdateWorkspaceConfigPayload {
+	tfcToken?: unknown;
+	tfcOrg?: unknown;
+	ec2InstanceType?: unknown;
+	diskSize?: unknown;
+	enableRds?: unknown;
+	rdsInstanceClass?: unknown;
+}
+
+router.post("/workspace/:workspaceName/config", async (c) => {
+	const verification = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+
+	if (!verification.ok) {
+		return c.json(verification.body, verification.status);
+	}
+
+	const workspaceName = c.req.param("workspaceName");
+	if (workspaceName === "") {
+		return c.json({ error: "Workspace name is required" }, 400);
+	}
+
+	const body = await c.req.json<IUpdateWorkspaceConfigPayload>();
+
+	if (
+		typeof body.tfcToken !== "string" ||
+		body.tfcToken.trim() === "" ||
+		typeof body.tfcOrg !== "string" ||
+		body.tfcOrg.trim() === ""
+	) {
+		return c.json(
+			{
+				error: "Missing Terraform Cloud credentials",
+				message: "tfcToken and tfcOrg are required.",
+			},
+			400,
+		);
+	}
+
+	const config = createTerraformConfigFromCredentials({
+		tfcToken: body.tfcToken,
+		tfcOrg: body.tfcOrg,
+		tfcWorkspace: workspaceName,
+	});
+
+	try {
+		validateTerraformConfig(config);
+		await getTerraformWorkspaceId(config);
+
+		const variables: Array<{
+			key: string;
+			value: string;
+			category: "env" | "terraform";
+			sensitive: boolean;
+		}> = [];
+
+		if (
+			typeof body.ec2InstanceType === "string" &&
+			body.ec2InstanceType !== ""
+		) {
+			variables.push({
+				key: "TF_VAR_instance_type",
+				value: body.ec2InstanceType,
+				category: "env",
+				sensitive: false,
+			});
+		}
+
+		if (typeof body.diskSize === "number" && body.diskSize >= 10) {
+			variables.push({
+				key: "TF_VAR_disk_size",
+				value: String(body.diskSize),
+				category: "env",
+				sensitive: false,
+			});
+		}
+
+		if (typeof body.enableRds === "boolean") {
+			variables.push({
+				key: "TF_VAR_enable_rds",
+				value: body.enableRds ? "true" : "false",
+				category: "env",
+				sensitive: false,
+			});
+		}
+
+		if (
+			typeof body.rdsInstanceClass === "string" &&
+			body.rdsInstanceClass !== ""
+		) {
+			variables.push({
+				key: "TF_VAR_db_instance_class",
+				value: body.rdsInstanceClass,
+				category: "env",
+				sensitive: false,
+			});
+		}
+
+		if (variables.length === 0) {
+			return c.json(
+				{
+					error: "No configuration changes provided",
+					message:
+						"Provide at least one of: ec2InstanceType, enableRds, rdsInstanceClass",
+				},
+				400,
+			);
+		}
+
+		await upsertTerraformVariables(config, variables);
+
+		const changeDescriptions = variables
+			.map((v) => `${v.key}=${v.value}`)
+			.join(", ");
+		const run = await createTerraformRun(
+			config,
+			`Config update: ${changeDescriptions}`,
+		);
+
+		return c.json(
+			{
+				success: true,
+				run,
+				updatedVariables: variables.map((v) => v.key),
+			},
+			200,
+		);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			return c.json(
+				{
+					error: "Failed to update workspace configuration",
+					message: error.message,
+				},
+				500,
+			);
+		}
+		return c.json(
+			{
+				error: "Failed to update workspace configuration",
+				message: "An unexpected error occurred",
+			},
+			500,
+		);
+	}
+});
+
 router.post("/workspace", async (c) => {
 	const verification = await verifyAuth0TokenFromAuthHeader(
 		c.req.header("authorization"),

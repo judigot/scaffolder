@@ -1949,27 +1949,25 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 							}}
 							aria-label="Close profile"
 						/>
-						<div className="fixed inset-x-0 bottom-0 w-full max-h-[85vh] flex flex-col rounded-t-2xl pb-safe md:absolute md:inset-auto md:right-0 md:top-12 md:w-80 md:max-h-[70vh] md:rounded-lg md:pb-0 bg-bg-muted border border-border shadow-xl z-50">
+						<div className="fixed inset-x-0 bottom-0 w-full max-h-[85vh] overflow-y-auto scrollbar-thin rounded-t-2xl pb-safe md:absolute md:inset-auto md:right-0 md:top-12 md:w-80 md:max-h-[70vh] md:rounded-lg md:pb-0 bg-bg-muted border border-border shadow-xl z-50">
 							{activePanel === "home" ? (
 								<>
-									{/* Fixed Header */}
-									<div className="flex-shrink-0 border-b border-border">
-										{/* Mobile drag handle */}
-										<div className="flex justify-center pt-3 pb-2 md:hidden">
-											<div className="w-10 h-1 bg-border rounded-full" />
-										</div>
-										<div className="px-4 py-3">
-											<p className="text-sm font-medium text-fg">
-												{user?.name ?? user?.email ?? "User"}
-											</p>
-											<p className="text-xs text-fg-subtle mt-0.5">
-												{user?.email ?? "No email"}
-											</p>
-										</div>
+									{/* Mobile drag handle */}
+									<div className="flex justify-center pt-3 pb-2 md:hidden">
+										<div className="w-10 h-1 bg-border rounded-full" />
+									</div>
+									{/* Header */}
+									<div className="px-4 py-3 border-b border-border">
+										<p className="text-sm font-medium text-fg">
+											{user?.name ?? user?.email ?? "User"}
+										</p>
+										<p className="text-xs text-fg-subtle mt-0.5">
+											{user?.email ?? "No email"}
+										</p>
 									</div>
 
-									{/* Scrollable Content */}
-									<div className="flex-1 overflow-y-auto scrollbar-thin p-2">
+									{/* Content */}
+									<div className="p-2">
 										{!isLoading &&
 											serverConfigStatus !== null &&
 											serverConfigStatus.auth0ManagementApiConfigured ===
@@ -2053,8 +2051,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 											)}
 									</div>
 
-									{/* Fixed Footer */}
-									<div className="flex-shrink-0 border-t border-border p-2">
+									{/* Footer */}
+									<div className="border-t border-border p-2">
 										<button
 											type="button"
 											onClick={logout}

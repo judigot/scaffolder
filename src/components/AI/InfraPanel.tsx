@@ -14,6 +14,7 @@ import {
 } from "@/constants/awsInstanceTypes.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
+import { useInfraStore } from "@/useInfraStore.ts";
 import { useUserProfileStore } from "@/useUserProfileStore.ts";
 import { hasEncryptedInfraValues } from "@/utils/decryptUserMetadata.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
@@ -166,6 +167,9 @@ function InfraWorkspaceCard({
 	const [editRdsClass, setEditRdsClass] = useState<string>(
 		DEFAULT_RDS_INSTANCE_TYPE,
 	);
+	const [editDiskSize, setEditDiskSize] = useState<number>(10);
+	const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
+	const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
 	const previousValueRef = useRef<boolean>(false);
 
 	const workspaceValue = workspace.trim();
@@ -174,6 +178,16 @@ function InfraWorkspaceCard({
 	const toggleVariables = useCallback(() => {
 		setShowVariables((prev) => !prev);
 	}, []);
+
+	const { getWorkspaceStatus, setWorkspaceStatus } = useInfraStore();
+	const cachedStatus = getWorkspaceStatus(workspaceValue);
+
+	useEffect(() => {
+		if (cachedStatus !== null) {
+			setEnableEc2(cachedStatus.enableEc2);
+			setOutputs(cachedStatus.outputs);
+		}
+	}, [cachedStatus]);
 
 	const statusQuery = useQuery({
 		queryKey: [
@@ -215,10 +229,16 @@ function InfraWorkspaceCard({
 
 	useEffect(() => {
 		if (statusQuery.data) {
-			setEnableEc2(Boolean(statusQuery.data.enableEc2));
-			setOutputs(statusQuery.data.outputs ?? {});
+			const newEnableEc2 = Boolean(statusQuery.data.enableEc2);
+			const newOutputs = statusQuery.data.outputs ?? {};
+			setEnableEc2(newEnableEc2);
+			setOutputs(newOutputs);
+			setWorkspaceStatus(workspaceValue, {
+				enableEc2: newEnableEc2,
+				outputs: newOutputs,
+			});
 		}
-	}, [statusQuery.data]);
+	}, [statusQuery.data, workspaceValue, setWorkspaceStatus]);
 
 	useEffect(() => {
 		if (statusQuery.error instanceof Error) {
@@ -227,7 +247,8 @@ function InfraWorkspaceCard({
 	}, [statusQuery.error]);
 
 	const shouldShowSkeleton =
-		isMetadataLoading || (!statusQuery.data && statusQuery.isLoading);
+		isMetadataLoading ||
+		(!statusQuery.data && !cachedStatus && statusQuery.isLoading);
 	const shouldShowNotices = !shouldShowSkeleton;
 	const updatedLabel = useMemo(() => {
 		if (!statusQuery.data) {
@@ -393,6 +414,115 @@ function InfraWorkspaceCard({
 			return;
 		}
 		toggleMutation.mutate(!enableEc2);
+	};
+
+	const handleStartEdit = async () => {
+		if (accessToken === null || accessToken === "") {
+			return;
+		}
+
+		setIsLoadingConfig(true);
+		setError(null);
+
+		try {
+			const response = await fetch(
+				`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/variables`,
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						tfcToken: infraCredentials.tfcToken,
+						tfcOrg: infraCredentials.tfcOrg,
+					}),
+				},
+			);
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch current configuration");
+			}
+
+			const data = (await response.json()) as {
+				variables?: Array<{ key: string; value: string | null }>;
+			};
+
+			const variables = data.variables ?? [];
+			const getVar = (key: string): string | null => {
+				const found = variables.find((v) => v.key === key);
+				return found?.value ?? null;
+			};
+
+			const instanceType = getVar("TF_VAR_instance_type");
+			const enableRds = getVar("TF_VAR_enable_rds");
+			const rdsClass = getVar("TF_VAR_db_instance_class");
+			const diskSize = getVar("TF_VAR_disk_size");
+
+			setEditEc2Type(instanceType ?? DEFAULT_EC2_INSTANCE_TYPE);
+			setEditEnableRds(enableRds === "true");
+			setEditRdsClass(rdsClass ?? DEFAULT_RDS_INSTANCE_TYPE);
+			setEditDiskSize(diskSize !== null ? parseInt(diskSize, 10) : 10);
+
+			setIsEditing(true);
+		} catch (err) {
+			setError(
+				err instanceof Error ? err.message : "Failed to load configuration",
+			);
+		} finally {
+			setIsLoadingConfig(false);
+		}
+	};
+
+	const handleApplyConfig = async () => {
+		if (accessToken === null || accessToken === "") {
+			return;
+		}
+		if (workspaceValue === "") {
+			setError("Workspace name is required.");
+			return;
+		}
+
+		setIsSavingConfig(true);
+		setError(null);
+
+		try {
+			const response = await fetch(
+				`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/config`,
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						tfcToken: infraCredentials.tfcToken,
+						tfcOrg: infraCredentials.tfcOrg,
+						ec2InstanceType: editEc2Type,
+						diskSize: editDiskSize,
+						enableRds: editEnableRds,
+						rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
+					}),
+				},
+			);
+
+			if (!response.ok) {
+				const errorData = (await response.json()) as { message?: string };
+				throw new Error(errorData.message ?? "Failed to update configuration");
+			}
+
+			const data = (await response.json()) as { run?: { id: string } };
+			if (data.run?.id) {
+				setRunId(data.run.id);
+				setIsLoading(true);
+			}
+
+			setIsEditing(false);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Failed to apply changes");
+		} finally {
+			setIsSavingConfig(false);
+		}
 	};
 
 	const publicIp = outputs.dev_ip;
@@ -625,6 +755,31 @@ function InfraWorkspaceCard({
 							aria-label="EC2 instance type"
 						/>
 					</div>
+					<div>
+						<label
+							htmlFor={`edit-disk-${workspaceValue}`}
+							className="block text-[11px] text-fg-subtle mb-1"
+						>
+							Disk Size (GB)
+						</label>
+						<input
+							id={`edit-disk-${workspaceValue}`}
+							type="number"
+							min={10}
+							max={500}
+							value={editDiskSize}
+							onChange={(e) => {
+								const val = parseInt(e.target.value, 10);
+								if (!isNaN(val)) {
+									setEditDiskSize(Math.max(10, Math.min(500, val)));
+								}
+							}}
+							className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+						/>
+						<p className="text-[10px] text-fg-subtle mt-1">
+							Min: 10 GB, Max: 500 GB (can only increase)
+						</p>
+					</div>
 					<div className="flex items-center justify-between py-1">
 						<span className="text-[11px] text-fg-subtle">Include RDS</span>
 						<ToggleSwitch
@@ -655,12 +810,12 @@ function InfraWorkspaceCard({
 					<button
 						type="button"
 						onClick={() => {
-							// TODO: Implement save configuration
-							setIsEditing(false);
+							void handleApplyConfig();
 						}}
-						className="w-full px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs rounded-md transition-colors"
+						disabled={isSavingConfig}
+						className="w-full px-3 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-600/50 text-white text-xs rounded-md transition-colors disabled:cursor-not-allowed"
 					>
-						Apply Changes
+						{isSavingConfig ? "Applying..." : "Apply Changes"}
 					</button>
 				</div>
 			)}
@@ -682,9 +837,9 @@ function InfraWorkspaceCard({
 						<button
 							type="button"
 							onClick={() => {
-								setIsEditing(true);
+								void handleStartEdit();
 							}}
-							disabled={isLoading || isDeleting}
+							disabled={isLoading || isDeleting || isLoadingConfig}
 							className="flex-1 px-3 py-2 text-sm text-fg-muted hover:text-fg hover:bg-secondary-hover border border-transparent hover:border-border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 							title="Edit configuration"
 						>
