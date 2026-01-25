@@ -224,6 +224,7 @@ function InfraWorkspaceCard({
 					tfcToken: infraCredentials.tfcToken,
 					tfcOrg: infraCredentials.tfcOrg,
 					tfcWorkspace: workspaceValue,
+					autoCreate: isDevWorkspace,
 				}),
 			});
 			if (!response.ok) {

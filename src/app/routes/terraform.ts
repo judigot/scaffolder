@@ -42,6 +42,7 @@ interface ITerraformStatusPayload {
 	tfcToken?: unknown;
 	tfcOrg?: unknown;
 	tfcWorkspace?: unknown;
+	autoCreate?: unknown;
 }
 
 interface ITerraformRunIdPayload {
@@ -104,9 +105,42 @@ router.post("/status", async (c) => {
 		);
 	}
 
+	const autoCreate = body.autoCreate === true;
+
 	try {
 		validateTerraformConfig(config);
-		await getTerraformWorkspaceId(config);
+
+		try {
+			await getTerraformWorkspaceId(config);
+		} catch (workspaceError: unknown) {
+			const isNotFound =
+				workspaceError instanceof Error &&
+				workspaceError.message.includes("not found");
+
+			if (isNotFound && autoCreate) {
+				const baseConfig = createTerraformBaseConfig({
+					tfcToken: config.token,
+					tfcOrg: config.organization,
+				});
+				const workspace = await createTerraformWorkspace(
+					baseConfig,
+					config.workspace,
+					{ autoApply: true },
+				);
+
+				const templatePath = getTemplatePath("ubuntu-ec2");
+				const tarGzBuffer = bundleTerraformTemplate(templatePath);
+				const configVersion = await createConfigurationVersion(
+					baseConfig,
+					workspace.id,
+					false,
+				);
+				await uploadConfigurationTar(configVersion.uploadUrl, tarGzBuffer);
+				await waitForConfigurationReady(baseConfig, configVersion.id);
+			} else {
+				throw workspaceError;
+			}
+		}
 
 		const variables = await getTerraformWorkspaceVariables(config);
 		const enableVar = variables.find(
