@@ -14,3 +14,4 @@ export { default as TerminalModeIndicator } from "./TerminalModeIndicator.tsx";
 export { default as TerminalComposer } from "./TerminalComposer.tsx";
 export { useTerminalGestures } from "./useTerminalGestures.ts";
 export type { GestureDirection } from "./useTerminalGestures.ts";
+export { useTerminalExecution } from "./useTerminalExecution.ts";

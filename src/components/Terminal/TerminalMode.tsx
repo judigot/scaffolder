@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTerminalStore } from "@/useTerminalStore.ts";
 import TerminalActionBar from "./TerminalActionBar.tsx";
 import TerminalComposer from "./TerminalComposer.tsx";
@@ -7,6 +7,7 @@ import TerminalTopBar from "./TerminalTopBar.tsx";
 import TerminalViewport, {
 	type ITerminalViewportHandle,
 } from "./TerminalViewport.tsx";
+import { useTerminalExecution } from "./useTerminalExecution.ts";
 import { useTerminalGestures } from "./useTerminalGestures.ts";
 
 interface ITerminalModeProps {
@@ -43,17 +44,18 @@ interface ITerminalModeProps {
  */
 export default function TerminalMode({
 	host,
-	sshPrivateKey: _sshPrivateKey,
-	accessToken: _accessToken,
+	sshPrivateKey,
+	accessToken,
 	onNavigate,
 	onShowHistory,
 }: ITerminalModeProps) {
 	const terminalRef = useRef<ITerminalViewportHandle>(null);
+	const welcomeShownRef = useRef(false);
 
 	// Terminal store state
 	const {
 		connectionStatus,
-		setConnectionStatus: _setConnectionStatus,
+		setConnectionStatus,
 		currentMode,
 		activeSecondaryTab,
 		setActiveSecondaryTab,
@@ -70,6 +72,30 @@ export default function TerminalMode({
 
 	// Local state for pending message
 	const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
+
+	// Terminal execution hook
+	const { executeCommand, cancelExecution, isExecuting, isConnected } =
+		useTerminalExecution({
+			host,
+			sshPrivateKey,
+			accessToken,
+			onOutput: (output) => {
+				// Write output to terminal viewport
+				terminalRef.current?.writeln(output);
+			},
+			onError: (error) => {
+				// Write error in red
+				terminalRef.current?.writeln(`\x1b[31m${error}\x1b[0m`);
+			},
+			onConnectionChange: (status) => {
+				setConnectionStatus(status);
+			},
+		});
+
+	// Sync executing state with store
+	useEffect(() => {
+		setIsProcessRunning(isExecuting);
+	}, [isExecuting, setIsProcessRunning]);
 
 	// Gesture handlers
 	const { gestureState, handlers: gestureHandlers } = useTerminalGestures({
@@ -101,31 +127,47 @@ export default function TerminalMode({
 			// Clear input
 			setCurrentInput("");
 
-			// Write to terminal viewport
-			terminalRef.current?.writeln(`$ ${command}`);
+			// Write command prompt to terminal viewport
+			terminalRef.current?.writeln(`\x1b[32m$\x1b[0m ${command}`);
+
+			// Check if connected
+			if (!isConnected) {
+				terminalRef.current?.writeln(
+					"\x1b[33mNot connected to remote server.\x1b[0m",
+				);
+				terminalRef.current?.writeln(
+					"\x1b[33mConfigure SSH credentials in the Infra tab.\x1b[0m",
+				);
+				terminalRef.current?.writeln("");
+				updateMessageStatus(messageId, "failed");
+				setPendingMessageId(null);
+				return;
+			}
 
 			try {
-				// TODO: Send to actual PTY via WebSocket/API
-				// For now, simulate sending to server
-				setIsProcessRunning(true);
+				// Execute command via API
+				const result = await executeCommand(command);
 
-				// Simulate response (replace with actual API call)
-				await new Promise((resolve) => setTimeout(resolve, 500));
+				if (result.success) {
+					updateMessageStatus(messageId, "applied");
+				} else {
+					updateMessageStatus(messageId, "failed");
+					if (result.error) {
+						terminalRef.current?.writeln(
+							`\x1b[31mError: ${result.error}\x1b[0m`,
+						);
+					}
+				}
 
-				// Mark as applied
-				updateMessageStatus(messageId, "applied");
-
-				// Simulate command output
-				terminalRef.current?.writeln("Command executed successfully.");
+				// Add blank line after output
 				terminalRef.current?.writeln("");
 			} catch (error) {
-				// Mark as failed
 				updateMessageStatus(messageId, "failed");
 				terminalRef.current?.writeln(
 					`\x1b[31mError: ${error instanceof Error ? error.message : "Command failed"}\x1b[0m`,
 				);
+				terminalRef.current?.writeln("");
 			} finally {
-				setIsProcessRunning(false);
 				setPendingMessageId(null);
 			}
 		},
@@ -134,35 +176,42 @@ export default function TerminalMode({
 			addToCommandHistory,
 			resetHistoryIndex,
 			setCurrentInput,
-			setIsProcessRunning,
 			updateMessageStatus,
+			executeCommand,
+			isConnected,
 		],
 	);
 
-	// Handle YES button (send "y\n")
-	const handleYes = useCallback(() => {
-		terminalRef.current?.write("y\n");
-		// TODO: Send to PTY
-	}, []);
+	// Handle YES button (send "y" as input)
+	const handleYes = useCallback(async () => {
+		terminalRef.current?.writeln("y");
+		if (isConnected) {
+			await executeCommand('echo "y"');
+		}
+	}, [executeCommand, isConnected]);
 
-	// Handle NO button (send "n\n")
-	const handleNo = useCallback(() => {
-		terminalRef.current?.write("n\n");
-		// TODO: Send to PTY
-	}, []);
+	// Handle NO button (send "n" as input)
+	const handleNo = useCallback(async () => {
+		terminalRef.current?.writeln("n");
+		if (isConnected) {
+			await executeCommand('echo "n"');
+		}
+	}, [executeCommand, isConnected]);
 
-	// Handle INTERRUPT button (send Ctrl+C)
+	// Handle INTERRUPT button (cancel current execution)
 	const handleInterrupt = useCallback(() => {
-		terminalRef.current?.write("\x03"); // Ctrl+C
+		terminalRef.current?.writeln("\x1b[33m^C\x1b[0m");
+		cancelExecution();
 		setIsProcessRunning(false);
-		// TODO: Send to PTY
-	}, [setIsProcessRunning]);
+	}, [cancelExecution, setIsProcessRunning]);
 
 	// Handle EXIT button
-	const handleExit = useCallback(() => {
+	const handleExit = useCallback(async () => {
 		terminalRef.current?.writeln("exit");
-		// TODO: Send exit command to PTY
-	}, []);
+		if (isConnected) {
+			await executeCommand("exit");
+		}
+	}, [executeCommand, isConnected]);
 
 	// Handle terminal data (from xterm)
 	const handleTerminalData = useCallback((_data: string) => {
@@ -180,15 +229,26 @@ export default function TerminalMode({
 		return navigateHistory("down");
 	}, [navigateHistory]);
 
-	// Initialize connection on mount
-	// useEffect(() => {
-	// 	if (host && sshPrivateKey && accessToken) {
-	// 		// TODO: Establish WebSocket connection to PTY backend
-	// 		setConnectionStatus("connected");
-	// 	} else {
-	// 		setConnectionStatus("disconnected");
-	// 	}
-	// }, [host, sshPrivateKey, accessToken, setConnectionStatus]);
+	// Write welcome message on mount
+	useEffect(() => {
+		if (terminalRef.current && !welcomeShownRef.current) {
+			welcomeShownRef.current = true;
+			terminalRef.current.writeln("\x1b[1;36mScaffolder Terminal\x1b[0m");
+			terminalRef.current.writeln(
+				"\x1b[90m─────────────────────────────────\x1b[0m",
+			);
+			if (isConnected && host) {
+				terminalRef.current.writeln(
+					`\x1b[32mConnected to:\x1b[0m ${host}`,
+				);
+			} else {
+				terminalRef.current.writeln(
+					"\x1b[33mNot connected.\x1b[0m Configure SSH in Infra tab.",
+				);
+			}
+			terminalRef.current.writeln("");
+		}
+	}, [isConnected, host]);
 
 	return (
 		<div
@@ -329,6 +389,10 @@ export default function TerminalMode({
 				onHistoryUp={handleHistoryUp}
 				onHistoryDown={handleHistoryDown}
 				isPending={pendingMessageId !== null}
+				disabled={!isConnected}
+				placeholder={
+					isConnected ? "Send to terminal..." : "Not connected to server..."
+				}
 			/>
 		</div>
 	);
