@@ -1053,7 +1053,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 
 	return (
 		<div className="flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable_both-edges]">
-			<div className="max-w-5xl mx-auto px-3 pt-6 pb-6 md:px-6 md:pt-8 md:pb-8 space-y-6">
+			<div className="max-w-2xl mx-auto px-3 pt-6 pb-6 md:px-6 md:pt-8 md:pb-8 space-y-6">
 				<div className="flex items-center justify-between gap-4">
 					<div>
 						<h2 className="text-xl md:text-2xl font-semibold text-fg">
@@ -1127,18 +1127,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 					)}
 
 					<div className="p-4 bg-secondary border border-border rounded-lg space-y-4">
-						<div className="flex items-center justify-between">
-							<p className="text-sm font-medium text-fg">Add workspace</p>
-							<button
-								type="button"
-								onClick={() => {
-									openUserProfile("infra");
-								}}
-								className="text-xs text-fg-muted hover:text-fg transition-colors"
-							>
-								Manage credentials
-							</button>
-						</div>
+						<p className="text-sm font-medium text-fg">Add workspace</p>
 
 						<div className="space-y-3">
 							<div>

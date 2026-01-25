@@ -1936,7 +1936,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 					<>
 						<button
 							type="button"
-							className="fixed inset-0 z-40"
+							className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none"
 							onClick={() => {
 								setIsOpen(false);
 								closePanel();
@@ -1949,120 +1949,135 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 							}}
 							aria-label="Close profile"
 						/>
-						<div className="fixed inset-x-0 bottom-0 w-full max-h-[80vh] overflow-y-auto rounded-t-lg md:absolute md:inset-auto md:right-0 md:top-12 md:w-auto md:min-w-[var(--dropdown-width-md)] md:max-w-2xl md:max-h-none md:overflow-visible md:rounded-lg bg-bg-muted border border-border shadow-xl z-50">
+						<div className="fixed inset-x-0 bottom-0 w-full max-h-[85vh] flex flex-col rounded-t-2xl pb-safe md:absolute md:inset-auto md:right-0 md:top-12 md:w-80 md:max-h-[70vh] md:rounded-lg md:pb-0 bg-bg-muted border border-border shadow-xl z-50">
 							{activePanel === "home" ? (
-								<div className="p-2">
-									<div className="px-3 py-2 border-b border-border">
-										<p className="text-sm font-medium text-fg">
-											{user?.name ?? user?.email ?? "User"}
-										</p>
-										<p className="text-xs text-fg-subtle mt-1">
-											{user?.email ?? "No email"}
-										</p>
+								<>
+									{/* Fixed Header */}
+									<div className="flex-shrink-0 border-b border-border">
+										{/* Mobile drag handle */}
+										<div className="flex justify-center pt-3 pb-2 md:hidden">
+											<div className="w-10 h-1 bg-border rounded-full" />
+										</div>
+										<div className="px-4 py-3">
+											<p className="text-sm font-medium text-fg">
+												{user?.name ?? user?.email ?? "User"}
+											</p>
+											<p className="text-xs text-fg-subtle mt-0.5">
+												{user?.email ?? "No email"}
+											</p>
+										</div>
 									</div>
-									{!isLoading &&
-										serverConfigStatus !== null &&
-										serverConfigStatus.auth0ManagementApiConfigured ===
-											true && (
-											<>
-												<button
-													type="button"
-													onClick={() => {
-														resetTokenState();
-														handleSetActivePanel("githubToken");
-													}}
-													className="w-full flex items-center gap-3 px-3 py-2 mt-1 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
-												>
-													<svg
-														className="w-5 h-5"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
+
+									{/* Scrollable Content */}
+									<div className="flex-1 overflow-y-auto scrollbar-thin p-2">
+										{!isLoading &&
+											serverConfigStatus !== null &&
+											serverConfigStatus.auth0ManagementApiConfigured ===
+												true && (
+												<>
+													<button
+														type="button"
+														onClick={() => {
+															resetTokenState();
+															handleSetActivePanel("githubToken");
+														}}
+														className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
 													>
-														<title>Key icon</title>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth={2}
-															d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-														/>
-													</svg>
-													{githubToken !== null && githubToken !== ""
-														? "Manage GitHub Token"
-														: "Add GitHub Token"}
-												</button>
-												<button
-													type="button"
-													onClick={() => {
-														resetEnvState();
-														handleSetActivePanel("env");
-													}}
-													className="w-full flex items-center gap-3 px-3 py-2 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
-												>
-													<svg
-														className="w-5 h-5"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
+														<svg
+															className="w-5 h-5"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+														>
+															<title>Key icon</title>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={2}
+																d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+															/>
+														</svg>
+														{githubToken !== null && githubToken !== ""
+															? "Manage GitHub Token"
+															: "Add GitHub Token"}
+													</button>
+													<button
+														type="button"
+														onClick={() => {
+															resetEnvState();
+															handleSetActivePanel("env");
+														}}
+														className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
 													>
-														<title>Plus icon</title>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth={2}
-															d="M12 4v16m8-8H4"
-														/>
-													</svg>
-													Environment Variables
-												</button>
-												<button
-													type="button"
-													onClick={() => {
-														resetInfraState();
-														handleSetActivePanel("infra");
-													}}
-													className="w-full flex items-center gap-3 px-3 py-2 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
-												>
-													<svg
-														className="w-5 h-5"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
+														<svg
+															className="w-5 h-5"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+														>
+															<title>Plus icon</title>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={2}
+																d="M12 4v16m8-8H4"
+															/>
+														</svg>
+														Environment Variables
+													</button>
+													<button
+														type="button"
+														onClick={() => {
+															resetInfraState();
+															handleSetActivePanel("infra");
+														}}
+														className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
 													>
-														<title>Infrastructure icon</title>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth={2}
-															d="M3 7h18M6 7v10m12-10v10M5 17h14M9 17v3m6-3v3"
-														/>
-													</svg>
-													Infrastructure Credentials
-												</button>
-											</>
-										)}
-									<button
-										type="button"
-										onClick={logout}
-										className="w-full flex items-center gap-3 px-3 py-2 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
-									>
-										<svg
-											className="w-5 h-5"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
+														<svg
+															className="w-5 h-5"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+														>
+															<title>Infrastructure icon</title>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={2}
+																d="M3 7h18M6 7v10m12-10v10M5 17h14M9 17v3m6-3v3"
+															/>
+														</svg>
+														Infrastructure Credentials
+													</button>
+												</>
+											)}
+									</div>
+
+									{/* Fixed Footer */}
+									<div className="flex-shrink-0 border-t border-border p-2">
+										<button
+											type="button"
+											onClick={logout}
+											className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
 										>
-											<title>Logout icon</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-											/>
-										</svg>
-										Logout
-									</button>
-								</div>
+											<svg
+												className="w-5 h-5"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<title>Logout icon</title>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+												/>
+											</svg>
+											Logout
+										</button>
+									</div>
+								</>
 							) : activePanel === "githubToken" &&
 								!isLoading &&
 								serverConfigStatus !== null &&
