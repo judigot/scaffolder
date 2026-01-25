@@ -1,5 +1,5 @@
-import { useMutation } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
@@ -147,14 +147,20 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 		return awsReady && tfcReady && !infraHasEncryptedValues;
 	}, [awsReady, tfcReady, infraHasEncryptedValues]);
 
-	const fetchStatus = useCallback(async () => {
-		if (accessToken === null || accessToken === "") {
-			return;
-		}
-		if (!infraReady) {
-			return;
-		}
-		try {
+	const statusQuery = useQuery({
+		queryKey: [
+			"terraform-status",
+			infraCredentials.tfcToken,
+			infraCredentials.tfcOrg,
+			infraCredentials.tfcWorkspace,
+		],
+		enabled:
+			infraReady && accessToken !== null && accessToken !== "" && !isLoading,
+		staleTime: 30_000,
+		queryFn: async () => {
+			if (accessToken === null || accessToken === "") {
+				throw new Error("Missing access token");
+			}
 			const response = await fetch(`${getApiUrl()}/terraform/status`, {
 				method: "POST",
 				headers: {
@@ -170,27 +176,24 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 			if (!response.ok) {
 				throw new Error("Failed to fetch Terraform status");
 			}
-			const result = (await response.json()) as ITerraformStatusResponse & {
-				success?: boolean;
-			};
-			setEnableEc2(Boolean(result.enableEc2));
-			setOutputs(result.outputs ?? {});
-		} catch (fetchError: unknown) {
-			if (fetchError instanceof Error) {
-				setError(fetchError.message);
-			}
-		}
-	}, [
-		accessToken,
-		infraReady,
-		infraCredentials.tfcToken,
-		infraCredentials.tfcOrg,
-		infraCredentials.tfcWorkspace,
-	]);
+			return (await response.json()) as ITerraformStatusResponse;
+		},
+	});
 
 	useEffect(() => {
-		void fetchStatus();
-	}, [fetchStatus]);
+		if (statusQuery.data) {
+			setEnableEc2(Boolean(statusQuery.data.enableEc2));
+			setOutputs(statusQuery.data.outputs ?? {});
+		}
+	}, [statusQuery.data]);
+
+	useEffect(() => {
+		if (statusQuery.error instanceof Error) {
+			setError(statusQuery.error.message);
+		}
+	}, [statusQuery.error]);
+
+	const isStatusFetching = statusQuery.isLoading || statusQuery.isFetching;
 
 	useEffect(() => {
 		if (!runId || accessToken === null || accessToken === "") {
@@ -231,7 +234,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 					return;
 				}
 				setIsLoading(false);
-				await fetchStatus();
+				await statusQuery.refetch();
 			} catch (pollError: unknown) {
 				if (pollError instanceof Error) {
 					setError(pollError.message);
@@ -251,7 +254,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	}, [
 		runId,
 		accessToken,
-		fetchStatus,
+		statusQuery.refetch,
 		infraReady,
 		infraCredentials.tfcToken,
 		infraCredentials.tfcOrg,
@@ -369,19 +372,23 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 									Terraform Workspace
 								</p>
 								<p className="text-lg font-semibold text-fg">{workspaceName}</p>
-								<p className="text-xs text-fg-subtle mt-1">
-									{enableEc2 ? "Provisioned" : "Stopped"}
-								</p>
+								{isStatusFetching ? (
+									<div className="mt-2 h-3 w-20 bg-border rounded animate-pulse" />
+								) : (
+									<p className="text-xs text-fg-subtle mt-1">
+										{enableEc2 ? "Provisioned" : "Stopped"}
+									</p>
+								)}
 							</div>
 							<ToggleSwitch
 								checked={enableEc2}
 								onChange={handleToggle}
-								disabled={isLoading || !infraReady}
+								disabled={isLoading || !infraReady || isStatusFetching}
 								label="Toggle EC2 instance"
 							/>
 						</div>
 
-						{!infraReady && !tfcReady && (
+						{!infraReady && !tfcReady && !isStatusFetching && (
 							<div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200 space-y-2">
 								<p className="font-medium">Connect Terraform Cloud</p>
 								<p>
@@ -401,14 +408,14 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							</div>
 						)}
 
-						{!infraReady && tfcReady && !awsReady && (
+						{!infraReady && tfcReady && !awsReady && !isStatusFetching && (
 							<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
 								Add your SSH public key and AWS credentials in the profile panel
 								to enable toggling.
 							</div>
 						)}
 
-						{!infraReady && infraHasEncryptedValues && (
+						{!infraReady && infraHasEncryptedValues && !isStatusFetching && (
 							<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
 								Unlock your credentials with your passphrase to enable toggling.
 							</div>
@@ -420,20 +427,33 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							</div>
 						)}
 
-						<div className="grid gap-3 md:grid-cols-2">
-							<div className="p-3 bg-secondary border border-border rounded-md">
-								<p className="text-xs text-fg-subtle">Run Status</p>
-								<p className="text-sm text-fg mt-1">{runStatus ?? "Idle"}</p>
+						{isStatusFetching ? (
+							<div className="grid gap-3 md:grid-cols-2">
+								<div className="p-3 bg-secondary border border-border rounded-md animate-pulse">
+									<div className="h-3 w-16 bg-border rounded" />
+									<div className="h-4 w-20 bg-border rounded mt-2" />
+								</div>
+								<div className="p-3 bg-secondary border border-border rounded-md animate-pulse">
+									<div className="h-3 w-20 bg-border rounded" />
+									<div className="h-4 w-32 bg-border rounded mt-2" />
+								</div>
 							</div>
-							<div className="p-3 bg-secondary border border-border rounded-md">
-								<p className="text-xs text-fg-subtle">Latest Output</p>
-								<p className="text-sm text-fg mt-1 truncate">
-									{hasPublicIp ? publicIp : "No public IP yet"}
-								</p>
+						) : (
+							<div className="grid gap-3 md:grid-cols-2">
+								<div className="p-3 bg-secondary border border-border rounded-md">
+									<p className="text-xs text-fg-subtle">Run Status</p>
+									<p className="text-sm text-fg mt-1">{runStatus ?? "Idle"}</p>
+								</div>
+								<div className="p-3 bg-secondary border border-border rounded-md">
+									<p className="text-xs text-fg-subtle">Latest Output</p>
+									<p className="text-sm text-fg mt-1 truncate">
+										{hasPublicIp ? publicIp : "No public IP yet"}
+									</p>
+								</div>
 							</div>
-						</div>
+						)}
 
-						{showConnectionDetails && (
+						{showConnectionDetails && !isStatusFetching && (
 							<div className="pt-2 border-t border-border space-y-3">
 								<p className="text-sm font-medium text-fg">
 									Connection Details
