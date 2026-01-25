@@ -1084,6 +1084,7 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 	const { openUserProfile } = useUserProfileStore();
 
 	const isDevMode = user?.nickname === "judigot";
+	const DEV_WORKSPACE_NAME = "scaffolder-ssh-backend-service";
 	const queryClient = useQueryClient();
 	const [newWorkspace, setNewWorkspace] = useState<string>("");
 	const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
@@ -1190,7 +1191,9 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 		return awsReady && tfcReady && !infraHasEncryptedValues;
 	}, [awsReady, tfcReady, infraHasEncryptedValues]);
 
-	const visibleWorkspaces = workspaceList;
+	const visibleWorkspaces = isDevMode
+		? workspaceList.filter((ws) => ws !== DEV_WORKSPACE_NAME)
+		: workspaceList;
 	const showInitialSkeleton =
 		isMetadataPending || (tfcCredentialsReady && workspacesQuery.isLoading);
 	const canAddWorkspace =
@@ -1417,8 +1420,8 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 					{/* Dev mode: SSH Backend workspace */}
 					{!showInitialSkeleton && isDevMode && (
 						<InfraWorkspaceCard
-							key="ssh-backend-dev"
-							workspace="ssh-backend"
+							key={DEV_WORKSPACE_NAME}
+							workspace={DEV_WORKSPACE_NAME}
 							accessToken={accessToken}
 							infraCredentials={infraCredentials}
 							infraReady={infraReady}
@@ -1426,13 +1429,13 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 							tfcReady={tfcReady}
 							infraHasEncryptedValues={infraHasEncryptedValues}
 							isMetadataLoading={isMetadataPending}
-							isDeleting={deletingWorkspace === "ssh-backend"}
+							isDeleting={deletingWorkspace === DEV_WORKSPACE_NAME}
 							onConnectAgent={onConnectAgent}
 							onOpenProfile={() => {
 								openUserProfile("infra");
 							}}
 							onDelete={() => {
-								setWorkspaceToDelete("ssh-backend");
+								setWorkspaceToDelete(DEV_WORKSPACE_NAME);
 							}}
 							isDevWorkspace
 						/>
