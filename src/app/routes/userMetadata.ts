@@ -80,6 +80,7 @@ interface IInfraPayload {
 		tfcToken?: unknown;
 		tfcOrg?: unknown;
 		tfcWorkspace?: unknown;
+		tfcWorkspaces?: unknown;
 	};
 }
 
@@ -224,6 +225,7 @@ router.post("/infra", async (c) => {
 		tfcToken,
 		tfcOrg,
 		tfcWorkspace,
+		tfcWorkspaces,
 	} = infraPayload;
 
 	if (
@@ -255,6 +257,16 @@ router.post("/infra", async (c) => {
 		);
 	}
 
+	if (tfcWorkspaces !== undefined && typeof tfcWorkspaces !== "string") {
+		return c.json(
+			{
+				error: "Invalid payload",
+				message: "tfcWorkspaces must be a string when provided.",
+			},
+			400,
+		);
+	}
+
 	const infraRecord: Record<string, string> = {
 		sshPublicKey,
 		sshPrivateKey: typeof sshPrivateKey === "string" ? sshPrivateKey : "",
@@ -264,6 +276,7 @@ router.post("/infra", async (c) => {
 		tfcToken,
 		tfcOrg,
 		tfcWorkspace,
+		...(typeof tfcWorkspaces === "string" ? { tfcWorkspaces } : {}),
 	};
 
 	try {

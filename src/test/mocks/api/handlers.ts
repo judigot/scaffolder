@@ -3,10 +3,10 @@
  * Mock API endpoints for testing
  */
 
-import { http, HttpResponse } from "msw";
+import { HttpResponse, http } from "msw";
 import {
-	mockUserMetadata,
 	mockInfraCredentials,
+	mockUserMetadata,
 } from "../../fixtures/users.ts";
 import type { IMockCommandResponse } from "../auth/types.ts";
 
@@ -102,10 +102,14 @@ export const handlers = [
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const body = (await request.json()) as typeof mockInfraCredentials;
+		const body = (await request.json()) as { infra?: Record<string, string> };
+		const nextInfra = body.infra ?? body;
 
 		// Update mock state
-		mockApiState.userMetadata.infra = body;
+		mockApiState.userMetadata.infra = {
+			...(mockApiState.userMetadata.infra ?? mockInfraCredentials),
+			...(nextInfra as Record<string, string>),
+		};
 
 		return HttpResponse.json({ success: true });
 	}),
@@ -208,7 +212,8 @@ export const handlers = [
 			return HttpResponse.json({
 				success: true,
 				exitCode: 0,
-				stdout: "total 4\ndrwxr-xr-x 2 user user 4096 Jan 25 00:00 .\ndrwxr-xr-x 3 user user 4096 Jan 25 00:00 ..\n-rw-r--r-- 1 user user    0 Jan 25 00:00 testfile",
+				stdout:
+					"total 4\ndrwxr-xr-x 2 user user 4096 Jan 25 00:00 .\ndrwxr-xr-x 3 user user 4096 Jan 25 00:00 ..\n-rw-r--r-- 1 user user    0 Jan 25 00:00 testfile",
 				stderr: "",
 			});
 		}
@@ -275,10 +280,7 @@ export const handlers = [
 		}
 
 		if (!mockApiState.isConnected) {
-			return HttpResponse.json(
-				{ error: "Connection failed" },
-				{ status: 503 },
-			);
+			return HttpResponse.json({ error: "Connection failed" }, { status: 503 });
 		}
 
 		const body = (await request.json()) as {

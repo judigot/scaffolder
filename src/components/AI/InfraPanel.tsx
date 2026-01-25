@@ -1,16 +1,19 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import { useUserProfileStore } from "@/useUserProfileStore.ts";
+import { useUserStore } from "@/useUserStore.ts";
 import { hasEncryptedInfraValues } from "@/utils/decryptUserMetadata.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
 import {
 	normalizeWorkspaceList,
 	parseWorkspaceValue,
 } from "@/utils/infraWorkspaces.ts";
+import { getPassphraseFromSession } from "@/utils/passphraseSession.ts";
 import { isRecord } from "@/utils/typeGuards.ts";
+import { encryptSecret } from "@/utils/zeroKnowledgeEncryption.ts";
 
 interface IInfraCredentials {
 	sshPublicKey: string;
@@ -189,8 +192,39 @@ function InfraWorkspaceCard({
 	}, [statusQuery.error]);
 
 	const shouldShowSkeleton =
-		isMetadataLoading || statusQuery.isLoading || statusQuery.isFetching;
+		isMetadataLoading || (!statusQuery.data && statusQuery.isLoading);
 	const shouldShowNotices = !shouldShowSkeleton;
+	const updatedLabel = useMemo(() => {
+		if (!statusQuery.data) {
+			return "Not updated yet";
+		}
+		if (statusQuery.isFetching && !statusQuery.isLoading) {
+			return "Updating...";
+		}
+		const updatedAt = statusQuery.dataUpdatedAt;
+		if (!updatedAt) {
+			return "Updated just now";
+		}
+		const deltaMs = Date.now() - updatedAt;
+		if (deltaMs < 60_000) {
+			return "Updated just now";
+		}
+		const minutes = Math.floor(deltaMs / 60_000);
+		if (minutes < 60) {
+			return `Updated ${String(minutes)}m ago`;
+		}
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) {
+			return `Updated ${String(hours)}h ago`;
+		}
+		const days = Math.floor(hours / 24);
+		return `Updated ${String(days)}d ago`;
+	}, [
+		statusQuery.data,
+		statusQuery.dataUpdatedAt,
+		statusQuery.isFetching,
+		statusQuery.isLoading,
+	]);
 
 	useEffect(() => {
 		if (!runId || accessToken === null || accessToken === "") {
@@ -342,9 +376,12 @@ function InfraWorkspaceCard({
 					{shouldShowSkeleton ? (
 						<div className="mt-2 h-3 w-20 bg-border rounded animate-pulse" />
 					) : (
-						<p className="text-xs text-fg-subtle mt-1">
-							{enableEc2 ? "Provisioned" : "Stopped"}
-						</p>
+						<div className="mt-1 space-y-1">
+							<p className="text-xs text-fg-subtle">
+								{enableEc2 ? "Provisioned" : "Stopped"}
+							</p>
+							<p className="text-[11px] text-fg-muted">{updatedLabel}</p>
+						</div>
 					)}
 				</div>
 				<ToggleSwitch
@@ -484,10 +521,15 @@ function InfraWorkspaceCard({
 }
 
 export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
-	const { accessToken } = useUser();
+	const { accessToken, user, userMetadata } = useUser();
 	const { decryptedMetadata, isLoading: isMetadataLoading } =
 		useDecryptedUserMetadata();
 	const { openUserProfile } = useUserProfileStore();
+	const { setUserMetadata: setUserMetadataStore } = useUserStore();
+	const queryClient = useQueryClient();
+	const [newWorkspace, setNewWorkspace] = useState<string>("");
+	const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+	const [isWorkspaceSaving, setIsWorkspaceSaving] = useState<boolean>(false);
 
 	const infraCredentials = useMemo(
 		() => parseInfraCredentials(decryptedMetadata),
@@ -533,7 +575,181 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 		return awsReady && tfcReady && !infraHasEncryptedValues;
 	}, [awsReady, tfcReady, infraHasEncryptedValues]);
 
-	const visibleWorkspaces = workspaceList.length > 0 ? workspaceList : [""];
+	const visibleWorkspaces = workspaceList;
+	const showInitialSkeleton = isMetadataPending;
+	const canAddWorkspace =
+		!isWorkspaceSaving &&
+		!infraHasEncryptedValues &&
+		accessToken !== null &&
+		accessToken !== "" &&
+		user?.sub !== undefined &&
+		user.sub !== "";
+
+	const handleAddWorkspace = async () => {
+		setWorkspaceError(null);
+		const trimmed = newWorkspace.trim();
+		if (trimmed === "") {
+			setWorkspaceError("Enter a workspace name to continue.");
+			return;
+		}
+		if (!canAddWorkspace || user?.sub === undefined) {
+			setWorkspaceError("Unlock your credentials before adding a workspace.");
+			return;
+		}
+		if (infraCredentials.tfcToken.trim() === "") {
+			setWorkspaceError("Add your Terraform Cloud token first.");
+			return;
+		}
+		if (infraCredentials.tfcOrg.trim() === "") {
+			setWorkspaceError("Add your Terraform Cloud organization first.");
+			return;
+		}
+		if (
+			infraCredentials.sshPublicKey.trim() === "" ||
+			infraCredentials.awsAccessKeyId.trim() === "" ||
+			infraCredentials.awsSecretAccessKey.trim() === ""
+		) {
+			setWorkspaceError("Add your AWS credentials and SSH public key first.");
+			return;
+		}
+		const existingWorkspaces = normalizeWorkspaceList(
+			infraCredentials.tfcWorkspaces,
+		);
+		if (existingWorkspaces.includes(trimmed)) {
+			setWorkspaceError("That workspace already exists.");
+			return;
+		}
+		const passphrase = getPassphraseFromSession(user.sub);
+		if (passphrase === null) {
+			setWorkspaceError("Unlock your credentials before adding a workspace.");
+			return;
+		}
+
+		const nextWorkspaces = normalizeWorkspaceList([
+			...existingWorkspaces,
+			trimmed,
+		]);
+		const primaryWorkspace = nextWorkspaces[0] ?? trimmed;
+		setIsWorkspaceSaving(true);
+
+		try {
+			const encryptedEntries = {
+				sshPublicKey: JSON.stringify(
+					await encryptSecret(
+						infraCredentials.sshPublicKey.trim(),
+						user.sub,
+						passphrase,
+					),
+				),
+				sshPrivateKey:
+					infraCredentials.sshPrivateKey.trim() === ""
+						? ""
+						: JSON.stringify(
+								await encryptSecret(
+									infraCredentials.sshPrivateKey.trim(),
+									user.sub,
+									passphrase,
+								),
+							),
+				awsAccessKeyId: JSON.stringify(
+					await encryptSecret(
+						infraCredentials.awsAccessKeyId.trim(),
+						user.sub,
+						passphrase,
+					),
+				),
+				awsSecretAccessKey: JSON.stringify(
+					await encryptSecret(
+						infraCredentials.awsSecretAccessKey.trim(),
+						user.sub,
+						passphrase,
+					),
+				),
+				awsSessionToken:
+					infraCredentials.awsSessionToken.trim() === ""
+						? ""
+						: JSON.stringify(
+								await encryptSecret(
+									infraCredentials.awsSessionToken.trim(),
+									user.sub,
+									passphrase,
+								),
+							),
+				tfcToken: JSON.stringify(
+					await encryptSecret(
+						infraCredentials.tfcToken.trim(),
+						user.sub,
+						passphrase,
+					),
+				),
+				tfcOrg: JSON.stringify(
+					await encryptSecret(
+						infraCredentials.tfcOrg.trim(),
+						user.sub,
+						passphrase,
+					),
+				),
+				tfcWorkspace: JSON.stringify(
+					await encryptSecret(primaryWorkspace, user.sub, passphrase),
+				),
+				tfcWorkspaces: JSON.stringify(
+					await encryptSecret(
+						JSON.stringify(nextWorkspaces),
+						user.sub,
+						passphrase,
+					),
+				),
+			};
+
+			const response = await fetch(`${getApiUrl()}/user-metadata/infra`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ infra: encryptedEntries }),
+			});
+			if (!response.ok) {
+				let message = "Failed to save workspace.";
+				try {
+					const errorBody: unknown = await response.json();
+					if (
+						errorBody !== null &&
+						typeof errorBody === "object" &&
+						"message" in errorBody &&
+						typeof (errorBody as Record<string, unknown>).message === "string"
+					) {
+						message = (errorBody as Record<string, string>).message;
+					}
+				} catch {
+					message = "Failed to save workspace.";
+				}
+				throw new Error(message);
+			}
+			const result = (await response.json()) as Record<string, unknown>;
+			const infraRecord =
+				isRecord(result) && isRecord(result.infra) ? result.infra : null;
+			if (infraRecord === null) {
+				throw new Error("Invalid response from server.");
+			}
+			const updatedMetadata = userMetadata
+				? { ...userMetadata, infra: infraRecord }
+				: { infra: infraRecord };
+			setUserMetadataStore(updatedMetadata);
+			await queryClient.invalidateQueries({
+				queryKey: ["userMetadata", user.sub],
+			});
+			setNewWorkspace("");
+		} catch (error: unknown) {
+			if (error instanceof Error) {
+				setWorkspaceError(error.message);
+			} else {
+				setWorkspaceError("Failed to save workspace.");
+			}
+		} finally {
+			setIsWorkspaceSaving(false);
+		}
+	};
 
 	return (
 		<div className="flex-1 overflow-y-auto scrollbar-thin">
@@ -559,33 +775,96 @@ export default function InfraPanel({ onConnectAgent }: IInfraPanelProps) {
 				</div>
 
 				<div className="space-y-4">
-					{visibleWorkspaces.map((workspace) => (
-						<InfraWorkspaceCard
-							key={workspace.trim() !== "" ? workspace : "workspace-new"}
-							workspace={workspace}
-							accessToken={accessToken}
-							infraCredentials={infraCredentials}
-							infraReady={infraReady}
-							awsReady={awsReady}
-							tfcReady={tfcReady}
-							infraHasEncryptedValues={infraHasEncryptedValues}
-							isMetadataLoading={isMetadataPending}
-							onConnectAgent={onConnectAgent}
-							onOpenProfile={() => {
-								openUserProfile("infra");
-							}}
-						/>
-					))}
+					{showInitialSkeleton && (
+						<div className="p-4 bg-bg-muted border border-border rounded-lg space-y-4 animate-pulse">
+							<div className="flex items-start justify-between gap-4">
+								<div className="space-y-2">
+									<div className="h-3 w-28 bg-border rounded" />
+									<div className="h-5 w-40 bg-border rounded" />
+								</div>
+								<div className="h-6 w-12 bg-border rounded-full" />
+							</div>
+							<div className="grid gap-3 md:grid-cols-2">
+								<div className="p-3 bg-secondary border border-border rounded-md">
+									<div className="h-3 w-16 bg-border rounded" />
+									<div className="h-4 w-20 bg-border rounded mt-2" />
+								</div>
+								<div className="p-3 bg-secondary border border-border rounded-md">
+									<div className="h-3 w-20 bg-border rounded" />
+									<div className="h-4 w-32 bg-border rounded mt-2" />
+								</div>
+							</div>
+						</div>
+					)}
 
-					<button
-						type="button"
-						onClick={() => {
-							openUserProfile("infra");
-						}}
-						className="w-full px-4 py-3 border border-dashed border-border/70 rounded-lg text-sm text-fg-muted hover:text-fg hover:border-border transition-colors"
-					>
-						+ Add Workspace
-					</button>
+					{!showInitialSkeleton &&
+						visibleWorkspaces.map((workspace) => (
+							<InfraWorkspaceCard
+								key={workspace.trim() !== "" ? workspace : "workspace-new"}
+								workspace={workspace}
+								accessToken={accessToken}
+								infraCredentials={infraCredentials}
+								infraReady={infraReady}
+								awsReady={awsReady}
+								tfcReady={tfcReady}
+								infraHasEncryptedValues={infraHasEncryptedValues}
+								isMetadataLoading={isMetadataPending}
+								onConnectAgent={onConnectAgent}
+								onOpenProfile={() => {
+									openUserProfile("infra");
+								}}
+							/>
+						))}
+
+					{!showInitialSkeleton && visibleWorkspaces.length === 0 && (
+						<div className="px-4 py-3 bg-secondary border border-border rounded-lg text-sm text-fg-muted">
+							No workspaces added yet.
+						</div>
+					)}
+
+					<div className="p-4 bg-secondary border border-border rounded-lg space-y-3">
+						<div className="flex items-center justify-between">
+							<p className="text-sm font-medium text-fg">Add workspace</p>
+							<button
+								type="button"
+								onClick={() => {
+									openUserProfile("infra");
+								}}
+								className="text-xs text-fg-muted hover:text-fg transition-colors"
+							>
+								Manage credentials
+							</button>
+						</div>
+						<div className="flex flex-col gap-2 md:flex-row">
+							<input
+								type="text"
+								value={newWorkspace}
+								onChange={(event) => {
+									setNewWorkspace(event.target.value);
+									setWorkspaceError(null);
+								}}
+								placeholder="my-workspace"
+								className="flex-1 px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								disabled={!canAddWorkspace}
+							/>
+							<button
+								type="button"
+								onClick={() => {
+									void handleAddWorkspace();
+								}}
+								disabled={!canAddWorkspace}
+								className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{isWorkspaceSaving ? "Saving..." : "Add"}
+							</button>
+						</div>
+						{workspaceError && (
+							<p className="text-xs text-red-200">{workspaceError}</p>
+						)}
+						<p className="text-xs text-fg-muted">
+							Workspaces use your global Terraform Cloud organization.
+						</p>
+					</div>
 				</div>
 			</div>
 		</div>
