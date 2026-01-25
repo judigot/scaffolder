@@ -1,7 +1,7 @@
-variable "region" {
+variable "aws_region" {
   description = "AWS region for the terminal service"
   type        = string
-  default     = "us-east-1"
+  default     = "us-east-2"
 }
 
 variable "vpc_id" {
