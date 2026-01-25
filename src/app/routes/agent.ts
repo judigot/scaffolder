@@ -88,28 +88,37 @@ app.post("/chat", async (c) => {
 	}
 
 	try {
+		console.log("[Agent] Converting messages...");
 		const convertedMessages = await convertToModelMessages(
 			body.messages as Parameters<typeof convertToModelMessages>[0],
 		);
+		console.log("[Agent] Messages converted:", convertedMessages.length);
 
+		console.log("[Agent] Creating remote agent tools...");
 		const tools = createRemoteAgentTools(client);
+		console.log("[Agent] Tools created");
 
+		console.log("[Agent] Starting streamText...");
 		const result = streamText({
-			model: openai("gpt-4o-mini"),
+			model: openai("gpt-5-nano"),
 			system: REMOTE_AGENT_SYSTEM_PROMPT,
 			messages: convertedMessages,
 			tools,
 			stopWhen: stepCountIs(20),
 			onFinish: () => {
+				console.log("[Agent] Stream finished, disconnecting...");
 				disconnect(client);
 			},
 		});
 
+		console.log("[Agent] Returning stream response...");
 		return result.toUIMessageStreamResponse();
 	} catch (err: unknown) {
 		disconnect(client);
 		const errorMessage = err instanceof Error ? err.message : String(err);
-		console.error("Agent chat error:", errorMessage, err);
+		const errorStack = err instanceof Error ? err.stack : undefined;
+		console.error("[Agent] Error:", errorMessage);
+		console.error("[Agent] Stack:", errorStack);
 		return c.json({ error: "Internal server error", details: errorMessage }, 500);
 	}
 });
