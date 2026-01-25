@@ -12,9 +12,9 @@ import {
 } from "@/components/AI/chat/index.ts";
 import InfraPanel from "@/components/AI/InfraPanel.tsx";
 import type { TabType } from "@/components/AI/TabBar.tsx";
-import { TerminalMode } from "@/components/Terminal/index.ts";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
+import { TerminalMode } from "@/components/Terminal/index.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
@@ -22,8 +22,9 @@ import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTerminalStore } from "@/useTerminalStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
-import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
+import { parseWorkspaceValue } from "@/utils/infraWorkspaces.ts";
+import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
 import { getRandomIntro } from "@/utils/randomIntro.ts";
 import { validateSchemaInfoFromResponse } from "@/utils/schemaInfoValidator.ts";
 
@@ -500,7 +501,9 @@ export function AIChatContainer({
 
 	// Fetch terraform outputs to get terminal host
 	useEffect(() => {
-		if (!accessToken || !decryptedMetadata) {return;}
+		if (!accessToken || !decryptedMetadata) {
+			return;
+		}
 		const infra = decryptedMetadata.infra as
 			| Record<string, unknown>
 			| undefined;
@@ -508,12 +511,20 @@ export function AIChatContainer({
 			!infra ||
 			typeof infra.tfcToken !== "string" ||
 			typeof infra.tfcOrg !== "string" ||
-			typeof infra.tfcWorkspace !== "string" ||
 			infra.tfcToken === "" ||
-			infra.tfcOrg === "" ||
-			infra.tfcWorkspace === ""
-		)
-			{return;}
+			infra.tfcOrg === ""
+		) {
+			return;
+		}
+
+		const workspaceList = parseWorkspaceValue(infra.tfcWorkspaces);
+		const legacyWorkspace =
+			typeof infra.tfcWorkspace === "string" ? infra.tfcWorkspace : "";
+		const workspace =
+			workspaceList.length > 0 ? workspaceList[0] : legacyWorkspace;
+		if (workspace.trim() === "") {
+			return;
+		}
 
 		const fetchOutputs = async () => {
 			try {
@@ -526,7 +537,7 @@ export function AIChatContainer({
 					body: JSON.stringify({
 						tfcToken: infra.tfcToken,
 						tfcOrg: infra.tfcOrg,
-						tfcWorkspace: infra.tfcWorkspace,
+						tfcWorkspace: workspace,
 					}),
 				});
 				if (response.ok) {
