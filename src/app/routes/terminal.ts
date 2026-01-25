@@ -78,7 +78,7 @@ app.post("/execute", async (c) => {
 		host: string;
 	};
 
-	const command = body.command as string;
+	const command = body.command;
 	const workingDirectory = typeof body.workingDirectory === "string"
 		? body.workingDirectory
 		: undefined;
