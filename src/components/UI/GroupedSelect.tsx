@@ -129,7 +129,7 @@ export default function GroupedSelect({
 				>
 					{groups.map((group) => (
 						<div key={group.label}>
-							<div className="px-3 py-1.5 text-[10px] font-semibold text-fg-subtle uppercase tracking-wider bg-secondary/50 sticky top-0">
+							<div className="px-3 py-1.5 text-[10px] font-semibold text-fg-subtle uppercase tracking-wider bg-bg-muted border-b border-border sticky top-0">
 								{group.label}
 							</div>
 							{group.options.map((option) => (
