@@ -45,9 +45,9 @@ function AI() {
 		invalidateProjectCache,
 	]);
 
-	const [isAgentAvailable, setIsAgentAvailable] = useState(false);
-	const handleAgentAvailabilityChange = useCallback((available: boolean) => {
-		setIsAgentAvailable(available);
+	const [isTerminalConnected, setIsTerminalConnected] = useState(false);
+	const handleTerminalConnectionChange = useCallback((connected: boolean) => {
+		setIsTerminalConnected(connected);
 	}, []);
 
 	const [inputRepoURL] = useState<string>(publicRepoURL);
@@ -114,8 +114,8 @@ function AI() {
 					currentTab === "fileViewer"
 						? "chat"
 						: currentTab === "chat"
-							? "agent"
-							: currentTab === "agent"
+							? "terminal"
+							: currentTab === "terminal"
 								? "infra"
 								: "fileViewer";
 				setActiveTab(nextTab);
@@ -138,7 +138,7 @@ function AI() {
 				<AIChatContainer
 					activeTab={activeTab}
 					onTabChange={setActiveTab}
-					onAgentAvailabilityChange={handleAgentAvailabilityChange}
+					onTerminalConnectionChange={handleTerminalConnectionChange}
 				/>
 			</div>
 
@@ -147,7 +147,7 @@ function AI() {
 				activeTab={activeTab}
 				onTabChange={setActiveTab}
 				hasGeneratedCode={schemaInfo.length > 0}
-				isAgentAvailable={isAgentAvailable}
+				isTerminalConnected={isTerminalConnected}
 			/>
 		</div>
 	);

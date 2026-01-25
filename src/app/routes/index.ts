@@ -20,6 +20,7 @@ import helloRouter from "./hello.ts";
 import introspectRouter from "./introspect.ts";
 import saveLocalFileRouter from "./saveLocalFile.ts";
 import scaffoldRouter from "./scaffold.ts";
+import terminalRouter from "./terminal.ts";
 import terraformRouter from "./terraform.ts";
 import userMetadataRouter from "./userMetadata.ts";
 import validateSchemaRouter from "./validateSchema.ts";
@@ -55,6 +56,7 @@ router.route(
 router.route("/check-github-export-options", checkGitHubExportOptionsRouter);
 router.route("/agent", agentRouter);
 router.route("/chat", chatRouter);
+router.route("/terminal", terminalRouter);
 router.route("/validate-schema", validateSchemaRouter);
 
 export default router;

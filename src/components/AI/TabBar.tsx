@@ -1,12 +1,12 @@
 import { Chat as ChatIcon, CloudQueue as CloudIcon, Terminal as TerminalIcon } from "@mui/icons-material";
 
-export type TabType = "chat" | "fileViewer" | "infra" | "agent";
+export type TabType = "chat" | "fileViewer" | "infra" | "terminal";
 
 interface ITabBarProps {
 	activeTab: TabType;
 	onTabChange: (tab: TabType) => void;
 	hasGeneratedCode?: boolean;
-	isAgentAvailable?: boolean;
+	isTerminalConnected?: boolean;
 }
 
 function CodeStatusIcon({ hasGeneratedCode }: { hasGeneratedCode: boolean }) {
@@ -27,7 +27,7 @@ export default function TabBar({
 	activeTab,
 	onTabChange,
 	hasGeneratedCode = false,
-	isAgentAvailable = false,
+	isTerminalConnected = false,
 }: ITabBarProps) {
 	return (
 		<div className="bg-secondary border-t border-layout-border flex shrink-0">
@@ -66,18 +66,18 @@ export default function TabBar({
 			<button
 				type="button"
 				className={`flex-1 py-3 flex flex-col items-center justify-center border-l border-layout-border transition-colors relative ${
-					activeTab === "agent"
+					activeTab === "terminal"
 						? "text-content bg-secondary-hover"
 						: "text-fg-muted bg-secondary hover:bg-secondary-hover"
 				}`}
 				onClick={() => {
-					onTabChange("agent");
+					onTabChange("terminal");
 				}}
-				aria-label="Remote Agent View"
+				aria-label="Terminal View"
 			>
 				<TerminalIcon className="w-5 h-5 mb-1" />
-				<span className="text-xs font-medium">Agent</span>
-				{isAgentAvailable && (
+				<span className="text-xs font-medium">Terminal</span>
+				{isTerminalConnected && (
 					<span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-success-500" />
 				)}
 			</button>

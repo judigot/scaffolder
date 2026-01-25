@@ -44,7 +44,7 @@ app.post("/chat", async (c) => {
 
 	let body: IAgentChatPayload;
 	try {
-		body = (await c.req.json()) as IAgentChatPayload;
+		body = (await c.req.json());
 	} catch {
 		return c.json({ error: "Invalid request body" }, 400);
 	}
@@ -88,12 +88,17 @@ app.post("/chat", async (c) => {
 	}
 
 	try {
+		console.log("[Agent] Converting messages...");
 		const convertedMessages = await convertToModelMessages(
 			body.messages as Parameters<typeof convertToModelMessages>[0],
 		);
+		console.log("[Agent] Messages converted:", convertedMessages.length);
 
+		console.log("[Agent] Creating remote agent tools...");
 		const tools = createRemoteAgentTools(client);
+		console.log("[Agent] Tools created");
 
+		console.log("[Agent] Starting streamText...");
 		const result = streamText({
 			model: openai("gpt-5-nano"),
 			system: REMOTE_AGENT_SYSTEM_PROMPT,
@@ -101,15 +106,20 @@ app.post("/chat", async (c) => {
 			tools,
 			stopWhen: stepCountIs(20),
 			onFinish: () => {
+				console.log("[Agent] Stream finished, disconnecting...");
 				disconnect(client);
 			},
 		});
 
+		console.log("[Agent] Returning stream response...");
 		return result.toUIMessageStreamResponse();
 	} catch (err: unknown) {
 		disconnect(client);
-		console.error("Agent chat error:", err);
-		return c.json({ error: "Internal server error" }, 500);
+		const errorMessage = err instanceof Error ? err.message : String(err);
+		const errorStack = err instanceof Error ? err.stack : undefined;
+		console.error("[Agent] Error:", errorMessage);
+		console.error("[Agent] Stack:", errorStack);
+		return c.json({ error: "Internal server error", details: errorMessage }, 500);
 	}
 });
 

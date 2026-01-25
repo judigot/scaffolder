@@ -1,0 +1,265 @@
+/**
+ * Components > Terminal
+ * Terminal Mode design tokens for Warp-competitive mobile-first experience
+ * Inspired by Termux-style terminal UIs
+ */
+
+/* CSS Custom Properties - Available for JS and inline styles */
+:root {
+  /* ============================================
+     TERMINAL VIEWPORT
+     ============================================ */
+  --terminal-bg: #141414;
+  --terminal-fg: #e5e5e5;
+  --terminal-cursor: #4ade80;
+  --terminal-selection: #3b4261;
+
+  /* Terminal text colors (xterm-compatible) */
+  --terminal-black: #262626;
+  --terminal-red: #ef4444;
+  --terminal-green: #4ade80;
+  --terminal-yellow: #facc15;
+  --terminal-blue: #3b82f6;
+  --terminal-magenta: #c084fc;
+  --terminal-cyan: #22d3ee;
+  --terminal-white: #e5e5e5;
+
+  /* Bright variants */
+  --terminal-bright-black: #525252;
+  --terminal-bright-red: #f87171;
+  --terminal-bright-green: #86efac;
+  --terminal-bright-yellow: #fde047;
+  --terminal-bright-blue: #60a5fa;
+  --terminal-bright-magenta: #d8b4fe;
+  --terminal-bright-cyan: #67e8f9;
+  --terminal-bright-white: #fafafa;
+
+  /* ============================================
+     TERMINAL TOP BAR
+     ============================================ */
+  --terminal-topbar-bg: #1a1a1a;
+  --terminal-topbar-border: #2a2a2a;
+  --terminal-topbar-text: #a0a0a0;
+  --terminal-topbar-text-active: #f0f0f0;
+
+  /* Secondary tabs */
+  --terminal-tab-bg: transparent;
+  --terminal-tab-bg-hover: #252525;
+  --terminal-tab-bg-active: #2a2a2a;
+  --terminal-tab-border-active: #4ade80;
+
+  /* ============================================
+     CONNECTION STATUS INDICATORS
+     ============================================ */
+  --terminal-status-connected: #4ade80;
+  --terminal-status-reconnecting: #facc15;
+  --terminal-status-disconnected: #ef4444;
+
+  /* ============================================
+     ACTION BUTTONS (Thumb-Optimized)
+     ============================================ */
+  --terminal-action-btn-height: 3.5rem;
+  --terminal-action-btn-min-width: 4.5rem;
+  --terminal-action-btn-radius: 0.75rem;
+  --terminal-action-btn-font-size: 0.875rem;
+  --terminal-action-btn-font-weight: 600;
+
+  /* YES button - success/confirm */
+  --terminal-btn-yes-bg: #1a3326;
+  --terminal-btn-yes-bg-hover: #224433;
+  --terminal-btn-yes-bg-active: #2a5540;
+  --terminal-btn-yes-text: #86efac;
+  --terminal-btn-yes-border: #2f7d4f;
+
+  /* NO button - reject/cancel */
+  --terminal-btn-no-bg: #331a1a;
+  --terminal-btn-no-bg-hover: #442222;
+  --terminal-btn-no-bg-active: #552a2a;
+  --terminal-btn-no-text: #fca5a5;
+  --terminal-btn-no-border: #7d2f2f;
+
+  /* INTERRUPT button - Ctrl+C */
+  --terminal-btn-interrupt-bg: #33291a;
+  --terminal-btn-interrupt-bg-hover: #443622;
+  --terminal-btn-interrupt-bg-active: #55442a;
+  --terminal-btn-interrupt-text: #fde68a;
+  --terminal-btn-interrupt-border: #7d5f2f;
+
+  /* EXIT button - close/exit */
+  --terminal-btn-exit-bg: #1f1f1f;
+  --terminal-btn-exit-bg-hover: #2a2a2a;
+  --terminal-btn-exit-bg-active: #333333;
+  --terminal-btn-exit-text: #808080;
+  --terminal-btn-exit-border: #404040;
+
+  /* ============================================
+     MODE INDICATOR BAR
+     ============================================ */
+  --terminal-mode-bar-bg: #181818;
+  --terminal-mode-bar-border: #282828;
+  --terminal-mode-indicator-bg: transparent;
+  --terminal-mode-indicator-bg-active: #2a2a40;
+  --terminal-mode-indicator-text: #666666;
+  --terminal-mode-indicator-text-active: #e0e0e0;
+  --terminal-mode-indicator-accent: #3b82f6;
+
+  /* ============================================
+     TERMINAL COMPOSER (Input)
+     ============================================ */
+  --terminal-composer-bg: #181818;
+  --terminal-composer-input-bg: #1f1f1f;
+  --terminal-composer-input-border: #333333;
+  --terminal-composer-input-border-focus: #3b82f6;
+  --terminal-composer-placeholder: #555555;
+  --terminal-composer-text: #e5e5e5;
+  --terminal-composer-send-bg: #3b82f6;
+  --terminal-composer-send-bg-hover: #4a90f7;
+  --terminal-composer-send-text: #ffffff;
+  --terminal-composer-send-disabled: #404040;
+
+  /* ============================================
+     MESSAGE STATES
+     ============================================ */
+  --terminal-msg-pending-bg: #1f2937;
+  --terminal-msg-pending-border: #374151;
+  --terminal-msg-applied-bg: #1a332a;
+  --terminal-msg-applied-border: #2f5a45;
+  --terminal-msg-failed-bg: #331f1f;
+  --terminal-msg-failed-border: #5a2f2f;
+
+  /* ============================================
+     SCROLLBAR (Terminal-style)
+     ============================================ */
+  --terminal-scrollbar-track: #1a1a1a;
+  --terminal-scrollbar-thumb: #3a3a3a;
+  --terminal-scrollbar-thumb-hover: #4a4a4a;
+  --terminal-scrollbar-width: 8px;
+
+  /* ============================================
+     OUTPUT BLOCKS (Warp-inspired)
+     ============================================ */
+  --terminal-output-block-bg: #191919;
+  --terminal-output-block-border: #282828;
+  --terminal-output-block-radius: 0.5rem;
+  --terminal-output-prompt-color: #60a5fa;
+  --terminal-output-command-color: #e5e5e5;
+  --terminal-output-stdout-color: #a0a0a0;
+  --terminal-output-stderr-color: #f87171;
+
+  /* ============================================
+     GESTURE INDICATORS
+     ============================================ */
+  --terminal-gesture-indicator-bg: #2a2a40;
+  --terminal-gesture-indicator-border: #404060;
+
+  /* ============================================
+     MOBILE TOUCH TARGETS
+     ============================================ */
+  --terminal-touch-target-min: 44px;
+  --terminal-thumb-zone-height: 80px;
+}
+
+/* Terminal viewport container */
+.terminal-viewport {
+  background: var(--terminal-bg);
+
+  /* Ensure xterm.js fills the container */
+  .xterm {
+    height: 100%;
+    padding: 8px;
+  }
+
+  .xterm-viewport {
+    overflow-y: auto !important;
+  }
+
+  .xterm-screen {
+    height: 100% !important;
+  }
+}
+
+/* Terminal scrollbar styling */
+.terminal-scrollbar {
+  &::-webkit-scrollbar {
+    width: var(--terminal-scrollbar-width);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--terminal-scrollbar-track);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--terminal-scrollbar-thumb);
+    border-radius: 4px;
+
+    &:hover {
+      background: var(--terminal-scrollbar-thumb-hover);
+    }
+  }
+}
+
+/* Terminal output block styling */
+.terminal-output-block {
+  background: var(--terminal-output-block-bg);
+  border: 1px solid var(--terminal-output-block-border);
+  border-radius: var(--terminal-output-block-radius);
+
+  .prompt {
+    color: var(--terminal-output-prompt-color);
+  }
+
+  .command {
+    color: var(--terminal-output-command-color);
+  }
+
+  .stdout {
+    color: var(--terminal-output-stdout-color);
+  }
+
+  .stderr {
+    color: var(--terminal-output-stderr-color);
+  }
+}
+
+/* Terminal action button base styling */
+.terminal-action-btn {
+  min-height: var(--terminal-action-btn-height);
+  min-width: var(--terminal-action-btn-min-width);
+  border-radius: var(--terminal-action-btn-radius);
+  font-size: var(--terminal-action-btn-font-size);
+  font-weight: var(--terminal-action-btn-font-weight);
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Connection status pulse animation */
+@keyframes terminal-status-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.terminal-status-reconnecting {
+  animation: terminal-status-pulse 1.5s ease-in-out infinite;
+}
+
+/* Gesture swipe indicators */
+@keyframes terminal-swipe-hint {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
