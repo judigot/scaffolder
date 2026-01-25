@@ -214,18 +214,27 @@ function InfraWorkspaceCard({
 			if (accessToken === null || accessToken === "") {
 				throw new Error("Missing access token");
 			}
+			const payload: Record<string, unknown> = {
+				tfcToken: infraCredentials.tfcToken,
+				tfcOrg: infraCredentials.tfcOrg,
+				tfcWorkspace: workspaceValue,
+				autoCreate: isDevWorkspace,
+			};
+
+			if (isDevWorkspace) {
+				payload.awsAccessKeyId = infraCredentials.awsAccessKeyId;
+				payload.awsSecretAccessKey = infraCredentials.awsSecretAccessKey;
+				payload.awsSessionToken = infraCredentials.awsSessionToken;
+				payload.sshPublicKey = infraCredentials.sshPublicKey;
+			}
+
 			const response = await fetch(`${getApiUrl()}/terraform/status`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${accessToken}`,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({
-					tfcToken: infraCredentials.tfcToken,
-					tfcOrg: infraCredentials.tfcOrg,
-					tfcWorkspace: workspaceValue,
-					autoCreate: isDevWorkspace,
-				}),
+				body: JSON.stringify(payload),
 			});
 			if (!response.ok) {
 				throw new Error("Failed to fetch Terraform status");

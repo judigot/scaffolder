@@ -43,6 +43,10 @@ interface ITerraformStatusPayload {
 	tfcOrg?: unknown;
 	tfcWorkspace?: unknown;
 	autoCreate?: unknown;
+	awsAccessKeyId?: unknown;
+	awsSecretAccessKey?: unknown;
+	awsSessionToken?: unknown;
+	sshPublicKey?: unknown;
 }
 
 interface ITerraformRunIdPayload {
@@ -118,6 +122,18 @@ router.post("/status", async (c) => {
 				workspaceError.message.includes("not found");
 
 			if (isNotFound && autoCreate) {
+				const hasAwsCreds =
+					typeof body.awsAccessKeyId === "string" &&
+					body.awsAccessKeyId.trim() !== "" &&
+					typeof body.awsSecretAccessKey === "string" &&
+					body.awsSecretAccessKey.trim() !== "";
+
+				if (!hasAwsCreds) {
+					throw new Error(
+						"AWS credentials required to auto-create workspace. Add them in your profile.",
+					);
+				}
+
 				const baseConfig = createTerraformBaseConfig({
 					tfcToken: config.token,
 					tfcOrg: config.organization,
@@ -125,8 +141,55 @@ router.post("/status", async (c) => {
 				const workspace = await createTerraformWorkspace(
 					baseConfig,
 					config.workspace,
-					{ autoApply: true },
+					{ autoApply: false },
 				);
+
+				const awsVariables = [
+					{
+						key: "AWS_ACCESS_KEY_ID",
+						value: body.awsAccessKeyId as string,
+						category: "env" as const,
+						sensitive: true,
+					},
+					{
+						key: "AWS_SECRET_ACCESS_KEY",
+						value: body.awsSecretAccessKey as string,
+						category: "env" as const,
+						sensitive: true,
+					},
+					{
+						key: "TF_VAR_enable_ec2",
+						value: "false",
+						category: "env" as const,
+						sensitive: false,
+					},
+				];
+
+				if (
+					typeof body.awsSessionToken === "string" &&
+					body.awsSessionToken.trim() !== ""
+				) {
+					awsVariables.push({
+						key: "AWS_SESSION_TOKEN",
+						value: body.awsSessionToken,
+						category: "env" as const,
+						sensitive: true,
+					});
+				}
+
+				if (
+					typeof body.sshPublicKey === "string" &&
+					body.sshPublicKey.trim() !== ""
+				) {
+					awsVariables.push({
+						key: "TF_VAR_ssh_public_key",
+						value: body.sshPublicKey,
+						category: "env" as const,
+						sensitive: true,
+					});
+				}
+
+				await upsertTerraformVariables(config, awsVariables);
 
 				const templatePath = getTemplatePath("ubuntu-ec2");
 				const tarGzBuffer = bundleTerraformTemplate(templatePath);
