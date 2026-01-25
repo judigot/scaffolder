@@ -7,13 +7,17 @@ import { SmartEnvPaste } from "@/components/UI/SmartEnvPaste.tsx";
 import { useUser } from "@/hooks/useUser.ts";
 import { useUserProfileStore } from "@/useUserProfileStore.ts";
 import { useUserStore } from "@/useUserStore.ts";
+import {
+	INFRA_ENV_MAP,
+	parseInfraFromEnv,
+	serializeEnvEntries,
+	serializeInfraToEnv,
+} from "@/utils/envParser.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
 import {
-	parseInfraFromEnv,
-	serializeInfraToEnv,
-	serializeEnvEntries,
-	INFRA_ENV_MAP,
-} from "@/utils/envParser.ts";
+	normalizeWorkspaceList,
+	parseWorkspaceValue,
+} from "@/utils/infraWorkspaces.ts";
 import {
 	clearPassphraseSession,
 	getPassphraseFromSession,
@@ -51,6 +55,7 @@ interface IInfraCredentials {
 	tfcToken: string;
 	tfcOrg: string;
 	tfcWorkspace: string;
+	tfcWorkspaces: string[];
 }
 
 const createEmptyEnvEntry = (): IEnvEntry => ({
@@ -69,6 +74,7 @@ const createEmptyInfraCredentials = (): IInfraCredentials => ({
 	tfcToken: "",
 	tfcOrg: "",
 	tfcWorkspace: "",
+	tfcWorkspaces: [],
 });
 
 const extractEnvEntriesFromMetadata = (
@@ -94,6 +100,18 @@ const extractInfraCredentialsFromMetadata = (
 ): IInfraCredentials => {
 	if (isRecord(metadata) && "infra" in metadata && isRecord(metadata.infra)) {
 		const infraRecord = metadata.infra;
+		const parsedWorkspaces = parseWorkspaceValue(infraRecord.tfcWorkspaces);
+		const legacyWorkspace =
+			typeof infraRecord.tfcWorkspace === "string"
+				? infraRecord.tfcWorkspace
+				: "";
+		const mergedWorkspaces =
+			parsedWorkspaces.length > 0
+				? parsedWorkspaces
+				: legacyWorkspace.trim() !== ""
+					? [legacyWorkspace]
+					: [];
+		const primaryWorkspace = mergedWorkspaces[0] ?? legacyWorkspace;
 		return {
 			sshPublicKey:
 				typeof infraRecord.sshPublicKey === "string"
@@ -116,17 +134,10 @@ const extractInfraCredentialsFromMetadata = (
 					? infraRecord.awsSessionToken
 					: "",
 			tfcToken:
-				typeof infraRecord.tfcToken === "string"
-					? infraRecord.tfcToken
-					: "",
-			tfcOrg:
-				typeof infraRecord.tfcOrg === "string"
-					? infraRecord.tfcOrg
-					: "",
-			tfcWorkspace:
-				typeof infraRecord.tfcWorkspace === "string"
-					? infraRecord.tfcWorkspace
-					: "",
+				typeof infraRecord.tfcToken === "string" ? infraRecord.tfcToken : "",
+			tfcOrg: typeof infraRecord.tfcOrg === "string" ? infraRecord.tfcOrg : "",
+			tfcWorkspace: primaryWorkspace,
+			tfcWorkspaces: mergedWorkspaces,
 		};
 	}
 	return createEmptyInfraCredentials();
@@ -200,6 +211,13 @@ const areInfraCredentialsEqual = (
 	first: IInfraCredentials,
 	second: IInfraCredentials,
 ): boolean => {
+	const firstWorkspaces = normalizeWorkspaceList(first.tfcWorkspaces);
+	const secondWorkspaces = normalizeWorkspaceList(second.tfcWorkspaces);
+	const workspacesEqual =
+		firstWorkspaces.length === secondWorkspaces.length &&
+		firstWorkspaces.every(
+			(workspace, index) => workspace === secondWorkspaces[index],
+		);
 	return (
 		first.sshPublicKey.trim() === second.sshPublicKey.trim() &&
 		first.sshPrivateKey.trim() === second.sshPrivateKey.trim() &&
@@ -208,7 +226,8 @@ const areInfraCredentialsEqual = (
 		first.awsSessionToken.trim() === second.awsSessionToken.trim() &&
 		first.tfcToken.trim() === second.tfcToken.trim() &&
 		first.tfcOrg.trim() === second.tfcOrg.trim() &&
-		first.tfcWorkspace.trim() === second.tfcWorkspace.trim()
+		first.tfcWorkspace.trim() === second.tfcWorkspace.trim() &&
+		workspacesEqual
 	);
 };
 
@@ -439,7 +458,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 			}
 
 			const infraRecord = metadata.infra;
-			const fields: (keyof IInfraCredentials)[] = [
+			type InfraStringField = Exclude<keyof IInfraCredentials, "tfcWorkspaces">;
+			const fields: InfraStringField[] = [
 				"sshPublicKey",
 				"sshPrivateKey",
 				"awsAccessKeyId",
@@ -468,6 +488,27 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				} else {
 					decrypted[field] = value;
 				}
+			}
+
+			const workspacesValue = infraRecord.tfcWorkspaces;
+			if (typeof workspacesValue === "string") {
+				const encryptedData = parseEncryptedValue(workspacesValue);
+				const resolved =
+					encryptedData !== null
+						? await decryptSecret(encryptedData, userId, passphrase)
+						: workspacesValue;
+				const parsedWorkspaces = parseWorkspaceValue(resolved);
+				decrypted.tfcWorkspaces = parsedWorkspaces;
+				if (parsedWorkspaces.length > 0) {
+					decrypted.tfcWorkspace = parsedWorkspaces[0] ?? "";
+				}
+			}
+
+			if (
+				decrypted.tfcWorkspaces.length === 0 &&
+				decrypted.tfcWorkspace.trim() !== ""
+			) {
+				decrypted.tfcWorkspaces = [decrypted.tfcWorkspace.trim()];
 			}
 
 			return decrypted;
@@ -824,13 +865,52 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 		setPassphraseErrors([]);
 	};
 
-	const updateInfraField = (field: keyof IInfraCredentials, value: string) => {
+	const updateInfraField = (
+		field: Exclude<keyof IInfraCredentials, "tfcWorkspaces">,
+		value: string,
+	) => {
 		setInfraCredentials((prev) => ({
 			...prev,
 			[field]: value,
 		}));
 		setInfraError(null);
 		setInfraSuccessMessage(null);
+	};
+
+	const updateInfraWorkspaces = (nextWorkspaces: string[]) => {
+		const primaryWorkspace = nextWorkspaces
+			.find((workspace) => workspace.trim() !== "")
+			?.trim();
+		setInfraCredentials((prev) => ({
+			...prev,
+			tfcWorkspaces: nextWorkspaces,
+			tfcWorkspace:
+				primaryWorkspace ??
+				(nextWorkspaces.length === 0 ? "" : prev.tfcWorkspace),
+		}));
+		setInfraError(null);
+		setInfraSuccessMessage(null);
+	};
+
+	const handleWorkspaceChange = (index: number, value: string) => {
+		const next = [...infraCredentials.tfcWorkspaces];
+		next[index] = value;
+		updateInfraWorkspaces(next);
+	};
+
+	const handleWorkspaceAdd = () => {
+		const hasEmpty = infraCredentials.tfcWorkspaces.some(
+			(workspace) => workspace.trim() === "",
+		);
+		if (hasEmpty) {
+			return;
+		}
+		updateInfraWorkspaces([...infraCredentials.tfcWorkspaces, ""]);
+	};
+
+	const handleWorkspaceRemove = (index: number) => {
+		const next = infraCredentials.tfcWorkspaces.filter((_, i) => i !== index);
+		updateInfraWorkspaces(next);
 	};
 
 	const handleInfraCancel = () => {
@@ -846,16 +926,24 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				showClipboardToast("Clipboard is empty");
 				return;
 			}
-			const { fields, matchedCount, unmatchedKeys } =
-				parseInfraFromEnv(text);
+			const { fields, matchedCount, unmatchedKeys } = parseInfraFromEnv(text);
 			if (matchedCount === 0) {
 				const expectedKeys = Object.keys(INFRA_ENV_MAP).join(", ");
-				showClipboardToast(
-					`No matching keys found. Expected: ${expectedKeys}`,
-				);
+				showClipboardToast(`No matching keys found. Expected: ${expectedKeys}`);
 				return;
 			}
-			setInfraCredentials((prev) => ({ ...prev, ...fields }));
+			setInfraCredentials((prev) => {
+				const next = { ...prev, ...fields } as IInfraCredentials;
+				if (typeof fields.tfcWorkspace === "string") {
+					const merged = normalizeWorkspaceList([
+						...prev.tfcWorkspaces,
+						fields.tfcWorkspace,
+					]);
+					next.tfcWorkspaces = merged;
+					next.tfcWorkspace = merged[0] ?? fields.tfcWorkspace;
+				}
+				return next;
+			});
 			setInfraError(null);
 			const unmatchedNote =
 				unmatchedKeys.length > 0
@@ -894,11 +982,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 	};
 
 	const handleSmartEnvMerge = useCallback(
-		(result: {
-			entries: IEnvEntry[];
-			added: string[];
-			updated: string[];
-		}) => {
+		(result: { entries: IEnvEntry[]; added: string[]; updated: string[] }) => {
 			const hasEmpty = result.entries.some(
 				(e) => e.key.trim() === "" && e.value.trim() === "",
 			);
@@ -966,6 +1050,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 		setInfraSuccessMessage(null);
 
 		try {
+			const normalizedWorkspaces = normalizeWorkspaceList(
+				infraCredentials.tfcWorkspaces,
+			);
+			const primaryWorkspace =
+				normalizedWorkspaces[0] ?? infraCredentials.tfcWorkspace.trim();
 			const sanitized: IInfraCredentials = {
 				sshPublicKey: infraCredentials.sshPublicKey.trim(),
 				sshPrivateKey: infraCredentials.sshPrivateKey.trim(),
@@ -974,7 +1063,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				awsSessionToken: infraCredentials.awsSessionToken.trim(),
 				tfcToken: infraCredentials.tfcToken.trim(),
 				tfcOrg: infraCredentials.tfcOrg.trim(),
-				tfcWorkspace: infraCredentials.tfcWorkspace.trim(),
+				tfcWorkspace: primaryWorkspace,
+				tfcWorkspaces: normalizedWorkspaces,
 			};
 
 			if (
@@ -985,13 +1075,13 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				throw new Error("SSH public key and AWS credentials are required.");
 			}
 
-			if (
-				sanitized.tfcToken === "" ||
-				sanitized.tfcOrg === "" ||
-				sanitized.tfcWorkspace === ""
-			) {
+			if (sanitized.tfcToken === "" || sanitized.tfcOrg === "") {
+				throw new Error("Terraform Cloud token and organization are required.");
+			}
+
+			if (sanitized.tfcWorkspaces.length === 0) {
 				throw new Error(
-					"Terraform Cloud token, organization, and workspace are required.",
+					"Add at least one Terraform Cloud workspace to continue.",
 				);
 			}
 
@@ -1037,6 +1127,13 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				),
 				tfcWorkspace: JSON.stringify(
 					await encryptSecret(sanitized.tfcWorkspace, user.sub, passphrase),
+				),
+				tfcWorkspaces: JSON.stringify(
+					await encryptSecret(
+						JSON.stringify(sanitized.tfcWorkspaces),
+						user.sub,
+						passphrase,
+					),
 				),
 			};
 
@@ -2494,7 +2591,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 													)}
 												<div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
 													<p className="text-xs text-fg-subtle">
-														Paste a <code className="px-1 py-0.5 bg-secondary rounded text-[11px] font-mono">.env</code> file to auto-fill credentials
+														Paste a{" "}
+														<code className="px-1 py-0.5 bg-secondary rounded text-[11px] font-mono">
+															.env
+														</code>{" "}
+														file to auto-fill credentials
 													</p>
 													<div className="flex gap-1.5">
 														<button
@@ -2505,9 +2606,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
 															aria-label="Paste .env credentials from clipboard"
 														>
-															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<svg
+																className="w-3.5 h-3.5"
+																fill="none"
+																stroke="currentColor"
+																viewBox="0 0 24 24"
+															>
 																<title>Paste</title>
-																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={2}
+																	d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+																/>
 															</svg>
 															Paste
 														</button>
@@ -2519,9 +2630,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 															className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
 															aria-label="Copy credentials as .env format"
 														>
-															<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<svg
+																className="w-3.5 h-3.5"
+																fill="none"
+																stroke="currentColor"
+																viewBox="0 0 24 24"
+															>
 																<title>Copy</title>
-																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={2}
+																	d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+																/>
 															</svg>
 															Copy
 														</button>
@@ -2709,36 +2830,66 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 																	type="text"
 																	value={infraCredentials.tfcOrg}
 																	onChange={(e) => {
-																		updateInfraField(
-																			"tfcOrg",
-																			e.target.value,
-																		);
+																		updateInfraField("tfcOrg", e.target.value);
 																	}}
 																	placeholder="my-org"
 																	className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
 																/>
 															</div>
-															<div>
-																<label
-																	htmlFor="infra-tfc-workspace"
-																	className="block text-sm font-medium text-fg-muted mb-2"
-																>
-																	Workspace
-																</label>
-																<input
-																	id="infra-tfc-workspace"
-																	type="text"
-																	value={infraCredentials.tfcWorkspace}
-																	onChange={(e) => {
-																		updateInfraField(
-																			"tfcWorkspace",
-																			e.target.value,
+															<fieldset>
+																<legend className="block text-sm font-medium text-fg-muted mb-2">
+																	Workspaces
+																</legend>
+																<div className="space-y-2">
+																	{(infraCredentials.tfcWorkspaces.length > 0
+																		? infraCredentials.tfcWorkspaces
+																		: [""]
+																	).map((workspace, index) => {
+																		const workspaceKey =
+																			workspace.trim() !== ""
+																				? `workspace-${workspace}`
+																				: "workspace-new";
+																		return (
+																			<div
+																				key={workspaceKey}
+																				className="flex gap-2"
+																			>
+																				<input
+																					type="text"
+																					value={workspace}
+																					onChange={(e) => {
+																						handleWorkspaceChange(
+																							index,
+																							e.target.value,
+																						);
+																					}}
+																					placeholder="my-workspace"
+																					className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+																				/>
+																				{infraCredentials.tfcWorkspaces.length >
+																					1 && (
+																					<button
+																						type="button"
+																						onClick={() => {
+																							handleWorkspaceRemove(index);
+																						}}
+																						className="px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg-muted rounded-md transition-colors text-sm"
+																					>
+																						Remove
+																					</button>
+																				)}
+																			</div>
 																		);
-																	}}
-																	placeholder="my-workspace"
-																	className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-																/>
-															</div>
+																	})}
+																	<button
+																		type="button"
+																		onClick={handleWorkspaceAdd}
+																		className="w-full px-3 py-2 border border-dashed border-border/70 rounded-md text-sm text-fg-muted hover:text-fg hover:border-border transition-colors"
+																	>
+																		+ Add workspace
+																	</button>
+																</div>
+															</fieldset>
 														</div>
 													</div>
 												</div>
@@ -2908,7 +3059,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 													<div className="flex-1 mr-3">
 														<SmartEnvPaste
 															existing={envEntries.filter(
-																(e) => e.key.trim() !== "" || e.value.trim() !== "",
+																(e) =>
+																	e.key.trim() !== "" || e.value.trim() !== "",
 															)}
 															createEntry={createEnvEntry}
 															onMerge={handleSmartEnvMerge}
@@ -2922,9 +3074,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 														className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-300 rounded-md text-xs font-medium transition-colors self-start"
 														aria-label="Copy variables as .env format"
 													>
-														<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<svg
+															className="w-3.5 h-3.5"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+														>
 															<title>Copy</title>
-															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={2}
+																d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+															/>
 														</svg>
 														Copy
 													</button>
@@ -3277,9 +3439,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 			{clipboardToast !== null && (
 				<div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none animate-in fade-in slide-in-from-bottom-2">
 					<div className="px-4 py-2.5 bg-neutral-900 border border-neutral-700 text-fg text-sm font-medium rounded-lg shadow-xl pointer-events-auto flex items-center gap-2">
-						<svg className="w-4 h-4 text-success-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg
+							className="w-4 h-4 text-success-400 shrink-0"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<title>Info</title>
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
 						</svg>
 						{clipboardToast}
 					</div>
