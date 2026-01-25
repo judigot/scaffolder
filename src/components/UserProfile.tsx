@@ -1949,25 +1949,27 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 							}}
 							aria-label="Close profile"
 						/>
-						<div className="fixed inset-x-0 bottom-0 w-full max-h-[85vh] overflow-y-auto scrollbar-thin rounded-t-2xl pb-safe md:absolute md:inset-auto md:right-0 md:top-12 md:w-80 md:max-h-[70vh] md:rounded-lg md:pb-0 bg-bg-muted border border-border shadow-xl z-50">
+						<div className="fixed inset-x-0 bottom-0 w-full max-h-[85vh] flex flex-col rounded-t-2xl pb-safe md:absolute md:inset-auto md:right-0 md:top-12 md:w-80 md:max-h-[70vh] md:rounded-lg md:pb-0 bg-bg-muted border border-border shadow-xl z-50">
 							{activePanel === "home" ? (
 								<>
-									{/* Mobile drag handle */}
-									<div className="flex justify-center pt-3 pb-2 md:hidden">
-										<div className="w-10 h-1 bg-border rounded-full" />
-									</div>
-									{/* Header */}
-									<div className="px-4 py-3 border-b border-border">
-										<p className="text-sm font-medium text-fg">
-											{user?.name ?? user?.email ?? "User"}
-										</p>
-										<p className="text-xs text-fg-subtle mt-0.5">
-											{user?.email ?? "No email"}
-										</p>
+									{/* Fixed Header */}
+									<div className="flex-shrink-0">
+										{/* Mobile drag handle */}
+										<div className="flex justify-center pt-3 pb-2 md:hidden">
+											<div className="w-10 h-1 bg-border rounded-full" />
+										</div>
+										<div className="px-4 py-3 border-b border-border">
+											<p className="text-sm font-medium text-fg">
+												{user?.name ?? user?.email ?? "User"}
+											</p>
+											<p className="text-xs text-fg-subtle mt-0.5">
+												{user?.email ?? "No email"}
+											</p>
+										</div>
 									</div>
 
-									{/* Content */}
-									<div className="p-2">
+									{/* Scrollable Content */}
+									<div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-2">
 										{!isLoading &&
 											serverConfigStatus !== null &&
 											serverConfigStatus.auth0ManagementApiConfigured ===
@@ -2051,8 +2053,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 											)}
 									</div>
 
-									{/* Footer */}
-									<div className="border-t border-border p-2">
+									{/* Fixed Footer */}
+									<div className="flex-shrink-0 border-t border-border p-2">
 										<button
 											type="button"
 											onClick={logout}
@@ -2081,7 +2083,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 								serverConfigStatus !== null &&
 								serverConfigStatus.auth0ManagementApiConfigured === true ? (
 								<>
-									<div className="p-4 border-b border-border flex items-center justify-between">
+									{/* Fixed Header */}
+									<div className="flex-shrink-0 p-4 border-b border-border flex items-center justify-between">
 										<button
 											type="button"
 											onClick={() => {
@@ -2111,291 +2114,218 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 										</h2>
 										<div className="w-16" />
 									</div>
-									{(!encryptionAvailable ||
-										(githubToken !== null &&
-											githubToken !== "" &&
-											isTokenEncrypted === false)) && (
-										<div className="mx-4 mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
-											<div className="flex items-start gap-2">
-												<svg
-													className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
-													fill="currentColor"
-													viewBox="0 0 20 20"
-												>
-													<title>Warning icon</title>
-													<path
-														fillRule="evenodd"
-														d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-														clipRule="evenodd"
-													/>
-												</svg>
-												<div className="flex-1">
-													<p className="text-sm font-medium text-yellow-300">
-														Security Warning: Encryption Not Available
-													</p>
-													<p className="text-xs text-yellow-200/80 mt-1">
-														{!encryptionAvailable
-															? "ENCRYPTION_KEY is not set on the server. Your GitHub token will be stored as plain text. Set the ENCRYPTION_KEY environment variable to enable encryption."
-															: "Your GitHub token is currently stored as plain text. Re-save it to encrypt it with the server encryption key."}
-													</p>
+									{/* Scrollable Content */}
+									<div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+										{(!encryptionAvailable ||
+											(githubToken !== null &&
+												githubToken !== "" &&
+												isTokenEncrypted === false)) && (
+											<div className="mx-4 mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
+												<div className="flex items-start gap-2">
+													<svg
+														className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<title>Warning icon</title>
+														<path
+															fillRule="evenodd"
+															d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+															clipRule="evenodd"
+														/>
+													</svg>
+													<div className="flex-1">
+														<p className="text-sm font-medium text-yellow-300">
+															Security Warning: Encryption Not Available
+														</p>
+														<p className="text-xs text-yellow-200/80 mt-1">
+															{!encryptionAvailable
+																? "ENCRYPTION_KEY is not set on the server. Your GitHub token will be stored as plain text. Set the ENCRYPTION_KEY environment variable to enable encryption."
+																: "Your GitHub token is currently stored as plain text. Re-save it to encrypt it with the server encryption key."}
+														</p>
+													</div>
 												</div>
 											</div>
-										</div>
-									)}
-									<div className="p-4 space-y-4">
-										<div>
-											<div className="flex items-center justify-between mb-2">
-												<label
-													htmlFor="github-token-input"
-													className="block text-sm font-medium text-fg-muted"
-												>
-													GitHub Personal Access Token
-												</label>
-												{showSavedIndicator && (
-													<span className="flex items-center text-xs text-green-400 animate-fade-out">
+										)}
+										<div className="p-4 space-y-4">
+											<div>
+												<div className="flex items-center justify-between mb-2">
+													<label
+														htmlFor="github-token-input"
+														className="block text-sm font-medium text-fg-muted"
+													>
+														GitHub Personal Access Token
+													</label>
+													{showSavedIndicator && (
+														<span className="flex items-center text-xs text-green-400 animate-fade-out">
+															<svg
+																className="w-4 h-4 mr-1"
+																fill="currentColor"
+																viewBox="0 0 20 20"
+															>
+																<title>Checkmark icon</title>
+																<path
+																	fillRule="evenodd"
+																	d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+																	clipRule="evenodd"
+																/>
+															</svg>
+															Saved
+														</span>
+													)}
+												</div>
+												<div className="flex gap-2">
+													<input
+														ref={inputRef}
+														id="github-token-input"
+														type={showToken ? "text" : "password"}
+														value={inputValue}
+														onChange={(e) => {
+															handleInputChange(e.target.value);
+														}}
+														placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+														disabled={isSaving || isDeleting}
+														className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+													/>
+													<button
+														type="button"
+														onClick={() => {
+															setShowToken(!showToken);
+														}}
+														className="px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg-muted rounded-md transition-colors text-sm"
+														disabled={
+															githubToken === null || githubToken === ""
+														}
+													>
+														{showToken ? (
+															<svg
+																className="w-5 h-5"
+																fill="none"
+																stroke="currentColor"
+																viewBox="0 0 24 24"
+																aria-label="Hide token icon"
+															>
+																<title>Hide token</title>
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={2}
+																	d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.736m0 0L21 21"
+																/>
+															</svg>
+														) : (
+															<svg
+																className="w-5 h-5"
+																fill="none"
+																stroke="currentColor"
+																viewBox="0 0 24 24"
+																aria-label="Show token icon"
+															>
+																<title>Show token</title>
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={2}
+																	d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+																/>
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={2}
+																	d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+																/>
+															</svg>
+														)}
+													</button>
+												</div>
+												{error !== null && error !== "" && (
+													<div className="mt-2 p-2 bg-red-900/50 border border-red-700 rounded-md flex items-start">
 														<svg
-															className="w-4 h-4 mr-1"
+															className="w-5 h-5 text-red-400 mr-2 flex-shrink-0 mt-0.5"
 															fill="currentColor"
 															viewBox="0 0 20 20"
 														>
-															<title>Checkmark icon</title>
+															<title>Error icon</title>
+															<path
+																fillRule="evenodd"
+																d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+																clipRule="evenodd"
+															/>
+														</svg>
+														<span className="text-sm text-red-300">
+															{error}
+														</span>
+													</div>
+												)}
+												{successMessage !== null && successMessage !== "" && (
+													<div className="mt-2 p-2 bg-green-900/50 border border-green-700 rounded-md flex items-center">
+														<svg
+															className="w-5 h-5 text-green-400 mr-2"
+															fill="currentColor"
+															viewBox="0 0 20 20"
+														>
+															<title>Success icon</title>
 															<path
 																fillRule="evenodd"
 																d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
 																clipRule="evenodd"
 															/>
 														</svg>
-														Saved
-													</span>
+														<span className="text-sm text-green-300">
+															{successMessage}
+														</span>
+													</div>
 												)}
-											</div>
-											<div className="flex gap-2">
-												<input
-													ref={inputRef}
-													id="github-token-input"
-													type={showToken ? "text" : "password"}
-													value={inputValue}
-													onChange={(e) => {
-														handleInputChange(e.target.value);
-													}}
-													placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-													disabled={isSaving || isDeleting}
-													className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-												/>
-												<button
-													type="button"
-													onClick={() => {
-														setShowToken(!showToken);
-													}}
-													className="px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg-muted rounded-md transition-colors text-sm"
-													disabled={githubToken === null || githubToken === ""}
-												>
-													{showToken ? (
-														<svg
-															className="w-5 h-5"
-															fill="none"
-															stroke="currentColor"
-															viewBox="0 0 24 24"
-															aria-label="Hide token icon"
+												<div className="mt-2 text-xs text-fg-subtle space-y-3">
+													<p>
+														<a
+															href="https://github.com/settings/personal-access-tokens/new"
+															target="_blank"
+															rel="noopener noreferrer"
+															className="text-primary-400 hover:text-primary-300 underline"
 														>
-															<title>Hide token</title>
-															<path
-																strokeLinecap="round"
-																strokeLinejoin="round"
-																strokeWidth={2}
-																d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.736m0 0L21 21"
-															/>
-														</svg>
-													) : (
-														<svg
-															className="w-5 h-5"
-															fill="none"
-															stroke="currentColor"
-															viewBox="0 0 24 24"
-															aria-label="Show token icon"
-														>
-															<title>Show token</title>
-															<path
-																strokeLinecap="round"
-																strokeLinejoin="round"
-																strokeWidth={2}
-																d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-															/>
-															<path
-																strokeLinecap="round"
-																strokeLinejoin="round"
-																strokeWidth={2}
-																d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-															/>
-														</svg>
-													)}
-												</button>
-											</div>
-											{error !== null && error !== "" && (
-												<div className="mt-2 p-2 bg-red-900/50 border border-red-700 rounded-md flex items-start">
-													<svg
-														className="w-5 h-5 text-red-400 mr-2 flex-shrink-0 mt-0.5"
-														fill="currentColor"
-														viewBox="0 0 20 20"
-													>
-														<title>Error icon</title>
-														<path
-															fillRule="evenodd"
-															d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-															clipRule="evenodd"
-														/>
-													</svg>
-													<span className="text-sm text-red-300">{error}</span>
-												</div>
-											)}
-											{successMessage !== null && successMessage !== "" && (
-												<div className="mt-2 p-2 bg-green-900/50 border border-green-700 rounded-md flex items-center">
-													<svg
-														className="w-5 h-5 text-green-400 mr-2"
-														fill="currentColor"
-														viewBox="0 0 20 20"
-													>
-														<title>Success icon</title>
-														<path
-															fillRule="evenodd"
-															d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-															clipRule="evenodd"
-														/>
-													</svg>
-													<span className="text-sm text-green-300">
-														{successMessage}
-													</span>
-												</div>
-											)}
-											<div className="mt-2 text-xs text-fg-subtle space-y-3">
-												<p>
-													<a
-														href="https://github.com/settings/personal-access-tokens/new"
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-primary-400 hover:text-primary-300 underline"
-													>
-														Create a fine-grained personal access token
-													</a>{" "}
-													with{" "}
-													<span className="text-fg-subtle">Read and Write</span>{" "}
-													permissions for{" "}
-													<span className="text-fg-subtle">Administration</span>{" "}
-													and <span className="text-fg-subtle">Contents</span>.
-												</p>
-												<div className="mt-3 p-3 bg-secondary/50 border border-border rounded-md">
-													<p className="text-xs text-fg-subtle mb-2">
-														Example token permissions:
+															Create a fine-grained personal access token
+														</a>{" "}
+														with{" "}
+														<span className="text-fg-subtle">
+															Read and Write
+														</span>{" "}
+														permissions for{" "}
+														<span className="text-fg-subtle">
+															Administration
+														</span>{" "}
+														and <span className="text-fg-subtle">Contents</span>
+														.
 													</p>
-													<img
-														src={tokenPermissionsImage}
-														alt="GitHub token permissions example showing Administration, Contents, and Metadata sections"
-														className="w-full rounded border border-border"
-													/>
+													<div className="mt-3 p-3 bg-secondary/50 border border-border rounded-md">
+														<p className="text-xs text-fg-subtle mb-2">
+															Example token permissions:
+														</p>
+														<img
+															src={tokenPermissionsImage}
+															alt="GitHub token permissions example showing Administration, Contents, and Metadata sections"
+															className="w-full rounded border border-border"
+														/>
+													</div>
 												</div>
 											</div>
-										</div>
-										{hasChanges && (
-											<div className="flex gap-2">
-												<button
-													type="button"
-													onClick={handleSave}
-													disabled={isSaving || inputValue.trim() === ""}
-													className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-												>
-													{isSaving ? (
-														<>
-															<svg
-																className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
-																xmlns="http://www.w3.org/2000/svg"
-																fill="none"
-																viewBox="0 0 24 24"
-															>
-																<title>Loading spinner</title>
-																<circle
-																	className="opacity-25"
-																	cx="12"
-																	cy="12"
-																	r="10"
-																	stroke="currentColor"
-																	strokeWidth="4"
-																/>
-																<path
-																	className="opacity-75"
-																	fill="currentColor"
-																	d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-																/>
-															</svg>
-															Saving...
-														</>
-													) : (
-														"Save Changes"
-													)}
-												</button>
-												<button
-													type="button"
-													onClick={handleCancel}
-													disabled={isSaving || isLoading}
-													className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-												>
-													Cancel
-												</button>
-											</div>
-										)}
-
-										{githubToken !== null &&
-											githubToken !== "" &&
-											!hasChanges &&
-											!showDeleteConfirm && (
-												<button
-													type="button"
-													onClick={() => {
-														setShowDeleteConfirm(true);
-													}}
-													disabled={isDeleting || isLoading}
-													className="w-full flex items-center justify-center px-4 py-2 bg-secondary-hover/10 hover:bg-secondary-hover/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-												>
-													<svg
-														className="w-4 h-4 mr-2"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
-													>
-														<title>Delete icon</title>
-														<path
-															strokeLinecap="round"
-															strokeLinejoin="round"
-															strokeWidth={2}
-															d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-														/>
-													</svg>
-													Delete Token
-												</button>
-											)}
-
-										{showDeleteConfirm && (
-											<div className="p-3 bg-red-900/20 border border-red-600/50 rounded-md">
-												<p className="text-sm text-red-300 mb-3">
-													Are you sure you want to delete your GitHub token?
-													This action cannot be undone.
-												</p>
+											{hasChanges && (
 												<div className="flex gap-2">
 													<button
 														type="button"
-														onClick={handleDelete}
-														disabled={isDeleting}
-														className="flex-1 flex items-center justify-center px-3 py-2 bg-secondary-hover hover:bg-secondary-hover text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+														onClick={handleSave}
+														disabled={isSaving || inputValue.trim() === ""}
+														className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 													>
-														{isDeleting ? (
+														{isSaving ? (
 															<>
 																<svg
-																	className="animate-spin -ml-1 mr-2 h-4 w-4"
+																	className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
 																	xmlns="http://www.w3.org/2000/svg"
 																	fill="none"
 																	viewBox="0 0 24 24"
-																	aria-label="Loading spinner"
 																>
-																	<title>Loading</title>
+																	<title>Loading spinner</title>
 																	<circle
 																		className="opacity-25"
 																		cx="12"
@@ -2410,25 +2340,110 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 																		d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 																	/>
 																</svg>
-																Deleting...
+																Saving...
 															</>
 														) : (
-															"Yes, Delete"
+															"Save Changes"
 														)}
 													</button>
 													<button
 														type="button"
-														onClick={() => {
-															setShowDeleteConfirm(false);
-														}}
-														disabled={isDeleting}
-														className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+														onClick={handleCancel}
+														disabled={isSaving || isLoading}
+														className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 													>
 														Cancel
 													</button>
 												</div>
-											</div>
-										)}
+											)}
+
+											{githubToken !== null &&
+												githubToken !== "" &&
+												!hasChanges &&
+												!showDeleteConfirm && (
+													<button
+														type="button"
+														onClick={() => {
+															setShowDeleteConfirm(true);
+														}}
+														disabled={isDeleting || isLoading}
+														className="w-full flex items-center justify-center px-4 py-2 bg-secondary-hover/10 hover:bg-secondary-hover/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+													>
+														<svg
+															className="w-4 h-4 mr-2"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+														>
+															<title>Delete icon</title>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={2}
+																d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+															/>
+														</svg>
+														Delete Token
+													</button>
+												)}
+
+											{showDeleteConfirm && (
+												<div className="p-3 bg-red-900/20 border border-red-600/50 rounded-md">
+													<p className="text-sm text-red-300 mb-3">
+														Are you sure you want to delete your GitHub token?
+														This action cannot be undone.
+													</p>
+													<div className="flex gap-2">
+														<button
+															type="button"
+															onClick={handleDelete}
+															disabled={isDeleting}
+															className="flex-1 flex items-center justify-center px-3 py-2 bg-secondary-hover hover:bg-secondary-hover text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+														>
+															{isDeleting ? (
+																<>
+																	<svg
+																		className="animate-spin -ml-1 mr-2 h-4 w-4"
+																		xmlns="http://www.w3.org/2000/svg"
+																		fill="none"
+																		viewBox="0 0 24 24"
+																		aria-label="Loading spinner"
+																	>
+																		<title>Loading</title>
+																		<circle
+																			className="opacity-25"
+																			cx="12"
+																			cy="12"
+																			r="10"
+																			stroke="currentColor"
+																			strokeWidth="4"
+																		/>
+																		<path
+																			className="opacity-75"
+																			fill="currentColor"
+																			d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+																		/>
+																	</svg>
+																	Deleting...
+																</>
+															) : (
+																"Yes, Delete"
+															)}
+														</button>
+														<button
+															type="button"
+															onClick={() => {
+																setShowDeleteConfirm(false);
+															}}
+															disabled={isDeleting}
+															className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+														>
+															Cancel
+														</button>
+													</div>
+												</div>
+											)}
+										</div>
 									</div>
 								</>
 							) : activePanel === "infra" &&
@@ -2436,7 +2451,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 								serverConfigStatus !== null &&
 								serverConfigStatus.auth0ManagementApiConfigured === true ? (
 								<>
-									<div className="p-4 border-b border-border flex items-center justify-between">
+									{/* Fixed Header */}
+									<div className="flex-shrink-0 p-4 border-b border-border flex items-center justify-between">
 										<button
 											type="button"
 											onClick={() => {
@@ -2466,7 +2482,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 										</h2>
 										<div className="w-16" />
 									</div>
-									<div className="p-4 space-y-4">
+									{/* Scrollable Content */}
+									<div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 space-y-4">
 										<div className="p-3 border-b border-border">
 											<p className="text-sm text-fg-subtle text-justify leading-relaxed">
 												Provide your SSH public key and AWS credentials so the
@@ -2843,7 +2860,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 								serverConfigStatus !== null &&
 								serverConfigStatus.auth0ManagementApiConfigured === true ? (
 								<>
-									<div className="p-4 border-b border-border flex items-center justify-between">
+									{/* Fixed Header */}
+									<div className="flex-shrink-0 p-4 border-b border-border flex items-center justify-between">
 										<button
 											type="button"
 											onClick={() => {
@@ -2873,7 +2891,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 										</h2>
 										<div className="w-16" />
 									</div>
-									<div className="p-4 space-y-4">
+									{/* Scrollable Content */}
+									<div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 space-y-4">
 										<div className="p-3 border-b border-border">
 											<p className="text-sm text-fg-subtle text-justify leading-relaxed">
 												These values are available via{" "}
