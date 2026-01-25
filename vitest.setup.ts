@@ -1,10 +1,22 @@
-import { expect, afterEach, vi } from 'vitest';
+import { expect, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { server, resetMockApiState } from './src/test/mocks/server.ts';
+
+// MSW Server Lifecycle
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'warn' });
+});
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  server.resetHandlers();
+  resetMockApiState();
+});
+
+afterAll(() => {
+  server.close();
 });
 
 Object.defineProperty(window, 'matchMedia', {

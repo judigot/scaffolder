@@ -70,7 +70,7 @@ const TerminalViewport = forwardRef<
 
 	// Initialize terminal
 	useEffect(() => {
-		if (!containerRef.current) return;
+		if (!containerRef.current) {return;}
 
 		// Get CSS custom properties for theming
 		const computedStyle = getComputedStyle(document.documentElement);

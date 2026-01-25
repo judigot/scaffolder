@@ -114,7 +114,7 @@ export default function TerminalMode({
 	// Send command to terminal
 	const sendCommand = useCallback(
 		async (command: string) => {
-			if (!command.trim()) return;
+			if (!command.trim()) {return;}
 
 			// Add to message history with pending status
 			const messageId = addMessage(command);

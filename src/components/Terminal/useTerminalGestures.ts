@@ -60,10 +60,10 @@ export function useTerminalGestures({
 
 	const handleTouchStart = useCallback(
 		(e: React.TouchEvent) => {
-			if (!enabled) return;
+			if (!enabled) {return;}
 
 			const touch = e.touches[0];
-			if (!touch) return;
+			if (!touch) {return;}
 
 			touchStartRef.current = { x: touch.clientX, y: touch.clientY };
 			isScrollingRef.current = false;
@@ -73,10 +73,10 @@ export function useTerminalGestures({
 
 	const handleTouchMove = useCallback(
 		(e: React.TouchEvent) => {
-			if (!enabled || !touchStartRef.current) return;
+			if (!enabled || !touchStartRef.current) {return;}
 
 			const touch = e.touches[0];
-			if (!touch) return;
+			if (!touch) {return;}
 
 			const deltaX = touch.clientX - touchStartRef.current.x;
 			const deltaY = touch.clientY - touchStartRef.current.y;
@@ -91,7 +91,7 @@ export function useTerminalGestures({
 			}
 
 			// If we determined this is a scroll, don't handle as gesture
-			if (isScrollingRef.current) return;
+			if (isScrollingRef.current) {return;}
 
 			const absDeltaX = Math.abs(deltaX);
 			const absDeltaY = Math.abs(deltaY);

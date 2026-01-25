@@ -69,7 +69,7 @@ export default function TerminalComposer({
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 			// Don't handle during IME composition
-			if (isComposing) return;
+			if (isComposing) {return;}
 
 			// Enter without Shift = Submit
 			if (e.key === "Enter" && !e.shiftKey) {

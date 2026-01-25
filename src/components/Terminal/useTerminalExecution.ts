@@ -43,12 +43,26 @@ export function useTerminalExecution({
 	const [isConnected, setIsConnected] = useState(false);
 	const abortControllerRef = useRef<AbortController | null>(null);
 
+	// Use refs for callbacks to avoid dependency array issues
+	const onOutputRef = useRef(onOutput);
+	const onCompleteRef = useRef(onComplete);
+	const onErrorRef = useRef(onError);
+	const onConnectionChangeRef = useRef(onConnectionChange);
+
+	// Keep refs in sync
+	useEffect(() => {
+		onOutputRef.current = onOutput;
+		onCompleteRef.current = onComplete;
+		onErrorRef.current = onError;
+		onConnectionChangeRef.current = onConnectionChange;
+	});
+
 	// Check connection status when credentials change
 	useEffect(() => {
 		const hasCredentials = Boolean(host && sshPrivateKey && accessToken);
 		setIsConnected(hasCredentials);
-		onConnectionChange?.(hasCredentials ? "connected" : "disconnected");
-	}, [host, sshPrivateKey, accessToken, onConnectionChange]);
+		onConnectionChangeRef.current?.(hasCredentials ? "connected" : "disconnected");
+	}, [host, sshPrivateKey, accessToken]);
 
 	/**
 	 * Execute a command on the remote server
@@ -110,7 +124,7 @@ export function useTerminalExecution({
 
 				while (true) {
 					const { done, value } = await reader.read();
-					if (done) break;
+					if (done) {break;}
 
 					const chunk = decoder.decode(value, { stream: true });
 
@@ -126,11 +140,11 @@ export function useTerminalExecution({
 									const result = data.result;
 									if (result.output) {
 										lastToolResult = result.output;
-										onOutput?.(result.output);
+										onOutputRef.current?.(result.output);
 										fullOutput += result.output;
 									}
 									if (result.error) {
-										onError?.(result.error);
+										onErrorRef.current?.(result.error);
 									}
 								}
 
@@ -150,7 +164,7 @@ export function useTerminalExecution({
 					output: lastToolResult || fullOutput,
 				};
 
-				onComplete?.(true);
+				onCompleteRef.current?.(true);
 				return result;
 			} catch (error) {
 				if (error instanceof Error && error.name === "AbortError") {
@@ -159,15 +173,15 @@ export function useTerminalExecution({
 
 				const errorMessage =
 					error instanceof Error ? error.message : "Unknown error";
-				onError?.(errorMessage);
-				onComplete?.(false);
+				onErrorRef.current?.(errorMessage);
+				onCompleteRef.current?.(false);
 				return { success: false, output: "", error: errorMessage };
 			} finally {
 				setIsExecuting(false);
 				abortControllerRef.current = null;
 			}
 		},
-		[host, sshPrivateKey, accessToken, onOutput, onComplete, onError],
+		[host, sshPrivateKey, accessToken],
 	);
 
 	/**
