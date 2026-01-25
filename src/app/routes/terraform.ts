@@ -1,13 +1,15 @@
 import { Hono } from "hono";
 import { validateAwsCredentials } from "@/app/services/awsCredentialValidator.ts";
 import {
-	type ITerraformConfig,
+	createTerraformBaseConfig,
 	createTerraformConfigFromCredentials,
 	createTerraformRun,
+	createTerraformWorkspace,
 	getTerraformOutputs,
 	getTerraformRun,
 	getTerraformWorkspaceId,
 	getTerraformWorkspaceVariables,
+	type ITerraformConfig,
 	upsertTerraformVariables,
 	validateTerraformConfig,
 } from "@/app/services/terraformCloudService.ts";
@@ -34,6 +36,15 @@ interface ITerraformRunIdPayload {
 	tfcToken?: unknown;
 	tfcOrg?: unknown;
 	tfcWorkspace?: unknown;
+}
+
+interface ICreateWorkspacePayload {
+	tfcToken?: unknown;
+	tfcOrg?: unknown;
+	workspaceName?: unknown;
+	mode?: unknown;
+	ec2InstanceType?: unknown;
+	rdsInstanceClass?: unknown;
 }
 
 const extractTfcConfig = (body: {
@@ -291,8 +302,7 @@ router.post("/run/:runId", async (c) => {
 		return c.json(
 			{
 				error: "Missing Terraform Cloud credentials",
-				message:
-					"tfcToken, tfcOrg, and tfcWorkspace are required.",
+				message: "tfcToken, tfcOrg, and tfcWorkspace are required.",
 			},
 			400,
 		);
@@ -320,6 +330,102 @@ router.post("/run/:runId", async (c) => {
 		return c.json(
 			{
 				error: "Failed to fetch Terraform run",
+				message: "An unexpected error occurred",
+			},
+			500,
+		);
+	}
+});
+
+router.post("/workspace", async (c) => {
+	const verification = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+
+	if (!verification.ok) {
+		return c.json(verification.body, verification.status);
+	}
+
+	const body = await c.req.json<ICreateWorkspacePayload>();
+
+	if (
+		typeof body.tfcToken !== "string" ||
+		body.tfcToken.trim() === "" ||
+		typeof body.tfcOrg !== "string" ||
+		body.tfcOrg.trim() === ""
+	) {
+		return c.json(
+			{
+				error: "Missing Terraform Cloud credentials",
+				message: "tfcToken and tfcOrg are required.",
+			},
+			400,
+		);
+	}
+
+	if (
+		typeof body.workspaceName !== "string" ||
+		body.workspaceName.trim() === ""
+	) {
+		return c.json(
+			{
+				error: "Invalid payload",
+				message: "workspaceName is required.",
+			},
+			400,
+		);
+	}
+
+	const mode = body.mode === "vcs" ? "vcs" : "api";
+
+	try {
+		const baseConfig = createTerraformBaseConfig({
+			tfcToken: body.tfcToken,
+			tfcOrg: body.tfcOrg,
+		});
+
+		const workspace = await createTerraformWorkspace(
+			baseConfig,
+			body.workspaceName.trim(),
+			{ autoApply: true },
+		);
+
+		return c.json(
+			{
+				success: true,
+				workspace,
+				mode,
+				ec2InstanceType:
+					typeof body.ec2InstanceType === "string"
+						? body.ec2InstanceType
+						: null,
+				rdsInstanceClass:
+					typeof body.rdsInstanceClass === "string"
+						? body.rdsInstanceClass
+						: null,
+			},
+			200,
+		);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			const status =
+				error.message.includes("invalid or expired") ||
+				error.message.includes("lacks permission")
+					? 403
+					: error.message.includes("not found")
+						? 404
+						: 500;
+			return c.json(
+				{
+					error: "Failed to create workspace",
+					message: error.message,
+				},
+				status,
+			);
+		}
+		return c.json(
+			{
+				error: "Failed to create workspace",
 				message: "An unexpected error occurred",
 			},
 			500,

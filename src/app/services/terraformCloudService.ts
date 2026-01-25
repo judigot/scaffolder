@@ -25,7 +25,38 @@ interface ITerraformRunResult {
 	status: string;
 }
 
+export interface ITerraformWorkspace {
+	id: string;
+	name: string;
+}
+
+export interface ICreateWorkspaceOptions {
+	executionMode?: "remote" | "local" | "agent";
+	autoApply?: boolean;
+	terraformVersion?: string;
+}
+
+type ITerraformBaseConfig = Omit<ITerraformConfig, "workspace">;
+
 const TFC_API_BASE_URL = "https://app.terraform.io/api/v2";
+
+const terraformBaseFetch = async (
+	config: ITerraformBaseConfig,
+	path: string,
+	options?: RequestInit,
+): Promise<Response> => {
+	const headers: Record<string, string> = {
+		Authorization: `Bearer ${config.token}`,
+		"Content-Type": "application/vnd.api+json",
+	};
+	if (options?.headers) {
+		Object.assign(headers, options.headers);
+	}
+	return fetch(`${config.apiBaseUrl}${path}`, {
+		...options,
+		headers,
+	});
+};
 
 const terraformFetch = async (
 	config: ITerraformConfig,
@@ -85,9 +116,7 @@ export const getTerraformWorkspaceId = async (
 			);
 		}
 		if (response.status === 401) {
-			throw new Error(
-				"Terraform Cloud token is invalid or expired",
-			);
+			throw new Error("Terraform Cloud token is invalid or expired");
 		}
 		throw new Error("Failed to fetch Terraform workspace");
 	}
@@ -407,4 +436,153 @@ export const getTerraformOutputs = async (
 	}
 
 	return outputs;
+};
+
+export const getTerraformWorkspaceByName = async (
+	config: ITerraformBaseConfig,
+	workspaceName: string,
+): Promise<ITerraformWorkspace | null> => {
+	const response = await terraformBaseFetch(
+		config,
+		`/organizations/${config.organization}/workspaces/${workspaceName}`,
+	);
+
+	if (!response.ok) {
+		if (response.status === 404) {
+			return null;
+		}
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 403) {
+			throw new Error(
+				"Terraform Cloud token lacks permission to access this workspace",
+			);
+		}
+		throw new Error("Failed to fetch Terraform workspace");
+	}
+
+	const data: unknown = await response.json();
+	if (
+		typeof data === "object" &&
+		data !== null &&
+		"data" in data &&
+		typeof data.data === "object" &&
+		data.data !== null &&
+		"id" in data.data &&
+		typeof data.data.id === "string"
+	) {
+		const attributes = "attributes" in data.data ? data.data.attributes : null;
+		const name =
+			typeof attributes === "object" &&
+			attributes !== null &&
+			"name" in attributes &&
+			typeof attributes.name === "string"
+				? attributes.name
+				: workspaceName;
+		return { id: data.data.id, name };
+	}
+
+	throw new Error("Terraform workspace response missing ID");
+};
+
+export const createTerraformWorkspace = async (
+	config: ITerraformBaseConfig,
+	workspaceName: string,
+	options?: ICreateWorkspaceOptions,
+): Promise<ITerraformWorkspace> => {
+	const existing = await getTerraformWorkspaceByName(config, workspaceName);
+	if (existing !== null) {
+		return existing;
+	}
+
+	const response = await terraformBaseFetch(
+		config,
+		`/organizations/${config.organization}/workspaces`,
+		{
+			method: "POST",
+			body: JSON.stringify({
+				data: {
+					type: "workspaces",
+					attributes: {
+						name: workspaceName,
+						"execution-mode": options?.executionMode ?? "remote",
+						"auto-apply": options?.autoApply ?? true,
+						"terraform-version": options?.terraformVersion ?? "latest",
+					},
+				},
+			}),
+		},
+	);
+
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 403) {
+			throw new Error(
+				"Terraform Cloud token lacks permission to create workspaces",
+			);
+		}
+		if (response.status === 404) {
+			throw new Error(`Organization "${config.organization}" not found`);
+		}
+		if (response.status === 422) {
+			const errorBody: unknown = await response.json().catch(() => null);
+			if (
+				errorBody !== null &&
+				typeof errorBody === "object" &&
+				"errors" in errorBody &&
+				Array.isArray(errorBody.errors) &&
+				errorBody.errors.length > 0
+			) {
+				const firstError = errorBody.errors[0];
+				if (
+					typeof firstError === "object" &&
+					firstError !== null &&
+					"detail" in firstError &&
+					typeof firstError.detail === "string"
+				) {
+					throw new Error(firstError.detail);
+				}
+			}
+			throw new Error("Workspace validation failed");
+		}
+		throw new Error("Failed to create Terraform workspace");
+	}
+
+	const payload: unknown = await response.json();
+	if (
+		typeof payload === "object" &&
+		payload !== null &&
+		"data" in payload &&
+		typeof payload.data === "object" &&
+		payload.data !== null &&
+		"id" in payload.data &&
+		typeof payload.data.id === "string"
+	) {
+		const attributes =
+			"attributes" in payload.data ? payload.data.attributes : null;
+		const name =
+			typeof attributes === "object" &&
+			attributes !== null &&
+			"name" in attributes &&
+			typeof attributes.name === "string"
+				? attributes.name
+				: workspaceName;
+		return { id: payload.data.id, name };
+	}
+
+	throw new Error("Terraform workspace creation response missing ID");
+};
+
+export const createTerraformBaseConfig = (creds: {
+	tfcToken: string;
+	tfcOrg: string;
+}): ITerraformBaseConfig => {
+	return {
+		apiBaseUrl: TFC_API_BASE_URL,
+		token: creds.tfcToken,
+		organization: creds.tfcOrg,
+	};
 };
