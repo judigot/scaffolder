@@ -905,7 +905,7 @@ function InfraWorkspaceCard({
 				</div>
 			)}
 
-			{!shouldShowSkeleton && !isEditing && infraReady && (
+			{!shouldShowSkeleton && infraReady && (
 				<WorkspaceVariablesPanel
 					workspace={workspaceValue}
 					accessToken={accessToken}
