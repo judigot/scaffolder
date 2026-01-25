@@ -381,7 +381,23 @@ router.post("/run", async (c) => {
 			);
 		}
 
-		await getTerraformWorkspaceId(config);
+		const workspaceId = await getTerraformWorkspaceId(config);
+
+		if (body.enableEc2) {
+			const baseConfig = createTerraformBaseConfig({
+				tfcToken: config.token,
+				tfcOrg: config.organization,
+			});
+			const templatePath = getTemplatePath("ubuntu-ec2");
+			const tarGzBuffer = bundleTerraformTemplate(templatePath);
+			const configVersion = await createConfigurationVersion(
+				baseConfig,
+				workspaceId,
+				false,
+			);
+			await uploadConfigurationTar(configVersion.uploadUrl, tarGzBuffer);
+			await waitForConfigurationReady(baseConfig, configVersion.id);
+		}
 
 		const variables = [
 			{
