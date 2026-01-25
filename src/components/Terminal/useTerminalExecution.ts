@@ -66,12 +66,13 @@ export function useTerminalExecution({
 
 	/**
 	 * Execute a command on the remote server
+	 * Uses the direct /terminal/execute endpoint (not AI agent)
 	 */
 	const executeCommand = useCallback(
 		async (command: string): Promise<ICommandResult> => {
 			if (!host || !sshPrivateKey) {
 				const error = "Terminal not connected. Configure SSH credentials in Infra tab.";
-				onError?.(error);
+				onErrorRef.current?.(error);
 				return { success: false, output: "", error };
 			}
 
@@ -84,21 +85,15 @@ export function useTerminalExecution({
 			setIsExecuting(true);
 
 			try {
-				// Use the existing agent/chat endpoint with a direct execution prompt
-				// The prompt is designed to make the AI execute the command without interpretation
-				const response = await fetch(`${getApiUrl()}/agent/chat`, {
+				// Use the direct terminal execution endpoint (no AI)
+				const response = await fetch(`${getApiUrl()}/terminal/execute`, {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
 						...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
 					},
 					body: JSON.stringify({
-						messages: [
-							{
-								role: "user",
-								content: `Execute this exact command without any modifications or explanations. Just run it and return only the output:\n\n\`\`\`bash\n${command}\n\`\`\``,
-							},
-						],
+						command,
 						infraCredentials: {
 							sshPrivateKey,
 							host,
@@ -107,64 +102,32 @@ export function useTerminalExecution({
 					signal: abortControllerRef.current.signal,
 				});
 
+				const data = await response.json();
+
 				if (!response.ok) {
-					const errorText = await response.text();
-					throw new Error(`API error: ${response.status} - ${errorText}`);
+					const errorMessage = data.message || data.error || `Error ${response.status}`;
+					throw new Error(errorMessage);
 				}
 
-				// Handle streaming response
-				const reader = response.body?.getReader();
-				if (!reader) {
-					throw new Error("No response body");
+				// Handle response
+				const output = data.stdout || "";
+				const stderr = data.stderr || "";
+
+				if (output) {
+					onOutputRef.current?.(output);
 				}
 
-				const decoder = new TextDecoder();
-				let fullOutput = "";
-				let lastToolResult = "";
-
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) {break;}
-
-					const chunk = decoder.decode(value, { stream: true });
-
-					// Parse SSE events from the AI SDK
-					const lines = chunk.split("\n");
-					for (const line of lines) {
-						if (line.startsWith("data: ")) {
-							try {
-								const data = JSON.parse(line.slice(6));
-
-								// Extract tool results which contain actual command output
-								if (data.type === "tool-result" && data.result) {
-									const result = data.result;
-									if (result.output) {
-										lastToolResult = result.output;
-										onOutputRef.current?.(result.output);
-										fullOutput += result.output;
-									}
-									if (result.error) {
-										onErrorRef.current?.(result.error);
-									}
-								}
-
-								// Handle text deltas (AI's response)
-								if (data.type === "text-delta" && data.textDelta) {
-									// We skip AI commentary, only show tool output
-								}
-							} catch {
-								// Not JSON, might be raw text
-							}
-						}
-					}
+				if (stderr && !data.success) {
+					onErrorRef.current?.(stderr);
 				}
 
 				const result: ICommandResult = {
-					success: true,
-					output: lastToolResult || fullOutput,
+					success: data.success,
+					output: output || stderr,
+					error: data.success ? undefined : stderr,
 				};
 
-				onCompleteRef.current?.(true);
+				onCompleteRef.current?.(data.success);
 				return result;
 			} catch (error) {
 				if (error instanceof Error && error.name === "AbortError") {

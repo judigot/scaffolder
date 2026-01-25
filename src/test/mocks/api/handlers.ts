@@ -163,7 +163,108 @@ export const handlers = [
 	}),
 
 	// -------------------------------------------------------------------------
-	// Agent Chat (Terminal Command Execution)
+	// Terminal Execute (Direct SSH Command)
+	// -------------------------------------------------------------------------
+
+	http.post("/api/terminal/execute", async ({ request }) => {
+		const authHeader = request.headers.get("Authorization");
+
+		if (!authHeader?.startsWith("Bearer ")) {
+			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		if (!mockApiState.isConnected) {
+			return HttpResponse.json(
+				{ error: "SSH connection failed", message: "Connection refused" },
+				{ status: 502 },
+			);
+		}
+
+		const body = (await request.json()) as {
+			command: string;
+			workingDirectory?: string;
+			infraCredentials: {
+				sshPrivateKey: string;
+				host: string;
+			};
+		};
+
+		const command = body.command;
+
+		// Check for pre-configured response
+		const configuredResponse = mockApiState.commandResponses.get(command);
+
+		if (configuredResponse) {
+			return HttpResponse.json({
+				success: configuredResponse.success,
+				exitCode: configuredResponse.success ? 0 : 1,
+				stdout: configuredResponse.output || "",
+				stderr: configuredResponse.error || "",
+			});
+		}
+
+		// Default command responses
+		if (command.startsWith("ls")) {
+			return HttpResponse.json({
+				success: true,
+				exitCode: 0,
+				stdout: "total 4\ndrwxr-xr-x 2 user user 4096 Jan 25 00:00 .\ndrwxr-xr-x 3 user user 4096 Jan 25 00:00 ..\n-rw-r--r-- 1 user user    0 Jan 25 00:00 testfile",
+				stderr: "",
+			});
+		}
+		if (command.startsWith("pwd")) {
+			return HttpResponse.json({
+				success: true,
+				exitCode: 0,
+				stdout: "/home/ec2-user",
+				stderr: "",
+			});
+		}
+		if (command.startsWith("whoami")) {
+			return HttpResponse.json({
+				success: true,
+				exitCode: 0,
+				stdout: "ec2-user",
+				stderr: "",
+			});
+		}
+		if (command.startsWith("echo")) {
+			const echoContent = command.replace(/^echo\s+/, "").replace(/["']/g, "");
+			return HttpResponse.json({
+				success: true,
+				exitCode: 0,
+				stdout: echoContent + "\n",
+				stderr: "",
+			});
+		}
+		if (command.startsWith("touch") || command.startsWith("mkdir")) {
+			return HttpResponse.json({
+				success: true,
+				exitCode: 0,
+				stdout: "",
+				stderr: "",
+			});
+		}
+		if (command === "clear") {
+			return HttpResponse.json({
+				success: true,
+				exitCode: 0,
+				stdout: "",
+				stderr: "",
+			});
+		}
+
+		// Default: return mock success
+		return HttpResponse.json({
+			success: true,
+			exitCode: 0,
+			stdout: `[mock] Executed: ${command}\n`,
+			stderr: "",
+		});
+	}),
+
+	// -------------------------------------------------------------------------
+	// Agent Chat (AI-powered commands - deprecated for terminal)
 	// -------------------------------------------------------------------------
 
 	http.post("/api/agent/chat", async ({ request }) => {
