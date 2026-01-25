@@ -429,47 +429,87 @@ function InfraWorkspaceCard({
 		setError(null);
 
 		try {
-			const response = await fetch(
-				`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/variables`,
-				{
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-						"Content-Type": "application/json",
+			const [variablesResponse, stateResponse] = await Promise.all([
+				fetch(
+					`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/variables`,
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							tfcToken: infraCredentials.tfcToken,
+							tfcOrg: infraCredentials.tfcOrg,
+						}),
 					},
-					body: JSON.stringify({
-						tfcToken: infraCredentials.tfcToken,
-						tfcOrg: infraCredentials.tfcOrg,
-					}),
-				},
-			);
+				),
+				fetch(
+					`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/state`,
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							tfcToken: infraCredentials.tfcToken,
+							tfcOrg: infraCredentials.tfcOrg,
+						}),
+					},
+				),
+			]);
 
-			if (!response.ok) {
+			if (!variablesResponse.ok) {
 				throw new Error("Failed to fetch current configuration");
 			}
 
-			const data = (await response.json()) as {
+			const variablesData = (await variablesResponse.json()) as {
 				variables?: Array<{ key: string; value: string | null }>;
 			};
 
-			const variables = data.variables ?? [];
+			const variables = variablesData.variables ?? [];
 			const getVar = (key: string): string | null => {
 				const found = variables.find((v) => v.key === key);
 				return found?.value ?? null;
 			};
 
-			const instanceType = getVar("TF_VAR_instance_type");
-			const enableRds = getVar("TF_VAR_enable_rds");
-			const rdsClass = getVar("TF_VAR_db_instance_class");
-			const diskSize = getVar("TF_VAR_disk_size");
-			const region = getVar("TF_VAR_aws_region");
+			interface IStateData {
+				ec2InstanceType?: string;
+				region?: string;
+				diskSize?: number;
+				rdsInstanceClass?: string;
+				rdsEnabled?: boolean;
+			}
+			let stateData: IStateData | null = null;
+			if (stateResponse.ok) {
+				const stateJson = (await stateResponse.json()) as {
+					state?: IStateData | null;
+				};
+				stateData = stateJson.state ?? null;
+			}
+
+			const instanceType =
+				stateData?.ec2InstanceType ?? getVar("TF_VAR_instance_type");
+			const enableRds =
+				stateData?.rdsEnabled ?? getVar("TF_VAR_enable_rds") === "true";
+			const rdsClass =
+				stateData?.rdsInstanceClass ?? getVar("TF_VAR_db_instance_class");
+			const diskSize = stateData?.diskSize ?? getVar("TF_VAR_disk_size");
+			const region = stateData?.region ?? getVar("TF_VAR_aws_region");
 
 			setEditEc2Type(instanceType ?? DEFAULT_EC2_INSTANCE_TYPE);
-			setEditEnableRds(enableRds === "true");
+			setEditEnableRds(enableRds);
 			setEditRdsClass(rdsClass ?? DEFAULT_RDS_INSTANCE_TYPE);
-			setEditDiskSize(diskSize !== null ? parseInt(diskSize, 10) : 10);
+			setEditDiskSize(
+				typeof diskSize === "number"
+					? diskSize
+					: diskSize !== null
+						? parseInt(diskSize, 10)
+						: 10,
+			);
 			setEditRegion(region ?? DEFAULT_AWS_REGION);
-			setCurrentRegion(region);
+			setCurrentRegion(region ?? null);
 
 			setIsEditing(true);
 		} catch (err) {

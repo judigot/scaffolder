@@ -15,6 +15,7 @@ import {
 	getGitHubConnection,
 	getTerraformOutputs,
 	getTerraformRun,
+	getTerraformState,
 	getTerraformWorkspaceId,
 	getTerraformWorkspaceVariables,
 	type ITerraformConfig,
@@ -795,6 +796,67 @@ router.post("/workspace/:workspaceName/variables", async (c) => {
 		return c.json(
 			{
 				error: "Failed to fetch workspace variables",
+				message: "An unexpected error occurred",
+			},
+			500,
+		);
+	}
+});
+
+router.post("/workspace/:workspaceName/state", async (c) => {
+	const verification = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+
+	if (!verification.ok) {
+		return c.json(verification.body, verification.status);
+	}
+
+	const workspaceName = c.req.param("workspaceName");
+	if (workspaceName === "" || workspaceName === undefined) {
+		return c.json({ error: "Workspace name is required" }, 400);
+	}
+
+	const body = await c.req.json<{ tfcToken?: unknown; tfcOrg?: unknown }>();
+
+	if (
+		typeof body.tfcToken !== "string" ||
+		body.tfcToken.trim() === "" ||
+		typeof body.tfcOrg !== "string" ||
+		body.tfcOrg.trim() === ""
+	) {
+		return c.json(
+			{
+				error: "Missing Terraform Cloud credentials",
+				message: "tfcToken and tfcOrg are required.",
+			},
+			400,
+		);
+	}
+
+	try {
+		const config = createTerraformConfigFromCredentials({
+			tfcToken: body.tfcToken,
+			tfcOrg: body.tfcOrg,
+			tfcWorkspace: workspaceName,
+		});
+
+		const state = await getTerraformState(config);
+
+		return c.json({ success: true, state }, 200);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			return c.json(
+				{
+					error: "Failed to fetch workspace state",
+					message: error.message,
+				},
+				500,
+			);
+		}
+		return c.json(
+			{
+				error: "Failed to fetch workspace state",
 				message: "An unexpected error occurred",
 			},
 			500,

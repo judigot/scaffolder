@@ -106,6 +106,17 @@ export const createTerraformConfigFromCredentials = (creds: {
 	};
 };
 
+export const createTerraformBaseConfig = (creds: {
+	tfcToken: string;
+	tfcOrg: string;
+}): ITerraformBaseConfig => {
+	return {
+		apiBaseUrl: TFC_API_BASE_URL,
+		token: creds.tfcToken,
+		organization: creds.tfcOrg,
+	};
+};
+
 export const getTerraformWorkspaceId = async (
 	config: ITerraformConfig,
 ): Promise<string> => {
@@ -627,15 +638,145 @@ export const createTerraformWorkspace = async (
 	throw new Error("Terraform workspace creation response missing ID");
 };
 
-export const createTerraformBaseConfig = (creds: {
-	tfcToken: string;
-	tfcOrg: string;
-}): ITerraformBaseConfig => {
-	return {
-		apiBaseUrl: TFC_API_BASE_URL,
-		token: creds.tfcToken,
-		organization: creds.tfcOrg,
+export interface ITerraformStateResource {
+	address: string;
+	type: string;
+	name: string;
+	attributes: Record<string, unknown>;
+}
+
+export interface ITerraformStateData {
+	resources: ITerraformStateResource[];
+	ec2InstanceType?: string;
+	ec2InstanceId?: string;
+	region?: string;
+	diskSize?: number;
+	rdsInstanceClass?: string;
+	rdsEnabled?: boolean;
+}
+
+export const getTerraformState = async (
+	config: ITerraformConfig,
+): Promise<ITerraformStateData | null> => {
+	const workspaceId = await getTerraformWorkspaceId(config);
+
+	const stateVersionResponse = await terraformFetch(
+		config,
+		`/workspaces/${workspaceId}/current-state-version`,
+	);
+
+	if (!stateVersionResponse.ok) {
+		if (stateVersionResponse.status === 404) {
+			return null;
+		}
+		throw new Error("Failed to fetch current state version");
+	}
+
+	const stateVersionData: unknown = await stateVersionResponse.json();
+
+	let jsonStateUrl: string | null = null;
+	if (
+		typeof stateVersionData === "object" &&
+		stateVersionData !== null &&
+		"data" in stateVersionData &&
+		typeof stateVersionData.data === "object" &&
+		stateVersionData.data !== null &&
+		"attributes" in stateVersionData.data &&
+		typeof stateVersionData.data.attributes === "object" &&
+		stateVersionData.data.attributes !== null
+	) {
+		const attrs = stateVersionData.data.attributes as Record<string, unknown>;
+		if (typeof attrs["hosted-json-state-download-url"] === "string") {
+			jsonStateUrl = attrs["hosted-json-state-download-url"];
+		}
+	}
+
+	if (jsonStateUrl === null) {
+		return null;
+	}
+
+	const stateResponse = await fetch(jsonStateUrl, {
+		headers: {
+			Authorization: `Bearer ${config.token}`,
+		},
+	});
+
+	if (!stateResponse.ok) {
+		throw new Error("Failed to download state JSON");
+	}
+
+	const stateJson: unknown = await stateResponse.json();
+
+	const result: ITerraformStateData = {
+		resources: [],
 	};
+
+	if (
+		typeof stateJson !== "object" ||
+		stateJson === null ||
+		!("values" in stateJson) ||
+		typeof stateJson.values !== "object" ||
+		stateJson.values === null
+	) {
+		return result;
+	}
+
+	const values = stateJson.values as Record<string, unknown>;
+	const rootModule = values.root_module as Record<string, unknown> | undefined;
+
+	if (!rootModule || !Array.isArray(rootModule.resources)) {
+		return result;
+	}
+
+	for (const resource of rootModule.resources) {
+		if (typeof resource !== "object" || resource === null) continue;
+
+		const r = resource as Record<string, unknown>;
+		const type = typeof r.type === "string" ? r.type : "";
+		const name = typeof r.name === "string" ? r.name : "";
+		const address = typeof r.address === "string" ? r.address : "";
+		const attributes =
+			typeof r.values === "object" && r.values !== null
+				? (r.values as Record<string, unknown>)
+				: {};
+
+		result.resources.push({ address, type, name, attributes });
+
+		if (type === "aws_instance") {
+			if (typeof attributes.instance_type === "string") {
+				result.ec2InstanceType = attributes.instance_type;
+			}
+			if (typeof attributes.id === "string") {
+				result.ec2InstanceId = attributes.id;
+			}
+			if (typeof attributes.availability_zone === "string") {
+				const az = attributes.availability_zone;
+				result.region = az.slice(0, -1);
+			}
+			if (
+				typeof attributes.root_block_device === "object" &&
+				Array.isArray(attributes.root_block_device) &&
+				attributes.root_block_device.length > 0
+			) {
+				const rootBlock = attributes.root_block_device[0] as Record<
+					string,
+					unknown
+				>;
+				if (typeof rootBlock.volume_size === "number") {
+					result.diskSize = rootBlock.volume_size;
+				}
+			}
+		}
+
+		if (type === "aws_db_instance") {
+			result.rdsEnabled = true;
+			if (typeof attributes.instance_class === "string") {
+				result.rdsInstanceClass = attributes.instance_class;
+			}
+		}
+	}
+
+	return result;
 };
 
 export const listTerraformWorkspaces = async (
