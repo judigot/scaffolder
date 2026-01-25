@@ -500,7 +500,7 @@ export function AIChatContainer({
 
 	// Fetch terraform outputs to get terminal host
 	useEffect(() => {
-		if (!accessToken || !decryptedMetadata) return;
+		if (!accessToken || !decryptedMetadata) {return;}
 		const infra = decryptedMetadata.infra as
 			| Record<string, unknown>
 			| undefined;
@@ -513,7 +513,7 @@ export function AIChatContainer({
 			infra.tfcOrg === "" ||
 			infra.tfcWorkspace === ""
 		)
-			return;
+			{return;}
 
 		const fetchOutputs = async () => {
 			try {

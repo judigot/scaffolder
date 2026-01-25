@@ -162,7 +162,7 @@ export const useTerminalStore = create<ITerminalStore>()(
 			commandHistory: [],
 			historyIndex: -1,
 			addToCommandHistory: (command) => {
-				if (command.trim() === "") return;
+				if (command.trim() === "") {return;}
 
 				set((state) => {
 					// Don't add duplicate of last command
@@ -178,7 +178,7 @@ export const useTerminalStore = create<ITerminalStore>()(
 				const state = get();
 				const { commandHistory, historyIndex } = state;
 
-				if (commandHistory.length === 0) return null;
+				if (commandHistory.length === 0) {return null;}
 
 				let newIndex: number;
 				if (direction === "up") {

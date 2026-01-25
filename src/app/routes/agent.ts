@@ -44,7 +44,7 @@ app.post("/chat", async (c) => {
 
 	let body: IAgentChatPayload;
 	try {
-		body = (await c.req.json()) as IAgentChatPayload;
+		body = (await c.req.json());
 	} catch {
 		return c.json({ error: "Invalid request body" }, 400);
 	}

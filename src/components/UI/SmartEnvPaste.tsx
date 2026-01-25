@@ -41,7 +41,7 @@ export function SmartEnvPaste<T extends { key: string; value: string }>({
 
 	const applyMerge = useCallback(
 		(text: string) => {
-			if (!text.trim()) return;
+			if (!text.trim()) {return;}
 
 			const result = smartEnvMerge(existing, text, createEntry);
 			onMerge(result);
