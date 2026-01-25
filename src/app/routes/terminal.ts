@@ -8,6 +8,7 @@
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import type { ISSHConnection } from "@/app/services/sshService.ts";
 import {
 	connectToInstance,
 	disconnect,
@@ -79,12 +80,13 @@ app.post("/execute", async (c) => {
 	};
 
 	const command = body.command;
-	const workingDirectory = typeof body.workingDirectory === "string"
-		? body.workingDirectory
-		: undefined;
+	const workingDirectory =
+		typeof body.workingDirectory === "string"
+			? body.workingDirectory
+			: undefined;
 
 	// Connect via SSH
-	let client;
+	let client: ISSHConnection;
 	try {
 		client = await connectToInstance({
 			host,
@@ -105,7 +107,7 @@ app.post("/execute", async (c) => {
 		const result = await executeCommand(client, fullCommand);
 
 		// Disconnect after command
-		disconnect(client);
+		await disconnect(client);
 
 		// Return result
 		return c.json({
@@ -115,7 +117,7 @@ app.post("/execute", async (c) => {
 			stderr: result.stderr || "",
 		});
 	} catch (err: unknown) {
-		disconnect(client);
+		await disconnect(client);
 		const errorMessage =
 			err instanceof Error ? err.message : "Command execution failed";
 		return c.json(

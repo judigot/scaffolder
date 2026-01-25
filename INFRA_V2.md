@@ -64,30 +64,30 @@ Toggle EC2 provisioning via Terraform Cloud from the app UI. Credentials are enc
 
 ## API Endpoints
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | `/terraform/status` | Fetch workspace variables and outputs |
-| POST | `/terraform/run` | Validate credentials, upsert variables, trigger apply |
-| POST | `/terraform/run/:runId` | Poll run status by ID |
+| Method | Path                    | Purpose                                               |
+| ------ | ----------------------- | ----------------------------------------------------- |
+| POST   | `/terraform/status`     | Fetch workspace variables and outputs                 |
+| POST   | `/terraform/run`        | Validate credentials, upsert variables, trigger apply |
+| POST   | `/terraform/run/:runId` | Poll run status by ID                                 |
 
 ## File Map
 
-| File | Role |
-|------|------|
-| `src/app/routes/terraform.ts` | API route handlers |
-| `src/app/services/terraformCloudService.ts` | TFC API client (workspaces, variables, runs, outputs) |
-| `src/app/services/awsCredentialValidator.ts` | AWS STS credential validation with Signature V4 |
-| `src/components/AI/InfraPanel.tsx` | Infrastructure control UI |
-| `src/components/UI/ToggleSwitch.tsx` | Reusable toggle switch component |
-| `src/utils/zeroKnowledgeEncryption.ts` | Client-side AES-256-GCM encryption |
-| `src/utils/serverEncryption.ts` | Server-side encryption utilities |
+| File                                         | Role                                                  |
+| -------------------------------------------- | ----------------------------------------------------- |
+| `src/app/routes/terraform.ts`                | API route handlers                                    |
+| `src/app/services/terraformCloudService.ts`  | TFC API client (workspaces, variables, runs, outputs) |
+| `src/app/services/awsCredentialValidator.ts` | AWS STS credential validation with Signature V4       |
+| `src/components/AI/InfraPanel.tsx`           | Infrastructure control UI                             |
+| `src/components/UI/ToggleSwitch.tsx`         | Reusable toggle switch component                      |
+| `src/utils/zeroKnowledgeEncryption.ts`       | Client-side AES-256-GCM encryption                    |
+| `src/utils/serverEncryption.ts`              | Server-side encryption utilities                      |
 
 ## Terraform Cloud Workspace Variables
 
-| Key | Category | Sensitive | Purpose |
-|-----|----------|-----------|---------|
-| `AWS_ACCESS_KEY_ID` | env | Yes | AWS authentication |
-| `AWS_SECRET_ACCESS_KEY` | env | Yes | AWS authentication |
-| `AWS_SESSION_TOKEN` | env | Yes | Temporary credentials (empty for IAM) |
-| `TF_VAR_enable_ec2` | env | No | Toggle instance on/off |
-| `TF_VAR_ssh_public_key` | env | Yes | SSH access to instance |
+| Key                     | Category | Sensitive | Purpose                               |
+| ----------------------- | -------- | --------- | ------------------------------------- |
+| `AWS_ACCESS_KEY_ID`     | env      | Yes       | AWS authentication                    |
+| `AWS_SECRET_ACCESS_KEY` | env      | Yes       | AWS authentication                    |
+| `AWS_SESSION_TOKEN`     | env      | Yes       | Temporary credentials (empty for IAM) |
+| `TF_VAR_enable_ec2`     | env      | No        | Toggle instance on/off                |
+| `TF_VAR_ssh_public_key` | env      | Yes       | SSH access to instance                |

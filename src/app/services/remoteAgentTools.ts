@@ -1,11 +1,11 @@
-import type { Client } from "ssh2";
 import { tool, zodSchema } from "ai";
 import { z } from "zod";
+import type { ISSHConnection } from "@/app/services/sshService.ts";
 import {
 	executeCommand,
+	listDirectory,
 	readFile,
 	writeFile,
-	listDirectory,
 } from "@/app/services/sshService.ts";
 
 interface IToolResult {
@@ -14,7 +14,7 @@ interface IToolResult {
 	error?: string;
 }
 
-export function createRemoteAgentTools(client: Client) {
+export function createRemoteAgentTools(client: ISSHConnection) {
 	return {
 		execute_command: tool({
 			description:
@@ -28,10 +28,7 @@ export function createRemoteAgentTools(client: Client) {
 						.describe("Working directory for the command (absolute path)"),
 				}),
 			),
-			execute: async ({
-				command,
-				workingDirectory,
-			}): Promise<IToolResult> => {
+			execute: async ({ command, workingDirectory }): Promise<IToolResult> => {
 				try {
 					const fullCommand = workingDirectory
 						? `cd ${workingDirectory} && ${command}`
@@ -65,9 +62,7 @@ export function createRemoteAgentTools(client: Client) {
 				"Read the contents of a file on the remote server. Returns the full file content.",
 			inputSchema: zodSchema(
 				z.object({
-					path: z
-						.string()
-						.describe("Absolute path to the file to read"),
+					path: z.string().describe("Absolute path to the file to read"),
 				}),
 			),
 			execute: async ({ path }): Promise<IToolResult> => {
@@ -86,8 +81,7 @@ export function createRemoteAgentTools(client: Client) {
 				} catch (err: unknown) {
 					return {
 						success: false,
-						error:
-							err instanceof Error ? err.message : "Failed to read file",
+						error: err instanceof Error ? err.message : "Failed to read file",
 					};
 				}
 			},
@@ -101,9 +95,7 @@ export function createRemoteAgentTools(client: Client) {
 					path: z
 						.string()
 						.describe("Absolute path where the file should be written"),
-					content: z
-						.string()
-						.describe("The content to write to the file"),
+					content: z.string().describe("The content to write to the file"),
 				}),
 			),
 			execute: async ({ path, content }): Promise<IToolResult> => {
@@ -122,8 +114,7 @@ export function createRemoteAgentTools(client: Client) {
 				} catch (err: unknown) {
 					return {
 						success: false,
-						error:
-							err instanceof Error ? err.message : "Failed to write file",
+						error: err instanceof Error ? err.message : "Failed to write file",
 					};
 				}
 			},
@@ -134,9 +125,7 @@ export function createRemoteAgentTools(client: Client) {
 				"List files and directories at the given path on the remote server. Returns detailed listing with permissions, sizes, and timestamps.",
 			inputSchema: zodSchema(
 				z.object({
-					path: z
-						.string()
-						.describe("Absolute path to the directory to list"),
+					path: z.string().describe("Absolute path to the directory to list"),
 				}),
 			),
 			execute: async ({ path }): Promise<IToolResult> => {
@@ -156,9 +145,7 @@ export function createRemoteAgentTools(client: Client) {
 					return {
 						success: false,
 						error:
-							err instanceof Error
-								? err.message
-								: "Failed to list directory",
+							err instanceof Error ? err.message : "Failed to list directory",
 					};
 				}
 			},

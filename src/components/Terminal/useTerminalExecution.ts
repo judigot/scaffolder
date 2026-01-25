@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getApiUrl } from "@/utils/getApiUrl.ts";
+import { getTerminalApiUrl } from "@/utils/getTerminalApiUrl.ts";
 
 interface IUseTerminalExecutionOptions {
 	/** SSH host to connect to */
@@ -61,7 +61,9 @@ export function useTerminalExecution({
 	useEffect(() => {
 		const hasCredentials = Boolean(host && sshPrivateKey && accessToken);
 		setIsConnected(hasCredentials);
-		onConnectionChangeRef.current?.(hasCredentials ? "connected" : "disconnected");
+		onConnectionChangeRef.current?.(
+			hasCredentials ? "connected" : "disconnected",
+		);
 	}, [host, sshPrivateKey, accessToken]);
 
 	/**
@@ -71,7 +73,8 @@ export function useTerminalExecution({
 	const executeCommand = useCallback(
 		async (command: string): Promise<ICommandResult> => {
 			if (!host || !sshPrivateKey) {
-				const error = "Terminal not connected. Configure SSH credentials in Infra tab.";
+				const error =
+					"Terminal not connected. Configure SSH credentials in Infra tab.";
 				onErrorRef.current?.(error);
 				return { success: false, output: "", error };
 			}
@@ -86,26 +89,32 @@ export function useTerminalExecution({
 
 			try {
 				// Use the direct terminal execution endpoint (no AI)
-				const response = await fetch(`${getApiUrl()}/terminal/execute`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-					},
-					body: JSON.stringify({
-						command,
-						infraCredentials: {
-							sshPrivateKey,
-							host,
+				const response = await fetch(
+					`${getTerminalApiUrl()}/terminal/execute`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							...(accessToken
+								? { Authorization: `Bearer ${accessToken}` }
+								: {}),
 						},
-					}),
-					signal: abortControllerRef.current.signal,
-				});
+						body: JSON.stringify({
+							command,
+							infraCredentials: {
+								sshPrivateKey,
+								host,
+							},
+						}),
+						signal: abortControllerRef.current.signal,
+					},
+				);
 
 				const data = await response.json();
 
 				if (!response.ok) {
-					const errorMessage = data.message || data.error || `Error ${response.status}`;
+					const errorMessage =
+						data.message || data.error || `Error ${response.status}`;
 					throw new Error(errorMessage);
 				}
 

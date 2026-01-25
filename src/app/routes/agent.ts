@@ -3,10 +3,8 @@ import { convertToModelMessages, stepCountIs, streamText } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createRemoteAgentTools } from "@/app/services/remoteAgentTools.ts";
-import {
-	connectToInstance,
-	disconnect,
-} from "@/app/services/sshService.ts";
+import type { ISSHConnection } from "@/app/services/sshService.ts";
+import { connectToInstance, disconnect } from "@/app/services/sshService.ts";
 import { verifyAuth0TokenFromAuthHeader } from "@/utils/verifyAuth0Token.ts";
 
 const REMOTE_AGENT_SYSTEM_PROMPT = `You are a remote coding agent with SSH access to a Linux server. You can execute commands, read/write files, and manage projects on the remote instance.
@@ -44,7 +42,7 @@ app.post("/chat", async (c) => {
 
 	let body: IAgentChatPayload;
 	try {
-		body = (await c.req.json());
+		body = await c.req.json();
 	} catch {
 		return c.json({ error: "Invalid request body" }, 400);
 	}
@@ -75,7 +73,7 @@ app.post("/chat", async (c) => {
 		host: string;
 	};
 
-	let client;
+	let client: ISSHConnection;
 	try {
 		client = await connectToInstance({
 			host,
@@ -107,19 +105,22 @@ app.post("/chat", async (c) => {
 			stopWhen: stepCountIs(20),
 			onFinish: () => {
 				console.log("[Agent] Stream finished, disconnecting...");
-				disconnect(client);
+				void disconnect(client);
 			},
 		});
 
 		console.log("[Agent] Returning stream response...");
 		return result.toUIMessageStreamResponse();
 	} catch (err: unknown) {
-		disconnect(client);
+		await disconnect(client);
 		const errorMessage = err instanceof Error ? err.message : String(err);
 		const errorStack = err instanceof Error ? err.stack : undefined;
 		console.error("[Agent] Error:", errorMessage);
 		console.error("[Agent] Stack:", errorStack);
-		return c.json({ error: "Internal server error", details: errorMessage }, 500);
+		return c.json(
+			{ error: "Internal server error", details: errorMessage },
+			500,
+		);
 	}
 });
 

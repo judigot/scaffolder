@@ -1,4 +1,5 @@
-import { Client } from "ssh2";
+import { randomUUID } from "node:crypto";
+import type { Client } from "ssh2";
 
 interface ISSHConnectionOptions {
 	host: string;
@@ -14,14 +15,53 @@ interface ICommandResult {
 	exitCode: number;
 }
 
+interface ISSH2Connection {
+	kind: "ssh2";
+	client: Client;
+}
+
+interface IBunSshConnection {
+	kind: "bun";
+	host: string;
+	username: string;
+	port: number;
+	keyPath: string;
+}
+
+interface IBunSpawnOptions {
+	stdout?: "pipe";
+	stderr?: "pipe";
+}
+
+interface IBunProcess {
+	exited: Promise<number>;
+	stdout: { text: () => Promise<string> };
+	stderr: { text: () => Promise<string> };
+	kill: () => void;
+}
+
+interface IBunRuntime {
+	spawn: (args: string[], options?: IBunSpawnOptions) => IBunProcess;
+	write: (
+		path: string,
+		data: string,
+		options?: { createPath?: boolean },
+	) => Promise<void>;
+	file: (path: string) => { delete: () => Promise<void> };
+}
+
+export type ISSHConnection = ISSH2Connection | IBunSshConnection;
+
 const DEFAULT_USERNAME = "ubuntu";
 const DEFAULT_PORT = 22;
 const DEFAULT_CONNECTION_TIMEOUT = 10_000;
 const DEFAULT_COMMAND_TIMEOUT = 60_000;
 
-export function connectToInstance(
+let cachedSsh2: typeof import("ssh2") | null = null;
+
+export async function connectToInstance(
 	options: ISSHConnectionOptions,
-): Promise<Client> {
+): Promise<ISSHConnection> {
 	const {
 		host,
 		privateKey,
@@ -30,7 +70,21 @@ export function connectToInstance(
 		connectionTimeout = DEFAULT_CONNECTION_TIMEOUT,
 	} = options;
 
-	return new Promise<Client>((resolve, reject) => {
+	const bun = getBunRuntime();
+	if (bun) {
+		const keyPath = await writePrivateKey(bun, privateKey);
+		return {
+			kind: "bun",
+			host,
+			username,
+			port,
+			keyPath,
+		};
+	}
+
+	const { Client } = await loadSsh2();
+
+	return new Promise<ISSHConnection>((resolve, reject) => {
 		const client = new Client();
 		const timeout = setTimeout(() => {
 			client.end();
@@ -40,7 +94,7 @@ export function connectToInstance(
 		client
 			.on("ready", () => {
 				clearTimeout(timeout);
-				resolve(client);
+				resolve({ kind: "ssh2", client });
 			})
 			.on("error", (err: Error) => {
 				clearTimeout(timeout);
@@ -56,12 +110,73 @@ export function connectToInstance(
 	});
 }
 
-export function executeCommand(
-	client: Client,
+export async function disconnect(connection: ISSHConnection): Promise<void> {
+	if (connection.kind === "bun") {
+		const bun = getBunRuntime();
+		if (!bun) {
+			return;
+		}
+		await removePrivateKey(bun, connection.keyPath);
+		return;
+	}
+
+	connection.client.end();
+}
+
+export async function executeCommand(
+	connection: ISSHConnection,
 	command: string,
 	timeout: number = DEFAULT_COMMAND_TIMEOUT,
 ): Promise<ICommandResult> {
-	return new Promise<ICommandResult>((resolve, reject) => {
+	if (connection.kind === "bun") {
+		const bun = getBunRuntime();
+		if (!bun) {
+			throw new Error("Bun runtime is not available");
+		}
+		return await executeCommandWithBun(bun, connection, command, timeout);
+	}
+
+	return await executeCommandWithSsh2(connection.client, command, timeout);
+}
+
+export async function readFile(
+	connection: ISSHConnection,
+	path: string,
+): Promise<ICommandResult> {
+	return await executeCommand(connection, `cat ${escapeShellArg(path)}`);
+}
+
+export async function writeFile(
+	connection: ISSHConnection,
+	path: string,
+	content: string,
+): Promise<ICommandResult> {
+	const escapedPath = escapeShellArg(path);
+	const escapedContent = content.replace(/'/g, "'\\''");
+	const command = `mkdir -p "$(dirname ${escapedPath})" && printf '%s' '${escapedContent}' > ${escapedPath}`;
+	return await executeCommand(connection, command);
+}
+
+export async function listDirectory(
+	connection: ISSHConnection,
+	path: string,
+): Promise<ICommandResult> {
+	return await executeCommand(
+		connection,
+		`ls -la ${escapeShellArg(path)} 2>/dev/null || echo "Directory not found: ${path}"`,
+	);
+}
+
+function escapeShellArg(arg: string): string {
+	return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
+async function executeCommandWithSsh2(
+	client: Client,
+	command: string,
+	timeout: number,
+): Promise<ICommandResult> {
+	return await new Promise<ICommandResult>((resolve, reject) => {
 		const timer = setTimeout(() => {
 			reject(new Error(`Command timed out after ${String(timeout)}ms`));
 		}, timeout);
@@ -91,38 +206,93 @@ export function executeCommand(
 	});
 }
 
-export async function readFile(
-	client: Client,
-	path: string,
+async function executeCommandWithBun(
+	bun: IBunRuntime,
+	connection: IBunSshConnection,
+	command: string,
+	timeout: number,
 ): Promise<ICommandResult> {
-	return await executeCommand(client, `cat ${escapeShellArg(path)}`);
+	const args = [
+		"ssh",
+		"-i",
+		connection.keyPath,
+		"-o",
+		"BatchMode=yes",
+		"-o",
+		"StrictHostKeyChecking=no",
+		"-o",
+		"UserKnownHostsFile=/dev/null",
+		"-p",
+		String(connection.port),
+		`${String(connection.username)}@${String(connection.host)}`,
+		command,
+	];
+
+	const proc = bun.spawn(args, { stdout: "pipe", stderr: "pipe" });
+	const timeoutId = setTimeout(() => {
+		proc.kill();
+	}, timeout);
+
+	const [exitCode, stdout, stderr] = await Promise.all([
+		proc.exited,
+		proc.stdout.text(),
+		proc.stderr.text(),
+	]);
+
+	clearTimeout(timeoutId);
+
+	return {
+		exitCode,
+		stdout: stdout || "",
+		stderr: stderr || "",
+	};
 }
 
-export async function writeFile(
-	client: Client,
-	path: string,
-	content: string,
-): Promise<ICommandResult> {
-	const escapedPath = escapeShellArg(path);
-	const escapedContent = content.replace(/'/g, "'\\''");
-	const command = `mkdir -p "$(dirname ${escapedPath})" && printf '%s' '${escapedContent}' > ${escapedPath}`;
-	return await executeCommand(client, command);
+async function loadSsh2(): Promise<typeof import("ssh2")> {
+	if (cachedSsh2) {
+		return cachedSsh2;
+	}
+
+	cachedSsh2 = await import("ssh2");
+	return cachedSsh2;
 }
 
-export async function listDirectory(
-	client: Client,
-	path: string,
-): Promise<ICommandResult> {
-	return await executeCommand(
-		client,
-		`ls -la ${escapeShellArg(path)} 2>/dev/null || echo "Directory not found: ${path}"`,
-	);
+function getBunRuntime(): IBunRuntime | null {
+	const globalWithBun = globalThis as { Bun?: unknown };
+	const maybeBun = globalWithBun.Bun;
+	if (!maybeBun || typeof maybeBun !== "object") {
+		return null;
+	}
+
+	const candidate = maybeBun as Partial<IBunRuntime>;
+	if (
+		typeof candidate.spawn !== "function" ||
+		typeof candidate.write !== "function"
+	) {
+		return null;
+	}
+
+	return candidate as IBunRuntime;
 }
 
-export function disconnect(client: Client): void {
-	client.end();
+async function writePrivateKey(
+	bun: IBunRuntime,
+	privateKey: string,
+): Promise<string> {
+	const keyPath = `/tmp/scaffolder-ssh-key-${randomUUID()}`;
+	await bun.write(keyPath, privateKey, { createPath: true });
+	const chmod = bun.spawn(["chmod", "600", keyPath]);
+	await chmod.exited;
+	return keyPath;
 }
 
-function escapeShellArg(arg: string): string {
-	return `'${arg.replace(/'/g, "'\\''")}'`;
+async function removePrivateKey(
+	bun: IBunRuntime,
+	keyPath: string,
+): Promise<void> {
+	try {
+		await bun.file(keyPath).delete();
+	} catch {
+		return;
+	}
 }
