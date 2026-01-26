@@ -30,6 +30,14 @@ export interface ITerraformWorkspace {
 	name: string;
 }
 
+export interface ITerraformWorkspaceDetails extends ITerraformWorkspace {
+	isVcsConnected: boolean;
+	vcsRepo: {
+		identifier: string;
+		branch: string;
+	} | null;
+}
+
 export interface ICreateWorkspaceOptions {
 	executionMode?: "remote" | "local" | "agent";
 	autoApply?: boolean;
@@ -543,6 +551,82 @@ export const getTerraformWorkspaceByName = async (
 				? attributes.name
 				: workspaceName;
 		return { id: data.data.id, name };
+	}
+
+	throw new Error("Terraform workspace response missing ID");
+};
+
+export const getTerraformWorkspaceDetails = async (
+	config: ITerraformBaseConfig,
+	workspaceName: string,
+): Promise<ITerraformWorkspaceDetails | null> => {
+	const response = await terraformBaseFetch(
+		config,
+		`/organizations/${config.organization}/workspaces/${workspaceName}`,
+	);
+
+	if (!response.ok) {
+		if (response.status === 404) {
+			return null;
+		}
+		if (response.status === 401) {
+			throw new Error("Terraform Cloud token is invalid or expired");
+		}
+		if (response.status === 403) {
+			throw new Error(
+				"Terraform Cloud token lacks permission to access this workspace",
+			);
+		}
+		throw new Error("Failed to fetch Terraform workspace");
+	}
+
+	const data: unknown = await response.json();
+	if (
+		typeof data === "object" &&
+		data !== null &&
+		"data" in data &&
+		typeof data.data === "object" &&
+		data.data !== null &&
+		"id" in data.data &&
+		typeof data.data.id === "string"
+	) {
+		const attributes = "attributes" in data.data ? data.data.attributes : null;
+		const name =
+			typeof attributes === "object" &&
+			attributes !== null &&
+			"name" in attributes &&
+			typeof attributes.name === "string"
+				? attributes.name
+				: workspaceName;
+
+		const vcsRepo =
+			typeof attributes === "object" &&
+			attributes !== null &&
+			"vcs-repo" in attributes &&
+			typeof attributes["vcs-repo"] === "object" &&
+			attributes["vcs-repo"] !== null
+				? attributes["vcs-repo"]
+				: null;
+
+		const isVcsConnected = vcsRepo !== null;
+
+		return {
+			id: data.data.id,
+			name,
+			isVcsConnected,
+			vcsRepo: isVcsConnected
+				? {
+						identifier:
+							"identifier" in vcsRepo && typeof vcsRepo.identifier === "string"
+								? vcsRepo.identifier
+								: "",
+						branch:
+							"branch" in vcsRepo && typeof vcsRepo.branch === "string"
+								? vcsRepo.branch
+								: "",
+					}
+				: null,
+		};
 	}
 
 	throw new Error("Terraform workspace response missing ID");

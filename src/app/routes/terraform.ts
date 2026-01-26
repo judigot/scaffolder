@@ -16,6 +16,7 @@ import {
 	getTerraformOutputs,
 	getTerraformRun,
 	getTerraformState,
+	getTerraformWorkspaceDetails,
 	getTerraformWorkspaceId,
 	getTerraformWorkspaceVariables,
 	type ITerraformConfig,
@@ -381,13 +382,22 @@ router.post("/run", async (c) => {
 			);
 		}
 
-		const workspaceId = await getTerraformWorkspaceId(config);
+		const baseConfig = createTerraformBaseConfig({
+			tfcToken: config.token,
+			tfcOrg: config.organization,
+		});
 
-		if (body.enableEc2) {
-			const baseConfig = createTerraformBaseConfig({
-				tfcToken: config.token,
-				tfcOrg: config.organization,
-			});
+		const workspaceDetails = await getTerraformWorkspaceDetails(
+			baseConfig,
+			config.workspace,
+		);
+		if (!workspaceDetails) {
+			return c.json({ error: "Workspace not found" }, 404);
+		}
+
+		const workspaceId = workspaceDetails.id;
+
+		if (body.enableEc2 && !workspaceDetails.isVcsConnected) {
 			const templatePath = getTemplatePath("ubuntu-ec2");
 			const tarGzBuffer = bundleTerraformTemplate(templatePath);
 			const configVersion = await createConfigurationVersion(
