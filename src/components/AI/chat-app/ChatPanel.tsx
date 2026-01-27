@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { IChat, IMessage } from '@/components/AI/chat-app/types.ts';
 import Badge from '@/components/AI/chat-app/ui/Badge.tsx';
 import IconButton from '@/components/AI/chat-app/ui/IconButton.tsx';
+import { ModelSelector } from '@/components/AI/AIChatContainer.tsx';
+import type { ModelId } from '@/components/AI/AIChatContainer.tsx';
 
 interface IChatPanelProps {
   chat: IChat | null;
   repositoryName: string;
   sprintName: string;
-  onSendMessage: (chatId: string, content: string) => void;
+  onSendMessage: (chatId: string, content: string, model: ModelId) => void;
   onPromoteChat: (chatId: string) => void;
   onMarkReady: (chatId: string) => void;
 }
@@ -21,6 +23,7 @@ export default function ChatPanel({
   onMarkReady,
 }: IChatPanelProps) {
   const [input, setInput] = useState('');
+  const [selectedModel, setSelectedModel] = useState<ModelId>('gpt-5-nano');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const messageCount = chat?.messages.length ?? 0;
@@ -34,7 +37,7 @@ export default function ChatPanel({
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!chat || input.trim() === '') {return;}
-    onSendMessage(chat.id, input);
+    onSendMessage(chat.id, input, selectedModel);
     setInput('');
   };
 
@@ -132,7 +135,17 @@ export default function ChatPanel({
       </div>
 
       <form onSubmit={handleSubmit} className="border-t border-border bg-bg-subtle px-4 py-3">
-        <div className="flex items-center gap-2 bg-secondary border border-border rounded-full px-3 py-2">
+        <div className="flex items-center gap-3 bg-secondary border border-border rounded-full px-4 py-2">
+          {/* Model selector */}
+          <ModelSelector
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            disabled={false}
+          />
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-border shrink-0" />
+
           <input
             type="text"
             value={input}

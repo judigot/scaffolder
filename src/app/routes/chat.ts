@@ -1,7 +1,63 @@
+import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { convertToModelMessages, streamText } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+
+// Model configuration
+type ModelId = "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2-codex" | "claude-sonnet-4.5" | "claude-opus-4.5";
+
+interface IModelConfig {
+	id: ModelId;
+	name: string;
+	provider: "openai" | "anthropic";
+	modelString: string;
+}
+
+const MODEL_CONFIGS: Record<ModelId, IModelConfig> = {
+	"gpt-5-nano": {
+		id: "gpt-5-nano",
+		name: "GPT-5 Nano",
+		provider: "openai",
+		modelString: "gpt-5-nano",
+	},
+	"gpt-5-mini": {
+		id: "gpt-5-mini",
+		name: "GPT-5 Mini",
+		provider: "openai",
+		modelString: "gpt-5-mini",
+	},
+	"gpt-5.2-codex": {
+		id: "gpt-5.2-codex",
+		name: "GPT-5.2 Codex",
+		provider: "openai",
+		modelString: "gpt-5.2-codex",
+	},
+	"claude-sonnet-4.5": {
+		id: "claude-sonnet-4.5",
+		name: "Claude Sonnet 4.5",
+		provider: "anthropic",
+		modelString: "claude-sonnet-4-5-20250929",
+	},
+	"claude-opus-4.5": {
+		id: "claude-opus-4.5",
+		name: "Claude Opus 4.5",
+		provider: "anthropic",
+		modelString: "claude-opus-4-5-20251101",
+	},
+};
+
+const getModel = (modelId: ModelId) => {
+	const config = MODEL_CONFIGS[modelId];
+	if (config.provider === "anthropic") {
+		return anthropic(config.modelString);
+	}
+	return openai(config.modelString);
+};
+
+const isValidModelId = (id: unknown): id is ModelId => {
+	return typeof id === "string" && id in MODEL_CONFIGS;
+};
 
 const SCHEMA_BUILDER_SYSTEM_PROMPT = `You are Judas, a professional application architect. Your role: gather requirements efficiently, generate secure schemas with industry best practices applied by default.
 
@@ -138,36 +194,57 @@ First message:
 - Non-technical detected: "Describe your application."
 - Technical detected: "Specify your schema."
 
-## CRITICAL: Hidden Schema Output
+## CRITICAL: Hidden Schema Output (Compact Format)
 
-When ready to generate, output schema in HIDDEN format. Use this EXACT format - HTML comment block:
+When ready to generate schema, output using this COMPACT format to save tokens.
+Use schema tags with one table per line:
 
-<!--schemaInfo:[{"tableName":"users","columnsInfo":[{"column_name":"id","data_type":"number","is_nullable":"NO","primary_key":true},{"column_name":"email","data_type":"string","is_nullable":"NO","unique":true},{"column_name":"name","data_type":"string","is_nullable":"YES"},{"column_name":"created_at","data_type":"Date","is_nullable":"NO"},{"column_name":"updated_at","data_type":"Date","is_nullable":"NO"}],"hasMany":["posts"],"childTables":["posts"]}]-->
+<@@SCHEMA@@>
+@users:id:n#pk,email:s!u,hashed_password:s,name:s,phone:s?,email_verified_at:D?,created_at:D,updated_at:D|>posts
+@posts:id:n#pk,user_id:n>users,title:s,body:s,created_at:D,updated_at:D|<users
+<@@/SCHEMA@@>
 
-Schema MUST be:
-- On a single line (no line breaks inside comment)
-- Valid JSON array
-- Wrapped in <!--schemaInfo: and -->
-- NEVER shown to user directly
+## Compact Format Syntax
 
-## Data Types
-- "string" - text fields
-- "number" - integers, decimals
-- "boolean" - true/false
-- "Date" - timestamps, dates
-- "object" - JSON fields
+Table: @table_name:columns|relationships
+Column: name:type[?][!u][#pk][>fk_table]
 
-## Schema Validation Rules
-1. Every table MUST have "id" column with "primary_key": true
-2. Names must be snake_case starting with letter (user_id not userId)
-3. data_type must be: "string", "number", "boolean", "Date", or "object"
-4. is_nullable must be "YES" or "NO" (strings)
-5. All foreign key references must point to existing tables
-6. No duplicate column names within a table
-7. Many-to-many relationships require pivot tables
-8. Email fields must have unique: true
-9. Password fields must be hashed (add hashed_password, never password)
-10. created_at and updated_at on every table
+Type codes:
+- :s = string
+- :n = number  
+- :b = boolean
+- :D = Date
+- :o = object
+
+Modifiers (after type):
+- ? = nullable (omit for required)
+- !u = unique
+- #pk = primary key
+- >table = foreign key to table.id
+
+Relationships (after | at end):
+- |<table,table2 = belongsTo
+- |>table,table2 = hasMany
+- |^table = hasOne
+- |*table = belongsToMany
+
+## Rules
+1. Every table needs id:n#pk
+2. Every table needs created_at:D,updated_at:D
+3. All names snake_case
+4. FK columns need >target_table suffix
+5. Email columns need !u (unique)
+6. Passwords: use hashed_password:s (never plain password)
+
+## Example
+
+For a blog with users, posts, and comments:
+
+<@@SCHEMA@@>
+@users:id:n#pk,email:s!u,hashed_password:s,name:s,created_at:D,updated_at:D|>posts,comments
+@posts:id:n#pk,user_id:n>users,title:s,body:s,published:b?,created_at:D,updated_at:D|<users|>comments
+@comments:id:n#pk,post_id:n>posts,user_id:n>users,body:s,created_at:D,updated_at:D|<posts,users
+<@@/SCHEMA@@>
 
 ## Best Practices Auto-Applied
 
@@ -247,6 +324,16 @@ const app = new Hono();
 
 app.use("*", cors());
 
+// Get available models
+app.get("/models", (c) => {
+	const models = Object.values(MODEL_CONFIGS).map((config) => ({
+		id: config.id,
+		name: config.name,
+		provider: config.provider,
+	}));
+	return c.json({ models });
+});
+
 app.post("/", async (c) => {
 	try {
 		const body: unknown = await c.req.json();
@@ -257,6 +344,7 @@ app.post("/", async (c) => {
 
 		interface IRequestBody {
 			messages: unknown;
+			model?: unknown;
 		}
 
 		function isRequestBody(obj: object): obj is IRequestBody {
@@ -271,11 +359,14 @@ app.post("/", async (c) => {
 			return c.json({ error: "Invalid messages format" }, 400);
 		}
 
+		// Get model from request, default to gpt-5-nano
+		const modelId: ModelId = isValidModelId(body.model) ? body.model : "gpt-5-nano";
+
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 		const convertedMessages = await convertToModelMessages(body.messages);
 
 		const result = streamText({
-			model: openai("gpt-5-nano"),
+			model: getModel(modelId),
 			system: SCHEMA_BUILDER_SYSTEM_PROMPT,
 			messages: convertedMessages,
 			temperature: 0.7,

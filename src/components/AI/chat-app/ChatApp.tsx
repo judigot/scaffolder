@@ -6,6 +6,7 @@ import RepoTabs from '@/components/AI/chat-app/RepoTabs.tsx';
 import ChatTree from '@/components/AI/chat-app/ChatTree.tsx';
 import ChatPanel from '@/components/AI/chat-app/ChatPanel.tsx';
 import { AIChatContainer } from '@/components/AI/AIChatContainer.tsx';
+import type { ModelId } from '@/components/AI/AIChatContainer.tsx';
 import TabBar from '@/components/AI/TabBar.tsx';
 import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
@@ -299,13 +300,16 @@ export default function ChatApp() {
     setActiveChatId(newChat.id);
   };
 
-  const handleSendMessage = (chatId: string, content: string) => {
+  const handleSendMessage = (chatId: string, content: string, model: ModelId) => {
     const userMessage: IMessage = {
       id: `msg-${String(Date.now())}`,
       role: 'user',
       content,
       timestamp: new Date(),
     };
+
+    // Log the model being used (will be used when we connect to real API)
+    console.warn(`[ChatApp] Sending message with model: ${model}`);
 
     setRepositories((prev) =>
       prev.map((repo) =>

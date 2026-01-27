@@ -10,6 +10,7 @@ import {
 	FeatureCard,
 	InfoBanner,
 } from "@/components/AI/chat/index.ts";
+import SchemaPreview from "@/components/AI/chat/SchemaPreview.tsx";
 import InfraPanel from "@/components/AI/InfraPanel.tsx";
 import type { TabType } from "@/components/AI/TabBar.tsx";
 import type { IStructure } from "@/components/FileViewer.tsx";
@@ -23,7 +24,27 @@ import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
 import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
 import { getRandomIntro } from "@/utils/randomIntro.ts";
-import { validateSchemaInfoFromResponse } from "@/utils/schemaInfoValidator.ts";
+import {
+	removeHiddenSchemaFromText,
+	validateSchemaInfoFromResponse,
+} from "@/utils/schemaInfoValidator.ts";
+
+// Model configuration types
+export type ModelId = "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2-codex" | "claude-sonnet-4.5" | "claude-opus-4.5";
+
+export interface IModelOption {
+	id: ModelId;
+	name: string;
+	provider: "openai" | "anthropic";
+}
+
+export const MODEL_OPTIONS: IModelOption[] = [
+	{ id: "gpt-5-nano", name: "GPT-5 Nano", provider: "openai" },
+	{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" },
+	{ id: "gpt-5.2-codex", name: "GPT-5.2 Codex", provider: "openai" },
+	{ id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", provider: "anthropic" },
+	{ id: "claude-opus-4.5", name: "Claude Opus 4.5", provider: "anthropic" },
+];
 
 interface IChatMessageProps {
 	message: UIMessage;
@@ -31,6 +52,30 @@ interface IChatMessageProps {
 
 function ChatMessage({ message }: IChatMessageProps) {
 	const isUser = message.role === "user";
+
+	// For assistant messages, check if there's a valid schema embedded
+	const { displayText, schema } = useMemo(() => {
+		if (isUser) {
+			return { displayText: null, schema: null };
+		}
+
+		// Get full text from message parts
+		const fullText = message.parts
+			.filter((part): part is { type: "text"; text: string } => part.type === "text")
+			.map((part) => part.text)
+			.join("\n");
+
+		// Try to extract and validate schema
+		const result = validateSchemaInfoFromResponse(fullText);
+
+		if (result.success && result.extracted && result.data !== undefined) {
+			// Remove hidden schema comment from display text
+			const cleanText = removeHiddenSchemaFromText(fullText);
+			return { displayText: cleanText, schema: result.data };
+		}
+
+		return { displayText: null, schema: null };
+	}, [isUser, message.parts]);
 
 	return (
 		<div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -44,6 +89,9 @@ function ChatMessage({ message }: IChatMessageProps) {
 				<div className="prose prose-invert max-w-none">
 					{message.parts.map((part, index) => {
 						if (part.type === "text") {
+							// Use cleaned text if we extracted a schema, otherwise use original
+							const textToRender = displayText !== null ? displayText : part.text;
+
 							return (
 								<Markdown
 									key={`text-${message.id}-${String(index)}`}
@@ -74,13 +122,16 @@ function ChatMessage({ message }: IChatMessageProps) {
 										},
 									}}
 								>
-									{part.text}
+									{textToRender}
 								</Markdown>
 							);
 						}
 						// Hide reasoning parts
 						return null;
 					})}
+
+					{/* Render schema preview if found */}
+					{schema !== null && <SchemaPreview schema={schema} />}
 				</div>
 			</div>
 		</div>
@@ -226,14 +277,134 @@ function ChatMessages({ messages, isLoading }: IChatMessagesProps) {
 	);
 }
 
+// Custom model selector dropdown component
+interface IModelSelectorProps {
+	selectedModel: ModelId;
+	onModelChange: (model: ModelId) => void;
+	disabled: boolean;
+}
+
+export function ModelSelector({ selectedModel, onModelChange, disabled }: IModelSelectorProps) {
+	const [isOpen, setIsOpen] = useState(false);
+	const dropdownRef = useRef<HTMLDivElement>(null);
+
+	const currentModel = MODEL_OPTIONS.find((m) => m.id === selectedModel);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current !== null && !dropdownRef.current.contains(event.target as Node)) {
+				setIsOpen(false);
+			}
+		};
+
+		if (isOpen) {
+			document.addEventListener("mousedown", handleClickOutside);
+		}
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [isOpen]);
+
+	// Close on escape key
+	useEffect(() => {
+		const handleEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				setIsOpen(false);
+			}
+		};
+
+		if (isOpen) {
+			document.addEventListener("keydown", handleEscape);
+		}
+
+		return () => {
+			document.removeEventListener("keydown", handleEscape);
+		};
+	}, [isOpen]);
+
+	const openaiModels = MODEL_OPTIONS.filter((m) => m.provider === "openai");
+	const anthropicModels = MODEL_OPTIONS.filter((m) => m.provider === "anthropic");
+
+	const handleSelect = (modelId: ModelId) => {
+		onModelChange(modelId);
+		setIsOpen(false);
+	};
+
+	return (
+		<div ref={dropdownRef} className="relative shrink-0">
+			{/* Trigger button */}
+			<button
+				type="button"
+				onClick={() => { if (!disabled) {setIsOpen(!isOpen);} }}
+				disabled={disabled}
+				className="flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				<span>{currentModel?.name ?? "Select model"}</span>
+				<svg
+					className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<title>Toggle dropdown</title>
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+
+			{/* Dropdown menu */}
+			{isOpen && (
+				<div className="absolute left-0 bottom-full mb-2 w-44 bg-secondary border border-border rounded-lg shadow-lg overflow-hidden z-50">
+					{/* OpenAI group */}
+					<div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-b border-border">
+						OpenAI
+					</div>
+					{openaiModels.map((model) => (
+						<button
+							key={model.id}
+							type="button"
+							onClick={() => { handleSelect(model.id); }}
+							className={`w-full px-3 py-2 text-sm text-left hover:bg-bg transition-colors ${
+								selectedModel === model.id ? "text-primary-400 bg-bg" : "text-fg"
+							}`}
+						>
+							{model.name}
+						</button>
+					))}
+
+					{/* Anthropic group */}
+					<div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-y border-border">
+						Anthropic
+					</div>
+					{anthropicModels.map((model) => (
+						<button
+							key={model.id}
+							type="button"
+							onClick={() => { handleSelect(model.id); }}
+							className={`w-full px-3 py-2 text-sm text-left hover:bg-bg transition-colors ${
+								selectedModel === model.id ? "text-primary-400 bg-bg" : "text-fg"
+							}`}
+						>
+							{model.name}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
 interface IChatInputProps {
 	input: string;
 	onChange: (value: string) => void;
 	onSubmit: (e: React.FormEvent) => void;
 	isLoading: boolean;
+	selectedModel: ModelId;
+	onModelChange: (model: ModelId) => void;
 }
 
-function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
+function ChatInput({ input, onChange, onSubmit, isLoading, selectedModel, onModelChange }: IChatInputProps) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
 	const adjustHeight = useCallback(() => {
@@ -267,7 +438,17 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
 		<div className="border-t border-border bg-bg p-3 md:p-4">
 			<form onSubmit={onSubmit} className="max-w-5xl mx-auto">
 				{/* ChatGPT-style composer - single row layout */}
-				<div className="flex items-end gap-2 bg-secondary border border-border rounded-full px-3 py-2">
+				<div className="flex items-center gap-3 bg-secondary border border-border rounded-full px-4 py-2">
+					{/* Model selector (left) */}
+					<ModelSelector
+						selectedModel={selectedModel}
+						onModelChange={onModelChange}
+						disabled={isLoading}
+					/>
+
+					{/* Divider */}
+					<div className="w-px h-5 bg-border shrink-0 self-center" />
+
 					{/* Textarea - grows to fill space */}
 					<textarea
 						ref={textareaRef}
@@ -279,15 +460,15 @@ function ChatInput({ input, onChange, onSubmit, isLoading }: IChatInputProps) {
 						placeholder="Describe your application idea..."
 						disabled={isLoading}
 						rows={1}
-						className="flex-1 bg-transparent text-fg resize-none focus:outline-none disabled:opacity-50 placeholder-fg-subtle text-md leading-relaxed py-1.5 min-h-[28px]"
+						className="flex-1 bg-transparent text-fg resize-none focus:outline-none disabled:opacity-50 placeholder-fg-subtle text-sm leading-normal min-h-[24px] self-center"
 						style={{ overflow: "hidden" }}
 					/>
 
-					{/* Trailing control (right) */}
+					{/* Send button (right) */}
 					<button
 						type="submit"
 						disabled={isLoading || !input.trim()}
-						className="p-1.5 bg-fg text-bg rounded-full hover:bg-fg-muted focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+						className="p-1.5 bg-fg text-bg rounded-full hover:bg-fg-muted focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 self-center"
 					>
 						{isLoading ? (
 							<svg
@@ -462,13 +643,14 @@ interface IAIChatContainerProps {
 
 export function AIChatContainer({
 	activeTab,
-	onTabChange,
+	onTabChange: _onTabChange,
 	isScaffolderRepo = true,
 	children,
 	repoUrl,
 	repoName,
 }: IAIChatContainerProps) {
 	const [input, setInput] = useState("");
+	const [selectedModel, setSelectedModel] = useState<ModelId>("gpt-5-nano");
 
 	// Use the SAME store as SchemaBuilder.tsx - this is the key!
 	const { schemaInfo, setSchemaInfo } = useTransformationsStore();
@@ -499,10 +681,38 @@ export function AIChatContainer({
 		filesFailedToFormat: IFailedFormatEntry[];
 	}>({ structure: [], filesUsingUserEnv: [], filesFailedToFormat: [] });
 
-	const { messages, sendMessage, status, error, stop } = useChat({
-		transport: new DefaultChatTransport({
+	// Store model in ref so the transport callback can access current value
+	const selectedModelRef = useRef<ModelId>(selectedModel);
+	useEffect(() => {
+		selectedModelRef.current = selectedModel;
+	}, [selectedModel]);
+
+	// Create transport once with a callback that reads current model from ref
+	const transport = useMemo(() => {
+		return new DefaultChatTransport({
 			api: "/api/chat",
-		}),
+			prepareSendMessagesRequest: ({ messages, body, headers, credentials, api, id, trigger, messageId }) => {
+				// When we return a body, it replaces the default body entirely
+				// So we need to include messages and other required fields
+				return {
+					body: {
+						...(body as Record<string, unknown>),
+						id,
+						messages,
+						trigger,
+						messageId,
+						model: selectedModelRef.current,
+					},
+					headers,
+					credentials,
+					api,
+				};
+			},
+		});
+	}, []);
+
+	const { messages, sendMessage, status, error, stop } = useChat({
+		transport,
 	});
 
 	const reload = () => {
@@ -551,10 +761,8 @@ export function AIChatContainer({
 	useEffect(() => {
 		if (extractedSchema !== null) {
 			setSchemaInfo(extractedSchema);
-			// Switch to fileViewer tab when new schema is generated
-			onTabChange("fileViewer");
 		}
-	}, [extractedSchema, setSchemaInfo, onTabChange]);
+	}, [extractedSchema, setSchemaInfo]);
 
 	// Build project files using the GLOBAL schemaInfo - same logic as App.tsx lines 125-157
 	useEffect(() => {
@@ -690,6 +898,8 @@ export function AIChatContainer({
 						onChange={setInput}
 						onSubmit={handleSubmit}
 						isLoading={isLoading}
+						selectedModel={selectedModel}
+						onModelChange={setSelectedModel}
 					/>
 				</div>
 			)}

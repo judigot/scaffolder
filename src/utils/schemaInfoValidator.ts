@@ -1,12 +1,36 @@
 import { z } from "zod";
 
 /**
- * Zod schema for validating foreign key references
+ * Zod schema for validating foreign key references (object format)
  */
-const foreignKeySchema = z.object({
+const foreignKeyObjectSchema = z.object({
 	foreign_table_name: z.string().min(1, "Foreign table name is required"),
 	foreign_column_name: z.string().min(1, "Foreign column name is required"),
 });
+
+/**
+ * Zod schema for validating foreign key references (string format: "table.column")
+ * Transforms string format to object format for consistency
+ */
+const foreignKeyStringSchema = z.string().transform((val) => {
+	const parts = val.split(".");
+	if (parts.length === 2 && parts[0] !== undefined && parts[1] !== undefined) {
+		return {
+			foreign_table_name: parts[0],
+			foreign_column_name: parts[1],
+		};
+	}
+	// If it doesn't match "table.column" format, assume it's just the table name with "id" column
+	return {
+		foreign_table_name: val,
+		foreign_column_name: "id",
+	};
+});
+
+/**
+ * Combined foreign key schema that accepts both formats
+ */
+const foreignKeySchema = z.union([foreignKeyObjectSchema, foreignKeyStringSchema]);
 
 /**
  * Zod schema for validating column information
@@ -196,7 +220,7 @@ export function parseAndValidateSchemaInfo(jsonString: string): IValidationResul
 
 /**
  * Extracts schemaInfo JSON from AI response text
- * Looks for hidden HTML comments first, then falls back to code blocks
+ * Tries compact format first, then JSON formats
  */
 export function extractSchemaInfoFromResponse(
 	responseText: string
@@ -233,23 +257,256 @@ export function extractSchemaInfoFromResponse(
 }
 
 /**
- * Removes hidden schemaInfo comments from text for display
+ * Check if text contains compact schema format
+ * Compact format uses <@@SCHEMA@@>...<@@/SCHEMA@@> tags
+ */
+export function hasCompactSchema(text: string): boolean {
+	return text.includes('<@@SCHEMA@@>');
+}
+
+/**
+ * Removes hidden schemaInfo from text for display
+ * Handles both compact format (<@@SCHEMA@@>) and JSON format (<!--schemaInfo:-->)
  */
 export function removeHiddenSchemaFromText(text: string): string {
-	return text.replace(/<!--schemaInfo:[\s\S]*?-->/g, "").trim();
+	return text
+		.replace(/<!--schemaInfo:[\s\S]*?-->/g, "")
+		.replace(/<@@SCHEMA@@>[\s\S]*?<@@\/SCHEMA@@>/g, "")
+		.trim();
+}
+
+/**
+ * Type mapping for compact format
+ */
+const COMPACT_TYPE_MAP: Record<string, "string" | "number" | "boolean" | "Date" | "object"> = {
+	s: "string",
+	n: "number",
+	b: "boolean",
+	D: "Date",
+	o: "object",
+};
+
+/**
+ * Type guard for valid data types
+ */
+function isValidDataType(value: string): value is "string" | "number" | "boolean" | "Date" | "object" {
+	return value === "string" || value === "number" || value === "boolean" || value === "Date" || value === "object";
+}
+
+/**
+ * Parse a single column definition from compact format
+ * Format: name:type?!u#pk>fk_table
+ * - :s = string, :n = number, :b = boolean, :D = Date, :o = object
+ * - ? = nullable
+ * - !u = unique
+ * - #pk = primary key
+ * - >table = foreign key to table.id
+ */
+function parseCompactColumn(colDef: string): ColumnInfo | null {
+	// Match: column_name:type[?][!u][#pk][>fk_table]
+	const colRegex = /^([a-z][a-z0-9_]*):([snbDo])(\?)?(!u)?(#pk)?(>[a-z][a-z0-9_]*)?$/;
+	const match = colRegex.exec(colDef);
+
+	if (match === null) {
+		return null;
+	}
+
+	const columnName = match[1];
+	const typeChar = match[2];
+	const isNullable = match[3] === "?";
+	const isUnique = match[4] === "!u";
+	const isPrimaryKey = match[5] === "#pk";
+	const fkMatch = match[6];
+
+	if (columnName === undefined || typeChar === undefined) {
+		return null;
+	}
+
+	const mappedType = COMPACT_TYPE_MAP[typeChar];
+	if (mappedType === undefined || !isValidDataType(mappedType)) {
+		return null;
+	}
+
+	const column: ColumnInfo = {
+		column_name: columnName,
+		data_type: mappedType,
+		is_nullable: isNullable ? "YES" : "NO",
+	};
+
+	if (isPrimaryKey) {
+		column.primary_key = true;
+	}
+
+	if (isUnique) {
+		column.unique = true;
+	}
+
+	if (fkMatch !== undefined && fkMatch.length > 1) {
+		const fkTable = fkMatch.slice(1); // Remove leading '>'
+		column.foreign_key = {
+			foreign_table_name: fkTable,
+			foreign_column_name: "id",
+		};
+	}
+
+	return column;
+}
+
+/**
+ * Parse a single table definition from compact format
+ * Format: @table_name:col1,col2,...|<belongsTo|>hasMany
+ */
+function parseCompactTable(tableDef: string): SchemaInfo | null {
+	// Split by | to separate columns from relationships
+	const parts = tableDef.split("|");
+	const mainPart = parts[0];
+
+	if (!mainPart?.startsWith("@")) {
+		return null;
+	}
+
+	// Parse table name and columns
+	const colonIndex = mainPart.indexOf(":");
+	if (colonIndex === -1) {
+		return null;
+	}
+
+	const tableName = mainPart.slice(1, colonIndex); // Remove leading '@'
+	const columnsStr = mainPart.slice(colonIndex + 1);
+
+	if (tableName.length === 0 || columnsStr.length === 0) {
+		return null;
+	}
+
+	// Parse columns
+	const columnDefs = columnsStr.split(",");
+	const columns: ColumnInfo[] = [];
+
+	for (const colDef of columnDefs) {
+		const trimmed = colDef.trim();
+		if (trimmed.length === 0) {
+			continue;
+		}
+		const column = parseCompactColumn(trimmed);
+		if (column === null) {
+			return null; // Invalid column format
+		}
+		columns.push(column);
+	}
+
+	if (columns.length === 0) {
+		return null;
+	}
+
+	const table: SchemaInfo = {
+		tableName,
+		columnsInfo: columns,
+	};
+
+	// Parse relationships from remaining parts
+	for (let i = 1; i < parts.length; i++) {
+		const relPart = parts[i];
+		if (relPart === undefined || relPart.length < 2) {
+			continue;
+		}
+
+		const relType = relPart[0];
+		const relTables = relPart.slice(1).split(",").filter((t) => t.length > 0);
+
+		if (relTables.length === 0) {
+			continue;
+		}
+
+		if (relType === "<") {
+			table.belongsTo = relTables;
+		} else if (relType === ">") {
+			table.hasMany = relTables;
+		} else if (relType === "^") {
+			table.hasOne = relTables;
+		} else if (relType === "*") {
+			table.belongsToMany = relTables;
+		}
+	}
+
+	return table;
+}
+
+/**
+ * Parse compact schema format
+ * Format:
+ * <@@SCHEMA@@>
+ * @table1:col1:type,col2:type|>hasMany|<belongsTo
+ * @table2:col1:type,col2:type
+ * <@@/SCHEMA@@>
+ */
+export function parseCompactSchema(text: string): SchemaInfoArray | null {
+	// Extract compact schema block
+	const compactRegex = /<@@SCHEMA@@>([\s\S]*?)<@@\/SCHEMA@@>/;
+	const match = compactRegex.exec(text);
+
+	if (match?.[1] === undefined) {
+		return null;
+	}
+
+	const schemaContent = match[1].trim();
+	if (schemaContent.length === 0) {
+		return null;
+	}
+
+	// Split by newlines or by @
+	const tableLines = schemaContent
+		.split(/\n/)
+		.map((line) => line.trim())
+		.filter((line) => line.startsWith("@"));
+
+	if (tableLines.length === 0) {
+		return null;
+	}
+
+	const tables: SchemaInfo[] = [];
+
+	for (const line of tableLines) {
+		const table = parseCompactTable(line);
+		if (table === null) {
+			return null; // Invalid table format
+		}
+		tables.push(table);
+	}
+
+	// Validate the result
+	const validationResult = schemaInfoArraySchema.safeParse(tables);
+	if (!validationResult.success) {
+		return null;
+	}
+
+	return validationResult.data;
 }
 
 /**
  * Validates schemaInfo extracted from AI response
+ * Tries compact format first, then falls back to JSON format
  */
 export function validateSchemaInfoFromResponse(responseText: string): IValidationResult & { extracted: boolean } {
+	// Try compact format first (saves tokens)
+	if (hasCompactSchema(responseText)) {
+		const compactResult = parseCompactSchema(responseText);
+		if (compactResult !== null) {
+			return {
+				success: true,
+				extracted: true,
+				data: compactResult,
+			};
+		}
+	}
+
+	// Fall back to JSON format
 	const extracted = extractSchemaInfoFromResponse(responseText);
 
 	if (extracted === null) {
 		return {
 			success: false,
 			extracted: false,
-			errors: [{ path: "", message: "No schemaInfo JSON block found in response" }],
+			errors: [{ path: "", message: "No schema found in response" }],
 		};
 	}
 
