@@ -487,10 +487,10 @@ export default function ChatApp() {
         // 0 = text, a = tool call, b = tool result, d = finish, e = error
         const lines = chunk.split('\n');
         for (const line of lines) {
-          if (line.length === 0) continue;
+          if (line.length === 0) {continue;}
           
           const colonIndex = line.indexOf(':');
-          if (colonIndex === -1) continue;
+          if (colonIndex === -1) {continue;}
           
           const msgType = line.slice(0, colonIndex);
           const jsonData = line.slice(colonIndex + 1);

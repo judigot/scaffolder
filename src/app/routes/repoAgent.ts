@@ -10,25 +10,26 @@ import {
 } from "@/app/services/githubAppService.ts";
 import { verifyAuth0TokenFromAuthHeader } from "@/utils/verifyAuth0Token.ts";
 
-const REPO_AGENT_SYSTEM_PROMPT = `Repository agent with GitHub access. Create/modify files, branches, PRs.
+const REPO_AGENT_SYSTEM_PROMPT = `Repository agent with GitHub access.
+
+## MANDATORY Workflow (execute ALL steps)
+1. create_branch → scaffolder/<descriptive-name>
+2. write_file → create/modify files on that branch
+3. create_pull_request → ALWAYS create PR after changes
+
+NEVER skip step 3. Every change MUST result in a PR.
 
 ## Rules
-- Branch naming: scaffolder/<feature-name> (e.g., scaffolder/add-readme)
-- NEVER commit to main/master directly
-- Workflow: create branch → write files → create PR
+- Branch naming: scaffolder/<feature-name>
+- NEVER commit to main/master
+- PR title: concise description of change
+- PR body: bullet list of what changed
 
 ## Response Format
-After completing tasks, respond with a brief summary:
-- Branch: scaffolder/xxx
-- Files: list of created/modified files
-- PR: #number or "created" with URL
+After ALL steps complete:
+"Done. Branch: [name]. Files: [list]. PR: [url]"
 
-Keep responses under 50 words. No explanations unless errors occur.
-
-## Communication
-- No exclamation marks or enthusiasm
-- Format: "Done. Branch: X. Files: Y. PR: Z."
-- On error: "Error: [reason]. Retrying..." then fix`;
+Keep under 30 words. No explanations.`;
 
 // Model configurations
 const MODEL_CONFIGS = {
