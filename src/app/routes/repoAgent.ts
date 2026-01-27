@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { convertToModelMessages, stepCountIs, streamText } from "ai";
+import { convertToModelMessages, streamText } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createRepoAgentTools } from "@/app/services/repoAgentTools.ts";
@@ -214,7 +214,22 @@ app.post("/chat", async (c) => {
 			system: contextualPrompt,
 			messages: convertedMessages,
 			tools,
-			stopWhen: stepCountIs(20),
+			onStepFinish({ text, toolCalls, toolResults, finishReason }) {
+				console.log("[RepoAgent] Step finished. Reason:", finishReason);
+				if (text) {
+					console.log("[RepoAgent] Text:", text.slice(0, 100));
+				}
+				if (toolCalls && toolCalls.length > 0) {
+					console.log("[RepoAgent] Tool calls:", toolCalls.map(tc => tc.toolName));
+				}
+				if (toolResults && toolResults.length > 0) {
+					console.log("[RepoAgent] Tool results:", toolResults.length);
+				}
+			},
+			onFinish({ finishReason, usage }) {
+				console.log("[RepoAgent] Finished. Reason:", finishReason);
+				console.log("[RepoAgent] Usage:", usage);
+			},
 		});
 
 		console.log("[RepoAgent] Returning stream response...");
