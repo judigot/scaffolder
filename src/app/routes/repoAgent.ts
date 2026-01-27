@@ -78,6 +78,44 @@ interface IRepoAgentPayload {
 	model?: string;
 }
 
+interface ISimpleMessage {
+	role: string;
+	content: string;
+}
+
+interface IUIMessage {
+	id?: string;
+	role: "system" | "user" | "assistant";
+	parts: Array<{ type: "text"; text: string }>;
+}
+
+/**
+ * Convert simple { role, content } messages to UIMessage format with parts
+ */
+function convertToUIMessages(messages: unknown[]): IUIMessage[] {
+	return messages.map((msg, index) => {
+		// Check if it's already in UIMessage format (has parts)
+		if (
+			typeof msg === "object" &&
+			msg !== null &&
+			"parts" in msg &&
+			Array.isArray((msg as { parts: unknown }).parts)
+		) {
+			return msg as IUIMessage;
+		}
+
+		// Convert simple { role, content } format
+		const simpleMsg = msg as ISimpleMessage;
+		const role = simpleMsg.role === "user" ? "user" : simpleMsg.role === "system" ? "system" : "assistant";
+		
+		return {
+			id: `msg-${String(index)}`,
+			role,
+			parts: [{ type: "text" as const, text: simpleMsg.content ?? "" }],
+		};
+	});
+}
+
 function parseGitHubURL(url: string): { owner: string; repo: string } | null {
 	try {
 		const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
@@ -175,9 +213,9 @@ app.post("/chat", async (c) => {
 
 	try {
 		console.log("[RepoAgent] Converting messages...");
-		const convertedMessages = await convertToModelMessages(
-			body.messages as Parameters<typeof convertToModelMessages>[0],
-		);
+		// First convert simple messages to UIMessage format, then to ModelMessages
+		const uiMessages = convertToUIMessages(body.messages as unknown[]);
+		const convertedMessages = await convertToModelMessages(uiMessages);
 		console.log("[RepoAgent] Messages converted:", convertedMessages.length);
 
 		console.log("[RepoAgent] Creating repo agent tools...");

@@ -355,7 +355,7 @@ export default function ChatApp() {
                   ? {
                       ...sprint,
                       chats: sprint.chats.map((chat) => {
-                        if (chat.id !== chatId || activeChatScope !== 'sprint') return chat;
+                        if (chat.id !== chatId || activeChatScope !== 'sprint') {return chat;}
                         const messages = [...chat.messages];
                         const lastMsg = messages[messages.length - 1];
                         if (lastMsg?.role === 'assistant') {
@@ -367,7 +367,7 @@ export default function ChatApp() {
                   : sprint
               ),
               chats: repo.chats.map((chat) => {
-                if (chat.id !== chatId || activeChatScope !== 'regular') return chat;
+                if (chat.id !== chatId || activeChatScope !== 'regular') {return chat;}
                 const messages = [...chat.messages];
                 const lastMsg = messages[messages.length - 1];
                 if (lastMsg?.role === 'assistant') {
@@ -477,7 +477,7 @@ export default function ChatApp() {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {break;}
 
         const chunk = decoder.decode(value, { stream: true });
         
