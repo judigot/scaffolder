@@ -74,20 +74,26 @@ export default function ChatApp() {
     });
   }, [persistedRepositories, localRepoState]);
 
-  // Stable reference for repositories (for use in callbacks)
-  const repositoriesRef = useRef(repositories);
-  repositoriesRef.current = repositories;
-
-  // Wrapper to update local repo state - stabilized with useCallback
+  // Wrapper to update local repo state - uses functional update pattern for correct state
   const setRepositories = useCallback((updater: IRepository[] | ((prev: IRepository[]) => IRepository[])) => {
-    const currentRepos = repositoriesRef.current;
-    const newRepos = typeof updater === 'function' ? updater(currentRepos) : updater;
-    const newLocalState = new Map<string, { sprints: IRepository['sprints']; chats: IRepository['chats'] }>();
-    for (const repo of newRepos) {
-      newLocalState.set(repo.id, { sprints: repo.sprints, chats: repo.chats });
-    }
-    setLocalRepoState(newLocalState);
-  }, []);
+    setLocalRepoState((prevLocalState) => {
+      // Reconstruct current repositories from persisted + local state
+      const currentRepos = persistedRepositories.map((repo) => {
+        const localState = prevLocalState.get(repo.id);
+        if (localState) {
+          return { ...repo, sprints: localState.sprints, chats: localState.chats };
+        }
+        return repo;
+      });
+      
+      const newRepos = typeof updater === 'function' ? updater(currentRepos) : updater;
+      const newLocalState = new Map<string, { sprints: IRepository['sprints']; chats: IRepository['chats'] }>();
+      for (const repo of newRepos) {
+        newLocalState.set(repo.id, { sprints: repo.sprints, chats: repo.chats });
+      }
+      return newLocalState;
+    });
+  }, [persistedRepositories]);
 
   // Initialize with mock data (demo repo is always first)
   const [activeRepoId, setActiveRepoId] = useState<string>(mockRepositories[0]?.id ?? '');
@@ -474,7 +480,7 @@ export default function ChatApp() {
 
       const decoder = new TextDecoder();
       let fullContent = '';
-      const toolResults: string[] = [];
+      const toolActivities: string[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -483,46 +489,49 @@ export default function ChatApp() {
         const chunk = decoder.decode(value, { stream: true });
         
         // Parse SSE format from AI SDK
-        // Format: "type:json_data"
-        // 0 = text, a = tool call, b = tool result, d = finish, e = error
+        // Format: "data: {json}"
         const lines = chunk.split('\n');
         for (const line of lines) {
-          if (line.length === 0) {continue;}
+          if (!line.startsWith('data: ')) {continue;}
           
-          const colonIndex = line.indexOf(':');
-          if (colonIndex === -1) {continue;}
-          
-          const msgType = line.slice(0, colonIndex);
-          const jsonData = line.slice(colonIndex + 1);
+          const jsonStr = line.slice(6); // Remove "data: " prefix
+          if (jsonStr === '[DONE]') {continue;}
           
           try {
-            if (msgType === '0') {
-              // Text content
-              const textContent = JSON.parse(jsonData) as string;
-              fullContent += textContent;
-              updateLastAssistantMessage(chatId, fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : ''));
-            } else if (msgType === 'a') {
-              // Tool call started - parse and show
-              const toolCall = JSON.parse(jsonData) as { toolName: string; args: Record<string, unknown> };
-              const toolInfo = `[${toolCall.toolName}] ${JSON.stringify(toolCall.args).slice(0, 100)}...`;
-              toolResults.push(toolInfo);
-              updateLastAssistantMessage(chatId, fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : ''));
-            } else if (msgType === 'b') {
-              // Tool result
-              const result = JSON.parse(jsonData) as { result?: { success?: boolean; output?: string; error?: string } };
-              if (result.result?.success) {
-                // Update last tool result with success
-                const lastIdx = toolResults.length - 1;
-                if (lastIdx >= 0) {
-                  toolResults[lastIdx] = toolResults[lastIdx].replace('...', ' ✓');
-                }
-              } else if (result.result?.error) {
-                const lastIdx = toolResults.length - 1;
-                if (lastIdx >= 0) {
-                  toolResults[lastIdx] = toolResults[lastIdx].replace('...', ` ✗ ${result.result.error}`);
+            const data = JSON.parse(jsonStr) as {
+              type: string;
+              delta?: string;
+              toolName?: string;
+              input?: Record<string, unknown>;
+              output?: { success?: boolean; output?: string; error?: string; url?: string };
+            };
+            
+            if (data.type === 'text-delta' && data.delta) {
+              // Text content streaming
+              fullContent += data.delta;
+              updateLastAssistantMessage(chatId, fullContent + (toolActivities.length > 0 ? '\n\n---\n' + toolActivities.join('\n') : ''));
+            } else if (data.type === 'tool-input-available' && data.toolName) {
+              // Tool call started
+              const inputSummary = data.input ? Object.entries(data.input).map(([k, v]) => `${k}: ${String(v).slice(0, 50)}`).join(', ') : '';
+              toolActivities.push(`⏳ ${data.toolName}(${inputSummary.slice(0, 80)}${inputSummary.length > 80 ? '...' : ''})`);
+              updateLastAssistantMessage(chatId, fullContent + (toolActivities.length > 0 ? '\n\n---\n' + toolActivities.join('\n') : ''));
+            } else if (data.type === 'tool-output-available' && data.output) {
+              // Tool result - update last tool activity
+              const lastIdx = toolActivities.length - 1;
+              if (lastIdx >= 0) {
+                if (data.output.success) {
+                  toolActivities[lastIdx] = toolActivities[lastIdx].replace('⏳', '✅');
+                  if (data.output.url) {
+                    toolActivities[lastIdx] += ` → ${data.output.url}`;
+                  }
+                } else {
+                  toolActivities[lastIdx] = toolActivities[lastIdx].replace('⏳', '❌');
+                  if (data.output.error) {
+                    toolActivities[lastIdx] += ` → ${data.output.error.slice(0, 100)}`;
+                  }
                 }
               }
-              updateLastAssistantMessage(chatId, fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : ''));
+              updateLastAssistantMessage(chatId, fullContent + (toolActivities.length > 0 ? '\n\n---\n' + toolActivities.join('\n') : ''));
             }
           } catch {
             // Not valid JSON, skip
@@ -531,9 +540,12 @@ export default function ChatApp() {
       }
 
       // Ensure final content is set
-      const finalContent = fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : '');
+      const finalContent = fullContent + (toolActivities.length > 0 ? '\n\n---\n' + toolActivities.join('\n') : '');
       if (finalContent.length > 0) {
         updateLastAssistantMessage(chatId, finalContent);
+      } else if (toolActivities.length > 0) {
+        // If we have tool activities but no text, show them
+        updateLastAssistantMessage(chatId, 'Tasks completed:\n' + toolActivities.join('\n'));
       } else {
         updateLastAssistantMessage(chatId, '(No response generated)');
       }
