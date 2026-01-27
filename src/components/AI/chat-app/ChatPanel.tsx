@@ -110,23 +110,15 @@ export default function ChatPanel({
         {chat.messages.map((message: IMessage) => (
           <div
             key={message.id}
-            className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+              className={
                 message.role === 'user'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-secondary text-fg'
-              }`}
+                  ? 'max-w-[85%] px-5 py-3 rounded-2xl backdrop-blur-sm bg-gradient-to-br from-primary-600 to-primary-700 text-fg shadow-lg shadow-primary-900/20 text-sm leading-relaxed'
+                  : 'max-w-[85%] px-2 py-2 text-fg text-sm leading-relaxed whitespace-pre-wrap'
+              }
             >
-              <div className="flex items-center gap-2 text-[11px] text-fg-subtle mb-2">
-                <span className="font-semibold text-fg-muted">
-                  {message.role === 'user' ? 'You' : 'Assistant'}
-                </span>
-                <span>
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
               {message.content}
             </div>
           </div>
