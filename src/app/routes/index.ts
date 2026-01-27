@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import agentRouter from "./agent.ts";
 import chatRouter from "./chat.ts";
+import repoAgentRouter from "./repoAgent.ts";
 import checkGitHubAppInstallationRouter from "./checkGitHubAppInstallation.ts";
 import checkGitHubExportOptionsRouter from "./checkGitHubExportOptions.ts";
 import createGitHubFileRouter from "./createGitHubFile.ts";
@@ -56,6 +57,7 @@ router.route(
 router.route("/check-github-export-options", checkGitHubExportOptionsRouter);
 router.route("/agent", agentRouter);
 router.route("/chat", chatRouter);
+router.route("/repo-agent", repoAgentRouter);
 router.route("/terminal", terminalRouter);
 router.route("/validate-schema", validateSchemaRouter);
 
