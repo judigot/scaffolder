@@ -481,6 +481,7 @@ export default function ChatApp() {
       const decoder = new TextDecoder();
       let fullContent = '';
       const toolActivities: string[] = [];
+      let hadToolCallsSinceLastText = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -502,16 +503,24 @@ export default function ChatApp() {
               type: string;
               delta?: string;
               toolName?: string;
+              toolCallId?: string;
               input?: Record<string, unknown>;
               output?: { success?: boolean; output?: string; error?: string; url?: string };
             };
             
-            if (data.type === 'text-delta' && data.delta) {
+            if (data.type === 'text-start') {
+              // New text block starting - if we had tool calls since last text, add a paragraph break
+              if (hadToolCallsSinceLastText && fullContent.length > 0) {
+                fullContent += '\n\n';
+              }
+              hadToolCallsSinceLastText = false;
+            } else if (data.type === 'text-delta' && data.delta) {
               // Text content streaming
               fullContent += data.delta;
               updateLastAssistantMessage(chatId, fullContent + (toolActivities.length > 0 ? '\n\n---\n' + toolActivities.join('\n') : ''));
             } else if (data.type === 'tool-input-available' && data.toolName) {
               // Tool call started
+              hadToolCallsSinceLastText = true;
               const inputSummary = data.input ? Object.entries(data.input).map(([k, v]) => `${k}: ${String(v).slice(0, 50)}`).join(', ') : '';
               toolActivities.push(`⏳ ${data.toolName}(${inputSummary.slice(0, 80)}${inputSummary.length > 80 ? '...' : ''})`);
               updateLastAssistantMessage(chatId, fullContent + (toolActivities.length > 0 ? '\n\n---\n' + toolActivities.join('\n') : ''));
