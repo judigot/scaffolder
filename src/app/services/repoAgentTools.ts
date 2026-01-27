@@ -232,9 +232,24 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 						url: pr.data.html_url,
 					};
 				} catch (err: unknown) {
+					// If API fails (permission issue), provide manual PR creation URL
+					const manualPrUrl = `https://github.com/${owner}/${repo}/compare/${baseBranch}...${branch}?expand=1&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+					
+					const errorMsg = err instanceof Error ? err.message : "Failed to create pull request";
+					
+					// Check if it's a permission error
+					if (errorMsg.includes("Resource not accessible") || errorMsg.includes("403")) {
+						return {
+							success: false,
+							error: `PR API not available. Create manually: ${manualPrUrl}`,
+							url: manualPrUrl,
+						};
+					}
+					
 					return {
 						success: false,
-						error: err instanceof Error ? err.message : "Failed to create pull request",
+						error: errorMsg,
+						url: manualPrUrl,
 					};
 				}
 			},
