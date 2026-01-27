@@ -474,6 +474,7 @@ export default function ChatApp() {
 
       const decoder = new TextDecoder();
       let fullContent = '';
+      const toolResults: string[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -482,25 +483,57 @@ export default function ChatApp() {
         const chunk = decoder.decode(value, { stream: true });
         
         // Parse SSE format from AI SDK
+        // Format: "type:json_data"
+        // 0 = text, a = tool call, b = tool result, d = finish, e = error
         const lines = chunk.split('\n');
         for (const line of lines) {
-          if (line.startsWith('0:')) {
-            // Text content
-            try {
-              const textContent = JSON.parse(line.slice(2)) as string;
+          if (line.length === 0) continue;
+          
+          const colonIndex = line.indexOf(':');
+          if (colonIndex === -1) continue;
+          
+          const msgType = line.slice(0, colonIndex);
+          const jsonData = line.slice(colonIndex + 1);
+          
+          try {
+            if (msgType === '0') {
+              // Text content
+              const textContent = JSON.parse(jsonData) as string;
               fullContent += textContent;
-              updateLastAssistantMessage(chatId, fullContent);
-            } catch {
-              // Not valid JSON, skip
+              updateLastAssistantMessage(chatId, fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : ''));
+            } else if (msgType === 'a') {
+              // Tool call started - parse and show
+              const toolCall = JSON.parse(jsonData) as { toolName: string; args: Record<string, unknown> };
+              const toolInfo = `[${toolCall.toolName}] ${JSON.stringify(toolCall.args).slice(0, 100)}...`;
+              toolResults.push(toolInfo);
+              updateLastAssistantMessage(chatId, fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : ''));
+            } else if (msgType === 'b') {
+              // Tool result
+              const result = JSON.parse(jsonData) as { result?: { success?: boolean; output?: string; error?: string } };
+              if (result.result?.success) {
+                // Update last tool result with success
+                const lastIdx = toolResults.length - 1;
+                if (lastIdx >= 0) {
+                  toolResults[lastIdx] = toolResults[lastIdx].replace('...', ' ✓');
+                }
+              } else if (result.result?.error) {
+                const lastIdx = toolResults.length - 1;
+                if (lastIdx >= 0) {
+                  toolResults[lastIdx] = toolResults[lastIdx].replace('...', ` ✗ ${result.result.error}`);
+                }
+              }
+              updateLastAssistantMessage(chatId, fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : ''));
             }
+          } catch {
+            // Not valid JSON, skip
           }
-          // Handle other message types (tool calls, etc.) as needed
         }
       }
 
       // Ensure final content is set
-      if (fullContent.length > 0) {
-        updateLastAssistantMessage(chatId, fullContent);
+      const finalContent = fullContent + (toolResults.length > 0 ? '\n\n' + toolResults.join('\n') : '');
+      if (finalContent.length > 0) {
+        updateLastAssistantMessage(chatId, finalContent);
       } else {
         updateLastAssistantMessage(chatId, '(No response generated)');
       }
