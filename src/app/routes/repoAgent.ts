@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { convertToModelMessages, streamText } from "ai";
+import { convertToModelMessages, stepCountIs, streamText } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createRepoAgentTools } from "@/app/services/repoAgentTools.ts";
@@ -214,6 +214,7 @@ app.post("/chat", async (c) => {
 			system: contextualPrompt,
 			messages: convertedMessages,
 			tools,
+			stopWhen: stepCountIs(10), // CRITICAL: Enable multi-step tool execution (up to 10 steps)
 			onStepFinish({ text, toolCalls, toolResults, finishReason }) {
 				console.log("[RepoAgent] Step finished. Reason:", finishReason);
 				if (text) {
