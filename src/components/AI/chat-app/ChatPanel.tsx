@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Markdown from 'react-markdown';
 import type { IChat, IMessage } from '@/components/AI/chat-app/types.ts';
 import Badge from '@/components/AI/chat-app/ui/Badge.tsx';
 import IconButton from '@/components/AI/chat-app/ui/IconButton.tsx';
@@ -116,10 +117,43 @@ export default function ChatPanel({
               className={
                 message.role === 'user'
                   ? 'max-w-[85%] px-5 py-3 rounded-2xl backdrop-blur-sm bg-gradient-to-br from-primary-600 to-primary-700 text-fg shadow-lg shadow-primary-900/20 text-sm leading-relaxed'
-                  : 'max-w-[85%] px-2 py-2 text-fg text-sm leading-relaxed whitespace-pre-wrap'
+                  : 'max-w-[85%] px-2 py-2 text-fg text-sm leading-relaxed'
               }
             >
-              {message.content}
+              {message.role === 'user' ? (
+                message.content
+              ) : (
+                <div className="prose prose-invert prose-sm max-w-none">
+                  <Markdown
+                    components={{
+                      // Make links clickable and styled
+                      a: ({ children, href }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-400 hover:text-primary-300 underline break-all"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      // Style code blocks
+                      code: ({ children, className }) => {
+                        const isInline = !className;
+                        return isInline ? (
+                          <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">{children}</code>
+                        ) : (
+                          <code className={className}>{children}</code>
+                        );
+                      },
+                      // Style horizontal rules (tool activity separator)
+                      hr: () => <hr className="border-border my-3" />,
+                    }}
+                  >
+                    {message.content}
+                  </Markdown>
+                </div>
+              )}
             </div>
           </div>
         ))}
