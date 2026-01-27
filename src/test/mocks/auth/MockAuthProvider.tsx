@@ -54,19 +54,20 @@ export function MockAuthProvider({
 			accessToken: config.accessToken ?? null,
 			userMetadata: config.userMetadata ?? null,
 
-			getAccessTokenSilently: async () => {
-				if (!config.accessToken) {
-					throw new Error("No access token available");
+			getAccessTokenSilently: () => {
+				if (config.accessToken === null || config.accessToken === undefined) {
+					return Promise.reject(new Error("No access token available"));
 				}
-				return config.accessToken;
+				return Promise.resolve(config.accessToken);
 			},
 
-			loginWithRedirect: async () => {
-				console.log("[MockAuth] loginWithRedirect called");
+			loginWithRedirect: () => {
+				// Mock login - no actual redirect needed in test
+				return Promise.resolve();
 			},
 
 			logout: () => {
-				console.log("[MockAuth] logout called");
+				// Mock logout - no actual action needed in test
 			},
 		}),
 		[config],
@@ -98,7 +99,7 @@ export function useMockUser() {
 
 	return {
 		user: auth.user,
-		userMetadata: auth.userMetadata as Record<string, unknown> | null,
+		userMetadata: auth.userMetadata,
 		githubToken: auth.userMetadata?.github_token ?? null,
 		isLoading: auth.isLoading,
 		isAuthenticated: auth.isAuthenticated,
@@ -106,7 +107,7 @@ export function useMockUser() {
 		accessToken: auth.accessToken,
 		logout: auth.logout,
 		refreshGitHubToken: async () => {
-			console.log("[MockAuth] refreshGitHubToken called");
+			// Mock refresh - no actual action needed in test
 		},
 		encryptionAvailable: true,
 		isTokenEncrypted: false,
@@ -122,7 +123,7 @@ export function useMockDecryptedUserMetadata() {
 	const auth = useMockAuth0();
 
 	return {
-		decryptedMetadata: auth.userMetadata as Record<string, unknown> | null,
+		decryptedMetadata: auth.userMetadata,
 		isDecrypting: false,
 		decryptionError: null,
 	};
@@ -132,25 +133,34 @@ export function useMockDecryptedUserMetadata() {
 // GLOBAL MOCK STATE (for injection)
 // =============================================================================
 
-declare global {
-	interface Window {
-		__MOCK_AUTH__?: IMockAuthConfig;
-	}
-}
+/**
+ * Type predicate to check if window has mock auth config
+ */
+const hasMockAuth = (
+	win: Window,
+): win is Window & { __MOCK_AUTH__: IMockAuthConfig } => {
+	return (
+		"__MOCK_AUTH__" in win &&
+		typeof win.__MOCK_AUTH__ === "object" &&
+		win.__MOCK_AUTH__ !== null
+	);
+};
 
 /** Check if we're in mock auth mode */
 export function isMockAuthEnabled(): boolean {
-	return (
-		typeof window !== "undefined" &&
-		(window.__MOCK_AUTH__ !== undefined ||
-			import.meta.env.VITE_MOCK_AUTH === "true")
-	);
+	if (typeof window === "undefined") {
+		return false;
+	}
+	return hasMockAuth(window) || import.meta.env.VITE_MOCK_AUTH === "true";
 }
 
 /** Get mock auth config from window */
 export function getMockAuthConfig(): IMockAuthConfig | undefined {
-	if (typeof window !== "undefined") {
-		return window.__MOCK_AUTH__;
+	if (typeof window === "undefined") {
+		return undefined;
 	}
-	return undefined;
+	if (!hasMockAuth(window)) {
+		return undefined;
+	}
+	return window.__MOCK_AUTH__;
 }

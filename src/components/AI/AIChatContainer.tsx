@@ -15,6 +15,7 @@ import type { TabType } from "@/components/AI/TabBar.tsx";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
+import { useRemoteRepoFiles } from "@/hooks/useRemoteRepoFiles.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
@@ -449,11 +450,23 @@ function extractSchemaFromMessages(
 interface IAIChatContainerProps {
 	activeTab: TabType;
 	onTabChange: (tab: TabType) => void;
+	/** If true, renders Judas AI chat. If false, renders the multi-chat panel (passed as children) */
+	isScaffolderRepo?: boolean;
+	/** Custom chat panel to render when not in scaffolder mode */
+	children?: React.ReactNode;
+	/** Repository URL for fetching files in repository mode */
+	repoUrl?: string;
+	/** Repository name for display */
+	repoName?: string;
 }
 
 export function AIChatContainer({
 	activeTab,
 	onTabChange,
+	isScaffolderRepo = true,
+	children,
+	repoUrl,
+	repoName,
 }: IAIChatContainerProps) {
 	const [input, setInput] = useState("");
 
@@ -470,6 +483,14 @@ export function AIChatContainer({
 	const { userFiles: storeUserFiles } = useMockDatabaseStore();
 	const { decryptedMetadata } = useDecryptedUserMetadata();
 	const { user } = useUser();
+
+	// Fetch repository files for non-scaffolder mode (always from GitHub API)
+	const { data: repoFiles, isLoading: isRepoFilesLoading } = useRemoteRepoFiles(
+		{ repoUrl: repoUrl ?? "" },
+		{
+			enabled: !isScaffolderRepo && repoUrl !== undefined && repoUrl !== "",
+		}
+	);
 
 	// Local state for build results
 	const [buildResult, setBuildResult] = useState<{
@@ -601,10 +622,13 @@ export function AIChatContainer({
 	// We no longer need the Ctrl+B shortcut here as it's handled in the parent component
 	// This effect has been removed since we're using the parent component for tab switching
 
+	// For repository mode, show files if loaded
+	const hasRepoFiles: boolean = !isScaffolderRepo && repoFiles !== undefined && repoFiles.length > 0;
+
 	return (
 		<div className="flex h-full w-full bg-bg overflow-hidden">
-			{/* FileViewer panel - Show only when fileViewer tab is active */}
-			{shouldShowFileViewer && activeTab === "fileViewer" && (
+			{/* FileViewer panel - Scaffolder mode (edit) */}
+			{isScaffolderRepo && shouldShowFileViewer && activeTab === "fileViewer" && (
 				<div className="flex flex-col overflow-hidden w-full">
 					<FileViewer
 						mode="edit"
@@ -619,8 +643,45 @@ export function AIChatContainer({
 				</div>
 			)}
 
+			{/* FileViewer panel - Repository mode (view) */}
+			{!isScaffolderRepo && activeTab === "fileViewer" && (
+				<div className="flex flex-col overflow-hidden w-full">
+					{isRepoFilesLoading && (
+						<div className="flex-1 flex items-center justify-center">
+							<div className="text-center space-y-3">
+								<div className="w-12 h-12 mx-auto border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+								<p className="text-sm text-fg-muted">Loading repository files...</p>
+							</div>
+						</div>
+					)}
+					{!isRepoFilesLoading && hasRepoFiles && repoFiles !== undefined && (
+						<FileViewer
+							mode="view"
+							folderStructure={repoFiles}
+							projectName={repoName ?? "Repository"}
+						/>
+					)}
+					{!isRepoFilesLoading && !hasRepoFiles && (
+						<div className="flex-1 flex items-center justify-center">
+							<div className="text-center space-y-3 max-w-md px-4">
+								<div className="w-16 h-16 mx-auto rounded-2xl bg-secondary border border-border flex items-center justify-center text-fg-subtle">
+									<svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+										<title>No files</title>
+										<path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
+									</svg>
+								</div>
+								<h3 className="text-lg font-semibold text-fg">No files found</h3>
+								<p className="text-sm text-fg-subtle">
+									Unable to load files from this repository. Make sure the repository is public and contains files.
+								</p>
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+
 			{/* Chat panel - Show only when chat tab is active */}
-			{activeTab === "chat" && (
+			{activeTab === "chat" && isScaffolderRepo && (
 				<div className="flex flex-col flex-1 min-w-0 bg-bg">
 					<ChatMessages messages={messages} isLoading={isLoading} />
 					{error && <ChatError error={error} onRetry={reload} />}
@@ -632,6 +693,9 @@ export function AIChatContainer({
 					/>
 				</div>
 			)}
+
+			{/* Multi-chat panel - Show when chat tab is active and NOT scaffolder repo */}
+			{activeTab === "chat" && !isScaffolderRepo && children}
 
 			{/* Infra panel - Show only when infra tab is active */}
 			{activeTab === "infra" && (

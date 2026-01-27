@@ -1,6 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import type { IMockAuthConfig } from "@/test/mocks/auth/types.ts";
 import { useUserStore } from "@/useUserStore.ts";
 
 interface IServerConfigStatus {
@@ -65,8 +66,31 @@ const isTokenResponse = (val: unknown): val is ITokenResponse => {
 
 import { getApiUrl } from "@/utils/getApiUrl.ts";
 
-const getMockAuth = (): typeof window.__MOCK_AUTH__ | null => {
-	if (typeof window !== "undefined" && window.__MOCK_AUTH__?.isAuthenticated) {
+/**
+ * Type predicate to check if window has mock auth config
+ */
+const hasMockAuth = (
+	win: Window,
+): win is Window & { __MOCK_AUTH__: IMockAuthConfig } => {
+	return (
+		"__MOCK_AUTH__" in win &&
+		typeof win.__MOCK_AUTH__ === "object" &&
+		win.__MOCK_AUTH__ !== null
+	);
+};
+
+/**
+ * Get mock auth configuration from window if available
+ * Returns null if not in mock auth mode
+ */
+const getMockAuth = (): IMockAuthConfig | null => {
+	if (typeof window === "undefined") {
+		return null;
+	}
+	if (!hasMockAuth(window)) {
+		return null;
+	}
+	if (window.__MOCK_AUTH__.isAuthenticated === true) {
 		return window.__MOCK_AUTH__;
 	}
 	return null;
@@ -170,7 +194,7 @@ export const useUser = (): IUseUserReturn => {
 	} = useUserStore();
 
 	const getAccessToken = async (): Promise<string | null> => {
-		if (mockAuth?.accessToken) {
+		if (mockAuth?.accessToken !== undefined && mockAuth.accessToken !== null) {
 			setAccessToken(mockAuth.accessToken);
 			return mockAuth.accessToken;
 		}

@@ -15,24 +15,6 @@ import SQLSchemaInputModal from "@/components/SQLSchemaInputModal.tsx";
 import { Auth0Provider } from "@auth0/auth0-react";
 import formatCode from "@/utils/formatCode.ts";
 
-declare global {
-	interface Window {
-		__MOCK_AUTH__?: {
-			isAuthenticated: boolean;
-			isLoading: boolean;
-			user: {
-				sub: string;
-				email: string;
-				name: string;
-				nickname: string;
-				picture: string;
-			};
-			accessToken: string;
-			userMetadata: Record<string, unknown>;
-		};
-	}
-}
-
 void (async () => {
 	const formatted = await formatCode(`<?php
 

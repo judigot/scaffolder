@@ -11,6 +11,8 @@ export interface IMockUser {
 	picture: string;
 	email_verified: boolean;
 	updated_at: string;
+	/** Index signature for compatibility with Auth0 User type */
+	[key: string]: unknown;
 }
 
 /** Workspace mode */
@@ -56,6 +58,8 @@ export interface IMockUserMetadata {
 	env?: Record<string, string>;
 	infra?: IMockInfraCredentials;
 	github_token?: string;
+	/** Index signature for compatibility with Record<string, unknown> */
+	[key: string]: unknown;
 }
 
 /** Mock access token response */
@@ -82,6 +86,14 @@ export interface IMockAuthConfig {
 	accessToken?: string | null;
 	userMetadata?: IMockUserMetadata | null;
 	error?: Error | null;
+}
+
+/**
+ * Window interface with mock auth support
+ * Used to type-check window.__MOCK_AUTH__ access
+ */
+export interface IWindowWithMockAuth {
+	__MOCK_AUTH__?: IMockAuthConfig;
 }
 
 /** Terraform status response */

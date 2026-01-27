@@ -899,15 +899,13 @@ function FileViewer({
 		};
 	};
 
-	// Fix linter errors
+	// Handle context menu for both edit and view modes
 	const handleContextMenuWithCheck = (
 		e: React.MouseEvent,
 		item?: IFile | IFolder,
 		parentPath: string[] = [],
 	) => {
-		if (mode === "edit") {
-			handleContextMenu(e, item, parentPath);
-		}
+		handleContextMenu(e, item, parentPath);
 	};
 
 	function renderTree(
@@ -2501,6 +2499,42 @@ function FileViewer({
 						<div
 							className={`max-h-[66vh] bg-panel flex flex-col overflow-hidden ${isTreeOpen ? "" : "hidden"}`}
 						>
+							{/* View mode toolbar - just new file/folder buttons */}
+							{mode === "view" && (
+								<div className="p-3 border-b border-layout-border shrink-0">
+									<div className="flex items-center gap-2">
+										<button
+											type="button"
+											onClick={() => {
+												void (async () => {
+													await handleOpenDialog("newFile");
+												})();
+											}}
+											className="btn-secondary btn-icon flex-1"
+											title="New File"
+											aria-label="New File"
+										>
+											<NoteAddIcon sx={{ fontSize: 18 }} />
+											<span>New File</span>
+										</button>
+										<button
+											type="button"
+											onClick={() => {
+												void (async () => {
+													await handleOpenDialog("newFolder");
+												})();
+											}}
+											className="btn-secondary btn-icon flex-1"
+											title="New Folder"
+											aria-label="New Folder"
+										>
+											<CreateNewFolderIcon sx={{ fontSize: 18 }} />
+											<span>New Folder</span>
+										</button>
+									</div>
+								</div>
+							)}
+
 							{/* Action buttons toolbar */}
 							{mode === "edit" && (
 								<div className="p-3 border-b border-layout-border space-y-3 shrink-0">
@@ -2745,9 +2779,7 @@ function FileViewer({
 							<div
 								className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
 								onContextMenu={(e) => {
-									if (mode === "edit") {
-										handleContextMenu(e);
-									}
+									handleContextMenu(e);
 								}}
 							>
 								<div className="min-w-max pb-2">
@@ -2763,6 +2795,40 @@ function FileViewer({
 				{/* Desktop: Side-by-side file tree panel - fixed width with horizontal scroll */}
 				{!isMobile && (
 					<div className="w-64 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-r border-layout-border">
+						{/* View mode toolbar - just new file/folder buttons */}
+						{mode === "view" && (
+							<div className="p-2 border-b border-layout-border shrink-0">
+								<div className="flex items-center gap-2">
+									<button
+										type="button"
+										onClick={() => {
+											void (async () => {
+												await handleOpenDialog("newFile");
+											})();
+										}}
+										className="btn-secondary btn-icon flex-1"
+										title="New File"
+									>
+										<NoteAddIcon sx={{ fontSize: 14 }} />
+										<span>New File</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => {
+											void (async () => {
+												await handleOpenDialog("newFolder");
+											})();
+										}}
+										className="btn-secondary btn-icon flex-1"
+										title="New Folder"
+									>
+										<CreateNewFolderIcon sx={{ fontSize: 14 }} />
+										<span>New Folder</span>
+									</button>
+								</div>
+							</div>
+						)}
+
 						{/* File tree toolbar */}
 						{mode === "edit" && (
 							<div className="p-2 border-b border-layout-border space-y-2 shrink-0">
@@ -2849,9 +2915,7 @@ function FileViewer({
 						<div
 							className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
 							onContextMenu={(e) => {
-								if (mode === "edit") {
-									handleContextMenu(e);
-								}
+								handleContextMenu(e);
 							}}
 						>
 							<div className="min-w-max pb-2">

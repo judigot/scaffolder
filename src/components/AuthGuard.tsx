@@ -1,15 +1,32 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { type ReactNode, useEffect, useState } from "react";
+import type { IMockAuthConfig } from "@/test/mocks/auth/types.ts";
 
 interface IAuthGuardProps {
 	children: ReactNode;
 }
 
-const isMockAuthEnabled = (): boolean => {
+/**
+ * Type predicate to check if window has mock auth config
+ */
+const hasMockAuth = (
+	win: Window,
+): win is Window & { __MOCK_AUTH__: IMockAuthConfig } => {
 	return (
-		typeof window !== "undefined" &&
-		window.__MOCK_AUTH__?.isAuthenticated === true
+		"__MOCK_AUTH__" in win &&
+		typeof win.__MOCK_AUTH__ === "object" &&
+		win.__MOCK_AUTH__ !== null
 	);
+};
+
+const isMockAuthEnabled = (): boolean => {
+	if (typeof window === "undefined") {
+		return false;
+	}
+	if (!hasMockAuth(window)) {
+		return false;
+	}
+	return window.__MOCK_AUTH__.isAuthenticated === true;
 };
 
 export default function AuthGuard({ children }: IAuthGuardProps) {
