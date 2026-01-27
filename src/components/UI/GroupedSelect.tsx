@@ -92,7 +92,7 @@ export default function GroupedSelect({
 				type="button"
 				id={id}
 				onClick={() => {
-					if (!disabled) setIsOpen(!isOpen);
+					if (!disabled) {setIsOpen(!isOpen);}
 				}}
 				disabled={disabled}
 				aria-label={ariaLabel}
@@ -241,7 +241,7 @@ export function SimpleSelect({
 				type="button"
 				id={id}
 				onClick={() => {
-					if (!disabled) setIsOpen(!isOpen);
+					if (!disabled) {setIsOpen(!isOpen);}
 				}}
 				disabled={disabled}
 				aria-label={ariaLabel}

@@ -328,4 +328,105 @@ router.post("/infra", async (c) => {
 	}
 });
 
+// Repository storage for the assistant chat feature
+interface IRepositoryPayload {
+	repositories?: { repoUrl?: unknown; addedAt?: unknown }[];
+}
+
+const isRepositoryPayload = (val: unknown): val is IRepositoryPayload => {
+	if (typeof val !== "object" || val === null) {
+		return false;
+	}
+	return "repositories" in val;
+};
+
+router.post("/repositories", async (c) => {
+	const verification = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+
+	if (!verification.ok) {
+		return c.json(verification.body, verification.status);
+	}
+
+	const auth0UserId = verification.auth0UserId;
+
+	if (auth0UserId === "") {
+		return c.json({ error: "User ID not found in token" }, 401);
+	}
+
+	const body = await c.req.json<IRepositoryPayload>();
+
+	if (!isRepositoryPayload(body) || !Array.isArray(body.repositories)) {
+		return c.json(
+			{
+				error: "Invalid payload",
+				message: "repositories must be an array of { repoUrl, addedAt } objects.",
+			},
+			400,
+		);
+	}
+
+	// Validate and sanitize repository entries
+	const repositoriesArray = body.repositories
+		.filter(
+			(item): item is { repoUrl: string; addedAt: string } =>
+				typeof item.repoUrl === "string" &&
+				item.repoUrl.trim() !== "" &&
+				typeof item.addedAt === "string"
+		)
+		.map((item) => ({
+			repoUrl: item.repoUrl.trim(),
+			addedAt: item.addedAt,
+		}));
+
+	try {
+		const currentMetadata = await getUserMetadata(auth0UserId);
+
+		const baseMetadata = currentMetadata ?? {};
+
+		const updatedMetadata: Record<string, unknown> = {
+			...baseMetadata,
+			repositories: repositoriesArray,
+		};
+
+		await updateUserMetadata(auth0UserId, updatedMetadata);
+
+		return c.json(
+			{
+				success: true,
+				repositories: repositoriesArray,
+			},
+			200,
+		);
+	} catch (error: unknown) {
+		if (error instanceof Auth0ManagementApiNotConfiguredError) {
+			return c.json(
+				{
+					error: "Auth0 Management API not configured",
+					message: error.message,
+					code: "AUTH0_MANAGEMENT_API_NOT_CONFIGURED",
+				},
+				500,
+			);
+		}
+		if (error instanceof Error) {
+			return c.json(
+				{
+					error: "Failed to update user metadata",
+					message: error.message,
+				},
+				500,
+			);
+		}
+		return c.json(
+			{
+				error: "Failed to update user metadata",
+				message: "An unexpected error occurred",
+			},
+			500,
+		);
+	}
+});
+
 export default router;

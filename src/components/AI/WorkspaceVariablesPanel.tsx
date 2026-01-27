@@ -104,14 +104,14 @@ export function WorkspaceVariablesPanel({
 	});
 
 	const userVariables = useMemo(() => {
-		if (!variablesQuery.data?.variables) return [];
+		if (!variablesQuery.data?.variables) {return [];}
 		return variablesQuery.data.variables.filter(
 			(v) => !SYSTEM_VARIABLES.has(v.key),
 		);
 	}, [variablesQuery.data]);
 
 	const displayVariables = useMemo(() => {
-		if (hasChanges) return localVariables;
+		if (hasChanges) {return localVariables;}
 		return userVariables.map((v) => ({
 			key: v.key,
 			value: v.value ?? "",

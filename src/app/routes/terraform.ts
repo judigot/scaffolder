@@ -593,12 +593,12 @@ router.post("/workspace/:workspaceName/config", async (c) => {
 		validateTerraformConfig(config);
 		await getTerraformWorkspaceId(config);
 
-		const variables: Array<{
+		const variables: {
 			key: string;
 			value: string;
 			category: "env" | "terraform";
 			sensitive: boolean;
-		}> = [];
+		}[] = [];
 
 		if (
 			typeof body.ec2InstanceType === "string" &&
@@ -1051,12 +1051,12 @@ router.put("/workspace/:workspaceName/variables", async (c) => {
 		);
 	}
 
-	const variableInputs: Array<{
+	const variableInputs: {
 		key: string;
 		value: string;
 		category: "env" | "terraform";
 		sensitive: boolean;
-	}> = [];
+	}[] = [];
 
 	for (const v of body.variables) {
 		if (

@@ -813,7 +813,7 @@ export const getTerraformState = async (
 	}
 
 	for (const resource of rootModule.resources) {
-		if (typeof resource !== "object" || resource === null) continue;
+		if (typeof resource !== "object" || resource === null) {continue;}
 
 		const r = resource as Record<string, unknown>;
 		const type = typeof r.type === "string" ? r.type : "";

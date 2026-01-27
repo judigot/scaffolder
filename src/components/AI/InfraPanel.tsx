@@ -122,7 +122,7 @@ const parseInfraCredentials = (
 
 export type { IInfraCredentials };
 
-type IInfraPanelProps = {};
+interface IInfraPanelProps {}
 
 interface IInfraWorkspaceCardProps {
 	workspace: string;
@@ -476,7 +476,7 @@ function InfraWorkspaceCard({
 			}
 
 			const variablesData = (await variablesResponse.json()) as {
-				variables?: Array<{ key: string; value: string | null }>;
+				variables?: { key: string; value: string | null }[];
 			};
 
 			const variables = variablesData.variables ?? [];
@@ -764,7 +764,7 @@ function InfraWorkspaceCard({
 							<button
 								type="button"
 								onClick={() => {
-									onOpenTerminal(publicIp as string);
+									onOpenTerminal(publicIp);
 								}}
 								className="w-full mt-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
 							>

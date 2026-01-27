@@ -68,7 +68,7 @@ const padToBlockSize = (content: Uint8Array): Uint8Array => {
 };
 
 export const bundleTerraformTemplate = (templateDir: string): Uint8Array => {
-	const files: Array<{ name: string; content: Uint8Array; mtime: number }> = [];
+	const files: { name: string; content: Uint8Array; mtime: number }[] = [];
 
 	const entries = readdirSync(templateDir);
 	for (const entry of entries) {
