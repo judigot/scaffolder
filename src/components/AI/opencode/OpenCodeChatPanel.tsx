@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
-
-type OpenCodeMessage = {
-	id: string;
-	role: "user" | "assistant";
-	content: string;
-	timestamp: Date;
-};
+import {
+	type ChatMessage,
+	createOpenCodeAdapter,
+	useChatSession,
+} from "@/lib/chat";
 
 type OpenCodeHealth = {
 	connected: boolean;
@@ -25,23 +23,27 @@ export default function OpenCodeChatPanel({
 	repoName,
 	repoPath,
 }: OpenCodeChatPanelProps) {
-	const [messages, setMessages] = useState<OpenCodeMessage[]>([]);
 	const [input, setInput] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
-	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [directory, setDirectory] = useState("");
 	const [health, setHealth] = useState<OpenCodeHealth>({ connected: false });
 	const messagesEndRef = useRef<HTMLDivElement>(null);
+
+	// Use the chat abstraction with OpenCode adapter
+	const chat = useChatSession({
+		endpoint: "/api/opencode/chat",
+		adapterFactory: createOpenCodeAdapter,
+		directory,
+	});
 
 	const scrollToBottom = useCallback(() => {
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, []);
 
 	useEffect(() => {
-		if (messages.length > 0) {
+		if (chat.messages.length > 0) {
 			scrollToBottom();
 		}
-	}, [messages.length, scrollToBottom]);
+	}, [chat.messages.length, scrollToBottom]);
 
 	useEffect(() => {
 		if (repoPath) {
@@ -80,91 +82,64 @@ export default function OpenCodeChatPanel({
 		return "Disconnected";
 	}, [health.connected]);
 
-	const addMessage = useCallback((message: OpenCodeMessage) => {
-		setMessages((prev) => [...prev, message]);
-	}, []);
-
-	const updateLastAssistant = useCallback((content: string) => {
-		setMessages((prev) => {
-			const next = [...prev];
-			for (let i = next.length - 1; i >= 0; i -= 1) {
-				if (next[i]?.role === "assistant") {
-					next[i] = { ...next[i], content };
-					break;
-				}
-			}
-			return next;
-		});
-	}, []);
-
-	const handleSend = async (event: React.FormEvent) => {
+	const handleSend = (event: React.FormEvent) => {
 		event.preventDefault();
-		if (input.trim() === "" || isLoading) {
+		if (input.trim() === "" || chat.isLoading) {
 			return;
 		}
 
-		const userMessage: OpenCodeMessage = {
-			id: `msg-${String(Date.now())}`,
-			role: "user",
-			content: input,
-			timestamp: new Date(),
-		};
-
-		addMessage(userMessage);
+		chat.send(input);
 		setInput("");
-
-		const assistantMessage: OpenCodeMessage = {
-			id: `msg-${String(Date.now() + 1)}`,
-			role: "assistant",
-			content: "",
-			timestamp: new Date(),
-		};
-		addMessage(assistantMessage);
-
-		setIsLoading(true);
-
-		try {
-			const response = await fetch("/api/opencode/chat", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					message: userMessage.content,
-					sessionId,
-					directory,
-				}),
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				updateLastAssistant(`Error: ${errorText}`);
-				return;
-			}
-
-			const data = (await response.json()) as {
-				sessionId?: string;
-				assistantText?: string;
-			};
-
-			if (data.sessionId) {
-				setSessionId(data.sessionId);
-			}
-
-			updateLastAssistant(
-				data.assistantText?.trim() || "(No response generated)",
-			);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : "Request failed";
-			updateLastAssistant(`Error: ${message}`);
-		} finally {
-			setIsLoading(false);
-		}
 	};
 
 	const handleNewSession = () => {
-		setSessionId(null);
-		setMessages([]);
+		chat.clear();
+	};
+
+	const handleStop = () => {
+		chat.stop();
+	};
+
+	const handleRetry = () => {
+		chat.retry();
+	};
+
+	// Render message content with role-specific styling
+	const renderMessage = (message: ChatMessage) => {
+		if (message.role === "user") {
+			return message.content;
+		}
+
+		return (
+			<div className="prose prose-invert prose-sm max-w-none">
+				<Markdown
+					components={{
+						a: ({ children, href }) => (
+							<a
+								href={href}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-primary-400 hover:text-primary-300 underline break-all"
+							>
+								{children}
+							</a>
+						),
+						code: ({ children, className }) => {
+							const isInline = !className;
+							return isInline ? (
+								<code className="bg-secondary px-1.5 py-0.5 rounded text-xs">
+									{children}
+								</code>
+							) : (
+								<code className={className}>{children}</code>
+							);
+						},
+					}}
+				>
+					{message.content}
+				</Markdown>
+			</div>
+		);
 	};
 
 	return (
@@ -241,7 +216,7 @@ export default function OpenCodeChatPanel({
 			</div>
 
 			<div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-4">
-				{messages.map((message) => (
+				{chat.messages.map((message) => (
 					<div
 						key={message.id}
 						className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
@@ -253,44 +228,42 @@ export default function OpenCodeChatPanel({
 									: "max-w-[85%] px-2 py-2 text-fg text-sm leading-relaxed"
 							}
 						>
-							{message.role === "user" ? (
-								message.content
-							) : (
-								<div className="prose prose-invert prose-sm max-w-none">
-									<Markdown
-										components={{
-											a: ({ children, href }) => (
-												<a
-													href={href}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-primary-400 hover:text-primary-300 underline break-all"
-												>
-													{children}
-												</a>
-											),
-											code: ({ children, className }) => {
-												const isInline = !className;
-												return isInline ? (
-													<code className="bg-secondary px-1.5 py-0.5 rounded text-xs">
-														{children}
-													</code>
-												) : (
-													<code className={className}>{children}</code>
-												);
-											},
-										}}
-									>
-										{message.content}
-									</Markdown>
-								</div>
-							)}
+							{renderMessage(message)}
 						</div>
 					</div>
 				))}
-				{isLoading && (
+				{chat.status === "streaming" && (
+					<div className="flex justify-start pl-2">
+						<div className="flex items-center gap-2">
+							<div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
+							<span className="text-xs text-fg-subtle">Streaming...</span>
+							<button
+								type="button"
+								onClick={handleStop}
+								className="text-xs text-danger-400 hover:text-danger-300"
+							>
+								Stop
+							</button>
+						</div>
+					</div>
+				)}
+				{chat.status === "loading" && (
 					<div className="flex justify-start pl-2">
 						<div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+					</div>
+				)}
+				{chat.error && (
+					<div className="flex justify-start pl-2">
+						<div className="flex items-center gap-2 text-danger-400">
+							<span className="text-xs">{chat.error.message}</span>
+							<button
+								type="button"
+								onClick={handleRetry}
+								className="text-xs underline hover:text-danger-300"
+							>
+								Retry
+							</button>
+						</div>
 					</div>
 				)}
 				<div ref={messagesEndRef} />
@@ -309,14 +282,16 @@ export default function OpenCodeChatPanel({
 						}}
 						placeholder="Describe what you want OpenCode to do..."
 						className="flex-1 bg-transparent text-fg placeholder-fg-subtle focus:outline-none text-sm"
-						disabled={!health.connected || isLoading}
+						disabled={!health.connected || chat.isLoading}
 					/>
 					<button
 						type="submit"
-						disabled={!health.connected || isLoading || input.trim() === ""}
+						disabled={
+							!health.connected || chat.isLoading || input.trim() === ""
+						}
 						className="h-9 w-9 rounded-full bg-fg text-bg flex items-center justify-center disabled:opacity-30"
 					>
-						{isLoading ? (
+						{chat.isLoading ? (
 							<svg
 								className="w-4 h-4 animate-spin"
 								viewBox="0 0 24 24"
@@ -347,6 +322,11 @@ export default function OpenCodeChatPanel({
 				</div>
 				<p className="text-[11px] text-fg-subtle mt-2 text-center">
 					OpenCode runs locally. Set OPENCODE_URL to connect.
+					{chat.sessionId && (
+						<span className="ml-2 text-fg-muted">
+							Session: {chat.sessionId.slice(0, 8)}...
+						</span>
+					)}
 				</p>
 			</form>
 		</div>
