@@ -1,9 +1,9 @@
 /**
  * Automated tests for Chat Branch Checkout feature
- * Run with: bun test src/tests/checkout-branch.test.ts
+ * Run with: bun run test src/tests/checkout-branch.test.ts
  */
 
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it as test } from "vitest";
 
 const API_BASE = "http://localhost:3000";
 const TEST_REPO_PATH = "/home/ubuntu/scaffolder-workspaces/judigot/ide";
