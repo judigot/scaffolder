@@ -1,15 +1,16 @@
 ---
 name: project-generator
-description: Creates reusable project templates for various frameworks. Collaborates with project-builder agent. Use when scaffolding new project structures, adding framework templates, or creating project configurations.
+description: Creates reusable project templates and structure.yaml content. Use when authoring templates or project structures (not when changing the generation engine).
 globs:
-  - "files/**/*.yaml"
-  - "files/**/*.txt"
-  - "files/**/*.ts"
-  - "src/schema-infos/**/*.ts"
+  - 'files/**/*.yaml'
+  - 'files/**/*.txt'
+  - 'files/**/*.ts'
+  - 'src/schema-infos/**/*.ts'
 model: inherit
 color: cyan
-tools: ["Read", "Write", "Bash", "Grep", "CodebaseSearch"]
+tools: ['Read', 'Write', 'Bash', 'Grep', 'CodebaseSearch']
 ---
+
 # Project Generator Agent
 
 You generate project templates using the scaffolder's placeholder system. This guide contains EVERYTHING you need to create working project templates.
@@ -36,7 +37,7 @@ All template files in `templates/` folder must have `.txt` extension, even for T
 In generated TypeScript files, imports must use `.js` extension for ESM compatibility:
 
 ```typescript
-import { UserController } from '../controllers/user.controller.js';  // .js not .ts
+import { UserController } from '../controllers/user.controller.js'; // .js not .ts
 ```
 
 ---
@@ -58,10 +59,10 @@ import oneToMany from '../src/schema-infos/oneToMany.ts';
 
 const userFiles = convertLocalFilesToIStructure('files');
 const result = await buildProjectFiles(
-  '/Projects/App Generator - Express API/structure.yaml',  // Path to structure.yaml
-  userFiles,        // IStructure from files/ folder
-  oneToMany,        // Schema (ISchemaInfo[])
-  formData,         // IFormStore config
+  '/Projects/App Generator - Express API/structure.yaml', // Path to structure.yaml
+  userFiles, // IStructure from files/ folder
+  oneToMany, // Schema (ISchemaInfo[])
+  formData, // IFormStore config
 );
 
 // result.structure contains generated IStructure (files/folders)
@@ -105,8 +106,8 @@ files/
 $USE_CORE: /Core/vite-react
 
 # Define generated file structure
-api:                              # Folder name
-  routes:                         # Subfolder
+api: # Folder name
+  routes: # Subfolder
     - CREATE_FILE(index.ts --template ./templates/routes-index.txt)
     - FILE_LOOP({{tableNameCamelCase}}.route.ts --template ./templates/route.txt)
   controllers:
@@ -121,15 +122,16 @@ api:                              # Folder name
 
 ### Actions Explained
 
-| Action | What It Does | When to Use |
-|--------|--------------|-------------|
-| `FILE_LOOP(filename --template path)` | Creates ONE file PER TABLE in schema | Controllers, services, routes per table |
-| `CREATE_FILE(filename --template path)` | Creates ONE file total | Index files, shared config |
-| `$USE_CORE: /Core/path` | Imports boilerplate files | Base project setup |
+| Action                                  | What It Does                         | When to Use                             |
+| --------------------------------------- | ------------------------------------ | --------------------------------------- |
+| `FILE_LOOP(filename --template path)`   | Creates ONE file PER TABLE in schema | Controllers, services, routes per table |
+| `CREATE_FILE(filename --template path)` | Creates ONE file total               | Index files, shared config              |
+| `$USE_CORE: /Core/path`                 | Imports boilerplate files            | Base project setup                      |
 
 ### FILE_LOOP vs CREATE_FILE
 
 **FILE_LOOP** - Runs once per table. Use table placeholders:
+
 - `{{tableNameCamelCase}}` → `user`, `post`
 - `{{tableNamePascalCaseSingular}}` → `User`, `Post`
 - `{{getPrimaryKey()}}` → `user_id`, `post_id`
@@ -142,26 +144,26 @@ api:                              # Folder name
 
 ### Table Placeholders (Available in FILE_LOOP templates)
 
-| Placeholder | user table | post table |
-|-------------|------------|------------|
-| `{{tableName}}` | user | post |
-| `{{tableNamePascalCase}}` | User | Post |
-| `{{tableNamePascalCaseSingular}}` | User | Post |
-| `{{tableNameCamelCase}}` | user | post |
-| `{{tableNameCamelCasePlural}}` | users | posts |
-| `{{tableNameKebabCasePlural}}` | users | posts |
-| `{{tableNameSnakeCasePlural}}` | users | posts |
-| `{{getPrimaryKey()}}` | user_id | post_id |
+| Placeholder                       | user table | post table |
+| --------------------------------- | ---------- | ---------- |
+| `{{tableName}}`                   | user       | post       |
+| `{{tableNamePascalCase}}`         | User       | Post       |
+| `{{tableNamePascalCaseSingular}}` | User       | Post       |
+| `{{tableNameCamelCase}}`          | user       | post       |
+| `{{tableNameCamelCasePlural}}`    | users      | posts      |
+| `{{tableNameKebabCasePlural}}`    | users      | posts      |
+| `{{tableNameSnakeCasePlural}}`    | users      | posts      |
+| `{{getPrimaryKey()}}`             | user_id    | post_id    |
 
 ### Column Placeholders (Inside `[[LOOP(columnsInfo)]]`)
 
-| Placeholder | Description | Example Values |
-|-------------|-------------|----------------|
-| `{{value}}` | Column name | `user_id`, `first_name`, `email` |
-| `{{data_type}}` | TypeScript type | `string`, `number`, `boolean`, `Date` |
-| `{{is_nullable}}` | Nullable flag | `'YES'` or `'NO'` |
-| `{{column_default}}` | Default value | `'AUTO_INCREMENT'`, `null` |
-| `{{primary_key}}` | Is primary key | `true` or `undefined` |
+| Placeholder          | Description     | Example Values                        |
+| -------------------- | --------------- | ------------------------------------- |
+| `{{value}}`          | Column name     | `user_id`, `first_name`, `email`      |
+| `{{data_type}}`      | TypeScript type | `string`, `number`, `boolean`, `Date` |
+| `{{is_nullable}}`    | Nullable flag   | `'YES'` or `'NO'`                     |
+| `{{column_default}}` | Default value   | `'AUTO_INCREMENT'`, `null`            |
+| `{{primary_key}}`    | Is primary key  | `true` or `undefined`                 |
 
 ---
 
@@ -178,6 +180,7 @@ export type ICreate{{tableNamePascalCaseSingular}} = Omit<I{{tableNamePascalCase
 ```
 
 **Output for user table:**
+
 ```typescript
 export interface IUser {
   user_id: number;
@@ -205,6 +208,7 @@ export const router = Router();
 ```
 
 **Output:**
+
 ```typescript
 import { Router } from 'express';
 import { userRouter } from './user.route.js';
@@ -363,7 +367,11 @@ import { frameworks } from '../src/useFormStore.ts';
 import { CREATION_MODES } from '../src/constants.ts';
 import oneToMany from '../src/schema-infos/oneToMany.ts';
 import masterJSONSchema from '../src/json-schemas/masterJSONSchema.ts';
-import type { IStructure, IFile, IFolder } from '../src/components/FileViewer.tsx';
+import type {
+  IStructure,
+  IFile,
+  IFolder,
+} from '../src/components/FileViewer.tsx';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -486,12 +494,12 @@ After generation, update `api/index.ts` to import and use the generated router:
 ```typescript
 import express from 'express';
 import cors from 'cors';
-import { router } from './routes/index.js';  // Add this
+import { router } from './routes/index.js'; // Add this
 
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use('/api', router);  // Add this
+app.use('/api', router); // Add this
 
 app.listen(5000);
 ```
@@ -513,24 +521,24 @@ api:
 
 ## AVAILABLE SCHEMAS FOR TESTING
 
-| Schema | Tables | Location |
-|--------|--------|----------|
-| `oneToMany` | user, post | `src/schema-infos/oneToMany.ts` |
-| `masterSchema` | Multiple tables | `src/schema-infos/masterSchema.ts` |
-| `manyToMany` | Tables with junction | `src/schema-infos/manyToMany.ts` |
+| Schema         | Tables               | Location                           |
+| -------------- | -------------------- | ---------------------------------- |
+| `oneToMany`    | user, post           | `src/schema-infos/oneToMany.ts`    |
+| `masterSchema` | Multiple tables      | `src/schema-infos/masterSchema.ts` |
+| `manyToMany`   | Tables with junction | `src/schema-infos/manyToMany.ts`   |
 
 ---
 
 ## COMMON MISTAKES TO AVOID
 
-| Mistake | Problem | Fix |
-|---------|---------|-----|
-| `[[ LOOP(tables)` | Space after `[[` | Use `[[LOOP(tables)` |
-| `import { X } from './x.ts'` | Wrong extension | Use `./x.js` |
-| `template.ts` | Wrong file extension | Use `template.txt` |
-| Hardcoding `user_id` | Won't work for other tables | Use `{{getPrimaryKey()}}` |
-| Using `LOOP(tables)` in FILE_LOOP | Already iterating tables | Use placeholders directly |
-| Missing `--separator` | Output runs together | Add `--separator="\n"` |
+| Mistake                           | Problem                     | Fix                       |
+| --------------------------------- | --------------------------- | ------------------------- |
+| `[[ LOOP(tables)`                 | Space after `[[`            | Use `[[LOOP(tables)`      |
+| `import { X } from './x.ts'`      | Wrong extension             | Use `./x.js`              |
+| `template.ts`                     | Wrong file extension        | Use `template.txt`        |
+| Hardcoding `user_id`              | Won't work for other tables | Use `{{getPrimaryKey()}}` |
+| Using `LOOP(tables)` in FILE_LOOP | Already iterating tables    | Use placeholders directly |
+| Missing `--separator`             | Output runs together        | Add `--separator="\n"`    |
 
 ---
 
