@@ -706,12 +706,16 @@ export function AIChatContainer({
 	const { decryptedMetadata } = useDecryptedUserMetadata();
 	const { user, accessToken } = useUser();
 
-	// Fetch repository files for non-scaffolder mode
+	// Fetch repository files for non-scaffolder mode (lazy load - only when Code tab is active)
 	// Tries local clone first (if available), then falls back to remote GitHub API
 	const { data: repoFiles, isLoading: isRepoFilesLoading } = useRemoteRepoFiles(
 		{ repoUrl: repoUrl ?? "", authToken: accessToken ?? undefined },
 		{
-			enabled: !isScaffolderRepo && repoUrl !== undefined && repoUrl !== "",
+			enabled:
+				activeTab === "fileViewer" &&
+				!isScaffolderRepo &&
+				repoUrl !== undefined &&
+				repoUrl !== "",
 		},
 	);
 
