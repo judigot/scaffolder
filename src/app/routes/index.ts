@@ -20,6 +20,7 @@ import helloRouter from "./hello.ts";
 import introspectRouter from "./introspect.ts";
 import localRepoRouter from "./localRepo.ts";
 import opencodeRouter from "./opencode/index.ts";
+import pullRequestRouter from "./pullRequest.ts";
 import repoAgentRouter from "./repoAgent.ts";
 import saveLocalFileRouter from "./saveLocalFile.ts";
 import scaffoldRouter from "./scaffold.ts";
@@ -27,6 +28,7 @@ import terminalRouter from "./terminal.ts";
 import terraformRouter from "./terraform.ts";
 import userMetadataRouter from "./userMetadata.ts";
 import validateSchemaRouter from "./validateSchema.ts";
+import worktreeRouter from "./worktree.ts";
 
 const router = new Hono();
 
@@ -64,5 +66,7 @@ router.route("/opencode", opencodeRouter);
 router.route("/local-repo", localRepoRouter);
 router.route("/terminal", terminalRouter);
 router.route("/validate-schema", validateSchemaRouter);
+router.route("/worktree", worktreeRouter);
+router.route("/pull-request", pullRequestRouter);
 
 export default router;

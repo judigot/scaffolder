@@ -1,5 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ModelId } from "@/components/AI/AIChatContainer.tsx";
 import { AIChatContainer } from "@/components/AI/AIChatContainer.tsx";
 import ChatPanel from "@/components/AI/chat-app/ChatPanel.tsx";
@@ -19,7 +19,11 @@ import {
 } from "@/hooks/useRepositories.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import { useUserFiles } from "@/hooks/useUserFiles.ts";
-import { REPO_AGENT_SYSTEM_PROMPT } from "@/prompts/repoAgent.ts";
+import { useWorktreeFiles } from "@/hooks/useWorktreeFiles.ts";
+import {
+	REPO_AGENT_SYSTEM_PROMPT,
+	WORKTREE_AGENT_PROMPT,
+} from "@/prompts/repoAgent.ts";
 import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
@@ -50,6 +54,9 @@ function storedRepoToFullRepo(stored: IStoredRepository): IRepository {
 }
 
 export default function ChatApp() {
+	// ===== Auth =====
+	const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+
 	// ===== UI Store (centralized state) =====
 	const {
 		topLevelTab,
@@ -149,6 +156,137 @@ export default function ChatApp() {
 			setActiveSprintId(mockRepositories[0].sprints[0]?.id ?? null);
 		}
 	}, [activeRepoId, setActiveRepoId, setActiveSprintId]);
+
+	// Track if we've loaded chats for each repo to prevent infinite loops
+	const loadedReposRef = useRef<Set<string>>(new Set());
+
+	// Function to load chats from filesystem
+	const loadChatsFromFilesystem = useCallback(
+		async (repoId: string, repoPath: string) => {
+			console.log(`[ChatApp] Loading chats from filesystem for ${repoId}`);
+
+			try {
+				const token = await getAccessTokenSilently();
+				const response = await fetch("/api/worktree/scan-chats", {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						repoPath,
+					}),
+				});
+
+				if (response.ok) {
+					const data = (await response.json()) as {
+						ok: boolean;
+						chats: Array<{
+							worktreePath: string;
+							metadata: {
+								chatId: string;
+								branch: string;
+								title: string;
+								description?: string;
+								prNumber?: number;
+								prTitle?: string;
+								prUrl?: string;
+								prStatus?: "draft" | "ready" | null;
+								createdAt: string;
+								updatedAt: string;
+								messages: Array<{
+									id: string;
+									role: "user" | "assistant";
+									content: string;
+									timestamp: string;
+								}>;
+							};
+						}>;
+					};
+
+					if (data.ok && data.chats) {
+						console.log(
+							`[ChatApp] Loaded ${data.chats.length} chats from filesystem`,
+						);
+
+						// Convert filesystem chats to IChat format
+						const chats = data.chats.map((chat) => ({
+							id: chat.metadata.chatId,
+							title: chat.metadata.title,
+							description: chat.metadata.description ?? "",
+							messages: chat.metadata.messages.map((msg) => ({
+								id: msg.id,
+								role: msg.role,
+								content: msg.content,
+								timestamp: new Date(msg.timestamp),
+							})),
+							branch: chat.metadata.branch,
+							worktreePath: chat.worktreePath,
+							prNumber: chat.metadata.prNumber,
+							prTitle: chat.metadata.prTitle,
+							prUrl: chat.metadata.prUrl,
+							prStatus: chat.metadata.prStatus ?? null,
+							createdAt: new Date(chat.metadata.createdAt),
+							updatedAt: new Date(chat.metadata.updatedAt),
+						}));
+
+						// Merge filesystem chats with any local chats (to preserve newly created ones)
+						setRepositories((prev) =>
+							prev.map((repo) => {
+								if (repo.id !== repoId) {
+									return repo;
+								}
+
+								// Keep local chats that don't have worktrees yet (newly created)
+								const localChatsWithoutWorktrees = repo.chats.filter(
+									(localChat) => !localChat.worktreePath,
+								);
+
+								console.log(
+									`[ChatApp] Merging ${chats.length} filesystem chats with ${localChatsWithoutWorktrees.length} local chats`,
+								);
+
+								// Combine filesystem chats with local-only chats
+								return {
+									...repo,
+									chats: [...chats, ...localChatsWithoutWorktrees],
+								};
+							}),
+						);
+
+						// Mark this repo as loaded
+						loadedReposRef.current.add(repoId);
+					}
+				}
+			} catch (error) {
+				console.error("Failed to load chats from worktrees:", error);
+			}
+		},
+		[getAccessTokenSilently, setRepositories],
+	);
+
+	// Load chats from worktrees when repository changes (only once per repo)
+	useEffect(() => {
+		if (!activeRepoId || !isAuthenticated) {
+			return;
+		}
+
+		// Skip if already loaded
+		if (loadedReposRef.current.has(activeRepoId)) {
+			console.log(
+				`[ChatApp] Skipping load for ${activeRepoId} - already loaded`,
+			);
+			return;
+		}
+
+		const activeRepo = repositories.find((r) => r.id === activeRepoId);
+		if (!activeRepo?.localPath) {
+			console.log(`[ChatApp] Skipping load for ${activeRepoId} - no localPath`);
+			return;
+		}
+
+		void loadChatsFromFilesystem(activeRepoId, activeRepo.localPath);
+	}, [activeRepoId, isAuthenticated, repositories, loadChatsFromFilesystem]);
 
 	// ===== Scaffolder state (from AI.tsx) =====
 	const formData = useFormStore();
@@ -259,23 +397,52 @@ export default function ChatApp() {
 			? (activeRepo?.chats.find((c) => c.id === activeChatId) ?? null)
 			: (activeSprint?.chats.find((c) => c.id === activeChatId) ?? null);
 
-	// Fetch files from local repo clone
+	// Determine which path to use for file fetching:
+	// - If active chat has worktree, use worktreePath
+	// - Otherwise, use repo localPath
+	const useWorktree = !!activeChat?.worktreePath;
+
+	// Fetch files from local repo clone or worktree
 	const { refetch: refetchLocalFiles, data: localFiles } = useLocalRepoFiles(
-		{ localPath: activeRepo?.localPath },
+		{ localPath: useWorktree ? undefined : activeRepo?.localPath },
 		{
 			staleTime: 0,
 			gcTime: 5 * 60 * 1000,
 			refetchOnWindowFocus: false,
-			enabled: !!activeRepo?.localPath,
+			enabled: !useWorktree && !!activeRepo?.localPath,
 		},
 	);
 
-	// Update store with local files when they change
-	useEffect(() => {
-		if (localFiles && localFiles.length > 0) {
-			setUserFiles(localFiles);
+	// Fetch files from worktree
+	const { refetch: refetchWorktreeFiles, data: worktreeFiles } =
+		useWorktreeFiles(
+			{ worktreePath: useWorktree ? activeChat?.worktreePath : undefined },
+			{
+				staleTime: 0,
+				gcTime: 5 * 60 * 1000,
+				refetchOnWindowFocus: false,
+				enabled: useWorktree && !!activeChat?.worktreePath,
+			},
+		);
+
+	// Combine refetch functions
+	const refetchFiles = async () => {
+		if (useWorktree) {
+			await refetchWorktreeFiles();
+		} else {
+			await refetchLocalFiles();
 		}
-	}, [localFiles, setUserFiles]);
+	};
+
+	// Use appropriate file data
+	const displayFiles = useWorktree ? worktreeFiles : localFiles;
+
+	// Update store with files when they change
+	useEffect(() => {
+		if (displayFiles && displayFiles.length > 0) {
+			setUserFiles(displayFiles);
+		}
+	}, [displayFiles, setUserFiles]);
 
 	// ===== Multi-repo chat handlers =====
 	const handleAddRepo = async (repoUrl: string) => {
@@ -436,7 +603,7 @@ export default function ChatApp() {
 					branch: chat.branch,
 				});
 				if (result?.ok) {
-					await refetchLocalFiles();
+					await refetchFiles();
 				}
 			}
 		}
@@ -458,14 +625,21 @@ export default function ChatApp() {
 		setActiveChatScope("sprint");
 		setActiveChatId(chatId);
 
-		// Always checkout branch when chat is selected (regardless of active tab)
+		// Worktree system: No checkout needed!
+		// Each chat has its own worktree - just switch which path is displayed
 		if (activeRepo) {
 			const sprint = activeRepo.sprints.find((s) =>
 				s.chats.some((c) => c.id === chatId),
 			);
 			const chat = sprint?.chats.find((c) => c.id === chatId);
 
-			if (chat?.branch && activeRepo.localPath) {
+			// If chat has worktree, refetch files from worktree
+			// If no worktree yet (legacy), use old checkout behavior
+			if (chat?.worktreePath) {
+				// Instant switch - just refetch files from worktree path
+				await refetchFiles();
+			} else if (chat?.branch && activeRepo.localPath) {
+				// Legacy behavior for chats without worktrees
 				const result = await checkout({
 					repoId: activeRepo.id,
 					localPath: activeRepo.localPath,
@@ -474,7 +648,7 @@ export default function ChatApp() {
 
 				// Refetch files after successful checkout
 				if (result?.ok) {
-					await refetchLocalFiles();
+					await refetchFiles();
 				}
 			}
 		}
@@ -488,11 +662,18 @@ export default function ChatApp() {
 		setActiveChatScope("regular");
 		setActiveChatId(chatId);
 
-		// Always checkout branch when chat is selected (regardless of active tab)
+		// Worktree system: No checkout needed!
+		// Each chat has its own worktree - just switch which path is displayed
 		if (activeRepo) {
 			const chat = activeRepo.chats.find((c) => c.id === chatId);
 
-			if (chat?.branch && activeRepo.localPath) {
+			// If chat has worktree, refetch files from worktree
+			// If no worktree yet (legacy), use old checkout behavior
+			if (chat?.worktreePath) {
+				// Instant switch - just refetch files from worktree path
+				await refetchFiles();
+			} else if (chat?.branch && activeRepo.localPath) {
+				// Legacy behavior for chats without worktrees
 				const result = await checkout({
 					repoId: activeRepo.id,
 					localPath: activeRepo.localPath,
@@ -501,7 +682,7 @@ export default function ChatApp() {
 
 				// Refetch files after successful checkout
 				if (result?.ok) {
-					await refetchLocalFiles();
+					await refetchFiles();
 				}
 			}
 		}
@@ -520,6 +701,7 @@ export default function ChatApp() {
 			messages: [],
 			createdAt: new Date(),
 			updatedAt: new Date(),
+			// No worktree yet - will be created on first message
 		};
 
 		if (activeChatScope === "regular" || activeSprintId === null) {
@@ -532,33 +714,30 @@ export default function ChatApp() {
 			);
 			setActiveChatScope("regular");
 			setActiveChatId(newChat.id);
-			return;
+		} else {
+			setRepositories((prev) =>
+				prev.map((repo) =>
+					repo.id === activeRepoId
+						? {
+								...repo,
+								sprints: repo.sprints.map((sprint) =>
+									sprint.id === activeSprintId
+										? {
+												...sprint,
+												chats: [newChat, ...sprint.chats],
+												updatedAt: new Date(),
+											}
+										: sprint,
+								),
+							}
+						: repo,
+				),
+			);
+			setActiveChatId(newChat.id);
 		}
-
-		setRepositories((prev) =>
-			prev.map((repo) =>
-				repo.id === activeRepoId
-					? {
-							...repo,
-							sprints: repo.sprints.map((sprint) =>
-								sprint.id === activeSprintId
-									? {
-											...sprint,
-											chats: [newChat, ...sprint.chats],
-											updatedAt: new Date(),
-										}
-									: sprint,
-							),
-						}
-					: repo,
-			),
-		);
-		setActiveChatId(newChat.id);
 	};
 
 	const [isStreamingMessage, setIsStreamingMessage] = useState(false);
-
-	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
 	// Helper to add a message to the current chat
 	const addMessageToChat = useCallback(
@@ -718,6 +897,46 @@ export default function ChatApp() {
 		[activeRepoId, activeSprintId, activeChatScope, setRepositories],
 	);
 
+	// Update chat worktree fields
+	const updateChatWorktree = useCallback(
+		(
+			chatId: string,
+			updates: {
+				worktreePath?: string;
+				worktreeStatus?: "creating" | "ready" | "error";
+				branch?: string;
+			},
+		) => {
+			setRepositories((prev) =>
+				prev.map((repo) =>
+					repo.id === activeRepoId
+						? {
+								...repo,
+								sprints: repo.sprints.map((sprint) =>
+									sprint.id === activeSprintId
+										? {
+												...sprint,
+												chats: sprint.chats.map((chat) =>
+													chat.id === chatId && activeChatScope === "sprint"
+														? { ...chat, ...updates }
+														: chat,
+												),
+											}
+										: sprint,
+								),
+								chats: repo.chats.map((chat) =>
+									chat.id === chatId && activeChatScope === "regular"
+										? { ...chat, ...updates }
+										: chat,
+								),
+							}
+						: repo,
+				),
+			);
+		},
+		[activeRepoId, activeSprintId, activeChatScope, setRepositories],
+	);
+
 	// Parse agent response for branch name patterns
 	const extractBranchFromResponse = (text: string): string | null => {
 		// Match patterns like:
@@ -776,6 +995,106 @@ export default function ChatApp() {
 				: activeRepo?.chats.find((c) => c.id === chatId);
 
 		const sessionId = currentChat?.opencodeSessionId;
+		let worktreePath = currentChat?.worktreePath;
+
+		// Create worktree on first message if it doesn't exist
+		if (!worktreePath && isAuthenticated && activeRepo?.localPath) {
+			try {
+				updateChatWorktree(chatId, { worktreeStatus: "creating" });
+
+				const token = await getAccessTokenSilently();
+				const createResponse = await fetch("/api/worktree/create", {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						repoPath: activeRepo.localPath,
+						chatId: chatId,
+					}),
+				});
+
+				if (!createResponse.ok) {
+					throw new Error("Failed to create worktree");
+				}
+
+				const createData = (await createResponse.json()) as {
+					ok: boolean;
+					worktreePath: string;
+					branch: string;
+				};
+
+				if (createData.ok) {
+					worktreePath = createData.worktreePath;
+					updateChatWorktree(chatId, {
+						worktreePath: createData.worktreePath,
+						worktreeStatus: "ready",
+					});
+				} else {
+					updateChatWorktree(chatId, { worktreeStatus: "error" });
+					const errorMessage: IMessage = {
+						id: `msg-${String(Date.now() + 1)}`,
+						role: "assistant",
+						content: "Error: Failed to create worktree for this chat.",
+						timestamp: new Date(),
+					};
+					addMessageToChat(chatId, errorMessage);
+					return;
+				}
+			} catch (error) {
+				console.error("Failed to create worktree:", error);
+				updateChatWorktree(chatId, { worktreeStatus: "error" });
+				const errorMessage: IMessage = {
+					id: `msg-${String(Date.now() + 1)}`,
+					role: "assistant",
+					content: `Error: ${error instanceof Error ? error.message : "Failed to create worktree"}`,
+					timestamp: new Date(),
+				};
+				addMessageToChat(chatId, errorMessage);
+				return;
+			}
+		}
+
+		// Determine working directory: use worktree if available, fallback to repo
+		const workingDirectory = worktreePath || repoPath;
+
+		// Pre-flight validation for worktree
+		let commitCountBefore = 0;
+		if (worktreePath && isAuthenticated) {
+			try {
+				const token = await getAccessTokenSilently();
+				const validationResponse = await fetch("/api/worktree/validate", {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ worktreePath }),
+				});
+
+				if (validationResponse.ok) {
+					const validationData = (await validationResponse.json()) as {
+						valid: boolean;
+						commitCount: number;
+						error?: string;
+					};
+					if (!validationData.valid) {
+						const errorMessage: IMessage = {
+							id: `msg-${String(Date.now() + 1)}`,
+							role: "assistant",
+							content: `Worktree validation failed: ${validationData.error || "Unknown error"}`,
+							timestamp: new Date(),
+						};
+						addMessageToChat(chatId, errorMessage);
+						return;
+					}
+					commitCountBefore = validationData.commitCount;
+				}
+			} catch (error) {
+				console.error("Pre-flight validation error:", error);
+			}
+		}
 
 		// Create placeholder for assistant response
 		const assistantMessage: IMessage = {
@@ -797,8 +1116,11 @@ export default function ChatApp() {
 				body: JSON.stringify({
 					message: content,
 					sessionId,
-					directory: repoPath,
-					systemPrompt: REPO_AGENT_SYSTEM_PROMPT,
+					directory: workingDirectory,
+					// Use worktree prompt if in worktree, otherwise use repo prompt
+					systemPrompt: worktreePath
+						? WORKTREE_AGENT_PROMPT
+						: REPO_AGENT_SYSTEM_PROMPT,
 				}),
 			});
 
@@ -825,6 +1147,190 @@ export default function ChatApp() {
 			const extractedBranch = extractBranchFromResponse(assistantText);
 			if (extractedBranch) {
 				updateChatBranch(chatId, extractedBranch);
+			}
+
+			// Post-flight validation for worktree
+			if (worktreePath && isAuthenticated) {
+				try {
+					const token = await getAccessTokenSilently();
+					const postValidationResponse = await fetch(
+						"/api/worktree/validate-result",
+						{
+							method: "POST",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({
+								worktreePath,
+								commitCountBefore,
+							}),
+						},
+					);
+
+					if (postValidationResponse.ok) {
+						const postData = (await postValidationResponse.json()) as {
+							valid: boolean;
+							newCommits: number;
+							lastCommitMessage?: string;
+							branch?: string;
+							branchRenamed?: boolean;
+							worktreeRenamed?: boolean;
+							newWorktreePath?: string;
+						};
+
+						if (postData.newCommits > 0) {
+							console.log(
+								`Agent made ${postData.newCommits} commit(s): ${postData.lastCommitMessage || ""}`,
+							);
+
+							// Update worktree path if it was renamed
+							if (postData.worktreeRenamed && postData.newWorktreePath) {
+								updateChatWorktree(chatId, {
+									worktreePath: postData.newWorktreePath,
+								});
+							}
+
+							// Update branch immediately when renamed (before PR creation)
+							if (postData.branchRenamed && postData.branch) {
+								updateChatWorktree(chatId, {
+									branch: postData.branch,
+								});
+
+								// Extract display name from branch (remove hash suffix)
+								const displayName = postData.branch.replace(
+									/-[a-zA-Z0-9]{5}$/,
+									"",
+								);
+								// Convert branch name to title: "feat/add-auth" -> "Add auth"
+								const chatTitle = displayName
+									.replace(/^(feat|fix|chore|refactor|test|docs)\//, "")
+									.replace(/-/g, " ")
+									.replace(/\b\w/g, (c) => c.toUpperCase());
+
+								// Update chat title
+								setRepositories((prev) =>
+									prev.map((repo) =>
+										repo.id === activeRepoId
+											? {
+													...repo,
+													sprints: repo.sprints.map((sprint) =>
+														sprint.id === activeSprintId
+															? {
+																	...sprint,
+																	chats: sprint.chats.map((chat) =>
+																		chat.id === chatId &&
+																		activeChatScope === "sprint"
+																			? {
+																					...chat,
+																					title: chatTitle,
+																				}
+																			: chat,
+																	),
+																}
+															: sprint,
+													),
+													chats: repo.chats.map((chat) =>
+														chat.id === chatId && activeChatScope === "regular"
+															? {
+																	...chat,
+																	title: chatTitle,
+																}
+															: chat,
+													),
+												}
+											: repo,
+									),
+								);
+							}
+
+							// If this is the first commit and branch was renamed, create PR
+							if (
+								postData.branchRenamed &&
+								postData.branch &&
+								commitCountBefore <= 1
+							) {
+								const currentWorktreePath =
+									postData.newWorktreePath || worktreePath;
+								try {
+									const prResponse = await fetch("/api/pull-request/create", {
+										method: "POST",
+										headers: {
+											Authorization: `Bearer ${token}`,
+											"Content-Type": "application/json",
+										},
+										body: JSON.stringify({
+											worktreePath: currentWorktreePath,
+											branch: postData.branch,
+										}),
+									});
+
+									if (prResponse.ok) {
+										const prData = (await prResponse.json()) as {
+											ok: boolean;
+											number: number;
+											title: string;
+											url: string;
+										};
+
+										if (prData.ok) {
+											// Update chat with PR info (branch already updated above)
+											setRepositories((prev) =>
+												prev.map((repo) =>
+													repo.id === activeRepoId
+														? {
+																...repo,
+																sprints: repo.sprints.map((sprint) =>
+																	sprint.id === activeSprintId
+																		? {
+																				...sprint,
+																				chats: sprint.chats.map((chat) =>
+																					chat.id === chatId &&
+																					activeChatScope === "sprint"
+																						? {
+																								...chat,
+																								prNumber: prData.number,
+																								prTitle: prData.title,
+																								prUrl: prData.url,
+																								prStatus: "draft",
+																							}
+																						: chat,
+																				),
+																			}
+																		: sprint,
+																),
+																chats: repo.chats.map((chat) =>
+																	chat.id === chatId &&
+																	activeChatScope === "regular"
+																		? {
+																				...chat,
+																				prNumber: prData.number,
+																				prTitle: prData.title,
+																				prUrl: prData.url,
+																				prStatus: "draft",
+																			}
+																		: chat,
+																),
+															}
+														: repo,
+												),
+											);
+
+											console.log(
+												`Created PR #${prData.number}: ${prData.title}`,
+											);
+										}
+									}
+								} catch (prError) {
+									console.error("Failed to create PR:", prError);
+									// Don't fail the whole operation if PR creation fails
+								}
+							}
+						}
+					}
+				} catch (error) {
+					console.error("Post-flight validation error:", error);
+				}
 			}
 		} catch (err: unknown) {
 			const errorMessage =
