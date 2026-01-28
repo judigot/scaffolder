@@ -8,28 +8,8 @@ import {
 	getGitHubAppConfig,
 	getGitHubAppOctokit,
 } from "@/app/services/githubAppService.ts";
+import { buildRepoAgentPrompt } from "@/prompts/index.ts";
 import { verifyAuth0TokenFromAuthHeader } from "@/utils/verifyAuth0Token.ts";
-
-const REPO_AGENT_SYSTEM_PROMPT = `Repository agent with GitHub access.
-
-## MANDATORY Workflow (execute ALL steps)
-1. create_branch → scaffolder/<descriptive-name>
-2. write_file → create/modify files on that branch
-3. create_pull_request → ALWAYS create PR after changes
-
-NEVER skip step 3. Every change MUST result in a PR.
-
-## Rules
-- Branch naming: scaffolder/<feature-name>
-- NEVER commit to main/master
-- PR title: concise description of change
-- PR body: bullet list of what changed
-
-## Response Format
-After ALL steps complete:
-"Done. Branch: [name]. Files: [list]. PR: [url]"
-
-Keep under 30 words. No explanations.`;
 
 // Model configurations
 const MODEL_CONFIGS = {
@@ -201,12 +181,11 @@ app.post("/chat", async (c) => {
 		console.log("[RepoAgent] Tools created");
 
 		// Add repository context to system prompt
-		const contextualPrompt = `${REPO_AGENT_SYSTEM_PROMPT}
-
-## Current Repository Context
-- Repository: ${repoInfo.owner}/${repoInfo.repo}
-- Base branch: ${baseBranch}
-- All changes will be committed to scaffolder/* branches`;
+		const contextualPrompt = buildRepoAgentPrompt(
+			repoInfo.owner,
+			repoInfo.repo,
+			baseBranch,
+		);
 
 		console.log("[RepoAgent] Starting streamText with model:", modelId);
 		const result = streamText({
