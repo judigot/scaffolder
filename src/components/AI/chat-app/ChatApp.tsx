@@ -384,7 +384,7 @@ export default function ChatApp() {
 		// The user can still see the repo but it will show "No local clone available"
 	};
 
-	const handleSelectBranch = (
+	const handleSelectBranch = async (
 		repoId: string,
 		chatId: string,
 		scope: "sprint" | "regular",
@@ -395,10 +395,32 @@ export default function ChatApp() {
 		setActiveChatId(chatId);
 		if (scope === "sprint") {
 			setActiveSprintId(sprintId ?? null);
-			return;
+		} else {
+			const repo = repositories.find((r) => r.id === repoId);
+			setActiveSprintId(repo?.sprints[0]?.id ?? null);
 		}
+
+		// Always checkout the chat's branch when selected from dropdown
 		const repo = repositories.find((r) => r.id === repoId);
-		setActiveSprintId(repo?.sprints[0]?.id ?? null);
+		if (repo?.localPath) {
+			const chat =
+				scope === "sprint"
+					? repo.sprints
+							.find((s) => s.id === sprintId)
+							?.chats.find((c) => c.id === chatId)
+					: repo.chats.find((c) => c.id === chatId);
+
+			if (chat?.branch) {
+				const result = await checkout({
+					repoId: repo.id,
+					localPath: repo.localPath,
+					branch: chat.branch,
+				});
+				if (result?.ok) {
+					await refetchUserFiles();
+				}
+			}
+		}
 	};
 
 	const handleSelectSprint = (sprintId: string) => {
@@ -417,8 +439,8 @@ export default function ChatApp() {
 		setActiveChatScope("sprint");
 		setActiveChatId(chatId);
 
-		// Checkout branch if on Code tab and chat has a branch
-		if (activeTab === "fileViewer" && activeRepo) {
+		// Always checkout branch when chat is selected (regardless of active tab)
+		if (activeRepo) {
 			const sprint = activeRepo.sprints.find((s) =>
 				s.chats.some((c) => c.id === chatId),
 			);
@@ -447,8 +469,8 @@ export default function ChatApp() {
 		setActiveChatScope("regular");
 		setActiveChatId(chatId);
 
-		// Checkout branch if on Code tab and chat has a branch
-		if (activeTab === "fileViewer" && activeRepo) {
+		// Always checkout branch when chat is selected (regardless of active tab)
+		if (activeRepo) {
 			const chat = activeRepo.chats.find((c) => c.id === chatId);
 
 			if (chat?.branch && activeRepo.localPath) {
