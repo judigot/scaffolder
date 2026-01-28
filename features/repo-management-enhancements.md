@@ -51,11 +51,117 @@ Extended the local repo integration with git sync controls (fetch/pull), status 
 - All paths validated against workspace root (jail)
 - Timeouts on all git operations (60s for fetch/pull, 20s for status)
 
-## Verification
+## Manual Testing
 
-1. Open repo dropdown for a cloned repo
-2. Verify status panel shows branch and clean/dirty state
-3. Click Fetch, confirm loading state and success feedback
-4. Make local changes, verify Pull button is disabled
-5. Click "Delete local clone", confirm modal appears
-6. Confirm delete, verify clone is removed but repo stays in list
+### Prerequisites
+
+1. Start the dev server: `bun dev`
+2. Open http://localhost:3000
+3. Log in with Auth0
+
+### Test 1: Add a Repository
+
+1. Click **"Repositories"** tab (top nav)
+2. Click **"+ Add"** button
+3. Enter a repo: `judigot/ide` or any public repo
+4. Click **Add Repository**
+5. **Expected:** Repo appears in tabs, clones to `/home/ubuntu/scaffolder-workspaces/<owner>/<repo>`
+
+### Test 2: View Repo Status Panel
+
+1. Click the **dropdown arrow** on the repo tab
+2. **Expected:** See "Local Clone" section with:
+   - Branch name (e.g., `main`)
+   - Clean/Modified badge
+   - Last commit hash, date, message
+   - Fetch and Pull buttons
+
+### Test 3: Fetch
+
+1. In the dropdown, click **Fetch**
+2. **Expected:**
+   - Button shows loading spinner
+   - After ~1-2s, shows green success state
+   - Resets after 2s
+
+### Test 4: Pull (Clean Repo)
+
+1. Make sure repo is clean (no local changes)
+2. Click **Pull**
+3. **Expected:**
+   - Button shows loading spinner
+   - Shows success or "already up to date"
+
+### Test 5: Pull Disabled (Dirty Repo)
+
+1. Make a change to the cloned repo:
+   ```bash
+   echo "test" >> /home/ubuntu/scaffolder-workspaces/judigot/ide/README.md
+   ```
+2. Close and reopen the dropdown
+3. **Expected:**
+   - Badge shows "Modified"
+   - Pull button is **disabled/grayed out**
+   - Hover shows tooltip "Cannot pull with uncommitted changes"
+4. Revert the change:
+   ```bash
+   cd /home/ubuntu/scaffolder-workspaces/judigot/ide && git checkout README.md
+   ```
+
+### Test 6: Delete Local Clone
+
+1. In the dropdown, click **"Delete local clone"**
+2. **Expected:** Confirmation dialog appears
+3. Click **Cancel** - dialog closes, nothing happens
+4. Click **"Delete local clone"** again, then **Delete**
+5. **Expected:**
+   - Clone is deleted from disk
+   - Status panel shows "No local clone available"
+   - Repo **stays in the list** (metadata preserved)
+
+### Test 7: Re-clone After Delete
+
+1. Remove the repo (click "Remove repository" in dropdown)
+2. Add it again
+3. **Expected:** Clones fresh
+
+## API Testing
+
+Use the test script:
+
+```bash
+./scripts/test-local-repo-api.sh "<bearer-token>" "/home/ubuntu/scaffolder-workspaces/judigot/ide"
+```
+
+Get token from browser DevTools > Network > any API call > Authorization header.
+
+Or test manually with curl:
+
+```bash
+TOKEN="your-bearer-token"
+REPO="/home/ubuntu/scaffolder-workspaces/judigot/ide"
+
+# Status info
+curl -X POST http://localhost:3000/api/local-repo/status-info \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"repoPath\": \"$REPO\"}"
+
+# Fetch
+curl -X POST http://localhost:3000/api/local-repo/fetch \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"repoPath\": \"$REPO\"}"
+
+# Pull
+curl -X POST http://localhost:3000/api/local-repo/pull \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"repoPath\": \"$REPO\"}"
+
+# Delete (requires confirm: true)
+curl -X POST http://localhost:3000/api/local-repo/delete \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"repoPath\": \"$REPO\", \"confirm\": true}"
+```
