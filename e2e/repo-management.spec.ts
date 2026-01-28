@@ -36,7 +36,7 @@ const mockAheadBehindStatus = {
 test.describe("Repository Management", () => {
 	test.describe("Status Panel", () => {
 		test.beforeEach(async ({ page, mockInfraApi: _ }) => {
-			// Mock the local-repo API endpoints
+			// Set up routes BEFORE navigating
 			await page.route("**/api/local-repo/status-info", async (route) => {
 				await route.fulfill({
 					status: 200,
@@ -58,7 +58,6 @@ test.describe("Repository Management", () => {
 				});
 			});
 
-			// Mock user metadata to include a repo
 			await page.route("**/api/user/metadata", async (route) => {
 				await route.fulfill({
 					status: 200,
@@ -86,7 +85,9 @@ test.describe("Repository Management", () => {
 			await reposTab.click();
 
 			// Should see repo tabs area
-			await expect(page.locator('button:has-text("Add")')).toBeVisible();
+			await expect(
+				page.getByRole("button", { name: "Add repository" }),
+			).toBeVisible();
 		});
 
 		test("should display branch name in status panel", async ({ page }) => {
@@ -94,13 +95,15 @@ test.describe("Repository Management", () => {
 			await page.locator('button:has-text("Repositories")').first().click();
 
 			// Add a repo first (or click existing)
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 
 			// Fill in repo URL
 			const input = page.locator('input[placeholder*="judigot/repo"]');
 			await input.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 
 			// Wait for repo to be added
 			await page.waitForTimeout(500);
@@ -127,12 +130,14 @@ test.describe("Repository Management", () => {
 			});
 
 			await page.locator('button:has-text("Repositories")').first().click();
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -154,12 +159,14 @@ test.describe("Repository Management", () => {
 			});
 
 			await page.locator('button:has-text("Repositories")').first().click();
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -181,12 +188,14 @@ test.describe("Repository Management", () => {
 			});
 
 			await page.locator('button:has-text("Repositories")').first().click();
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -249,12 +258,14 @@ test.describe("Repository Management", () => {
 			await page.waitForLoadState("networkidle");
 			await page.locator('button:has-text("Repositories")').first().click();
 
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -302,12 +313,14 @@ test.describe("Repository Management", () => {
 			await page.waitForLoadState("networkidle");
 			await page.locator('button:has-text("Repositories")').first().click();
 
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -352,12 +365,14 @@ test.describe("Repository Management", () => {
 			await page.waitForLoadState("networkidle");
 			await page.locator('button:has-text("Repositories")').first().click();
 
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -404,12 +419,14 @@ test.describe("Repository Management", () => {
 			await page.waitForLoadState("networkidle");
 			await page.locator('button:has-text("Repositories")').first().click();
 
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -461,12 +478,14 @@ test.describe("Repository Management", () => {
 			await page.waitForLoadState("networkidle");
 			await page.locator('button:has-text("Repositories")').first().click();
 
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -551,12 +570,14 @@ test.describe("Repository Management", () => {
 			await page.waitForLoadState("networkidle");
 			await page.locator('button:has-text("Repositories")').first().click();
 
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
@@ -638,12 +659,14 @@ test.describe("Repository Management", () => {
 			await page.waitForLoadState("networkidle");
 			await page.locator('button:has-text("Repositories")').first().click();
 
-			const addButton = page.locator('button:has-text("Add")');
+			const addButton = page.getByRole("button", { name: "Add repository" });
 			await addButton.click();
 			await page
 				.locator('input[placeholder*="judigot/repo"]')
 				.fill("test/repo");
-			await page.locator('button:has-text("Add Repository")').click();
+			await page
+				.getByRole("button", { name: "Add Repository", exact: true })
+				.click();
 			await page.waitForTimeout(500);
 
 			const dropdownButton = page
