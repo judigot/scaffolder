@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import RepoStatusPanel from "@/components/AI/chat-app/RepoStatusPanel.tsx";
 import type { IRepository } from "@/components/AI/chat-app/types.ts";
 import Badge from "@/components/AI/chat-app/ui/Badge.tsx";
 
@@ -15,6 +16,7 @@ interface IRepositoryTabsProps {
 	) => void;
 	onAddRepo: (repoUrl: string) => void | Promise<void>;
 	onRemoveRepo: (repoUrl: string, repoId: string) => void | Promise<void>;
+	onDeleteClone?: (repoPath: string) => void | Promise<void>;
 }
 
 interface IDropdownPosition {
@@ -29,6 +31,7 @@ export default function RepoTabs({
 	onSelectBranch,
 	onAddRepo,
 	onRemoveRepo,
+	onDeleteClone,
 }: IRepositoryTabsProps) {
 	const [openRepoId, setOpenRepoId] = useState<string | null>(null);
 	const [dropdownPosition, setDropdownPosition] = useState<IDropdownPosition>({
@@ -36,9 +39,13 @@ export default function RepoTabs({
 		left: 0,
 	});
 	const [showAddModal, setShowAddModal] = useState(false);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+		null,
+	);
 	const [newRepoUrl, setNewRepoUrl] = useState("");
 	const [urlError, setUrlError] = useState<string | null>(null);
 	const [isAdding, setIsAdding] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -185,6 +192,27 @@ export default function RepoTabs({
 		}
 	};
 
+	const handleDeleteClone = async (repoPath: string) => {
+		if (!onDeleteClone) {
+			return;
+		}
+
+		setIsDeleting(true);
+		try {
+			await onDeleteClone(repoPath);
+			setShowDeleteConfirm(null);
+			setOpenRepoId(null);
+		} catch (error) {
+			if (error instanceof Error && error.message.trim() !== "") {
+				setUrlError(error.message);
+			} else {
+				setUrlError("Failed to delete local clone. Please try again.");
+			}
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
 	return (
 		<>
 			<div
@@ -290,6 +318,57 @@ export default function RepoTabs({
 						}}
 					>
 						<div className="space-y-3">
+							{/* Git status panel for repos with local clone */}
+							{openRepo.localPath !== undefined && (
+								<div className="border-b border-border pb-3">
+									<p className="text-[10px] uppercase tracking-wide text-fg-subtle mb-2">
+										Local Clone
+									</p>
+									<RepoStatusPanel
+										repoPath={openRepo.localPath}
+										onDeleteClone={
+											onDeleteClone !== undefined &&
+											showDeleteConfirm !== openRepo.id
+												? () => {
+														setShowDeleteConfirm(openRepo.id);
+													}
+												: undefined
+										}
+									/>
+									{showDeleteConfirm === openRepo.id && (
+										<div className="mt-3 p-3 rounded-lg bg-danger-900/20 border border-danger-600/30">
+											<p className="text-xs text-danger-300 mb-2">
+												Delete local clone? This cannot be undone.
+											</p>
+											<div className="flex gap-2">
+												<button
+													type="button"
+													onClick={() => {
+														setShowDeleteConfirm(null);
+													}}
+													className="flex-1 px-2 py-1 text-xs rounded-lg bg-secondary text-fg-muted hover:text-fg"
+													disabled={isDeleting}
+												>
+													Cancel
+												</button>
+												<button
+													type="button"
+													onClick={() => {
+														if (openRepo.localPath !== undefined) {
+															void handleDeleteClone(openRepo.localPath);
+														}
+													}}
+													className="flex-1 px-2 py-1 text-xs rounded-lg bg-danger-600 text-white hover:bg-danger-500"
+													disabled={isDeleting}
+												>
+													{isDeleting ? "Deleting..." : "Delete"}
+												</button>
+											</div>
+										</div>
+									)}
+								</div>
+							)}
+
 							<div className="space-y-2">
 								<p className="text-[10px] uppercase tracking-wide text-fg-subtle">
 									Regular Chats
