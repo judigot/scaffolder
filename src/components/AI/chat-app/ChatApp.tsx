@@ -902,8 +902,8 @@ export default function ChatApp() {
 				</div>
 			)}
 
-			{/* Repo tabs - only shown in Repositories mode */}
-			{!isScaffolderMode && repoMode === "repo" && (
+			{/* Repo tabs - shown in Repositories mode */}
+			{!isScaffolderMode && (
 				<RepoTabs
 					repositories={repositories}
 					activeRepoId={activeRepoId}
@@ -935,7 +935,10 @@ export default function ChatApp() {
 							{multiChatContent}
 						</AIChatContainer>
 					) : (
-						<OpenCodeChatPanel />
+						<OpenCodeChatPanel
+							repoName={activeRepo?.name}
+							repoPath={activeRepo?.localPath}
+						/>
 					)}
 				</div>
 				{(isScaffolderMode || repoMode === "repo") && (

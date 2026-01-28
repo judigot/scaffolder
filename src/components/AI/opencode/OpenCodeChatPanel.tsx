@@ -16,7 +16,15 @@ type OpenCodeHealth = {
 	error?: string;
 };
 
-export default function OpenCodeChatPanel() {
+type OpenCodeChatPanelProps = {
+	repoName?: string;
+	repoPath?: string;
+};
+
+export default function OpenCodeChatPanel({
+	repoName,
+	repoPath,
+}: OpenCodeChatPanelProps) {
 	const [messages, setMessages] = useState<OpenCodeMessage[]>([]);
 	const [input, setInput] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +42,12 @@ export default function OpenCodeChatPanel() {
 			scrollToBottom();
 		}
 	}, [messages.length, scrollToBottom]);
+
+	useEffect(() => {
+		if (repoPath) {
+			setDirectory(repoPath);
+		}
+	}, [repoPath]);
 
 	const refreshHealth = useCallback(async () => {
 		try {
@@ -164,6 +178,11 @@ export default function OpenCodeChatPanel() {
 						{health.url ? `Server: ${health.url}` : "Server: not configured"}
 						{health.version ? ` • v${health.version}` : ""}
 					</p>
+					{repoName && (
+						<p className="text-xs text-fg-subtle truncate">
+							Active repo: {repoName}
+						</p>
+					)}
 				</div>
 				<div className="flex items-center gap-2 flex-wrap justify-end">
 					<span
@@ -213,6 +232,11 @@ export default function OpenCodeChatPanel() {
 				/>
 				{health.error && (
 					<span className="text-xs text-danger-300">{health.error}</span>
+				)}
+				{!health.error && !directory && (
+					<span className="text-xs text-warning-300">
+						Select a repo or enter a path.
+					</span>
 				)}
 			</div>
 
