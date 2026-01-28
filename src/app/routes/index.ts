@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import agentRouter from "./agent.ts";
 import chatRouter from "./chat.ts";
-import repoAgentRouter from "./repoAgent.ts";
 import checkGitHubAppInstallationRouter from "./checkGitHubAppInstallation.ts";
 import checkGitHubExportOptionsRouter from "./checkGitHubExportOptions.ts";
 import createGitHubFileRouter from "./createGitHubFile.ts";
@@ -19,6 +18,8 @@ import githubTokenRouter from "./githubToken.ts";
 import healthRouter from "./health.ts";
 import helloRouter from "./hello.ts";
 import introspectRouter from "./introspect.ts";
+import opencodeRouter from "./opencode/index.ts";
+import repoAgentRouter from "./repoAgent.ts";
 import saveLocalFileRouter from "./saveLocalFile.ts";
 import scaffoldRouter from "./scaffold.ts";
 import terminalRouter from "./terminal.ts";
@@ -58,6 +59,7 @@ router.route("/check-github-export-options", checkGitHubExportOptionsRouter);
 router.route("/agent", agentRouter);
 router.route("/chat", chatRouter);
 router.route("/repo-agent", repoAgentRouter);
+router.route("/opencode", opencodeRouter);
 router.route("/terminal", terminalRouter);
 router.route("/validate-schema", validateSchemaRouter);
 
