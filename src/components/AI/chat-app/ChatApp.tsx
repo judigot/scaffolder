@@ -9,6 +9,7 @@ import RepoTabs from "@/components/AI/chat-app/RepoTabs.tsx";
 import TopNav from "@/components/AI/chat-app/TopNav.tsx";
 import type { IMessage, IRepository } from "@/components/AI/chat-app/types.ts";
 import TabBar from "@/components/AI/TabBar.tsx";
+import { useCheckoutBranch } from "@/hooks/useCheckoutBranch.ts";
 import useDebouncedValue from "@/hooks/useDebouncedValue.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import {
@@ -69,6 +70,9 @@ export default function ChatApp() {
 		addRepository: persistRepository,
 		removeRepository: persistRemoveRepository,
 	} = useRepositories();
+
+	// Branch checkout hook
+	const { checkout } = useCheckoutBranch();
 
 	// Convert stored repos to full IRepository objects with local state for sprints/chats
 	// Always include mock data as demo reference, plus user's saved repos
@@ -403,7 +407,7 @@ export default function ChatApp() {
 		setActiveChatId(sprint?.chats[0]?.id ?? null);
 	};
 
-	const handleSelectChat = (chatId: string) => {
+	const handleSelectChat = async (chatId: string) => {
 		if (activeChatScope === "sprint" && activeChatId === chatId) {
 			setActiveChatId(null);
 			setActiveChatScope("regular");
@@ -411,15 +415,54 @@ export default function ChatApp() {
 		}
 		setActiveChatScope("sprint");
 		setActiveChatId(chatId);
+
+		// Checkout branch if on Code tab and chat has a branch
+		if (activeTab === "fileViewer" && activeRepo) {
+			const sprint = activeRepo.sprints.find((s) =>
+				s.chats.some((c) => c.id === chatId),
+			);
+			const chat = sprint?.chats.find((c) => c.id === chatId);
+
+			if (chat?.branch && activeRepo.localPath) {
+				const result = await checkout({
+					repoId: activeRepo.id,
+					localPath: activeRepo.localPath,
+					branch: chat.branch,
+				});
+
+				// Refetch files after successful checkout
+				if (result?.ok) {
+					await refetchUserFiles();
+				}
+			}
+		}
 	};
 
-	const handleSelectRegularChat = (chatId: string) => {
+	const handleSelectRegularChat = async (chatId: string) => {
 		if (activeChatScope === "regular" && activeChatId === chatId) {
 			setActiveChatId(null);
 			return;
 		}
 		setActiveChatScope("regular");
 		setActiveChatId(chatId);
+
+		// Checkout branch if on Code tab and chat has a branch
+		if (activeTab === "fileViewer" && activeRepo) {
+			const chat = activeRepo.chats.find((c) => c.id === chatId);
+
+			if (chat?.branch && activeRepo.localPath) {
+				const result = await checkout({
+					repoId: activeRepo.id,
+					localPath: activeRepo.localPath,
+					branch: chat.branch,
+				});
+
+				// Refetch files after successful checkout
+				if (result?.ok) {
+					await refetchUserFiles();
+				}
+			}
+		}
 	};
 
 	const handleNewChat = () => {

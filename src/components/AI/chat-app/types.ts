@@ -15,6 +15,8 @@ export interface IChat {
 	prStatus: "draft" | "ready" | null;
 	prUrl?: string;
 	opencodeSessionId?: string;
+	/** Git branch name associated with this chat (e.g., "feat/add-auth") */
+	branch?: string;
 }
 
 export interface ISprint {
