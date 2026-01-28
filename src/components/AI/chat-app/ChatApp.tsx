@@ -644,6 +644,61 @@ export default function ChatApp() {
 		[activeRepoId, activeSprintId, activeChatScope, setRepositories],
 	);
 
+	// Extract branch name from agent response and update chat
+	const updateChatBranch = useCallback(
+		(chatId: string, branch: string) => {
+			setRepositories((prev) =>
+				prev.map((repo) =>
+					repo.id === activeRepoId
+						? {
+								...repo,
+								sprints: repo.sprints.map((sprint) =>
+									sprint.id === activeSprintId
+										? {
+												...sprint,
+												chats: sprint.chats.map((chat) =>
+													chat.id === chatId && activeChatScope === "sprint"
+														? { ...chat, branch }
+														: chat,
+												),
+											}
+										: sprint,
+								),
+								chats: repo.chats.map((chat) =>
+									chat.id === chatId && activeChatScope === "regular"
+										? { ...chat, branch }
+										: chat,
+								),
+							}
+						: repo,
+				),
+			);
+		},
+		[activeRepoId, activeSprintId, activeChatScope, setRepositories],
+	);
+
+	// Parse agent response for branch name patterns
+	const extractBranchFromResponse = (text: string): string | null => {
+		// Match patterns like:
+		// - "git checkout -b feat/add-file1"
+		// - "Branch: feat/add-file1"
+		// - "✓ Branch: feat/add-file1"
+		const patterns = [
+			/git checkout -b ([\w\-/]+)/i,
+			/Branch:\s*([\w\-/]+)/i,
+			/created branch [`'"]?([\w\-/]+)[`'"]?/i,
+			/switched to.*branch [`'"]?([\w\-/]+)[`'"]?/i,
+		];
+
+		for (const pattern of patterns) {
+			const match = pattern.exec(text);
+			if (match?.[1] && match[1] !== "main" && match[1] !== "master") {
+				return match[1];
+			}
+		}
+		return null;
+	};
+
 	const handleSendMessage = async (
 		chatId: string,
 		content: string,
@@ -721,10 +776,15 @@ export default function ChatApp() {
 				updateChatSessionId(chatId, data.sessionId);
 			}
 
-			updateLastAssistantMessage(
-				chatId,
-				data.assistantText?.trim() || "(No response generated)",
-			);
+			const assistantText =
+				data.assistantText?.trim() || "(No response generated)";
+			updateLastAssistantMessage(chatId, assistantText);
+
+			// Extract branch name from agent response and associate with chat
+			const extractedBranch = extractBranchFromResponse(assistantText);
+			if (extractedBranch) {
+				updateChatBranch(chatId, extractedBranch);
+			}
 		} catch (err: unknown) {
 			const errorMessage =
 				err instanceof Error ? err.message : "Unknown error occurred";

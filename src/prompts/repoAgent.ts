@@ -82,11 +82,11 @@ Be helpful, be precise, and always use git best practices.`;
  * Build contextual prompt with repository information
  */
 export function buildRepoAgentPrompt(
-  repoOwner: string,
-  repoName: string,
-  baseBranch: string,
+	repoOwner: string,
+	repoName: string,
+	baseBranch: string,
 ): string {
-  return `${REPO_AGENT_SYSTEM_PROMPT}
+	return `${REPO_AGENT_SYSTEM_PROMPT}
 
 ## Current Repository Context
 - Repository: ${repoOwner}/${repoName}
