@@ -1,158 +1,177 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useUser } from '@/hooks/useUser.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { useCallback, useEffect, useState } from "react";
+import { useUser } from "@/hooks/useUser.ts";
+import { getApiUrl } from "@/utils/getApiUrl.ts";
 
 export interface IStoredRepository {
-  repoUrl: string;
-  addedAt: string;
+	repoUrl: string;
+	addedAt: string;
+	localPath?: string;
+	defaultBranch?: string;
+	authType?: "public" | "github-token";
 }
 
 interface IUseRepositoriesResult {
-  repositories: IStoredRepository[];
-  isLoading: boolean;
-  error: string | null;
-  addRepository: (repoUrl: string) => Promise<boolean>;
-  removeRepository: (repoUrl: string) => Promise<boolean>;
-  refreshRepositories: () => void;
+	repositories: IStoredRepository[];
+	isLoading: boolean;
+	error: string | null;
+	addRepository: (repo: Omit<IStoredRepository, "addedAt">) => Promise<boolean>;
+	removeRepository: (repoUrl: string) => Promise<boolean>;
+	refreshRepositories: () => void;
 }
 
 /**
  * Helper to safely check if an object has a property
  */
 const hasProperty = <K extends string>(
-  obj: object,
-  key: K,
+	obj: object,
+	key: K,
 ): obj is object & Record<K, unknown> => {
-  return key in obj;
+	return key in obj;
 };
 
 /**
  * Type guard for stored repository
  */
 const isStoredRepository = (repo: unknown): repo is IStoredRepository => {
-  if (typeof repo !== 'object' || repo === null) {
-    return false;
-  }
-  if (!hasProperty(repo, 'repoUrl') || !hasProperty(repo, 'addedAt')) {
-    return false;
-  }
-  return (
-    typeof repo.repoUrl === 'string' &&
-    typeof repo.addedAt === 'string'
-  );
+	if (typeof repo !== "object" || repo === null) {
+		return false;
+	}
+	if (!hasProperty(repo, "repoUrl") || !hasProperty(repo, "addedAt")) {
+		return false;
+	}
+	return typeof repo.repoUrl === "string" && typeof repo.addedAt === "string";
 };
 
 /**
  * Hook for managing user repositories stored in Auth0 user_metadata
  */
 export function useRepositories(): IUseRepositoriesResult {
-  const { userMetadata, accessToken } = useUser();
-  const [repositories, setRepositories] = useState<IStoredRepository[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+	const { userMetadata, accessToken } = useUser();
+	const [repositories, setRepositories] = useState<IStoredRepository[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
 
-  // Extract repositories from user metadata
-  useEffect(() => {
-    if (userMetadata !== null && typeof userMetadata === 'object' && 'repositories' in userMetadata) {
-      const storedRepos = userMetadata.repositories;
-      if (Array.isArray(storedRepos)) {
-        const validRepos = storedRepos.filter(isStoredRepository);
-        setRepositories(validRepos);
-      }
-    }
-    setIsLoading(false);
-  }, [userMetadata]);
+	// Extract repositories from user metadata
+	useEffect(() => {
+		if (
+			userMetadata !== null &&
+			typeof userMetadata === "object" &&
+			"repositories" in userMetadata
+		) {
+			const storedRepos = userMetadata.repositories;
+			if (Array.isArray(storedRepos)) {
+				const validRepos = storedRepos.filter(isStoredRepository);
+				setRepositories(validRepos);
+			}
+		}
+		setIsLoading(false);
+	}, [userMetadata]);
 
-  const saveRepositories = useCallback(
-    async (repos: IStoredRepository[]): Promise<boolean> => {
-      if (accessToken === null || accessToken === '') {
-        setError('Not authenticated');
-        return false;
-      }
+	const saveRepositories = useCallback(
+		async (repos: IStoredRepository[]): Promise<boolean> => {
+			if (accessToken === null || accessToken === "") {
+				setError("Not authenticated");
+				return false;
+			}
 
-      try {
-        const response = await fetch(`${getApiUrl()}/user-metadata/repositories`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ repositories: repos }),
-        });
+			try {
+				const response = await fetch(
+					`${getApiUrl()}/user-metadata/repositories`,
+					{
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({ repositories: repos }),
+					},
+				);
 
-        if (!response.ok) {
-          const errorData: unknown = await response.json().catch(() => ({}));
-          let errorMessage = 'Failed to save repositories';
-          if (
-            typeof errorData === 'object' &&
-            errorData !== null &&
-            hasProperty(errorData, 'message') &&
-            typeof errorData.message === 'string'
-          ) {
-            errorMessage = errorData.message;
-          }
-          setError(errorMessage);
-          return false;
-        }
+				if (!response.ok) {
+					const errorData: unknown = await response.json().catch(() => ({}));
+					let errorMessage = "Failed to save repositories";
+					if (
+						typeof errorData === "object" &&
+						errorData !== null &&
+						hasProperty(errorData, "message") &&
+						typeof errorData.message === "string"
+					) {
+						errorMessage = errorData.message;
+					}
+					setError(errorMessage);
+					return false;
+				}
 
-        setRepositories(repos);
-        setError(null);
-        return true;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to save repositories';
-        setError(message);
-        return false;
-      }
-    },
-    [accessToken]
-  );
+				setRepositories(repos);
+				setError(null);
+				return true;
+			} catch (err) {
+				const message =
+					err instanceof Error ? err.message : "Failed to save repositories";
+				setError(message);
+				return false;
+			}
+		},
+		[accessToken],
+	);
 
-  const addRepository = useCallback(
-    async (repoUrl: string): Promise<boolean> => {
-      // Check if already exists
-      if (repositories.some((r) => r.repoUrl.toLowerCase() === repoUrl.toLowerCase())) {
-        setError('Repository already exists');
-        return false;
-      }
+	const addRepository = useCallback(
+		async (repo: Omit<IStoredRepository, "addedAt">): Promise<boolean> => {
+			// Check if already exists
+			if (
+				repositories.some(
+					(r) => r.repoUrl.toLowerCase() === repo.repoUrl.toLowerCase(),
+				)
+			) {
+				setError("Repository already exists");
+				return false;
+			}
 
-      const newRepo: IStoredRepository = {
-        repoUrl,
-        addedAt: new Date().toISOString(),
-      };
+			const newRepo: IStoredRepository = {
+				repoUrl: repo.repoUrl,
+				addedAt: new Date().toISOString(),
+				localPath: repo.localPath,
+				defaultBranch: repo.defaultBranch,
+				authType: repo.authType,
+			};
 
-      const updatedRepos = [...repositories, newRepo];
-      return saveRepositories(updatedRepos);
-    },
-    [repositories, saveRepositories]
-  );
+			const updatedRepos = [...repositories, newRepo];
+			return saveRepositories(updatedRepos);
+		},
+		[repositories, saveRepositories],
+	);
 
-  const removeRepository = useCallback(
-    async (repoUrl: string): Promise<boolean> => {
-      const updatedRepos = repositories.filter(
-        (r) => r.repoUrl.toLowerCase() !== repoUrl.toLowerCase()
-      );
-      return saveRepositories(updatedRepos);
-    },
-    [repositories, saveRepositories]
-  );
+	const removeRepository = useCallback(
+		async (repoUrl: string): Promise<boolean> => {
+			const updatedRepos = repositories.filter(
+				(r) => r.repoUrl.toLowerCase() !== repoUrl.toLowerCase(),
+			);
+			return saveRepositories(updatedRepos);
+		},
+		[repositories, saveRepositories],
+	);
 
-  const refreshRepositories = useCallback(() => {
-    // Force re-read from userMetadata
-    if (userMetadata !== null && typeof userMetadata === 'object' && 'repositories' in userMetadata) {
-      const storedRepos = userMetadata.repositories;
-      if (Array.isArray(storedRepos)) {
-        const validRepos = storedRepos.filter(isStoredRepository);
-        setRepositories(validRepos);
-      }
-    }
-  }, [userMetadata]);
+	const refreshRepositories = useCallback(() => {
+		// Force re-read from userMetadata
+		if (
+			userMetadata !== null &&
+			typeof userMetadata === "object" &&
+			"repositories" in userMetadata
+		) {
+			const storedRepos = userMetadata.repositories;
+			if (Array.isArray(storedRepos)) {
+				const validRepos = storedRepos.filter(isStoredRepository);
+				setRepositories(validRepos);
+			}
+		}
+	}, [userMetadata]);
 
-  return {
-    repositories,
-    isLoading,
-    error,
-    addRepository,
-    removeRepository,
-    refreshRepositories,
-  };
+	return {
+		repositories,
+		isLoading,
+		error,
+		addRepository,
+		removeRepository,
+		refreshRepositories,
+	};
 }

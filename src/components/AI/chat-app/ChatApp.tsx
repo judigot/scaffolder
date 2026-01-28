@@ -38,7 +38,8 @@ function storedRepoToFullRepo(stored: IStoredRepository): IRepository {
 	return {
 		id: repoId,
 		name: repoName,
-		path: `~/projects/${repoName}`,
+		path: stored.localPath ?? `~/projects/${repoName}`,
+		localPath: stored.localPath,
 		repoUrl: stored.repoUrl,
 		sprints: [],
 		chats: [],
@@ -244,18 +245,59 @@ export default function ChatApp() {
 
 	// ===== Multi-repo chat handlers =====
 	const handleAddRepo = async (repoUrl: string) => {
+		if (!isAuthenticated) {
+			throw new Error("You must be logged in to add repositories.");
+		}
+
+		const token = await getAccessTokenSilently();
+		const response = await fetch("/api/local-repo/clone", {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ repoUrl }),
+		});
+
+		if (!response.ok) {
+			const errorData = (await response.json().catch(() => ({}))) as {
+				error?: string;
+				details?: string;
+			};
+			const message =
+				errorData.details || errorData.error || "Failed to clone repository";
+			throw new Error(message);
+		}
+
+		const cloneData = (await response.json()) as {
+			ok: boolean;
+			repoPath?: string;
+			defaultBranch?: string;
+			authType?: "public" | "github-token";
+		};
+
+		if (!cloneData.ok || !cloneData.repoPath) {
+			throw new Error("Clone failed. Please try again.");
+		}
+
 		// Persist to Auth0 user_metadata
-		const success = await persistRepository(repoUrl);
+		const success = await persistRepository({
+			repoUrl,
+			localPath: cloneData.repoPath,
+			defaultBranch: cloneData.defaultBranch,
+			authType: cloneData.authType,
+		});
 		if (!success) {
-			// Could show error toast here
-			console.error("Failed to persist repository to Auth0");
-			return;
+			throw new Error("Failed to persist repository metadata");
 		}
 
 		// Create the new repo object for local state
 		const newRepo = storedRepoToFullRepo({
 			repoUrl,
 			addedAt: new Date().toISOString(),
+			localPath: cloneData.repoPath,
+			defaultBranch: cloneData.defaultBranch,
+			authType: cloneData.authType,
 		});
 
 		// Update local state
