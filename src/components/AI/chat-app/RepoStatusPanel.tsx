@@ -165,6 +165,14 @@ export default function RepoStatusPanel({
 	}
 
 	if (error !== null) {
+		// If clone doesn't exist, show friendly message instead of error
+		if (error.includes("ENOENT") || error.includes("no such file")) {
+			return (
+				<div className="p-3 text-xs text-fg-subtle">
+					No local clone available
+				</div>
+			);
+		}
 		return <div className="p-3 text-xs text-danger-300">{error}</div>;
 	}
 
@@ -304,7 +312,10 @@ export default function RepoStatusPanel({
 			{onDeleteClone !== undefined && (
 				<button
 					type="button"
-					onClick={onDeleteClone}
+					onClick={(e) => {
+						e.stopPropagation();
+						onDeleteClone();
+					}}
 					className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-fg-subtle hover:text-danger-300 hover:bg-danger-900/20 transition-colors"
 				>
 					<svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">

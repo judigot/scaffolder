@@ -343,7 +343,8 @@ export default function RepoTabs({
 											<div className="flex gap-2">
 												<button
 													type="button"
-													onClick={() => {
+													onClick={(e) => {
+														e.stopPropagation();
 														setShowDeleteConfirm(null);
 													}}
 													className="flex-1 px-2 py-1 text-xs rounded-lg bg-secondary text-fg-muted hover:text-fg"
@@ -353,7 +354,8 @@ export default function RepoTabs({
 												</button>
 												<button
 													type="button"
-													onClick={() => {
+													onClick={(e) => {
+														e.stopPropagation();
 														if (openRepo.localPath !== undefined) {
 															void handleDeleteClone(openRepo.localPath);
 														}
