@@ -6,7 +6,7 @@ import ChatPanel from "@/components/AI/chat-app/ChatPanel.tsx";
 import ChatTree from "@/components/AI/chat-app/ChatTree.tsx";
 import { mockRepositories } from "@/components/AI/chat-app/mockData.ts";
 import RepoTabs from "@/components/AI/chat-app/RepoTabs.tsx";
-import TopNav, { type TopLevelTab } from "@/components/AI/chat-app/TopNav.tsx";
+import TopNav from "@/components/AI/chat-app/TopNav.tsx";
 import type { IMessage, IRepository } from "@/components/AI/chat-app/types.ts";
 import TabBar from "@/components/AI/TabBar.tsx";
 import useDebouncedValue from "@/hooks/useDebouncedValue.ts";
@@ -47,8 +47,20 @@ function storedRepoToFullRepo(stored: IStoredRepository): IRepository {
 }
 
 export default function ChatApp() {
-	// ===== Top-level tab state =====
-	const [topLevelTab, setTopLevelTab] = useState<TopLevelTab>("scaffolder");
+	// ===== UI Store (centralized state) =====
+	const {
+		topLevelTab,
+		activeTab,
+		setActiveTab,
+		activeRepoId,
+		setActiveRepoId,
+		activeSprintId,
+		setActiveSprintId,
+		activeChatId,
+		setActiveChatId,
+		activeChatScope,
+		setActiveChatScope,
+	} = useUIStore();
 
 	// ===== Multi-repo chat state =====
 	// Get persisted repos from Auth0
@@ -124,20 +136,15 @@ export default function ChatApp() {
 		[persistedRepositories],
 	);
 
-	// Initialize with mock data (demo repo is always first)
-	const [activeRepoId, setActiveRepoId] = useState<string>(
-		mockRepositories[0]?.id ?? "",
-	);
-	const [activeSprintId, setActiveSprintId] = useState<string | null>(
-		mockRepositories[0]?.sprints[0]?.id ?? null,
-	);
-	const [activeChatId, setActiveChatId] = useState<string | null>(null);
-	const [activeChatScope, setActiveChatScope] = useState<"sprint" | "regular">(
-		"regular",
-	);
+	// Initialize activeRepoId on first render if not set
+	useEffect(() => {
+		if (activeRepoId === null && mockRepositories[0]?.id) {
+			setActiveRepoId(mockRepositories[0].id);
+			setActiveSprintId(mockRepositories[0].sprints[0]?.id ?? null);
+		}
+	}, [activeRepoId, setActiveRepoId, setActiveSprintId]);
 
 	// ===== Scaffolder state (from AI.tsx) =====
-	const { activeTab, setActiveTab } = useUIStore();
 	const formData = useFormStore();
 	const {
 		userMetadata,
@@ -779,8 +786,6 @@ export default function ChatApp() {
 		<div className="flex flex-col h-screen w-full bg-bg overflow-hidden text-fg">
 			{/* Top navigation with Scaffolder/Repositories tabs + UserProfile */}
 			<TopNav
-				activeTab={topLevelTab}
-				onTabChange={setTopLevelTab}
 				isUserLoading={isUserLoading}
 				serverConfigStatus={serverConfigStatus}
 			/>

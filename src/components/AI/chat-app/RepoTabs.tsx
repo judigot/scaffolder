@@ -3,10 +3,11 @@ import { createPortal } from "react-dom";
 import RepoStatusPanel from "@/components/AI/chat-app/RepoStatusPanel.tsx";
 import type { IRepository } from "@/components/AI/chat-app/types.ts";
 import Badge from "@/components/AI/chat-app/ui/Badge.tsx";
+import { useUIStore } from "@/useUIStore.ts";
 
 interface IRepositoryTabsProps {
 	repositories: IRepository[];
-	activeRepoId: string;
+	activeRepoId: string | null;
 	onSelectRepo: (repoId: string) => void;
 	onSelectBranch: (
 		repoId: string,
@@ -33,15 +34,21 @@ export default function RepoTabs({
 	onRemoveRepo,
 	onDeleteClone,
 }: IRepositoryTabsProps) {
-	const [openRepoId, setOpenRepoId] = useState<string | null>(null);
+	// Centralized UI state from store
+	const {
+		openRepoDropdownId: openRepoId,
+		setOpenRepoDropdownId: setOpenRepoId,
+		showAddRepoModal: showAddModal,
+		setShowAddRepoModal: setShowAddModal,
+		deleteConfirmRepoId: showDeleteConfirm,
+		setDeleteConfirmRepoId: setShowDeleteConfirm,
+	} = useUIStore();
+
+	// Local UI state (not worth centralizing)
 	const [dropdownPosition, setDropdownPosition] = useState<IDropdownPosition>({
 		top: 0,
 		left: 0,
 	});
-	const [showAddModal, setShowAddModal] = useState(false);
-	const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
-		null,
-	);
 	const [newRepoUrl, setNewRepoUrl] = useState("");
 	const [urlError, setUrlError] = useState<string | null>(null);
 	const [isAdding, setIsAdding] = useState(false);
@@ -71,7 +78,7 @@ export default function RepoTabs({
 		return () => {
 			window.removeEventListener("click", handleClickOutside);
 		};
-	}, []);
+	}, [setOpenRepoId]);
 
 	// Update dropdown position when opened
 	useEffect(() => {
@@ -268,9 +275,7 @@ export default function RepoTabs({
 									}`}
 									onClick={(event) => {
 										event.stopPropagation();
-										setOpenRepoId((prev) =>
-											prev === repo.id ? null : repo.id,
-										);
+										setOpenRepoId(openRepoId === repo.id ? null : repo.id);
 									}}
 									aria-label={`Open branches for ${repo.name}`}
 								>
