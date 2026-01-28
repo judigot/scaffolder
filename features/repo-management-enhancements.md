@@ -130,7 +130,7 @@ Extended the local repo integration with git sync controls (fetch/pull), status 
 Use the test script:
 
 ```bash
-./scripts/test-local-repo-api.sh "<bearer-token>" "/home/ubuntu/scaffolder-workspaces/judigot/ide"
+./manual-testing/test-local-repo-api.sh "<bearer-token>" "/home/ubuntu/scaffolder-workspaces/judigot/ide"
 ```
 
 Get token from browser DevTools > Network > any API call > Authorization header.
