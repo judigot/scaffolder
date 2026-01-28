@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useRepositories.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import { useUserFiles } from "@/hooks/useUserFiles.ts";
+import { REPO_AGENT_SYSTEM_PROMPT } from "@/prompts/repoAgent.ts";
 import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
@@ -701,6 +702,7 @@ export default function ChatApp() {
 					message: content,
 					sessionId,
 					directory: repoPath,
+					systemPrompt: REPO_AGENT_SYSTEM_PROMPT,
 				}),
 			});
 
