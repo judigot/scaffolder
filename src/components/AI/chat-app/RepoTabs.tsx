@@ -93,9 +93,25 @@ export default function RepoTabs({
 
 	const openRepo = repositories.find((r) => r.id === openRepoId);
 
-	const validateGitHubUrl = (url: string): boolean => {
-		const githubRegex = /^https?:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/i;
-		return githubRegex.test(url.trim());
+	const normalizeRepoInput = (value: string): string | null => {
+		const trimmed = value.trim();
+		if (!trimmed) {
+			return null;
+		}
+
+		const urlMatch = /^https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/?$/i.exec(
+			trimmed,
+		);
+		if (urlMatch?.[1] && urlMatch?.[2]) {
+			return `https://github.com/${urlMatch[1]}/${urlMatch[2]}`;
+		}
+
+		const shortMatch = /^([\w.-]+)\/([\w.-]+)$/.exec(trimmed);
+		if (shortMatch?.[1] && shortMatch?.[2]) {
+			return `https://github.com/${shortMatch[1]}/${shortMatch[2]}`;
+		}
+
+		return null;
 	};
 
 	const handleAddRepo = async () => {
@@ -106,16 +122,17 @@ export default function RepoTabs({
 			return;
 		}
 
-		if (!validateGitHubUrl(trimmedUrl)) {
+		const normalizedUrl = normalizeRepoInput(trimmedUrl);
+		if (!normalizedUrl) {
 			setUrlError(
-				"Please enter a valid GitHub repository URL (e.g., https://github.com/owner/repo)",
+				"Please enter a valid repository (e.g., judigot/repo or https://github.com/judigot/repo)",
 			);
 			return;
 		}
 
 		// Check if repo already exists
 		const exists = repositories.some(
-			(r) => r.repoUrl.toLowerCase() === trimmedUrl.toLowerCase(),
+			(r) => r.repoUrl.toLowerCase() === normalizedUrl.toLowerCase(),
 		);
 		if (exists) {
 			setUrlError("This repository has already been added");
@@ -124,7 +141,7 @@ export default function RepoTabs({
 
 		setIsAdding(true);
 		try {
-			await onAddRepo(trimmedUrl);
+			await onAddRepo(normalizedUrl);
 			setNewRepoUrl("");
 			setUrlError(null);
 			setShowAddModal(false);
@@ -400,7 +417,7 @@ export default function RepoTabs({
 											setUrlError(null);
 										}}
 										onKeyDown={handleKeyDown}
-										placeholder="https://github.com/owner/repo"
+										placeholder="judigot/repo or https://github.com/judigot/repo"
 										className="w-full px-4 py-3 bg-secondary border border-border rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
 									/>
 									{urlError !== null && (
@@ -409,8 +426,7 @@ export default function RepoTabs({
 								</div>
 
 								<p className="text-xs text-fg-subtle">
-									Enter the URL of a GitHub repository to clone it into your
-									workspace.
+									Use owner/repo or a GitHub URL to clone into your workspace.
 								</p>
 
 								<div className="flex gap-3 pt-2">

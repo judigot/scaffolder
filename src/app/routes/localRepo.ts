@@ -25,7 +25,7 @@ app.use("*", cors());
 
 function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
 	const match = /github\.com\/([^/]+)\/([^/]+)/i.exec(url);
-	if (!match || !match[1] || !match[2]) {
+	if (!match?.[1] || !match[2]) {
 		return null;
 	}
 
@@ -55,7 +55,10 @@ app.post("/clone", async (c) => {
 		return c.json({ error: "Repository URL is required" }, 400);
 	}
 
-	const repoUrl = body.repoUrl.trim();
+	const repoInput = body.repoUrl.trim();
+	const repoUrl = repoInput.startsWith("http")
+		? repoInput
+		: `https://github.com/${repoInput}`;
 	const repoInfo = parseGitHubUrl(repoUrl);
 	if (!repoInfo) {
 		return c.json({ error: "Invalid GitHub repository URL" }, 400);
