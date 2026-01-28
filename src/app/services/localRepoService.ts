@@ -180,6 +180,15 @@ export async function isGitRepository(repoPath: string): Promise<boolean> {
 	}
 }
 
+export async function resolveRepoPath(repoPath: string): Promise<string> {
+	const resolved = await resolveWorkspacePath(repoPath);
+	const isRepo = await isGitRepository(resolved);
+	if (!isRepo) {
+		throw new Error("Target path is not a git repository");
+	}
+	return resolved;
+}
+
 export async function pathExists(targetPath: string): Promise<boolean> {
 	try {
 		await fs.stat(targetPath);
@@ -240,6 +249,29 @@ export async function getDefaultBranch(
 	}
 
 	return null;
+}
+
+export async function getRepoStatus(repoPath: string): Promise<CommandResult> {
+	return runCommand(["git", "-C", repoPath, "status", "--porcelain=v1", "-b"], {
+		timeoutMs: 20_000,
+	});
+}
+
+export async function getRepoBranches(
+	repoPath: string,
+): Promise<CommandResult> {
+	return runCommand(["git", "-C", repoPath, "branch", "--list"], {
+		timeoutMs: 20_000,
+	});
+}
+
+export async function checkoutBranch(
+	repoPath: string,
+	branch: string,
+): Promise<CommandResult> {
+	return runCommand(["git", "-C", repoPath, "checkout", branch], {
+		timeoutMs: 60_000,
+	});
 }
 
 export function redactToken(value: string, token: string | null): string {
