@@ -345,6 +345,32 @@ export default function ChatApp() {
 		}
 	};
 
+	const handleDeleteClone = async (repoPath: string) => {
+		if (!isAuthenticated) {
+			throw new Error("You must be logged in to delete local clones.");
+		}
+
+		const token = await getAccessTokenSilently();
+		const response = await fetch("/api/local-repo/delete", {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ repoPath, confirm: true }),
+		});
+
+		if (!response.ok) {
+			const errorData = (await response.json().catch(() => ({}))) as {
+				error?: string;
+			};
+			throw new Error(errorData.error ?? "Failed to delete local clone");
+		}
+
+		// Note: We don't remove the repo from the list, just the local clone
+		// The user can still see the repo but it will show "No local clone available"
+	};
+
 	const handleSelectBranch = (
 		repoId: string,
 		chatId: string,
@@ -767,6 +793,7 @@ export default function ChatApp() {
 					onSelectBranch={handleSelectBranch}
 					onAddRepo={handleAddRepo}
 					onRemoveRepo={handleRemoveRepo}
+					onDeleteClone={handleDeleteClone}
 				/>
 			)}
 

@@ -106,3 +106,4 @@ Desktop.ini
 # Agent task context runtime state (not committed)
 .agent-task-context/.state/
 test-results/
+.vercel

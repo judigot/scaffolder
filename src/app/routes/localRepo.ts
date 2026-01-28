@@ -4,12 +4,16 @@ import { getGitHubToken } from "@/app/services/auth0Service.ts";
 import {
 	checkoutBranch,
 	cloneRepository,
+	deleteRepository,
+	fetchRepository,
 	getDefaultBranch,
 	getRepoBranches,
 	getRepoStatus,
+	getRepoStatusInfo,
 	isGitRepository,
 	pathExists,
 	prepareRepoPath,
+	pullRepository,
 	redactToken,
 	resolveRepoPath,
 } from "@/app/services/localRepoService.ts";
@@ -234,6 +238,139 @@ app.post("/checkout", async (c) => {
 			timedOut: result.timedOut,
 			durationMs: result.durationMs,
 		});
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Invalid repository path";
+		return c.json({ error: message }, 400);
+	}
+});
+
+interface IDeletePayload extends IRepoPathPayload {
+	confirm?: unknown;
+}
+
+app.post("/delete", async (c) => {
+	const authResult = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+	if (!authResult.ok) {
+		return c.json(authResult.body, authResult.status);
+	}
+
+	let body: IDeletePayload;
+	try {
+		body = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid request body" }, 400);
+	}
+
+	if (body.confirm !== true) {
+		return c.json({ error: "Confirmation required (confirm: true)" }, 400);
+	}
+
+	try {
+		const repoPath =
+			typeof body.repoPath === "string" && body.repoPath.trim() !== ""
+				? body.repoPath.trim()
+				: "";
+		if (repoPath === "") {
+			return c.json({ error: "Repository path is required" }, 400);
+		}
+
+		await deleteRepository(repoPath);
+		return c.json({ ok: true, deleted: repoPath });
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Failed to delete repository";
+		return c.json({ error: message }, 400);
+	}
+});
+
+app.post("/fetch", async (c) => {
+	const authResult = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+	if (!authResult.ok) {
+		return c.json(authResult.body, authResult.status);
+	}
+
+	let body: IRepoPathPayload;
+	try {
+		body = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid request body" }, 400);
+	}
+
+	try {
+		const repoPath = await getRepoPathFromBody(body);
+		const result = await fetchRepository(repoPath);
+		return c.json({
+			ok: result.exitCode === 0,
+			exitCode: result.exitCode,
+			stdout: result.stdout,
+			stderr: result.stderr,
+			timedOut: result.timedOut,
+			durationMs: result.durationMs,
+		});
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Invalid repository path";
+		return c.json({ error: message }, 400);
+	}
+});
+
+app.post("/pull", async (c) => {
+	const authResult = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+	if (!authResult.ok) {
+		return c.json(authResult.body, authResult.status);
+	}
+
+	let body: IRepoPathPayload;
+	try {
+		body = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid request body" }, 400);
+	}
+
+	try {
+		const repoPath = await getRepoPathFromBody(body);
+		const result = await pullRepository(repoPath);
+		return c.json({
+			ok: result.exitCode === 0,
+			exitCode: result.exitCode,
+			stdout: result.stdout,
+			stderr: result.stderr,
+			timedOut: result.timedOut,
+			durationMs: result.durationMs,
+		});
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Invalid repository path";
+		return c.json({ error: message }, 400);
+	}
+});
+
+app.post("/status-info", async (c) => {
+	const authResult = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+	if (!authResult.ok) {
+		return c.json(authResult.body, authResult.status);
+	}
+
+	let body: IRepoPathPayload;
+	try {
+		body = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid request body" }, 400);
+	}
+
+	try {
+		const repoPath = await getRepoPathFromBody(body);
+		const statusInfo = await getRepoStatusInfo(repoPath);
+		return c.json({ ok: true, ...statusInfo });
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Invalid repository path";

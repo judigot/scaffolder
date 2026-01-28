@@ -2,15 +2,15 @@ import { spawn as nodeSpawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-type CommandResult = {
+interface CommandResult {
 	exitCode: number;
 	stdout: string;
 	stderr: string;
 	durationMs: number;
 	timedOut: boolean;
-};
+}
 
-type BunRuntime = {
+interface BunRuntime {
 	spawn: (
 		args: string[],
 		options: {
@@ -25,7 +25,7 @@ type BunRuntime = {
 		exited: Promise<number>;
 		kill: () => void;
 	};
-};
+}
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_TIMEOUT_MS = 600_000;
@@ -280,4 +280,117 @@ export function redactToken(value: string, token: string | null): string {
 	}
 
 	return value.replaceAll(token, "***");
+}
+
+export async function deleteRepository(repoPath: string): Promise<void> {
+	const resolved = await resolveWorkspacePath(repoPath);
+	const isRepo = await isGitRepository(resolved);
+	if (!isRepo) {
+		throw new Error("Target path is not a git repository");
+	}
+
+	await fs.rm(resolved, { recursive: true, force: true });
+}
+
+export async function fetchRepository(
+	repoPath: string,
+): Promise<CommandResult> {
+	return runCommand(["git", "-C", repoPath, "fetch", "--all", "--prune"], {
+		env: {
+			GIT_TERMINAL_PROMPT: "0",
+			GIT_ASKPASS: "true",
+		},
+		timeoutMs: 60_000,
+	});
+}
+
+export async function pullRepository(repoPath: string): Promise<CommandResult> {
+	return runCommand(["git", "-C", repoPath, "pull", "--ff-only"], {
+		env: {
+			GIT_TERMINAL_PROMPT: "0",
+			GIT_ASKPASS: "true",
+		},
+		timeoutMs: 60_000,
+	});
+}
+
+export async function getLastCommit(
+	repoPath: string,
+): Promise<{ hash: string; message: string; date: string } | null> {
+	const result = await runCommand(
+		["git", "-C", repoPath, "log", "-1", "--format=%H%n%s%n%ci"],
+		{ timeoutMs: 20_000 },
+	);
+
+	if (result.exitCode !== 0 || result.stdout.trim() === "") {
+		return null;
+	}
+
+	const lines = result.stdout.trim().split("\n");
+	const hash = lines[0] ?? "";
+	const message = lines[1] ?? "";
+	const date = lines[2] ?? "";
+
+	if (hash === "") {
+		return null;
+	}
+
+	return { hash, message, date };
+}
+
+export async function getCurrentBranch(
+	repoPath: string,
+): Promise<string | null> {
+	const result = await runCommand(
+		["git", "-C", repoPath, "rev-parse", "--abbrev-ref", "HEAD"],
+		{ timeoutMs: 20_000 },
+	);
+
+	if (result.exitCode === 0 && result.stdout.trim() !== "") {
+		return result.stdout.trim();
+	}
+
+	return null;
+}
+
+export interface RepoStatusInfo {
+	branch: string | null;
+	isDirty: boolean;
+	ahead: number;
+	behind: number;
+	lastCommit: { hash: string; message: string; date: string } | null;
+}
+
+export async function getRepoStatusInfo(
+	repoPath: string,
+): Promise<RepoStatusInfo> {
+	const [statusResult, branch, lastCommit] = await Promise.all([
+		getRepoStatus(repoPath),
+		getCurrentBranch(repoPath),
+		getLastCommit(repoPath),
+	]);
+
+	let isDirty = false;
+	let ahead = 0;
+	let behind = 0;
+
+	if (statusResult.exitCode === 0) {
+		const lines = statusResult.stdout.split("\n");
+		const branchLine = lines[0] ?? "";
+
+		// Parse ahead/behind from branch line: ## main...origin/main [ahead 1, behind 2]
+		const aheadMatch = /ahead (\d+)/.exec(branchLine);
+		const behindMatch = /behind (\d+)/.exec(branchLine);
+		if (aheadMatch?.[1] !== undefined) {
+			ahead = Number.parseInt(aheadMatch[1], 10);
+		}
+		if (behindMatch?.[1] !== undefined) {
+			behind = Number.parseInt(behindMatch[1], 10);
+		}
+
+		// Check if there are uncommitted changes (lines after the branch line)
+		isDirty = lines.slice(1).some((line) => line.trim() !== "");
+	}
+
+	return { branch, isDirty, ahead, behind, lastCommit };
 }
