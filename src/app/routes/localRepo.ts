@@ -7,6 +7,8 @@ import {
 	deleteRepository,
 	fetchRepository,
 	getDefaultBranch,
+	getLocalClonePath,
+	getLocalRepoFiles,
 	getRepoBranches,
 	getRepoStatus,
 	getRepoStatusInfo,
@@ -375,6 +377,76 @@ app.post("/status-info", async (c) => {
 		const message =
 			error instanceof Error ? error.message : "Invalid repository path";
 		return c.json({ error: message }, 400);
+	}
+});
+
+interface IFilesPayload {
+	repoUrl?: unknown;
+	repoPath?: unknown;
+}
+
+/**
+ * Get files from a locally cloned repository.
+ * Accepts either:
+ * - repoUrl: GitHub URL (e.g., "https://github.com/owner/repo") - will look up local clone
+ * - repoPath: Direct path to local clone (e.g., "/home/ubuntu/scaffolder-workspaces/owner/repo")
+ */
+app.post("/files", async (c) => {
+	const authResult = await verifyAuth0TokenFromAuthHeader(
+		c.req.header("authorization"),
+	);
+	if (!authResult.ok) {
+		return c.json(authResult.body, authResult.status);
+	}
+
+	let body: IFilesPayload;
+	try {
+		body = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid request body" }, 400);
+	}
+
+	try {
+		let localPath: string | null = null;
+
+		// Option 1: Direct repoPath provided
+		if (typeof body.repoPath === "string" && body.repoPath.trim() !== "") {
+			localPath = await resolveRepoPath(body.repoPath.trim());
+		}
+		// Option 2: repoUrl provided - look up local clone
+		else if (typeof body.repoUrl === "string" && body.repoUrl.trim() !== "") {
+			const repoInfo = parseGitHubUrl(body.repoUrl.trim());
+			if (!repoInfo) {
+				return c.json({ error: "Invalid GitHub repository URL" }, 400);
+			}
+
+			localPath = await getLocalClonePath(repoInfo.owner, repoInfo.repo);
+			if (!localPath) {
+				return c.json(
+					{
+						error: "Repository not cloned locally",
+						hint: "Clone the repository first using /api/local-repo/clone",
+					},
+					404,
+				);
+			}
+		} else {
+			return c.json({ error: "Either repoUrl or repoPath is required" }, 400);
+		}
+
+		const files = await getLocalRepoFiles(localPath);
+		return c.json({
+			ok: true,
+			files,
+			source: "local",
+			localPath,
+		});
+	} catch (error) {
+		const message =
+			error instanceof Error
+				? error.message
+				: "Failed to read repository files";
+		return c.json({ error: message }, 500);
 	}
 });
 

@@ -704,11 +704,12 @@ export function AIChatContainer({
 	} = useProjectStore();
 	const { userFiles: storeUserFiles } = useMockDatabaseStore();
 	const { decryptedMetadata } = useDecryptedUserMetadata();
-	const { user } = useUser();
+	const { user, accessToken } = useUser();
 
-	// Fetch repository files for non-scaffolder mode (always from GitHub API)
+	// Fetch repository files for non-scaffolder mode
+	// Tries local clone first (if available), then falls back to remote GitHub API
 	const { data: repoFiles, isLoading: isRepoFilesLoading } = useRemoteRepoFiles(
-		{ repoUrl: repoUrl ?? "" },
+		{ repoUrl: repoUrl ?? "", authToken: accessToken ?? undefined },
 		{
 			enabled: !isScaffolderRepo && repoUrl !== undefined && repoUrl !== "",
 		},
