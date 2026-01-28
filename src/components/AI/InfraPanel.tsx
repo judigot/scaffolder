@@ -122,7 +122,7 @@ const parseInfraCredentials = (
 
 export type { IInfraCredentials };
 
-interface IInfraPanelProps {}
+type IInfraPanelProps = {}
 
 interface IInfraWorkspaceCardProps {
 	workspace: string;

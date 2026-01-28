@@ -1,6 +1,8 @@
 import { spawn as nodeSpawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import type { IStructure } from "@/components/FileViewer.tsx";
+import convertLocalFilesToIStructure from "@/utils/convertLocalFilesToIStructure.ts";
 
 interface CommandResult {
 	exitCode: number;
@@ -393,4 +395,39 @@ export async function getRepoStatusInfo(
 	}
 
 	return { branch, isDirty, ahead, behind, lastCommit };
+}
+
+/**
+ * Get files from a local repository clone as IStructure format.
+ * Uses the same format as getUserFilesFromPublicRepo for consistency.
+ */
+export async function getLocalRepoFiles(repoPath: string): Promise<IStructure> {
+	const resolved = await resolveRepoPath(repoPath);
+	return convertLocalFilesToIStructure(resolved);
+}
+
+/**
+ * Check if a repository is cloned locally and return its path if it exists.
+ * @param owner - Repository owner (e.g., "judigot")
+ * @param repo - Repository name (e.g., "scaffolder")
+ * @returns The local path if cloned, null otherwise
+ */
+export async function getLocalClonePath(
+	owner: string,
+	repo: string,
+): Promise<string | null> {
+	const root = getWorkspaceRoot();
+	const expectedPath = path.join(root, owner, repo);
+
+	const exists = await pathExists(expectedPath);
+	if (!exists) {
+		return null;
+	}
+
+	const isRepo = await isGitRepository(expectedPath);
+	if (!isRepo) {
+		return null;
+	}
+
+	return expectedPath;
 }

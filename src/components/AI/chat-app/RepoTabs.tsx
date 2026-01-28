@@ -6,7 +6,7 @@ import Badge from "@/components/AI/chat-app/ui/Badge.tsx";
 
 interface IRepositoryTabsProps {
 	repositories: IRepository[];
-	activeRepoId: string;
+	activeRepoId: string | null;
 	onSelectRepo: (repoId: string) => void;
 	onSelectBranch: (
 		repoId: string,
@@ -33,19 +33,31 @@ export default function RepoTabs({
 	onRemoveRepo,
 	onDeleteClone,
 }: IRepositoryTabsProps) {
+	// ---------------------------------------------------------------------------
+	// Local State
+	// These are UI concerns owned entirely by this component
+	// ---------------------------------------------------------------------------
+
+	// Dropdown state
 	const [openRepoId, setOpenRepoId] = useState<string | null>(null);
 	const [dropdownPosition, setDropdownPosition] = useState<IDropdownPosition>({
 		top: 0,
 		left: 0,
 	});
+
+	// Add repository modal state
 	const [showAddModal, setShowAddModal] = useState(false);
-	const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
-		null,
-	);
 	const [newRepoUrl, setNewRepoUrl] = useState("");
 	const [urlError, setUrlError] = useState<string | null>(null);
 	const [isAdding, setIsAdding] = useState(false);
+
+	// Delete confirmation state
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+		null,
+	);
 	const [isDeleting, setIsDeleting] = useState(false);
+
+	// Refs
 	const containerRef = useRef<HTMLDivElement>(null);
 	const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -268,9 +280,7 @@ export default function RepoTabs({
 									}`}
 									onClick={(event) => {
 										event.stopPropagation();
-										setOpenRepoId((prev) =>
-											prev === repo.id ? null : repo.id,
-										);
+										setOpenRepoId(openRepoId === repo.id ? null : repo.id);
 									}}
 									aria-label={`Open branches for ${repo.name}`}
 								>
