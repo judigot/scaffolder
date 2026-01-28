@@ -167,6 +167,7 @@ export default function ChatApp() {
 
 	const [inputRepoURL] = useState<string>(publicRepoURL);
 
+	// Lazy load user files only when fileViewer tab is active
 	const { refetch: refetchUserFiles, data: userFiles } = useUserFiles(
 		{ publicRepoURL },
 		{
@@ -174,7 +175,7 @@ export default function ChatApp() {
 			staleTime: 5 * 60 * 1000,
 			gcTime: 10 * 60 * 1000,
 			refetchOnWindowFocus: false,
-			enabled: !!publicRepoURL,
+			enabled: activeTab === "fileViewer" && !!publicRepoURL,
 		},
 	);
 
