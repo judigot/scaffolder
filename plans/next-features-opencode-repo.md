@@ -6,11 +6,13 @@ Capture the next set of production-ready enhancements for the OpenCode-based rep
 
 ## Scope
 
-1. Delete local clone action (separate from remove metadata)
-2. Repo git status panel (branch + dirty state + last commit)
+1. ~~Delete local clone action (separate from remove metadata)~~ **DONE**
+2. ~~Repo git status panel (branch + dirty state + last commit)~~ **DONE**
 3. OpenCode streaming in chat UI (SSE)
 4. Per-repo directory override + header display
-5. Repo sync controls (fetch/pull) with guardrails
+5. ~~Repo sync controls (fetch/pull) with guardrails~~ **DONE**
+
+> See `features/repo-management-enhancements.md` for shipped items.
 
 ## Requirements
 
