@@ -45,8 +45,7 @@ export function useCheckoutBranch() {
 					Authorization: `Bearer ${token}`,
 				},
 				body: JSON.stringify({
-					repoId: options.repoId,
-					localPath: options.localPath,
+					repoPath: options.localPath,
 					branch: options.branch,
 				}),
 			});
