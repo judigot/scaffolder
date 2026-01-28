@@ -1,6 +1,4 @@
-import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
-import { DefaultChatTransport } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -19,6 +17,7 @@ import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useRemoteRepoFiles } from "@/hooks/useRemoteRepoFiles.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
+import { useVercelChat } from "@/lib/chat";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
@@ -30,7 +29,12 @@ import {
 } from "@/utils/schemaInfoValidator.ts";
 
 // Model configuration types
-export type ModelId = "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2-codex" | "claude-sonnet-4.5" | "claude-opus-4.5";
+export type ModelId =
+	| "gpt-5-nano"
+	| "gpt-5-mini"
+	| "gpt-5.2-codex"
+	| "claude-sonnet-4.5"
+	| "claude-opus-4.5";
 
 export interface IModelOption {
 	id: ModelId;
@@ -61,7 +65,9 @@ function ChatMessage({ message }: IChatMessageProps) {
 
 		// Get full text from message parts
 		const fullText = message.parts
-			.filter((part): part is { type: "text"; text: string } => part.type === "text")
+			.filter(
+				(part): part is { type: "text"; text: string } => part.type === "text",
+			)
 			.map((part) => part.text)
 			.join("\n");
 
@@ -90,7 +96,8 @@ function ChatMessage({ message }: IChatMessageProps) {
 					{message.parts.map((part, index) => {
 						if (part.type === "text") {
 							// Use cleaned text if we extracted a schema, otherwise use original
-							const textToRender = displayText !== null ? displayText : part.text;
+							const textToRender =
+								displayText !== null ? displayText : part.text;
 
 							return (
 								<Markdown
@@ -284,7 +291,11 @@ interface IModelSelectorProps {
 	disabled: boolean;
 }
 
-export function ModelSelector({ selectedModel, onModelChange, disabled }: IModelSelectorProps) {
+export function ModelSelector({
+	selectedModel,
+	onModelChange,
+	disabled,
+}: IModelSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -293,7 +304,10 @@ export function ModelSelector({ selectedModel, onModelChange, disabled }: IModel
 	// Close dropdown when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
-			if (dropdownRef.current !== null && !dropdownRef.current.contains(event.target as Node)) {
+			if (
+				dropdownRef.current !== null &&
+				!dropdownRef.current.contains(event.target as Node)
+			) {
 				setIsOpen(false);
 			}
 		};
@@ -325,7 +339,9 @@ export function ModelSelector({ selectedModel, onModelChange, disabled }: IModel
 	}, [isOpen]);
 
 	const openaiModels = MODEL_OPTIONS.filter((m) => m.provider === "openai");
-	const anthropicModels = MODEL_OPTIONS.filter((m) => m.provider === "anthropic");
+	const anthropicModels = MODEL_OPTIONS.filter(
+		(m) => m.provider === "anthropic",
+	);
 
 	const handleSelect = (modelId: ModelId) => {
 		onModelChange(modelId);
@@ -337,7 +353,11 @@ export function ModelSelector({ selectedModel, onModelChange, disabled }: IModel
 			{/* Trigger button */}
 			<button
 				type="button"
-				onClick={() => { if (!disabled) {setIsOpen(!isOpen);} }}
+				onClick={() => {
+					if (!disabled) {
+						setIsOpen(!isOpen);
+					}
+				}}
 				disabled={disabled}
 				className="flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 			>
@@ -349,7 +369,12 @@ export function ModelSelector({ selectedModel, onModelChange, disabled }: IModel
 					viewBox="0 0 24 24"
 				>
 					<title>Toggle dropdown</title>
-					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+					<path
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						strokeWidth={2}
+						d="M19 9l-7 7-7-7"
+					/>
 				</svg>
 			</button>
 
@@ -364,9 +389,13 @@ export function ModelSelector({ selectedModel, onModelChange, disabled }: IModel
 						<button
 							key={model.id}
 							type="button"
-							onClick={() => { handleSelect(model.id); }}
+							onClick={() => {
+								handleSelect(model.id);
+							}}
 							className={`w-full px-3 py-2 text-sm text-left hover:bg-bg transition-colors ${
-								selectedModel === model.id ? "text-primary-400 bg-bg" : "text-fg"
+								selectedModel === model.id
+									? "text-primary-400 bg-bg"
+									: "text-fg"
 							}`}
 						>
 							{model.name}
@@ -381,9 +410,13 @@ export function ModelSelector({ selectedModel, onModelChange, disabled }: IModel
 						<button
 							key={model.id}
 							type="button"
-							onClick={() => { handleSelect(model.id); }}
+							onClick={() => {
+								handleSelect(model.id);
+							}}
 							className={`w-full px-3 py-2 text-sm text-left hover:bg-bg transition-colors ${
-								selectedModel === model.id ? "text-primary-400 bg-bg" : "text-fg"
+								selectedModel === model.id
+									? "text-primary-400 bg-bg"
+									: "text-fg"
 							}`}
 						>
 							{model.name}
@@ -404,7 +437,14 @@ interface IChatInputProps {
 	onModelChange: (model: ModelId) => void;
 }
 
-function ChatInput({ input, onChange, onSubmit, isLoading, selectedModel, onModelChange }: IChatInputProps) {
+function ChatInput({
+	input,
+	onChange,
+	onSubmit,
+	isLoading,
+	selectedModel,
+	onModelChange,
+}: IChatInputProps) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
 	const adjustHeight = useCallback(() => {
@@ -515,13 +555,13 @@ function ChatInput({ input, onChange, onSubmit, isLoading, selectedModel, onMode
 }
 
 interface IChatErrorProps {
-	error: Error;
+	error: { message: string };
 	onRetry: () => void;
 }
 
 function ChatError({ error, onRetry }: IChatErrorProps) {
 	// Parse error message for user-friendly display
-	const getErrorInfo = (err: Error) => {
+	const getErrorInfo = (err: { message: string }) => {
 		const message = err.message;
 
 		if (message.includes("overloaded")) {
@@ -671,7 +711,7 @@ export function AIChatContainer({
 		{ repoUrl: repoUrl ?? "" },
 		{
 			enabled: !isScaffolderRepo && repoUrl !== undefined && repoUrl !== "",
-		}
+		},
 	);
 
 	// Local state for build results
@@ -681,56 +721,14 @@ export function AIChatContainer({
 		filesFailedToFormat: IFailedFormatEntry[];
 	}>({ structure: [], filesUsingUserEnv: [], filesFailedToFormat: [] });
 
-	// Store model in ref so the transport callback can access current value
-	const selectedModelRef = useRef<ModelId>(selectedModel);
-	useEffect(() => {
-		selectedModelRef.current = selectedModel;
-	}, [selectedModel]);
-
-	// Create transport once with a callback that reads current model from ref
-	const transport = useMemo(() => {
-		return new DefaultChatTransport({
-			api: "/api/chat",
-			prepareSendMessagesRequest: ({ messages, body, headers, credentials, api, id, trigger, messageId }) => {
-				// When we return a body, it replaces the default body entirely
-				// So we need to include messages and other required fields
-				return {
-					body: {
-						...(body as Record<string, unknown>),
-						id,
-						messages,
-						trigger,
-						messageId,
-						model: selectedModelRef.current,
-					},
-					headers,
-					credentials,
-					api,
-				};
-			},
-		});
-	}, []);
-
-	const { messages, sendMessage, status, error, stop } = useChat({
-		transport,
+	// Use the chat abstraction with Vercel AI SDK features
+	const chat = useVercelChat({
+		endpoint: "/api/chat",
+		model: selectedModel,
 	});
 
-	const reload = () => {
-		// Reload last message by stopping and resubmitting
-		if (messages.length > 0) {
-			// eslint-disable-next-line @typescript-eslint/no-floating-promises
-			stop();
-			const lastUserMessage = [...messages]
-				.reverse()
-				.find((m) => m.role === "user");
-			const firstPart = lastUserMessage?.parts[0];
-			if (firstPart && firstPart.type === "text") {
-				void sendMessage({ text: firstPart.text });
-			}
-		}
-	};
-
-	const isLoading = status === "streaming" || status === "submitted";
+	const { messages, sendMessage, error, retry: reload } = chat;
+	const isLoading = chat.isLoading;
 
 	// Filter to only show "App Generator" projects
 	const appGeneratorProjects = useMemo(() => {
@@ -831,25 +829,28 @@ export function AIChatContainer({
 	// This effect has been removed since we're using the parent component for tab switching
 
 	// For repository mode, show files if loaded
-	const hasRepoFiles: boolean = !isScaffolderRepo && repoFiles !== undefined && repoFiles.length > 0;
+	const hasRepoFiles: boolean =
+		!isScaffolderRepo && repoFiles !== undefined && repoFiles.length > 0;
 
 	return (
 		<div className="flex h-full w-full bg-bg overflow-hidden">
 			{/* FileViewer panel - Scaffolder mode (edit) */}
-			{isScaffolderRepo && shouldShowFileViewer && activeTab === "fileViewer" && (
-				<div className="flex flex-col overflow-hidden w-full">
-					<FileViewer
-						mode="edit"
-						folderStructure={builtProjectFiles}
-						projectName={selectedProject.name}
-						filesUsingUserEnv={filesUsingUserEnv}
-						filesFailedToFormat={filesFailedToFormat}
-						projects={appGeneratorProjects}
-						selectedProject={selectedProject}
-						onProjectChange={handleProjectChange}
-					/>
-				</div>
-			)}
+			{isScaffolderRepo &&
+				shouldShowFileViewer &&
+				activeTab === "fileViewer" && (
+					<div className="flex flex-col overflow-hidden w-full">
+						<FileViewer
+							mode="edit"
+							folderStructure={builtProjectFiles}
+							projectName={selectedProject.name}
+							filesUsingUserEnv={filesUsingUserEnv}
+							filesFailedToFormat={filesFailedToFormat}
+							projects={appGeneratorProjects}
+							selectedProject={selectedProject}
+							onProjectChange={handleProjectChange}
+						/>
+					</div>
+				)}
 
 			{/* FileViewer panel - Repository mode (view) */}
 			{!isScaffolderRepo && activeTab === "fileViewer" && (
@@ -858,7 +859,9 @@ export function AIChatContainer({
 						<div className="flex-1 flex items-center justify-center">
 							<div className="text-center space-y-3">
 								<div className="w-12 h-12 mx-auto border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
-								<p className="text-sm text-fg-muted">Loading repository files...</p>
+								<p className="text-sm text-fg-muted">
+									Loading repository files...
+								</p>
 							</div>
 						</div>
 					)}
@@ -873,14 +876,21 @@ export function AIChatContainer({
 						<div className="flex-1 flex items-center justify-center">
 							<div className="text-center space-y-3 max-w-md px-4">
 								<div className="w-16 h-16 mx-auto rounded-2xl bg-secondary border border-border flex items-center justify-center text-fg-subtle">
-									<svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+									<svg
+										className="w-8 h-8"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+									>
 										<title>No files</title>
 										<path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
 									</svg>
 								</div>
-								<h3 className="text-lg font-semibold text-fg">No files found</h3>
+								<h3 className="text-lg font-semibold text-fg">
+									No files found
+								</h3>
 								<p className="text-sm text-fg-subtle">
-									Unable to load files from this repository. Make sure the repository is public and contains files.
+									Unable to load files from this repository. Make sure the
+									repository is public and contains files.
 								</p>
 							</div>
 						</div>

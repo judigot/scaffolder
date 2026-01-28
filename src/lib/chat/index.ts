@@ -39,5 +39,7 @@ export type {
 	MessageRole,
 } from "./types";
 export type { UseChatSessionOptions } from "./useChatSession";
-// Hook
+// Hooks
 export { useChatSession } from "./useChatSession";
+export type { UseVercelChatOptions, VercelChatSession } from "./useVercelChat";
+export { useVercelChat } from "./useVercelChat";
