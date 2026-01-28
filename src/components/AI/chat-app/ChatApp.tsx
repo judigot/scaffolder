@@ -76,6 +76,9 @@ export default function ChatApp() {
 		setActiveChatScope,
 	} = useUIStore();
 
+	// Determine if we're in scaffolder mode (used for file loading and UI decisions)
+	const isScaffolderMode = topLevelTab === "scaffolder";
+
 	// ===== Multi-repo chat state =====
 	// Get persisted repos from Auth0
 	const {
@@ -323,15 +326,21 @@ export default function ChatApp() {
 
 	const [inputRepoURL] = useState<string>(publicRepoURL);
 
+	// Hardcoded scaffolder-files repo for scaffolder mode
+	const scaffolderFilesURL = "https://github.com/judigot/scaffolder-files";
+	const effectiveRepoURL = isScaffolderMode
+		? scaffolderFilesURL
+		: publicRepoURL;
+
 	// Lazy load user files only when fileViewer tab is active
 	const { refetch: refetchUserFiles, data: userFiles } = useUserFiles(
-		{ publicRepoURL },
+		{ publicRepoURL: effectiveRepoURL },
 		{
 			refetchInterval: 5 * 60 * 1000,
 			staleTime: 5 * 60 * 1000,
 			gcTime: 10 * 60 * 1000,
 			refetchOnWindowFocus: false,
-			enabled: activeTab === "fileViewer" && !!publicRepoURL,
+			enabled: activeTab === "fileViewer" && !!effectiveRepoURL,
 		},
 	);
 
@@ -1447,8 +1456,6 @@ export default function ChatApp() {
 			/>
 		</div>
 	);
-
-	const isScaffolderMode = topLevelTab === "scaffolder";
 
 	return (
 		<div className="flex flex-col h-screen w-full bg-bg overflow-hidden text-fg">

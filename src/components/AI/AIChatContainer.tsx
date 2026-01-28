@@ -857,6 +857,36 @@ export function AIChatContainer({
 					</div>
 				)}
 
+			{/* FileViewer panel - Scaffolder mode (no schema yet) */}
+			{isScaffolderRepo &&
+				!shouldShowFileViewer &&
+				activeTab === "fileViewer" && (
+					<div className="flex flex-col overflow-hidden w-full">
+						<div className="flex-1 flex items-center justify-center">
+							<div className="text-center space-y-3 max-w-md px-4">
+								<div className="w-16 h-16 mx-auto rounded-2xl bg-secondary border border-border flex items-center justify-center text-fg-subtle">
+									<svg
+										className="w-8 h-8"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+									>
+										<title>No schema</title>
+										<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+									</svg>
+								</div>
+								<h3 className="text-lg font-semibold text-fg">
+									No schema generated
+								</h3>
+								<p className="text-sm text-fg-subtle">
+									Generate a database schema in the Chat tab to see your project
+									files here. Ask the AI to create tables and relationships for
+									your application.
+								</p>
+							</div>
+						</div>
+					</div>
+				)}
+
 			{/* FileViewer panel - Repository mode (view) */}
 			{!isScaffolderRepo && activeTab === "fileViewer" && (
 				<div className="flex flex-col overflow-hidden w-full">
