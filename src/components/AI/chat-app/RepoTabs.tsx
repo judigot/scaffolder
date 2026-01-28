@@ -14,6 +14,7 @@ interface IRepositoryTabsProps {
 		sprintId?: string,
 	) => void;
 	onAddRepo: (repoUrl: string) => void | Promise<void>;
+	onRemoveRepo: (repoUrl: string, repoId: string) => void | Promise<void>;
 }
 
 interface IDropdownPosition {
@@ -27,6 +28,7 @@ export default function RepoTabs({
 	onSelectRepo,
 	onSelectBranch,
 	onAddRepo,
+	onRemoveRepo,
 }: IRepositoryTabsProps) {
 	const [openRepoId, setOpenRepoId] = useState<string | null>(null);
 	const [dropdownPosition, setDropdownPosition] = useState<IDropdownPosition>({
@@ -164,6 +166,22 @@ export default function RepoTabs({
 			setShowAddModal(false);
 			setNewRepoUrl("");
 			setUrlError(null);
+		}
+	};
+
+	const handleRemoveRepo = async (repo: IRepository) => {
+		setIsAdding(true);
+		try {
+			await onRemoveRepo(repo.repoUrl, repo.id);
+			setOpenRepoId(null);
+		} catch (error) {
+			if (error instanceof Error && error.message.trim() !== "") {
+				setUrlError(error.message);
+			} else {
+				setUrlError("Failed to remove repository. Please try again.");
+			}
+		} finally {
+			setIsAdding(false);
 		}
 	};
 
@@ -356,6 +374,28 @@ export default function RepoTabs({
 									</div>
 								))}
 							</div>
+							{openRepo.isRemovable && (
+								<div className="border-t border-border pt-3">
+									<button
+										type="button"
+										onClick={() => {
+											void handleRemoveRepo(openRepo);
+										}}
+										className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-danger-600/40 text-danger-300 hover:bg-danger-900/20 hover:text-danger-200 transition-colors text-sm font-semibold"
+										disabled={isAdding}
+									>
+										<svg
+											className="w-4 h-4"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+										>
+											<title>Remove repository</title>
+											<path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-4.5l-1-1z" />
+										</svg>
+										Remove repository
+									</button>
+								</div>
+							)}
 						</div>
 					</div>,
 					document.body,

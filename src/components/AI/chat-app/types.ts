@@ -14,6 +14,7 @@ export interface IChat {
 	updatedAt: Date;
 	prStatus: "draft" | "ready" | null;
 	prUrl?: string;
+	opencodeSessionId?: string;
 }
 
 export interface ISprint {
@@ -30,6 +31,7 @@ export interface IRepository {
 	name: string;
 	path: string;
 	localPath?: string;
+	isRemovable?: boolean;
 	/** Public GitHub repository URL for fetching files */
 	repoUrl: string;
 	sprints: ISprint[];

@@ -1,5 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ModelId } from "@/components/AI/AIChatContainer.tsx";
 import { AIChatContainer } from "@/components/AI/AIChatContainer.tsx";
 import ChatPanel from "@/components/AI/chat-app/ChatPanel.tsx";
@@ -8,7 +8,6 @@ import { mockRepositories } from "@/components/AI/chat-app/mockData.ts";
 import RepoTabs from "@/components/AI/chat-app/RepoTabs.tsx";
 import TopNav, { type TopLevelTab } from "@/components/AI/chat-app/TopNav.tsx";
 import type { IMessage, IRepository } from "@/components/AI/chat-app/types.ts";
-import OpenCodeChatPanel from "@/components/AI/opencode/OpenCodeChatPanel.tsx";
 import TabBar from "@/components/AI/TabBar.tsx";
 import useDebouncedValue from "@/hooks/useDebouncedValue.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
@@ -40,6 +39,7 @@ function storedRepoToFullRepo(stored: IStoredRepository): IRepository {
 		name: repoName,
 		path: stored.localPath ?? `~/projects/${repoName}`,
 		localPath: stored.localPath,
+		isRemovable: true,
 		repoUrl: stored.repoUrl,
 		sprints: [],
 		chats: [],
@@ -49,12 +49,14 @@ function storedRepoToFullRepo(stored: IStoredRepository): IRepository {
 export default function ChatApp() {
 	// ===== Top-level tab state =====
 	const [topLevelTab, setTopLevelTab] = useState<TopLevelTab>("scaffolder");
-	const [repoMode, setRepoMode] = useState<"repo" | "opencode">("repo");
 
 	// ===== Multi-repo chat state =====
 	// Get persisted repos from Auth0
-	const { repositories: storedRepos, addRepository: persistRepository } =
-		useRepositories();
+	const {
+		repositories: storedRepos,
+		addRepository: persistRepository,
+		removeRepository: persistRemoveRepository,
+	} = useRepositories();
 
 	// Convert stored repos to full IRepository objects with local state for sprints/chats
 	// Always include mock data as demo reference, plus user's saved repos
@@ -321,6 +323,28 @@ export default function ChatApp() {
 		setActiveChatId(null);
 	};
 
+	const handleRemoveRepo = async (repoUrl: string, repoId: string) => {
+		const success = await persistRemoveRepository(repoUrl);
+		if (!success) {
+			throw new Error("Failed to remove repository from profile");
+		}
+
+		setLocalRepoState((prev) => {
+			const next = new Map(prev);
+			next.delete(repoId);
+			return next;
+		});
+
+		if (activeRepoId === repoId) {
+			const remaining = repositories.filter((repo) => repo.id !== repoId);
+			const nextRepo = remaining[0];
+			setActiveRepoId(nextRepo?.id ?? "");
+			setActiveSprintId(nextRepo?.sprints[0]?.id ?? null);
+			setActiveChatScope("regular");
+			setActiveChatId(null);
+		}
+	};
+
 	const handleSelectBranch = (
 		repoId: string,
 		chatId: string,
@@ -413,8 +437,6 @@ export default function ChatApp() {
 		setActiveChatId(newChat.id);
 	};
 
-	// Track ongoing streams to allow cancellation
-	const abortControllerRef = useRef<AbortController | null>(null);
 	const [isStreamingMessage, setIsStreamingMessage] = useState(false);
 
 	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
@@ -512,10 +534,42 @@ export default function ChatApp() {
 		[activeRepoId, activeSprintId, activeChatScope, setRepositories],
 	);
 
+	const updateChatSessionId = useCallback(
+		(chatId: string, sessionId: string) => {
+			setRepositories((prev) =>
+				prev.map((repo) =>
+					repo.id === activeRepoId
+						? {
+								...repo,
+								sprints: repo.sprints.map((sprint) =>
+									sprint.id === activeSprintId
+										? {
+												...sprint,
+												chats: sprint.chats.map((chat) =>
+													chat.id === chatId && activeChatScope === "sprint"
+														? { ...chat, opencodeSessionId: sessionId }
+														: chat,
+												),
+											}
+										: sprint,
+								),
+								chats: repo.chats.map((chat) =>
+									chat.id === chatId && activeChatScope === "regular"
+										? { ...chat, opencodeSessionId: sessionId }
+										: chat,
+								),
+							}
+						: repo,
+				),
+			);
+		},
+		[activeRepoId, activeSprintId, activeChatScope, setRepositories],
+	);
+
 	const handleSendMessage = async (
 		chatId: string,
 		content: string,
-		model: ModelId,
+		_model: ModelId,
 	) => {
 		// Add user message immediately
 		const userMessage: IMessage = {
@@ -526,13 +580,13 @@ export default function ChatApp() {
 		};
 		addMessageToChat(chatId, userMessage);
 
-		// Get repo URL for the active repository
-		const repoUrl = activeRepo?.repoUrl;
-		if (!repoUrl) {
+		const repoPath = activeRepo?.localPath;
+		if (!repoPath) {
 			const errorMessage: IMessage = {
 				id: `msg-${String(Date.now() + 1)}`,
 				role: "assistant",
-				content: "Error: No repository URL configured for this repository.",
+				content:
+					"Error: No local repository path configured for this repository.",
 				timestamp: new Date(),
 			};
 			addMessageToChat(chatId, errorMessage);
@@ -547,11 +601,7 @@ export default function ChatApp() {
 						?.chats.find((c) => c.id === chatId)
 				: activeRepo?.chats.find((c) => c.id === chatId);
 
-		const allMessages = [...(currentChat?.messages ?? []), userMessage];
-		const apiMessages = allMessages.map((msg) => ({
-			role: msg.role,
-			content: msg.content,
-		}));
+		const sessionId = currentChat?.opencodeSessionId;
 
 		// Create placeholder for assistant response
 		const assistantMessage: IMessage = {
@@ -562,202 +612,46 @@ export default function ChatApp() {
 		};
 		addMessageToChat(chatId, assistantMessage);
 
-		// Setup abort controller for cancellation
-		abortControllerRef.current = new AbortController();
 		setIsStreamingMessage(true);
 
 		try {
-			// Get access token if authenticated
-			let headers: Record<string, string> = {
-				"Content-Type": "application/json",
-			};
-
-			if (isAuthenticated) {
-				try {
-					const token = await getAccessTokenSilently();
-					headers = { ...headers, Authorization: `Bearer ${token}` };
-				} catch (authErr) {
-					console.warn("[ChatApp] Could not get access token:", authErr);
-				}
-			}
-
-			const response = await fetch("/api/repo-agent/chat", {
+			const response = await fetch("/api/opencode/chat", {
 				method: "POST",
-				headers,
+				headers: {
+					"Content-Type": "application/json",
+				},
 				body: JSON.stringify({
-					messages: apiMessages,
-					repoUrl,
-					model,
+					message: content,
+					sessionId,
+					directory: repoPath,
 				}),
-				signal: abortControllerRef.current.signal,
 			});
 
 			if (!response.ok) {
-				const errorData = await response
-					.json()
-					.catch(() => ({ error: "Unknown error" }));
-				const errorText =
-					typeof errorData === "object" &&
-					errorData !== null &&
-					"error" in errorData
-						? String(errorData.error)
-						: "Request failed";
+				const errorText = await response.text();
 				updateLastAssistantMessage(chatId, `Error: ${errorText}`);
-				setIsStreamingMessage(false);
 				return;
 			}
 
-			// Handle streaming response
-			const reader = response.body?.getReader();
-			if (!reader) {
-				updateLastAssistantMessage(
-					chatId,
-					"Error: No response stream available",
-				);
-				setIsStreamingMessage(false);
-				return;
+			const data = (await response.json()) as {
+				sessionId?: string;
+				assistantText?: string;
+			};
+
+			if (data.sessionId) {
+				updateChatSessionId(chatId, data.sessionId);
 			}
 
-			const decoder = new TextDecoder();
-			let fullContent = "";
-			const toolActivities: string[] = [];
-			let hadToolCallsSinceLastText = false;
-
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) {
-					break;
-				}
-
-				const chunk = decoder.decode(value, { stream: true });
-
-				// Parse SSE format from AI SDK
-				// Format: "data: {json}"
-				const lines = chunk.split("\n");
-				for (const line of lines) {
-					if (!line.startsWith("data: ")) {
-						continue;
-					}
-
-					const jsonStr = line.slice(6); // Remove "data: " prefix
-					if (jsonStr === "[DONE]") {
-						continue;
-					}
-
-					try {
-						const data = JSON.parse(jsonStr) as {
-							type: string;
-							delta?: string;
-							toolName?: string;
-							toolCallId?: string;
-							input?: Record<string, unknown>;
-							output?: {
-								success?: boolean;
-								output?: string;
-								error?: string;
-								url?: string;
-							};
-						};
-
-						if (data.type === "text-start") {
-							// New text block starting - if we had tool calls since last text, add a paragraph break
-							if (hadToolCallsSinceLastText && fullContent.length > 0) {
-								fullContent += "\n\n";
-							}
-							hadToolCallsSinceLastText = false;
-						} else if (data.type === "text-delta" && data.delta) {
-							// Text content streaming
-							fullContent += data.delta;
-							updateLastAssistantMessage(
-								chatId,
-								fullContent +
-									(toolActivities.length > 0
-										? "\n\n---\n" + toolActivities.join("\n")
-										: ""),
-							);
-						} else if (data.type === "tool-input-available" && data.toolName) {
-							// Tool call started
-							hadToolCallsSinceLastText = true;
-							const inputSummary = data.input
-								? Object.entries(data.input)
-										.map(([k, v]) => `${k}: ${String(v).slice(0, 50)}`)
-										.join(", ")
-								: "";
-							toolActivities.push(
-								`⏳ ${data.toolName}(${inputSummary.slice(0, 80)}${inputSummary.length > 80 ? "..." : ""})`,
-							);
-							updateLastAssistantMessage(
-								chatId,
-								fullContent +
-									(toolActivities.length > 0
-										? "\n\n---\n" + toolActivities.join("\n")
-										: ""),
-							);
-						} else if (data.type === "tool-output-available" && data.output) {
-							// Tool result - update last tool activity
-							const lastIdx = toolActivities.length - 1;
-							if (lastIdx >= 0) {
-								if (data.output.success) {
-									toolActivities[lastIdx] = toolActivities[lastIdx].replace(
-										"⏳",
-										"✅",
-									);
-									if (data.output.url) {
-										toolActivities[lastIdx] += ` → ${data.output.url}`;
-									}
-								} else {
-									toolActivities[lastIdx] = toolActivities[lastIdx].replace(
-										"⏳",
-										"❌",
-									);
-									if (data.output.error) {
-										toolActivities[lastIdx] +=
-											` → ${data.output.error.slice(0, 100)}`;
-									}
-								}
-							}
-							updateLastAssistantMessage(
-								chatId,
-								fullContent +
-									(toolActivities.length > 0
-										? "\n\n---\n" + toolActivities.join("\n")
-										: ""),
-							);
-						}
-					} catch {
-						// Not valid JSON, skip
-					}
-				}
-			}
-
-			// Ensure final content is set
-			const finalContent =
-				fullContent +
-				(toolActivities.length > 0
-					? "\n\n---\n" + toolActivities.join("\n")
-					: "");
-			if (finalContent.length > 0) {
-				updateLastAssistantMessage(chatId, finalContent);
-			} else if (toolActivities.length > 0) {
-				// If we have tool activities but no text, show them
-				updateLastAssistantMessage(
-					chatId,
-					"Tasks completed:\n" + toolActivities.join("\n"),
-				);
-			} else {
-				updateLastAssistantMessage(chatId, "(No response generated)");
-			}
+			updateLastAssistantMessage(
+				chatId,
+				data.assistantText?.trim() || "(No response generated)",
+			);
 		} catch (err: unknown) {
-			if (err instanceof Error && err.name === "AbortError") {
-				updateLastAssistantMessage(chatId, "(Request cancelled)");
-			} else {
-				const errorMessage =
-					err instanceof Error ? err.message : "Unknown error occurred";
-				updateLastAssistantMessage(chatId, `Error: ${errorMessage}`);
-			}
+			const errorMessage =
+				err instanceof Error ? err.message : "Unknown error occurred";
+			updateLastAssistantMessage(chatId, `Error: ${errorMessage}`);
 		} finally {
 			setIsStreamingMessage(false);
-			abortControllerRef.current = null;
 		}
 	};
 
@@ -854,12 +748,6 @@ export default function ChatApp() {
 
 	const isScaffolderMode = topLevelTab === "scaffolder";
 
-	useEffect(() => {
-		if (!isScaffolderMode && repoMode === "opencode" && activeTab !== "chat") {
-			setActiveTab("chat");
-		}
-	}, [activeTab, isScaffolderMode, repoMode, setActiveTab]);
-
 	return (
 		<div className="flex flex-col h-screen w-full bg-bg overflow-hidden text-fg">
 			{/* Top navigation with Scaffolder/Repositories tabs + UserProfile */}
@@ -870,38 +758,6 @@ export default function ChatApp() {
 				serverConfigStatus={serverConfigStatus}
 			/>
 
-			{/* Repository mode toggle */}
-			{!isScaffolderMode && (
-				<div className="bg-bg-subtle border-b border-border px-4 py-2 flex items-center gap-2">
-					<button
-						type="button"
-						onClick={() => {
-							setRepoMode("repo");
-						}}
-						className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-							repoMode === "repo"
-								? "bg-primary-900/30 text-fg border border-primary-600/40"
-								: "text-fg-muted hover:text-fg hover:bg-secondary"
-						}`}
-					>
-						Repo chats
-					</button>
-					<button
-						type="button"
-						onClick={() => {
-							setRepoMode("opencode");
-						}}
-						className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-							repoMode === "opencode"
-								? "bg-primary-900/30 text-fg border border-primary-600/40"
-								: "text-fg-muted hover:text-fg hover:bg-secondary"
-						}`}
-					>
-						OpenCode (Local)
-					</button>
-				</div>
-			)}
-
 			{/* Repo tabs - shown in Repositories mode */}
 			{!isScaffolderMode && (
 				<RepoTabs
@@ -910,44 +766,28 @@ export default function ChatApp() {
 					onSelectRepo={handleSelectRepo}
 					onSelectBranch={handleSelectBranch}
 					onAddRepo={handleAddRepo}
+					onRemoveRepo={handleRemoveRepo}
 				/>
 			)}
 
 			{/* Main content area */}
 			<div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 				<div className="flex-1 overflow-hidden min-h-0">
-					{isScaffolderMode ? (
-						<AIChatContainer
-							activeTab={activeTab}
-							onTabChange={setActiveTab}
-							isScaffolderRepo
-						>
-							{multiChatContent}
-						</AIChatContainer>
-					) : repoMode === "repo" ? (
-						<AIChatContainer
-							activeTab={activeTab}
-							onTabChange={setActiveTab}
-							isScaffolderRepo={false}
-							repoUrl={activeRepo?.repoUrl}
-							repoName={activeRepo?.name}
-						>
-							{multiChatContent}
-						</AIChatContainer>
-					) : (
-						<OpenCodeChatPanel
-							repoName={activeRepo?.name}
-							repoPath={activeRepo?.localPath}
-						/>
-					)}
-				</div>
-				{(isScaffolderMode || repoMode === "repo") && (
-					<TabBar
+					<AIChatContainer
 						activeTab={activeTab}
 						onTabChange={setActiveTab}
-						hasGeneratedCode={schemaInfo.length > 0}
-					/>
-				)}
+						isScaffolderRepo={isScaffolderMode}
+						repoUrl={isScaffolderMode ? undefined : activeRepo?.repoUrl}
+						repoName={isScaffolderMode ? undefined : activeRepo?.name}
+					>
+						{multiChatContent}
+					</AIChatContainer>
+				</div>
+				<TabBar
+					activeTab={activeTab}
+					onTabChange={setActiveTab}
+					hasGeneratedCode={schemaInfo.length > 0}
+				/>
 			</div>
 		</div>
 	);
