@@ -29,6 +29,10 @@ import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
 import { useUIStore } from "@/useUIStore.ts";
+import {
+	removeHiddenSchemaFromText,
+	validateSchemaInfoFromResponse,
+} from "@/utils/schemaInfoValidator.ts";
 
 /**
  * Convert stored repository (from Auth0) to full IRepository with local state
@@ -297,7 +301,8 @@ export default function ChatApp() {
 	} = useUser();
 	const { decryptedMetadata } = useDecryptedUserMetadata();
 	const { publicRepoURL, setPublicRepoURL } = formData;
-	const { setTransformations, schemaInfo } = useTransformationsStore();
+	const { setTransformations, schemaInfo, setSchemaInfo } =
+		useTransformationsStore();
 	const { typeMappings, dbTypes, setUserFiles } = useMockDatabaseStore();
 	const { selectedProject, invalidateProjectCache } = useProjectStore();
 
@@ -1141,7 +1146,18 @@ export default function ChatApp() {
 
 			const assistantText =
 				data.assistantText?.trim() || "(No response generated)";
-			updateLastAssistantMessage(chatId, assistantText);
+
+			// Parse schema from response and update global store
+			const schemaResult = validateSchemaInfoFromResponse(assistantText);
+			if (schemaResult.success && schemaResult.extracted && schemaResult.data) {
+				console.log("[ChatApp] Schema detected and parsed:", schemaResult.data);
+				setSchemaInfo(schemaResult.data);
+				// Remove hidden schema tags from display text
+				const cleanText = removeHiddenSchemaFromText(assistantText);
+				updateLastAssistantMessage(chatId, cleanText);
+			} else {
+				updateLastAssistantMessage(chatId, assistantText);
+			}
 
 			// Extract branch name from agent response and associate with chat
 			const extractedBranch = extractBranchFromResponse(assistantText);
