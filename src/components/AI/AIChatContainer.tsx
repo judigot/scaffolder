@@ -776,6 +776,17 @@ export function AIChatContainer({
 		const canBuildProject =
 			hasSelectedProject && hasUser && hasUserFiles && hasSchema;
 
+		// Debug logging for build conditions
+		console.log("[AIChatContainer] Build conditions:", {
+			hasSelectedProject,
+			hasUser,
+			hasUserFiles,
+			storeUserFilesLength: storeUserFiles.length,
+			hasSchema,
+			schemaInfoLength: schemaInfo.length,
+			canBuildProject,
+		});
+
 		if (canBuildProject) {
 			const buildProject = async () => {
 				const result = await buildProjectFilesForProject(
@@ -829,6 +840,16 @@ export function AIChatContainer({
 		schemaInfo.length > 0 &&
 		builtProjectFiles.length > 0 &&
 		selectedProject !== null;
+
+	// Debug logging for FileViewer conditions
+	console.log("[AIChatContainer] FileViewer conditions:", {
+		isScaffolderRepo,
+		activeTab,
+		schemaInfoLength: schemaInfo.length,
+		builtProjectFilesLength: builtProjectFiles.length,
+		selectedProject: selectedProject?.name ?? null,
+		shouldShowFileViewer,
+	});
 
 	// We no longer need the Ctrl+B shortcut here as it's handled in the parent component
 	// This effect has been removed since we're using the parent component for tab switching
