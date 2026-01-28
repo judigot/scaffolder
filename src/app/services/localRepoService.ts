@@ -176,7 +176,8 @@ export async function prepareRepoPath(
 export async function isGitRepository(repoPath: string): Promise<boolean> {
 	try {
 		const stat = await fs.stat(path.join(repoPath, ".git"));
-		return stat.isDirectory();
+		// Accept both directory (normal repo) and file (worktree)
+		return stat.isDirectory() || stat.isFile();
 	} catch {
 		return false;
 	}

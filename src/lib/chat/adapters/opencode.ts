@@ -61,6 +61,7 @@ export function createOpenCodeAdapter(): ChatAdapter {
 						message: content,
 						sessionId: config.sessionId ?? currentSessionId,
 						directory: config.directory,
+						systemPrompt: config.systemPrompt,
 					}),
 					signal: abortController?.signal,
 				});

@@ -10,6 +10,7 @@ interface IStreamChatPayload {
 	message?: unknown;
 	sessionId?: unknown;
 	directory?: unknown;
+	systemPrompt?: unknown;
 }
 
 const app = new Hono();
@@ -47,6 +48,8 @@ app.post("/", async (c) => {
 
 	const directory =
 		typeof body.directory === "string" ? body.directory : undefined;
+	const systemPrompt =
+		typeof body.systemPrompt === "string" ? body.systemPrompt : undefined;
 	const headers = buildOpencodeHeaders(configResult.config, directory);
 	const baseUrl = configResult.config.baseUrl;
 
@@ -119,14 +122,23 @@ app.post("/", async (c) => {
 			}
 
 			// Step 3: Send message asynchronously
+			const promptBody: {
+				parts: { type: string; text: string }[];
+				system?: string;
+			} = {
+				parts: [{ type: "text", text: String(body.message) }],
+			};
+
+			if (systemPrompt) {
+				promptBody.system = systemPrompt;
+			}
+
 			const promptResponse = await fetch(
 				`${baseUrl}/session/${sessionId}/prompt_async`,
 				{
 					method: "POST",
 					headers,
-					body: JSON.stringify({
-						parts: [{ type: "text", text: body.message }],
-					}),
+					body: JSON.stringify(promptBody),
 				},
 			);
 

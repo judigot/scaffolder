@@ -9,6 +9,7 @@ interface IOpenCodeChatPayload {
 	message?: unknown;
 	sessionId?: unknown;
 	directory?: unknown;
+	systemPrompt?: unknown;
 }
 
 interface IOpenCodePart {
@@ -78,6 +79,8 @@ app.post("/", async (c) => {
 
 	const directory =
 		typeof body.directory === "string" ? body.directory : undefined;
+	const systemPrompt =
+		typeof body.systemPrompt === "string" ? body.systemPrompt : undefined;
 	const headers = buildOpencodeHeaders(configResult.config, directory);
 	const baseUrl = configResult.config.baseUrl;
 
@@ -89,14 +92,23 @@ app.post("/", async (c) => {
 			sessionId = await createSession(baseUrl, headers);
 		}
 
+		const promptBody: {
+			parts: { type: string; text: string }[];
+			system?: string;
+		} = {
+			parts: [{ type: "text", text: body.message }],
+		};
+
+		if (systemPrompt) {
+			promptBody.system = systemPrompt;
+		}
+
 		const promptResponse = await fetch(
 			new URL(`/session/${sessionId}/message`, baseUrl).toString(),
 			{
 				method: "POST",
 				headers,
-				body: JSON.stringify({
-					parts: [{ type: "text", text: body.message }],
-				}),
+				body: JSON.stringify(promptBody),
 			},
 		);
 

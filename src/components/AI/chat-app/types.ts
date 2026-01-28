@@ -14,7 +14,15 @@ export interface IChat {
 	updatedAt: Date;
 	prStatus: "draft" | "ready" | null;
 	prUrl?: string;
+	prNumber?: number;
+	prTitle?: string;
 	opencodeSessionId?: string;
+	/** Git branch name associated with this chat (e.g., "feat/add-auth") */
+	branch?: string;
+	/** Full path to worktree directory for this chat */
+	worktreePath?: string;
+	/** Worktree creation status */
+	worktreeStatus?: "creating" | "ready" | "error";
 }
 
 export interface ISprint {
