@@ -12,6 +12,7 @@ import TabBar from "@/components/AI/TabBar.tsx";
 import { useCheckoutBranch } from "@/hooks/useCheckoutBranch.ts";
 import useDebouncedValue from "@/hooks/useDebouncedValue.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
+import { useLocalRepoFiles } from "@/hooks/useLocalRepoFiles.ts";
 import {
 	type IStoredRepository,
 	useRepositories,
@@ -258,6 +259,24 @@ export default function ChatApp() {
 			? (activeRepo?.chats.find((c) => c.id === activeChatId) ?? null)
 			: (activeSprint?.chats.find((c) => c.id === activeChatId) ?? null);
 
+	// Fetch files from local repo clone
+	const { refetch: refetchLocalFiles, data: localFiles } = useLocalRepoFiles(
+		{ localPath: activeRepo?.localPath },
+		{
+			staleTime: 0,
+			gcTime: 5 * 60 * 1000,
+			refetchOnWindowFocus: false,
+			enabled: !!activeRepo?.localPath,
+		},
+	);
+
+	// Update store with local files when they change
+	useEffect(() => {
+		if (localFiles && localFiles.length > 0) {
+			setUserFiles(localFiles);
+		}
+	}, [localFiles, setUserFiles]);
+
 	// ===== Multi-repo chat handlers =====
 	const handleAddRepo = async (repoUrl: string) => {
 		if (!isAuthenticated) {
@@ -417,7 +436,7 @@ export default function ChatApp() {
 					branch: chat.branch,
 				});
 				if (result?.ok) {
-					await refetchUserFiles();
+					await refetchLocalFiles();
 				}
 			}
 		}
@@ -455,7 +474,7 @@ export default function ChatApp() {
 
 				// Refetch files after successful checkout
 				if (result?.ok) {
-					await refetchUserFiles();
+					await refetchLocalFiles();
 				}
 			}
 		}
@@ -482,7 +501,7 @@ export default function ChatApp() {
 
 				// Refetch files after successful checkout
 				if (result?.ok) {
-					await refetchUserFiles();
+					await refetchLocalFiles();
 				}
 			}
 		}
