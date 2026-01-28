@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: Use this agent when working with styles, design tokens, component styling, or the design system architecture. Examples:
+description: Use this agent when changing design tokens, component styling, or the design system architecture (not responsive layout behavior). Examples:
 
 <example>
 Context: User wants to add a new component style

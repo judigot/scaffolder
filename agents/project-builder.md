@@ -1,6 +1,6 @@
 ﻿---
 name: project-builder
-description: Use this agent when you need to understand or modify the project-builder code generation system, add new template commands, or work with YAML structure definitions. Examples:
+description: Use this agent when you need to understand or modify the project-builder engine (parsing, commands, generation pipeline), not when authoring templates or structure.yaml files. Examples:
 
 <example>
 Context: User needs to add a new template command
@@ -24,6 +24,7 @@ model: inherit
 color: orange
 tools: ["Read", "Write", "Bash", "Grep"]
 ---
+
 # Agent Project Builder - Context Guide
 
 This document provides essential context about the project-builder system for AI agents working on this codebase.
@@ -35,6 +36,7 @@ The project-builder is a code generation system that scaffolds project files fro
 ## Core Architecture
 
 ### Main Entry Point
+
 - **`buildProjectFiles.ts`**: Main function that orchestrates the entire build process
   - Takes a project YAML path, user files, schema info, and form data
   - Returns generated file structure with metadata about files using user env vars and formatting failures
@@ -43,6 +45,7 @@ The project-builder is a code generation system that scaffolds project files fro
 ### Key Components
 
 #### 1. Project Processors (`project-processors/`)
+
 - **`processYamlStructure.ts`**: Recursively processes YAML structure, handling all project actions
 - **`processMultipleFiles.ts`**: Generates multiple files from schema tables (FILE_LOOP action)
   - Supports `--ignore` flag with `USE_CONSTANT()` for filtering tables
@@ -53,6 +56,7 @@ The project-builder is a code generation system that scaffolds project files fro
 - **`processDynamicFolders.ts`**: Creates dynamic folder structures based on conditions
 
 #### 2. Template Processors (`template-processors/`)
+
 - **`processIterateCommand.ts`**: Handles LOOP commands and iteration logic
   - Supports `--ignore` flag with `USE_CONSTANT()` for filtering in LOOP commands
   - Supports `--filter`, `--separator`, `--include-files`, `--exclude-files` flags
@@ -63,6 +67,7 @@ The project-builder is a code generation system that scaffolds project files fro
 - **`replacePlaceholders.ts`**: Replaces placeholders like `{{tableName}}` with actual values
 
 #### 3. Utilities (`utils/`)
+
 - **`parseCommand.ts`**: Parses command strings and extracts flags/options
   - Supports flags like `--template`, `--ignore`, `--data-source`, `--include-table`, etc.
 - **`findFileInStructure.ts`**: Finds files in the file structure by path
@@ -75,6 +80,7 @@ The project-builder is a code generation system that scaffolds project files fro
   - Used throughout project-builder for view table exclusion
 
 #### 4. Structure Utilities
+
 - **`updateFilesInStructure.ts`**: Updates multiple files in a structure in a single pass
   - Takes a structure and a Map of file paths to new content
   - Returns a new immutable structure with updated files
@@ -82,6 +88,7 @@ The project-builder is a code generation system that scaffolds project files fro
   - Used for optimizing rebuilds when metadata changes
 
 #### 5. Helpers (`helpers/`)
+
 - **`sanitizeFileName.ts`**: Enterprise-grade filename and folder name sanitization
   - Removes invalid characters, control characters, and reserved Windows filenames
   - Ensures cross-platform compatibility (Windows, Linux, macOS)
@@ -91,14 +98,17 @@ The project-builder is a code generation system that scaffolds project files fro
 ## Project Actions
 
 ### FILE_LOOP
+
 Generates multiple files by iterating over schema tables.
 
 **Syntax:**
+
 ```yaml
 FILE_LOOP(filename --template=path --ignore=value --data-source=path)
 ```
 
 **Flags:**
+
 - `--template`: Path to template file (supports relative paths)
 - `--ignore`: Comma-separated list of table names to skip, or `USE_CONSTANT(path)` to load from file
 - `--include-table`: Only include specific table
@@ -109,18 +119,21 @@ FILE_LOOP(filename --template=path --ignore=value --data-source=path)
 **View Table Exclusion:** View tables (tables with `viewQuery` property) are automatically excluded by default. Views are read-only and don't need code generation (migrations, controllers, models, etc.).
 
 **Example:**
+
 ```yaml
 db:
-  FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql 
-    --ignore USE_CONSTANT(./constants/ignoredTables.yaml) 
-    --template ./templates/migration.sql.txt 
+  FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql
+    --ignore USE_CONSTANT(./constants/ignoredTables.yaml)
+    --template ./templates/migration.sql.txt
     --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
 ```
 
 ### LOOP_FOLDERS
+
 Generates files by iterating over folders matching a glob pattern.
 
 **Syntax:**
+
 ```yaml
 LOOP_FOLDERS(filename --data-source=pattern --template=path)
 ```
@@ -128,9 +141,11 @@ LOOP_FOLDERS(filename --data-source=pattern --template=path)
 **View Table Exclusion:** View tables are automatically excluded when iterating over schema tables (when `--data-source` is not used).
 
 ### IMPORT_PROJECT
+
 Imports another project structure.
 
 **Syntax:**
+
 ```yaml
 IMPORT_PROJECT(path/to/structure.yaml)
 ```
@@ -138,31 +153,38 @@ IMPORT_PROJECT(path/to/structure.yaml)
 ## Template Commands
 
 ### USE_CONSTANT
+
 Accesses constant values from YAML files. Supports two formats:
 
 1. **In templates** (with brackets): `[[USE_CONSTANT(constantName)]]`
 2. **In command options** (without brackets): `USE_CONSTANT(./path/to/file.yaml)`
 
 **Path Support:**
+
 - **Relative paths**: `./constants/ignoredTables.yaml` (resolved relative to project YAML file)
 - **Absolute paths**: `/Projects/App/constants/ignoredTables.yaml`
 - **Constants folder** (legacy): Just the constant name (e.g., `tableName`) loads from `/Constants/tableName.yaml`
 
 **File Format:**
 YAML files can contain:
+
 - Array of values: `- value1\n- value2`
 - Named object with array: `constantName: [value1, value2]`
 
 ### USE_FORM_DATA
+
 Accesses form data values: `[[USE_FORM_DATA(key)]]`
 
 ### USE_USER_ENV
+
 Accesses user environment variables: `[[USE_USER_ENV(VAR_NAME)]]`
 
 ### USE_DATA
+
 Accesses data from external YAML files: `[[USE_DATA(path.to.value)]]`
 
 ### USE_TEMPLATE
+
 Includes another template: `[[USE_TEMPLATE(./path/to/template.txt)]]`
 
 ## Placeholders
@@ -170,6 +192,7 @@ Includes another template: `[[USE_TEMPLATE(./path/to/template.txt)]]`
 Placeholders use double curly braces: `{{placeholderName}}`
 
 **Common Placeholders:**
+
 - `{{tableName}}`: Table name in original case
 - `{{tableNameSnakeCase}}`: Table name in snake_case
 - `{{tableNameSnakeCasePlural}}`: Plural table name in snake_case
@@ -218,6 +241,7 @@ someKey: LOOP(columns --ignore="id,created_at,updated_at"):
 ## File Structure
 
 The system works with an in-memory file structure (`IStructure`) that represents:
+
 - **Files**: `{ type: 'file', name: string, content: string }`
 - **Folders**: `{ type: 'folder', name: string, children: IStructure }`
 
@@ -226,6 +250,7 @@ Files are loaded from this structure, processed, and new files are generated.
 ## Build Context Pattern
 
 The system uses `IBuildContext` to pass shared state:
+
 - `userFiles`: The file structure
 - `schemaInfo`: Database schema information
 - `schemaInfoParsed`: Parsed schema with relationships
@@ -244,6 +269,7 @@ The system uses `IBuildContext` to pass shared state:
 ## Testing
 
 Test files are located in `src/tests/utils/project-builder/`:
+
 - Test file naming: `*.test.ts`
 - Use `describe()` and `it()` from vitest
 - Mock file structures using `IStructure` type
@@ -261,6 +287,7 @@ Test files are located in `src/tests/utils/project-builder/`:
 ### Loading Files from Paths
 
 Use `findFileInStructure()` with resolved path:
+
 ```typescript
 const resolvedPath = processRelativePath(relativePath, projectYamlPath);
 const file = findFileInStructure(resolvedPath, userFiles);
@@ -269,6 +296,7 @@ const file = findFileInStructure(resolvedPath, userFiles);
 ### Processing USE_CONSTANT
 
 Check for both formats:
+
 ```typescript
 const USE_CONSTANT_OPTION_REGEX = /USE_CONSTANT\(([^)]+)\)/;
 let match = USE_CONSTANT_OPTION_REGEX.exec(value); // Without brackets
@@ -291,6 +319,7 @@ if (!match) {
 ## Recent Changes
 
 ### Graceful Handling of Missing User Metadata
+
 - Updated `fetchUserMetadata()` in `src/hooks/useUser.ts` to return `null` instead of throwing errors when API fails
 - Updated `App.tsx` to allow project building without requiring `decryptedMetadata !== null`
 - Project builder now works without Auth0 Management API credentials
@@ -299,6 +328,7 @@ if (!match) {
 - Added error handling to `/api/user-metadata` endpoint to return proper JSON error responses
 
 ### Ignore Flag with USE_CONSTANT Path Support
+
 - Added `loadConstantFromPath()` function to load constants from any file path
 - Updated `processMultipleFiles.ts` to support `--ignore` flag with `USE_CONSTANT(path)`
 - Updated `processIterateCommand.ts` to support `--ignore` flag with `USE_CONSTANT(path)`
@@ -306,6 +336,7 @@ if (!match) {
 - Added `USE_CONSTANT_OPTION_REGEX` to match `USE_CONSTANT(...)` without brackets (for command options)
 
 ### Selective File Updates
+
 - Added `updateFilesInStructure()` utility function for efficiently updating multiple files in a structure
 - Enables selective rebuilds when only specific files need updating (e.g., when user metadata changes)
 - Returns immutable structure with updated files in a single pass
@@ -313,6 +344,7 @@ if (!match) {
 - Can be used to optimize rebuilds by only updating files that use `USE_USER_ENV` when metadata changes
 
 ### Project Generation Endpoints Unification
+
 - Both `/scaffold` and `/create-local-files` endpoints now use the same project builder system
 - Created shared `IProjectGenerationRequest` interface in `src/interfaces/IProjectGenerationRequest.ts`
 - Both endpoints accept identical request bodies: `schemaInfo`, `SQLSchema`, `formData`, and `userMetadata`
@@ -323,6 +355,7 @@ if (!match) {
 - Use `/create-local-files` when you only need file generation
 
 ### Enterprise-Grade Filename and Folder Name Sanitization
+
 - **Implementation**: `src/utils/project-builder/helpers/sanitizeFileName.ts`
 - **Purpose**: Protects against filesystem errors and security vulnerabilities from user-generated filenames
 - **Coverage**: Applied to all generated filenames AND folder names across the entire project builder system
@@ -345,6 +378,7 @@ if (!match) {
 - **Note**: This is a production-grade security feature that ensures cross-platform compatibility and prevents filesystem errors from malicious or malformed user input
 
 ### View Table Exclusion by Default
+
 - **Implementation**: Automatic exclusion of view tables in all loop operations
 - **Scope**: Applied to `FILE_LOOP`, `FOLDER_LOOP`, `LOOP(tables)`, and `LOOP(tablesReversed)` commands
 - **Detection**: Uses centralized `getViewTables()` function from `getSchemaInfo.ts` via `filterViewTables()` helper
@@ -372,6 +406,7 @@ if (!match) {
 - **Documentation**: See `src/utils/project-builder/docs/README.md` for user-facing documentation
 
 ### Early Return Performance Optimization for User Files Loading
+
 - **Problem**: Race condition on app reload where `selectedProject` is restored from localStorage before `userFiles` are fetched, causing unnecessary build attempts
 - **Solution**: Two-level early return strategy implemented in `App.tsx` and `useProjectStore.ts`
 - **Component Level** (`App.tsx`): `useEffect` checks prerequisites (`hasSelectedProject`, `hasUser`, `hasUserFiles`) before triggering build
@@ -385,6 +420,7 @@ if (!match) {
 - **Documentation**: See `src/utils/project-builder/docs/PERFORMANCE_OPTIMIZATIONS.md` for detailed documentation
 
 ### Automatic Unique Timestamps for Multiple File Generation
+
 - **Problem**: When generating multiple files using `FILE_LOOP` with `{{timestamp()}}`, all files would receive the same timestamp, causing filename collisions
 - **Solution**: Automatic offset mechanism that ensures unique timestamps while preserving order
 - **Implementation**:
@@ -406,6 +442,7 @@ if (!match) {
 - **Note**: This is a general-purpose feature that works for any use case requiring unique, ordered timestamps, not specific to any framework
 
 ### Repository Viewer Fallback and Projects Folder Convention Enforcement
+
 - **Problem**: Repositories without valid scaffolder project structure (missing `Projects/` folder) would fail silently or show stale data from localStorage, preventing users from browsing invalid repositories
 - **Solution**: Added repository viewer fallback mode and enforced root-level-only Projects folder convention through self-documenting code
 - **Implementation**:
@@ -435,5 +472,3 @@ if (!match) {
   - `src/utils/project-builder/utils/findProjectsFolderAtRoot.ts`: New utility function
   - `src/utils/project-builder/utils/loadCoreFiles.ts`: Uses `findProjectsFolderAtRoot()`
   - `src/hooks/useUserFiles.ts`: Improved error messaging for empty repositories
-
-

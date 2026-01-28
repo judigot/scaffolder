@@ -1,6 +1,6 @@
 ---
 name: responsive-design
-description: Use this agent when working on responsive layouts, mobile/desktop view switching, or UI components that need to adapt to different screen sizes. Examples:
+description: Use this agent when working on responsive layouts, mobile/desktop view switching, or adaptive UI behavior (not design tokens or component styling). Examples:
 
 <example>
 Context: User needs to add mobile-responsive behavior
