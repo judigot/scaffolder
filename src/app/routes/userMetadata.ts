@@ -330,7 +330,13 @@ router.post("/infra", async (c) => {
 
 // Repository storage for the assistant chat feature
 interface IRepositoryPayload {
-	repositories?: { repoUrl?: unknown; addedAt?: unknown }[];
+	repositories?: {
+		repoUrl?: unknown;
+		addedAt?: unknown;
+		localPath?: unknown;
+		defaultBranch?: unknown;
+		authType?: unknown;
+	}[];
 }
 
 const isRepositoryPayload = (val: unknown): val is IRepositoryPayload => {
@@ -361,7 +367,8 @@ router.post("/repositories", async (c) => {
 		return c.json(
 			{
 				error: "Invalid payload",
-				message: "repositories must be an array of { repoUrl, addedAt } objects.",
+				message:
+					"repositories must be an array of { repoUrl, addedAt } objects.",
 			},
 			400,
 		);
@@ -370,14 +377,27 @@ router.post("/repositories", async (c) => {
 	// Validate and sanitize repository entries
 	const repositoriesArray = body.repositories
 		.filter(
-			(item): item is { repoUrl: string; addedAt: string } =>
+			(
+				item,
+			): item is {
+				repoUrl: string;
+				addedAt: string;
+				localPath?: string;
+				defaultBranch?: string;
+				authType?: string;
+			} =>
 				typeof item.repoUrl === "string" &&
 				item.repoUrl.trim() !== "" &&
-				typeof item.addedAt === "string"
+				typeof item.addedAt === "string",
 		)
 		.map((item) => ({
 			repoUrl: item.repoUrl.trim(),
 			addedAt: item.addedAt,
+			localPath:
+				typeof item.localPath === "string" ? item.localPath : undefined,
+			defaultBranch:
+				typeof item.defaultBranch === "string" ? item.defaultBranch : undefined,
+			authType: typeof item.authType === "string" ? item.authType : undefined,
 		}));
 
 	try {

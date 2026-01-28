@@ -18,6 +18,7 @@ import githubTokenRouter from "./githubToken.ts";
 import healthRouter from "./health.ts";
 import helloRouter from "./hello.ts";
 import introspectRouter from "./introspect.ts";
+import localRepoRouter from "./localRepo.ts";
 import opencodeRouter from "./opencode/index.ts";
 import repoAgentRouter from "./repoAgent.ts";
 import saveLocalFileRouter from "./saveLocalFile.ts";
@@ -60,6 +61,7 @@ router.route("/agent", agentRouter);
 router.route("/chat", chatRouter);
 router.route("/repo-agent", repoAgentRouter);
 router.route("/opencode", opencodeRouter);
+router.route("/local-repo", localRepoRouter);
 router.route("/terminal", terminalRouter);
 router.route("/validate-schema", validateSchemaRouter);
 
