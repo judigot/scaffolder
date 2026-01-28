@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import RepoStatusPanel from "@/components/AI/chat-app/RepoStatusPanel.tsx";
 import type { IRepository } from "@/components/AI/chat-app/types.ts";
 import Badge from "@/components/AI/chat-app/ui/Badge.tsx";
-import { useUIStore } from "@/useUIStore.ts";
 
 interface IRepositoryTabsProps {
 	repositories: IRepository[];
@@ -34,25 +33,31 @@ export default function RepoTabs({
 	onRemoveRepo,
 	onDeleteClone,
 }: IRepositoryTabsProps) {
-	// Centralized UI state from store
-	const {
-		openRepoDropdownId: openRepoId,
-		setOpenRepoDropdownId: setOpenRepoId,
-		showAddRepoModal: showAddModal,
-		setShowAddRepoModal: setShowAddModal,
-		deleteConfirmRepoId: showDeleteConfirm,
-		setDeleteConfirmRepoId: setShowDeleteConfirm,
-	} = useUIStore();
+	// ---------------------------------------------------------------------------
+	// Local State
+	// These are UI concerns owned entirely by this component
+	// ---------------------------------------------------------------------------
 
-	// Local UI state (not worth centralizing)
+	// Dropdown state
+	const [openRepoId, setOpenRepoId] = useState<string | null>(null);
 	const [dropdownPosition, setDropdownPosition] = useState<IDropdownPosition>({
 		top: 0,
 		left: 0,
 	});
+
+	// Add repository modal state
+	const [showAddModal, setShowAddModal] = useState(false);
 	const [newRepoUrl, setNewRepoUrl] = useState("");
 	const [urlError, setUrlError] = useState<string | null>(null);
 	const [isAdding, setIsAdding] = useState(false);
+
+	// Delete confirmation state
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+		null,
+	);
 	const [isDeleting, setIsDeleting] = useState(false);
+
+	// Refs
 	const containerRef = useRef<HTMLDivElement>(null);
 	const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +83,7 @@ export default function RepoTabs({
 		return () => {
 			window.removeEventListener("click", handleClickOutside);
 		};
-	}, [setOpenRepoId]);
+	}, []);
 
 	// Update dropdown position when opened
 	useEffect(() => {

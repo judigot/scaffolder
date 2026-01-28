@@ -2,127 +2,94 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { TabType } from "@/components/AI/TabBar.tsx";
 
-/** Top-level navigation tabs */
+/**
+ * Global UI Store
+ *
+ * This store contains ONLY state that:
+ * 1. Needs to be shared across multiple components, OR
+ * 2. Should persist across page refreshes (user preferences)
+ *
+ * Local UI state (dropdowns, modals, form inputs) should remain
+ * in the component that owns it.
+ */
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/** Top-level navigation: scaffolder mode vs repository browser */
 export type TopLevelTab = "scaffolder" | "repositories";
 
-/** Chat scope within a repository */
+/** Chat context: within a sprint or standalone */
 export type ChatScope = "sprint" | "regular";
 
-interface IUIStore {
-	// === Navigation State ===
-	/** Top-level tab: scaffolder vs repositories */
+// ============================================================================
+// Store Interface
+// ============================================================================
+
+interface UIStore {
+	// --- Navigation (persisted) ---
+	// These determine what the user sees and should survive page refresh
+
+	/** Which top-level mode the user is in */
 	topLevelTab: TopLevelTab;
 	setTopLevelTab: (tab: TopLevelTab) => void;
 
-	/** Inner tab: chat, fileViewer, or infra */
+	/** Which content tab is active (chat, code viewer, infra) */
 	activeTab: TabType;
 	setActiveTab: (tab: TabType) => void;
 
-	// === Repository State ===
-	/** Currently selected repository ID */
+	// --- Repository Context (persisted) ---
+	// These track the user's current working context
+
+	/** Which repository the user is working in */
 	activeRepoId: string | null;
 	setActiveRepoId: (id: string | null) => void;
 
-	/** Currently open repo dropdown (for repo list) */
-	openRepoDropdownId: string | null;
-	setOpenRepoDropdownId: (id: string | null) => void;
-
-	// === Sprint/Chat State ===
-	/** Currently selected sprint ID */
+	/** Which sprint is selected within the repository */
 	activeSprintId: string | null;
 	setActiveSprintId: (id: string | null) => void;
 
-	/** Currently selected chat ID */
+	/** Which chat conversation is active */
 	activeChatId: string | null;
 	setActiveChatId: (id: string | null) => void;
 
-	/** Chat scope: sprint-level or regular */
+	/** Whether viewing sprint chats or standalone chats */
 	activeChatScope: ChatScope;
 	setActiveChatScope: (scope: ChatScope) => void;
-
-	// === UI Visibility State ===
-	/** Whether add repo modal is visible */
-	showAddRepoModal: boolean;
-	setShowAddRepoModal: (show: boolean) => void;
-
-	/** Repo ID pending delete confirmation */
-	deleteConfirmRepoId: string | null;
-	setDeleteConfirmRepoId: (id: string | null) => void;
-
-	// === Helpers ===
-	/** Reset repository-related state (when switching top-level tabs) */
-	resetRepoState: () => void;
 }
 
-export const useUIStore = create<IUIStore>()(
+// ============================================================================
+// Store Implementation
+// ============================================================================
+
+export const useUIStore = create<UIStore>()(
 	persist(
 		(set) => ({
 			// Navigation
 			topLevelTab: "scaffolder",
-			setTopLevelTab: (topLevelTab) => {
-				set({ topLevelTab });
-			},
+			setTopLevelTab: (topLevelTab) => set({ topLevelTab }),
 
 			activeTab: "chat",
-			setActiveTab: (activeTab) => {
-				set({ activeTab });
-			},
+			setActiveTab: (activeTab) => set({ activeTab }),
 
-			// Repository
+			// Repository context
 			activeRepoId: null,
-			setActiveRepoId: (activeRepoId) => {
-				set({ activeRepoId });
-			},
+			setActiveRepoId: (activeRepoId) => set({ activeRepoId }),
 
-			openRepoDropdownId: null,
-			setOpenRepoDropdownId: (openRepoDropdownId) => {
-				set({ openRepoDropdownId });
-			},
-
-			// Sprint/Chat
 			activeSprintId: null,
-			setActiveSprintId: (activeSprintId) => {
-				set({ activeSprintId });
-			},
+			setActiveSprintId: (activeSprintId) => set({ activeSprintId }),
 
 			activeChatId: null,
-			setActiveChatId: (activeChatId) => {
-				set({ activeChatId });
-			},
+			setActiveChatId: (activeChatId) => set({ activeChatId }),
 
 			activeChatScope: "regular",
-			setActiveChatScope: (activeChatScope) => {
-				set({ activeChatScope });
-			},
-
-			// UI Visibility
-			showAddRepoModal: false,
-			setShowAddRepoModal: (showAddRepoModal) => {
-				set({ showAddRepoModal });
-			},
-
-			deleteConfirmRepoId: null,
-			setDeleteConfirmRepoId: (deleteConfirmRepoId) => {
-				set({ deleteConfirmRepoId });
-			},
-
-			// Helpers
-			resetRepoState: () => {
-				set({
-					activeRepoId: null,
-					openRepoDropdownId: null,
-					activeSprintId: null,
-					activeChatId: null,
-					activeChatScope: "regular",
-					showAddRepoModal: false,
-					deleteConfirmRepoId: null,
-				});
-			},
+			setActiveChatScope: (activeChatScope) => set({ activeChatScope }),
 		}),
 		{
 			name: "ui-preferences",
 			storage: createJSONStorage(() => localStorage),
-			// Only persist certain fields (not modals or temporary state)
+			// Persist user's navigation state so they return where they left off
 			partialize: (state) => ({
 				topLevelTab: state.topLevelTab,
 				activeTab: state.activeTab,
