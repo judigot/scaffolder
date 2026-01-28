@@ -9,12 +9,16 @@ Capture the next set of production-ready enhancements for the OpenCode-based rep
 1. ~~Delete local clone action (separate from remove metadata)~~ **DONE**
 2. ~~Repo git status panel (branch + dirty state + last commit)~~ **DONE**
 3. ~~OpenCode streaming in chat UI (SSE)~~ **DONE**
-4. Per-repo directory override + header display
-5. ~~Repo sync controls (fetch/pull) with guardrails~~ **DONE**
+4. ~~Chat branch checkout (auto-checkout on chat selection)~~ **DONE**
+5. ~~Remote coding agent system prompt (auto-create branches, commit)~~ **DONE**
+6. Per-repo directory override + header display
+7. ~~Repo sync controls (fetch/pull) with guardrails~~ **DONE**
 
 > See `plans/chat-abstraction-layer.md` for streaming implementation details.
 
-> See `features/repo-management-enhancements.md` for shipped items.
+> See `features/repo-management-enhancements.md` for git sync controls.
+
+> See `features/chat-branch-checkout.md` for branch checkout and remote agent.
 
 ## Requirements
 
