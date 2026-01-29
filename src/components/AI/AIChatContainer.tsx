@@ -742,14 +742,36 @@ export function AIChatContainer({
 
 	// Set default project when projects load
 	useEffect(() => {
-		if (appGeneratorProjects.length > 0 && selectedProject === null) {
+		console.log("[AIChatContainer] Auto-select project check:", {
+			projectsLength: projects.length,
+			appGeneratorProjectsLength: appGeneratorProjects.length,
+			selectedProject: selectedProject?.name ?? null,
+			isScaffolderRepo,
+		});
+
+		// Auto-select first App Generator project if none selected (scaffolder mode only)
+		if (
+			isScaffolderRepo &&
+			appGeneratorProjects.length > 0 &&
+			selectedProject === null
+		) {
 			const firstProject = appGeneratorProjects[0];
 			// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 			if (firstProject !== undefined) {
+				console.log(
+					"[AIChatContainer] Auto-selecting project:",
+					firstProject.name,
+				);
 				selectProject(firstProject);
 			}
 		}
-	}, [appGeneratorProjects, selectedProject, selectProject]);
+	}, [
+		appGeneratorProjects,
+		selectedProject,
+		selectProject,
+		projects.length,
+		isScaffolderRepo,
+	]);
 
 	// Extract schema from messages when not loading (streaming complete)
 	const extractedSchema = useMemo(() => {
