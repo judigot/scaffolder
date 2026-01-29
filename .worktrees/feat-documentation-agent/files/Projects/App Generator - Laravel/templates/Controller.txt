@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\{{tableNamePascalCaseSingular}};
+use App\Repositories\{{tableNamePascalCaseSingular}}Interface;
+use App\Services\{{tableNamePascalCaseSingular}}Service;
+use Illuminate\Http\Request;
+use App\Http\Controllers\BaseController;
+
+class {{tableNamePascalCaseSingular}}Controller extends BaseController
+{
+    protected $repository;
+
+    public function __construct({{tableNamePascalCaseSingular}}Interface ${{tableNameSingular}}Repository, {{tableNamePascalCaseSingular}}Service ${{tableNameSingular}}Service)
+    {
+        parent::__construct(${{tableNameSingular}}Service);
+        $this->repository = ${{tableNameSingular}}Repository;
+    }
+
+[[USE_TEMPLATE(/DomainMethods/laravel/controller.txt)]]
+}

@@ -33,11 +33,19 @@ async function createSession(
 
 	if (!response.ok) {
 		const text = await response.text();
-		throw new Error(`Failed to create session (${response.status}): ${text}`);
+		throw new Error(
+			`Failed to create session (${String(response.status)}): ${text}`,
+		);
 	}
 
-	const data = (await response.json()) as { id?: string };
-	if (!data.id) {
+	const data: unknown = await response.json();
+	if (
+		typeof data !== "object" ||
+		data === null ||
+		!("id" in data) ||
+		typeof data.id !== "string" ||
+		data.id === ""
+	) {
 		throw new Error("OpenCode session response missing id");
 	}
 
@@ -45,7 +53,7 @@ async function createSession(
 }
 
 function extractAssistantText(parts: IOpenCodePart[] | undefined): string {
-	if (!parts || parts.length === 0) {
+	if (parts === undefined || parts.length === 0) {
 		return "";
 	}
 
@@ -81,25 +89,28 @@ app.post("/", async (c) => {
 		typeof body.directory === "string" ? body.directory : undefined;
 	const systemPrompt =
 		typeof body.systemPrompt === "string" ? body.systemPrompt : undefined;
-	const headers = buildOpencodeHeaders(configResult.config, directory);
-	const baseUrl = configResult.config.baseUrl;
+	const { config } = configResult;
+	const headers = buildOpencodeHeaders(config, directory);
+	const baseUrl = config.baseUrl;
 
 	let sessionId =
 		typeof body.sessionId === "string" ? body.sessionId : undefined;
 
 	try {
-		if (!sessionId) {
+		if (sessionId === undefined || sessionId === "") {
 			sessionId = await createSession(baseUrl, headers);
 		}
 
+		// body.message is already validated as string above
+		const messageText = body.message;
 		const promptBody: {
 			parts: { type: string; text: string }[];
 			system?: string;
 		} = {
-			parts: [{ type: "text", text: body.message }],
+			parts: [{ type: "text", text: messageText }],
 		};
 
-		if (systemPrompt) {
+		if (systemPrompt !== undefined && systemPrompt !== "") {
 			promptBody.system = systemPrompt;
 		}
 
@@ -116,15 +127,34 @@ app.post("/", async (c) => {
 			const text = await promptResponse.text();
 			return c.json(
 				{
-					error: `OpenCode prompt failed (${promptResponse.status})`,
+					error: `OpenCode prompt failed (${String(promptResponse.status)})`,
 					details: text,
 				},
 				502,
 			);
 		}
 
-		const data = (await promptResponse.json()) as { parts?: IOpenCodePart[] };
-		const assistantText = extractAssistantText(data.parts);
+		const responseData: unknown = await promptResponse.json();
+		let assistantText = "";
+		if (
+			typeof responseData === "object" &&
+			responseData !== null &&
+			"parts" in responseData
+		) {
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+			const partsContainer = responseData as { parts: unknown };
+			if (Array.isArray(partsContainer.parts)) {
+				const parts = partsContainer.parts.filter((p): p is IOpenCodePart => {
+					if (typeof p !== "object" || p === null || !("type" in p)) {
+						return false;
+					}
+					// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+					const pObj = p as { type: unknown };
+					return typeof pObj.type === "string";
+				});
+				assistantText = extractAssistantText(parts);
+			}
+		}
 
 		return c.json({
 			sessionId,

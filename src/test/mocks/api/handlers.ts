@@ -92,7 +92,7 @@ export const handlers = [
 	http.get("/api/user-metadata", ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -105,19 +105,18 @@ export const handlers = [
 	http.post("/api/user-metadata/env", async ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for request body
 		const body = (await request.json()) as {
 			envVariables: { key: string; value: string }[];
 		};
 
 		// Update mock state
 		for (const { key, value } of body.envVariables) {
-			if (!mockApiState.userMetadata.env) {
-				mockApiState.userMetadata.env = {};
-			}
+			mockApiState.userMetadata.env ??= {};
 			mockApiState.userMetadata.env[key] = value;
 		}
 
@@ -127,17 +126,19 @@ export const handlers = [
 	http.post("/api/user-metadata/infra", async ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for request body
 		const body = (await request.json()) as { infra?: Record<string, string> };
-		const nextInfra = body.infra ?? body;
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for infra fallback
+		const nextInfra = body.infra ?? (body as Record<string, string>);
 
 		// Update mock state
 		mockApiState.userMetadata.infra = {
 			...(mockApiState.userMetadata.infra ?? mockInfraCredentials),
-			...(nextInfra as Record<string, string>),
+			...nextInfra,
 		};
 
 		return HttpResponse.json({ success: true });
@@ -150,7 +151,7 @@ export const handlers = [
 	http.get("/api/github-token", ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -168,10 +169,11 @@ export const handlers = [
 	http.post("/api/github-token", async ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for request body
 		const body = (await request.json()) as { token: string };
 		mockApiState.userMetadata.github_token = body.token;
 
@@ -182,10 +184,10 @@ export const handlers = [
 	// Terraform Status
 	// -------------------------------------------------------------------------
 
-	http.post("/api/terraform/status", async ({ request }) => {
+	http.post("/api/terraform/status", ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -202,7 +204,7 @@ export const handlers = [
 	http.post("/api/terminal/execute", async ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -213,6 +215,7 @@ export const handlers = [
 			);
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for request body
 		const body = (await request.json()) as {
 			command: string;
 			workingDirectory?: string;
@@ -227,12 +230,12 @@ export const handlers = [
 		// Check for pre-configured response
 		const configuredResponse = mockApiState.commandResponses.get(command);
 
-		if (configuredResponse) {
+		if (configuredResponse !== undefined) {
 			return HttpResponse.json({
 				success: configuredResponse.success,
 				exitCode: configuredResponse.success ? 0 : 1,
-				stdout: configuredResponse.output || "",
-				stderr: configuredResponse.error || "",
+				stdout: configuredResponse.output,
+				stderr: configuredResponse.error ?? "",
 			});
 		}
 
@@ -304,7 +307,7 @@ export const handlers = [
 	http.post("/api/agent/chat", async ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -312,6 +315,7 @@ export const handlers = [
 			return HttpResponse.json({ error: "Connection failed" }, { status: 503 });
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for request body
 		const body = (await request.json()) as {
 			messages: { role: string; content: string }[];
 			infraCredentials: {
@@ -321,9 +325,12 @@ export const handlers = [
 		};
 
 		// Extract command from message
-		const lastMessage = body.messages[body.messages.length - 1];
-		const commandMatch = /```bash\n(.+?)\n```/s.exec(lastMessage?.content);
-		const command = commandMatch?.[1] ?? lastMessage?.content ?? "";
+		const messagesLength = body.messages.length;
+		const lastMessage =
+			messagesLength > 0 ? body.messages[messagesLength - 1] : undefined;
+		const lastMessageContent = lastMessage?.content ?? "";
+		const commandMatch = /```bash\n(.+?)\n```/s.exec(lastMessageContent);
+		const command = commandMatch?.[1] ?? lastMessageContent;
 
 		// Check for pre-configured response
 		const configuredResponse = mockApiState.commandResponses.get(command);
@@ -331,7 +338,7 @@ export const handlers = [
 		// Default command responses
 		let response: IMockCommandResponse;
 
-		if (configuredResponse) {
+		if (configuredResponse !== undefined) {
 			response = configuredResponse;
 		} else if (command.startsWith("ls")) {
 			response = {
@@ -381,13 +388,18 @@ export const handlers = [
 	http.post("/api/terraform/workspace", async ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for request body
 		const body = (await request.json()) as IMockWorkspaceCreateRequest;
 
-		if (!body.tfcToken || !body.tfcOrg || !body.workspaceName) {
+		if (
+			body.tfcToken === "" ||
+			body.tfcOrg === "" ||
+			body.workspaceName === ""
+		) {
 			return HttpResponse.json(
 				{
 					error: "Missing required fields",
@@ -397,11 +409,11 @@ export const handlers = [
 			);
 		}
 
-		const workspaceId = `ws-${Date.now()}`;
+		const workspaceId = `ws-${String(Date.now())}`;
 		const workspace = {
 			id: workspaceId,
 			name: body.workspaceName,
-			mode: body.mode || "api",
+			mode: body.mode,
 		};
 
 		mockApiState.workspaces.set(body.workspaceName, workspace);
@@ -412,9 +424,9 @@ export const handlers = [
 				id: workspaceId,
 				name: body.workspaceName,
 			},
-			mode: body.mode || "api",
-			ec2InstanceType: body.ec2InstanceType ?? null,
-			rdsInstanceClass: body.rdsInstanceClass ?? null,
+			mode: body.mode,
+			ec2InstanceType: body.ec2InstanceType,
+			rdsInstanceClass: body.rdsInstanceClass,
 		};
 
 		return HttpResponse.json(response);
@@ -427,10 +439,11 @@ export const handlers = [
 	http.post("/api/terraform/run", async ({ request }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW handler requires type assertion for request body
 		const body = (await request.json()) as {
 			enableEc2: boolean;
 			tfcToken: string;
@@ -441,7 +454,11 @@ export const handlers = [
 			sshPublicKey: string;
 		};
 
-		if (!body.tfcToken || !body.tfcOrg || !body.tfcWorkspace) {
+		if (
+			body.tfcToken === "" ||
+			body.tfcOrg === "" ||
+			body.tfcWorkspace === ""
+		) {
 			return HttpResponse.json(
 				{ error: "Missing Terraform Cloud credentials" },
 				{ status: 400 },
@@ -449,7 +466,7 @@ export const handlers = [
 		}
 
 		mockApiState.enableEc2 = body.enableEc2;
-		const runId = `run-${Date.now()}`;
+		const runId = `run-${String(Date.now())}`;
 		mockApiState.lastRunId = runId;
 
 		const response: IMockTerraformRunResponse = {
@@ -467,10 +484,10 @@ export const handlers = [
 	// Terraform Run Status (Poll for run completion)
 	// -------------------------------------------------------------------------
 
-	http.post("/api/terraform/run/:runId", async ({ request, params }) => {
+	http.post("/api/terraform/run/:runId", ({ request, params }) => {
 		const authHeader = request.headers.get("Authorization");
 
-		if (!authHeader?.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ") !== true) {
 			return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -479,6 +496,7 @@ export const handlers = [
 		const response: IMockTerraformRunResponse = {
 			success: true,
 			run: {
+				// eslint-disable-next-line no-type-assertion/no-type-assertion -- MSW route params require type assertion
 				id: runId as string,
 				status: "applied",
 			},

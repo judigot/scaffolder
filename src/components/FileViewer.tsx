@@ -149,7 +149,7 @@ function FileViewer({
 
 	// Validate GitHub URL format
 	const isValidGitHubURL = (url: string | undefined): boolean => {
-		if (!url || url === "") return true; // Empty is valid (will use local)
+		if (!url || url === "") {return true;} // Empty is valid (will use local)
 		return url.startsWith("https://github.com/");
 	};
 
@@ -2620,7 +2620,7 @@ function FileViewer({
 												<SimpleSelect
 													value={useLocalScaffolderFiles ? "local" : "remote"}
 													onChange={(value) =>
-														onToggleLocalScaffolderFiles(value === "local")
+														{ onToggleLocalScaffolderFiles(value === "local"); }
 													}
 													options={[
 														{ value: "local", label: "Local" },
@@ -2635,7 +2635,7 @@ function FileViewer({
 																type="text"
 																value={remoteScaffolderURL}
 																onChange={(e) =>
-																	onRemoteScaffolderURLChange(e.target.value)
+																	{ onRemoteScaffolderURLChange(e.target.value); }
 																}
 																placeholder="https://github.com/user/repo"
 																className={`form-input form-input-sm ${
@@ -2947,7 +2947,7 @@ function FileViewer({
 											<SimpleSelect
 												value={useLocalScaffolderFiles ? "local" : "remote"}
 												onChange={(value) =>
-													onToggleLocalScaffolderFiles(value === "local")
+													{ onToggleLocalScaffolderFiles(value === "local"); }
 												}
 												options={[
 													{ value: "local", label: "Local" },
@@ -2962,7 +2962,7 @@ function FileViewer({
 															type="text"
 															value={remoteScaffolderURL}
 															onChange={(e) =>
-																onRemoteScaffolderURLChange(e.target.value)
+																{ onRemoteScaffolderURLChange(e.target.value); }
 															}
 															placeholder="https://github.com/user/repo"
 															className={`form-input form-input-sm ${

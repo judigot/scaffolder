@@ -326,36 +326,39 @@ app.post("/add-message", async (c) => {
 		return c.json({ error: "worktreePath is required" }, 400);
 	}
 
-	if (!body.message || typeof body.message !== "object") {
+	if (typeof body.message !== "object" || body.message === null) {
 		return c.json({ error: "message is required" }, 400);
 	}
 
-	const message = body.message as {
-		id?: unknown;
-		role?: unknown;
-		content?: unknown;
-		timestamp?: unknown;
-	};
+	// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+	const msgObj: Record<string, unknown> = body.message as Record<
+		string,
+		unknown
+	>;
+	const msgId = msgObj.id;
+	const msgRole = msgObj.role;
+	const msgContent = msgObj.content;
+	const msgTimestamp = msgObj.timestamp;
 
 	if (
-		typeof message.id !== "string" ||
-		typeof message.role !== "string" ||
-		typeof message.content !== "string" ||
-		typeof message.timestamp !== "string"
+		typeof msgId !== "string" ||
+		typeof msgRole !== "string" ||
+		typeof msgContent !== "string" ||
+		typeof msgTimestamp !== "string"
 	) {
 		return c.json({ error: "Invalid message format" }, 400);
 	}
 
-	if (message.role !== "user" && message.role !== "assistant") {
+	if (msgRole !== "user" && msgRole !== "assistant") {
 		return c.json({ error: "Invalid message role" }, 400);
 	}
 
 	try {
 		await addMessageToMetadata(body.worktreePath.trim(), {
-			id: message.id,
-			role: message.role,
-			content: message.content,
-			timestamp: message.timestamp,
+			id: msgId,
+			role: msgRole,
+			content: msgContent,
+			timestamp: msgTimestamp,
 		});
 		return c.json({ ok: true });
 	} catch (error) {

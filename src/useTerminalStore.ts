@@ -125,7 +125,7 @@ export const useTerminalStore = create<ITerminalStore>()(
 			// Message history
 			messages: [],
 			addMessage: (content) => {
-				const id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+				const id = `msg_${String(Date.now())}_${Math.random().toString(36).slice(2, 9)}`;
 				const message: ITerminalMessage = {
 					id,
 					content,
@@ -162,11 +162,15 @@ export const useTerminalStore = create<ITerminalStore>()(
 			commandHistory: [],
 			historyIndex: -1,
 			addToCommandHistory: (command) => {
-				if (command.trim() === "") {return;}
+				if (command.trim() === "") {
+					return;
+				}
 
 				set((state) => {
 					// Don't add duplicate of last command
-					if (state.commandHistory[state.commandHistory.length - 1] === command) {
+					if (
+						state.commandHistory[state.commandHistory.length - 1] === command
+					) {
 						return { historyIndex: -1 };
 					}
 					// Keep last 500 commands
@@ -178,7 +182,9 @@ export const useTerminalStore = create<ITerminalStore>()(
 				const state = get();
 				const { commandHistory, historyIndex } = state;
 
-				if (commandHistory.length === 0) {return null;}
+				if (commandHistory.length === 0) {
+					return null;
+				}
 
 				let newIndex: number;
 				if (direction === "up") {

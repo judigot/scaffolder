@@ -4,7 +4,7 @@ import path from "node:path";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import convertLocalFilesToIStructure from "@/utils/convertLocalFilesToIStructure.ts";
 
-interface CommandResult {
+interface ICommandResult {
 	exitCode: number;
 	stdout: string;
 	stderr: string;
@@ -12,7 +12,7 @@ interface CommandResult {
 	timedOut: boolean;
 }
 
-interface BunRuntime {
+interface IBunRuntime {
 	spawn: (
 		args: string[],
 		options: {
@@ -33,19 +33,43 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_TIMEOUT_MS = 600_000;
 const OUTPUT_LIMIT = 200_000;
 
-function getBunRuntime(): BunRuntime | null {
-	const globalWithBun = globalThis as { Bun?: unknown };
-	const maybeBun = globalWithBun.Bun;
-	if (!maybeBun || typeof maybeBun !== "object") {
+function hasSpawnFunction(
+	value: Record<string, unknown>,
+): value is Record<string, unknown> & { spawn: unknown } {
+	return typeof value.spawn === "function";
+}
+
+function isBunRuntime(value: unknown): value is IBunRuntime {
+	if (typeof value !== "object" || value === null || !("spawn" in value)) {
+		return false;
+	}
+	const record = value as Record<string, unknown>;
+	return hasSpawnFunction(record);
+}
+
+function getGlobalAsRecord(): Record<string, unknown> {
+	return globalThis as unknown as Record<string, unknown>;
+}
+
+function getBunRuntime(): IBunRuntime | null {
+	const g = getGlobalAsRecord();
+	if (!("Bun" in g)) {
+		return null;
+	}
+	const maybeBun = g.Bun;
+	if (
+		maybeBun === null ||
+		maybeBun === undefined ||
+		typeof maybeBun !== "object"
+	) {
 		return null;
 	}
 
-	const candidate = maybeBun as Partial<BunRuntime>;
-	if (typeof candidate.spawn !== "function") {
+	if (!isBunRuntime(maybeBun)) {
 		return null;
 	}
 
-	return candidate as BunRuntime;
+	return maybeBun;
 }
 
 function truncateOutput(output: string): string {
@@ -53,13 +77,13 @@ function truncateOutput(output: string): string {
 		return output;
 	}
 
-	return `${output.slice(0, OUTPUT_LIMIT)}\n[truncated ${output.length - OUTPUT_LIMIT} bytes]`;
+	return `${output.slice(0, OUTPUT_LIMIT)}\n[truncated ${String(output.length - OUTPUT_LIMIT)} bytes]`;
 }
 
 async function runCommand(
 	args: string[],
 	options?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number },
-): Promise<CommandResult> {
+): Promise<ICommandResult> {
 	const start = Date.now();
 	const timeoutMs = Math.min(
 		options?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
@@ -111,13 +135,13 @@ async function runCommand(
 			proc.kill("SIGKILL");
 		}, timeoutMs);
 
-		proc.stdout?.on("data", (chunk: Buffer) => {
+		proc.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();
 			if (stdout.length > OUTPUT_LIMIT) {
 				stdout = stdout.slice(0, OUTPUT_LIMIT);
 			}
 		});
-		proc.stderr?.on("data", (chunk: Buffer) => {
+		proc.stderr.on("data", (chunk: Buffer) => {
 			stderr += chunk.toString();
 			if (stderr.length > OUTPUT_LIMIT) {
 				stderr = stderr.slice(0, OUTPUT_LIMIT);
@@ -205,9 +229,9 @@ export async function cloneRepository(
 	repoUrl: string,
 	repoPath: string,
 	branch?: string,
-): Promise<CommandResult> {
+): Promise<ICommandResult> {
 	const args = ["git", "clone"];
-	if (branch) {
+	if (branch !== undefined && branch !== "") {
 		args.push("--branch", branch, "--single-branch");
 	}
 	args.push(repoUrl, repoPath);
@@ -254,7 +278,7 @@ export async function getDefaultBranch(
 	return null;
 }
 
-export async function getRepoStatus(repoPath: string): Promise<CommandResult> {
+export async function getRepoStatus(repoPath: string): Promise<ICommandResult> {
 	return runCommand(["git", "-C", repoPath, "status", "--porcelain=v1", "-b"], {
 		timeoutMs: 20_000,
 	});
@@ -262,7 +286,7 @@ export async function getRepoStatus(repoPath: string): Promise<CommandResult> {
 
 export async function getRepoBranches(
 	repoPath: string,
-): Promise<CommandResult> {
+): Promise<ICommandResult> {
 	return runCommand(["git", "-C", repoPath, "branch", "--list"], {
 		timeoutMs: 20_000,
 	});
@@ -271,14 +295,14 @@ export async function getRepoBranches(
 export async function checkoutBranch(
 	repoPath: string,
 	branch: string,
-): Promise<CommandResult> {
+): Promise<ICommandResult> {
 	return runCommand(["git", "-C", repoPath, "checkout", branch], {
 		timeoutMs: 60_000,
 	});
 }
 
 export function redactToken(value: string, token: string | null): string {
-	if (!token || token.trim() === "") {
+	if (token === null || token.trim() === "") {
 		return value;
 	}
 
@@ -297,7 +321,7 @@ export async function deleteRepository(repoPath: string): Promise<void> {
 
 export async function fetchRepository(
 	repoPath: string,
-): Promise<CommandResult> {
+): Promise<ICommandResult> {
 	return runCommand(["git", "-C", repoPath, "fetch", "--all", "--prune"], {
 		env: {
 			GIT_TERMINAL_PROMPT: "0",
@@ -307,7 +331,9 @@ export async function fetchRepository(
 	});
 }
 
-export async function pullRepository(repoPath: string): Promise<CommandResult> {
+export async function pullRepository(
+	repoPath: string,
+): Promise<ICommandResult> {
 	return runCommand(["git", "-C", repoPath, "pull", "--ff-only"], {
 		env: {
 			GIT_TERMINAL_PROMPT: "0",
@@ -356,7 +382,7 @@ export async function getCurrentBranch(
 	return null;
 }
 
-export interface RepoStatusInfo {
+export interface IRepoStatusInfo {
 	branch: string | null;
 	isDirty: boolean;
 	ahead: number;
@@ -366,7 +392,7 @@ export interface RepoStatusInfo {
 
 export async function getRepoStatusInfo(
 	repoPath: string,
-): Promise<RepoStatusInfo> {
+): Promise<IRepoStatusInfo> {
 	const [statusResult, branch, lastCommit] = await Promise.all([
 		getRepoStatus(repoPath),
 		getCurrentBranch(repoPath),
@@ -392,7 +418,7 @@ export async function getRepoStatusInfo(
 		}
 
 		// Check if there are uncommitted changes (lines after the branch line)
-		isDirty = lines.slice(1).some((line) => line.trim() !== "");
+		isDirty = lines.slice(1).some((line: string) => line.trim() !== "");
 	}
 
 	return { branch, isDirty, ahead, behind, lastCommit };

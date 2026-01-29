@@ -1,0 +1,1 @@
+{{methodNameCamelCase}}(int $perPage = 15, ?string $column = null, string $direction = 'asc')

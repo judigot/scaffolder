@@ -1,0 +1,12 @@
+import { useQueryInstance } from '@/vendor/useQueryInstance';
+import { useIndex } from '@/hooks/shared/useIndex.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+
+export const use{{tableNamePascalCaseSingular}} = (
+  options?: Parameters<typeof useQueryInstance<I{{tableNamePascalCaseSingular}}[]>>[2],
+) =>
+  useQueryInstance<I{{tableNamePascalCaseSingular}}[]>(
+    '{{tableNameCamelCasePlural}}',
+    () => useIndex('{{tableNameCamelCasePlural}}'),
+    options,
+  );

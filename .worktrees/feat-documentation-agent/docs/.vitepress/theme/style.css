@@ -1,0 +1,394 @@
+/* Custom landing page enhancements */
+
+/* Hero section improvements */
+.VPHero .name {
+  font-size: 4rem;
+  font-weight: 800;
+  background: linear-gradient(120deg, #00d4ff 0%, #5b86e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.VPHero .text {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--vp-c-text-1);
+  margin-bottom: 0.5rem;
+}
+
+.VPHero .tagline {
+  font-size: 1.25rem;
+  color: var(--vp-c-text-1);
+  font-weight: 500;
+  opacity: 1;
+}
+
+/* Features grid improvements */
+.VPFeatures {
+  padding: 4rem 0;
+}
+
+.VPFeature .icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.VPFeature .title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--vp-c-text-1);
+}
+
+.VPFeature .details {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--vp-c-text-1);
+  opacity: 1;
+}
+
+/* Stats grid styling */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2.5rem;
+  margin: 4rem 0;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.stats-grid .stat-item {
+  text-align: center;
+}
+
+.stats-grid h3 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+
+.stats-grid p {
+  margin: 0;
+  color: white;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  font-weight: 400;
+  opacity: 0.95;
+}
+
+.stats-grid p strong {
+  color: white;
+  font-weight: 700;
+  opacity: 1;
+  font-size: 1.15rem;
+  background: linear-gradient(120deg, #00d4ff 0%, #5b86e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* CTA section */
+.cta-section {
+  text-align: center;
+  padding: 4rem 2rem;
+  margin: 5rem 0;
+  background: linear-gradient(
+    135deg,
+    var(--vp-c-brand) 0%,
+    var(--vp-c-brand-dark) 100%
+  );
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.cta-section p {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.cta-section a {
+  color: white;
+  text-decoration: none;
+  font-weight: 700;
+  margin: 0 1rem;
+  padding: 1rem 2rem;
+  border: 2px solid white;
+  border-radius: 12px;
+  display: inline-block;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cta-section a:hover {
+  background: white;
+  color: var(--vp-c-brand);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Audience-specific sections */
+.audience-section {
+  margin: 4rem 0;
+  padding: 3rem;
+  background: var(--vp-c-bg-alt);
+  border-radius: 12px;
+  border-left: 4px solid var(--vp-c-brand);
+  border: 1px solid var(--vp-c-divider);
+}
+
+.audience-section h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--vp-c-text-1);
+}
+
+.audience-section p {
+  font-size: 1.1rem;
+  line-height: 1.9;
+  color: var(--vp-c-text-1);
+  opacity: 1;
+  margin-bottom: 1.25rem;
+}
+
+.audience-section strong {
+  color: var(--vp-c-text-1);
+  font-weight: 700;
+  opacity: 1;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.audience-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.audience-section li {
+  padding: 0.75rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: var(--vp-c-text-1);
+  line-height: 1.9;
+  opacity: 1;
+  font-size: 1.05rem;
+}
+
+.audience-section li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--vp-c-brand);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .VPHero .name {
+    font-size: 2.5rem;
+  }
+
+  .VPHero .text {
+    font-size: 1.75rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2rem 1.5rem;
+  }
+
+  .stats-grid h3 {
+    font-size: 2.5rem;
+  }
+
+  .cta-section {
+    padding: 3rem 1.5rem;
+  }
+
+  .cta-section p {
+    font-size: 1.25rem;
+  }
+
+  .cta-section a {
+    display: block;
+    margin: 0.75rem 0;
+  }
+
+  .audience-section {
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* Dark mode adjustments */
+.dark .stats-grid {
+  background: var(--vp-c-bg-alt);
+  border-color: var(--vp-c-divider);
+}
+
+.dark .audience-section {
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-divider);
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced typography */
+.VPHome .content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.VPHome h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 3rem 0 1.5rem 0;
+  color: var(--vp-c-text-1);
+  text-align: center;
+  opacity: 1;
+  line-height: 1.3;
+}
+
+.VPHome h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem 0;
+  color: var(--vp-c-text-1);
+  opacity: 1;
+  line-height: 1.4;
+}
+
+.VPHome h4 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem 0;
+  color: var(--vp-c-text-1);
+  opacity: 1;
+  line-height: 1.4;
+}
+
+.VPHome p {
+  font-size: 1.15rem;
+  line-height: 1.9;
+  color: var(--vp-c-text-1);
+  opacity: 1;
+}
+
+.VPHome ul,
+.VPHome ol {
+  color: var(--vp-c-text-1);
+  opacity: 1;
+}
+
+.VPHome li {
+  line-height: 1.95;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  opacity: 1;
+}
+
+.VPHome strong {
+  color: var(--vp-c-text-1);
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* Highlight deterministic */
+.highlight-deterministic,
+mark.deterministic {
+  background: linear-gradient(
+    120deg,
+    rgba(0, 212, 255, 0.3) 0%,
+    rgba(91, 134, 229, 0.3) 100%
+  );
+  color: var(--vp-c-text-1);
+  font-weight: 700;
+  padding: 0.15em 0.3em;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+/* Hallucinating effect for hallucinate/hallucinates/hallucinating/hallucinated */
+.highlight-hallucinate,
+mark.hallucinate {
+  position: relative;
+  display: inline-block;
+  color: white;
+  font-weight: 700;
+  background: transparent;
+  animation: hallucinate 2s ease-in-out infinite;
+  text-shadow:
+    -2px 1px 0 rgba(255, 0, 0, 0.8),
+    2px -1px 0 rgba(0, 150, 255, 0.8),
+    -1px 0.5px 0 rgba(255, 0, 0, 0.6),
+    1px -0.5px 0 rgba(0, 150, 255, 0.6),
+    0 0 10px rgba(255, 255, 255, 0.5),
+    0 0 20px rgba(255, 0, 0, 0.3),
+    0 0 20px rgba(0, 150, 255, 0.3);
+}
+
+@keyframes hallucinate {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    text-shadow:
+      -2px 1px 0 rgba(255, 0, 0, 0.8),
+      2px -1px 0 rgba(0, 150, 255, 0.8),
+      -1px 0.5px 0 rgba(255, 0, 0, 0.6),
+      1px -0.5px 0 rgba(0, 150, 255, 0.6),
+      0 0 10px rgba(255, 255, 255, 0.5),
+      0 0 20px rgba(255, 0, 0, 0.3),
+      0 0 20px rgba(0, 150, 255, 0.3);
+  }
+  25% {
+    transform: translate(-1px, 1px) rotate(0.5deg);
+    text-shadow:
+      -3px 1.5px 0 rgba(255, 0, 0, 0.9),
+      3px -1.5px 0 rgba(0, 150, 255, 0.9),
+      -1px 0.5px 0 rgba(255, 0, 0, 0.7),
+      1px -0.5px 0 rgba(0, 150, 255, 0.7),
+      0 0 12px rgba(255, 255, 255, 0.6),
+      0 0 25px rgba(255, 0, 0, 0.4),
+      0 0 25px rgba(0, 150, 255, 0.4);
+  }
+  50% {
+    transform: translate(1px, -1px) rotate(-0.5deg);
+    text-shadow:
+      -2px 1px 0 rgba(255, 0, 0, 0.8),
+      2px -1px 0 rgba(0, 150, 255, 0.8),
+      -1px 0.5px 0 rgba(255, 0, 0, 0.6),
+      1px -0.5px 0 rgba(0, 150, 255, 0.6),
+      0 0 10px rgba(255, 255, 255, 0.5),
+      0 0 20px rgba(255, 0, 0, 0.3),
+      0 0 20px rgba(0, 150, 255, 0.3);
+  }
+  75% {
+    transform: translate(-1px, -1px) rotate(0.5deg);
+    text-shadow:
+      -3px 1.5px 0 rgba(255, 0, 0, 0.9),
+      3px -1.5px 0 rgba(0, 150, 255, 0.9),
+      -1px 0.5px 0 rgba(255, 0, 0, 0.7),
+      1px -0.5px 0 rgba(0, 150, 255, 0.7),
+      0 0 12px rgba(255, 255, 255, 0.6),
+      0 0 25px rgba(255, 0, 0, 0.4),
+      0 0 25px rgba(0, 150, 255, 0.4);
+  }
+}

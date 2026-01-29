@@ -1,0 +1,2 @@
+LOOP_FOLDERS({{financial-statement.company-name}}-{{financial-statement.period}}-FinancialStatement.html --data-source=/DataSources/Financial-Statements/**/info.yaml --template=./templates/FinancialStatement.txt)
+

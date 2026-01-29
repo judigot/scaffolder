@@ -1,0 +1,15 @@
+{
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "lib": ["deno.ns", "ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true
+  },
+  "lint": {
+    "include": ["src/**/*"],
+    "exclude": ["dist", "node_modules", "build"]
+  },
+  "imports": {
+    "@/": "./src/"
+  }
+}

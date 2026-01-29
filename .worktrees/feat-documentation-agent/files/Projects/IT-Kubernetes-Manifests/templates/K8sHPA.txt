@@ -1,0 +1,26 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: [[USE_DATA(service.name)]]
+  namespace: [[USE_DATA(deployment.namespace)]]
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: [[USE_DATA(service.name)]]
+  minReplicas: [[USE_DATA(auto-scaling.min-replicas)]]
+  maxReplicas: [[USE_DATA(auto-scaling.max-replicas)]]
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: [[USE_DATA(auto-scaling.target-cpu)]]
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: [[USE_DATA(auto-scaling.target-memory)]]
+

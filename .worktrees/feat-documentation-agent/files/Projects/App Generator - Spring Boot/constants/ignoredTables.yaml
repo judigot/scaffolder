@@ -1,0 +1,24 @@
+# Spring Boot Ignored Tables
+- active_user_accounts
+- batch_job_execution
+- batch_job_execution_context
+- batch_job_execution_params
+- batch_job_instance
+- batch_step_execution
+- batch_step_execution_context
+- config_properties
+- config_server_lock
+- databasechangelog
+- databasechangeloglock
+- flyway_schema_history
+- oauth2_authorized_client
+- oauth2_registered_client
+- oauth_approvals
+- oauth_client_details
+- oauth_client_token
+- oauth_code
+- oauth_refresh_token
+- persistent_logins
+- revinfo
+- spring_session
+- spring_session_attributes

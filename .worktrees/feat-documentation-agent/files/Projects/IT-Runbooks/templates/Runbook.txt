@@ -1,0 +1,101 @@
+# [[USE_DATA(service.name)]] Runbook
+
+## Service Overview
+
+**Service Name:** [[USE_DATA(service.name)]]  
+**Team:** [[USE_DATA(service.team)]]  
+**Description:** [[USE_DATA(service.description)]]  
+**Version:** [[USE_DATA(service.version)]]
+
+## Architecture
+
+- **Platform:** [[USE_DATA(deployment.platform)]]
+- **Namespace:** [[USE_DATA(deployment.namespace)]]
+- **Replicas:** [[USE_DATA(deployment.replicas)]]
+- **Deployment Strategy:** [[USE_DATA(deployment.strategy)]]
+
+## Dependencies
+
+[[USE_DATA(dependencies)]]
+
+## Health Checks
+
+### Liveness Probe
+- **Path:** [[USE_DATA(health-checks.liveness.path)]]
+- **Port:** [[USE_DATA(health-checks.liveness.port)]]
+- **Interval:** [[USE_DATA(health-checks.liveness.period)]] seconds
+- **Timeout:** [[USE_DATA(health-checks.liveness.timeout)]] seconds
+
+### Readiness Probe
+- **Path:** [[USE_DATA(health-checks.readiness.path)]]
+- **Port:** [[USE_DATA(health-checks.readiness.port)]]
+- **Interval:** [[USE_DATA(health-checks.readiness.period)]] seconds
+- **Timeout:** [[USE_DATA(health-checks.readiness.timeout)]] seconds
+
+## Monitoring
+
+- **Metrics Endpoint:** [[USE_DATA(monitoring.metrics-path)]]
+- **Log Level:** [[USE_DATA(monitoring.log-level)]]
+- **Tracing:** [[USE_DATA(monitoring.tracing.enabled)]]
+
+## Common Issues
+
+### Service Not Responding
+
+1. Check pod status:
+   ```bash
+   kubectl get pods -n [[USE_DATA(deployment.namespace)]] -l app=[[USE_DATA(service.name)]]
+   ```
+
+2. Check logs:
+   ```bash
+   kubectl logs -n [[USE_DATA(deployment.namespace)]] -l app=[[USE_DATA(service.name)]]
+   ```
+
+3. Check service endpoints:
+   ```bash
+   kubectl get endpoints -n [[USE_DATA(deployment.namespace)]] [[USE_DATA(service.name)]]
+   ```
+
+### High CPU/Memory Usage
+
+1. Check resource usage:
+   ```bash
+   kubectl top pods -n [[USE_DATA(deployment.namespace)]] -l app=[[USE_DATA(service.name)]]
+   ```
+
+2. Review HPA status:
+   ```bash
+   kubectl get hpa -n [[USE_DATA(deployment.namespace)]] [[USE_DATA(service.name)]]
+   ```
+
+3. Scale manually if needed:
+   ```bash
+   kubectl scale deployment [[USE_DATA(service.name)]] -n [[USE_DATA(deployment.namespace)]] --replicas=[[USE_DATA(auto-scaling.max-replicas)]]
+   ```
+
+## Deployment Procedures
+
+### Rolling Update
+
+```bash
+kubectl set image deployment/[[USE_DATA(service.name)]] [[USE_DATA(service.name)]]=[[USE_DATA(service.name)]]:NEW_VERSION -n [[USE_DATA(deployment.namespace)]]
+```
+
+### Rollback
+
+```bash
+kubectl rollout undo deployment/[[USE_DATA(service.name)]] -n [[USE_DATA(deployment.namespace)]]
+```
+
+## Escalation
+
+- **Primary On-Call:** [[USE_DATA(service.team)]] Team
+- **Secondary On-Call:** Platform Team
+- **Emergency Contact:** ops@company.com
+
+## Related Documentation
+
+- Service Documentation: `/docs/services/[[USE_DATA(service.name)]]`
+- Architecture Diagram: `/docs/architecture/[[USE_DATA(service.name)]]`
+

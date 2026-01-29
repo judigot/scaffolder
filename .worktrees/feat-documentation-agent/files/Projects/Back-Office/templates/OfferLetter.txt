@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offer Letter - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: 'Times New Roman', serif; max-width: 800px; margin: 0 auto; padding: 40px; background: #f5f5f5; }
+    .letter { background: white; padding: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .date { text-align: right; margin-bottom: 30px; color: #666; }
+    .greeting { margin-bottom: 20px; }
+    .body-text { line-height: 1.8; color: #333; margin: 20px 0; text-align: justify; }
+    .section-title { font-weight: bold; margin-top: 25px; margin-bottom: 10px; color: #2c3e50; }
+    .details-list { margin: 15px 0; padding-left: 25px; }
+    .details-list li { margin: 10px 0; line-height: 1.6; }
+    .closing { margin-top: 40px; }
+    .signature-section { margin-top: 60px; }
+    .signature-line { border-top: 1px solid #333; width: 300px; margin: 50px 0 10px; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 0.9em; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="letter">
+    <div class="date">[[USE_DATA(employee.hire-date)]]</div>
+
+    <div class="greeting">
+      <p>Dear [[USE_DATA(basic-info.name)]],</p>
+    </div>
+
+    <div class="body-text">
+      <p>We are pleased to extend an offer of employment to you for the position of <strong>[[USE_DATA(employee.position)]]</strong> with [[USE_DATA(company-info.name)]]. We believe your skills and experience will be a valuable addition to our team.</p>
+    </div>
+
+    <div class="section-title">Position Details:</div>
+    <ul class="details-list">
+      <li><strong>Position:</strong> [[USE_DATA(employee.position)]]</li>
+      <li><strong>Department:</strong> [[USE_DATA(employee.department)]]</li>
+      <li><strong>Employment Type:</strong> [[USE_DATA(employee.employment-type)]]</li>
+      <li><strong>Start Date:</strong> [[USE_DATA(employee.hire-date)]]</li>
+      <li><strong>Location:</strong> [[USE_DATA(employee.work-location)]]</li>
+      <li><strong>Reports To:</strong> [[USE_DATA(employee.manager)]]</li>
+    </ul>
+
+    <div class="section-title">Compensation:</div>
+    <ul class="details-list">
+      <li><strong>Salary Range:</strong> [[USE_DATA(job-description.salary-range)]]</li>
+      <li><strong>Pay Frequency:</strong> Bi-weekly</li>
+    </ul>
+
+    <div class="section-title">Benefits:</div>
+    <ul class="details-list">
+      <li>Health, Dental, and Vision Insurance</li>
+      <li>401(k) Retirement Plan with Company Match</li>
+      <li>Paid Time Off and Holidays</li>
+      <li>Professional Development Opportunities</li>
+      <li>Life and Disability Insurance</li>
+    </ul>
+
+    <div class="body-text">
+      <p>This offer is contingent upon successful completion of background check and reference verification. Your employment will be at-will, meaning either you or [[USE_DATA(company-info.name)]] may terminate the employment relationship at any time, with or without cause or notice.</p>
+    </div>
+
+    <div class="body-text">
+      <p>We are excited about the possibility of you joining our team and look forward to your positive response. Please sign and return this letter by [[USE_DATA(employee.hire-date)]] to confirm your acceptance of this offer.</p>
+    </div>
+
+    <div class="closing">
+      <p>Sincerely,</p>
+      <p><strong>Sarah Johnson</strong><br>
+      Human Resources Director<br>
+      [[USE_DATA(company-info.name)]]</p>
+    </div>
+
+    <div class="signature-section">
+      <p>Accepted and Agreed:</p>
+      <div class="signature-line"></div>
+      <p style="margin-top: 10px;">[[USE_DATA(basic-info.name)]]</p>
+      <p style="color: #666; font-size: 0.9em;">Date: _______________</p>
+    </div>
+
+    <div class="footer">
+      <p><strong>[[USE_DATA(company-info.name)]]</strong><br>
+      [[USE_DATA(company-info.address)]], [[USE_DATA(company-info.city)]], [[USE_DATA(company-info.state)]] [[USE_DATA(company-info.zip)]]<br>
+      Phone: [[USE_DATA(company-info.phone)]] | Email: [[USE_DATA(company-info.email)]]</p>
+    </div>
+  </div>
+</body>
+</html>
+

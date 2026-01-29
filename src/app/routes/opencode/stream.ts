@@ -50,8 +50,9 @@ app.post("/", async (c) => {
 		typeof body.directory === "string" ? body.directory : undefined;
 	const systemPrompt =
 		typeof body.systemPrompt === "string" ? body.systemPrompt : undefined;
-	const headers = buildOpencodeHeaders(configResult.config, directory);
-	const baseUrl = configResult.config.baseUrl;
+	const { config } = configResult;
+	const headers = buildOpencodeHeaders(config, directory);
+	const baseUrl = config.baseUrl;
 
 	let sessionId =
 		typeof body.sessionId === "string" ? body.sessionId : undefined;
@@ -59,7 +60,7 @@ app.post("/", async (c) => {
 	return streamSSE(c, async (stream) => {
 		try {
 			// Step 1: Create session if needed
-			if (!sessionId) {
+			if (sessionId === undefined || sessionId === "") {
 				const sessionResponse = await fetch(`${baseUrl}/session`, {
 					method: "POST",
 					headers,
@@ -71,15 +72,21 @@ app.post("/", async (c) => {
 					await stream.writeSSE({
 						event: "error",
 						data: JSON.stringify({
-							error: `Failed to create session: ${sessionResponse.status}`,
+							error: `Failed to create session: ${String(sessionResponse.status)}`,
 							details: text,
 						}),
 					});
 					return;
 				}
 
-				const sessionData = (await sessionResponse.json()) as { id?: string };
-				if (!sessionData.id) {
+				const sessionData: unknown = await sessionResponse.json();
+				if (
+					typeof sessionData !== "object" ||
+					sessionData === null ||
+					!("id" in sessionData) ||
+					typeof sessionData.id !== "string" ||
+					sessionData.id === ""
+				) {
 					await stream.writeSSE({
 						event: "error",
 						data: JSON.stringify({ error: "No session ID returned" }),
@@ -106,7 +113,7 @@ app.post("/", async (c) => {
 				await stream.writeSSE({
 					event: "error",
 					data: JSON.stringify({
-						error: `Failed to connect to event stream: ${eventResponse.status}`,
+						error: `Failed to connect to event stream: ${String(eventResponse.status)}`,
 					}),
 				});
 				return;
@@ -129,7 +136,7 @@ app.post("/", async (c) => {
 				parts: [{ type: "text", text: String(body.message) }],
 			};
 
-			if (systemPrompt) {
+			if (systemPrompt !== undefined && systemPrompt !== "") {
 				promptBody.system = systemPrompt;
 			}
 
@@ -147,11 +154,11 @@ app.post("/", async (c) => {
 				await stream.writeSSE({
 					event: "error",
 					data: JSON.stringify({
-						error: `Failed to send message: ${promptResponse.status}`,
+						error: `Failed to send message: ${String(promptResponse.status)}`,
 						details: text,
 					}),
 				});
-				reader.cancel();
+				void reader.cancel();
 				return;
 			}
 
@@ -163,7 +170,9 @@ app.post("/", async (c) => {
 
 			while (!messageComplete) {
 				const { done, value } = await reader.read();
-				if (done) break;
+				if (done) {
+					break;
+				}
 
 				buffer += decoder.decode(value, { stream: true });
 				const lines = buffer.split("\n");
@@ -172,24 +181,52 @@ app.post("/", async (c) => {
 				for (const line of lines) {
 					if (line.startsWith("data:")) {
 						const data = line.slice(5).trim();
-						if (data === "" || data === "[DONE]") continue;
+						if (data === "" || data === "[DONE]") {
+							continue;
+						}
 
 						try {
-							const event = JSON.parse(data) as {
+							interface IEventProps {
+								sessionID?: string;
+								messageID?: string;
+								part?: { type: string; text?: string };
+								info?: { id: string; role: string };
+								error?: string;
+							}
+							interface IEvent {
 								type: string;
-								properties?: {
-									sessionID?: string;
-									messageID?: string;
-									part?: { type: string; text?: string };
-									info?: { id: string; role: string };
-									error?: string;
-								};
+								properties?: IEventProps;
+							}
+							const parsed: unknown = JSON.parse(data);
+							if (
+								typeof parsed !== "object" ||
+								parsed === null ||
+								!("type" in parsed) ||
+								typeof parsed.type !== "string"
+							) {
+								continue;
+							}
+							let eventProperties: IEventProps | undefined;
+							if (
+								"properties" in parsed &&
+								typeof parsed.properties === "object" &&
+								parsed.properties !== null
+							) {
+								// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+								eventProperties = parsed.properties as IEventProps;
+							}
+							const event: IEvent = {
+								type: parsed.type,
+								properties: eventProperties,
 							};
 
 							const props = event.properties;
 
 							// Only process events for our session
-							if (props?.sessionID && props.sessionID !== sessionId) {
+							if (
+								props?.sessionID !== undefined &&
+								props.sessionID !== sessionId
+							) {
 								continue;
 							}
 
@@ -210,7 +247,8 @@ app.post("/", async (c) => {
 									if (
 										assistantMessageStarted &&
 										props?.part?.type === "text" &&
-										props?.part?.text
+										props.part.text !== undefined &&
+										props.part.text !== ""
 									) {
 										await stream.writeSSE({
 											event: "text",
@@ -252,7 +290,7 @@ app.post("/", async (c) => {
 				}
 			}
 
-			reader.cancel();
+			void reader.cancel();
 
 			await stream.writeSSE({
 				event: "done",

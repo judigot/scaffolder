@@ -1,0 +1,3 @@
+      $column = $request->input('column');
+      $items = $this->service->{{methodNameCamelCase}}($column);
+      return response()->json($items);

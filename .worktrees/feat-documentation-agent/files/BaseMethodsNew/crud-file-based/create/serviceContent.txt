@@ -1,0 +1,1 @@
+return $this->repository->create(array $data);

@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}} - Finds a {{tableNamePascalCaseSingular}} record or creates it if not found
+Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.first-or-create');

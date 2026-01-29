@@ -1,0 +1,106 @@
+device:
+  name: "db-server-01"
+  type: "server"
+  role: "database-server"
+  location: "Datacenter A, Rack 5, U 11"
+  manufacturer: "HP"
+  model: "ProLiant DL380 Gen10"
+  serial-number: "HP987654321"
+  asset-tag: "IT-002"
+
+hardware:
+  cpu:
+    model: "Intel Xeon Gold 6230"
+    cores: 20
+    threads: 40
+    speed: "2.1GHz"
+  memory:
+    total: "256GB"
+    type: "DDR4"
+    slots: 24
+    installed: 12
+  storage:
+    - type: "SSD"
+      capacity: "2TB"
+      interface: "NVMe"
+      model: "Samsung PM983"
+      raid: "RAID 1"
+    - type: "HDD"
+      capacity: "8TB"
+      interface: "SAS"
+      model: "Seagate ST8000NM0055"
+      raid: "RAID 5"
+  network:
+    interfaces:
+      - name: "eth0"
+        mac: "00:1B:44:11:3B:C7"
+        speed: "10Gbps"
+        status: "up"
+      - name: "eth1"
+        mac: "00:1B:44:11:3B:C8"
+        speed: "10Gbps"
+        status: "up"
+
+software:
+  os:
+    name: "Red Hat Enterprise Linux"
+    version: "8.7"
+    kernel: "4.18.0"
+  database:
+    - name: "PostgreSQL"
+      version: "14.5"
+      status: "running"
+      port: 5432
+    - name: "Redis"
+      version: "7.0"
+      status: "running"
+      port: 6379
+
+networking:
+  ip-addresses:
+    - ip: "10.0.0.200"
+      subnet: "255.255.255.0"
+      interface: "eth0"
+      type: "static"
+    - ip: "10.0.0.201"
+      subnet: "255.255.255.0"
+      interface: "eth1"
+      type: "static"
+  hostname: "db-server-01.example.com"
+  domain: "example.com"
+  dns-servers:
+    - "10.0.0.5"
+    - "10.0.0.6"
+
+monitoring:
+  enabled: true
+  snmp:
+    enabled: true
+    community: "monitoring"
+    version: "2c"
+  agent:
+    type: "prometheus"
+    port: 9100
+  database-monitoring:
+    enabled: true
+    exporter: "postgres_exporter"
+    port: 9187
+
+maintenance:
+  last-update: "2024-01-10"
+  next-maintenance: "2024-04-10"
+  backup:
+    schedule: "daily"
+    retention: "30 days"
+    location: "backup-storage-01"
+  warranty:
+    expires: "2027-06-30"
+    vendor: "HP"
+  support-contract: "ProActive Care"
+
+tags:
+  Environment: "production"
+  Team: "database"
+  CostCenter: "IT"
+  Criticality: "critical"
+

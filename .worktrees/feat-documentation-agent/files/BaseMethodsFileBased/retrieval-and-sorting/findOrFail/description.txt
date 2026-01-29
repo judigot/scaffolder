@@ -1,0 +1,1 @@
+Find a record or throw an exception if not found

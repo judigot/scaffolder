@@ -1,0 +1,85 @@
+song:
+  title: "Summer Nights"
+  artist: "The Midnight Band"
+  album: "Seasonal Dreams"
+  track-number: 3
+  duration: "3:45"
+  genre: "Pop Rock"
+  release-date: "2024-07-15"
+  label: "Indie Records"
+  isrc: "USRC12400003"
+  
+writers:
+  - name: "Alex Martinez"
+    role: "Lyrics"
+    share: 50
+  - name: "Jordan Lee"
+    role: "Music"
+    share: 50
+
+lyrics:
+  verses:
+    - number: 1
+      lines:
+        - "Summer nights, warm and bright"
+        - "Stars above, shining light"
+        - "We dance until the morning comes"
+        - "In the rhythm of the drums"
+    
+    - number: 2
+      lines:
+        - "Ocean breeze, through the trees"
+        - "Memories, made with ease"
+        - "This moment will never fade"
+        - "In the music that we made"
+  
+  chorus:
+    lines:
+      - "Oh, summer nights"
+      - "Hold me tight"
+      - "Never let go"
+      - "Of this feeling, I know"
+  
+  bridge:
+    lines:
+      - "When winter comes"
+      - "And the warmth is gone"
+      - "I'll remember these"
+      - "Summer nights, so long"
+
+chords:
+  key: "G Major"
+  tempo: "120 BPM"
+  progression: "G - D - Em - C"
+  structure:
+    - section: "Verse 1"
+      chords: "G D Em C"
+    - section: "Chorus"
+      chords: "G D Em C"
+    - section: "Verse 2"
+      chords: "G D Em C"
+    - section: "Chorus"
+      chords: "G D Em C"
+    - section: "Bridge"
+      chords: "Am D G"
+    - section: "Chorus"
+      chords: "G D Em C"
+
+instruments:
+  - "Acoustic Guitar"
+  - "Electric Guitar"
+  - "Bass"
+  - "Drums"
+  - "Keyboard"
+
+recording:
+  studio: "Sunset Studios"
+  producer: "Mike Johnson"
+  engineer: "Lisa Chen"
+  date: "2024-06-10"
+
+tags:
+  Mood: "Upbeat"
+  Theme: "Summer"
+  Style: "Pop Rock"
+

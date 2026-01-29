@@ -3,7 +3,7 @@ import { useFormStore } from "@/useFormStore.ts";
 
 type CreationMode = (typeof CREATION_MODES)[keyof typeof CREATION_MODES];
 
-const MODE_OPTIONS: Array<{ value: CreationMode; label: string }> = [
+const MODE_OPTIONS: { value: CreationMode; label: string }[] = [
 	{ value: CREATION_MODES.JUDAS, label: "Judas AI" },
 	{ value: CREATION_MODES.SCHEMA_BUILDER, label: "Schema Builder" },
 	{ value: CREATION_MODES.INTROSPECTOR, label: "Introspector" },
@@ -23,7 +23,7 @@ export default function BuilderModeSelector() {
 					<button
 						key={option.value}
 						type="button"
-						onClick={() => setCreationMode(option.value)}
+						onClick={() => { setCreationMode(option.value); }}
 						className={`px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium rounded-md transition-colors min-h-[32px] md:min-h-[36px] ${
 							option.value === creationMode
 								? "bg-accent text-accent-fg shadow-sm"

@@ -1,0 +1,29 @@
+# [[USE_DATA(song.album)]]
+
+**Artist:** [[USE_DATA(song.artist)]]  
+**Label:** [[USE_DATA(song.label)]]  
+**Release Date:** [[USE_DATA(song.release-date)]]  
+**Genre:** [[USE_DATA(song.genre)]]
+
+## Track Listing
+
+1. [[USE_DATA(song.track-number)]]. [[USE_DATA(song.title)]] - [[USE_DATA(song.duration)]]
+
+## Album Information
+
+This album features [[USE_DATA(song.genre)]] music by [[USE_DATA(song.artist)]].
+
+### Credits
+
+**Produced by:** [[USE_DATA(recording.producer)]]  
+**Recorded at:** [[USE_DATA(recording.studio)]]  
+**Engineered by:** [[USE_DATA(recording.engineer)]]
+
+### Songwriters
+
+[[USE_DATA(writers)]]
+
+---
+
+© [[USE_DATA(song.release-date)]] [[USE_DATA(song.label)]]. All rights reserved.
+

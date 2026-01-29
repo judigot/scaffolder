@@ -1,0 +1,24 @@
+element:
+  symbol: "Fe"
+  name: "Iron"
+  atomic-number: 26
+  atomic-mass: "55.845"
+  group: 8
+  period: 4
+  block: "d"
+  category: "Transition Metal"
+  electron-configuration: "[Ar] 3d⁶ 4s²"
+  electronegativity: 1.83
+  density: "7.874 g/cm³"
+  melting-point: "1538°C"
+  boiling-point: "2862°C"
+  state-at-room-temp: "Solid"
+  color: "Silvery-gray"
+  discovery-year: "Ancient"
+  discoverer: "Known since ancient times"
+  uses: "Steel production, construction, tools, machinery, hemoglobin in blood, magnets, catalysts"
+  description: "Iron is the most common element on Earth by mass. It is essential for life and is the main component of steel, one of the most important materials in modern civilization."
+  safety-notes: "Iron dust can be flammable. Iron supplements should be taken as directed to avoid toxicity."
+  oxidation-states: "+2, +3"
+  magnetic-properties: "Ferromagnetic"
+

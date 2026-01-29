@@ -7,23 +7,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-	ChatAdapter,
-	ChatAdapterCallbacks,
 	ChatAdapterFactory,
-	ChatError,
-	ChatMessage,
-	ChatSession,
-	ChatSessionConfig,
 	ChatStatus,
-} from "./types";
+	IChatAdapter,
+	IChatAdapterCallbacks,
+	IChatError,
+	IChatMessage,
+	IChatSession,
+	IChatSessionConfig,
+} from "./types.ts";
 
-export interface UseChatSessionOptions
-	extends Omit<ChatSessionConfig, "endpoint"> {
+export interface IUseChatSessionOptions
+	extends Omit<IChatSessionConfig, "endpoint"> {
 	/** API endpoint for the chat */
 	endpoint: string;
 	/** Factory function to create the adapter */
 	adapterFactory: ChatAdapterFactory;
 }
+
+/** @deprecated Use IUseChatSessionOptions instead */
+export type UseChatSessionOptions = IUseChatSessionOptions;
 
 /**
  * Hook for managing chat sessions with a pluggable adapter pattern.
@@ -48,17 +51,17 @@ export interface UseChatSessionOptions
  * }
  * ```
  */
-export function useChatSession(options: UseChatSessionOptions): ChatSession {
+export function useChatSession(options: IUseChatSessionOptions): IChatSession {
 	const { endpoint, adapterFactory, ...configOptions } = options;
 
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
+	const [messages, setMessages] = useState<IChatMessage[]>([]);
 	const [status, setStatus] = useState<ChatStatus>("idle");
-	const [error, setError] = useState<ChatError | null>(null);
+	const [error, setError] = useState<IChatError | null>(null);
 	const [sessionId, setSessionId] = useState<string | null>(
 		configOptions.sessionId ?? null,
 	);
 
-	const adapterRef = useRef<ChatAdapter | null>(null);
+	const adapterRef = useRef<IChatAdapter | null>(null);
 	const lastUserMessageRef = useRef<string | null>(null);
 	const currentAssistantIdRef = useRef<string | null>(null);
 	const configOptionsRef = useRef(configOptions);
@@ -75,7 +78,10 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 
 	// Update session ID when config changes
 	useEffect(() => {
-		if (configOptions.sessionId) {
+		if (
+			configOptions.sessionId !== undefined &&
+			configOptions.sessionId !== ""
+		) {
 			setSessionId(configOptions.sessionId);
 		}
 	}, [configOptions.sessionId]);
@@ -91,33 +97,35 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 			}
 
 			const trimmedContent = content.trim();
-			if (!trimmedContent) return;
+			if (!trimmedContent) {
+				return;
+			}
 
 			lastUserMessageRef.current = trimmedContent;
 			setError(null);
 			setStatus("loading");
 
 			// Add user message immediately
-			const userMessage: ChatMessage = {
-				id: `user-${Date.now()}`,
+			const userMessage: IChatMessage = {
+				id: `user-${String(Date.now())}`,
 				role: "user",
 				content: trimmedContent,
 				createdAt: new Date(),
 			};
 			setMessages((prev) => [...prev, userMessage]);
 
-			const config: ChatSessionConfig = {
+			const config: IChatSessionConfig = {
 				endpoint,
 				sessionId: sessionId ?? undefined,
 				...configOptionsRef.current,
 			};
 
-			const callbacks: ChatAdapterCallbacks = {
-				onMessageStart: (messageId) => {
+			const callbacks: IChatAdapterCallbacks = {
+				onMessageStart: (messageId: string) => {
 					currentAssistantIdRef.current = messageId;
 					setStatus("streaming");
 					// Add placeholder assistant message
-					const assistantMessage: ChatMessage = {
+					const assistantMessage: IChatMessage = {
 						id: messageId,
 						role: "assistant",
 						content: "",
@@ -125,13 +133,13 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 					};
 					setMessages((prev) => [...prev, assistantMessage]);
 				},
-				onStreamingText: (text, messageId) => {
+				onStreamingText: (text: string, messageId: string) => {
 					setMessages((prev) =>
 						prev.map((m) => (m.id === messageId ? { ...m, content: text } : m)),
 					);
 					configOptionsRef.current.onStreamingText?.(text, messageId);
 				},
-				onMessageComplete: (message) => {
+				onMessageComplete: (message: IChatMessage) => {
 					setMessages((prev) =>
 						prev.map((m) => (m.id === message.id ? message : m)),
 					);
@@ -140,13 +148,13 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 					configOptionsRef.current.onMessage?.(message);
 					configOptionsRef.current.onFinish?.(message);
 				},
-				onError: (err) => {
+				onError: (err: IChatError) => {
 					setError(err);
 					setStatus("error");
 					currentAssistantIdRef.current = null;
 					configOptionsRef.current.onError?.(err);
 				},
-				onSessionId: (newSessionId) => {
+				onSessionId: (newSessionId: string) => {
 					setSessionId(newSessionId);
 				},
 			};
@@ -162,7 +170,9 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	}, []);
 
 	const retry = useCallback(() => {
-		if (!lastUserMessageRef.current) return;
+		if (lastUserMessageRef.current === null) {
+			return;
+		}
 
 		// Remove the last user message and failed assistant message
 		setMessages((prev) => {
@@ -196,7 +206,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		currentAssistantIdRef.current = null;
 	}, []);
 
-	const setMessagesExternal = useCallback((newMessages: ChatMessage[]) => {
+	const setMessagesExternal = useCallback((newMessages: IChatMessage[]) => {
 		setMessages(newMessages);
 	}, []);
 

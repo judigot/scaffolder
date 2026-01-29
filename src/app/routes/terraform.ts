@@ -145,16 +145,19 @@ router.post("/status", async (c) => {
 					{ autoApply: false },
 				);
 
+				// Type narrowing already done above - values are strings
+				const awsAccessKeyId = String(body.awsAccessKeyId);
+				const awsSecretAccessKey = String(body.awsSecretAccessKey);
 				const awsVariables = [
 					{
 						key: "AWS_ACCESS_KEY_ID",
-						value: body.awsAccessKeyId as string,
+						value: awsAccessKeyId,
 						category: "env" as const,
 						sensitive: true,
 					},
 					{
 						key: "AWS_SECRET_ACCESS_KEY",
-						value: body.awsSecretAccessKey as string,
+						value: awsSecretAccessKey,
 						category: "env" as const,
 						sensitive: true,
 					},
@@ -776,7 +779,8 @@ router.post("/workspace", async (c) => {
 		let workspace: { id: string; name: string };
 
 		if (mode === "vcs") {
-			const githubOrgTrimmed = (body.githubOrg as string).trim();
+			// Type narrowing already done above - githubOrg is string
+			const githubOrgTrimmed = String(body.githubOrg).trim();
 			const connection = await getGitHubConnection(
 				baseConfig,
 				githubOrgTrimmed,
@@ -872,7 +876,7 @@ router.post("/workspace/:workspaceName/variables", async (c) => {
 	}
 
 	const workspaceName = c.req.param("workspaceName");
-	if (workspaceName === "" || workspaceName === undefined) {
+	if (workspaceName === "") {
 		return c.json(
 			{
 				error: "Workspace name is required",
@@ -950,7 +954,7 @@ router.post("/workspace/:workspaceName/state", async (c) => {
 	}
 
 	const workspaceName = c.req.param("workspaceName");
-	if (workspaceName === "" || workspaceName === undefined) {
+	if (workspaceName === "") {
 		return c.json({ error: "Workspace name is required" }, 400);
 	}
 
@@ -1011,7 +1015,7 @@ router.put("/workspace/:workspaceName/variables", async (c) => {
 	}
 
 	const workspaceName = c.req.param("workspaceName");
-	if (workspaceName === "" || workspaceName === undefined) {
+	if (workspaceName === "") {
 		return c.json(
 			{
 				error: "Workspace name is required",
@@ -1059,19 +1063,21 @@ router.put("/workspace/:workspaceName/variables", async (c) => {
 	}[] = [];
 
 	for (const v of body.variables) {
-		if (
-			typeof v !== "object" ||
-			v === null ||
-			typeof v.key !== "string" ||
-			typeof v.value !== "string"
-		) {
+		if (typeof v !== "object" || v === null) {
+			continue;
+		}
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+		const vObj: Record<string, unknown> = v as Record<string, unknown>;
+		const key = vObj.key;
+		const value = vObj.value;
+		if (typeof key !== "string" || typeof value !== "string") {
 			continue;
 		}
 		variableInputs.push({
-			key: v.key,
-			value: v.value,
-			category: v.category === "terraform" ? "terraform" : "env",
-			sensitive: Boolean(v.sensitive),
+			key,
+			value,
+			category: vObj.category === "terraform" ? "terraform" : "env",
+			sensitive: Boolean(vObj.sensitive),
 		});
 	}
 
@@ -1131,7 +1137,7 @@ router.delete("/workspace/:workspaceName", async (c) => {
 	}
 
 	const workspaceName = c.req.param("workspaceName");
-	if (workspaceName === "" || workspaceName === undefined) {
+	if (workspaceName === "") {
 		return c.json(
 			{
 				error: "Workspace name is required",

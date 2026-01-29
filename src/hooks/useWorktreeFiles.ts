@@ -6,15 +6,20 @@ import {
 } from "@tanstack/react-query";
 import type { IStructure } from "@/components/FileViewer.tsx";
 
-interface UseWorktreeFilesParams {
+interface IUseWorktreeFilesParams {
 	worktreePath?: string;
+}
+
+interface IWorktreeFilesResponse {
+	files?: IStructure;
+	error?: string;
 }
 
 /**
  * Hook for fetching files from a worktree
  */
 export function useWorktreeFiles(
-	params: UseWorktreeFilesParams,
+	params: IUseWorktreeFilesParams,
 	options?: Omit<UseQueryOptions<IStructure>, "queryKey" | "queryFn">,
 ): UseQueryResult<IStructure> {
 	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
@@ -22,7 +27,11 @@ export function useWorktreeFiles(
 	return useQuery({
 		queryKey: ["worktreeFiles", params.worktreePath],
 		queryFn: async (): Promise<IStructure> => {
-			if (!params.worktreePath || !isAuthenticated) {
+			if (
+				params.worktreePath === undefined ||
+				params.worktreePath === "" ||
+				!isAuthenticated
+			) {
 				return [];
 			}
 
@@ -37,14 +46,29 @@ export function useWorktreeFiles(
 			});
 
 			if (!response.ok) {
-				const error = await response.json().catch(() => ({}));
-				throw new Error(error.error || "Failed to fetch worktree files");
+				const errorJson: unknown = await response.json().catch(() => ({}));
+				const isErrorResponse = (val: unknown): val is IWorktreeFilesResponse =>
+					typeof val === "object" && val !== null;
+				const errorData: IWorktreeFilesResponse = isErrorResponse(errorJson)
+					? errorJson
+					: {};
+				const errorMessage =
+					errorData.error ?? "Failed to fetch worktree files";
+				throw new Error(errorMessage);
 			}
 
-			const data = await response.json();
-			return data.files || [];
+			const dataJson: unknown = await response.json();
+			const isFilesResponse = (val: unknown): val is IWorktreeFilesResponse =>
+				typeof val === "object" && val !== null;
+			const data: IWorktreeFilesResponse = isFilesResponse(dataJson)
+				? dataJson
+				: {};
+			return data.files ?? [];
 		},
-		enabled: !!params.worktreePath && isAuthenticated,
+		enabled:
+			params.worktreePath !== undefined &&
+			params.worktreePath !== "" &&
+			isAuthenticated,
 		staleTime: 0, // Always refetch when invalidated
 		gcTime: 5 * 60 * 1000,
 		refetchOnWindowFocus: false,

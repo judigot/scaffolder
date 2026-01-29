@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchase Order - [[USE_DATA(purchase-order.number)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { display: flex; justify-content: space-between; border-bottom: 4px solid #673ab7; padding-bottom: 25px; margin-bottom: 30px; }
+    .po-info { }
+    .po-number { font-size: 2.5em; font-weight: bold; color: #673ab7; margin-bottom: 10px; }
+    .po-date { font-size: 1.2em; color: #7f8c8d; }
+    .status-badge { display: inline-block; padding: 8px 20px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+    .approved { background: #4caf50; color: white; }
+    .pending { background: #ff9800; color: white; }
+    .rejected { background: #f44336; color: white; }
+    .address-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin: 30px 0; }
+    .address-box { background: #f8f9fa; padding: 20px; border-radius: 5px; border-left: 4px solid #673ab7; }
+    .address-label { font-weight: bold; color: #34495e; margin-bottom: 10px; }
+    .items-table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+    .items-table th { background: #673ab7; color: white; padding: 15px; text-align: left; }
+    .items-table td { padding: 12px 15px; border-bottom: 1px solid #ecf0f1; }
+    .items-table tr:hover { background: #f8f9fa; }
+    .text-right { text-align: right; }
+    .pricing-section { margin-top: 30px; padding-top: 20px; border-top: 3px solid #673ab7; }
+    .pricing-row { display: flex; justify-content: space-between; padding: 10px 0; }
+    .pricing-row.total { font-size: 1.5em; font-weight: bold; border-top: 2px solid #333; padding-top: 15px; }
+    .section { margin: 25px 0; }
+    .section-title { font-size: 1.4em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; margin-bottom: 15px; }
+    .info-box { background: #f3e5f5; padding: 15px; border-radius: 5px; margin: 15px 0; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="po-info">
+        <div class="po-number">PURCHASE ORDER</div>
+        <div class="po-date">Date: [[USE_DATA(purchase-order.date)]]</div>
+        <div style="margin-top: 10px;">
+          <div>Requested By: [[USE_DATA(purchase-order.requested-by)]]</div>
+          <div>Department: [[USE_DATA(purchase-order.department)]]</div>
+          <div>Project: [[USE_DATA(purchase-order.project)]]</div>
+        </div>
+        <div class="status-badge [[USE_DATA(purchase-order.status)]]">Status: [[USE_DATA(purchase-order.status)]]</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 1.5em; font-weight: bold; color: #673ab7;">PO #[[USE_DATA(purchase-order.number)]]</div>
+        <div style="margin-top: 20px; color: #7f8c8d;">
+          <div>Priority: [[USE_DATA(purchase-order.priority)]]</div>
+          <div>Delivery Date: [[USE_DATA(purchase-order.delivery-date)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="address-section">
+      <div class="address-box">
+        <div class="address-label">Vendor Information</div>
+        <div><strong>[[USE_DATA(vendor.name)]]</strong></div>
+        <div>[[USE_DATA(vendor.address)]]</div>
+        <div>[[USE_DATA(vendor.city)]], [[USE_DATA(vendor.state)]] [[USE_DATA(vendor.zip)]]</div>
+        <div style="margin-top: 10px;">
+          <div>Phone: [[USE_DATA(vendor.phone)]]</div>
+          <div>Email: [[USE_DATA(vendor.email)]]</div>
+          <div>Contact: [[USE_DATA(vendor.contact-person)]]</div>
+          <div>Tax ID: [[USE_DATA(vendor.tax-id)]]</div>
+        </div>
+      </div>
+      <div class="address-box">
+        <div class="address-label">Ship To</div>
+        <div><strong>[[USE_DATA(ship-to.name)]]</strong></div>
+        <div>[[USE_DATA(ship-to.address)]]</div>
+        <div>[[USE_DATA(ship-to.city)]], [[USE_DATA(ship-to.state)]] [[USE_DATA(ship-to.zip)]]</div>
+        <div style="margin-top: 10px;">
+          <div>Attention: [[USE_DATA(ship-to.attention)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Items</div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Item #</th>
+            <th>Description</th>
+            <th>Part Number</th>
+            <th class="text-right">Quantity</th>
+            <th class="text-right">Unit Price</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          [[USE_DATA(purchase-order.items)]]
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pricing-section">
+      <div class="pricing-row">
+        <div>Subtotal:</div>
+        <div>$[[USE_DATA(pricing.subtotal)]]</div>
+      </div>
+      <div class="pricing-row">
+        <div>Tax ([[USE_DATA(pricing.tax-rate)]]%):</div>
+        <div>$[[USE_DATA(pricing.tax)]]</div>
+      </div>
+      <div class="pricing-row">
+        <div>Shipping:</div>
+        <div>$[[USE_DATA(pricing.shipping)]]</div>
+      </div>
+      <div class="pricing-row total">
+        <div>Total:</div>
+        <div>$[[USE_DATA(pricing.total)]]</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Terms & Conditions</div>
+      <div class="info-box">
+        <div><strong>Payment Terms:</strong> [[USE_DATA(purchase-order.payment-terms)]]</div>
+        <div style="margin-top: 10px;"><strong>Delivery Date:</strong> [[USE_DATA(purchase-order.delivery-date)]]</div>
+        <div style="margin-top: 10px;"><strong>Notes:</strong> [[USE_DATA(purchase-order.notes)]]</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div style="margin-bottom: 20px;">
+        <div><strong>Approved By:</strong> [[USE_DATA(approved-by.name)]], [[USE_DATA(approved-by.title)]]</div>
+        <div><strong>Approval Date:</strong> [[USE_DATA(approved-by.date)]]</div>
+      </div>
+      <p><strong>[[USE_DATA(company.name)]]</strong></p>
+      <p>[[USE_DATA(company.address)]], [[USE_DATA(company.city)]], [[USE_DATA(company.state)]] [[USE_DATA(company.zip)]]</p>
+      <p>Phone: [[USE_DATA(company.phone)]] | Email: [[USE_DATA(company.email)]]</p>
+    </div>
+  </div>
+</body>
+</html>
+

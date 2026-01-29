@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}} - Retrieves {{tableNamePascalCaseSingular}} resources where a column's value is in a given array
+Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.where-in');

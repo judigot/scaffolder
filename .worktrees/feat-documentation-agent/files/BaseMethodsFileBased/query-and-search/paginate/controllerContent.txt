@@ -1,0 +1,3 @@
+        $perPage = $request->input('per_page', 15);
+        $items = $this->service->{{methodNameCamelCase}}($perPage);
+        return response()->json($items);

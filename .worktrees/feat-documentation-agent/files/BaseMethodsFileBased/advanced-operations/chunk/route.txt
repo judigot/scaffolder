@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}} - Processes data in chunks for better performance and memory usage
+Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');

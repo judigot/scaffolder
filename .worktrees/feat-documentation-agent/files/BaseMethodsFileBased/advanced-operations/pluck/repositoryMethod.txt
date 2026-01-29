@@ -1,0 +1,1 @@
+{{methodNameCamelCase}}(string $column, string $key = null): Collection

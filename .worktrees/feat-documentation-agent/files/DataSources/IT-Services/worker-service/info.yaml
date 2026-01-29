@@ -1,0 +1,95 @@
+service:
+  name: "worker-service"
+  team: "backend"
+  description: "Background job processing service"
+  language: "python"
+  runtime: "python:3.11"
+  version: "2.1.0"
+
+deployment:
+  platform: "kubernetes"
+  namespace: "production"
+  replicas: 3
+  strategy: "rolling-update"
+  max-surge: 1
+  max-unavailable: 0
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+ports:
+  - name: "metrics"
+    container-port: 9090
+    protocol: "TCP"
+    service-port: 9090
+    target-port: 9090
+
+env-vars:
+  - name: "ENVIRONMENT"
+    value: "production"
+  - name: "DATABASE_URL"
+    value-from: "secret"
+    secret-name: "database-credentials"
+  - name: "REDIS_URL"
+    value-from: "secret"
+    secret-name: "redis-credentials"
+  - name: "QUEUE_NAME"
+    value: "job-queue"
+  - name: "LOG_LEVEL"
+    value: "info"
+
+health-checks:
+  liveness:
+    path: "/health"
+    port: 9090
+    initial-delay: 30
+    period: 10
+    timeout: 5
+    failure-threshold: 3
+  readiness:
+    path: "/ready"
+    port: 9090
+    initial-delay: 10
+    period: 5
+    timeout: 3
+    failure-threshold: 3
+
+auto-scaling:
+  enabled: true
+  min-replicas: 2
+  max-replicas: 8
+  target-cpu: 70
+  target-memory: 80
+
+volumes:
+  - name: "config"
+    config-map: "worker-config"
+
+networking:
+  service-type: "ClusterIP"
+  ingress:
+    enabled: false
+
+monitoring:
+  enabled: true
+  metrics-path: "/metrics"
+  log-level: "info"
+
+dependencies:
+  - name: "postgres-db"
+    type: "database"
+  - name: "redis-cache"
+    type: "cache"
+  - name: "job-queue"
+    type: "queue"
+
+tags:
+  app: "worker-service"
+  tier: "backend"
+  version: "2.1.0"
+

@@ -41,8 +41,13 @@ describe("Chat Branch Checkout", () => {
 			const res = await fetch(`${API_BASE}/api/opencode/health`);
 			expect(res.ok).toBe(true);
 
-			const data = await res.json();
-			expect(data.connected).toBe(true);
+			const data: unknown = await res.json();
+			expect(
+				typeof data === "object" &&
+					data !== null &&
+					"connected" in data &&
+					data.connected,
+			).toBe(true);
 		});
 	});
 
@@ -58,12 +63,19 @@ describe("Chat Branch Checkout", () => {
 			});
 
 			expect(res.status).toBe(401);
-			const data = await res.json();
-			expect(data.error).toContain("authorization");
+			const data: unknown = await res.json();
+			expect(
+				typeof data === "object" &&
+					data !== null &&
+					"error" in data &&
+					typeof data.error === "string" &&
+					data.error.includes("authorization"),
+			).toBe(true);
 		});
 
 		test("returns error without repoPath", async () => {
-			if (!AUTH_TOKEN) {
+			if (AUTH_TOKEN === undefined || AUTH_TOKEN === "") {
+				// eslint-disable-next-line no-console -- Test skip message
 				console.log("Skipping: TEST_AUTH_TOKEN not set");
 				return;
 			}
@@ -80,12 +92,19 @@ describe("Chat Branch Checkout", () => {
 			});
 
 			expect(res.status).toBe(400);
-			const data = await res.json();
-			expect(data.error).toContain("path");
+			const data: unknown = await res.json();
+			expect(
+				typeof data === "object" &&
+					data !== null &&
+					"error" in data &&
+					typeof data.error === "string" &&
+					data.error.includes("path"),
+			).toBe(true);
 		});
 
 		test("returns error without branch", async () => {
-			if (!AUTH_TOKEN) {
+			if (AUTH_TOKEN === undefined || AUTH_TOKEN === "") {
+				// eslint-disable-next-line no-console -- Test skip message
 				console.log("Skipping: TEST_AUTH_TOKEN not set");
 				return;
 			}
@@ -102,12 +121,19 @@ describe("Chat Branch Checkout", () => {
 			});
 
 			expect(res.status).toBe(400);
-			const data = await res.json();
-			expect(data.error).toContain("branch");
+			const data: unknown = await res.json();
+			expect(
+				typeof data === "object" &&
+					data !== null &&
+					"error" in data &&
+					typeof data.error === "string" &&
+					data.error.includes("branch"),
+			).toBe(true);
 		});
 
 		test("successfully checks out existing branch", async () => {
-			if (!AUTH_TOKEN) {
+			if (AUTH_TOKEN === undefined || AUTH_TOKEN === "") {
+				// eslint-disable-next-line no-console -- Test skip message
 				console.log("Skipping: TEST_AUTH_TOKEN not set");
 				return;
 			}
@@ -125,13 +151,14 @@ describe("Chat Branch Checkout", () => {
 			});
 
 			expect(res.ok).toBe(true);
-			const data = await res.json();
-			expect(data.ok).toBe(true);
+			const data: unknown = await res.json();
+			expect(
+				typeof data === "object" && data !== null && "ok" in data && data.ok,
+			).toBe(true);
 		});
 
 		test("returns error for non-existent branch", async () => {
-			if (!AUTH_TOKEN) {
-				console.log("Skipping: TEST_AUTH_TOKEN not set");
+			if (AUTH_TOKEN === undefined || AUTH_TOKEN === "") {
 				return;
 			}
 
@@ -147,8 +174,13 @@ describe("Chat Branch Checkout", () => {
 				}),
 			});
 
-			const data = await res.json();
-			expect(data.ok).toBe(false);
+			const data: unknown = await res.json();
+			expect(
+				typeof data === "object" &&
+					data !== null &&
+					"ok" in data &&
+					data.ok === false,
+			).toBe(true);
 		});
 	});
 
@@ -164,8 +196,14 @@ describe("Chat Branch Checkout", () => {
 
 			for (const pattern of patterns) {
 				const match = pattern.exec(text);
-				if (match?.[1] && match[1] !== "main" && match[1] !== "master") {
-					return match[1];
+				const matchedBranch = match?.[1];
+				if (
+					matchedBranch !== undefined &&
+					matchedBranch !== "" &&
+					matchedBranch !== "main" &&
+					matchedBranch !== "master"
+				) {
+					return matchedBranch;
 				}
 			}
 			return null;

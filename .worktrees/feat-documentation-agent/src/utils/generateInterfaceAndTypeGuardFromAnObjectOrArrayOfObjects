@@ -1,0 +1,319 @@
+import { generateInterface } from '@/utils/_interfaceGenerator.ts';
+export const generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects = ({
+  interfaceName,
+  data,
+  isDateStringFormat = false,
+}: {
+  interfaceName: string;
+  data: Record<string, unknown> | Record<string, unknown>[];
+  isDateStringFormat: boolean;
+}): string => {
+  /*
+  Algorithm:
+  Compile all the nested objects inside an array using analyzeObjectHierarchy. These will be used for generating the main exported interface.
+  Example:
+  export IData {
+    key: string;
+    nestedObject: *INestedObject interface body*
+    nestedObject2: *INestedObject2 interface body*[]
+  }
+  
+  The same array will be used for generating the child types and child type guards inside the main type guard.
+  Example:
+  // Main type guard
+  export function isData(data: unknown): data is isData {
+    if (Array.isArray(data)) {
+      return data.every(isIJSONSchema);
+    }
+      // Start of child types. Iterate over the heirarchy array
+      type INestedType = IData['NestedTypeKey'];
+      // End of child types
+
+      // Start of child type guards for the child types. Iterate over the heirarchy array
+      
+      // End of child type guards for the child types
+  }
+
+  If isDateStringFormat is true, i want all the string-formatted dates to be string:
+
+  Example:
+  created_at: '2023-06-18T10:17:19.000Z',
+  It should be
+  created_date: string;
+  Also in the typeguard
+
+  If isDateStringFormat is false then:
+  created_date: string;
+  Also in the typeguard
+  */
+  interface IHierarchyNode {
+    key: string;
+    level: number;
+    value: unknown;
+    children?: IHierarchyNode[];
+  }
+
+  const analyzeObjectHierarchy = (
+    obj: Record<string, unknown>,
+    level = 0,
+  ): IHierarchyNode[] => {
+    const hierarchy: IHierarchyNode[] = [];
+
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const value = obj[key];
+        const node: IHierarchyNode = { key, level, value }; // Include the primitive value
+
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            node.children = value.map((item, index) => ({
+              key: `${key}[${index}]`,
+              level: level + 1,
+              value: item, // Include the array item as value
+            }));
+          } else {
+            node.children = analyzeObjectHierarchy(
+              value as Record<string, unknown>,
+              level + 1,
+            );
+          }
+        }
+
+        hierarchy.push(node);
+      }
+    }
+
+    return hierarchy;
+  };
+
+  const hierarchy = analyzeObjectHierarchy(data);
+
+  function populateInterfaceProperties(element: IHierarchyNode): string {
+    if (typeof element.value !== 'object') {
+      return `${element.key}: ${typeof element.value};`;
+    } else {
+      if (Array.isArray(element.value)) {
+        return `${element.key}: I${element.key.toUpperCase()}[];`;
+      } else {
+        return `${element.key}: I${element.key.toUpperCase()};`;
+      }
+    }
+  }
+
+  /**
+   * Summarizes the value types of keys in an array of objects.
+   *
+   * @param data - The array of objects to summarize.
+   * @returns An array of { key: string; value_types: string[]; } representing the value types of each key.
+   */
+  function summarizeArrayOfObjectValueTypes(data: Record<string, unknown>[]): {
+    key: string;
+    value_types: string[];
+  }[] {
+    const typeSummary: Record<string, Set<string>> = {};
+    data.forEach((item) => {
+      for (const key in item) {
+        const value = item[key];
+        let valueType: string;
+        if (value === null) {
+          valueType = 'null';
+        } else if (value instanceof Date) {
+          valueType = 'Date';
+        } else if (typeof value === 'string') {
+          valueType = 'string';
+        } else if (typeof value === 'number') {
+          valueType = Number.isInteger(value) ? 'number' : 'float';
+        } else {
+          valueType = typeof value;
+        }
+        if (!typeSummary[key]) {
+          typeSummary[key] = new Set<string>();
+        }
+        typeSummary[key].add(valueType);
+      }
+    });
+    return Object.entries(typeSummary).map(([key, valueTypes]) => ({
+      key,
+      value_types: Array.from(valueTypes),
+    }));
+  }
+
+  return `
+${generateInterface({ interfaceName, data, isDateStringFormat })}
+
+export function isI${interfaceName}(data: unknown): data is I${interfaceName} {
+  if (Array.isArray(data)) {
+    return data.every(isI${interfaceName});
+  }
+}
+
+export function isI${interfaceName}Array(data: unknown): data is I${interfaceName}[] {
+  return Array.isArray(data) && data.every(isI${interfaceName});
+}
+`;
+};
+
+const objectVariable = {
+  key: null,
+  key1: 1,
+  key2: '2023-06-18T18:17:19.000000Z',
+  key3: new Date(),
+  user: {
+    id: 1,
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    isActive: true,
+    createdAt: '2023-10-01T14:48:00.000Z',
+    posts: [
+      {
+        id: 101,
+        title: 'My First Post',
+        content: 'This is the content of my first post.',
+        tags: ['typescript', 'javascript'],
+        createdAt: '2023-10-02T10:15:00.000Z',
+        comments: [
+          {
+            id: 201,
+            text: 'Great post!',
+            author: 'Jane Smith',
+            createdAt: '2023-10-03T11:30:00.000Z',
+          },
+          {
+            id: 202,
+            text: 'Thanks for sharing!',
+            author: 'Bob Johnson',
+            createdAt: '2023-10-04T09:45:00.000Z',
+          },
+        ],
+      },
+      {
+        id: 102,
+        title: 'Another Post',
+        content: 'Here is some more content for another post.',
+        tags: ['coding', 'react'],
+        createdAt: '2023-10-05T12:20:00.000Z',
+        comments: [],
+      },
+    ],
+  },
+  prop: {
+    child1: 2,
+    child2: {
+      child1: 2,
+      child2: new Date(),
+    },
+  },
+  prop1: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: 1,
+      child3: false,
+    },
+    {
+      child1: 2,
+      child2: 1,
+      child3: 'false',
+    },
+  ],
+  prop2: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: new Date(),
+    },
+  ],
+  prop3: [
+    {
+      child1: 1,
+      child2: 1,
+    },
+    {
+      child1: 2,
+      child2: {
+        prop1: [
+          {
+            child1: 1,
+            child2: 1,
+          },
+          {
+            child1: 2,
+            child2: 1,
+          },
+        ],
+      },
+    },
+  ],
+};
+
+/*
+Result should be:
+export interface IObjectVariable {
+  key: null;
+  key1: number;
+  key2: string;
+  key3: Date;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    isActive: boolean;
+    createdAt: string;
+    posts: {
+      id: number;
+      title: string;
+      content: string;
+      tags: string[];
+      createdAt: string;
+      comments: {
+        id: number;
+        text: string;
+        author: string;
+        createdAt: string;
+      }[];
+    }[];
+  };
+  prop: {
+    child1: number;
+    child2: {
+      child1: number;
+      child2: Date;
+    };
+  };
+  prop1: {
+    child1: number;
+    child2: number;
+    child3: boolean | string;
+  }[];
+  prop2: {
+    child1: number;
+    child2: number | Date;
+  }[];
+  prop3: {
+    child1: number;
+    child2:
+      | number
+      | {
+          prop1: {
+            child1: number;
+            child2: number;
+          }[];
+        };
+  }[];
+}
+*/
+
+// eslint-disable-next-line no-console
+console.log(
+  generateInterfaceAndTypeGuardFromAnObjectOrArrayOfObjects({
+    interfaceName: 'IObjectVariable',
+    data: objectVariable,
+    isDateStringFormat: false,
+  }),
+);

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WorkspaceVariablesPanel } from "@/components/AI/WorkspaceVariablesPanel.tsx";
 import CustomModal from "@/components/Modal/base/CustomModal.tsx";
 import { TerminalMode } from "@/components/Terminal/index.ts";
+
 import GroupedSelect, { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
 import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
 import {
@@ -123,7 +124,7 @@ const parseInfraCredentials = (
 
 export type { IInfraCredentials };
 
-type IInfraPanelProps = {};
+type IInfraPanelProps = Record<string, never>;
 
 interface IInfraWorkspaceCardProps {
 	workspace: string;
@@ -239,14 +240,15 @@ function InfraWorkspaceCard({
 			if (!response.ok) {
 				throw new Error("Failed to fetch Terraform status");
 			}
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
 			return (await response.json()) as ITerraformStatusResponse;
 		},
 	});
 
 	useEffect(() => {
-		if (statusQuery.data) {
-			const newEnableEc2 = Boolean(statusQuery.data.enableEc2);
-			const newOutputs = statusQuery.data.outputs ?? {};
+		if (statusQuery.data !== undefined) {
+			const newEnableEc2 = statusQuery.data.enableEc2;
+			const newOutputs = statusQuery.data.outputs;
 			setEnableEc2(newEnableEc2);
 			setOutputs(newOutputs);
 			setWorkspaceStatus(workspaceValue, {
@@ -267,10 +269,10 @@ function InfraWorkspaceCard({
 		(!statusQuery.data && !cachedStatus && statusQuery.isLoading);
 	const shouldShowNotices = !shouldShowSkeleton;
 	const updatedLabel = useMemo(() => {
-		if (!statusQuery.data) {
+		if (statusQuery.data === undefined) {
 			return "Not updated yet";
 		}
-		if (statusQuery.isFetching && !statusQuery.isLoading) {
+		if (statusQuery.isFetching) {
 			return "Updating...";
 		}
 		const updatedAt = statusQuery.dataUpdatedAt;
@@ -291,15 +293,11 @@ function InfraWorkspaceCard({
 		}
 		const days = Math.floor(hours / 24);
 		return `Updated ${String(days)}d ago`;
-	}, [
-		statusQuery.data,
-		statusQuery.dataUpdatedAt,
-		statusQuery.isFetching,
-		statusQuery.isLoading,
-	]);
+	}, [statusQuery.data, statusQuery.dataUpdatedAt, statusQuery.isFetching]);
 
+	const refetchStatus = statusQuery.refetch;
 	useEffect(() => {
-		if (!runId || accessToken === null || accessToken === "") {
+		if (runId === null || accessToken === null || accessToken === "") {
 			return;
 		}
 		if (!infraReady || workspaceValue === "") {
@@ -328,16 +326,17 @@ function InfraWorkspaceCard({
 				if (!response.ok) {
 					throw new Error("Failed to fetch Terraform run status");
 				}
-				const result = (await response.json()) as ITerraformRunResponse & {
-					success?: boolean;
-				};
+				// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
+				const result = (await response.json()) as ITerraformRunResponse;
 				setRunStatus(result.run.status);
 				if (!TERMINAL_STATUSES.has(result.run.status)) {
-					timeoutId = window.setTimeout(poll, 4000);
+					timeoutId = window.setTimeout(() => {
+						void poll();
+					}, 4000);
 					return;
 				}
 				setIsLoading(false);
-				await statusQuery.refetch();
+				await refetchStatus();
 			} catch (pollError: unknown) {
 				if (pollError instanceof Error) {
 					setError(pollError.message);
@@ -357,7 +356,7 @@ function InfraWorkspaceCard({
 	}, [
 		runId,
 		accessToken,
-		statusQuery.refetch,
+		refetchStatus,
 		infraReady,
 		infraCredentials.tfcToken,
 		infraCredentials.tfcOrg,
@@ -369,7 +368,7 @@ function InfraWorkspaceCard({
 			const response = await fetch(`${getApiUrl()}/terraform/run`, {
 				method: "POST",
 				headers: {
-					Authorization: `Bearer ${accessToken}`,
+					Authorization: `Bearer ${accessToken ?? ""}`,
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
@@ -385,15 +384,22 @@ function InfraWorkspaceCard({
 			});
 			if (!response.ok) {
 				const errorBody: unknown = await response.json().catch(() => null);
-				const serverMessage =
+				let serverMessage = "Failed to trigger Terraform run";
+				if (
 					errorBody !== null &&
 					typeof errorBody === "object" &&
-					"message" in errorBody &&
-					typeof (errorBody as Record<string, unknown>).message === "string"
-						? (errorBody as Record<string, string>).message
-						: "Failed to trigger Terraform run";
+					"message" in errorBody
+				) {
+					const messageValue = (errorBody as Record<string, unknown>)[
+						"message"
+					];
+					if (typeof messageValue === "string") {
+						serverMessage = messageValue;
+					}
+				}
 				throw new Error(serverMessage);
 			}
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
 			return (await response.json()) as ITerraformRunResponse;
 		},
 		onMutate: (nextValue: boolean) => {
@@ -476,6 +482,7 @@ function InfraWorkspaceCard({
 				throw new Error("Failed to fetch current configuration");
 			}
 
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
 			const variablesData = (await variablesResponse.json()) as {
 				variables?: { key: string; value: string | null }[];
 			};
@@ -495,6 +502,7 @@ function InfraWorkspaceCard({
 			}
 			let stateData: IStateData | null = null;
 			if (stateResponse.ok) {
+				// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
 				const stateJson = (await stateResponse.json()) as {
 					state?: IStateData | null;
 				};
@@ -568,12 +576,14 @@ function InfraWorkspaceCard({
 			);
 
 			if (!response.ok) {
+				// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
 				const errorData = (await response.json()) as { message?: string };
 				throw new Error(errorData.message ?? "Failed to update configuration");
 			}
 
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
 			const data = (await response.json()) as { run?: { id: string } };
-			if (data.run?.id) {
+			if (data.run?.id !== undefined && data.run.id !== "") {
 				setRunId(data.run.id);
 				setIsLoading(true);
 			}
@@ -1097,7 +1107,9 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 		useDecryptedUserMetadata();
 	const { openUserProfile } = useUserProfileStore();
 
-	const isDevMode = isMasterDeveloper(user?.nickname as string | undefined);
+	const isDevMode = isMasterDeveloper(
+		typeof user?.nickname === "string" ? user.nickname : undefined,
+	);
 	const DEV_WORKSPACE_NAME = "scaffolder-ssh-backend-service";
 	const queryClient = useQueryClient();
 	const [newWorkspace, setNewWorkspace] = useState<string>("");
@@ -1170,23 +1182,25 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 			if (!response.ok) {
 				throw new Error("Failed to fetch workspaces");
 			}
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
 			return (await response.json()) as IWorkspacesResponse;
 		},
 	});
 
 	const workspaceList = useMemo(() => {
-		return workspacesQuery.data?.workspaces.map((ws) => ws.name) ?? [];
+		return (
+			workspacesQuery.data?.workspaces.map((ws) => ws.name) ?? ([] as string[])
+		);
 	}, [workspacesQuery.data]);
 
 	const githubUsername = useMemo(() => {
-		if (user !== null) {
-			if (
-				typeof user.nickname === "string" &&
-				user.nickname !== "" &&
-				user.nickname !== user.email
-			) {
-				return user.nickname;
-			}
+		if (
+			user !== null &&
+			typeof user.nickname === "string" &&
+			user.nickname !== "" &&
+			user.nickname !== user.email
+		) {
+			return user.nickname;
 		}
 		return null;
 	}, [user]);

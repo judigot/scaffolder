@@ -6,14 +6,14 @@
  */
 
 import type {
-	ChatAdapter,
-	ChatAdapterCallbacks,
-	ChatMessage,
-	ChatSessionConfig,
-} from "../types";
+	IChatAdapter,
+	IChatAdapterCallbacks,
+	IChatMessage,
+	IChatSessionConfig,
+} from "../types.ts";
 
 /** SSE event types from our backend proxy */
-interface ProxyEvent {
+interface IProxyEvent {
 	sessionId?: string;
 	messageId?: string;
 	text?: string;
@@ -24,7 +24,7 @@ interface ProxyEvent {
  * Creates an OpenCode adapter for streaming chat.
  * Uses the backend's /api/opencode/chat/stream SSE endpoint.
  */
-export function createOpenCodeAdapter(): ChatAdapter {
+export function createOpenCodeAdapter(): IChatAdapter {
 	let abortController: AbortController | null = null;
 	let currentSessionId: string | null = null;
 	let currentMessageId: string | null = null;
@@ -32,14 +32,14 @@ export function createOpenCodeAdapter(): ChatAdapter {
 
 	const send = (
 		content: string,
-		config: ChatSessionConfig,
-		callbacks: ChatAdapterCallbacks,
+		config: IChatSessionConfig,
+		callbacks: IChatAdapterCallbacks,
 	): void => {
 		// Abort any existing request
 		stop();
 		abortController = new AbortController();
 
-		const messageId = `msg-${Date.now()}`;
+		const messageId = `msg-${String(Date.now())}`;
 		currentMessageId = messageId;
 		fullContent = "";
 		callbacks.onMessageStart(messageId);
@@ -69,7 +69,7 @@ export function createOpenCodeAdapter(): ChatAdapter {
 				if (!response.ok) {
 					const errorText = await response.text();
 					callbacks.onError({
-						message: `Request failed: ${response.status}`,
+						message: `Request failed: ${String(response.status)}`,
 						code: String(response.status),
 						details: errorText,
 					});
@@ -85,9 +85,12 @@ export function createOpenCodeAdapter(): ChatAdapter {
 				const decoder = new TextDecoder();
 				let buffer = "";
 
+				// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- reader.read() returns done: true when stream ends
 				while (true) {
 					const { done, value } = await reader.read();
-					if (done) break;
+					if (done) {
+						break;
+					}
 
 					buffer += decoder.decode(value, { stream: true });
 					const lines = buffer.split("\n");
@@ -101,16 +104,24 @@ export function createOpenCodeAdapter(): ChatAdapter {
 
 						if (line.startsWith("data:")) {
 							const data = line.slice(5).trim();
-							if (data === "" || data === "[DONE]") continue;
+							if (data === "" || data === "[DONE]") {
+								continue;
+							}
 
 							try {
-								const eventData = JSON.parse(data) as ProxyEvent;
+								const parsed: unknown = JSON.parse(data);
+								const isProxyEvent = (val: unknown): val is IProxyEvent =>
+									typeof val === "object" && val !== null;
+								const eventData: IProxyEvent = isProxyEvent(parsed)
+									? parsed
+									: {};
 
 								// Handle different event types based on presence of fields
 								if (
-									eventData.sessionId &&
-									!eventData.text &&
-									!eventData.error
+									eventData.sessionId !== undefined &&
+									eventData.sessionId !== "" &&
+									eventData.text === undefined &&
+									eventData.error === undefined
 								) {
 									// Session event
 									currentSessionId = eventData.sessionId;
@@ -122,7 +133,10 @@ export function createOpenCodeAdapter(): ChatAdapter {
 										fullContent,
 										currentMessageId ?? messageId,
 									);
-								} else if (eventData.error) {
+								} else if (
+									eventData.error !== undefined &&
+									eventData.error !== ""
+								) {
 									// Error event
 									callbacks.onError({ message: eventData.error });
 									return;
@@ -135,7 +149,7 @@ export function createOpenCodeAdapter(): ChatAdapter {
 				}
 
 				// Message complete
-				const message: ChatMessage = {
+				const message: IChatMessage = {
 					id: currentMessageId ?? messageId,
 					role: "assistant",
 					content: fullContent,

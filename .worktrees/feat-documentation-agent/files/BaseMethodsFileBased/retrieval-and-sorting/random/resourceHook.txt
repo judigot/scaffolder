@@ -1,0 +1,25 @@
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { getRandomResources } from '@/hooks/shared/useRandom.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IRandomParams {
+  limit?: number;
+}
+
+export const useRandom{{tableNamePascalCasePlural}} = (
+  params: IRandomParams = {},
+  options?: Omit<
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    'queryKey' | 'queryFn'
+  >,
+) => {
+  return useQuery({
+    queryKey: ['{{tableNameCamelCasePlural}}', 'random', params.limit],
+    queryFn: () =>
+      getRandomResources<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/random',
+        params.limit
+      ),
+    ...options,
+  });
+}; 

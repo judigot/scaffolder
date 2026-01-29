@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}}/{{methodNameKebabCase}} - Restores a soft-deleted {{tableNamePascalCaseSingular}} resource by ID
+Route::put('{{url}}/{{methodNameKebabCase}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');

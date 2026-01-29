@@ -1,0 +1,20 @@
+        $validated = $request->validate([
+            'format' => 'required|string|in:csv,excel,json,pdf',
+            'filters' => 'nullable|array',
+            'columns' => 'nullable|array',
+            'filename' => 'nullable|string|max:255',
+        ]);
+
+        // Check permissions
+        if (!auth()->user()->can('export', {{tableNamePascalCaseSingular}}::class)) {
+            return response()->json(['error' => 'Unauthorized to export data'], 403);
+        }
+
+        $filePath = $this->service->exportData(
+            $validated['format'],
+            $validated['filters'] ?? null,
+            $validated['columns'] ?? null,
+            $validated['filename'] ?? null
+        );
+
+        return response()->download($filePath)->deleteFileAfterSend(); 

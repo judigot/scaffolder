@@ -1,0 +1,81 @@
+song:
+  title: "Midnight Whispers"
+  artist: "Echo Valley"
+  album: "Nocturnal"
+  track-number: 5
+  duration: "4:22"
+  genre: "Indie Folk"
+  release-date: "2024-09-01"
+  label: "Folk Records"
+  isrc: "USRC12400015"
+  
+writers:
+  - name: "Emma Thompson"
+    role: "Lyrics & Music"
+    share: 100
+
+lyrics:
+  verses:
+    - number: 1
+      lines:
+        - "Midnight whispers in my ear"
+        - "Telling stories I want to hear"
+        - "Of dreams that never came true"
+        - "And love that I once knew"
+    
+    - number: 2
+      lines:
+        - "Silent streets, empty rooms"
+        - "Fading light, coming gloom"
+        - "I listen to the quiet sound"
+        - "Of memories all around"
+  
+  chorus:
+    lines:
+      - "Midnight whispers, soft and low"
+      - "Tell me things I need to know"
+      - "In the darkness, I find peace"
+      - "Where all my worries cease"
+  
+  bridge:
+    lines:
+      - "When morning comes"
+      - "The whispers fade"
+      - "But in my heart"
+      - "They're here to stay"
+
+chords:
+  key: "D Minor"
+  tempo: "85 BPM"
+  progression: "Dm - Bb - F - C"
+  structure:
+    - section: "Verse 1"
+      chords: "Dm Bb F C"
+    - section: "Chorus"
+      chords: "Dm Bb F C"
+    - section: "Verse 2"
+      chords: "Dm Bb F C"
+    - section: "Chorus"
+      chords: "Dm Bb F C"
+    - section: "Bridge"
+      chords: "Bb F C Dm"
+    - section: "Chorus"
+      chords: "Dm Bb F C"
+
+instruments:
+  - "Acoustic Guitar"
+  - "Violin"
+  - "Cello"
+  - "Piano"
+
+recording:
+  studio: "Moonlight Studio"
+  producer: "Emma Thompson"
+  engineer: "David Kim"
+  date: "2024-08-15"
+
+tags:
+  Mood: "Melancholic"
+  Theme: "Night"
+  Style: "Indie Folk"
+

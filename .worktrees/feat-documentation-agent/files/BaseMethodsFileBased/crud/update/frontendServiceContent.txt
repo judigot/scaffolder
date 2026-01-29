@@ -1,0 +1,2 @@
+const response = await axiosInstance.put(`{{tableNameKebabCasePlural}}/${id}`, data);
+return response.data; 

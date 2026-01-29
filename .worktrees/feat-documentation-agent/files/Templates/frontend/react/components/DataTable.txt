@@ -1,0 +1,154 @@
+import { useState, useRef } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  flexRender,
+  ColumnDef,
+} from '@tanstack/react-table';
+
+interface Column<T> extends ColumnDef<T> {}
+
+interface DataTableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+  searchPlaceholder?: string;
+  onSearch: (value: string) => void;
+  isLoading?: boolean;
+  onDelete?: (id: number | string) => void;
+  onUpdate?: (id: number | string, data: Partial<T>) => void;
+}
+
+export default function DataTable<T extends { id: number | string }>({
+  data,
+  columns,
+  searchPlaceholder = 'Search...',
+  onSearch,
+  isLoading = false,
+  onDelete,
+  onUpdate,
+}: DataTableProps<T>) {
+  const [editingRow, setEditingRow] = useState<number | string | null>(null);
+  const [editValues, setEditValues] = useState<Partial<T>>({});
+  const [searchInput, setSearchInput] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
+  const handleDoubleClick = (row: T) => {
+    setEditingRow(row.id);
+    setEditValues(row);
+  };
+
+  const handleChange = (key: string, value: string) => {
+    setEditValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = (rowId: number | string) => {
+    if (onUpdate) {
+      onUpdate(rowId, editValues);
+    }
+    setEditingRow(null);
+  };
+
+  return (
+    <div className="p-4 border rounded-xl shadow bg-white dark:bg-gray-900">
+      <div className="mb-4 flex gap-2">
+        <input
+          ref={searchRef}
+          type="text"
+          placeholder={searchPlaceholder}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+        <button
+          onClick={() => onSearch(searchInput)}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Search
+        </button>
+      </div>
+
+      <table className="w-full border-collapse">
+        <thead>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <th key={header.id} className="border p-2 text-left">
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                </th>
+              ))}
+              <th className="border p-2">Actions</th>
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {isLoading ? (
+            <tr>
+              <td colSpan={columns.length + 1} className="text-center p-4">
+                Loading...
+              </td>
+            </tr>
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                onDoubleClick={() => handleDoubleClick(row.original)}
+                className="hover:bg-gray-100 cursor-pointer"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="border p-2">
+                    {editingRow === row.original.id ? (
+                      <input
+                        value={(editValues[cell.column.id] as string) ?? ''}
+                        onChange={(e) => handleChange(cell.column.id, e.target.value)}
+                        className="border rounded px-2 py-1 w-full"
+                      />
+                    ) : (
+                      flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )
+                    )}
+                  </td>
+                ))}
+                <td className="border p-2 space-x-2">
+                  {editingRow === row.original.id ? (
+                    <button
+                      onClick={() => handleSave(row.original.id)}
+                      className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                    >
+                      Save
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onDelete?.(row.original.id)}
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}

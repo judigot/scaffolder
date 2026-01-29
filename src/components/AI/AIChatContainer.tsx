@@ -24,7 +24,7 @@ import type {
 	IIntrospectedSchemaInfo,
 	ISchemaInfo,
 } from "@/interfaces/interfaces.ts";
-import { useVercelChat } from "@/lib/chat";
+import { useVercelChat } from "@/lib/chat/index.ts";
 import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
@@ -316,6 +316,7 @@ export function ModelSelector({
 		const handleClickOutside = (event: MouseEvent) => {
 			if (
 				dropdownRef.current !== null &&
+				// eslint-disable-next-line no-type-assertion/no-type-assertion
 				!dropdownRef.current.contains(event.target as Node)
 			) {
 				setIsOpen(false);
@@ -459,7 +460,7 @@ function ChatInput({
 
 	const adjustHeight = useCallback(() => {
 		const textarea = textareaRef.current;
-		if (textarea) {
+		if (textarea !== null) {
 			textarea.style.height = "auto";
 			const maxHeight = 200;
 			const newHeight = Math.min(textarea.scrollHeight, maxHeight);
@@ -470,15 +471,13 @@ function ChatInput({
 	}, []);
 
 	useEffect(() => {
-		if (input.length >= 0) {
-			adjustHeight();
-		}
+		adjustHeight();
 	}, [input, adjustHeight]);
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			if (input.trim() && !isLoading) {
+			if (input.trim() !== "" && !isLoading) {
 				onSubmit(e);
 			}
 		}
@@ -517,7 +516,7 @@ function ChatInput({
 					{/* Send button (right) */}
 					<button
 						type="submit"
-						disabled={isLoading || !input.trim()}
+						disabled={isLoading || input.trim() === ""}
 						className="p-1.5 bg-fg text-bg rounded-full hover:bg-fg-muted focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 self-center"
 					>
 						{isLoading ? (
@@ -601,7 +600,7 @@ function ChatError({ error, onRetry }: IChatErrorProps) {
 
 		return {
 			title: "Something went wrong",
-			description: message || "Please try again.",
+			description: message !== "" ? message : "Please try again.",
 			canRetry: true,
 		};
 	};
@@ -688,7 +687,7 @@ function BuilderPanel({
 			{creationMode === CREATION_MODES.JUDAS && (
 				<>
 					<ChatMessages messages={messages} isLoading={isLoading} />
-					{error && <ChatError error={error} onRetry={onRetry} />}
+					{error !== null && <ChatError error={error} onRetry={onRetry} />}
 					<ChatInput
 						input={input}
 						onChange={onInputChange}
@@ -723,7 +722,7 @@ function IntrospectorPanel() {
 	const [success, setSuccess] = useState(false);
 
 	const handleIntrospect = async () => {
-		if (!dbConnection.trim()) {
+		if (dbConnection.trim() === "") {
 			setError("Please enter a database connection string");
 			return;
 		}
@@ -743,12 +742,14 @@ function IntrospectorPanel() {
 			});
 
 			if (!response.ok) {
+				// eslint-disable-next-line no-type-assertion/no-type-assertion
 				const errorData = (await response.json().catch(() => ({}))) as {
 					error?: string;
 				};
 				throw new Error(errorData.error ?? "Failed to introspect database");
 			}
 
+			// eslint-disable-next-line no-type-assertion/no-type-assertion
 			const introspectedSchemaInfo =
 				(await response.json()) as IIntrospectedSchemaInfo[];
 			const convertedSchemaInfo = convertIntrospectedStructure(
@@ -802,7 +803,9 @@ function IntrospectorPanel() {
 							id="dbConnectionInput"
 							type="text"
 							value={dbConnection}
-							onChange={(e) => handleConnectionChange(e.target.value)}
+							onChange={(e) => {
+								handleConnectionChange(e.target.value);
+							}}
 							placeholder="postgresql://user:pass@localhost:5432/db"
 							className={`form-input form-input-lg form-input-rounded ${error ? "form-input-error" : ""}`}
 						/>
@@ -817,7 +820,9 @@ function IntrospectorPanel() {
 						<div className="flex gap-2">
 							<button
 								type="button"
-								onClick={() => setDBType("postgresql")}
+								onClick={() => {
+									setDBType("postgresql");
+								}}
 								className={`btn-secondary btn-rounded flex-1 ${
 									dbType === "postgresql"
 										? "!bg-accent !text-accent-fg !border-accent"
@@ -828,7 +833,9 @@ function IntrospectorPanel() {
 							</button>
 							<button
 								type="button"
-								onClick={() => setDBType("mysql")}
+								onClick={() => {
+									setDBType("mysql");
+								}}
 								className={`btn-secondary btn-rounded flex-1 ${
 									dbType === "mysql"
 										? "!bg-accent !text-accent-fg !border-accent"
@@ -841,7 +848,7 @@ function IntrospectorPanel() {
 					</div>
 
 					{/* Error Message */}
-					{error && (
+					{error !== null && (
 						<Banner variant="danger" inline>
 							{error}
 						</Banner>
@@ -858,7 +865,7 @@ function IntrospectorPanel() {
 					<button
 						type="button"
 						onClick={() => void handleIntrospect()}
-						disabled={isLoading || !dbConnection.trim()}
+						disabled={isLoading || dbConnection.trim() === ""}
 						className="btn-primary btn-full btn-lg btn-rounded btn-icon"
 					>
 						{isLoading ? (
@@ -920,7 +927,7 @@ function extractSchemaFromMessages(
 
 		const result = validateSchemaInfoFromResponse(fullText);
 
-		if (result.success && result.extracted && result.data) {
+		if (result.success && result.extracted && result.data !== undefined) {
 			return result.data;
 		}
 	}
@@ -1084,7 +1091,7 @@ export function AIChatContainer({
 
 	const handleProjectChange = (projectName: string) => {
 		const project = projects.find((p) => p.name === projectName);
-		if (project) {
+		if (project !== undefined) {
 			selectProject(project);
 		}
 	};

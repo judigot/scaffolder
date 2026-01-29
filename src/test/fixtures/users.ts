@@ -4,10 +4,10 @@
  */
 
 import type {
+	IMockAuthConfig,
+	IMockInfraCredentials,
 	IMockUser,
 	IMockUserMetadata,
-	IMockInfraCredentials,
-	IMockAuthConfig,
 } from "../mocks/auth/types.ts";
 
 // =============================================================================
@@ -28,8 +28,7 @@ export const mockUser: IMockUser = {
 // =============================================================================
 
 export const mockInfraCredentials: IMockInfraCredentials = {
-	sshPublicKey:
-		"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7... test@example.com",
+	sshPublicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7... test@example.com",
 	sshPrivateKey: `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEAu7vVmK8xMOCK8G5S9qKr7WT4tQ8f5D5mQqR7xLW3FvZ9...
@@ -104,6 +103,7 @@ export const partialInfraUserConfig: IMockAuthConfig = {
 	accessToken: "mock_access_token_xyz123",
 	userMetadata: {
 		...mockUserMetadataNoInfra,
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- Test fixture requires partial type cast
 		infra: mockInfraCredentialsPartial as IMockInfraCredentials,
 	},
 	error: null,

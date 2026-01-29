@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance Review - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
+    .header h1 { margin: 0; font-size: 2em; }
+    .header .subtitle { margin-top: 10px; opacity: 0.9; }
+    .card { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .section-title { font-size: 1.3em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
+    .rating-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.9em; font-weight: 600; margin: 5px 5px 5px 0; }
+    .exceeds { background: #2ecc71; color: white; }
+    .meets { background: #3498db; color: white; }
+    .needs-improvement { background: #e74c3c; color: white; }
+    .info-row { margin: 12px 0; }
+    .label { font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
+    .value { color: #2c3e50; line-height: 1.6; }
+    .overall-rating { font-size: 1.5em; font-weight: bold; color: #27ae60; text-align: center; padding: 20px; background: #ecf0f1; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Performance Review</h1>
+    <div class="subtitle">[[USE_DATA(basic-info.name)]] - [[USE_DATA(performance-review.period)]]</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Review Information</div>
+    <div class="info-row">
+      <span class="label">Review Period:</span>
+      <span class="value">[[USE_DATA(performance-review.period)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Review Date:</span>
+      <span class="value">[[USE_DATA(performance-review.review-date)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Reviewed By:</span>
+      <span class="value">[[USE_DATA(performance-review.reviewer)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Overall Rating:</span>
+      <div class="overall-rating">[[USE_DATA(performance-review.overall-rating)]]</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Performance Ratings</div>
+    <div class="info-row">
+      <span class="label">Technical Skills:</span>
+      <span class="value">
+        <span class="rating-badge exceeds">[[USE_DATA(performance-review.ratings.technical-skills)]]</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="label">Communication:</span>
+      <span class="value">
+        <span class="rating-badge meets">[[USE_DATA(performance-review.ratings.communication)]]</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="label">Teamwork:</span>
+      <span class="value">
+        <span class="rating-badge exceeds">[[USE_DATA(performance-review.ratings.teamwork)]]</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="label">Problem Solving:</span>
+      <span class="value">
+        <span class="rating-badge exceeds">[[USE_DATA(performance-review.ratings.problem-solving)]]</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="label">Leadership:</span>
+      <span class="value">
+        <span class="rating-badge meets">[[USE_DATA(performance-review.ratings.leadership)]]</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Strengths</div>
+    <div class="value">[[USE_DATA(performance-review.strengths)]]</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Areas for Improvement</div>
+    <div class="value">[[USE_DATA(performance-review.areas-for-improvement)]]</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Goals</div>
+    <div class="value">[[USE_DATA(performance-review.goals)]]</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Manager Comments</div>
+    <div class="value">[[USE_DATA(performance-review.comments)]]</div>
+  </div>
+</body>
+</html>
+

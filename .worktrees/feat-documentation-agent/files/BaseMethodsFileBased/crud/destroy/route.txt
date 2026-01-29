@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}} - Deletes a {{tableNamePascalCaseSingular}} resource by ID
+Route::delete('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');

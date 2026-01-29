@@ -1,0 +1,32 @@
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "[[USE_DATA(environment.name)]]"
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "[[USE_DATA(environment.region)]]"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "[[USE_DATA(environment.vpc-cidr)]]"
+}
+
+variable "availability_zones" {
+  description = "List of availability zones"
+  type        = list(string)
+  default     = [[USE_DATA(environment.availability-zones)]]
+}
+
+variable "tags" {
+  description = "Common tags for all resources"
+  type        = map(string)
+  default = {
+    [[USE_DATA(tags)]]
+  }
+}
+

@@ -1,0 +1,5 @@
+-- Seed data for {{tableName}}
+-- This file contains seed data for a single table
+
+[[USE_ROWS(tableName={{tableName}})]]
+

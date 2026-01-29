@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { smartEnvMerge, parseEnvString } from "@/utils/envParser";
+import { beforeEach, describe, expect, it } from "vitest";
+import { parseEnvString, smartEnvMerge } from "@/utils/envParser.ts";
 
 interface ITestEntry {
 	key: string;
@@ -129,12 +129,7 @@ describe("smartEnvMerge", () => {
 			const existing = [createEntry("A", "1"), createEntry("B", "2")];
 			const result = smartEnvMerge(existing, "C=3\nD=4", createEntry);
 
-			expect(result.entries.map((e) => e.key)).toEqual([
-				"A",
-				"B",
-				"C",
-				"D",
-			]);
+			expect(result.entries.map((e) => e.key)).toEqual(["A", "B", "C", "D"]);
 		});
 	});
 
@@ -146,9 +141,9 @@ describe("smartEnvMerge", () => {
 			const first = smartEnvMerge(existing, paste, createEntry);
 			const second = smartEnvMerge(first.entries, paste, createEntry);
 
-			expect(second.entries.map((e) => ({ key: e.key, value: e.value }))).toEqual(
-				first.entries.map((e) => ({ key: e.key, value: e.value })),
-			);
+			expect(
+				second.entries.map((e) => ({ key: e.key, value: e.value })),
+			).toEqual(first.entries.map((e) => ({ key: e.key, value: e.value })));
 			expect(second.updated).toEqual([]);
 			expect(second.added).toEqual([]);
 			expect(second.unchanged).toEqual(["A", "C"]);
@@ -197,11 +192,7 @@ describe("smartEnvMerge", () => {
 
 		it("ignores empty lines", () => {
 			const existing: ITestEntry[] = [];
-			const result = smartEnvMerge(
-				existing,
-				"\nA=1\n\n\nB=2\n",
-				createEntry,
-			);
+			const result = smartEnvMerge(existing, "\nA=1\n\n\nB=2\n", createEntry);
 
 			expect(result.entries).toHaveLength(2);
 			expect(result.added).toEqual(["A", "B"]);
@@ -322,10 +313,7 @@ describe("smartEnvMerge", () => {
 		});
 
 		it("skips entries with empty keys in existing when matching", () => {
-			const existing = [
-				createEntry("", "orphan_value"),
-				createEntry("A", "1"),
-			];
+			const existing = [createEntry("", "orphan_value"), createEntry("A", "1")];
 			const result = smartEnvMerge(existing, "A=updated\nB=new", createEntry);
 
 			expect(result.entries).toHaveLength(3);
@@ -335,11 +323,7 @@ describe("smartEnvMerge", () => {
 
 		it("handles Windows-style line endings", () => {
 			const existing: ITestEntry[] = [];
-			const result = smartEnvMerge(
-				existing,
-				"A=1\r\nB=2\r\nC=3",
-				createEntry,
-			);
+			const result = smartEnvMerge(existing, "A=1\r\nB=2\r\nC=3", createEntry);
 
 			expect(result.entries).toHaveLength(3);
 			expect(result.added).toEqual(["A", "B", "C"]);

@@ -1,0 +1,2 @@
+- LOOP_FOLDERS({{character.name}}-CharacterSheet.md --data-source=/DataSources/Creative-Characters/**/info.yaml --template=./templates/CharacterSheet.txt)
+

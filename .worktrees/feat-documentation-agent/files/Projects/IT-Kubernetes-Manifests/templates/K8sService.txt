@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: [[USE_DATA(service.name)]]
+  namespace: [[USE_DATA(deployment.namespace)]]
+  labels:
+    app: [[USE_DATA(service.name)]]
+    [[USE_DATA(tags)]]
+spec:
+  type: [[USE_DATA(networking.service-type)]]
+  selector:
+    app: [[USE_DATA(service.name)]]
+  ports:
+  [[USE_DATA(ports)]]
+

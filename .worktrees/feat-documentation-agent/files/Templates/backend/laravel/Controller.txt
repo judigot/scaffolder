@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\{{tableNamePascalCase}};
+use App\Repositories\{{tableNamePascalCase}}Interface;
+use App\Services\{{tableNamePascalCase}}Service;
+use Illuminate\Http\Request;
+use App\Http\Controllers\BaseController;
+
+class {{tableNamePascalCase}}Controller extends BaseController
+{
+    protected $repository;
+
+    public function __construct({{tableNamePascalCase}}Interface ${{tableName}}Repository, {{tableNamePascalCase}}Service ${{tableName}}Service)
+    {
+        parent::__construct(${{tableName}}Service);
+        $this->repository = ${{tableName}}Repository;
+    }
+
+[[LOOP(/BaseMethodsNew/crud) --include-files="laravel" --template="    public function {{controllerMethod}}
+    {
+{{controllerContent}}    }"]]
+
+[[LOOP(/BaseMethodsNew/advanced-operations) --include-files="laravel" --template="    public function {{controllerMethod}}
+    {
+{{controllerContent}}    }"]]
+}

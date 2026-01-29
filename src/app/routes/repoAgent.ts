@@ -1,13 +1,13 @@
-import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
 import { convertToModelMessages, stepCountIs, streamText } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { createRepoAgentTools } from "@/app/services/repoAgentTools.ts";
 import {
 	getGitHubAppConfig,
 	getGitHubAppOctokit,
 } from "@/app/services/githubAppService.ts";
+import { createRepoAgentTools } from "@/app/services/repoAgentTools.ts";
 import { buildRepoAgentPrompt } from "@/prompts/index.ts";
 import { verifyAuth0TokenFromAuthHeader } from "@/utils/verifyAuth0Token.ts";
 
@@ -16,8 +16,14 @@ const MODEL_CONFIGS = {
 	"gpt-5-nano": { provider: "openai", modelId: "gpt-4.1-nano" },
 	"gpt-5-mini": { provider: "openai", modelId: "gpt-4.1-mini" },
 	"gpt-5.2-codex": { provider: "openai", modelId: "o3" },
-	"claude-sonnet-4.5": { provider: "anthropic", modelId: "claude-sonnet-4-20250514" },
-	"claude-opus-4.5": { provider: "anthropic", modelId: "claude-opus-4-20250514" },
+	"claude-sonnet-4.5": {
+		provider: "anthropic",
+		modelId: "claude-sonnet-4-20250514",
+	},
+	"claude-opus-4.5": {
+		provider: "anthropic",
+		modelId: "claude-opus-4-20250514",
+	},
 } as const;
 
 type ModelId = keyof typeof MODEL_CONFIGS;
@@ -34,7 +40,7 @@ interface IRepoAgentPayload {
 
 interface ISimpleMessage {
 	role: string;
-	content: string;
+	content?: string;
 }
 
 interface IUIMessage {
@@ -46,26 +52,54 @@ interface IUIMessage {
 /**
  * Convert simple { role, content } messages to UIMessage format with parts
  */
+function isUIMessage(msg: unknown): msg is IUIMessage {
+	if (typeof msg !== "object" || msg === null || !("parts" in msg)) {
+		return false;
+	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+	const msgRecord = msg as Record<string, unknown>;
+	return Array.isArray(msgRecord.parts);
+}
+
+function isSimpleMessage(msg: unknown): msg is ISimpleMessage {
+	if (typeof msg !== "object" || msg === null || !("role" in msg)) {
+		return false;
+	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+	const msgRecord = msg as Record<string, unknown>;
+	return typeof msgRecord.role === "string";
+}
+
 function convertToUIMessages(messages: unknown[]): IUIMessage[] {
 	return messages.map((msg, index) => {
 		// Check if it's already in UIMessage format (has parts)
-		if (
-			typeof msg === "object" &&
-			msg !== null &&
-			"parts" in msg &&
-			Array.isArray((msg as { parts: unknown }).parts)
-		) {
-			return msg as IUIMessage;
+		if (isUIMessage(msg)) {
+			return msg;
 		}
 
 		// Convert simple { role, content } format
-		const simpleMsg = msg as ISimpleMessage;
-		const role = simpleMsg.role === "user" ? "user" : simpleMsg.role === "system" ? "system" : "assistant";
-		
+		if (!isSimpleMessage(msg)) {
+			return {
+				id: `msg-${String(index)}`,
+				role: "user" as const,
+				parts: [{ type: "text" as const, text: "" }],
+			};
+		}
+
+		let role: "user" | "system" | "assistant";
+		if (msg.role === "user") {
+			role = "user";
+		} else if (msg.role === "system") {
+			role = "system";
+		} else {
+			role = "assistant";
+		}
+
+		const textContent = msg.content ?? "";
 		return {
 			id: `msg-${String(index)}`,
 			role,
-			parts: [{ type: "text" as const, text: simpleMsg.content ?? "" }],
+			parts: [{ type: "text" as const, text: textContent }],
 		};
 	});
 }
@@ -74,11 +108,13 @@ function parseGitHubURL(url: string): { owner: string; repo: string } | null {
 	try {
 		const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
 		const match = githubRegex.exec(url);
+		const owner = match?.[1];
+		const repo = match?.[2];
 
-		if (match?.length === 3 && match[1] !== undefined && match[2] !== undefined) {
+		if (owner !== undefined && repo !== undefined) {
 			return {
-				owner: match[1],
-				repo: match[2].replace(/\.git$/, ""),
+				owner,
+				repo: repo.replace(/\.git$/, ""),
 			};
 		}
 		return null;
@@ -126,7 +162,8 @@ app.post("/chat", async (c) => {
 		return c.json(
 			{
 				error: "GitHub App not configured",
-				message: "Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY environment variables",
+				message:
+					"Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY environment variables",
 			},
 			500,
 		);
@@ -140,7 +177,8 @@ app.post("/chat", async (c) => {
 			repo: repoInfo.repo,
 		});
 	} catch (err: unknown) {
-		const message = err instanceof Error ? err.message : "Failed to authenticate with GitHub";
+		const message =
+			err instanceof Error ? err.message : "Failed to authenticate with GitHub";
 		return c.json({ error: "GitHub authentication failed", message }, 502);
 	}
 
@@ -153,7 +191,10 @@ app.post("/chat", async (c) => {
 		});
 		baseBranch = repoData.data.default_branch;
 	} catch (err: unknown) {
-		console.warn("[RepoAgent] Could not fetch default branch, using 'main':", err);
+		console.warn(
+			"[RepoAgent] Could not fetch default branch, using 'main':",
+			err,
+		);
 	}
 
 	// Determine which model to use
@@ -166,19 +207,25 @@ app.post("/chat", async (c) => {
 			: anthropic(modelConfig.modelId);
 
 	try {
-		console.log("[RepoAgent] Converting messages...");
+		console.error("[RepoAgent] Converting messages...");
 		// First convert simple messages to UIMessage format, then to ModelMessages
-		const uiMessages = convertToUIMessages(body.messages as unknown[]);
+		// body.messages is validated as Array above
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after Array.isArray validation
+		const messagesArray: unknown[] = body.messages as unknown as unknown[];
+		const uiMessages = convertToUIMessages(messagesArray);
 		const convertedMessages = await convertToModelMessages(uiMessages);
-		console.log("[RepoAgent] Messages converted:", convertedMessages.length);
+		console.error(
+			"[RepoAgent] Messages converted:",
+			String(convertedMessages.length),
+		);
 
-		console.log("[RepoAgent] Creating repo agent tools...");
+		console.error("[RepoAgent] Creating repo agent tools...");
 		const tools = createRepoAgentTools(octokit, {
 			owner: repoInfo.owner,
 			repo: repoInfo.repo,
 			baseBranch,
 		});
-		console.log("[RepoAgent] Tools created");
+		console.error("[RepoAgent] Tools created");
 
 		// Add repository context to system prompt
 		const contextualPrompt = buildRepoAgentPrompt(
@@ -187,7 +234,7 @@ app.post("/chat", async (c) => {
 			baseBranch,
 		);
 
-		console.log("[RepoAgent] Starting streamText with model:", modelId);
+		console.error("[RepoAgent] Starting streamText with model:", modelId);
 		const result = streamText({
 			model,
 			system: contextualPrompt,
@@ -195,24 +242,30 @@ app.post("/chat", async (c) => {
 			tools,
 			stopWhen: stepCountIs(10), // CRITICAL: Enable multi-step tool execution (up to 10 steps)
 			onStepFinish({ text, toolCalls, toolResults, finishReason }) {
-				console.log("[RepoAgent] Step finished. Reason:", finishReason);
-				if (text) {
-					console.log("[RepoAgent] Text:", text.slice(0, 100));
+				console.error("[RepoAgent] Step finished. Reason:", finishReason);
+				if (text !== "") {
+					console.error("[RepoAgent] Text:", text.slice(0, 100));
 				}
-				if (toolCalls && toolCalls.length > 0) {
-					console.log("[RepoAgent] Tool calls:", toolCalls.map(tc => tc.toolName));
+				if (toolCalls.length > 0) {
+					console.error(
+						"[RepoAgent] Tool calls:",
+						toolCalls.map((tc) => tc.toolName),
+					);
 				}
-				if (toolResults && toolResults.length > 0) {
-					console.log("[RepoAgent] Tool results:", toolResults.length);
+				if (toolResults.length > 0) {
+					console.error(
+						"[RepoAgent] Tool results:",
+						String(toolResults.length),
+					);
 				}
 			},
 			onFinish({ finishReason, usage }) {
-				console.log("[RepoAgent] Finished. Reason:", finishReason);
-				console.log("[RepoAgent] Usage:", usage);
+				console.error("[RepoAgent] Finished. Reason:", finishReason);
+				console.error("[RepoAgent] Usage:", usage);
 			},
 		});
 
-		console.log("[RepoAgent] Returning stream response...");
+		console.error("[RepoAgent] Returning stream response...");
 		return result.toUIMessageStreamResponse();
 	} catch (err: unknown) {
 		const errorMessage = err instanceof Error ? err.message : String(err);

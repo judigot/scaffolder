@@ -70,7 +70,9 @@ const TerminalViewport = forwardRef<
 
 	// Initialize terminal
 	useEffect(() => {
-		if (!containerRef.current) {return;}
+		if (!containerRef.current) {
+			return;
+		}
 
 		// Get CSS custom properties for theming
 		const computedStyle = getComputedStyle(document.documentElement);
@@ -156,7 +158,7 @@ const TerminalViewport = forwardRef<
 		}
 
 		// Write initial content
-		if (initialContent) {
+		if (initialContent !== undefined && initialContent.length > 0) {
 			terminal.write(initialContent);
 		}
 

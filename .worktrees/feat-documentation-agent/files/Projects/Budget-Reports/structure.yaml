@@ -1,0 +1,2 @@
+LOOP_FOLDERS({{budget.department}}-{{budget.year}}-{{budget.quarter}}-BudgetReport.html --data-source=/DataSources/Budgets/**/info.yaml --template=./templates/BudgetReport.txt)
+

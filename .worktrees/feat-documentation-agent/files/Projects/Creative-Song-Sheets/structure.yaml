@@ -1,0 +1,2 @@
+- LOOP_FOLDERS({{song.title}}-SongSheet.md --data-source=/DataSources/Creative-Songs/**/info.yaml --template=./templates/SongSheet.txt)
+

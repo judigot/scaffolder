@@ -1,19 +1,19 @@
-type OpencodeConfig = {
+interface IOpencodeConfig {
 	baseUrl: string;
 	username?: string;
 	password?: string;
 	defaultDirectory?: string;
 	allowRemote: boolean;
-};
+}
 
-type OpencodeConfigResult =
-	| { ok: true; config: OpencodeConfig }
+type IOpencodeConfigResult =
+	| { ok: true; config: IOpencodeConfig }
 	| { ok: false; error: string; status: 403 | 500 };
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 
 function normalizeDirectory(directory?: string): string | undefined {
-	if (!directory || directory.trim() === "") {
+	if (directory === undefined || directory.trim() === "") {
 		return undefined;
 	}
 
@@ -32,7 +32,7 @@ function isAllowedHost(url: URL, allowRemote: boolean): boolean {
 	return LOCAL_HOSTS.has(url.hostname);
 }
 
-export function getOpencodeConfig(): OpencodeConfigResult {
+export function getOpencodeConfig(): IOpencodeConfigResult {
 	const baseUrl = process.env.OPENCODE_URL ?? "http://127.0.0.1:4096";
 	let parsedUrl: URL;
 
@@ -65,13 +65,18 @@ export function getOpencodeConfig(): OpencodeConfigResult {
 }
 
 export function buildOpencodeHeaders(
-	config: OpencodeConfig,
+	config: IOpencodeConfig,
 	directory?: string,
 ): Headers {
 	const headers = new Headers();
 	headers.set("Content-Type", "application/json");
 
-	if (config.username && config.password) {
+	if (
+		config.username !== undefined &&
+		config.username !== "" &&
+		config.password !== undefined &&
+		config.password !== ""
+	) {
 		const token = Buffer.from(`${config.username}:${config.password}`).toString(
 			"base64",
 		);
@@ -81,11 +86,11 @@ export function buildOpencodeHeaders(
 	const resolvedDirectory = normalizeDirectory(
 		directory ?? config.defaultDirectory,
 	);
-	if (resolvedDirectory) {
+	if (resolvedDirectory !== undefined) {
 		headers.set("x-opencode-directory", resolvedDirectory);
 	}
 
 	return headers;
 }
 
-export type { OpencodeConfig };
+export type { IOpencodeConfig };

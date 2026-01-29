@@ -1,0 +1,4 @@
+const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/paginate`, {
+  params: { page, perPage, criteria }
+});
+return response.data; 

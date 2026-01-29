@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}}/find-or-fail - Retrieves a {{tableNamePascalCaseSingular}} resource by ID or returns a 404 error if not found
+Route::get('{{url}}/find-or-fail', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.find-or-fail');

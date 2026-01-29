@@ -194,7 +194,7 @@ async function executeCommandWithSsh2(
 			stream
 				.on("close", (code: number) => {
 					clearTimeout(timer);
-					resolve({ stdout, stderr, exitCode: code ?? 0 });
+					resolve({ stdout, stderr, exitCode: code });
 				})
 				.on("data", (data: Buffer) => {
 					stdout += data.toString();
@@ -224,7 +224,7 @@ async function executeCommandWithBun(
 		"UserKnownHostsFile=/dev/null",
 		"-p",
 		String(connection.port),
-		`${String(connection.username)}@${String(connection.host)}`,
+		`${connection.username}@${connection.host}`,
 		command,
 	];
 
@@ -257,22 +257,48 @@ async function loadSsh2(): Promise<typeof import("ssh2")> {
 	return cachedSsh2;
 }
 
+function hasBunRuntimeMethods(
+	value: Record<string, unknown>,
+): value is Record<string, unknown> & { spawn: unknown; write: unknown } {
+	return typeof value.spawn === "function" && typeof value.write === "function";
+}
+
+function isBunRuntime(value: unknown): value is IBunRuntime {
+	if (
+		typeof value !== "object" ||
+		value === null ||
+		!("spawn" in value) ||
+		!("write" in value)
+	) {
+		return false;
+	}
+	const record = value as Record<string, unknown>;
+	return hasBunRuntimeMethods(record);
+}
+
+function getGlobalAsRecord(): Record<string, unknown> {
+	return globalThis as unknown as Record<string, unknown>;
+}
+
 function getBunRuntime(): IBunRuntime | null {
-	const globalWithBun = globalThis as { Bun?: unknown };
-	const maybeBun = globalWithBun.Bun;
-	if (!maybeBun || typeof maybeBun !== "object") {
+	const g = getGlobalAsRecord();
+	if (!("Bun" in g)) {
 		return null;
 	}
-
-	const candidate = maybeBun as Partial<IBunRuntime>;
+	const maybeBun = g.Bun;
 	if (
-		typeof candidate.spawn !== "function" ||
-		typeof candidate.write !== "function"
+		maybeBun === null ||
+		maybeBun === undefined ||
+		typeof maybeBun !== "object"
 	) {
 		return null;
 	}
 
-	return candidate as IBunRuntime;
+	if (!isBunRuntime(maybeBun)) {
+		return null;
+	}
+
+	return maybeBun;
 }
 
 async function writePrivateKey(

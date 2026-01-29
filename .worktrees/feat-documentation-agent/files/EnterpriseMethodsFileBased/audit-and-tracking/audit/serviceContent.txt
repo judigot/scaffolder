@@ -1,0 +1,14 @@
+        $auditData = [
+            'action' => $action,
+            'entity_type' => $entityType,
+            'entity_id' => (string) $entityId,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'user_id' => $userId,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $metadata,
+            'timestamp' => now(),
+        ];
+
+        return $this->repository->createAuditLog($auditData); 

@@ -1,0 +1,65 @@
+# [[USE_DATA(song.title)]]
+
+**Artist:** [[USE_DATA(song.artist)]]  
+**Album:** [[USE_DATA(song.album)]]  
+**Track:** [[USE_DATA(song.track-number)]]  
+**Duration:** [[USE_DATA(song.duration)]]  
+**Genre:** [[USE_DATA(song.genre)]]  
+**Release Date:** [[USE_DATA(song.release-date)]]  
+**Label:** [[USE_DATA(song.label)]]  
+**ISRC:** [[USE_DATA(song.isrc)]]
+
+## Songwriters
+
+[[USE_DATA(writers)]]
+
+## Lyrics
+
+### Verse 1
+[[USE_DATA(lyrics.verses[0].lines)]]
+
+### Chorus
+[[USE_DATA(lyrics.chorus.lines)]]
+
+### Verse 2
+[[USE_DATA(lyrics.verses[1].lines)]]
+
+### Chorus
+[[USE_DATA(lyrics.chorus.lines)]]
+
+### Bridge
+[[USE_DATA(lyrics.bridge.lines)]]
+
+### Chorus
+[[USE_DATA(lyrics.chorus.lines)]]
+
+## Chords
+
+**Key:** [[USE_DATA(chords.key)]]  
+**Tempo:** [[USE_DATA(chords.tempo)]]  
+**Progression:** [[USE_DATA(chords.progression)]]
+
+### Structure
+[[USE_DATA(chords.structure)]]
+
+## Instruments
+
+[[USE_DATA(instruments)]]
+
+## Recording Information
+
+- **Studio:** [[USE_DATA(recording.studio)]]
+- **Producer:** [[USE_DATA(recording.producer)]]
+- **Engineer:** [[USE_DATA(recording.engineer)]]
+- **Recording Date:** [[USE_DATA(recording.date)]]
+
+## Tags
+
+- **Mood:** [[USE_DATA(tags.Mood)]]
+- **Theme:** [[USE_DATA(tags.Theme)]]
+- **Style:** [[USE_DATA(tags.Style)]]
+
+---
+
+© [[USE_DATA(song.release-date)]] [[USE_DATA(song.label)]]. All rights reserved.
+

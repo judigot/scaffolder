@@ -1,0 +1,16 @@
+        $data = $this->repository->getFilteredData($filters, $columns);
+        
+        $exportFilename = $filename ?? 'export-' . now()->format('Y-m-d-H-i-s') . '.' . $format;
+        
+        switch ($format) {
+            case 'csv':
+                return $this->exportToCsv($data, $exportFilename);
+            case 'excel':
+                return $this->exportToExcel($data, $exportFilename);
+            case 'json':
+                return $this->exportToJson($data, $exportFilename);
+            case 'pdf':
+                return $this->exportToPdf($data, $exportFilename);
+            default:
+                throw new InvalidArgumentException('Unsupported export format: ' . $format);
+        } 

@@ -1,0 +1,1 @@
+{{methodNameCamelCase}}(array $criteria, array $data): bool

@@ -1,0 +1,4 @@
+        $column = $request->input('column');
+        $range = $request->input('range', []);
+        $items = $this->service->{{methodNameCamelCase}}($column, $range);
+        return response()->json($items);

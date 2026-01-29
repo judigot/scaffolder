@@ -6,15 +6,20 @@ import {
 } from "@tanstack/react-query";
 import type { IStructure } from "@/components/FileViewer.tsx";
 
-interface UseLocalRepoFilesParams {
+interface IUseLocalRepoFilesParams {
 	localPath?: string;
+}
+
+interface ILocalRepoFilesResponse {
+	files?: IStructure;
+	error?: string;
 }
 
 /**
  * Hook for fetching files from a locally cloned repository
  */
 export function useLocalRepoFiles(
-	params: UseLocalRepoFilesParams,
+	params: IUseLocalRepoFilesParams,
 	options?: Omit<UseQueryOptions<IStructure>, "queryKey" | "queryFn">,
 ): UseQueryResult<IStructure> {
 	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
@@ -22,7 +27,11 @@ export function useLocalRepoFiles(
 	return useQuery({
 		queryKey: ["localRepoFiles", params.localPath],
 		queryFn: async (): Promise<IStructure> => {
-			if (!params.localPath || !isAuthenticated) {
+			if (
+				params.localPath === undefined ||
+				params.localPath === "" ||
+				!isAuthenticated
+			) {
 				return [];
 			}
 
@@ -37,14 +46,31 @@ export function useLocalRepoFiles(
 			});
 
 			if (!response.ok) {
-				const error = await response.json().catch(() => ({}));
-				throw new Error(error.error || "Failed to fetch local repo files");
+				const errorJson: unknown = await response.json().catch(() => ({}));
+				const isErrorResponse = (
+					val: unknown,
+				): val is ILocalRepoFilesResponse =>
+					typeof val === "object" && val !== null;
+				const errorData: ILocalRepoFilesResponse = isErrorResponse(errorJson)
+					? errorJson
+					: {};
+				const errorMessage =
+					errorData.error ?? "Failed to fetch local repo files";
+				throw new Error(errorMessage);
 			}
 
-			const data = await response.json();
-			return data.files || [];
+			const dataJson: unknown = await response.json();
+			const isFilesResponse = (val: unknown): val is ILocalRepoFilesResponse =>
+				typeof val === "object" && val !== null;
+			const data: ILocalRepoFilesResponse = isFilesResponse(dataJson)
+				? dataJson
+				: {};
+			return data.files ?? [];
 		},
-		enabled: !!params.localPath && isAuthenticated,
+		enabled:
+			params.localPath !== undefined &&
+			params.localPath !== "" &&
+			isAuthenticated,
 		staleTime: 0, // Always refetch when invalidated
 		gcTime: 5 * 60 * 1000,
 		refetchOnWindowFocus: false,

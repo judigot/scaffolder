@@ -1,0 +1,9 @@
+{
+  "name": "scaffolder",
+  "version": "1.0.0",
+  "description": "Scaffolder project with database, docker, error handling, and project building agents",
+  "author": {
+    "name": "judigot"
+  },
+  "agents": "./agents"
+}

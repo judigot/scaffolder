@@ -57,10 +57,9 @@ app.post("/chat", async (c) => {
 		);
 	}
 
-	const { sshPrivateKey, host } = credentials as {
-		sshPrivateKey: string;
-		host: string;
-	};
+	// Type narrowing already guaranteed above
+	const sshPrivateKey = credentials.sshPrivateKey;
+	const host = credentials.host;
 
 	let client: ISSHConnection;
 	try {
@@ -75,17 +74,24 @@ app.post("/chat", async (c) => {
 	}
 
 	try {
-		console.log("[Agent] Converting messages...");
-		const convertedMessages = await convertToModelMessages(
-			body.messages as Parameters<typeof convertToModelMessages>[0],
+		console.error("[Agent] Converting messages...");
+		// body.messages is validated as Array above
+		type ModelMessagesInput = Parameters<typeof convertToModelMessages>[0];
+		/* eslint-disable no-type-assertion/no-type-assertion -- Safe cast after Array.isArray validation */
+		const messagesInput: ModelMessagesInput =
+			body.messages as unknown as ModelMessagesInput;
+		/* eslint-enable no-type-assertion/no-type-assertion */
+		const convertedMessages = await convertToModelMessages(messagesInput);
+		console.error(
+			"[Agent] Messages converted:",
+			String(convertedMessages.length),
 		);
-		console.log("[Agent] Messages converted:", convertedMessages.length);
 
-		console.log("[Agent] Creating remote agent tools...");
+		console.error("[Agent] Creating remote agent tools...");
 		const tools = createRemoteAgentTools(client);
-		console.log("[Agent] Tools created");
+		console.error("[Agent] Tools created");
 
-		console.log("[Agent] Starting streamText...");
+		console.error("[Agent] Starting streamText...");
 		const result = streamText({
 			model: openai("gpt-5-nano"),
 			system: REMOTE_AGENT_SYSTEM_PROMPT,
@@ -93,12 +99,12 @@ app.post("/chat", async (c) => {
 			tools,
 			stopWhen: stepCountIs(20),
 			onFinish: () => {
-				console.log("[Agent] Stream finished, disconnecting...");
+				console.error("[Agent] Stream finished, disconnecting...");
 				void disconnect(client);
 			},
 		});
 
-		console.log("[Agent] Returning stream response...");
+		console.error("[Agent] Returning stream response...");
 		return result.toUIMessageStreamResponse();
 	} catch (err: unknown) {
 		await disconnect(client);

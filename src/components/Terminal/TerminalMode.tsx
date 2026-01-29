@@ -114,7 +114,9 @@ export default function TerminalMode({
 	// Send command to terminal
 	const sendCommand = useCallback(
 		async (command: string) => {
-			if (!command.trim()) {return;}
+			if (command.trim() === "") {
+				return;
+			}
 
 			// Add to message history with pending status
 			const messageId = addMessage(command);
@@ -152,7 +154,7 @@ export default function TerminalMode({
 					updateMessageStatus(messageId, "applied");
 				} else {
 					updateMessageStatus(messageId, "failed");
-					if (result.error) {
+					if (result.error !== undefined && result.error.length > 0) {
 						terminalRef.current?.writeln(
 							`\x1b[31mError: ${result.error}\x1b[0m`,
 						);
@@ -237,14 +239,8 @@ export default function TerminalMode({
 			terminalRef.current.writeln(
 				"\x1b[90m─────────────────────────────────\x1b[0m",
 			);
-			if (isConnected && host) {
-				terminalRef.current.writeln(
-					`\x1b[32mConnected to:\x1b[0m ${host}`,
-				);
-			} else {
-				terminalRef.current.writeln(
-					"\x1b[33mNot connected.\x1b[0m Configure SSH in Infra tab.",
-				);
+			if (isConnected && host !== undefined && host.length > 0) {
+				terminalRef.current.writeln(`\x1b[32mConnected to:\x1b[0m ${host}`);
 			}
 			terminalRef.current.writeln("");
 		}
@@ -254,14 +250,17 @@ export default function TerminalMode({
 		<div
 			className="flex flex-col h-full w-full overflow-hidden"
 			style={{ background: "var(--terminal-bg)" }}
-			{...gestureHandlers}
+			onTouchStart={gestureHandlers.onTouchStart}
+			onTouchMove={gestureHandlers.onTouchMove}
+			onTouchEnd={gestureHandlers.onTouchEnd}
+			onTouchCancel={gestureHandlers.onTouchCancel}
 		>
 			{/* Gesture indicator overlay */}
-			{gestureState.isActive && gestureState.direction && (
+			{gestureState.isActive && gestureState.direction !== null && (
 				<div
 					className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center"
 					style={{
-						background: `rgba(59, 130, 246, ${gestureState.progress * 0.2})`,
+						background: `rgba(59, 130, 246, ${String(gestureState.progress * 0.2)})`,
 					}}
 				>
 					<div
@@ -270,7 +269,7 @@ export default function TerminalMode({
 							background: "var(--terminal-gesture-indicator-bg)",
 							border: "1px solid var(--terminal-gesture-indicator-border)",
 							opacity: gestureState.progress,
-							transform: `scale(${0.8 + gestureState.progress * 0.2})`,
+							transform: `scale(${String(0.8 + gestureState.progress * 0.2)})`,
 						}}
 					>
 						{gestureState.direction === "left" && "Back"}
@@ -374,10 +373,16 @@ export default function TerminalMode({
 
 			{/* Action Buttons */}
 			<TerminalActionBar
-				onYes={handleYes}
-				onNo={handleNo}
+				onYes={() => {
+					void handleYes();
+				}}
+				onNo={() => {
+					void handleNo();
+				}}
 				onInterrupt={handleInterrupt}
-				onExit={handleExit}
+				onExit={() => {
+					void handleExit();
+				}}
 				isProcessRunning={isProcessRunning}
 			/>
 
@@ -385,7 +390,9 @@ export default function TerminalMode({
 			<TerminalComposer
 				value={currentInput}
 				onChange={setCurrentInput}
-				onSubmit={sendCommand}
+				onSubmit={(cmd: string) => {
+					void sendCommand(cmd);
+				}}
 				onHistoryUp={handleHistoryUp}
 				onHistoryDown={handleHistoryDown}
 				isPending={pendingMessageId !== null}

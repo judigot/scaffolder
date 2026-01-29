@@ -36,7 +36,7 @@ export type TopLevelTab = "scaffolder" | "repositories" | "master";
 // Store Interface
 // ============================================================================
 
-interface UIStore {
+interface IUIStore {
 	// --- Navigation (persisted) ---
 	// These determine what the user sees and should survive page refresh
 
@@ -53,7 +53,7 @@ interface UIStore {
 // Store Implementation
 // ============================================================================
 
-export const useUIStore = create<UIStore>()(
+export const useUIStore = create<IUIStore>()(
 	persist(
 		(set) => ({
 			// Navigation

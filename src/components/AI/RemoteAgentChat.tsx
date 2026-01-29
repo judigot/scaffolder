@@ -166,8 +166,8 @@ function ToolCallDisplay({ part }: { part: IToolInvocationPart }) {
 								}`}
 							>
 								{isSuccess
-									? result.output ?? "(no output)"
-									: result.error ?? "Unknown error"}
+									? (result.output ?? "(no output)")
+									: (result.error ?? "Unknown error")}
 							</pre>
 						</div>
 					)}
@@ -228,6 +228,7 @@ function AgentMessage({ message }: { message: UIMessage }) {
 							return (
 								<ToolCallDisplay
 									key={`tool-${message.id}-${String(index)}`}
+									// eslint-disable-next-line no-type-assertion/no-type-assertion -- AI SDK types don't match our IToolInvocationPart interface
 									part={part as unknown as IToolInvocationPart}
 								/>
 							);

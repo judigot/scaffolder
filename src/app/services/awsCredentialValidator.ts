@@ -21,10 +21,7 @@ const sha256 = (data: string): string => {
 };
 
 const hmacSha256 = (key: Buffer | string, data: string): Buffer => {
-	return crypto
-		.createHmac("sha256", key)
-		.update(data, "utf8")
-		.digest();
+	return crypto.createHmac("sha256", key).update(data, "utf8").digest();
 };
 
 const getSigningKey = (
@@ -55,7 +52,10 @@ export const validateAwsCredentials = async (
 		"content-type": "application/x-www-form-urlencoded; charset=utf-8",
 	};
 
-	if (credentials.sessionToken) {
+	if (
+		credentials.sessionToken !== undefined &&
+		credentials.sessionToken !== ""
+	) {
 		headers["x-amz-security-token"] = credentials.sessionToken;
 	}
 
@@ -132,7 +132,8 @@ export const validateAwsCredentials = async (
 			}
 			return {
 				valid: false,
-				error: "AWS credentials are not authorized. Check your access key, secret key, and session token.",
+				error:
+					"AWS credentials are not authorized. Check your access key, secret key, and session token.",
 			};
 		}
 

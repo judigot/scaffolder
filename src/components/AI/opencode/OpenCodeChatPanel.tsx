@@ -1,23 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import {
-	type ChatMessage,
 	createOpenCodeAdapter,
+	type IChatMessage,
 	useChatSession,
 } from "@/lib/chat";
 
-type OpenCodeHealth = {
+interface OpenCodeHealth {
 	connected: boolean;
 	url?: string;
 	version?: string;
 	directory?: string;
 	error?: string;
-};
+}
 
-type OpenCodeChatPanelProps = {
+interface OpenCodeChatPanelProps {
 	repoName?: string;
 	repoPath?: string;
-};
+}
 
 export default function OpenCodeChatPanel({
 	repoName,
@@ -105,7 +105,7 @@ export default function OpenCodeChatPanel({
 	};
 
 	// Render message content with role-specific styling
-	const renderMessage = (message: ChatMessage) => {
+	const renderMessage = (message: IChatMessage) => {
 		if (message.role === "user") {
 			return message.content;
 		}

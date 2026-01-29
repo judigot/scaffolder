@@ -103,7 +103,7 @@ export default function ChatTree({
 					<span className="text-[11px] text-fg-subtle">
 						{chat.messages.length} msgs
 					</span>
-					{chat.branch && (
+					{chat.branch !== undefined && chat.branch !== "" && (
 						<span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-hover text-fg-muted font-mono">
 							{chat.branch}
 						</span>

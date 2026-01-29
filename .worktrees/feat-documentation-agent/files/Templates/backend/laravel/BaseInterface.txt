@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Repositories;
+
+use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
+
+interface BaseInterface
+{
+    [[LOOP(/BaseMethodsNew/crud) --include-files="laravel" --template="    public function {{repositoryMethod}};" --separator="\n    "]]
+    [[LOOP(/BaseMethodsNew/advanced-operations) --include-files="laravel" --template="    public function {{repositoryMethod}};" --separator="\n    "]]
+}

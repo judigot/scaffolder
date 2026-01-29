@@ -1,0 +1,3 @@
+      $ids = $request->input('ids', []);
+      $items = $this->service->{{methodNameCamelCase}}($ids);
+      return response()->json($items);

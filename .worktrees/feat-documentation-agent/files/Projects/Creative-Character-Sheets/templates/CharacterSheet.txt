@@ -1,0 +1,73 @@
+# Character Sheet: [[USE_DATA(character.name)]]
+
+## Basic Information
+
+**Name:** [[USE_DATA(character.name)]]  
+**Role:** [[USE_DATA(character.role)]]  
+**Age:** [[USE_DATA(character.age)]]  
+**Gender:** [[USE_DATA(character.gender)]]  
+**Species:** [[USE_DATA(character.species)]]
+
+## Physical Appearance
+
+- **Height:** [[USE_DATA(character.appearance.height)]]
+- **Build:** [[USE_DATA(character.appearance.build)]]
+- **Hair Color:** [[USE_DATA(character.appearance.hair-color)]]
+- **Eye Color:** [[USE_DATA(character.appearance.eye-color)]]
+- **Distinguishing Features:** [[USE_DATA(character.appearance.distinguishing-features)]]
+- **Clothing Style:** [[USE_DATA(character.appearance.clothing-style)]]
+
+## Personality
+
+### Traits
+[[USE_DATA(character.personality.traits)]]
+
+### Strengths
+[[USE_DATA(character.personality.strengths)]]
+
+### Weaknesses
+[[USE_DATA(character.personality.weaknesses)]]
+
+### Fears
+[[USE_DATA(character.personality.fears)]]
+
+### Motivations
+[[USE_DATA(character.personality.motivations)]]
+
+## Background
+
+**Origin:** [[USE_DATA(character.background.origin)]]  
+**Family:** [[USE_DATA(character.background.family)]]  
+**Education:** [[USE_DATA(character.background.education)]]  
+**Occupation:** [[USE_DATA(character.background.occupation)]]
+
+### Significant Events
+[[USE_DATA(character.background.significant-events)]]
+
+## Abilities
+
+**Primary Ability:** [[USE_DATA(character.abilities.primary)]]
+
+### Skills
+[[USE_DATA(character.abilities.skills)]]
+
+## Relationships
+
+[[USE_DATA(character.relationships)]]
+
+## Story Arc
+
+**Beginning:** [[USE_DATA(character.story-arc.beginning)]]  
+**Middle:** [[USE_DATA(character.story-arc.middle)]]  
+**End:** [[USE_DATA(character.story-arc.end)]]
+
+## Memorable Quotes
+
+[[USE_DATA(character.quotes)]]
+
+## Metadata
+
+- **Book/Story:** [[USE_DATA(tags.Book)]]
+- **Genre:** [[USE_DATA(tags.Genre)]]
+- **Importance:** [[USE_DATA(tags.Importance)]]
+

@@ -1,0 +1,5 @@
+    const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/first-or-create`, {
+      searchCriteria,
+      values
+    });
+    return response.data;

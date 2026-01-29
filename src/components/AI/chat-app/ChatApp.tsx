@@ -138,6 +138,7 @@ export default function ChatApp() {
 	// Function to load chats from filesystem
 	const loadChatsFromFilesystem = useCallback(
 		async (repoId: string, repoPath: string) => {
+			// eslint-disable-next-line no-console -- Debug logging for filesystem operations
 			console.log(`[ChatApp] Loading chats from filesystem for ${repoId}`);
 
 			try {
@@ -154,9 +155,10 @@ export default function ChatApp() {
 				});
 
 				if (response.ok) {
+					// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
 					const data = (await response.json()) as {
 						ok: boolean;
-						chats: Array<{
+						chats: {
 							worktreePath: string;
 							metadata: {
 								chatId: string;
@@ -169,19 +171,20 @@ export default function ChatApp() {
 								prStatus?: "draft" | "ready" | null;
 								createdAt: string;
 								updatedAt: string;
-								messages: Array<{
+								messages: {
 									id: string;
 									role: "user" | "assistant";
 									content: string;
 									timestamp: string;
-								}>;
+								}[];
 							};
-						}>;
+						}[];
 					};
 
-					if (data.ok && data.chats) {
+					if (data.ok && Array.isArray(data.chats)) {
+						// eslint-disable-next-line no-console -- Debug logging for filesystem operations
 						console.log(
-							`[ChatApp] Loaded ${data.chats.length} chats from filesystem`,
+							`[ChatApp] Loaded ${String(data.chats.length)} chats from filesystem`,
 						);
 
 						// Convert filesystem chats to IChat format
@@ -214,11 +217,14 @@ export default function ChatApp() {
 
 								// Keep local chats that don't have worktrees yet (newly created)
 								const localChatsWithoutWorktrees = repo.chats.filter(
-									(localChat) => !localChat.worktreePath,
+									(localChat) =>
+										localChat.worktreePath === undefined ||
+										localChat.worktreePath === "",
 								);
 
+								// eslint-disable-next-line no-console -- Debug logging for filesystem operations
 								console.log(
-									`[ChatApp] Merging ${chats.length} filesystem chats with ${localChatsWithoutWorktrees.length} local chats`,
+									`[ChatApp] Merging ${String(chats.length)} filesystem chats with ${String(localChatsWithoutWorktrees.length)} local chats`,
 								);
 
 								// Combine filesystem chats with local-only chats
@@ -242,12 +248,18 @@ export default function ChatApp() {
 
 	// Load chats from worktrees when repository changes (only once per repo)
 	useEffect(() => {
-		if (!activeRepoId || !isAuthenticated) {
+		if (
+			activeRepoId === undefined ||
+			activeRepoId === null ||
+			activeRepoId === "" ||
+			!isAuthenticated
+		) {
 			return;
 		}
 
 		// Skip if already loaded
 		if (loadedReposRef.current.has(activeRepoId)) {
+			// eslint-disable-next-line no-console -- Debug logging for filesystem operations
 			console.log(
 				`[ChatApp] Skipping load for ${activeRepoId} - already loaded`,
 			);
@@ -255,7 +267,8 @@ export default function ChatApp() {
 		}
 
 		const activeRepo = repositories.find((r) => r.id === activeRepoId);
-		if (!activeRepo?.localPath) {
+		if (activeRepo?.localPath === undefined || activeRepo.localPath === "") {
+			// eslint-disable-next-line no-console -- Debug logging for filesystem operations
 			console.log(`[ChatApp] Skipping load for ${activeRepoId} - no localPath`);
 			return;
 		}
@@ -398,7 +411,8 @@ export default function ChatApp() {
 	// Determine which path to use for file fetching:
 	// - If active chat has worktree, use worktreePath
 	// - Otherwise, use repo localPath
-	const useWorktree = !!activeChat?.worktreePath;
+	const useWorktree =
+		activeChat?.worktreePath !== undefined && activeChat.worktreePath !== "";
 
 	// Fetch files from local repo clone or worktree
 	// Note: data is unused - we only need refetch to trigger file refresh after agent operations
@@ -408,7 +422,10 @@ export default function ChatApp() {
 			staleTime: 0,
 			gcTime: 5 * 60 * 1000,
 			refetchOnWindowFocus: false,
-			enabled: !useWorktree && !!activeRepo?.localPath,
+			enabled:
+				!useWorktree &&
+				activeRepo?.localPath !== undefined &&
+				activeRepo.localPath !== "",
 		},
 	);
 
@@ -421,7 +438,10 @@ export default function ChatApp() {
 				staleTime: 0,
 				gcTime: 5 * 60 * 1000,
 				refetchOnWindowFocus: false,
-				enabled: useWorktree && !!activeChat?.worktreePath,
+				enabled:
+					useWorktree &&
+					activeChat?.worktreePath !== undefined &&
+					activeChat.worktreePath !== "",
 			},
 		);
 
@@ -454,15 +474,23 @@ export default function ChatApp() {
 		});
 
 		if (!response.ok) {
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- API error response shape
 			const errorData = (await response.json().catch(() => ({}))) as {
 				error?: string;
 				details?: string;
 			};
 			const message =
-				errorData.details || errorData.error || "Failed to clone repository";
+				(errorData.details !== undefined && errorData.details !== ""
+					? errorData.details
+					: null) ??
+				(errorData.error !== undefined && errorData.error !== ""
+					? errorData.error
+					: null) ??
+				"Failed to clone repository";
 			throw new Error(message);
 		}
 
+		// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
 		const cloneData = (await response.json()) as {
 			ok: boolean;
 			repoPath?: string;
@@ -470,7 +498,11 @@ export default function ChatApp() {
 			authType?: "public" | "github-token";
 		};
 
-		if (!cloneData.ok || !cloneData.repoPath) {
+		if (
+			!cloneData.ok ||
+			cloneData.repoPath === undefined ||
+			cloneData.repoPath === ""
+		) {
 			throw new Error("Clone failed. Please try again.");
 		}
 
@@ -537,6 +569,7 @@ export default function ChatApp() {
 		});
 
 		if (!response.ok) {
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- API error response shape
 			const errorData = (await response.json().catch(() => ({}))) as {
 				error?: string;
 			};
@@ -565,7 +598,7 @@ export default function ChatApp() {
 
 		// Always checkout the chat's branch when selected from dropdown
 		const repo = repositories.find((r) => r.id === repoId);
-		if (repo?.localPath) {
+		if (repo?.localPath !== undefined && repo.localPath !== "") {
 			const chat =
 				scope === "sprint"
 					? repo.sprints
@@ -573,13 +606,13 @@ export default function ChatApp() {
 							?.chats.find((c) => c.id === chatId)
 					: repo.chats.find((c) => c.id === chatId);
 
-			if (chat?.branch) {
+			if (chat?.branch !== undefined && chat.branch !== "") {
 				const result = await checkout({
 					repoId: repo.id,
 					localPath: repo.localPath,
 					branch: chat.branch,
 				});
-				if (result?.ok) {
+				if (result?.ok === true) {
 					await refetchFiles();
 				}
 			}
@@ -612,10 +645,15 @@ export default function ChatApp() {
 
 			// If chat has worktree, refetch files from worktree
 			// If no worktree yet (legacy), use old checkout behavior
-			if (chat?.worktreePath) {
+			if (chat?.worktreePath !== undefined && chat.worktreePath !== "") {
 				// Instant switch - just refetch files from worktree path
 				await refetchFiles();
-			} else if (chat?.branch && activeRepo.localPath) {
+			} else if (
+				chat?.branch !== undefined &&
+				chat.branch !== "" &&
+				activeRepo.localPath !== undefined &&
+				activeRepo.localPath !== ""
+			) {
 				// Legacy behavior for chats without worktrees
 				const result = await checkout({
 					repoId: activeRepo.id,
@@ -624,7 +662,7 @@ export default function ChatApp() {
 				});
 
 				// Refetch files after successful checkout
-				if (result?.ok) {
+				if (result?.ok === true) {
 					await refetchFiles();
 				}
 			}
@@ -646,10 +684,15 @@ export default function ChatApp() {
 
 			// If chat has worktree, refetch files from worktree
 			// If no worktree yet (legacy), use old checkout behavior
-			if (chat?.worktreePath) {
+			if (chat?.worktreePath !== undefined && chat.worktreePath !== "") {
 				// Instant switch - just refetch files from worktree path
 				await refetchFiles();
-			} else if (chat?.branch && activeRepo.localPath) {
+			} else if (
+				chat?.branch !== undefined &&
+				chat.branch !== "" &&
+				activeRepo.localPath !== undefined &&
+				activeRepo.localPath !== ""
+			) {
 				// Legacy behavior for chats without worktrees
 				const result = await checkout({
 					repoId: activeRepo.id,
@@ -658,7 +701,7 @@ export default function ChatApp() {
 				});
 
 				// Refetch files after successful checkout
-				if (result?.ok) {
+				if (result?.ok === true) {
 					await refetchFiles();
 				}
 			}
@@ -779,7 +822,10 @@ export default function ChatApp() {
 													}
 													const messages = [...chat.messages];
 													const lastMsg = messages[messages.length - 1];
-													if (lastMsg?.role === "assistant") {
+													if (
+														lastMsg !== undefined &&
+														lastMsg.role === "assistant"
+													) {
 														messages[messages.length - 1] = {
 															...lastMsg,
 															content,
@@ -796,7 +842,7 @@ export default function ChatApp() {
 									}
 									const messages = [...chat.messages];
 									const lastMsg = messages[messages.length - 1];
-									if (lastMsg?.role === "assistant") {
+									if (lastMsg !== undefined && lastMsg.role === "assistant") {
 										messages[messages.length - 1] = { ...lastMsg, content };
 									}
 									return { ...chat, messages };
@@ -929,7 +975,12 @@ export default function ChatApp() {
 
 		for (const pattern of patterns) {
 			const match = pattern.exec(text);
-			if (match?.[1] && match[1] !== "main" && match[1] !== "master") {
+			if (
+				match?.[1] !== undefined &&
+				match[1] !== "" &&
+				match[1] !== "main" &&
+				match[1] !== "master"
+			) {
 				return match[1];
 			}
 		}
@@ -951,7 +1002,7 @@ export default function ChatApp() {
 		addMessageToChat(chatId, userMessage);
 
 		const repoPath = activeRepo?.localPath;
-		if (!repoPath) {
+		if (repoPath === undefined || repoPath === "") {
 			const errorMessage: IMessage = {
 				id: `msg-${String(Date.now() + 1)}`,
 				role: "assistant",
@@ -966,16 +1017,21 @@ export default function ChatApp() {
 		// Get all messages for context (convert to API format)
 		const currentChat =
 			activeChatScope === "sprint"
-				? activeRepo?.sprints
+				? activeRepo.sprints
 						.find((s) => s.id === activeSprintId)
 						?.chats.find((c) => c.id === chatId)
-				: activeRepo?.chats.find((c) => c.id === chatId);
+				: activeRepo.chats.find((c) => c.id === chatId);
 
 		const sessionId = currentChat?.opencodeSessionId;
 		let worktreePath = currentChat?.worktreePath;
 
 		// Create worktree on first message if it doesn't exist
-		if (!worktreePath && isAuthenticated && activeRepo?.localPath) {
+		if (
+			(worktreePath === undefined || worktreePath === "") &&
+			isAuthenticated &&
+			activeRepo.localPath !== undefined &&
+			activeRepo.localPath !== ""
+		) {
 			try {
 				updateChatWorktree(chatId, { worktreeStatus: "creating" });
 
@@ -988,7 +1044,7 @@ export default function ChatApp() {
 					},
 					body: JSON.stringify({
 						repoPath: activeRepo.localPath,
-						chatId: chatId,
+						chatId,
 					}),
 				});
 
@@ -996,6 +1052,7 @@ export default function ChatApp() {
 					throw new Error("Failed to create worktree");
 				}
 
+				// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
 				const createData = (await createResponse.json()) as {
 					ok: boolean;
 					worktreePath: string;
@@ -1034,11 +1091,14 @@ export default function ChatApp() {
 		}
 
 		// Determine working directory: use worktree if available, fallback to repo
-		const workingDirectory = worktreePath || repoPath;
+		const workingDirectory =
+			worktreePath !== undefined && worktreePath !== ""
+				? worktreePath
+				: repoPath;
 
 		// Pre-flight validation for worktree
 		let commitCountBefore = 0;
-		if (worktreePath && isAuthenticated) {
+		if (worktreePath !== undefined && worktreePath !== "" && isAuthenticated) {
 			try {
 				const token = await getAccessTokenSilently();
 				const validationResponse = await fetch("/api/worktree/validate", {
@@ -1051,6 +1111,7 @@ export default function ChatApp() {
 				});
 
 				if (validationResponse.ok) {
+					// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
 					const validationData = (await validationResponse.json()) as {
 						valid: boolean;
 						commitCount: number;
@@ -1060,7 +1121,7 @@ export default function ChatApp() {
 						const errorMessage: IMessage = {
 							id: `msg-${String(Date.now() + 1)}`,
 							role: "assistant",
-							content: `Worktree validation failed: ${validationData.error || "Unknown error"}`,
+							content: `Worktree validation failed: ${validationData.error !== undefined && validationData.error !== "" ? validationData.error : "Unknown error"}`,
 							timestamp: new Date(),
 						};
 						addMessageToChat(chatId, errorMessage);
@@ -1095,9 +1156,10 @@ export default function ChatApp() {
 					sessionId,
 					directory: workingDirectory,
 					// Use worktree prompt if in worktree, otherwise use repo prompt
-					systemPrompt: worktreePath
-						? WORKTREE_AGENT_PROMPT
-						: REPO_AGENT_SYSTEM_PROMPT,
+					systemPrompt:
+						worktreePath !== undefined && worktreePath !== ""
+							? WORKTREE_AGENT_PROMPT
+							: REPO_AGENT_SYSTEM_PROMPT,
 				}),
 			});
 
@@ -1107,22 +1169,34 @@ export default function ChatApp() {
 				return;
 			}
 
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
 			const data = (await response.json()) as {
 				sessionId?: string;
 				assistantText?: string;
 			};
 
-			if (data.sessionId) {
+			if (data.sessionId !== undefined && data.sessionId !== "") {
 				updateChatSessionId(chatId, data.sessionId);
 			}
 
+			const trimmedAssistantText = data.assistantText?.trim();
 			const assistantText =
-				data.assistantText?.trim() || "(No response generated)";
+				trimmedAssistantText !== undefined && trimmedAssistantText !== ""
+					? trimmedAssistantText
+					: "(No response generated)";
 
 			// Parse schema from response and update global store
 			const schemaResult = validateSchemaInfoFromResponse(assistantText);
-			if (schemaResult.success && schemaResult.extracted && schemaResult.data) {
-				console.log("[ChatApp] Schema detected and parsed:", schemaResult.data);
+			if (
+				schemaResult.success &&
+				schemaResult.extracted === true &&
+				schemaResult.data !== undefined
+			) {
+				// eslint-disable-next-line no-console -- Debug logging for schema parsing
+				console.warn(
+					"[ChatApp] Schema detected and parsed:",
+					schemaResult.data,
+				);
 				setSchemaInfo(schemaResult.data);
 				// Remove hidden schema tags from display text
 				const cleanText = removeHiddenSchemaFromText(assistantText);
@@ -1133,12 +1207,16 @@ export default function ChatApp() {
 
 			// Extract branch name from agent response and associate with chat
 			const extractedBranch = extractBranchFromResponse(assistantText);
-			if (extractedBranch) {
+			if (extractedBranch !== null) {
 				updateChatBranch(chatId, extractedBranch);
 			}
 
 			// Post-flight validation for worktree
-			if (worktreePath && isAuthenticated) {
+			if (
+				worktreePath !== undefined &&
+				worktreePath !== "" &&
+				isAuthenticated
+			) {
 				try {
 					const token = await getAccessTokenSilently();
 					const postValidationResponse = await fetch(
@@ -1157,6 +1235,7 @@ export default function ChatApp() {
 					);
 
 					if (postValidationResponse.ok) {
+						// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
 						const postData = (await postValidationResponse.json()) as {
 							valid: boolean;
 							newCommits: number;
@@ -1168,19 +1247,28 @@ export default function ChatApp() {
 						};
 
 						if (postData.newCommits > 0) {
-							console.log(
-								`Agent made ${postData.newCommits} commit(s): ${postData.lastCommitMessage || ""}`,
+							// eslint-disable-next-line no-console -- Debug logging for commit tracking
+							console.warn(
+								`Agent made ${String(postData.newCommits)} commit(s): ${postData.lastCommitMessage !== undefined && postData.lastCommitMessage !== "" ? postData.lastCommitMessage : ""}`,
 							);
 
 							// Update worktree path if it was renamed
-							if (postData.worktreeRenamed && postData.newWorktreePath) {
+							if (
+								postData.worktreeRenamed === true &&
+								postData.newWorktreePath !== undefined &&
+								postData.newWorktreePath !== ""
+							) {
 								updateChatWorktree(chatId, {
 									worktreePath: postData.newWorktreePath,
 								});
 							}
 
 							// Update branch immediately when renamed (before PR creation)
-							if (postData.branchRenamed && postData.branch) {
+							if (
+								postData.branchRenamed === true &&
+								postData.branch !== undefined &&
+								postData.branch !== ""
+							) {
 								updateChatWorktree(chatId, {
 									branch: postData.branch,
 								});
@@ -1234,12 +1322,16 @@ export default function ChatApp() {
 
 							// If this is the first commit and branch was renamed, create PR
 							if (
-								postData.branchRenamed &&
-								postData.branch &&
+								postData.branchRenamed === true &&
+								postData.branch !== undefined &&
+								postData.branch !== "" &&
 								commitCountBefore <= 1
 							) {
 								const currentWorktreePath =
-									postData.newWorktreePath || worktreePath;
+									postData.newWorktreePath !== undefined &&
+									postData.newWorktreePath !== ""
+										? postData.newWorktreePath
+										: worktreePath;
 								try {
 									const prResponse = await fetch("/api/pull-request/create", {
 										method: "POST",
@@ -1254,6 +1346,7 @@ export default function ChatApp() {
 									});
 
 									if (prResponse.ok) {
+										// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
 										const prData = (await prResponse.json()) as {
 											ok: boolean;
 											number: number;
@@ -1304,8 +1397,9 @@ export default function ChatApp() {
 												),
 											);
 
-											console.log(
-												`Created PR #${prData.number}: ${prData.title}`,
+											// eslint-disable-next-line no-console -- Debug logging for PR creation
+											console.warn(
+												`Created PR #${String(prData.number)}: ${prData.title}`,
 											);
 										}
 									}
@@ -1401,8 +1495,8 @@ export default function ChatApp() {
 				activeChatId={activeChatId}
 				activeChatScope={activeChatScope}
 				onSelectSprint={handleSelectSprint}
-				onSelectChat={handleSelectChat}
-				onSelectRegularChat={handleSelectRegularChat}
+				onSelectChat={(chatId) => void handleSelectChat(chatId)}
+				onSelectRegularChat={(chatId) => void handleSelectRegularChat(chatId)}
 				onNewChat={handleNewChat}
 			/>
 			<ChatPanel
@@ -1413,7 +1507,9 @@ export default function ChatApp() {
 						? "main"
 						: (activeSprint?.name ?? "main")
 				}
-				onSendMessage={handleSendMessage}
+				onSendMessage={(chatId, content, model) =>
+					void handleSendMessage(chatId, content, model)
+				}
 				onPromoteChat={handlePromoteChat}
 				onMarkReady={handleMarkReady}
 			/>
@@ -1452,10 +1548,14 @@ export default function ChatApp() {
 					repositories={repositories}
 					activeRepoId={activeRepoId}
 					onSelectRepo={handleSelectRepo}
-					onSelectBranch={handleSelectBranch}
-					onAddRepo={handleAddRepo}
-					onRemoveRepo={handleRemoveRepo}
-					onDeleteClone={handleDeleteClone}
+					onSelectBranch={(repoId, chatId, scope, sprintId) =>
+						void handleSelectBranch(repoId, chatId, scope, sprintId)
+					}
+					onAddRepo={(repoUrl) => void handleAddRepo(repoUrl)}
+					onRemoveRepo={(repoUrl, repoId) =>
+						void handleRemoveRepo(repoUrl, repoId)
+					}
+					onDeleteClone={(repoPath) => void handleDeleteClone(repoPath)}
 				/>
 			)}
 

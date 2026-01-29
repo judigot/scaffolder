@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Repositories;
+
+use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
+
+interface BaseInterface
+{
+    public function getSortedQuery(?string $column = null, string $direction = 'asc'): \Illuminate\Database\Eloquent\Builder;
+[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n" --template="    public function {{repositoryMethod}};"]]
+}

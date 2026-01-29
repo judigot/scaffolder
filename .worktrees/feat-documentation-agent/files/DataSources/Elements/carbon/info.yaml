@@ -1,0 +1,32 @@
+element:
+  symbol: "C"
+  name: "Carbon"
+  atomic-number: 6
+  atomic-mass: "12.011"
+  group: 14
+  period: 2
+  block: "p"
+  category: "Nonmetal"
+  electron-configuration: "1s² 2s² 2p²"
+  electronegativity: 2.55
+  density: "2.267 g/cm³ (graphite), 3.515 g/cm³ (diamond)"
+  melting-point: "3550°C (sublimes)"
+  boiling-point: "4827°C"
+  state-at-room-temp: "Solid"
+  color: "Black (graphite), Transparent (diamond)"
+  discovery-year: "Ancient"
+  discoverer: "Known since ancient times"
+  uses: "Steel production, graphite electrodes, diamond jewelry, carbon fiber, activated carbon, organic chemistry"
+  description: "Carbon is a versatile element that forms the basis of all known life. It exists in several allotropic forms including graphite, diamond, and fullerenes."
+  safety-notes: "Generally safe. Carbon black dust can be a respiratory irritant."
+  allotropes:
+    - name: "Graphite"
+      structure: "Layered hexagonal"
+      properties: "Conductive, soft, lubricating"
+    - name: "Diamond"
+      structure: "Tetrahedral"
+      properties: "Hardest known material, excellent thermal conductor"
+    - name: "Fullerene"
+      structure: "Spherical or tubular"
+      properties: "Nanotechnology applications"
+

@@ -1,0 +1,82 @@
+#!/bin/sh
+
+# Check if Node.js is in PATH and source local bashrc if not
+if ! command -v node >/dev/null 2>&1; then
+  [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+fi
+
+# Sync files directory to remote repository
+# Note: Temporarily disabled - requires SSH access to scaffolder-files repository
+# SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd | tr -d '\r\n')"
+# "$SCRIPT_DIR/scripts/sync-files-repo.sh"
+
+# bun lint-staged # Run lint-staged commands in package.json
+
+# ============================================================================
+# Feature Documentation Reminder
+# ============================================================================
+# Reminds developers to update feature docs when modifying feature files.
+# Non-blocking - provides helpful guidance only.
+
+FEATURE_FILES=$(git diff --cached --name-only | grep -E "src/(components|utils|routes|stores|services|hooks|app)")
+
+if [ -n "$FEATURE_FILES" ]; then
+  # Try to read commit message (if available in editor buffer)
+  COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
+  COMMIT_MSG=""
+  if [ -f "$COMMIT_MSG_FILE" ]; then
+    COMMIT_MSG=$(cat "$COMMIT_MSG_FILE" 2>/dev/null || echo "")
+  fi
+  
+  # Check if Feature ID is present in commit message
+  FEATURE_ID=$(echo "$COMMIT_MSG" | grep -oP 'Feature: \K(F\d+)')
+  
+  # If no Feature ID found, show reminder
+  if [ -z "$FEATURE_ID" ]; then
+    echo ""
+    echo "📝 Feature Documentation Reminder"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "⚠️  You're modifying feature files but no Feature ID found in commit message."
+    echo ""
+    echo "Modified files:"
+    echo "$FEATURE_FILES" | sed 's/^/  • /'
+    echo ""
+    echo "If this is feature work, consider:"
+    echo ""
+    echo "  1️⃣  Add Feature ID to commit message:"
+    echo "     Feature: F00X"
+    echo ""
+    echo "  2️⃣  Update feature documentation:"
+    echo "     docs/features/implemented/F00X-name.md"
+    echo ""
+    echo "  3️⃣  Update feature index if new feature:"
+    echo "     docs/features/README.md"
+    echo ""
+    echo "If this is NOT feature work (bug fix, style, etc.):"
+    echo "  ✓ No action needed - proceed with commit"
+    echo ""
+    echo "See: docs/workflows/feature-documentation-workflow.md"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+  else
+    # Feature ID found - check if docs exist
+    FEATURE_DOC="docs/features/implemented/${FEATURE_ID}-*.md"
+    if ! ls $FEATURE_DOC 2>/dev/null | grep -q .; then
+      echo ""
+      echo "📝 Feature Documentation Check"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo ""
+      echo "✓ Feature ID found: $FEATURE_ID"
+      echo "⚠️  Documentation not found: docs/features/implemented/${FEATURE_ID}-*.md"
+      echo ""
+      echo "If this is a new feature, create documentation:"
+      echo "  cp docs/features/TEMPLATE.md \\"
+      echo "     docs/features/implemented/${FEATURE_ID}-feature-name.md"
+      echo ""
+      echo "See: docs/workflows/feature-documentation-workflow.md"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo ""
+    fi
+  fi
+fi

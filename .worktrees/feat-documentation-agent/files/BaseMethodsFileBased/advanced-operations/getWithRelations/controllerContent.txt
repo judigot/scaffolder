@@ -1,0 +1,3 @@
+        $relations = $request->input('relations', []);
+        $items = $this->service->{{methodNameCamelCase}}($relations);
+        return response()->json($items);

@@ -1,0 +1,1 @@
+LOOP_FOLDERS(Invoice-{{invoice.number}}.html --data-source=//DataSources/People/**/info.yaml --template=./templates/Invoice.txt)

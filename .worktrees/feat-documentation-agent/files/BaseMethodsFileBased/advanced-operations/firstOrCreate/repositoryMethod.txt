@@ -1,0 +1,1 @@
+{{methodNameCamelCase}}(array $attributes, array $values = []): Model

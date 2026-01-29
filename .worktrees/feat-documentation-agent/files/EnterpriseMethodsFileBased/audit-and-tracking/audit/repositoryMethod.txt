@@ -1,0 +1,1 @@
+createAuditLog(array $data): Model 
