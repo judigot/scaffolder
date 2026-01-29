@@ -15,6 +15,7 @@ import type { TabType } from "@/components/AI/TabBar.tsx";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
 import SchemaBuilder from "@/components/SchemaBuilder.tsx";
+import { Banner } from "@/components/UI/Banner.tsx";
 import { CREATION_MODES } from "@/constants.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useRemoteRepoFiles } from "@/hooks/useRemoteRepoFiles.ts";
@@ -841,18 +842,16 @@ function IntrospectorPanel() {
 
 					{/* Error Message */}
 					{error && (
-						<div className="p-3 bg-danger-500/10 border border-danger-500/30 rounded-md">
-							<p className="text-sm text-danger-400">{error}</p>
-						</div>
+						<Banner variant="danger" inline>
+							{error}
+						</Banner>
 					)}
 
 					{/* Success Message */}
 					{success && (
-						<div className="p-3 bg-success-500/10 border border-success-500/30 rounded-md">
-							<p className="text-sm text-success-400">
-								Schema introspected! View generated code in the Code tab.
-							</p>
-						</div>
+						<Banner variant="success" inline>
+							Schema introspected! View generated code in the Code tab.
+						</Banner>
 					)}
 
 					{/* Introspect Button */}
