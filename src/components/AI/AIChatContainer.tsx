@@ -735,43 +735,18 @@ export function AIChatContainer({
 	const { messages, sendMessage, error, retry: reload } = chat;
 	const isLoading = chat.isLoading;
 
-	// Filter to only show "App Generator" projects
-	const appGeneratorProjects = useMemo(() => {
-		return projects.filter((p) => p.name.startsWith("App Generator"));
-	}, [projects]);
-
-	// Set default project when projects load
+	// Set default project when projects load (scaffolder mode only)
+	// Set default project when projects load (scaffolder mode only)
 	useEffect(() => {
-		console.log("[AIChatContainer] Auto-select project check:", {
-			projectsLength: projects.length,
-			appGeneratorProjectsLength: appGeneratorProjects.length,
-			selectedProject: selectedProject?.name ?? null,
-			isScaffolderRepo,
-		});
-
-		// Auto-select first App Generator project if none selected (scaffolder mode only)
-		if (
-			isScaffolderRepo &&
-			appGeneratorProjects.length > 0 &&
-			selectedProject === null
-		) {
-			const firstProject = appGeneratorProjects[0];
+		// Auto-select first project if none selected (scaffolder mode only)
+		if (isScaffolderRepo && projects.length > 0 && selectedProject === null) {
+			const firstProject = projects[0];
 			// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 			if (firstProject !== undefined) {
-				console.log(
-					"[AIChatContainer] Auto-selecting project:",
-					firstProject.name,
-				);
 				selectProject(firstProject);
 			}
 		}
-	}, [
-		appGeneratorProjects,
-		selectedProject,
-		selectProject,
-		projects.length,
-		isScaffolderRepo,
-	]);
+	}, [projects, selectedProject, selectProject, isScaffolderRepo]);
 
 	// Extract schema from messages when not loading (streaming complete)
 	const extractedSchema = useMemo(() => {
@@ -797,17 +772,6 @@ export function AIChatContainer({
 		const hasSchema = schemaInfo.length > 0;
 		const canBuildProject =
 			hasSelectedProject && hasUser && hasUserFiles && hasSchema;
-
-		// Debug logging for build conditions
-		console.log("[AIChatContainer] Build conditions:", {
-			hasSelectedProject,
-			hasUser,
-			hasUserFiles,
-			storeUserFilesLength: storeUserFiles.length,
-			hasSchema,
-			schemaInfoLength: schemaInfo.length,
-			canBuildProject,
-		});
 
 		if (canBuildProject) {
 			const buildProject = async () => {
@@ -847,7 +811,7 @@ export function AIChatContainer({
 	};
 
 	const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-		const project = appGeneratorProjects.find((p) => p.name === e.target.value);
+		const project = projects.find((p) => p.name === e.target.value);
 		if (project) {
 			selectProject(project);
 		}
@@ -857,78 +821,27 @@ export function AIChatContainer({
 	const filesUsingUserEnv = buildResult.filesUsingUserEnv;
 	const filesFailedToFormat = buildResult.filesFailedToFormat;
 
-	// Check if we should show FileViewer
-	const shouldShowFileViewer =
-		schemaInfo.length > 0 &&
-		builtProjectFiles.length > 0 &&
-		selectedProject !== null;
-
-	// Debug logging for FileViewer conditions
-	console.log("[AIChatContainer] FileViewer conditions:", {
-		isScaffolderRepo,
-		activeTab,
-		schemaInfoLength: schemaInfo.length,
-		builtProjectFilesLength: builtProjectFiles.length,
-		selectedProject: selectedProject?.name ?? null,
-		shouldShowFileViewer,
-	});
-
-	// We no longer need the Ctrl+B shortcut here as it's handled in the parent component
-	// This effect has been removed since we're using the parent component for tab switching
-
 	// For repository mode, show files if loaded
 	const hasRepoFiles: boolean =
 		!isScaffolderRepo && repoFiles !== undefined && repoFiles.length > 0;
 
 	return (
 		<div className="flex h-full w-full bg-bg overflow-hidden">
-			{/* FileViewer panel - Scaffolder mode (edit) */}
-			{isScaffolderRepo &&
-				shouldShowFileViewer &&
-				activeTab === "fileViewer" && (
-					<div className="flex flex-col overflow-hidden w-full">
-						<FileViewer
-							mode="edit"
-							folderStructure={builtProjectFiles}
-							projectName={selectedProject.name}
-							filesUsingUserEnv={filesUsingUserEnv}
-							filesFailedToFormat={filesFailedToFormat}
-							projects={appGeneratorProjects}
-							selectedProject={selectedProject}
-							onProjectChange={handleProjectChange}
-						/>
-					</div>
-				)}
-
-			{/* FileViewer panel - Scaffolder mode (no schema yet) */}
-			{isScaffolderRepo &&
-				!shouldShowFileViewer &&
-				activeTab === "fileViewer" && (
-					<div className="flex flex-col overflow-hidden w-full">
-						<div className="flex-1 flex items-center justify-center">
-							<div className="text-center space-y-3 max-w-md px-4">
-								<div className="w-16 h-16 mx-auto rounded-2xl bg-secondary border border-border flex items-center justify-center text-fg-subtle">
-									<svg
-										className="w-8 h-8"
-										viewBox="0 0 24 24"
-										fill="currentColor"
-									>
-										<title>No schema</title>
-										<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-									</svg>
-								</div>
-								<h3 className="text-lg font-semibold text-fg">
-									No schema generated
-								</h3>
-								<p className="text-sm text-fg-subtle">
-									Generate a database schema in the Chat tab to see your project
-									files here. Ask the AI to create tables and relationships for
-									your application.
-								</p>
-							</div>
-						</div>
-					</div>
-				)}
+			{/* FileViewer panel - Scaffolder mode (always render when on fileViewer tab) */}
+			{isScaffolderRepo && activeTab === "fileViewer" && (
+				<div className="flex flex-col overflow-hidden w-full">
+					<FileViewer
+						mode="edit"
+						folderStructure={builtProjectFiles}
+						projectName={selectedProject?.name ?? "Select a project"}
+						filesUsingUserEnv={filesUsingUserEnv}
+						filesFailedToFormat={filesFailedToFormat}
+						projects={projects}
+						selectedProject={selectedProject ?? undefined}
+						onProjectChange={handleProjectChange}
+					/>
+				</div>
+			)}
 
 			{/* FileViewer panel - Repository mode (view) */}
 			{!isScaffolderRepo && activeTab === "fileViewer" && (

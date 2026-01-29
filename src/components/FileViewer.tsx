@@ -2614,7 +2614,7 @@ function FileViewer({
 																value={project.name}
 																className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
 															>
-																{project.name.replace("App Generator - ", "")}
+																{project.name}
 															</option>
 														))}
 													</select>
@@ -2903,7 +2903,7 @@ function FileViewer({
 														value={project.name}
 														className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
 													>
-														{project.name.replace("App Generator - ", "")}
+														{project.name}
 													</option>
 												))}
 											</select>

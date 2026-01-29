@@ -326,13 +326,17 @@ export default function ChatApp() {
 
 	const [inputRepoURL] = useState<string>(publicRepoURL);
 
-	// Hardcoded scaffolder-files repo for scaffolder mode
+	// Scaffolder mode file loading:
+	// - Dev mode (isUsingLocalFiles=true): Uses local files from /files directory
+	// - Production: Uses remote GitHub repo (judigot/scaffolder-files)
 	const scaffolderFilesURL = "https://github.com/judigot/scaffolder-files";
 	const effectiveRepoURL = isScaffolderMode
 		? scaffolderFilesURL
 		: publicRepoURL;
 
-	// Lazy load user files only when fileViewer tab is active
+	// Load scaffolder template files
+	// In dev mode: isUsingLocalFiles causes useUserFiles to read from local /files directory
+	// In production: reads from the remote GitHub repo (judigot/scaffolder-files)
 	const { refetch: refetchUserFiles, data: userFiles } = useUserFiles(
 		{ publicRepoURL: effectiveRepoURL },
 		{
@@ -340,15 +344,21 @@ export default function ChatApp() {
 			staleTime: 5 * 60 * 1000,
 			gcTime: 10 * 60 * 1000,
 			refetchOnWindowFocus: false,
-			enabled: activeTab === "fileViewer" && !!effectiveRepoURL,
+			// Scaffolder mode: always fetch files (local in dev, remote in prod)
+			// Repo mode: only fetch when on fileViewer tab with valid URL
+			enabled:
+				isScaffolderMode || (activeTab === "fileViewer" && !!effectiveRepoURL),
 		},
 	);
 
+	// Only update global userFiles store in scaffolder mode
+	// This store is for scaffolder template files (Projects, Constants, etc.)
+	// Repository files should NOT go into this store
 	useEffect(() => {
-		if (userFiles && userFiles.length > 0) {
+		if (isScaffolderMode && userFiles && userFiles.length > 0) {
 			setUserFiles(userFiles);
 		}
-	}, [userFiles, setUserFiles]);
+	}, [isScaffolderMode, userFiles, setUserFiles]);
 
 	const [debouncedRepoURL] = useDebouncedValue(inputRepoURL, 1000);
 
@@ -417,7 +427,8 @@ export default function ChatApp() {
 	const useWorktree = !!activeChat?.worktreePath;
 
 	// Fetch files from local repo clone or worktree
-	const { refetch: refetchLocalFiles, data: localFiles } = useLocalRepoFiles(
+	// Note: data is unused - we only need refetch to trigger file refresh after agent operations
+	const { refetch: refetchLocalFiles, data: _localFiles } = useLocalRepoFiles(
 		{ localPath: useWorktree ? undefined : activeRepo?.localPath },
 		{
 			staleTime: 0,
@@ -428,7 +439,8 @@ export default function ChatApp() {
 	);
 
 	// Fetch files from worktree
-	const { refetch: refetchWorktreeFiles, data: worktreeFiles } =
+	// Note: data is unused - we only need refetch to trigger file refresh after agent operations
+	const { refetch: refetchWorktreeFiles, data: _worktreeFiles } =
 		useWorktreeFiles(
 			{ worktreePath: useWorktree ? activeChat?.worktreePath : undefined },
 			{
@@ -448,15 +460,8 @@ export default function ChatApp() {
 		}
 	};
 
-	// Use appropriate file data
-	const displayFiles = useWorktree ? worktreeFiles : localFiles;
-
-	// Update store with files when they change
-	useEffect(() => {
-		if (displayFiles && displayFiles.length > 0) {
-			setUserFiles(displayFiles);
-		}
-	}, [displayFiles, setUserFiles]);
+	// Note: localFiles/worktreeFiles are for viewing in repositories mode only
+	// They are NOT stored in global useMockDatabaseStore (that's for scaffolder templates)
 
 	// ===== Multi-repo chat handlers =====
 	const handleAddRepo = async (repoUrl: string) => {

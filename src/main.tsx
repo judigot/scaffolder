@@ -3,7 +3,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import "@/styles/main.scss";
-import App from "@/AI.tsx";
+import ChatApp from "@/components/AI/chat-app/ChatApp.tsx";
+// import App from "@/App.tsx";
 import AuthGuard from "@/components/AuthGuard.tsx";
 // import TransformationTester from '@/TransformationTester.tsx';
 import ModalProvider from "@/components/Modal/base/ModalProvider.tsx";
@@ -82,7 +83,7 @@ if (rootElement) {
 						<ModalProvider />
 						<SQLSchemaInputModal />
 						{/* <TransformationTester /> */}
-						<App />
+						<ChatApp/>
 					</AuthGuard>
 				</QueryClientProvider>
 			</Auth0Provider>
