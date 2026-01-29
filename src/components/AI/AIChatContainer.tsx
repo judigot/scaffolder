@@ -19,12 +19,17 @@ import { CREATION_MODES } from "@/constants.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useRemoteRepoFiles } from "@/hooks/useRemoteRepoFiles.ts";
 import { useUser } from "@/hooks/useUser.ts";
-import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
+import type {
+	IIntrospectedSchemaInfo,
+	ISchemaInfo,
+} from "@/interfaces/interfaces.ts";
 import { useVercelChat } from "@/lib/chat";
 import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
+import convertIntrospectedStructure from "@/utils/convertIntrospectedStructure.ts";
+import { getApiUrl } from "@/utils/getApiUrl.ts";
 import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
 import { getRandomIntro } from "@/utils/randomIntro.ts";
 import {
@@ -700,20 +705,198 @@ function BuilderPanel({
 				</div>
 			)}
 
-			{creationMode === CREATION_MODES.INTROSPECTOR && (
-				<div className="flex-1 overflow-auto p-4">
-					<div className="max-w-2xl mx-auto text-center py-12">
-						<h2 className="text-xl font-semibold text-fg mb-2">Introspector</h2>
-						<p className="text-fg-muted">
-							Connect to an existing database to introspect its schema and
-							generate code.
-						</p>
-						<p className="text-fg-subtle text-sm mt-4">
-							Configure your database connection in the Infra tab.
+			{creationMode === CREATION_MODES.INTROSPECTOR && <IntrospectorPanel />}
+		</div>
+	);
+}
+
+/**
+ * Introspector panel for connecting to an existing database and generating schema.
+ * Mobile-first design using design system tokens.
+ */
+function IntrospectorPanel() {
+	const { dbConnection, setDbConnection, dbType, setDBType } = useFormStore();
+	const { setSchemaInfo } = useTransformationsStore();
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState(false);
+
+	const handleIntrospect = async () => {
+		if (!dbConnection.trim()) {
+			setError("Please enter a database connection string");
+			return;
+		}
+
+		setIsLoading(true);
+		setError(null);
+		setSuccess(false);
+
+		try {
+			const response = await fetch(`${getApiUrl()}/introspect`, {
+				method: "POST",
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ dbConnection, dbType }),
+			});
+
+			if (!response.ok) {
+				const errorData = (await response.json().catch(() => ({}))) as {
+					error?: string;
+				};
+				throw new Error(errorData.error ?? "Failed to introspect database");
+			}
+
+			const introspectedSchemaInfo =
+				(await response.json()) as IIntrospectedSchemaInfo[];
+			const convertedSchemaInfo = convertIntrospectedStructure(
+				introspectedSchemaInfo,
+			);
+
+			setSchemaInfo(convertedSchemaInfo);
+			setSuccess(true);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "An error occurred");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Auto-detect database type from connection string
+	const handleConnectionChange = (value: string) => {
+		setDbConnection(value);
+		setError(null);
+		setSuccess(false);
+
+		// Auto-detect DB type from connection string
+		if (value.startsWith("postgresql://") || value.startsWith("postgres://")) {
+			setDBType("postgresql");
+		} else if (value.startsWith("mysql://")) {
+			setDBType("mysql");
+		}
+	};
+
+	return (
+		<div className="flex-1 overflow-auto">
+			<div className="max-w-lg mx-auto px-4 py-6 md:py-10">
+				{/* Header */}
+				<header className="text-center mb-6 md:mb-8">
+					<h2 className="text-lg md:text-xl font-semibold text-fg mb-1">
+						Database Introspector
+					</h2>
+					<p className="text-sm text-fg-muted">
+						Connect to an existing database to generate code
+					</p>
+				</header>
+
+				{/* Form */}
+				<div className="space-y-4 md:space-y-5">
+					{/* Connection String Input */}
+					<div className="form-group">
+						<label htmlFor="dbConnectionInput" className="form-label">
+							Connection String
+						</label>
+						<input
+							id="dbConnectionInput"
+							type="text"
+							value={dbConnection}
+							onChange={(e) => handleConnectionChange(e.target.value)}
+							placeholder="postgresql://user:pass@localhost:5432/db"
+							className={`form-input form-input-lg form-input-rounded ${error ? "form-input-error" : ""}`}
+						/>
+						<p className="text-xs text-fg-subtle mt-1">
+							PostgreSQL or MySQL connection string
 						</p>
 					</div>
+
+					{/* Database Type Selector */}
+					<div className="form-group">
+						<span className="form-label">Database Type</span>
+						<div className="flex gap-2">
+							<button
+								type="button"
+								onClick={() => setDBType("postgresql")}
+								className={`btn-secondary btn-rounded flex-1 ${
+									dbType === "postgresql"
+										? "!bg-accent !text-accent-fg !border-accent"
+										: ""
+								}`}
+							>
+								PostgreSQL
+							</button>
+							<button
+								type="button"
+								onClick={() => setDBType("mysql")}
+								className={`btn-secondary btn-rounded flex-1 ${
+									dbType === "mysql"
+										? "!bg-accent !text-accent-fg !border-accent"
+										: ""
+								}`}
+							>
+								MySQL
+							</button>
+						</div>
+					</div>
+
+					{/* Error Message */}
+					{error && (
+						<div className="p-3 bg-danger-500/10 border border-danger-500/30 rounded-md">
+							<p className="text-sm text-danger-400">{error}</p>
+						</div>
+					)}
+
+					{/* Success Message */}
+					{success && (
+						<div className="p-3 bg-success-500/10 border border-success-500/30 rounded-md">
+							<p className="text-sm text-success-400">
+								Schema introspected! View generated code in the Code tab.
+							</p>
+						</div>
+					)}
+
+					{/* Introspect Button */}
+					<button
+						type="button"
+						onClick={() => void handleIntrospect()}
+						disabled={isLoading || !dbConnection.trim()}
+						className="btn-primary btn-full btn-lg btn-rounded btn-icon"
+					>
+						{isLoading ? (
+							<>
+								<svg
+									className="animate-spin w-4 h-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									aria-hidden="true"
+								>
+									<circle
+										className="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										strokeWidth="4"
+									/>
+									<path
+										className="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									/>
+								</svg>
+								<span>Introspecting...</span>
+							</>
+						) : (
+							"Introspect Database"
+						)}
+					</button>
+
+					{/* Help Text */}
+					<p className="text-xs text-fg-subtle text-center">
+						Ensure the database is accessible from the server
+					</p>
 				</div>
-			)}
+			</div>
 		</div>
 	);
 }
