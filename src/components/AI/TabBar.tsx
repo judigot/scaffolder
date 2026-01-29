@@ -1,11 +1,28 @@
-import { Chat as ChatIcon, CloudQueue as CloudIcon } from "@mui/icons-material";
+import {
+	Build as BuildIcon,
+	Chat as ChatIcon,
+	CloudQueue as CloudIcon,
+} from "@mui/icons-material";
+import type { ReactNode } from "react";
 
 export type TabType = "chat" | "fileViewer" | "infra";
+
+/** Configuration for the middle tab */
+export interface IMiddleTabConfig {
+	/** Label displayed under the icon */
+	label: string;
+	/** Icon to display (defaults to ChatIcon) */
+	icon?: ReactNode;
+	/** Optional custom content to render instead of just the label */
+	customContent?: ReactNode;
+}
 
 interface ITabBarProps {
 	activeTab: TabType;
 	onTabChange: (tab: TabType) => void;
 	hasGeneratedCode?: boolean;
+	/** Configuration for the middle tab - defaults to Chat */
+	middleTab?: IMiddleTabConfig;
 }
 
 function CodeStatusIcon({ hasGeneratedCode }: { hasGeneratedCode: boolean }) {
@@ -22,10 +39,23 @@ function CodeStatusIcon({ hasGeneratedCode }: { hasGeneratedCode: boolean }) {
 	);
 }
 
+/** Default middle tab config for repositories mode */
+export const CHAT_TAB_CONFIG: IMiddleTabConfig = {
+	label: "Chat",
+	icon: <ChatIcon className="w-5 h-5 mb-1" />,
+};
+
+/** Default middle tab config for scaffolder mode */
+export const BUILDER_TAB_CONFIG: IMiddleTabConfig = {
+	label: "Builder",
+	icon: <BuildIcon className="w-5 h-5 mb-1" />,
+};
+
 export default function TabBar({
 	activeTab,
 	onTabChange,
 	hasGeneratedCode = false,
+	middleTab = CHAT_TAB_CONFIG,
 }: ITabBarProps) {
 	return (
 		<div className="bg-secondary border-t border-layout-border flex shrink-0">
@@ -55,10 +85,16 @@ export default function TabBar({
 				onClick={() => {
 					onTabChange("chat");
 				}}
-				aria-label="Chat View"
+				aria-label={`${middleTab.label} View`}
 			>
-				<ChatIcon className="w-5 h-5 mb-1" />
-				<span className="text-xs font-medium">Chat</span>
+				{middleTab.customContent ? (
+					middleTab.customContent
+				) : (
+					<>
+						{middleTab.icon}
+						<span className="text-xs font-medium">{middleTab.label}</span>
+					</>
+				)}
 			</button>
 
 			<button

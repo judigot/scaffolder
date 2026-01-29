@@ -3,13 +3,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import App from "@/App.tsx";
 import type { ModelId } from "@/components/AI/AIChatContainer.tsx";
 import { AIChatContainer } from "@/components/AI/AIChatContainer.tsx";
+import BuilderTabContent from "@/components/AI/BuilderTabContent.tsx";
 import ChatPanel from "@/components/AI/chat-app/ChatPanel.tsx";
 import ChatTree from "@/components/AI/chat-app/ChatTree.tsx";
 import { mockRepositories } from "@/components/AI/chat-app/mockData.ts";
 import RepoTabs from "@/components/AI/chat-app/RepoTabs.tsx";
 import TopNav from "@/components/AI/chat-app/TopNav.tsx";
 import type { IMessage, IRepository } from "@/components/AI/chat-app/types.ts";
-import TabBar from "@/components/AI/TabBar.tsx";
+import TabBar, {
+	BUILDER_TAB_CONFIG,
+	CHAT_TAB_CONFIG,
+} from "@/components/AI/TabBar.tsx";
 import { useCheckoutBranch } from "@/hooks/useCheckoutBranch.ts";
 import useDebouncedValue from "@/hooks/useDebouncedValue.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
@@ -1477,6 +1481,16 @@ export default function ChatApp() {
 					activeTab={activeTab}
 					onTabChange={setActiveTab}
 					hasGeneratedCode={schemaInfo.length > 0}
+					middleTab={
+						isScaffolderMode
+							? {
+									...BUILDER_TAB_CONFIG,
+									customContent: (
+										<BuilderTabContent isActive={activeTab === "chat"} />
+									),
+								}
+							: CHAT_TAB_CONFIG
+					}
 				/>
 			</div>
 		</div>
