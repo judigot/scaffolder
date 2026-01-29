@@ -25,6 +25,7 @@ import {
 	REPO_AGENT_SYSTEM_PROMPT,
 	WORKTREE_AGENT_PROMPT,
 } from "@/prompts/repoAgent.ts";
+import { useRepositoriesStore, useScaffolderStore } from "@/stores/index.ts";
 import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
@@ -62,11 +63,21 @@ export default function ChatApp() {
 	// ===== Auth =====
 	const { isAuthenticated, getAccessTokenSilently } = useAuth0();
 
-	// ===== UI Store (centralized state) =====
+	// ===== UI Store (global navigation) =====
+	const { topLevelTab, activeTab, setActiveTab } = useUIStore();
+
+	// ===== Scaffolder Store =====
 	const {
-		topLevelTab,
-		activeTab,
-		setActiveTab,
+		useLocalFiles: useLocalScaffolderFiles,
+		setUseLocalFiles: setUseLocalScaffolderFiles,
+		remoteFilesURL: remoteScaffolderURL,
+		setRemoteFilesURL: setRemoteScaffolderURL,
+	} = useScaffolderStore();
+
+	// ===== Repositories Store =====
+	const {
+		repositories,
+		setRepositories,
 		activeRepoId,
 		setActiveRepoId,
 		activeSprintId,
@@ -75,12 +86,10 @@ export default function ChatApp() {
 		setActiveChatId,
 		activeChatScope,
 		setActiveChatScope,
-		// Scaffolder file source preferences (persisted)
-		useLocalScaffolderFiles,
-		setUseLocalScaffolderFiles,
-		remoteScaffolderURL,
-		setRemoteScaffolderURL,
-	} = useUIStore();
+		initializeFromPersistedRepos,
+		addRepository: addRepoToStore,
+		removeRepository: removeRepoFromStore,
+	} = useRepositoriesStore();
 
 	// Determine if we're in scaffolder mode (used for file loading and UI decisions)
 	const isScaffolderMode = topLevelTab === "scaffolder";
@@ -97,7 +106,7 @@ export default function ChatApp() {
 	// Branch checkout hook
 	const { checkout } = useCheckoutBranch();
 
-	// Convert stored repos to full IRepository objects with local state for sprints/chats
+	// Convert stored repos to full IRepository objects
 	// Always include mock data as demo reference, plus user's saved repos
 	const persistedRepositories = useMemo(() => {
 		const userRepos = storedRepos.map(storedRepoToFullRepo);
@@ -105,63 +114,12 @@ export default function ChatApp() {
 		return [...mockRepositories, ...userRepos];
 	}, [storedRepos]);
 
-	// Local state extends persisted repos with sprints/chats (not persisted to Auth0)
-	const [localRepoState, setLocalRepoState] = useState<
-		Map<
-			string,
-			{ sprints: IRepository["sprints"]; chats: IRepository["chats"] }
-		>
-	>(new Map());
-
-	// Merge persisted repos with local state
-	const repositories = useMemo(() => {
-		return persistedRepositories.map((repo) => {
-			const localState = localRepoState.get(repo.id);
-			if (localState) {
-				return {
-					...repo,
-					sprints: localState.sprints,
-					chats: localState.chats,
-				};
-			}
-			return repo;
-		});
-	}, [persistedRepositories, localRepoState]);
-
-	// Wrapper to update local repo state - uses functional update pattern for correct state
-	const setRepositories = useCallback(
-		(updater: IRepository[] | ((prev: IRepository[]) => IRepository[])) => {
-			setLocalRepoState((prevLocalState) => {
-				// Reconstruct current repositories from persisted + local state
-				const currentRepos = persistedRepositories.map((repo) => {
-					const localState = prevLocalState.get(repo.id);
-					if (localState) {
-						return {
-							...repo,
-							sprints: localState.sprints,
-							chats: localState.chats,
-						};
-					}
-					return repo;
-				});
-
-				const newRepos =
-					typeof updater === "function" ? updater(currentRepos) : updater;
-				const newLocalState = new Map<
-					string,
-					{ sprints: IRepository["sprints"]; chats: IRepository["chats"] }
-				>();
-				for (const repo of newRepos) {
-					newLocalState.set(repo.id, {
-						sprints: repo.sprints,
-						chats: repo.chats,
-					});
-				}
-				return newLocalState;
-			});
-		},
-		[persistedRepositories],
-	);
+	// Initialize store from persisted repos when they change
+	useEffect(() => {
+		if (persistedRepositories.length > 0) {
+			initializeFromPersistedRepos(persistedRepositories);
+		}
+	}, [persistedRepositories, initializeFromPersistedRepos]);
 
 	// Initialize activeRepoId on first render if not set
 	useEffect(() => {
@@ -533,12 +491,8 @@ export default function ChatApp() {
 			authType: cloneData.authType,
 		});
 
-		// Update local state
-		setLocalRepoState((prev) => {
-			const newState = new Map(prev);
-			newState.set(newRepo.id, { sprints: [], chats: [] });
-			return newState;
-		});
+		// Add to store
+		addRepoToStore(newRepo);
 
 		setActiveRepoId(newRepo.id);
 		setActiveSprintId(null);
@@ -560,20 +514,8 @@ export default function ChatApp() {
 			throw new Error("Failed to remove repository from profile");
 		}
 
-		setLocalRepoState((prev) => {
-			const next = new Map(prev);
-			next.delete(repoId);
-			return next;
-		});
-
-		if (activeRepoId === repoId) {
-			const remaining = repositories.filter((repo) => repo.id !== repoId);
-			const nextRepo = remaining[0];
-			setActiveRepoId(nextRepo?.id ?? "");
-			setActiveSprintId(nextRepo?.sprints[0]?.id ?? null);
-			setActiveChatScope("regular");
-			setActiveChatId(null);
-		}
+		// Remove from store (also handles clearing active selection if needed)
+		removeRepoFromStore(repoId);
 	};
 
 	const handleDeleteClone = async (repoPath: string) => {
