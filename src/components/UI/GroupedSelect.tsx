@@ -20,6 +20,8 @@ export interface IGroupedSelectProps {
 	className?: string;
 	id?: string;
 	"aria-label"?: string;
+	/** Keyboard event handler (for inline editing scenarios) */
+	onKeyDown?: (event: React.KeyboardEvent) => void;
 }
 
 export default function GroupedSelect({
@@ -31,6 +33,7 @@ export default function GroupedSelect({
 	className = "",
 	id,
 	"aria-label": ariaLabel,
+	onKeyDown,
 }: IGroupedSelectProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -47,6 +50,34 @@ export default function GroupedSelect({
 		},
 		[onChange],
 	);
+
+	// Get flat list of all options for keyboard navigation
+	const allOptions = groups.flatMap((g) => g.options);
+
+	// Handle keyboard events on the trigger button
+	const handleButtonKeyDown = (event: React.KeyboardEvent) => {
+		// Pass through to external handler if provided
+		if (onKeyDown) {
+			onKeyDown(event);
+		}
+
+		// Handle arrow keys to navigate options when open
+		if (isOpen) {
+			const currentIndex = allOptions.findIndex((o) => o.value === value);
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				const nextIndex = Math.min(currentIndex + 1, allOptions.length - 1);
+				onChange(allOptions[nextIndex].value);
+			} else if (event.key === "ArrowUp") {
+				event.preventDefault();
+				const prevIndex = Math.max(currentIndex - 1, 0);
+				onChange(allOptions[prevIndex].value);
+			}
+		} else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			event.preventDefault();
+			setIsOpen(true);
+		}
+	};
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -92,13 +123,16 @@ export default function GroupedSelect({
 				type="button"
 				id={id}
 				onClick={() => {
-					if (!disabled) {setIsOpen(!isOpen);}
+					if (!disabled) {
+						setIsOpen(!isOpen);
+					}
 				}}
+				onKeyDown={handleButtonKeyDown}
 				disabled={disabled}
 				aria-label={ariaLabel}
 				aria-expanded={isOpen}
 				aria-haspopup="listbox"
-				className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-between gap-2"
+				className="form-select-trigger flex items-center justify-between gap-2 text-left text-sm"
 			>
 				<span className={selectedOption ? "text-fg" : "text-fg-muted"}>
 					{selectedOption
@@ -106,7 +140,7 @@ export default function GroupedSelect({
 						: placeholder}
 				</span>
 				<svg
-					className={`w-4 h-4 text-fg-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+					className={`w-4 h-4 shrink-0 text-fg-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -125,7 +159,7 @@ export default function GroupedSelect({
 				<div
 					ref={listRef}
 					role="listbox"
-					className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto scrollbar-thin bg-bg-muted border border-border rounded-md shadow-lg"
+					className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto scrollbar-thin bg-bg-muted border border-border rounded-[var(--radius-none)] shadow-lg"
 				>
 					{groups.map((group) => (
 						<div key={group.label}>
@@ -171,6 +205,12 @@ export interface ISimpleSelectProps {
 	className?: string;
 	id?: string;
 	"aria-label"?: string;
+	/** Keyboard event handler (for inline editing scenarios) */
+	onKeyDown?: (event: React.KeyboardEvent) => void;
+	/** Name attribute for form compatibility */
+	name?: string;
+	/** Whether the field is required */
+	required?: boolean;
 }
 
 export function SimpleSelect({
@@ -182,6 +222,9 @@ export function SimpleSelect({
 	className = "",
 	id,
 	"aria-label": ariaLabel,
+	onKeyDown,
+	name,
+	required,
 }: ISimpleSelectProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -196,6 +239,31 @@ export function SimpleSelect({
 		},
 		[onChange],
 	);
+
+	// Handle keyboard events on the trigger button
+	const handleButtonKeyDown = (event: React.KeyboardEvent) => {
+		// Pass through to external handler if provided
+		if (onKeyDown) {
+			onKeyDown(event);
+		}
+
+		// Handle arrow keys to navigate options when open
+		if (isOpen) {
+			const currentIndex = options.findIndex((o) => o.value === value);
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				const nextIndex = Math.min(currentIndex + 1, options.length - 1);
+				onChange(options[nextIndex].value);
+			} else if (event.key === "ArrowUp") {
+				event.preventDefault();
+				const prevIndex = Math.max(currentIndex - 1, 0);
+				onChange(options[prevIndex].value);
+			}
+		} else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			event.preventDefault();
+			setIsOpen(true);
+		}
+	};
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -240,14 +308,19 @@ export function SimpleSelect({
 			<button
 				type="button"
 				id={id}
+				name={name}
+				data-required={required}
 				onClick={() => {
-					if (!disabled) {setIsOpen(!isOpen);}
+					if (!disabled) {
+						setIsOpen(!isOpen);
+					}
 				}}
+				onKeyDown={handleButtonKeyDown}
 				disabled={disabled}
 				aria-label={ariaLabel}
 				aria-expanded={isOpen}
 				aria-haspopup="listbox"
-				className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-between gap-2"
+				className="form-select-trigger flex items-center justify-between gap-2 text-left text-sm"
 			>
 				<span className={selectedOption ? "text-fg" : "text-fg-muted"}>
 					{selectedOption
@@ -255,7 +328,7 @@ export function SimpleSelect({
 						: placeholder}
 				</span>
 				<svg
-					className={`w-4 h-4 text-fg-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+					className={`w-4 h-4 shrink-0 text-fg-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -274,7 +347,7 @@ export function SimpleSelect({
 				<div
 					ref={listRef}
 					role="listbox"
-					className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto scrollbar-thin bg-bg-muted border border-border rounded-md shadow-lg"
+					className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto scrollbar-thin bg-bg-muted border border-border rounded-[var(--radius-none)] shadow-lg"
 				>
 					{options.map((option) => (
 						<button

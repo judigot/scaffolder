@@ -203,7 +203,7 @@ export default function OpenCodeChatPanel({
 						setDirectory(event.target.value);
 					}}
 					placeholder="/path/to/project"
-					className="flex-1 min-w-[220px] bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-subtle focus:outline-none"
+					className="form-input flex-1 min-w-[220px] text-sm"
 				/>
 				{health.error && (
 					<span className="text-xs text-danger-300">{health.error}</span>

@@ -14,6 +14,7 @@ import SQLSchemaInputModal from "@/components/SQLSchemaInputModal.tsx";
 // import { JSONFormStructure } from '@/dynamic-form/DynamicFormStructure.ts';import { parse, stringify } from 'yaml'
 
 import { Auth0Provider } from "@auth0/auth0-react";
+
 import formatCode from "@/utils/formatCode.ts";
 
 void (async () => {
@@ -83,7 +84,7 @@ if (rootElement) {
 						<ModalProvider />
 						<SQLSchemaInputModal />
 						{/* <TransformationTester /> */}
-						<ChatApp/>
+						<ChatApp />
 					</AuthGuard>
 				</QueryClientProvider>
 			</Auth0Provider>

@@ -13,12 +13,12 @@ import {
 } from "@mui/icons-material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import GitHubExportModal from "@/components/GitHubExportModal.tsx";
 import { useModalStore } from "@/components/Modal/base/modalStore.tsx";
 import { Banner } from "@/components/UI/Banner.tsx";
 import ContextMenu from "@/components/UI/ContextMenu.tsx";
+import { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
 import { handleCopy } from "@/helpers/stringHelper.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useFileContent } from "@/hooks/useFileContent.ts";
@@ -27,6 +27,7 @@ import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import useTransformationsStore from "@/useTransformationsStore.ts";
+import { isDevEnvironment, isMasterDeveloper } from "@/useUIStore.ts";
 import { useUserProfileStore } from "@/useUserProfileStore.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
 import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
@@ -103,6 +104,10 @@ function FileViewer({
 	projects = [],
 	selectedProject: selectedProjectProp,
 	onProjectChange,
+	useLocalScaffolderFiles,
+	onToggleLocalScaffolderFiles,
+	remoteScaffolderURL,
+	onRemoteScaffolderURLChange,
 }: {
 	folderStructure: IStructure;
 	mode: "edit" | "view";
@@ -111,7 +116,15 @@ function FileViewer({
 	filesFailedToFormat?: IFailedFormatEntry[];
 	projects?: IProjectOption[];
 	selectedProject?: IProjectOption;
-	onProjectChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+	onProjectChange?: (projectName: string) => void;
+	/** Whether to use local scaffolder files (dev mode toggle) */
+	useLocalScaffolderFiles?: boolean;
+	/** Callback to toggle local scaffolder files */
+	onToggleLocalScaffolderFiles?: (value: boolean) => void;
+	/** Remote scaffolder files URL */
+	remoteScaffolderURL?: string;
+	/** Callback to set remote scaffolder URL */
+	onRemoteScaffolderURLChange?: (url: string) => void;
 }) {
 	const safeFilesUsingUserEnv = filesUsingUserEnv;
 
@@ -128,11 +141,17 @@ function FileViewer({
 	const { schemaInfo, SQLSchema } = useTransformationsStore();
 	const { backendDir, publicRepoURL, dbConnection } = useFormStore();
 
-	const isDevMode = user?.nickname === "judigot";
+	const isDevMode = isMasterDeveloper(user?.nickname as string | undefined);
 	const { editValue, newValue, promptModal, openRandomModal, openModal } =
 		useModalStore();
 	const { selectedProject } = useProjectStore();
 	const { userFiles } = useMockDatabaseStore();
+
+	// Validate GitHub URL format
+	const isValidGitHubURL = (url: string | undefined): boolean => {
+		if (!url || url === "") return true; // Empty is valid (will use local)
+		return url.startsWith("https://github.com/");
+	};
 
 	const [folderStructure, setFolderStructure] = useState<IStructure>(
 		initialFolderStructure,
@@ -2387,7 +2406,6 @@ function FileViewer({
 					</div>
 				</div>
 			)}
-
 			{!isUserLoading &&
 				serverConfigStatus !== null &&
 				!hasGitHubToken &&
@@ -2594,30 +2612,65 @@ function FileViewer({
 										<span>Download</span>
 									</button>
 
-									{/* Row 3: Project selector + New File/Folder buttons */}
+									{/* Row 3: File source toggle (dev mode only) + Project selector + New File/Folder buttons */}
+									{isDevEnvironment &&
+										onToggleLocalScaffolderFiles !== undefined && (
+											<div className="form-group mb-2">
+												<span className="form-label">Source Files:</span>
+												<SimpleSelect
+													value={useLocalScaffolderFiles ? "local" : "remote"}
+													onChange={(value) =>
+														onToggleLocalScaffolderFiles(value === "local")
+													}
+													options={[
+														{ value: "local", label: "Local" },
+														{ value: "remote", label: "Remote" },
+													]}
+													aria-label="Source files location"
+												/>
+												{!useLocalScaffolderFiles &&
+													onRemoteScaffolderURLChange && (
+														<>
+															<input
+																type="text"
+																value={remoteScaffolderURL}
+																onChange={(e) =>
+																	onRemoteScaffolderURLChange(e.target.value)
+																}
+																placeholder="https://github.com/user/repo"
+																className={`form-input form-input-sm ${
+																	!isValidGitHubURL(remoteScaffolderURL)
+																		? "form-input-error"
+																		: ""
+																}`}
+															/>
+															{!isValidGitHubURL(remoteScaffolderURL) && (
+																<span className="form-error">
+																	URL must start with https://github.com/
+																</span>
+															)}
+														</>
+													)}
+											</div>
+										)}
 									<div className="flex items-center gap-2">
 										{projects.length > 0 &&
 											selectedProjectProp &&
 											onProjectChange && (
 												<>
-													<span className="text-xs text-content-muted shrink-0">
+													<span className="form-label shrink-0 mb-0">
 														Project:
 													</span>
-													<select
+													<SimpleSelect
 														value={selectedProjectProp.name}
 														onChange={onProjectChange}
-														className="flex-1 text-xs bg-secondary text-content border border-layout-border px-2 py-2 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
-													>
-														{projects.map((project) => (
-															<option
-																key={project.name}
-																value={project.name}
-																className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
-															>
-																{project.name}
-															</option>
-														))}
-													</select>
+														options={projects.map((project) => ({
+															value: project.name,
+															label: project.name,
+														}))}
+														className="flex-1"
+														aria-label="Select project"
+													/>
 												</>
 											)}
 										<button
@@ -2627,7 +2680,7 @@ function FileViewer({
 													await handleOpenDialog("newFile");
 												})();
 											}}
-											className="btn-secondary btn-icon p-2"
+											className="btn-secondary btn-sm btn-icon-only"
 											title="New File"
 											aria-label="New File"
 										>
@@ -2640,7 +2693,7 @@ function FileViewer({
 													await handleOpenDialog("newFolder");
 												})();
 											}}
-											className="btn-secondary btn-icon p-2"
+											className="btn-secondary btn-sm btn-icon-only"
 											title="New Folder"
 											aria-label="New Folder"
 										>
@@ -2884,29 +2937,64 @@ function FileViewer({
 										<span>New Folder</span>
 									</button>
 								</div>
+								{/* File source toggle (dev mode only) */}
+								{isDevEnvironment &&
+									onToggleLocalScaffolderFiles !== undefined && (
+										<div className="form-group">
+											<span className="form-label text-center">
+												Source Files:
+											</span>
+											<SimpleSelect
+												value={useLocalScaffolderFiles ? "local" : "remote"}
+												onChange={(value) =>
+													onToggleLocalScaffolderFiles(value === "local")
+												}
+												options={[
+													{ value: "local", label: "Local" },
+													{ value: "remote", label: "Remote" },
+												]}
+												aria-label="Source files location"
+											/>
+											{!useLocalScaffolderFiles &&
+												onRemoteScaffolderURLChange && (
+													<>
+														<input
+															type="text"
+															value={remoteScaffolderURL}
+															onChange={(e) =>
+																onRemoteScaffolderURLChange(e.target.value)
+															}
+															placeholder="https://github.com/user/repo"
+															className={`form-input form-input-sm ${
+																!isValidGitHubURL(remoteScaffolderURL)
+																	? "form-input-error"
+																	: ""
+															}`}
+														/>
+														{!isValidGitHubURL(remoteScaffolderURL) && (
+															<span className="form-error">
+																URL must start with https://github.com/
+															</span>
+														)}
+													</>
+												)}
+										</div>
+									)}
 								{/* Project selector */}
 								{projects.length > 0 &&
 									selectedProjectProp &&
 									onProjectChange && (
-										<div className="space-y-1">
-											<span className="text-xs text-content-muted block text-center">
-												Project:
-											</span>
-											<select
+										<div className="form-group">
+											<span className="form-label text-center">Project:</span>
+											<SimpleSelect
 												value={selectedProjectProp.name}
 												onChange={onProjectChange}
-												className="w-full text-xs bg-secondary text-content-muted border border-layout-border px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent [&_option:checked]:bg-gray-600 [&_option:hover]:bg-gray-600"
-											>
-												{projects.map((project) => (
-													<option
-														key={project.name}
-														value={project.name}
-														className="bg-bg-muted checked:bg-gray-600 hover:bg-gray-600"
-													>
-														{project.name}
-													</option>
-												))}
-											</select>
+												options={projects.map((project) => ({
+													value: project.name,
+													label: project.name,
+												}))}
+												aria-label="Select project"
+											/>
 										</div>
 									)}
 							</div>
@@ -3297,8 +3385,6 @@ function FileViewer({
 					</div>
 				)}
 			</div>
-
-			{/* Custom Context Menu */}
 			{contextMenu && (
 				<ContextMenu
 					x={contextMenu.mouseX}

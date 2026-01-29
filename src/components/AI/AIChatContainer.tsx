@@ -679,6 +679,14 @@ interface IAIChatContainerProps {
 	repoUrl?: string;
 	/** Repository name for display */
 	repoName?: string;
+	/** Whether to use local scaffolder files (dev mode toggle) */
+	useLocalScaffolderFiles?: boolean;
+	/** Callback to toggle local scaffolder files */
+	onToggleLocalScaffolderFiles?: (value: boolean) => void;
+	/** Remote scaffolder files URL */
+	remoteScaffolderURL?: string;
+	/** Callback to set remote scaffolder URL */
+	onRemoteScaffolderURLChange?: (url: string) => void;
 }
 
 export function AIChatContainer({
@@ -688,6 +696,10 @@ export function AIChatContainer({
 	children,
 	repoUrl,
 	repoName,
+	useLocalScaffolderFiles = true,
+	onToggleLocalScaffolderFiles,
+	remoteScaffolderURL = "",
+	onRemoteScaffolderURLChange,
 }: IAIChatContainerProps) {
 	const [input, setInput] = useState("");
 	const [selectedModel, setSelectedModel] = useState<ModelId>("gpt-5-nano");
@@ -810,8 +822,8 @@ export function AIChatContainer({
 		}
 	};
 
-	const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-		const project = projects.find((p) => p.name === e.target.value);
+	const handleProjectChange = (projectName: string) => {
+		const project = projects.find((p) => p.name === projectName);
 		if (project) {
 			selectProject(project);
 		}
@@ -839,6 +851,10 @@ export function AIChatContainer({
 						projects={projects}
 						selectedProject={selectedProject ?? undefined}
 						onProjectChange={handleProjectChange}
+						useLocalScaffolderFiles={useLocalScaffolderFiles}
+						onToggleLocalScaffolderFiles={onToggleLocalScaffolderFiles}
+						remoteScaffolderURL={remoteScaffolderURL}
+						onRemoteScaffolderURLChange={onRemoteScaffolderURLChange}
 					/>
 				</div>
 			)}

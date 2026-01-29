@@ -8,6 +8,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
 import { useModalStore } from "@/components/Modal/base/modalStore.tsx";
+import { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
 import masterSchema from "@/schema-infos/masterSchema.ts";
 import { deleteSchema, saveSchema } from "@/services/schemaService.ts";
@@ -103,8 +104,8 @@ function SchemaSelector() {
 
 	/* Handle dropdown change */
 	const onDropdownChange = useCallback(
-		(e: React.ChangeEvent<HTMLSelectElement>) => {
-			void handleSchemaChange(e.target.value);
+		(value: string) => {
+			void handleSchemaChange(value);
 		},
 		[handleSchemaChange],
 	);
@@ -449,20 +450,20 @@ function SchemaSelector() {
 							</span>
 						)}
 					</label>
-					<select
+					<SimpleSelect
 						id="schema-selector"
 						value={currentDropdownValue}
 						onChange={onDropdownChange}
 						disabled={isSaving || isDeleting}
-						className="w-full px-3 py-2 bg-bg-muted border border-border rounded-md text-fg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						<option value="__master__">Master Schema (Default)</option>
-						{availableSchemas.map((schema) => (
-							<option key={schema.name} value={schema.name}>
-								{schema.name}
-							</option>
-						))}
-					</select>
+						options={[
+							{ value: "__master__", label: "Master Schema (Default)" },
+							...availableSchemas.map((schema) => ({
+								value: schema.name,
+								label: schema.name,
+							})),
+						]}
+						aria-label="Select schema"
+					/>
 				</div>
 
 				{/* Action Buttons */}

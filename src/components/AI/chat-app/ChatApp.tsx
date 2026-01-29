@@ -1,5 +1,6 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import App from "@/App.tsx";
 import type { ModelId } from "@/components/AI/AIChatContainer.tsx";
 import { AIChatContainer } from "@/components/AI/AIChatContainer.tsx";
 import ChatPanel from "@/components/AI/chat-app/ChatPanel.tsx";
@@ -74,10 +75,16 @@ export default function ChatApp() {
 		setActiveChatId,
 		activeChatScope,
 		setActiveChatScope,
+		// Scaffolder file source preferences (persisted)
+		useLocalScaffolderFiles,
+		setUseLocalScaffolderFiles,
+		remoteScaffolderURL,
+		setRemoteScaffolderURL,
 	} = useUIStore();
 
 	// Determine if we're in scaffolder mode (used for file loading and UI decisions)
 	const isScaffolderMode = topLevelTab === "scaffolder";
+	const isMasterMode = topLevelTab === "master";
 
 	// ===== Multi-repo chat state =====
 	// Get persisted repos from Auth0
@@ -326,12 +333,18 @@ export default function ChatApp() {
 
 	const [inputRepoURL] = useState<string>(publicRepoURL);
 
+	// Toggle for scaffolder file source (only visible in dev environment)
+	// When true: use local files from /files directory
+	// When false: use remote GitHub repo
+	// NOTE: useLocalScaffolderFiles and remoteScaffolderURL now come from useUIStore (persisted)
+
 	// Scaffolder mode file loading:
-	// - Dev mode (isUsingLocalFiles=true): Uses local files from /files directory
-	// - Production: Uses remote GitHub repo (judigot/scaffolder-files)
-	const scaffolderFilesURL = "https://github.com/judigot/scaffolder-files";
+	// - If toggle is ON (useLocalScaffolderFiles): Uses local files from /files directory
+	// - If toggle is OFF: Uses remote GitHub repo URL
 	const effectiveRepoURL = isScaffolderMode
-		? scaffolderFilesURL
+		? useLocalScaffolderFiles
+			? "" // Empty string triggers local file loading in useUserFiles
+			: remoteScaffolderURL
 		: publicRepoURL;
 
 	// Load scaffolder template files
@@ -1462,6 +1475,24 @@ export default function ChatApp() {
 		</div>
 	);
 
+	// Master View - renders the legacy App component
+	if (isMasterMode) {
+		return (
+			<div className="flex flex-col h-screen w-full bg-bg overflow-hidden text-fg">
+				{/* Top navigation with Master View/Scaffolder/Repositories tabs + UserProfile */}
+				<TopNav
+					isUserLoading={isUserLoading}
+					serverConfigStatus={serverConfigStatus}
+				/>
+
+				{/* Master View content - legacy App */}
+				<div className="flex-1 overflow-auto">
+					<App />
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="flex flex-col h-screen w-full bg-bg overflow-hidden text-fg">
 			{/* Top navigation with Scaffolder/Repositories tabs + UserProfile */}
@@ -1492,6 +1523,10 @@ export default function ChatApp() {
 						isScaffolderRepo={isScaffolderMode}
 						repoUrl={isScaffolderMode ? undefined : activeRepo?.repoUrl}
 						repoName={isScaffolderMode ? undefined : activeRepo?.name}
+						useLocalScaffolderFiles={useLocalScaffolderFiles}
+						onToggleLocalScaffolderFiles={setUseLocalScaffolderFiles}
+						remoteScaffolderURL={remoteScaffolderURL}
+						onRemoteScaffolderURLChange={setRemoteScaffolderURL}
 					>
 						{multiChatContent}
 					</AIChatContainer>

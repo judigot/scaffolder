@@ -19,4 +19,21 @@
   /* Dropdown widths */
   --dropdown-width-sm: 320px;
   --dropdown-width-md: 380px;
+
+  /* Form element heights (consistent across buttons, inputs, selects) */
+  --form-height-sm: 1.75rem; /* 28px - compact */
+  --form-height-md: 2.25rem; /* 36px - default */
+  --form-height-lg: 2.5rem; /* 40px - comfortable */
+
+  /* Border radius scale (Tailwind v4 standard) */
+  --radius-none: 0; /* Square corners */
+  --radius-xs: 0.125rem; /* 2px - subtle */
+  --radius-sm: 0.25rem; /* 4px - small */
+  --radius-md: 0.375rem; /* 6px - default */
+  --radius-lg: 0.5rem; /* 8px - rounded */
+  --radius-xl: 0.75rem; /* 12px - more rounded */
+  --radius-2xl: 1rem; /* 16px - very rounded */
+  --radius-3xl: 1.5rem; /* 24px - extra rounded */
+  --radius-4xl: 2rem; /* 32px - maximum */
+  --radius-full: 9999px; /* Pill/circle */
 }

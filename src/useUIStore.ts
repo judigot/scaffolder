@@ -14,11 +14,22 @@ import type { TabType } from "@/components/AI/TabBar.tsx";
  */
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/** Is the app running in development environment (NODE_ENV=development) */
+export const isDevEnvironment = import.meta.env.DEV;
+
+/** Check if user is the master developer/owner of the app (judigot) */
+export const isMasterDeveloper = (nickname: string | undefined): boolean =>
+	nickname === "judigot";
+
+// ============================================================================
 // Types
 // ============================================================================
 
-/** Top-level navigation: scaffolder mode vs repository browser */
-export type TopLevelTab = "scaffolder" | "repositories";
+/** Top-level navigation: scaffolder mode vs repository browser vs master view */
+export type TopLevelTab = "scaffolder" | "repositories" | "master";
 
 /** Chat context: within a sprint or standalone */
 export type ChatScope = "sprint" | "regular";
@@ -57,6 +68,17 @@ interface UIStore {
 	/** Whether viewing sprint chats or standalone chats */
 	activeChatScope: ChatScope;
 	setActiveChatScope: (scope: ChatScope) => void;
+
+	// --- Scaffolder Preferences (persisted, dev mode) ---
+	// These control where scaffolder template files are loaded from
+
+	/** Use local /files directory instead of remote GitHub repo (dev mode only) */
+	useLocalScaffolderFiles: boolean;
+	setUseLocalScaffolderFiles: (value: boolean) => void;
+
+	/** Remote GitHub URL for scaffolder files when not using local */
+	remoteScaffolderURL: string;
+	setRemoteScaffolderURL: (url: string) => void;
 }
 
 // ============================================================================
@@ -85,6 +107,15 @@ export const useUIStore = create<UIStore>()(
 
 			activeChatScope: "regular",
 			setActiveChatScope: (activeChatScope) => set({ activeChatScope }),
+
+			// Scaffolder file source preferences (dev mode)
+			useLocalScaffolderFiles: true,
+			setUseLocalScaffolderFiles: (useLocalScaffolderFiles) =>
+				set({ useLocalScaffolderFiles }),
+
+			remoteScaffolderURL: "https://github.com/judigot/scaffolder-files",
+			setRemoteScaffolderURL: (remoteScaffolderURL) =>
+				set({ remoteScaffolderURL }),
 		}),
 		{
 			name: "ui-preferences",
@@ -96,6 +127,9 @@ export const useUIStore = create<UIStore>()(
 				activeRepoId: state.activeRepoId,
 				activeSprintId: state.activeSprintId,
 				activeChatScope: state.activeChatScope,
+				// Scaffolder file source preferences
+				useLocalScaffolderFiles: state.useLocalScaffolderFiles,
+				remoteScaffolderURL: state.remoteScaffolderURL,
 			}),
 		},
 	),

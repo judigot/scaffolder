@@ -1,17 +1,26 @@
 /**
  * Components > Buttons > Variants
  * Button variant styles (primary, secondary, etc.)
+ * 
+ * Heights use --form-height-* tokens for consistency with inputs/selects.
+ * All buttons use box-sizing: border-box so that:
+ * - height includes border (e.g., 36px total = 34px content + 2px border)
+ * - padding doesn't add to the total height
  */
 
 @layer components {
   /* Primary Button */
   .btn-primary {
     display: inline-flex;
+    box-sizing: border-box;
     align-items: center;
     justify-content: center;
+    height: var(--form-height-md);
+    padding: 0 0.75rem;
     font-weight: 500;
     font-size: 0.75rem;
-    padding: 0.625rem 0.75rem;
+    line-height: 1;
+    border-radius: var(--radius-none);
     transition: all 0.2s;
     background-color: var(--btn-primary-bg);
     color: var(--btn-primary-text);
@@ -36,11 +45,15 @@
   /* Secondary Button */
   .btn-secondary {
     display: inline-flex;
+    box-sizing: border-box;
     align-items: center;
     justify-content: center;
+    height: var(--form-height-md);
+    padding: 0 0.75rem;
     font-weight: 500;
     font-size: 0.75rem;
-    padding: 0.625rem 0.75rem;
+    line-height: 1;
+    border-radius: var(--radius-none);
     transition: all 0.2s;
     background-color: var(--btn-secondary-bg);
     color: var(--btn-secondary-text);
@@ -65,11 +78,15 @@
   /* Success Button */
   .btn-success {
     display: inline-flex;
+    box-sizing: border-box;
     align-items: center;
     justify-content: center;
+    height: var(--form-height-md);
+    padding: 0 0.75rem;
     font-weight: 500;
     font-size: 0.75rem;
-    padding: 0.625rem 0.75rem;
+    line-height: 1;
+    border-radius: var(--radius-none);
     transition: all 0.2s;
     background-color: var(--btn-success-bg);
     color: var(--btn-success-text);
@@ -94,11 +111,15 @@
   /* Danger Button */
   .btn-danger {
     display: inline-flex;
+    box-sizing: border-box;
     align-items: center;
     justify-content: center;
+    height: var(--form-height-md);
+    padding: 0 0.75rem;
     font-weight: 500;
     font-size: 0.75rem;
-    padding: 0.625rem 0.75rem;
+    line-height: 1;
+    border-radius: var(--radius-none);
     transition: all 0.2s;
     background-color: var(--btn-danger-bg);
     color: var(--btn-danger-text);
@@ -125,17 +146,37 @@
     width: 100%;
   }
 
+  /* Icon + text button - adds gap between icon and text */
   .btn-icon {
     gap: 0.375rem;
   }
 
+  /* Icon-only button (square) - use with size modifiers */
+  .btn-icon-only {
+    aspect-ratio: 1;
+    padding: 0;
+    justify-content: center;
+  }
+
+  /* Size modifiers - use same height tokens as form elements */
   .btn-sm {
-    padding: 0.375rem 0.5rem;
+    height: var(--form-height-sm);
+    padding: 0 0.5rem;
     font-size: 0.75rem;
   }
 
   .btn-lg {
-    padding: 0.75rem 1rem;
+    height: var(--form-height-lg);
+    padding: 0 1rem;
     font-size: 0.875rem;
+  }
+
+  /* Border radius modifiers */
+  .btn-rounded {
+    border-radius: var(--radius-md);
+  }
+
+  .btn-pill {
+    border-radius: var(--radius-full);
   }
 }

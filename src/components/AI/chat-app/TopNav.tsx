@@ -1,5 +1,6 @@
 import UserProfile from "@/components/UserProfile.tsx";
-import { useUIStore } from "@/useUIStore.ts";
+import { useUser } from "@/hooks/useUser.ts";
+import { isMasterDeveloper, useUIStore } from "@/useUIStore.ts";
 
 interface ITopNavProps {
 	isUserLoading: boolean;
@@ -11,6 +12,10 @@ export default function TopNav({
 	serverConfigStatus,
 }: ITopNavProps) {
 	const { topLevelTab: activeTab, setTopLevelTab: onTabChange } = useUIStore();
+	const { user } = useUser();
+	const showMasterView = isMasterDeveloper(
+		user?.nickname as string | undefined,
+	);
 	const showConfigBanner =
 		!isUserLoading &&
 		serverConfigStatus !== null &&
@@ -61,6 +66,29 @@ export default function TopNav({
 				<div className="flex items-center justify-between px-4 py-2">
 					{/* Left: Top-level tabs */}
 					<div className="flex items-center gap-1">
+						{showMasterView && (
+							<button
+								type="button"
+								onClick={() => {
+									onTabChange("master");
+								}}
+								className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+									activeTab === "master"
+										? "bg-success-900/30 text-success-300 border border-success-600/40"
+										: "text-success-400 hover:text-success-300 hover:bg-success-900/20"
+								}`}
+							>
+								<svg
+									className="w-4 h-4"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+								>
+									<title>Master View</title>
+									<path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+								</svg>
+								Master View
+							</button>
+						)}
 						<button
 							type="button"
 							onClick={() => {

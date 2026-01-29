@@ -7,6 +7,7 @@ import DataTypeSelector from "@/components/DataTypeSelector.tsx";
 import { useModalStore } from "@/components/Modal/base/modalStore.tsx";
 import SchemaSelector from "@/components/SchemaSelector.tsx";
 import TableAdder from "@/components/TableAdder.tsx";
+import { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
 import {
 	addRelationship,
 	purgeForeignKeyTraces,
@@ -832,8 +833,7 @@ function SchemaBuilder() {
 	);
 
 	const handleForeignKeyChange = useCallback(
-		(e: React.ChangeEvent<HTMLSelectElement>): void => {
-			const { value } = e.target;
+		(value: string): void => {
 			try {
 				setNewColumnFormData((prev: INewColumnFormData) => ({
 					...prev,
@@ -858,23 +858,19 @@ function SchemaBuilder() {
 		[schemaInfo],
 	);
 
-	const handleRelationTypeChange = useCallback(
-		(e: React.ChangeEvent<HTMLSelectElement>): void => {
-			const { value } = e.target;
-			if (value === "oneToOne" || value === "oneToMany") {
-				setNewColumnFormData((prev: INewColumnFormData) => ({
-					...prev,
-					foreignKey: prev.foreignKey
-						? {
-								...prev.foreignKey,
-								relationType: value,
-							}
-						: null,
-				}));
-			}
-		},
-		[],
-	);
+	const handleRelationTypeChange = useCallback((value: string): void => {
+		if (value === "oneToOne" || value === "oneToMany") {
+			setNewColumnFormData((prev: INewColumnFormData) => ({
+				...prev,
+				foreignKey: prev.foreignKey
+					? {
+							...prev.foreignKey,
+							relationType: value,
+						}
+					: null,
+			}));
+		}
+	}, []);
 
 	const handleSubmit = useCallback(
 		(e: React.FormEvent<HTMLFormElement>): void => {
@@ -2624,9 +2620,7 @@ function SchemaBuilder() {
 																					<div className="relative">
 																						<DataTypeSelector
 																							value={editingValue}
-																							onChange={(e) => {
-																								setEditingValue(e.target.value);
-																							}}
+																							onChange={setEditingValue}
 																							onKeyDown={(e) => {
 																								if (e.key === "Enter") {
 																									handleCellSave(
@@ -2639,7 +2633,6 @@ function SchemaBuilder() {
 																								}
 																							}}
 																							id={`data-type-editor-${String(originalIndex)}`}
-																							className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-gray-600"
 																						/>
 																						<InlineEditControls
 																							originalIndex={originalIndex}
@@ -2714,11 +2707,9 @@ function SchemaBuilder() {
 																					filteredIndex &&
 																				editingCell?.field === "is_nullable" ? (
 																					<div className="relative">
-																						<select
+																						<SimpleSelect
 																							value={editingValue}
-																							onChange={(e) => {
-																								setEditingValue(e.target.value);
-																							}}
+																							onChange={setEditingValue}
 																							onKeyDown={(e) => {
 																								if (e.key === "Enter") {
 																									handleCellSave(
@@ -2731,11 +2722,12 @@ function SchemaBuilder() {
 																								}
 																							}}
 																							id={`nullable-editor-${String(originalIndex)}`}
-																							className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-gray-600"
-																						>
-																							<option value="YES">YES</option>
-																							<option value="NO">NO</option>
-																						</select>
+																							options={[
+																								{ value: "YES", label: "YES" },
+																								{ value: "NO", label: "NO" },
+																							]}
+																							aria-label="Nullable"
+																						/>
 																						<InlineEditControls
 																							originalIndex={originalIndex}
 																							field="is_nullable"
@@ -2888,11 +2880,9 @@ function SchemaBuilder() {
 																					filteredIndex &&
 																				editingCell?.field === "primary_key" ? (
 																					<div className="relative">
-																						<select
+																						<SimpleSelect
 																							value={editingValue}
-																							onChange={(e) => {
-																								setEditingValue(e.target.value);
-																							}}
+																							onChange={setEditingValue}
 																							onKeyDown={(e) => {
 																								if (e.key === "Enter") {
 																									handleCellSave(
@@ -2905,11 +2895,12 @@ function SchemaBuilder() {
 																								}
 																							}}
 																							id={`pk-editor-${String(originalIndex)}`}
-																							className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-gray-600"
-																						>
-																							<option value="true">Yes</option>
-																							<option value="false">No</option>
-																						</select>
+																							options={[
+																								{ value: "true", label: "Yes" },
+																								{ value: "false", label: "No" },
+																							]}
+																							aria-label="Primary Key"
+																						/>
 																						<InlineEditControls
 																							originalIndex={originalIndex}
 																							field="primary_key"
@@ -2990,11 +2981,9 @@ function SchemaBuilder() {
 																					filteredIndex &&
 																				editingCell?.field === "unique" ? (
 																					<div className="relative">
-																						<select
+																						<SimpleSelect
 																							value={editingValue}
-																							onChange={(e) => {
-																								setEditingValue(e.target.value);
-																							}}
+																							onChange={setEditingValue}
 																							onKeyDown={(e) => {
 																								if (e.key === "Enter") {
 																									handleCellSave(
@@ -3007,11 +2996,12 @@ function SchemaBuilder() {
 																								}
 																							}}
 																							id={`unique-editor-${String(originalIndex)}`}
-																							className="w-full px-1 py-0.5 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-gray-600"
-																						>
-																							<option value="true">Yes</option>
-																							<option value="false">No</option>
-																						</select>
+																							options={[
+																								{ value: "true", label: "Yes" },
+																								{ value: "false", label: "No" },
+																							]}
+																							aria-label="Unique"
+																						/>
 																						<InlineEditControls
 																							originalIndex={originalIndex}
 																							field="unique"
@@ -3234,9 +3224,13 @@ function SchemaBuilder() {
 																		id="dataType"
 																		name="dataType"
 																		value={newColumnFormData.dataType}
-																		onChange={handleInputChange}
+																		onChange={(value) => {
+																			setNewColumnFormData((prev) => ({
+																				...prev,
+																				dataType: value,
+																			}));
+																		}}
 																		onKeyDown={handleKeyDown}
-																		className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent text-sm"
 																		required
 																	/>
 																</div>
@@ -3269,7 +3263,7 @@ function SchemaBuilder() {
 																	>
 																		Foreign Key
 																	</label>
-																	<select
+																	<SimpleSelect
 																		id="foreignKey"
 																		name="foreignKey"
 																		value={
@@ -3278,21 +3272,19 @@ function SchemaBuilder() {
 																		}
 																		onChange={handleForeignKeyChange}
 																		onKeyDown={handleKeyDown}
-																		className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-																	>
-																		<option value="">None</option>
-																		{selectedTableIndex !== null &&
-																			getAvailableForeignTables(
-																				schemaInfo[selectedTableIndex],
-																			).map((tableName) => (
-																				<option
-																					key={tableName}
-																					value={tableName}
-																				>
-																					{tableName}
-																				</option>
-																			))}
-																	</select>
+																		options={[
+																			{ value: "", label: "None" },
+																			...(selectedTableIndex !== null
+																				? getAvailableForeignTables(
+																						schemaInfo[selectedTableIndex],
+																					).map((tableName) => ({
+																						value: tableName,
+																						label: tableName,
+																					}))
+																				: []),
+																		]}
+																		aria-label="Foreign Key"
+																	/>
 																</div>
 															</div>
 														</div>
@@ -3344,7 +3336,7 @@ function SchemaBuilder() {
 
 															{newColumnFormData.foreignKey && (
 																<div>
-																	<select
+																	<SimpleSelect
 																		id="relationType"
 																		name="relationType"
 																		value={
@@ -3352,15 +3344,20 @@ function SchemaBuilder() {
 																		}
 																		onChange={handleRelationTypeChange}
 																		onKeyDown={handleKeyDown}
-																		className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent text-sm"
+																		options={[
+																			{ value: "", label: "Relationship" },
+																			{
+																				value: "oneToOne",
+																				label: "One-to-One",
+																			},
+																			{
+																				value: "oneToMany",
+																				label: "One-to-Many",
+																			},
+																		]}
 																		required
-																	>
-																		<option value="">Relationship</option>
-																		<option value="oneToOne">One-to-One</option>
-																		<option value="oneToMany">
-																			One-to-Many
-																		</option>
-																	</select>
+																		aria-label="Relationship type"
+																	/>
 																</div>
 															)}
 
