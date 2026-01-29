@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import BuilderModeSelector from "@/components/AI/BuilderModeSelector.tsx";
 import {
 	EmptyState,
 	FeatureCard,
@@ -13,11 +14,14 @@ import InfraPanel from "@/components/AI/InfraPanel.tsx";
 import type { TabType } from "@/components/AI/TabBar.tsx";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
+import SchemaBuilder from "@/components/SchemaBuilder.tsx";
+import { CREATION_MODES } from "@/constants.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useRemoteRepoFiles } from "@/hooks/useRemoteRepoFiles.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
 import { useVercelChat } from "@/lib/chat";
+import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
@@ -640,6 +644,80 @@ function ChatError({ error, onRetry }: IChatErrorProps) {
 	);
 }
 
+interface IBuilderPanelProps {
+	messages: UIMessage[];
+	isLoading: boolean;
+	error: { message: string } | null;
+	onRetry: () => void;
+	input: string;
+	onInputChange: (value: string) => void;
+	onSubmit: (e: React.FormEvent) => void;
+	selectedModel: ModelId;
+	onModelChange: (model: ModelId) => void;
+}
+
+/**
+ * Builder panel that shows the mode selector at top and switches content
+ * based on the selected creation mode (Judas AI, Schema Builder, Introspector).
+ */
+function BuilderPanel({
+	messages,
+	isLoading,
+	error,
+	onRetry,
+	input,
+	onInputChange,
+	onSubmit,
+	selectedModel,
+	onModelChange,
+}: IBuilderPanelProps) {
+	const { creationMode } = useFormStore();
+
+	return (
+		<div className="flex flex-col flex-1 min-w-0 bg-bg">
+			{/* Mode selector at top */}
+			<BuilderModeSelector />
+
+			{/* Content based on mode */}
+			{creationMode === CREATION_MODES.JUDAS && (
+				<>
+					<ChatMessages messages={messages} isLoading={isLoading} />
+					{error && <ChatError error={error} onRetry={onRetry} />}
+					<ChatInput
+						input={input}
+						onChange={onInputChange}
+						onSubmit={onSubmit}
+						isLoading={isLoading}
+						selectedModel={selectedModel}
+						onModelChange={onModelChange}
+					/>
+				</>
+			)}
+
+			{creationMode === CREATION_MODES.SCHEMA_BUILDER && (
+				<div className="flex-1 overflow-auto p-4">
+					<SchemaBuilder />
+				</div>
+			)}
+
+			{creationMode === CREATION_MODES.INTROSPECTOR && (
+				<div className="flex-1 overflow-auto p-4">
+					<div className="max-w-2xl mx-auto text-center py-12">
+						<h2 className="text-xl font-semibold text-fg mb-2">Introspector</h2>
+						<p className="text-fg-muted">
+							Connect to an existing database to introspect its schema and
+							generate code.
+						</p>
+						<p className="text-fg-subtle text-sm mt-4">
+							Configure your database connection in the Infra tab.
+						</p>
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
 function extractSchemaFromMessages(
 	messages: UIMessage[],
 ): ISchemaInfo[] | null {
@@ -905,20 +983,19 @@ export function AIChatContainer({
 				</div>
 			)}
 
-			{/* Chat panel - Show only when chat tab is active */}
+			{/* Builder panel - Show only when chat tab is active in scaffolder mode */}
 			{activeTab === "chat" && isScaffolderRepo && (
-				<div className="flex flex-col flex-1 min-w-0 bg-bg">
-					<ChatMessages messages={messages} isLoading={isLoading} />
-					{error && <ChatError error={error} onRetry={reload} />}
-					<ChatInput
-						input={input}
-						onChange={setInput}
-						onSubmit={handleSubmit}
-						isLoading={isLoading}
-						selectedModel={selectedModel}
-						onModelChange={setSelectedModel}
-					/>
-				</div>
+				<BuilderPanel
+					messages={messages}
+					isLoading={isLoading}
+					error={error}
+					onRetry={reload}
+					input={input}
+					onInputChange={setInput}
+					onSubmit={handleSubmit}
+					selectedModel={selectedModel}
+					onModelChange={setSelectedModel}
+				/>
 			)}
 
 			{/* Multi-chat panel - Show when chat tab is active and NOT scaffolder repo */}
