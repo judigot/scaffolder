@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import type { ModelId } from "@/components/AI/modelOptions.ts";
 import { ModelSelector } from "@/components/AI/AIChatContainer.tsx";
 import type { IChat, IMessage } from "@/components/AI/chat-app/types.ts";
 import Badge from "@/components/AI/chat-app/ui/Badge.tsx";
 import IconButton from "@/components/AI/chat-app/ui/IconButton.tsx";
+import type { ModelId } from "@/components/AI/modelOptions.ts";
+import { useUIStore } from "@/useUIStore.ts";
 
 interface IChatPanelProps {
 	chat: IChat | null;
@@ -24,7 +25,7 @@ export default function ChatPanel({
 	onMarkReady,
 }: IChatPanelProps) {
 	const [input, setInput] = useState("");
-	const [selectedModel, setSelectedModel] = useState<ModelId>("gpt-5-nano");
+	const { selectedModel, setSelectedModel } = useUIStore();
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	const messageCount = chat?.messages.length ?? 0;

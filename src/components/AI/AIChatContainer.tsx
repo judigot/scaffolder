@@ -11,6 +11,7 @@ import {
 } from "@/components/AI/chat/index.ts";
 import SchemaPreview from "@/components/AI/chat/SchemaPreview.tsx";
 import InfraPanel from "@/components/AI/InfraPanel.tsx";
+import { MODEL_OPTIONS, type ModelId } from "@/components/AI/modelOptions.ts";
 import type { TabType } from "@/components/AI/TabBar.tsx";
 import type { IStructure } from "@/components/FileViewer.tsx";
 import FileViewer from "@/components/FileViewer.tsx";
@@ -21,15 +22,16 @@ import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useRemoteRepoFiles } from "@/hooks/useRemoteRepoFiles.ts";
 import { useUser } from "@/hooks/useUser.ts";
 import {
-	isITableArray,
 	type IIntrospectedSchemaInfo,
 	type ISchemaInfo,
+	isITableArray,
 } from "@/interfaces/interfaces.ts";
 import { useVercelChat } from "@/lib/chat/index.ts";
 import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useProjectStore } from "@/useProjectStore.ts";
 import { useTransformationsStore } from "@/useTransformationsStore.ts";
+import { useUIStore } from "@/useUIStore.ts";
 import convertIntrospectedStructure from "@/utils/convertIntrospectedStructure.ts";
 import { getApiUrl } from "@/utils/getApiUrl.ts";
 import type { IFailedFormatEntry } from "@/utils/project-builder/buildProjectFiles.ts";
@@ -38,10 +40,6 @@ import {
 	removeHiddenSchemaFromText,
 	validateSchemaInfoFromResponse,
 } from "@/utils/schemaInfoValidator.ts";
-import {
-	MODEL_OPTIONS,
-	type ModelId,
-} from "@/components/AI/modelOptions.ts";
 
 interface IChatMessageProps {
 	message: UIMessage;
@@ -457,7 +455,7 @@ function ChatInput({
 
 	useEffect(() => {
 		adjustHeight();
-	}, [input, adjustHeight]);
+	}, [adjustHeight]);
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -956,7 +954,7 @@ export function AIChatContainer({
 	onRemoteScaffolderURLChange,
 }: IAIChatContainerProps) {
 	const [input, setInput] = useState("");
-	const [selectedModel, setSelectedModel] = useState<ModelId>("gpt-5-nano");
+	const { selectedModel, setSelectedModel } = useUIStore();
 
 	// Use the SAME store as SchemaBuilder.tsx - this is the key!
 	const { schemaInfo, setSchemaInfo } = useTransformationsStore();

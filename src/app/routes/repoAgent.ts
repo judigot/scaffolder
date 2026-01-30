@@ -11,6 +11,16 @@ import { createRepoAgentTools } from "@/app/services/repoAgentTools.ts";
 import { buildRepoAgentPrompt } from "@/prompts/index.ts";
 import { verifyAuth0TokenFromAuthHeader } from "@/utils/verifyAuth0Token.ts";
 
+/**
+ * Type guard to validate tool call structure from AI SDK
+ */
+function isToolCall(obj: unknown): obj is { toolName: string } {
+	if (typeof obj !== "object" || obj === null) {
+		return false;
+	}
+	return "toolName" in obj && typeof obj.toolName === "string";
+}
+
 // Model configurations
 const MODEL_CONFIGS = {
 	"gpt-5-nano": { provider: "openai", modelId: "gpt-4.1-nano" },
@@ -56,8 +66,7 @@ function isUIMessage(msg: unknown): msg is IUIMessage {
 	if (typeof msg !== "object" || msg === null || !("parts" in msg)) {
 		return false;
 	}
-	// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
-	const msgRecord = msg as Record<string, unknown>;
+	const msgRecord = msg;
 	return Array.isArray(msgRecord.parts);
 }
 
@@ -65,8 +74,7 @@ function isSimpleMessage(msg: unknown): msg is ISimpleMessage {
 	if (typeof msg !== "object" || msg === null || !("role" in msg)) {
 		return false;
 	}
-	// eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
-	const msgRecord = msg as Record<string, unknown>;
+	const msgRecord = msg;
 	return typeof msgRecord.role === "string";
 }
 
@@ -235,23 +243,59 @@ app.post("/chat", async (c) => {
 		);
 
 		console.error("[RepoAgent] Starting streamText with model:", modelId);
-		const result = streamText({
+
+		// Build streamText options - reasoning models like o3 don't support temperature
+		const baseOptions = {
 			model,
 			system: contextualPrompt,
 			messages: convertedMessages,
 			tools,
 			stopWhen: stepCountIs(10), // CRITICAL: Enable multi-step tool execution (up to 10 steps)
-			onStepFinish({ text, toolCalls, toolResults, finishReason }) {
+			onStepFinish: (data: unknown) => {
+				// Type guard to validate structure
+				if (
+					typeof data !== "object" ||
+					data === null ||
+					!("text" in data) ||
+					!("toolCalls" in data) ||
+					!("toolResults" in data) ||
+					!("finishReason" in data)
+				) {
+					console.error("[RepoAgent] Invalid StepFinish data structure");
+					return;
+				}
+
+				// Use proper type narrowing without assertions
+				const dataObj = data;
+				const text =
+					"text" in dataObj && typeof dataObj.text === "string"
+						? dataObj.text
+						: "";
+				const toolCalls =
+					"toolCalls" in dataObj && Array.isArray(dataObj.toolCalls)
+						? dataObj.toolCalls
+						: [];
+				const toolResults =
+					"toolResults" in dataObj && Array.isArray(dataObj.toolResults)
+						? dataObj.toolResults
+						: [];
+				const finishReason =
+					"finishReason" in dataObj ? dataObj.finishReason : null;
+
 				console.error("[RepoAgent] Step finished. Reason:", finishReason);
+
 				if (text !== "") {
 					console.error("[RepoAgent] Text:", text.slice(0, 100));
 				}
+
 				if (toolCalls.length > 0) {
+					const validToolCalls = toolCalls.filter(isToolCall);
 					console.error(
 						"[RepoAgent] Tool calls:",
-						toolCalls.map((tc) => tc.toolName),
+						validToolCalls.map((tc) => tc.toolName),
 					);
 				}
+
 				if (toolResults.length > 0) {
 					console.error(
 						"[RepoAgent] Tool results:",
@@ -259,11 +303,40 @@ app.post("/chat", async (c) => {
 					);
 				}
 			},
-			onFinish({ finishReason, usage }) {
+			onFinish: (data: unknown) => {
+				// Type guard to validate structure
+				if (
+					typeof data !== "object" ||
+					data === null ||
+					!("finishReason" in data) ||
+					!("usage" in data)
+				) {
+					console.error("[RepoAgent] Invalid Finish data structure");
+					return;
+				}
+
+				// Use proper type narrowing without assertions
+				const dataObj = data;
+				const finishReason =
+					"finishReason" in dataObj ? dataObj.finishReason : null;
+				const usage = "usage" in dataObj ? dataObj.usage : null;
+
 				console.error("[RepoAgent] Finished. Reason:", finishReason);
 				console.error("[RepoAgent] Usage:", usage);
 			},
-		});
+		};
+
+		// Create options with conditional temperature - reasoning models don't support it
+		if (modelId !== "gpt-5.2-codex") {
+			const optionsWithTemp = {
+				...baseOptions,
+				temperature: 0.7,
+			};
+			const result = streamText(optionsWithTemp);
+			return result.toUIMessageStreamResponse();
+		}
+
+		const result = streamText(baseOptions);
 
 		console.error("[RepoAgent] Returning stream response...");
 		return result.toUIMessageStreamResponse();
