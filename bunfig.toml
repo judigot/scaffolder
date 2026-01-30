@@ -1,0 +1,22 @@
+[test]
+# Preload happy-dom for DOM testing
+preload = ["./bun-test-setup.ts"]
+
+# Test timeout (10 seconds)
+timeout = 10000
+
+# Coverage configuration
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = [
+  # Exclude e2e tests (run with Playwright)
+  "e2e/**",
+
+  # Exclude worktrees (separate git branches)
+  ".worktrees/**",
+
+  # Exclude build output
+  ".vercel/**",
+
+  # Exclude node_modules
+  "**/node_modules/**",
+]
