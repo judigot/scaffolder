@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "hono": "^4.6.0",
+    "@hono/zod-validator": "^0.4.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^1.13.0"
+  }
+}

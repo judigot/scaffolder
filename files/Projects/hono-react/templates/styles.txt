@@ -1,0 +1,66 @@
+:root {
+  --color-primary: #646cff;
+  --color-primary-hover: #535bf2;
+  --color-bg: #242424;
+  --color-text: rgba(255, 255, 255, 0.87);
+  --color-text-muted: rgba(255, 255, 255, 0.6);
+  --color-success: #4caf50;
+  --color-error: #f44336;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.app-header {
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: var(--color-text-muted);
+  }
+}
+
+.app-main {
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.health-status {
+  p {
+    margin-bottom: 0.5rem;
+  }
+
+  strong {
+    color: var(--color-success);
+    text-transform: uppercase;
+  }
+}
+
+.error {
+  color: var(--color-error);
+}

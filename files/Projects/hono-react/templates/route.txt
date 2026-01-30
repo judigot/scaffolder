@@ -1,0 +1,61 @@
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+import { db } from '../db';
+import { {{tableNameCamelCase}} } from '../db/schema';
+import { eq } from 'drizzle-orm';
+
+const app = new Hono();
+
+// Validation schemas
+const create{{tableNamePascalCaseSingular}}Schema = z.object({
+[[ LOOP(columnsInfo) --template="{% IF is_primary_key NOT EQUAL 'true' %}  {{valueCamelCase}}: z.{% IF data_type EQUALS 'string' %}string{% ENDIF %}{% IF data_type EQUALS 'number' %}number{% ENDIF %}{% IF data_type EQUALS 'boolean' %}boolean{% ENDIF %}{% IF data_type EQUALS 'Date' %}coerce.date{% ENDIF %}(){% IF is_nullable EQUALS 'YES' %}.optional(){% ENDIF %}{% ENDIF %}" --separator=",\n" ]]
+});
+
+const update{{tableNamePascalCaseSingular}}Schema = create{{tableNamePascalCaseSingular}}Schema.partial();
+
+// GET all {{tableName}}
+app.get('/', async (c) => {
+  const result = await db.select().from({{tableNameCamelCase}});
+  return c.json(result);
+});
+
+// GET single {{tableNameSingular}} by ID
+app.get('/:id', async (c) => {
+  const id = Number(c.req.param('id'));
+  const result = await db.select().from({{tableNameCamelCase}}).where(eq({{tableNameCamelCase}}.{{getPrimaryKeyCamelCase()}}, id));
+  if (result.length === 0) {
+    return c.json({ error: '{{tableNamePascalCaseSingular}} not found' }, 404);
+  }
+  return c.json(result[0]);
+});
+
+// POST create new {{tableNameSingular}}
+app.post('/', zValidator('json', create{{tableNamePascalCaseSingular}}Schema), async (c) => {
+  const data = c.req.valid('json');
+  const result = await db.insert({{tableNameCamelCase}}).values(data).returning();
+  return c.json(result[0], 201);
+});
+
+// PUT update {{tableNameSingular}}
+app.put('/:id', zValidator('json', update{{tableNamePascalCaseSingular}}Schema), async (c) => {
+  const id = Number(c.req.param('id'));
+  const data = c.req.valid('json');
+  const result = await db.update({{tableNameCamelCase}}).set(data).where(eq({{tableNameCamelCase}}.{{getPrimaryKeyCamelCase()}}, id)).returning();
+  if (result.length === 0) {
+    return c.json({ error: '{{tableNamePascalCaseSingular}} not found' }, 404);
+  }
+  return c.json(result[0]);
+});
+
+// DELETE {{tableNameSingular}}
+app.delete('/:id', async (c) => {
+  const id = Number(c.req.param('id'));
+  const result = await db.delete({{tableNameCamelCase}}).where(eq({{tableNameCamelCase}}.{{getPrimaryKeyCamelCase()}}, id)).returning();
+  if (result.length === 0) {
+    return c.json({ error: '{{tableNamePascalCaseSingular}} not found' }, 404);
+  }
+  return c.json({ success: true });
+});
+
+export default app;

@@ -79,6 +79,7 @@ export const replacePlaceholders = (
     ctx.userMetadata,
     ctx.dataContext,
     skipLoopDataSources,
+    ctx.mockData,
   );
 
   // Process IF conditions

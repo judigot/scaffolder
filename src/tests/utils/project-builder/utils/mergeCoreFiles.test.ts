@@ -351,7 +351,8 @@ describe('mergeCoreFilesWithScaffolded', () => {
     const packageJson = result.find((f) => f.name === 'package.json');
     expect(packageJson).toBeDefined();
     if (packageJson?.type === 'file') {
-      expect(packageJson.content).toBe('{"name": "scaffolded"}');
+      // Package.json merging formats with indentation
+      expect(JSON.parse(packageJson.content)).toEqual({ name: 'scaffolded' });
     }
 
     const srcFolder = result.find((f) => f.name === 'src');
@@ -379,6 +380,69 @@ describe('mergeCoreFilesWithScaffolded', () => {
           configFolder.children.find((f) => f.name === 'routes.js'),
         ).toBeDefined();
       }
+    }
+  });
+
+  it('should merge package.json dependencies instead of replacing', () => {
+    const coreFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'package.json',
+        content: JSON.stringify({
+          name: 'core-project',
+          dependencies: {
+            react: '^19.0.0',
+            'react-dom': '^19.0.0',
+          },
+          devDependencies: {
+            typescript: '^5.0.0',
+          },
+          scripts: {
+            build: 'vite build',
+          },
+        }),
+      },
+    ];
+
+    const scaffoldedFiles: IStructure = [
+      {
+        type: 'file',
+        name: 'package.json',
+        content: JSON.stringify({
+          dependencies: {
+            hono: '^4.6.0',
+          },
+          devDependencies: {
+            vitest: '^2.0.0',
+          },
+          scripts: {
+            test: 'vitest',
+          },
+        }),
+      },
+    ];
+
+    const result = mergeCoreFilesWithScaffolded(coreFiles, scaffoldedFiles);
+
+    expect(result).toHaveLength(1);
+    const packageJson = result[0];
+    expect(packageJson.type).toBe('file');
+    if (packageJson.type === 'file') {
+      const content = JSON.parse(packageJson.content);
+      expect(content.name).toBe('core-project');
+      expect(content.dependencies).toEqual({
+        react: '^19.0.0',
+        'react-dom': '^19.0.0',
+        hono: '^4.6.0',
+      });
+      expect(content.devDependencies).toEqual({
+        typescript: '^5.0.0',
+        vitest: '^2.0.0',
+      });
+      expect(content.scripts).toEqual({
+        build: 'vite build',
+        test: 'vitest',
+      });
     }
   });
 });

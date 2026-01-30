@@ -1,0 +1,45 @@
+/**
+ * Database Seeder
+ *
+ * Seeds the database with sample data.
+ * Run: bun run db:seed
+ */
+
+import { db } from './index';
+[[ LOOP(tables) --template="import { {{tableNameCamelCase}} } from './schema';" --separator="\n" ]]
+
+// Generated seed data
+const seedData = [[USE_ROWS(format=json, pretty=true)]];
+
+// Table name to drizzle table mapping
+const tables = {
+[[ LOOP(tables) --template="  {{tableName}}: {{tableNameCamelCase}}," --separator="\n" ]]
+};
+
+type TableName = keyof typeof tables;
+
+async function seed() {
+  console.log('🌱 Seeding database...');
+
+  try {
+    for (const [tableName, rows] of Object.entries(seedData)) {
+      if (!(tableName in tables)) continue;
+      const table = tables[tableName as TableName];
+
+      console.log(`  Seeding ${tableName}...`);
+      for (const row of rows) {
+        await db.insert(table).values(row);
+      }
+      console.log(`    ✅ Inserted ${rows.length} records`);
+    }
+
+    console.log('✅ Seeding complete!');
+  } catch (error) {
+    console.error('❌ Seeding failed:', error);
+    process.exit(1);
+  }
+
+  process.exit(0);
+}
+
+seed();

@@ -5,6 +5,9 @@ preload = ["./bun-test-setup.ts"]
 # Test timeout (10 seconds)
 timeout = 10000
 
+# Exclude patterns - golden test output contains generated tests that require a running server
+exclude = ["**/output/**", "**/golden-projects/output/**"]
+
 # Coverage configuration
 coverageSkipTestFiles = true
 coveragePathIgnorePatterns = [

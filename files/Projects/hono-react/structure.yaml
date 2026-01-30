@@ -1,0 +1,39 @@
+# Hono + React Fullstack Project
+# Production-ready, Vercel-deployable, with CRUD API and testing
+#
+# Modular Core imports (later entries override earlier):
+# - bun-base: Bun runtime essentials (package.json, tsconfig, etc.)
+# - hono-api: Hono RPC API with Zod validation
+# - drizzle-data: Drizzle ORM with PostgreSQL
+# - vitest-test: Vitest testing framework
+
+$USE_CORE:
+  - /Core/bun-base
+  - /Core/hono-api
+  - /Core/drizzle-data
+  - /Core/vitest-test
+
+# API routes - one file per table
+api:
+  CREATE_FILE(index.ts --template ./templates/api-index.txt):
+  db:
+    CREATE_FILE(index.ts --template ./templates/db-index.txt):
+    CREATE_FILE(schema.ts --template ./templates/db-schema.txt --data-source=./constants/typeMappings.yaml):
+    CREATE_FILE(seed.ts --template ./templates/db-seed.txt):
+  routes:
+    FILE_LOOP({{tableNameCamelCaseSingular}}.ts --template ./templates/route.txt --data-source=./constants/typeMappings.yaml):
+
+# Frontend source
+src:
+  CREATE_FILE(App.tsx --template ./templates/app.txt):
+  CREATE_FILE(main.tsx --template ./templates/main.txt):
+  styles:
+    CREATE_FILE(main.scss --template ./templates/styles.txt):
+
+# Tests - one file per table following C→R→U→R→D→R pattern
+tests:
+  CREATE_FILE(setup.ts --template ./templates/test-setup.txt):
+  FILE_LOOP({{tableNameCamelCase}}.test.ts --template ./templates/test-crud.txt):
+
+# Root config file
+CREATE_FILE(README.md --template ./templates/readme.txt):

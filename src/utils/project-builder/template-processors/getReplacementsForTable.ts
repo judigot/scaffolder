@@ -77,6 +77,10 @@ export const getReplacementsForTable = (
   const belongsToManyRelationships =
     schemaInfoParsed.getRelationships(table.tableName).belongsToMany ?? [];
 
+  // Get primary key and its camelCase version
+  const primaryKey = schemaInfoParsed.getPrimaryKey(table.tableName);
+  const primaryKeyCamelCase = primaryKey ? changeCase(primaryKey).camelCase : '';
+
   // Create base replacements object
   const baseReplacements: Replacements = {
     tableNamePascalCase: caseFormats.pascalCase,
@@ -103,7 +107,8 @@ export const getReplacementsForTable = (
     tableNamePhraseCaseSingular: caseFormats.phraseCaseSingular,
     tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
     tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
-    'getPrimaryKey()': schemaInfoParsed.getPrimaryKey(table.tableName),
+    'getPrimaryKey()': primaryKey,
+    'getPrimaryKeyCamelCase()': primaryKeyCamelCase,
     'getRequiredColumns()': requiredColumns,
     'getAllColumns()': allColumns,
     'getForeignTables()': foreignTables,

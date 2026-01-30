@@ -13,6 +13,7 @@ import { processCoreFiles } from '@/utils/project-builder/utils/processCoreFiles
 import type { IFormStore } from '@/useFormStore.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 import { createContext } from '@/utils/project-builder/helpers/contextHelpers.ts';
+import generateMockData from '@/utils/generateMockData.ts';
 
 export interface IFailedFormatEntry {
   filePath: string;
@@ -174,6 +175,14 @@ export const buildProjectFiles = async (
       yamlStructureToProcess = Object.fromEntries(entries);
     }
 
+    // Generate mock data for seed files (camelCase for ORM compatibility)
+    const mockData = generateMockData({
+      mockDataRows: 10,
+      schemaInfo,
+      dbType: formData?.dbType ?? 'postgresql',
+      useCamelCase: true,
+    });
+
     const ctx = createContext(
       userFiles,
       schemaInfo,
@@ -191,6 +200,7 @@ export const buildProjectFiles = async (
       undefined, // options
       trackFileUsingUserEnv,
       trackFileFailedToFormat,
+      mockData,
     );
 
     const scaffoldedFiles = await processYamlStructure(ctx);
