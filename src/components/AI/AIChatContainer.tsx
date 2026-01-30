@@ -106,8 +106,7 @@ function ChatMessage({ message }: IChatMessageProps) {
 					{message.parts.map((part, index) => {
 						if (part.type === "text") {
 							// Use cleaned text if we extracted a schema, otherwise use original
-							const textToRender =
-								displayText !== null ? displayText : part.text;
+							const textToRender = displayText ?? part.text;
 
 							return (
 								<Markdown
@@ -116,7 +115,7 @@ function ChatMessage({ message }: IChatMessageProps) {
 										code(props) {
 											const { children, className, ...rest } = props;
 											const match = /language-(\w+)/.exec(className ?? "");
-											return match ? (
+											return match !== null ? (
 												<SyntaxHighlighter
 													PreTag="div"
 													language={match[1]}
@@ -131,8 +130,11 @@ function ChatMessage({ message }: IChatMessageProps) {
 													{String(children).replace(/\n$/, "")}
 												</SyntaxHighlighter>
 											) : (
-												// eslint-disable-next-line react/jsx-props-no-spreading
-												<code {...rest} className={className}>
+												<code
+													ref={rest.ref}
+													style={rest.style}
+													className={className}
+												>
 													{children}
 												</code>
 											);
@@ -749,7 +751,7 @@ function IntrospectorPanel() {
 				throw new Error(errorData.error ?? "Failed to introspect database");
 			}
 
-			// eslint-disable-next-line no-type-assertion/no-type-assertion
+			 
 			const introspectedSchemaInfo =
 				(await response.json()) as IIntrospectedSchemaInfo[];
 			const convertedSchemaInfo = convertIntrospectedStructure(
@@ -807,7 +809,7 @@ function IntrospectorPanel() {
 								handleConnectionChange(e.target.value);
 							}}
 							placeholder="postgresql://user:pass@localhost:5432/db"
-							className={`form-input form-input-lg form-input-rounded ${error ? "form-input-error" : ""}`}
+							className={`form-input form-input-lg form-input-rounded ${error !== null ? "form-input-error" : ""}`}
 						/>
 						<p className="text-xs text-fg-subtle mt-1">
 							PostgreSQL or MySQL connection string

@@ -71,7 +71,7 @@ export async function connectToInstance(
 	} = options;
 
 	const bun = getBunRuntime();
-	if (bun) {
+	if (bun !== null) {
 		const keyPath = await writePrivateKey(bun, privateKey);
 		return {
 			kind: "bun",
@@ -113,7 +113,7 @@ export async function connectToInstance(
 export async function disconnect(connection: ISSHConnection): Promise<void> {
 	if (connection.kind === "bun") {
 		const bun = getBunRuntime();
-		if (!bun) {
+		if (bun === null) {
 			return;
 		}
 		await removePrivateKey(bun, connection.keyPath);
@@ -130,7 +130,7 @@ export async function executeCommand(
 ): Promise<ICommandResult> {
 	if (connection.kind === "bun") {
 		const bun = getBunRuntime();
-		if (!bun) {
+		if (bun === null) {
 			throw new Error("Bun runtime is not available");
 		}
 		return await executeCommandWithBun(bun, connection, command, timeout);
@@ -243,13 +243,13 @@ async function executeCommandWithBun(
 
 	return {
 		exitCode,
-		stdout: stdout || "",
-		stderr: stderr || "",
+		stdout: stdout !== "" ? stdout : "",
+		stderr: stderr !== "" ? stderr : "",
 	};
 }
 
 async function loadSsh2(): Promise<typeof import("ssh2")> {
-	if (cachedSsh2) {
+	if (cachedSsh2 !== null) {
 		return cachedSsh2;
 	}
 
@@ -272,11 +272,13 @@ function isBunRuntime(value: unknown): value is IBunRuntime {
 	) {
 		return false;
 	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	const record = value as Record<string, unknown>;
 	return hasBunRuntimeMethods(record);
 }
 
 function getGlobalAsRecord(): Record<string, unknown> {
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	return globalThis as unknown as Record<string, unknown>;
 }
 

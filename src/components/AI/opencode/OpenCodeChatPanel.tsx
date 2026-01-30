@@ -4,9 +4,9 @@ import {
 	createOpenCodeAdapter,
 	type IChatMessage,
 	useChatSession,
-} from "@/lib/chat";
+} from "@/lib/chat/index.ts";
 
-interface OpenCodeHealth {
+interface IOpenCodeHealth {
 	connected: boolean;
 	url?: string;
 	version?: string;
@@ -14,7 +14,7 @@ interface OpenCodeHealth {
 	error?: string;
 }
 
-interface OpenCodeChatPanelProps {
+interface IOpenCodeChatPanelProps {
 	repoName?: string;
 	repoPath?: string;
 }
@@ -22,10 +22,10 @@ interface OpenCodeChatPanelProps {
 export default function OpenCodeChatPanel({
 	repoName,
 	repoPath,
-}: OpenCodeChatPanelProps) {
+}: IOpenCodeChatPanelProps) {
 	const [input, setInput] = useState("");
 	const [directory, setDirectory] = useState("");
-	const [health, setHealth] = useState<OpenCodeHealth>({ connected: false });
+	const [health, setHealth] = useState<IOpenCodeHealth>({ connected: false });
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	// Use the chat abstraction with OpenCode adapter
@@ -46,7 +46,7 @@ export default function OpenCodeChatPanel({
 	}, [chat.messages.length, scrollToBottom]);
 
 	useEffect(() => {
-		if (repoPath) {
+		if (repoPath !== undefined && repoPath !== "") {
 			setDirectory(repoPath);
 		}
 	}, [repoPath]);
@@ -59,9 +59,14 @@ export default function OpenCodeChatPanel({
 				setHealth({ connected: false, error: errorText });
 				return;
 			}
-			const data = (await response.json()) as OpenCodeHealth;
+			// eslint-disable-next-line no-type-assertion/no-type-assertion
+			const data = (await response.json()) as IOpenCodeHealth;
 			setHealth(data);
-			if (!directory && data.directory) {
+			if (
+				directory === "" &&
+				data.directory !== undefined &&
+				data.directory !== ""
+			) {
 				setDirectory(data.directory);
 			}
 		} catch (error) {
@@ -125,7 +130,7 @@ export default function OpenCodeChatPanel({
 							</a>
 						),
 						code: ({ children, className }) => {
-							const isInline = !className;
+							const isInline = className === undefined || className === "";
 							return isInline ? (
 								<code className="bg-secondary px-1.5 py-0.5 rounded text-xs">
 									{children}
@@ -150,10 +155,14 @@ export default function OpenCodeChatPanel({
 						OpenCode (Local)
 					</h2>
 					<p className="text-xs text-fg-subtle truncate">
-						{health.url ? `Server: ${health.url}` : "Server: not configured"}
-						{health.version ? ` • v${health.version}` : ""}
+						{health.url !== undefined && health.url !== ""
+							? `Server: ${health.url}`
+							: "Server: not configured"}
+						{health.version !== undefined && health.version !== ""
+							? ` • v${health.version}`
+							: ""}
 					</p>
-					{repoName && (
+					{repoName !== undefined && repoName !== "" && (
 						<p className="text-xs text-fg-subtle truncate">
 							Active repo: {repoName}
 						</p>
@@ -205,14 +214,15 @@ export default function OpenCodeChatPanel({
 					placeholder="/path/to/project"
 					className="form-input flex-1 min-w-[220px] text-sm"
 				/>
-				{health.error && (
+				{health.error !== undefined && health.error !== "" && (
 					<span className="text-xs text-danger-300">{health.error}</span>
 				)}
-				{!health.error && !directory && (
-					<span className="text-xs text-warning-300">
-						Select a repo or enter a path.
-					</span>
-				)}
+				{(health.error === undefined || health.error === "") &&
+					directory === "" && (
+						<span className="text-xs text-warning-300">
+							Select a repo or enter a path.
+						</span>
+					)}
 			</div>
 
 			<div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-4">
@@ -322,7 +332,7 @@ export default function OpenCodeChatPanel({
 				</div>
 				<p className="text-[11px] text-fg-subtle mt-2 text-center">
 					OpenCode runs locally. Set OPENCODE_URL to connect.
-					{chat.sessionId && (
+					{chat.sessionId !== null && chat.sessionId !== "" && (
 						<span className="ml-2 text-fg-muted">
 							Session: {chat.sessionId.slice(0, 8)}...
 						</span>

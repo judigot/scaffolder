@@ -34,11 +34,13 @@ function isBunRuntime(value: unknown): value is IBunRuntime {
 	if (typeof value !== "object" || value === null || !("spawn" in value)) {
 		return false;
 	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	const record = value as Record<string, unknown>;
 	return hasSpawnFunction(record);
 }
 
 function getGlobalAsRecord(): Record<string, unknown> {
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	return globalThis as unknown as Record<string, unknown>;
 }
 
@@ -85,8 +87,8 @@ async function runCommand(
 
 		return {
 			exitCode,
-			stdout: stdout !== "" ? stdout : "",
-			stderr: stderr !== "" ? stderr : "",
+			stdout,
+			stderr,
 		};
 	}
 
@@ -138,6 +140,7 @@ function isPRFromApi(value: unknown): value is IPRFromApi {
 	) {
 		return false;
 	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	const record = value as Record<string, unknown>;
 	return (
 		typeof record.number === "number" &&
@@ -156,10 +159,7 @@ export async function createPullRequest(
 ): Promise<IPRInfo> {
 	// Get GitHub token
 	const token = await getGitHubToken(auth0UserId);
-	if (token === null || token === undefined) {
-		throw new Error("GitHub token not found");
-	}
-	if (token === "") {
+	if (token === null || token === "") {
 		throw new Error("GitHub token not found");
 	}
 
@@ -237,10 +237,7 @@ export async function getPRForBranch(
 	auth0UserId: string,
 ): Promise<IPRInfo | null> {
 	const token = await getGitHubToken(auth0UserId);
-	if (token === null || token === undefined) {
-		return null;
-	}
-	if (token === "") {
+	if (token === null || token === "") {
 		return null;
 	}
 

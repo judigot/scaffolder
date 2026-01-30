@@ -886,7 +886,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 	const handleInfraPaste = async () => {
 		try {
 			const text = await navigator.clipboard.readText();
-			if (!text.trim()) {
+			if (text.trim() === "") {
 				showClipboardToast("Clipboard is empty");
 				return;
 			}
@@ -897,6 +897,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 				return;
 			}
 			setInfraCredentials((prev) => {
+				// eslint-disable-next-line no-type-assertion/no-type-assertion
 				const next = { ...prev, ...fields } as IInfraCredentials;
 				if (typeof fields.tfcWorkspace === "string") {
 					const merged = normalizeWorkspaceList([
@@ -933,7 +934,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 			tfcWorkspace: infraCredentials.tfcWorkspace,
 		};
 		const envString = serializeInfraToEnv(credentialRecord);
-		if (!envString.trim()) {
+		if (envString.trim() === "") {
 			showClipboardToast("No credentials to copy");
 			return;
 		}

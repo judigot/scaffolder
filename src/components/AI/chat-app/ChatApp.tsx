@@ -248,12 +248,7 @@ export default function ChatApp() {
 
 	// Load chats from worktrees when repository changes (only once per repo)
 	useEffect(() => {
-		if (
-			activeRepoId === undefined ||
-			activeRepoId === null ||
-			activeRepoId === "" ||
-			!isAuthenticated
-		) {
+		if (activeRepoId === null || activeRepoId === "" || !isAuthenticated) {
 			return;
 		}
 
@@ -431,17 +426,19 @@ export default function ChatApp() {
 
 	// Fetch files from worktree
 	// Note: data is unused - we only need refetch to trigger file refresh after agent operations
+	// When useWorktree is true, activeChat is guaranteed non-null (since useWorktree is derived from activeChat?.worktreePath)
+	const worktreePathForFetch = useWorktree
+		? activeChat.worktreePath
+		: undefined;
 	const { refetch: refetchWorktreeFiles, data: _worktreeFiles } =
 		useWorktreeFiles(
-			{ worktreePath: useWorktree ? activeChat?.worktreePath : undefined },
+			{ worktreePath: worktreePathForFetch },
 			{
 				staleTime: 0,
 				gcTime: 5 * 60 * 1000,
 				refetchOnWindowFocus: false,
 				enabled:
-					useWorktree &&
-					activeChat?.worktreePath !== undefined &&
-					activeChat.worktreePath !== "",
+					worktreePathForFetch !== undefined && worktreePathForFetch !== "",
 			},
 		);
 
@@ -821,11 +818,11 @@ export default function ChatApp() {
 														return chat;
 													}
 													const messages = [...chat.messages];
+													if (messages.length === 0) {
+														return { ...chat, messages };
+													}
 													const lastMsg = messages[messages.length - 1];
-													if (
-														lastMsg !== undefined &&
-														lastMsg.role === "assistant"
-													) {
+													if (lastMsg.role === "assistant") {
 														messages[messages.length - 1] = {
 															...lastMsg,
 															content,
@@ -841,8 +838,11 @@ export default function ChatApp() {
 										return chat;
 									}
 									const messages = [...chat.messages];
+									if (messages.length === 0) {
+										return { ...chat, messages };
+									}
 									const lastMsg = messages[messages.length - 1];
-									if (lastMsg !== undefined && lastMsg.role === "assistant") {
+									if (lastMsg.role === "assistant") {
 										messages[messages.length - 1] = { ...lastMsg, content };
 									}
 									return { ...chat, messages };
@@ -1001,7 +1001,18 @@ export default function ChatApp() {
 		};
 		addMessageToChat(chatId, userMessage);
 
-		const repoPath = activeRepo?.localPath;
+		if (activeRepo === undefined) {
+			const errorMessage: IMessage = {
+				id: `msg-${String(Date.now() + 1)}`,
+				role: "assistant",
+				content: "Error: No active repository selected.",
+				timestamp: new Date(),
+			};
+			addMessageToChat(chatId, errorMessage);
+			return;
+		}
+
+		const repoPath = activeRepo.localPath;
 		if (repoPath === undefined || repoPath === "") {
 			const errorMessage: IMessage = {
 				id: `msg-${String(Date.now() + 1)}`,
@@ -1189,10 +1200,9 @@ export default function ChatApp() {
 			const schemaResult = validateSchemaInfoFromResponse(assistantText);
 			if (
 				schemaResult.success &&
-				schemaResult.extracted === true &&
+				schemaResult.extracted &&
 				schemaResult.data !== undefined
 			) {
-				// eslint-disable-next-line no-console -- Debug logging for schema parsing
 				console.warn(
 					"[ChatApp] Schema detected and parsed:",
 					schemaResult.data,
@@ -1247,9 +1257,8 @@ export default function ChatApp() {
 						};
 
 						if (postData.newCommits > 0) {
-							// eslint-disable-next-line no-console -- Debug logging for commit tracking
 							console.warn(
-								`Agent made ${String(postData.newCommits)} commit(s): ${postData.lastCommitMessage !== undefined && postData.lastCommitMessage !== "" ? postData.lastCommitMessage : ""}`,
+								`Agent made ${String(postData.newCommits)} commit(s): ${postData.lastCommitMessage ?? ""}`,
 							);
 
 							// Update worktree path if it was renamed
@@ -1397,7 +1406,6 @@ export default function ChatApp() {
 												),
 											);
 
-											// eslint-disable-next-line no-console -- Debug logging for PR creation
 											console.warn(
 												`Created PR #${String(prData.number)}: ${prData.title}`,
 											);

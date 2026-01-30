@@ -390,9 +390,8 @@ function InfraWorkspaceCard({
 					typeof errorBody === "object" &&
 					"message" in errorBody
 				) {
-					const messageValue = (errorBody as Record<string, unknown>)[
-						"message"
-					];
+					// eslint-disable-next-line no-type-assertion/no-type-assertion -- Type narrowing after object check
+					const messageValue = (errorBody as Record<string, unknown>).message;
 					if (typeof messageValue === "string") {
 						serverMessage = messageValue;
 					}
@@ -596,9 +595,15 @@ function InfraWorkspaceCard({
 		}
 	};
 
-	const publicIp = outputs.dev_ip;
-	const sshCommand = outputs.ssh_command;
-	const hasPublicIp = typeof publicIp === "string" && publicIp !== "";
+	const rawPublicIp = outputs.dev_ip;
+	const rawSshCommand = outputs.ssh_command;
+	const publicIp =
+		typeof rawPublicIp === "string" && rawPublicIp !== "" ? rawPublicIp : null;
+	const sshCommand =
+		typeof rawSshCommand === "string" && rawSshCommand !== ""
+			? rawSshCommand
+			: null;
+	const hasPublicIp = publicIp !== null;
 	const showConnectionDetails = enableEc2 && hasPublicIp;
 
 	return (
@@ -699,7 +704,7 @@ function InfraWorkspaceCard({
 								<button
 									type="button"
 									onClick={() => {
-										void navigator.clipboard.writeText(publicIp ?? "");
+										void navigator.clipboard.writeText(publicIp);
 									}}
 									className="p-1 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
 									title="Copy IP"
@@ -727,11 +732,9 @@ function InfraWorkspaceCard({
 							</p>
 							<div className="flex items-start gap-2">
 								<p className="text-sm text-fg break-all">
-									{typeof sshCommand === "string" && sshCommand !== ""
-										? sshCommand
-										: "Not available"}
+									{sshCommand ?? "Not available"}
 								</p>
-								{typeof sshCommand === "string" && sshCommand !== "" && (
+								{sshCommand !== null && (
 									<button
 										type="button"
 										onClick={() => {
@@ -770,8 +773,7 @@ function InfraWorkspaceCard({
 						</div>
 					</div>
 					{infraCredentials.sshPrivateKey.trim() !== "" &&
-						onOpenTerminal &&
-						hasPublicIp && (
+						onOpenTerminal !== undefined && (
 							<button
 								type="button"
 								onClick={() => {
@@ -1187,10 +1189,8 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 		},
 	});
 
-	const workspaceList = useMemo(() => {
-		return (
-			workspacesQuery.data?.workspaces.map((ws) => ws.name) ?? ([] as string[])
-		);
+	const workspaceList = useMemo((): string[] => {
+		return workspacesQuery.data?.workspaces.map((ws) => ws.name) ?? [];
 	}, [workspacesQuery.data]);
 
 	const githubUsername = useMemo(() => {
@@ -1297,10 +1297,13 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 					if (
 						errorBody !== null &&
 						typeof errorBody === "object" &&
-						"message" in errorBody &&
-						typeof (errorBody as Record<string, unknown>).message === "string"
+						"message" in errorBody
 					) {
-						message = (errorBody as Record<string, string>).message;
+						// eslint-disable-next-line no-type-assertion/no-type-assertion -- Type narrowing after object check
+						const msgValue = (errorBody as Record<string, unknown>).message;
+						if (typeof msgValue === "string") {
+							message = msgValue;
+						}
 					}
 				} catch {
 					message = "Failed to create workspace in Terraform Cloud.";
@@ -1334,7 +1337,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 	};
 
 	const handleDeleteWorkspace = async (workspaceName: string) => {
-		if (!accessToken || !tfcCredentialsReady) {
+		if (accessToken === null || accessToken === "" || !tfcCredentialsReady) {
 			setWorkspaceError("Unable to delete workspace. Check your credentials.");
 			return;
 		}
@@ -1365,10 +1368,13 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 					if (
 						errorBody !== null &&
 						typeof errorBody === "object" &&
-						"message" in errorBody &&
-						typeof (errorBody as Record<string, unknown>).message === "string"
+						"message" in errorBody
 					) {
-						message = (errorBody as Record<string, string>).message;
+						// eslint-disable-next-line no-type-assertion/no-type-assertion -- Type narrowing after object check
+						const msgValue = (errorBody as Record<string, unknown>).message;
+						if (typeof msgValue === "string") {
+							message = msgValue;
+						}
 					}
 				} catch {
 					message = "Failed to delete workspace from Terraform Cloud.";
@@ -1540,7 +1546,12 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 									id="workspace-mode"
 									value={workspaceMode}
 									onChange={(value) => {
-										setWorkspaceMode(value as WorkspaceMode);
+										if (
+											value === WORKSPACE_MODES.API ||
+											value === WORKSPACE_MODES.VCS
+										) {
+											setWorkspaceMode(value);
+										}
 									}}
 									options={WORKSPACE_MODE_OPTIONS}
 									disabled={!canAddWorkspace}
@@ -1698,7 +1709,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
 							</button>
 						</div>
 
-						{workspaceError && (
+						{workspaceError !== null && workspaceError !== "" && (
 							<p className="text-xs text-red-200">{workspaceError}</p>
 						)}
 

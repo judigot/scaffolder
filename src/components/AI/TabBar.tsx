@@ -72,7 +72,7 @@ export default function TabBar({
 				}}
 				aria-label={`${middleTab.label} View`}
 			>
-				{middleTab.customContent ? (
+				{middleTab.customContent !== undefined ? (
 					middleTab.customContent
 				) : (
 					<>

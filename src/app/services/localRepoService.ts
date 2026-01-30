@@ -43,11 +43,13 @@ function isBunRuntime(value: unknown): value is IBunRuntime {
 	if (typeof value !== "object" || value === null || !("spawn" in value)) {
 		return false;
 	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	const record = value as Record<string, unknown>;
 	return hasSpawnFunction(record);
 }
 
 function getGlobalAsRecord(): Record<string, unknown> {
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	return globalThis as unknown as Record<string, unknown>;
 }
 
@@ -91,7 +93,7 @@ async function runCommand(
 	);
 	const bun = getBunRuntime();
 
-	if (bun) {
+	if (bun !== null) {
 		const proc = bun.spawn(args, {
 			cwd: options?.cwd,
 			env: options?.env,
@@ -114,8 +116,8 @@ async function runCommand(
 
 		return {
 			exitCode,
-			stdout: truncateOutput(stdout || ""),
-			stderr: truncateOutput(stderr || ""),
+			stdout: truncateOutput(stdout !== "" ? stdout : ""),
+			stderr: truncateOutput(stderr !== "" ? stderr : ""),
 			durationMs: Date.now() - start,
 			timedOut,
 		};
