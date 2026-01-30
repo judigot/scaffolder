@@ -1,0 +1,21 @@
+// Model configuration types
+export type ModelId =
+	| "gpt-5-nano"
+	| "gpt-5-mini"
+	| "gpt-5.2-codex"
+	| "claude-sonnet-4.5"
+	| "claude-opus-4.5";
+
+export interface IModelOption {
+	id: ModelId;
+	name: string;
+	provider: "openai" | "anthropic";
+}
+
+export const MODEL_OPTIONS: IModelOption[] = [
+	{ id: "gpt-5-nano", name: "GPT-5 Nano", provider: "openai" },
+	{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" },
+	{ id: "gpt-5.2-codex", name: "GPT-5.2 Codex", provider: "openai" },
+	{ id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", provider: "anthropic" },
+	{ id: "claude-opus-4.5", name: "Claude Opus 4.5", provider: "anthropic" },
+];
