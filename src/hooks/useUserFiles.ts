@@ -1,18 +1,18 @@
 import {
-	type UseQueryOptions,
-	type UseQueryResult,
-	useQuery,
-} from "@tanstack/react-query";
-import type { IStructure } from "@/components/FileViewer.tsx";
-import { getApiUrl } from "@/utils/getApiUrl.ts";
+  type UseQueryOptions,
+  type UseQueryResult,
+  useQuery,
+} from '@tanstack/react-query';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 interface IFetchGitHubFilesParams {
-	publicRepoURL: string;
+  publicRepoURL: string;
 }
 
 interface IErrorResponse {
-	message?: string;
-	error?: string;
+  message?: string;
+  error?: string;
 }
 
 const isProduction = import.meta.env.PROD;
@@ -20,83 +20,86 @@ const isProduction = import.meta.env.PROD;
 export const isUsingLocalFiles = !isProduction;
 
 /**
- * Fetches project files from a public GitHub repository
+ * Fetches project files from a public GitHub repository or local /files directory
  *
  * @param params The parameters for fetching GitHub files
  * @returns A promise that resolves to the fetched files
  */
 const fetchGitHubFiles = async (
-	params: IFetchGitHubFilesParams,
+  params: IFetchGitHubFilesParams,
 ): Promise<IStructure> => {
-	// In dev mode (isUsingLocalFiles), we don't need a URL - fetch from local /files
-	// In production, we need a valid repo URL
-	if (!isUsingLocalFiles && !params.publicRepoURL) {
-		// Return empty structure if no repo URL provided (production only)
-		return [];
-	}
+  // Determine if we should use local files:
+  // - Empty publicRepoURL means use local files (dev mode toggle set to "Local")
+  // - Non-empty publicRepoURL means fetch from remote GitHub repo
+  const useLocal = params.publicRepoURL === '';
 
-	try {
-		const apiUrl = isUsingLocalFiles
-			? `${getApiUrl()}/getUserFiles`
-			: `${getApiUrl()}/getUserFilesFromPublicRepo`;
+  // If remote mode but no URL provided, return empty
+  if (!useLocal && !params.publicRepoURL) {
+    return [];
+  }
 
-		const response = await fetch(apiUrl, {
-			method: isUsingLocalFiles ? "GET" : "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: isUsingLocalFiles
-				? undefined
-				: JSON.stringify({ publicRepoURL: params.publicRepoURL }),
-		});
+  try {
+    const apiUrl = useLocal
+      ? `${getApiUrl()}/getUserFiles`
+      : `${getApiUrl()}/getUserFilesFromPublicRepo`;
 
-		if (!response.ok) {
-			// Using assertion functions instead of 'as' operator
-			const errorData: unknown = await response.json();
+    const response = await fetch(apiUrl, {
+      method: useLocal ? 'GET' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: useLocal
+        ? undefined
+        : JSON.stringify({ publicRepoURL: params.publicRepoURL }),
+    });
 
-			// Safe type checking for error response
-			const isErrorResponse = (val: unknown): val is IErrorResponse =>
-				typeof val === "object" && val !== null && "message" in val;
+    if (!response.ok) {
+      // Using assertion functions instead of 'as' operator
+      const errorData: unknown = await response.json();
 
-			let errorMessage = `Failed to fetch repository files: HTTP ${String(response.status)}`;
-			if (isErrorResponse(errorData) && typeof errorData.message === "string") {
-				errorMessage = errorData.message;
-			}
+      // Safe type checking for error response
+      const isErrorResponse = (val: unknown): val is IErrorResponse =>
+        typeof val === 'object' && val !== null && 'message' in val;
 
-			throw new Error(errorMessage);
-		}
+      let errorMessage = `Failed to fetch repository files: HTTP ${String(response.status)}`;
+      if (isErrorResponse(errorData) && typeof errorData.message === 'string') {
+        errorMessage = errorData.message;
+      }
 
-		// Parse the JSON response safely
-		const data: unknown = await response.json();
+      throw new Error(errorMessage);
+    }
 
-		// Ensure the data has the correct structure
-		if (!Array.isArray(data)) {
-			throw new Error("Invalid response format: expected an array");
-		}
+    // Parse the JSON response safely
+    const data: unknown = await response.json();
 
-		// Type guard to ensure we have the correct structure
-		function isIStructure(val: unknown): val is IStructure {
-			return Array.isArray(val);
-		}
+    // Ensure the data has the correct structure
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid response format: expected an array');
+    }
 
-		if (!isIStructure(data)) {
-			throw new Error("Invalid response format");
-		}
+    // Type guard to ensure we have the correct structure
+    function isIStructure(val: unknown): val is IStructure {
+      return Array.isArray(val);
+    }
 
-		const userFiles = data;
+    if (!isIStructure(data)) {
+      throw new Error('Invalid response format');
+    }
 
-		return userFiles;
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			if (error.message === "invalid zip data") {
-				throw new Error(
-					"Unable to fetch repository. This can happen if: the repository is empty (no commits), it does not exist, it is private, or uses a non-standard default branch.",
-				);
-			}
-			throw new Error(`There was an error: ${error.message}`);
-		}
-		throw new Error(`Unknown error: ${String(error)}`);
-	}
+    const userFiles = data;
+
+    return userFiles;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'invalid zip data') {
+        throw new Error(
+          'Unable to fetch repository. This can happen if: the repository is empty (no commits), it does not exist, it is private, or uses a non-standard default branch.',
+        );
+      }
+      throw new Error(`There was an error: ${error.message}`);
+    }
+    throw new Error(`Unknown error: ${String(error)}`);
+  }
 };
 
 /**
@@ -107,31 +110,31 @@ const fetchGitHubFiles = async (
  * @returns Query result containing the GitHub files data, loading state, and error state
  */
 export const useUserFiles = (
-	params: IFetchGitHubFilesParams,
-	behavior?: Omit<UseQueryOptions<IStructure>, "queryKey" | "queryFn">,
+  params: IFetchGitHubFilesParams,
+  behavior?: Omit<UseQueryOptions<IStructure>, 'queryKey' | 'queryFn'>,
 ): UseQueryResult<IStructure> => {
-	return useQuery({
-		queryKey: ["userFiles", params.publicRepoURL],
-		queryFn: () => fetchGitHubFiles({ publicRepoURL: params.publicRepoURL }),
+  return useQuery({
+    queryKey: ['userFiles', params.publicRepoURL],
+    queryFn: () => fetchGitHubFiles({ publicRepoURL: params.publicRepoURL }),
 
-		// Default settings that can be overridden by the behavior parameter
-		refetchInterval: 30 * 1000, //
-		// Poll every 1 second (short polling).
-		// Common use cases: live dashboards, chat notifications, stock tickers, monitoring tools.
+    // Default settings that can be overridden by the behavior parameter
+    refetchInterval: 30 * 1000, //
+    // Poll every 1 second (short polling).
+    // Common use cases: live dashboards, chat notifications, stock tickers, monitoring tools.
 
-		staleTime: 5 * 60 * 1000, // 5 minutes
-		// After this period, React Query will treat the data as stale.
-		// On remount (when a component using this query mounts again), stale data triggers a refetch.
-		// Common use cases: moderately dynamic data like config settings, price lists, user permissions.
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    // After this period, React Query will treat the data as stale.
+    // On remount (when a component using this query mounts again), stale data triggers a refetch.
+    // Common use cases: moderately dynamic data like config settings, price lists, user permissions.
 
-		gcTime: 10 * 60 * 1000, // 10 minutes
-		// Keep stale and unused cached data for 10 minutes before garbage-collecting it.
-		// This allows reusing cached data without fetching again if a component remounts within that period.
-		// Common use cases: large or complex data where refetching too often is wasteful, but you still want quick reuse if the user navigates back.
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    // Keep stale and unused cached data for 10 minutes before garbage-collecting it.
+    // This allows reusing cached data without fetching again if a component remounts within that period.
+    // Common use cases: large or complex data where refetching too often is wasteful, but you still want quick reuse if the user navigates back.
 
-		refetchOnWindowFocus: "always", // Refetch on window focus — but only if stale
-		retry: false,
+    refetchOnWindowFocus: 'always', // Refetch on window focus — but only if stale
+    retry: false,
 
-		...behavior, // This will override the default settings
-	});
+    ...behavior, // This will override the default settings
+  });
 };
