@@ -1,18 +1,19 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import App from "@/App.tsx";
-import type { ModelId } from "@/components/AI/AIChatContainer.tsx";
 import { AIChatContainer } from "@/components/AI/AIChatContainer.tsx";
+import type { ModelId } from "@/components/AI/modelOptions.ts";
 import ChatPanel from "@/components/AI/chat-app/ChatPanel.tsx";
 import ChatTree from "@/components/AI/chat-app/ChatTree.tsx";
 import { mockRepositories } from "@/components/AI/chat-app/mockData.ts";
 import RepoTabs from "@/components/AI/chat-app/RepoTabs.tsx";
 import TopNav from "@/components/AI/chat-app/TopNav.tsx";
 import type { IMessage, IRepository } from "@/components/AI/chat-app/types.ts";
-import TabBar, {
+import TabBar from "@/components/AI/TabBar.tsx";
+import {
 	BUILDER_TAB_CONFIG,
 	CHAT_TAB_CONFIG,
-} from "@/components/AI/TabBar.tsx";
+} from "@/components/AI/tabBarConfig.tsx";
 import { useCheckoutBranch } from "@/hooks/useCheckoutBranch.ts";
 import useDebouncedValue from "@/hooks/useDebouncedValue.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";

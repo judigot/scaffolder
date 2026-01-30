@@ -306,7 +306,7 @@ export default function RemoteAgentChat({
 			new DefaultChatTransport({
 				api: "/api/agent/chat",
 				headers:
-					accessToken !== undefined && accessToken !== ""
+					accessToken !== null && accessToken !== ""
 						? { Authorization: `Bearer ${accessToken}` }
 						: undefined,
 				body: {
@@ -366,7 +366,7 @@ export default function RemoteAgentChat({
 
 	const reload = () => {
 		if (messages.length > 0) {
-			stop();
+			void stop();
 			const lastUserMessage = [...messages]
 				.reverse()
 				.find((m) => m.role === "user");

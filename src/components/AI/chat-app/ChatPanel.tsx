@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import type { ModelId } from "@/components/AI/AIChatContainer.tsx";
+import type { ModelId } from "@/components/AI/modelOptions.ts";
 import { ModelSelector } from "@/components/AI/AIChatContainer.tsx";
 import type { IChat, IMessage } from "@/components/AI/chat-app/types.ts";
 import Badge from "@/components/AI/chat-app/ui/Badge.tsx";

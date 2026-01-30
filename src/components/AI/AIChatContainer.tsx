@@ -20,9 +20,10 @@ import { CREATION_MODES } from "@/constants.ts";
 import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
 import { useRemoteRepoFiles } from "@/hooks/useRemoteRepoFiles.ts";
 import { useUser } from "@/hooks/useUser.ts";
-import type {
-	IIntrospectedSchemaInfo,
-	ISchemaInfo,
+import {
+	isITableArray,
+	type IIntrospectedSchemaInfo,
+	type ISchemaInfo,
 } from "@/interfaces/interfaces.ts";
 import { useVercelChat } from "@/lib/chat/index.ts";
 import { useFormStore } from "@/useFormStore.ts";
@@ -37,28 +38,10 @@ import {
 	removeHiddenSchemaFromText,
 	validateSchemaInfoFromResponse,
 } from "@/utils/schemaInfoValidator.ts";
-
-// Model configuration types
-export type ModelId =
-	| "gpt-5-nano"
-	| "gpt-5-mini"
-	| "gpt-5.2-codex"
-	| "claude-sonnet-4.5"
-	| "claude-opus-4.5";
-
-export interface IModelOption {
-	id: ModelId;
-	name: string;
-	provider: "openai" | "anthropic";
-}
-
-export const MODEL_OPTIONS: IModelOption[] = [
-	{ id: "gpt-5-nano", name: "GPT-5 Nano", provider: "openai" },
-	{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" },
-	{ id: "gpt-5.2-codex", name: "GPT-5.2 Codex", provider: "openai" },
-	{ id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", provider: "anthropic" },
-	{ id: "claude-opus-4.5", name: "Claude Opus 4.5", provider: "anthropic" },
-];
+import {
+	MODEL_OPTIONS,
+	type ModelId,
+} from "@/components/AI/modelOptions.ts";
 
 interface IChatMessageProps {
 	message: UIMessage;
@@ -751,9 +734,11 @@ function IntrospectorPanel() {
 				throw new Error(errorData.error ?? "Failed to introspect database");
 			}
 
-			 
-			const introspectedSchemaInfo =
-				(await response.json()) as IIntrospectedSchemaInfo[];
+			const jsonData: unknown = await response.json();
+			if (!isITableArray(jsonData)) {
+				throw new Error("Invalid response format from introspect endpoint");
+			}
+			const introspectedSchemaInfo: IIntrospectedSchemaInfo[] = jsonData;
 			const convertedSchemaInfo = convertIntrospectedStructure(
 				introspectedSchemaInfo,
 			);
