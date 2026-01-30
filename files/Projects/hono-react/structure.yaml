@@ -35,5 +35,6 @@ tests:
   CREATE_FILE(setup.ts --template ./templates/test-setup.txt):
   FILE_LOOP({{tableNameCamelCase}}.test.ts --template ./templates/test-crud.txt):
 
-# Root config file
+# Root config files
 CREATE_FILE(README.md --template ./templates/readme.txt):
+CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):

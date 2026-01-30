@@ -18,6 +18,17 @@ const tables = {
 
 type TableName = keyof typeof tables;
 
+// Convert ISO date strings to Date objects for Drizzle timestamp columns
+function convertDates<T extends Record<string, unknown>>(row: T): T {
+  const result = { ...row };
+  for (const [key, value] of Object.entries(result)) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+      (result as Record<string, unknown>)[key] = new Date(value);
+    }
+  }
+  return result;
+}
+
 async function seed() {
   console.log('🌱 Seeding database...');
 
@@ -28,10 +39,31 @@ async function seed() {
 
       console.log(`  Seeding ${tableName}...`);
       for (const row of rows) {
-        await db.insert(table).values(row);
+        await db.insert(table).values(convertDates(row));
       }
       console.log(`    ✅ Inserted ${rows.length} records`);
     }
+
+    // Reset all PostgreSQL sequences to their max values
+    console.log('  Resetting sequences...');
+    await db.execute(`
+      DO $$
+      DECLARE
+        r RECORD;
+      BEGIN
+        FOR r IN (
+          SELECT c.relname AS seq_name, t.relname AS table_name, a.attname AS column_name
+          FROM pg_class c
+          JOIN pg_depend d ON d.objid = c.oid
+          JOIN pg_class t ON t.oid = d.refobjid
+          JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+          WHERE c.relkind = 'S'
+        ) LOOP
+          EXECUTE format('SELECT setval(%L, COALESCE((SELECT MAX(%I) FROM %I), 0) + 1, false)',
+            r.seq_name, r.column_name, r.table_name);
+        END LOOP;
+      END $$;
+    `);
 
     console.log('✅ Seeding complete!');
   } catch (error) {

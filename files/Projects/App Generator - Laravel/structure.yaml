@@ -23,4 +23,7 @@ routes:
     - CREATE_FILE(api.php --template ./templates/api.txt)
     - FILE_LOOP({{tableNameKebabCasePlural}}.php --template ./templates/Route.txt)
 
+# API test script
+CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):
+
 # IMPORT_PROJECT(Projects/App Generator - Next.js/structure.yaml):

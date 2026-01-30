@@ -104,3 +104,67 @@ If a golden test fails:
 | manyToMany | Products ↔ Orders with pivot |
 | masterSchema | Complex schema with all relationship types |
 | userRoles | Users, Roles, UserRoles pivot |
+
+## Runtime Tests
+
+Beyond static golden tests, runtime tests verify that generated apps actually work end-to-end.
+
+### What Runtime Tests Verify
+
+1. **Dependencies install** - `bun install` succeeds
+2. **Migrations run** - Database schema is created
+3. **Seed data loads** - Initial data is inserted correctly
+4. **Server starts** - App runs without errors
+5. **API works** - All CRUD endpoints respond correctly
+
+### Running Runtime Tests
+
+```bash
+# Scaffold a project, then run the full runtime test
+./src/tests/golden-projects/runtime-test.sh
+
+# Or run the generated api-test.sh directly
+./api-test.sh http://localhost:3000/api
+```
+
+### Runtime Test Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  runtime-test.sh                                                │
+├─────────────────────────────────────────────────────────────────┤
+│  1. bun install            → Install dependencies               │
+│  2. bun run db:generate    → Generate Drizzle client            │
+│  3. bun run db:push        → Push schema to database            │
+│  4. bun run db:seed        → Seed with test data                │
+│  5. bun run dev &          → Start server in background         │
+│  6. ./api-test.sh          → Run CRUD tests on all endpoints    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Auto-Generated `api-test.sh`
+
+Every scaffolded project includes an `api-test.sh` script that tests all CRUD endpoints. This is generated from a shared template at `/Templates/testing/api-test.txt`.
+
+The template uses these placeholders:
+
+| Placeholder | Description | Example |
+|-------------|-------------|---------|
+| `{{tableNameTitleCase}}` | Human-readable name | `Order Product` |
+| `{{tableNameKebabCase}}` | API endpoint path | `order-product` |
+| `{{primaryKey}}` | Primary key field name | `orderProductId` |
+| `{{createPayload}}` | JSON for POST request | `{"orderId":1,"productId":1}` |
+| `{{updatePayload}}` | JSON for PUT request | `{"orderId":1,"productId":1}` |
+
+The script tests each table with the **C→R→U→R→D→R** pattern:
+- **C**reate → **R**ead → **U**pdate → **R**ead (verify) → **D**elete → **R**ead (404)
+
+### Adding `api-test.sh` to Projects
+
+In your project's `structure.yaml`, add:
+
+```yaml
+CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):
+```
+
+The template is in a shared location (`/Templates/testing/`) to avoid duplication across projects.

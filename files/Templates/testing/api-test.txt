@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Auto-generated API Test Script
+# Tests all CRUD endpoints following C→R→U→R→D→R pattern
+#
+# Usage: ./api-test.sh [base-url]
+# Default: http://localhost:3000/api
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+API_BASE="${1:-http://localhost:3000/api}"
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+log_step() { echo -e "\n${BLUE}▶ $1${NC}"; }
+log_success() { echo -e "${GREEN}✓ $1${NC}"; TESTS_PASSED=$((TESTS_PASSED + 1)); }
+log_error() { echo -e "${RED}✗ $1${NC}"; TESTS_FAILED=$((TESTS_FAILED + 1)); }
+
+api_call() {
+  local method=$1 url=$2 data=$3
+  local response
+  if [ -n "$data" ]; then
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" -H "Content-Type: application/json" -d "$data")
+  else
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url")
+  fi
+  BODY="${response%|||*}"
+  STATUS="${response##*|||}"
+}
+
+assert_status() {
+  local expected=$1 message=$2
+  if [ "$STATUS" = "$expected" ]; then
+    log_success "$message (status: $STATUS)"
+  else
+    log_error "$message (expected: $expected, got: $STATUS)"
+  fi
+}
+
+command -v curl &> /dev/null || { echo "curl not found"; exit 1; }
+command -v jq &> /dev/null || { echo "jq not found"; exit 1; }
+
+log_step "Checking API health"
+api_call GET "$API_BASE/health"
+[ "$STATUS" = "200" ] || { log_error "API not responding"; exit 1; }
+log_success "API is running"
+
+echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}                    CRUD API TESTS                              ${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+
+test_crud() {
+  local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5
+
+  log_step "Testing $name API (C→R→U→R→D→R)"
+
+  # CREATE
+  api_call POST "$API_BASE/$endpoint" "$create_data"
+  assert_status 201 "POST /api/$endpoint (create)"
+  ID=$(echo "$BODY" | jq -r ".$pk")
+  echo "  Created $name ID: $ID"
+
+  # READ
+  api_call GET "$API_BASE/$endpoint/$ID"
+  assert_status 200 "GET /api/$endpoint/$ID (read)"
+
+  # UPDATE
+  api_call PUT "$API_BASE/$endpoint/$ID" "$update_data"
+  assert_status 200 "PUT /api/$endpoint/$ID (update)"
+
+  # READ (verify)
+  api_call GET "$API_BASE/$endpoint/$ID"
+  assert_status 200 "GET /api/$endpoint/$ID (after update)"
+
+  # DELETE
+  api_call DELETE "$API_BASE/$endpoint/$ID"
+  assert_status 200 "DELETE /api/$endpoint/$ID"
+
+  # READ (verify deleted)
+  api_call GET "$API_BASE/$endpoint/$ID"
+  assert_status 404 "GET /api/$endpoint/$ID (should be 404)"
+}
+
+[[ LOOP(tables) --template="test_crud '{{tableNameTitleCase}}' '{{tableNameKebabCase}}' '{{primaryKey}}' '{{createPayload}}' '{{updatePayload}}'" --separator="\n" ]]
+
+echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}                       TEST SUMMARY                             ${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "\n${GREEN}Passed: $TESTS_PASSED${NC}"
+echo -e "${RED}Failed: $TESTS_FAILED${NC}"
+
+[ $TESTS_FAILED -eq 0 ] && echo -e "\n${GREEN}All tests passed!${NC}" && exit 0
+echo -e "\n${RED}Some tests failed${NC}" && exit 1
