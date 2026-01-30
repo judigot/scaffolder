@@ -372,51 +372,71 @@ export function ModelSelector({
         </svg>
       </button>
 
-      {/* Dropdown menu */}
+      {/* Dropdown menu - bottom sheet on mobile, positioned dropdown on desktop */}
       {isOpen && (
-        <div className="absolute left-0 bottom-full mb-2 w-44 bg-secondary border border-border rounded-lg shadow-lg overflow-hidden z-50">
-          {/* OpenAI group */}
-          <div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-b border-border">
-            OpenAI
-          </div>
-          {openaiModels.map((model) => (
-            <button
-              key={model.id}
-              type="button"
-              onClick={() => {
-                handleSelect(model.id);
-              }}
-              className={`w-full px-3 py-2 text-sm text-left hover:bg-bg transition-colors ${
-                selectedModel === model.id
-                  ? 'text-primary-400 bg-bg'
-                  : 'text-fg'
-              }`}
-            >
-              {model.name}
-            </button>
-          ))}
+        <>
+          {/* Mobile backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={() => {
+              setIsOpen(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setIsOpen(false);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Close dropdown"
+          />
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-secondary border-t border-border rounded-t-2xl p-4 md:absolute md:inset-auto md:left-0 md:bottom-full md:mb-2 md:w-44 md:rounded-lg md:border md:p-0 md:shadow-lg overflow-hidden">
+            {/* Mobile drag handle */}
+            <div className="md:hidden w-10 h-1 bg-border rounded-full mx-auto mb-3" />
 
-          {/* Anthropic group */}
-          <div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-y border-border">
-            Anthropic
+            {/* OpenAI group */}
+            <div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-b border-border">
+              OpenAI
+            </div>
+            {openaiModels.map((model) => (
+              <button
+                key={model.id}
+                type="button"
+                onClick={() => {
+                  handleSelect(model.id);
+                }}
+                className={`w-full px-3 py-3 md:py-2 text-sm text-left hover:bg-bg transition-colors ${
+                  selectedModel === model.id
+                    ? 'text-primary-400 bg-bg'
+                    : 'text-fg'
+                }`}
+              >
+                {model.name}
+              </button>
+            ))}
+
+            {/* Anthropic group */}
+            <div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-y border-border">
+              Anthropic
+            </div>
+            {anthropicModels.map((model) => (
+              <button
+                key={model.id}
+                type="button"
+                onClick={() => {
+                  handleSelect(model.id);
+                }}
+                className={`w-full px-3 py-3 md:py-2 text-sm text-left hover:bg-bg transition-colors ${
+                  selectedModel === model.id
+                    ? 'text-primary-400 bg-bg'
+                    : 'text-fg'
+                }`}
+              >
+                {model.name}
+              </button>
+            ))}
           </div>
-          {anthropicModels.map((model) => (
-            <button
-              key={model.id}
-              type="button"
-              onClick={() => {
-                handleSelect(model.id);
-              }}
-              className={`w-full px-3 py-2 text-sm text-left hover:bg-bg transition-colors ${
-                selectedModel === model.id
-                  ? 'text-primary-400 bg-bg'
-                  : 'text-fg'
-              }`}
-            >
-              {model.name}
-            </button>
-          ))}
-        </div>
+        </>
       )}
     </div>
   );

@@ -48,6 +48,9 @@ export default function RepoTabs({
   // These are UI concerns owned entirely by this component
   // ---------------------------------------------------------------------------
 
+  // Mobile accordion state
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+
   // Dropdown state
   const [openRepoId, setOpenRepoId] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<IDropdownPosition>({
@@ -256,9 +259,246 @@ export default function RepoTabs({
     }
   };
 
+  const activeRepo = repositories.find((r) => r.id === activeRepoId);
+
   return (
     <>
-      <div className="bg-secondary border-b border-border flex items-center">
+      {/* Mobile: Repository tabs (always visible) */}
+      <div className="md:hidden bg-secondary border-b border-border flex items-center">
+        {/* Scrollable repo tabs */}
+        <div className="flex-1 min-w-0 px-3 py-2 flex gap-2 overflow-x-auto scrollbar-thin">
+          {repositories.map((repo) => {
+            const isActive = repo.id === activeRepoId;
+            return (
+              <button
+                key={repo.id}
+                type="button"
+                className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                  isActive
+                    ? 'border-primary-600/40 bg-primary-900/30 text-fg'
+                    : 'border-transparent bg-bg-subtle text-fg-muted'
+                }`}
+                onClick={() => {
+                  onSelectRepo(repo.id);
+                }}
+              >
+                <svg
+                  className="w-4 h-4 opacity-80"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <title>Repository</title>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                </svg>
+                <span className="max-w-[100px] truncate">{repo.name}</span>
+                <span className="text-xs bg-bg-muted text-fg-subtle px-1.5 py-0.5 rounded-full">
+                  {getRepoCount(repo)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {/* Sticky Add button */}
+        <div className="flex-shrink-0 flex items-center pl-2 pr-3 bg-secondary border-l border-border">
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddModal(true);
+            }}
+            className="flex items-center justify-center w-9 h-9 rounded-xl border border-dashed border-border text-fg-muted hover:border-primary-600/40 hover:text-fg hover:bg-primary-900/20 transition-colors"
+            aria-label="Add repository"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <title>Add repository</title>
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile: Chat accordion */}
+      <div className="md:hidden bg-secondary border-b border-border">
+        <button
+          type="button"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2"
+          onClick={() => {
+            setIsMobileExpanded((prev) => !prev);
+          }}
+        >
+          <span className="text-sm font-medium text-fg">
+            {isMobileExpanded ? 'Hide Chats' : 'View Chats'}
+          </span>
+          <span className="text-xs font-semibold bg-bg-muted text-fg-subtle px-2 py-0.5 rounded-full">
+            {activeRepo ? getRepoCount(activeRepo) : 0}
+          </span>
+          <svg
+            className={`w-4 h-4 text-fg-muted transition-transform ${isMobileExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <title>Toggle</title>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        {/* Mobile: Chat list (expanded) */}
+        <div className={isMobileExpanded ? 'border-t border-border' : 'hidden'}>
+          {/* Chat list for active repo */}
+          {activeRepo && (
+            <div className="max-h-[50vh] overflow-y-auto scrollbar-thin px-3 py-3 space-y-3">
+              {(() => {
+                const filteredChats = filterChatsWithContent(activeRepo.chats);
+                const filteredSprints = filterSprintsWithContent(
+                  activeRepo.sprints,
+                );
+                return (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-[10px] uppercase tracking-wide text-fg-subtle">
+                        Regular Chats
+                      </p>
+                      {filteredChats.length === 0 && (
+                        <p className="text-xs text-fg-subtle">
+                          No regular chats
+                        </p>
+                      )}
+                      {filteredChats.map((chat) => {
+                        const isActive =
+                          activeChatId === chat.id &&
+                          activeChatScope === 'regular' &&
+                          activeRepo.id === activeRepoId;
+                        return (
+                          <button
+                            key={chat.id}
+                            type="button"
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-sm transition-colors ${
+                              isActive
+                                ? 'border border-primary-600/40 bg-primary-900/30 text-fg'
+                                : 'bg-bg-subtle text-fg-muted hover:bg-secondary-hover hover:text-fg'
+                            }`}
+                            onClick={() => {
+                              onSelectBranch(activeRepo.id, chat.id, 'regular');
+                            }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="truncate font-medium">
+                                {chat.title}
+                              </span>
+                              {chat.branch !== undefined &&
+                                chat.branch !== '' && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-hover text-fg-muted font-mono shrink-0">
+                                    {chat.branch}
+                                  </span>
+                                )}
+                            </div>
+                            {chat.prStatus !== null && (
+                              <Badge
+                                label={
+                                  chat.prStatus === 'ready' ? 'Ready' : 'Draft'
+                                }
+                                variant={
+                                  chat.prStatus === 'ready' ? 'ready' : 'draft'
+                                }
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {filteredSprints.length > 0 && (
+                      <div className="border-t border-border pt-3 space-y-3">
+                        <p className="text-[10px] uppercase tracking-wide text-fg-subtle">
+                          Sprint Chats
+                        </p>
+                        {filteredSprints.map((sprint) => (
+                          <div key={sprint.id} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-fg">
+                                {sprint.name}
+                              </span>
+                              <Badge
+                                label={sprint.status}
+                                variant={
+                                  sprint.status === 'active'
+                                    ? 'statusActive'
+                                    : sprint.status === 'planned'
+                                      ? 'statusPlanned'
+                                      : 'statusDone'
+                                }
+                              />
+                            </div>
+                            {sprint.chats.map((chat) => {
+                              const isActive =
+                                activeChatId === chat.id &&
+                                activeChatScope === 'sprint' &&
+                                activeSprintId === sprint.id &&
+                                activeRepo.id === activeRepoId;
+                              return (
+                                <button
+                                  key={chat.id}
+                                  type="button"
+                                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-sm transition-colors ${
+                                    isActive
+                                      ? 'border border-primary-600/40 bg-primary-900/30 text-fg'
+                                      : 'bg-bg-subtle text-fg-muted hover:bg-secondary-hover hover:text-fg'
+                                  }`}
+                                  onClick={() => {
+                                    onSelectBranch(
+                                      activeRepo.id,
+                                      chat.id,
+                                      'sprint',
+                                      sprint.id,
+                                    );
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="truncate font-medium">
+                                      {chat.title}
+                                    </span>
+                                    {chat.branch !== undefined &&
+                                      chat.branch !== '' && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-hover text-fg-muted font-mono shrink-0">
+                                          {chat.branch}
+                                        </span>
+                                      )}
+                                  </div>
+                                  {chat.prStatus !== null && (
+                                    <Badge
+                                      label={
+                                        chat.prStatus === 'ready'
+                                          ? 'Ready'
+                                          : 'Draft'
+                                      }
+                                      variant={
+                                        chat.prStatus === 'ready'
+                                          ? 'ready'
+                                          : 'draft'
+                                      }
+                                    />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop: Original horizontal tabs */}
+      <div className="hidden md:flex bg-secondary border-b border-border items-center">
         {/* Scrollable repository tabs */}
         <div
           ref={containerRef}
@@ -333,7 +573,7 @@ export default function RepoTabs({
         </div>
 
         {/* Sticky Add repository button */}
-        <div className="flex-shrink-0 pl-2 pr-3 py-2 bg-secondary border-l border-border/50">
+        <div className="flex-shrink-0 flex items-center pl-2 pr-3 bg-secondary border-l border-border">
           <button
             type="button"
             onClick={() => {
@@ -351,295 +591,241 @@ export default function RepoTabs({
         </div>
       </div>
 
-      {/* Dropdown rendered via portal - Bottom sheet on mobile, positioned dropdown on desktop */}
+      {/* Desktop dropdown rendered via portal */}
       {openRepoId !== null &&
         openRepo !== undefined &&
         createPortal(
-          <>
-            {/* Backdrop for mobile */}
-            <div
-              className="fixed inset-0 z-[99] bg-black/50 md:hidden"
-              onClick={() => {
-                setOpenRepoId(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setOpenRepoId(null);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="Close dropdown"
-            />
-            <div
-              id="repo-dropdown-portal"
-              className="fixed z-[100] bg-bg-subtle border border-border shadow-xl overflow-y-auto scrollbar-thin
-								inset-x-0 bottom-0 rounded-t-2xl p-4 max-h-[80vh] border-b-0
-								md:inset-auto md:bottom-auto md:rounded-2xl md:p-3 md:w-72 md:max-w-[calc(100vw-16px)] md:max-h-[70vh] md:border-b"
-              ref={(el) => {
-                if (el) {
-                  // Apply desktop positioning via media query
-                  const mediaQuery = window.matchMedia('(min-width: 768px)');
-                  if (mediaQuery.matches) {
-                    el.style.top = `${String(dropdownPosition.top)}px`;
-                    el.style.left = `${String(dropdownPosition.left)}px`;
-                  }
-                }
-              }}
-            >
-              {/* Mobile header with drag handle */}
-              <div className="md:hidden mb-3">
-                <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-fg">
-                    {openRepo.name}
-                  </h3>
+          <div
+            id="repo-dropdown-portal"
+            className="hidden md:block fixed z-[100] bg-bg-subtle border border-border shadow-xl overflow-y-auto scrollbar-thin rounded-2xl p-3 w-72 max-w-[calc(100vw-16px)] max-h-[70vh]"
+            ref={(el) => {
+              if (el) {
+                el.style.top = `${String(dropdownPosition.top)}px`;
+                el.style.left = `${String(dropdownPosition.left)}px`;
+              }
+            }}
+          >
+            <div className="space-y-3">
+              {/* Git status panel for repos with local clone */}
+              {openRepo.localPath !== undefined && (
+                <div className="border-b border-border pb-3">
+                  <p className="text-[10px] uppercase tracking-wide text-fg-subtle mb-2">
+                    Local Clone
+                  </p>
+                  <RepoStatusPanel
+                    repoPath={openRepo.localPath}
+                    onDeleteClone={
+                      onDeleteClone !== undefined &&
+                      showDeleteConfirm !== openRepo.id
+                        ? () => {
+                            setShowDeleteConfirm(openRepo.id);
+                          }
+                        : undefined
+                    }
+                  />
+                  {showDeleteConfirm === openRepo.id && (
+                    <div className="mt-3 p-3 rounded-lg bg-danger-900/20 border border-danger-600/30">
+                      <p className="text-xs text-danger-300 mb-2">
+                        Delete local clone? This cannot be undone.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(null);
+                          }}
+                          className="flex-1 px-2 py-1 text-xs rounded-lg bg-secondary text-fg-muted hover:text-fg"
+                          disabled={isDeleting}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openRepo.localPath !== undefined) {
+                              void handleDeleteClone(openRepo.localPath);
+                            }
+                          }}
+                          className="flex-1 px-2 py-1 text-xs rounded-lg bg-danger-600 text-white hover:bg-danger-500"
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(() => {
+                const filteredChats = filterChatsWithContent(openRepo.chats);
+                const filteredSprints = filterSprintsWithContent(
+                  openRepo.sprints,
+                );
+                return (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-[10px] uppercase tracking-wide text-fg-subtle">
+                        Regular Chats
+                      </p>
+                      {filteredChats.length === 0 && (
+                        <p className="text-xs text-fg-subtle">
+                          No regular chats
+                        </p>
+                      )}
+                      {filteredChats.map((chat) => {
+                        const isActive =
+                          activeChatId === chat.id &&
+                          activeChatScope === 'regular' &&
+                          openRepo.id === activeRepoId;
+                        return (
+                          <button
+                            key={chat.id}
+                            type="button"
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-sm transition-colors ${
+                              isActive
+                                ? 'border border-primary-600/40 bg-primary-900/30 text-fg'
+                                : 'bg-secondary text-fg-muted hover:bg-secondary-hover hover:text-fg'
+                            }`}
+                            onClick={() => {
+                              onSelectBranch(openRepo.id, chat.id, 'regular');
+                              setOpenRepoId(null);
+                            }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="truncate font-medium">
+                                {chat.title}
+                              </span>
+                              {chat.branch !== undefined &&
+                                chat.branch !== '' && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-hover text-fg-muted font-mono shrink-0">
+                                    {chat.branch}
+                                  </span>
+                                )}
+                            </div>
+                            {chat.prStatus !== null && (
+                              <Badge
+                                label={
+                                  chat.prStatus === 'ready' ? 'Ready' : 'Draft'
+                                }
+                                variant={
+                                  chat.prStatus === 'ready' ? 'ready' : 'draft'
+                                }
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t border-border pt-3 space-y-3">
+                      <p className="text-[10px] uppercase tracking-wide text-fg-subtle">
+                        Sprint Chats
+                      </p>
+                      {filteredSprints.length === 0 && (
+                        <p className="text-xs text-fg-subtle">No sprints</p>
+                      )}
+                      {filteredSprints.map((sprint) => (
+                        <div key={sprint.id} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-fg">
+                              {sprint.name}
+                            </span>
+                            <Badge
+                              label={sprint.status}
+                              variant={
+                                sprint.status === 'active'
+                                  ? 'statusActive'
+                                  : sprint.status === 'planned'
+                                    ? 'statusPlanned'
+                                    : 'statusDone'
+                              }
+                            />
+                          </div>
+                          {sprint.chats.map((chat) => {
+                            const isActive =
+                              activeChatId === chat.id &&
+                              activeChatScope === 'sprint' &&
+                              activeSprintId === sprint.id &&
+                              openRepo.id === activeRepoId;
+                            return (
+                              <button
+                                key={chat.id}
+                                type="button"
+                                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-sm transition-colors ${
+                                  isActive
+                                    ? 'border border-primary-600/40 bg-primary-900/30 text-fg'
+                                    : 'bg-secondary text-fg-muted hover:bg-secondary-hover hover:text-fg'
+                                }`}
+                                onClick={() => {
+                                  onSelectBranch(
+                                    openRepo.id,
+                                    chat.id,
+                                    'sprint',
+                                    sprint.id,
+                                  );
+                                  setOpenRepoId(null);
+                                }}
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="truncate font-medium">
+                                    {chat.title}
+                                  </span>
+                                  {chat.branch !== undefined &&
+                                    chat.branch !== '' && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-hover text-fg-muted font-mono shrink-0">
+                                        {chat.branch}
+                                      </span>
+                                    )}
+                                </div>
+                                {chat.prStatus !== null && (
+                                  <Badge
+                                    label={
+                                      chat.prStatus === 'ready'
+                                        ? 'Ready'
+                                        : 'Draft'
+                                    }
+                                    variant={
+                                      chat.prStatus === 'ready'
+                                        ? 'ready'
+                                        : 'draft'
+                                    }
+                                  />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+              {openRepo.isRemovable === true && (
+                <div className="border-t border-border pt-3">
                   <button
                     type="button"
                     onClick={() => {
-                      setOpenRepoId(null);
+                      void handleRemoveRepo(openRepo);
                     }}
-                    className="p-2 -mr-2 rounded-lg text-fg-muted hover:text-fg hover:bg-secondary transition-colors"
-                    aria-label="Close"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-danger-600/40 text-danger-300 hover:bg-danger-900/20 hover:text-danger-200 transition-colors text-sm font-semibold"
+                    disabled={isAdding}
                   >
                     <svg
-                      className="w-5 h-5"
+                      className="w-4 h-4"
                       viewBox="0 0 24 24"
                       fill="currentColor"
                     >
-                      <title>Close</title>
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                      <title>Remove repository</title>
+                      <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-4.5l-1-1z" />
                     </svg>
+                    Remove repository
                   </button>
                 </div>
-              </div>
-
-              <div className="space-y-3">
-                {/* Git status panel for repos with local clone */}
-                {openRepo.localPath !== undefined && (
-                  <div className="border-b border-border pb-3">
-                    <p className="text-[10px] uppercase tracking-wide text-fg-subtle mb-2">
-                      Local Clone
-                    </p>
-                    <RepoStatusPanel
-                      repoPath={openRepo.localPath}
-                      onDeleteClone={
-                        onDeleteClone !== undefined &&
-                        showDeleteConfirm !== openRepo.id
-                          ? () => {
-                              setShowDeleteConfirm(openRepo.id);
-                            }
-                          : undefined
-                      }
-                    />
-                    {showDeleteConfirm === openRepo.id && (
-                      <div className="mt-3 p-3 rounded-lg bg-danger-900/20 border border-danger-600/30">
-                        <p className="text-xs text-danger-300 mb-2">
-                          Delete local clone? This cannot be undone.
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowDeleteConfirm(null);
-                            }}
-                            className="flex-1 px-2 py-1 text-xs rounded-lg bg-secondary text-fg-muted hover:text-fg"
-                            disabled={isDeleting}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (openRepo.localPath !== undefined) {
-                                void handleDeleteClone(openRepo.localPath);
-                              }
-                            }}
-                            className="flex-1 px-2 py-1 text-xs rounded-lg bg-danger-600 text-white hover:bg-danger-500"
-                            disabled={isDeleting}
-                          >
-                            {isDeleting ? 'Deleting...' : 'Delete'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {(() => {
-                  const filteredChats = filterChatsWithContent(openRepo.chats);
-                  const filteredSprints = filterSprintsWithContent(
-                    openRepo.sprints,
-                  );
-                  return (
-                    <>
-                      <div className="space-y-2">
-                        <p className="text-[10px] uppercase tracking-wide text-fg-subtle">
-                          Regular Chats
-                        </p>
-                        {filteredChats.length === 0 && (
-                          <p className="text-xs text-fg-subtle">
-                            No regular chats
-                          </p>
-                        )}
-                        {filteredChats.map((chat) => {
-                          const isActive =
-                            activeChatId === chat.id &&
-                            activeChatScope === 'regular' &&
-                            openRepo.id === activeRepoId;
-                          return (
-                            <button
-                              key={chat.id}
-                              type="button"
-                              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-sm transition-colors ${
-                                isActive
-                                  ? 'border border-primary-600/40 bg-primary-900/30 text-fg'
-                                  : 'bg-secondary text-fg-muted hover:bg-secondary-hover hover:text-fg'
-                              }`}
-                              onClick={() => {
-                                onSelectBranch(openRepo.id, chat.id, 'regular');
-                                setOpenRepoId(null);
-                              }}
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <span className="truncate font-medium">
-                                  {chat.title}
-                                </span>
-                                {chat.branch !== undefined &&
-                                  chat.branch !== '' && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-hover text-fg-muted font-mono shrink-0">
-                                      {chat.branch}
-                                    </span>
-                                  )}
-                              </div>
-                              {chat.prStatus !== null && (
-                                <Badge
-                                  label={
-                                    chat.prStatus === 'ready'
-                                      ? 'Ready'
-                                      : 'Draft'
-                                  }
-                                  variant={
-                                    chat.prStatus === 'ready'
-                                      ? 'ready'
-                                      : 'draft'
-                                  }
-                                />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="border-t border-border pt-3 space-y-3">
-                        <p className="text-[10px] uppercase tracking-wide text-fg-subtle">
-                          Sprint Chats
-                        </p>
-                        {filteredSprints.length === 0 && (
-                          <p className="text-xs text-fg-subtle">No sprints</p>
-                        )}
-                        {filteredSprints.map((sprint) => (
-                          <div key={sprint.id} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-fg">
-                                {sprint.name}
-                              </span>
-                              <Badge
-                                label={sprint.status}
-                                variant={
-                                  sprint.status === 'active'
-                                    ? 'statusActive'
-                                    : sprint.status === 'planned'
-                                      ? 'statusPlanned'
-                                      : 'statusDone'
-                                }
-                              />
-                            </div>
-                            {sprint.chats.map((chat) => {
-                              const isActive =
-                                activeChatId === chat.id &&
-                                activeChatScope === 'sprint' &&
-                                activeSprintId === sprint.id &&
-                                openRepo.id === activeRepoId;
-                              return (
-                                <button
-                                  key={chat.id}
-                                  type="button"
-                                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-sm transition-colors ${
-                                    isActive
-                                      ? 'border border-primary-600/40 bg-primary-900/30 text-fg'
-                                      : 'bg-secondary text-fg-muted hover:bg-secondary-hover hover:text-fg'
-                                  }`}
-                                  onClick={() => {
-                                    onSelectBranch(
-                                      openRepo.id,
-                                      chat.id,
-                                      'sprint',
-                                      sprint.id,
-                                    );
-                                    setOpenRepoId(null);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className="truncate font-medium">
-                                      {chat.title}
-                                    </span>
-                                    {chat.branch !== undefined &&
-                                      chat.branch !== '' && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-hover text-fg-muted font-mono shrink-0">
-                                          {chat.branch}
-                                        </span>
-                                      )}
-                                  </div>
-                                  {chat.prStatus !== null && (
-                                    <Badge
-                                      label={
-                                        chat.prStatus === 'ready'
-                                          ? 'Ready'
-                                          : 'Draft'
-                                      }
-                                      variant={
-                                        chat.prStatus === 'ready'
-                                          ? 'ready'
-                                          : 'draft'
-                                      }
-                                    />
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  );
-                })()}
-                {openRepo.isRemovable === true && (
-                  <div className="border-t border-border pt-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleRemoveRepo(openRepo);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-danger-600/40 text-danger-300 hover:bg-danger-900/20 hover:text-danger-200 transition-colors text-sm font-semibold"
-                      disabled={isAdding}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <title>Remove repository</title>
-                        <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-4.5l-1-1z" />
-                      </svg>
-                      Remove repository
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          </>,
+          </div>,
           document.body,
         )}
 
