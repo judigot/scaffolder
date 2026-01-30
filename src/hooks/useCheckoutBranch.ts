@@ -1,13 +1,13 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useState } from "react";
 
-interface CheckoutOptions {
+interface ICheckoutOptions {
 	repoId: string;
 	localPath?: string;
 	branch: string;
 }
 
-interface CheckoutResult {
+interface ICheckoutResult {
 	ok: boolean;
 	exitCode?: number;
 	stdout?: string;
@@ -23,9 +23,9 @@ export function useCheckoutBranch() {
 	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
 	const checkout = async (
-		options: CheckoutOptions,
-	): Promise<CheckoutResult | null> => {
-		if (!options.branch) {
+		options: ICheckoutOptions,
+	): Promise<ICheckoutResult | null> => {
+		if (options.branch === "") {
 			return null;
 		}
 
@@ -50,11 +50,22 @@ export function useCheckoutBranch() {
 				}),
 			});
 
-			const result: CheckoutResult = await response.json();
+			const jsonData: unknown = await response.json();
+			const isCheckoutResult = (val: unknown): val is ICheckoutResult =>
+				typeof val === "object" && val !== null && "ok" in val;
+			const result: ICheckoutResult = isCheckoutResult(jsonData)
+				? jsonData
+				: { ok: false, error: "Invalid response format" };
 
 			if (!response.ok || !result.ok) {
 				const errorMsg =
-					result.error || result.stderr || "Failed to checkout branch";
+					(result.error !== undefined && result.error !== ""
+						? result.error
+						: null) ??
+					(result.stderr !== undefined && result.stderr !== ""
+						? result.stderr
+						: null) ??
+					"Failed to checkout branch";
 				setError(errorMsg);
 				return result;
 			}

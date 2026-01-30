@@ -34,17 +34,26 @@ app.get("/", async (c) => {
 			return c.json(
 				{
 					connected: false,
-					error: `OpenCode health check failed (${response.status})`,
+					error: `OpenCode health check failed (${String(response.status)})`,
 					details: text,
 				},
 				502,
 			);
 		}
 
-		const data = (await response.json()) as { version?: string };
+		const data: unknown = await response.json();
+		let version = "unknown";
+		if (
+			typeof data === "object" &&
+			data !== null &&
+			"version" in data &&
+			typeof data.version === "string"
+		) {
+			version = data.version;
+		}
 		return c.json({
 			connected: true,
-			version: data.version ?? "unknown",
+			version,
 			url: config.baseUrl,
 			directory: config.defaultDirectory ?? "",
 		});

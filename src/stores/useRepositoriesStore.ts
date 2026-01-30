@@ -164,16 +164,20 @@ export const useRepositoriesStore = create<IRepositoriesStore>()(
 			getActiveSprint: () => {
 				const repo = get().getActiveRepo();
 				const { activeSprintId } = get();
-				if (!repo || !activeSprintId) return null;
+				if (repo === null || activeSprintId === null) {
+					return null;
+				}
 				return repo.sprints.find((s) => s.id === activeSprintId) ?? null;
 			},
 
 			getActiveChat: () => {
 				const repo = get().getActiveRepo();
 				const { activeChatId, activeChatScope, activeSprintId } = get();
-				if (!repo || !activeChatId) return null;
+				if (repo === null || activeChatId === null) {
+					return null;
+				}
 
-				if (activeChatScope === "sprint" && activeSprintId) {
+				if (activeChatScope === "sprint" && activeSprintId !== null) {
 					const sprint = repo.sprints.find((s) => s.id === activeSprintId);
 					return sprint?.chats.find((c) => c.id === activeChatId) ?? null;
 				}
@@ -249,9 +253,11 @@ export const useRepositoriesStore = create<IRepositoriesStore>()(
 			addChat: (repoId, chat, sprintId) => {
 				set((state) => ({
 					repositories: state.repositories.map((r) => {
-						if (r.id !== repoId) return r;
+						if (r.id !== repoId) {
+							return r;
+						}
 
-						if (sprintId) {
+						if (sprintId !== undefined) {
 							// Add to sprint
 							return {
 								...r,
@@ -269,9 +275,11 @@ export const useRepositoriesStore = create<IRepositoriesStore>()(
 			updateChat: (repoId, chatId, updates, sprintId) => {
 				set((state) => ({
 					repositories: state.repositories.map((r) => {
-						if (r.id !== repoId) return r;
+						if (r.id !== repoId) {
+							return r;
+						}
 
-						if (sprintId) {
+						if (sprintId !== undefined) {
 							return {
 								...r,
 								sprints: r.sprints.map((s) =>
@@ -299,9 +307,11 @@ export const useRepositoriesStore = create<IRepositoriesStore>()(
 			removeChat: (repoId, chatId, sprintId) => {
 				set((state) => ({
 					repositories: state.repositories.map((r) => {
-						if (r.id !== repoId) return r;
+						if (r.id !== repoId) {
+							return r;
+						}
 
-						if (sprintId) {
+						if (sprintId !== undefined) {
 							return {
 								...r,
 								sprints: r.sprints.map((s) =>

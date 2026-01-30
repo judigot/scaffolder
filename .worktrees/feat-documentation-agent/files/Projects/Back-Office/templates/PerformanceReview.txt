@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance Review - [[USE_DATA(basic-info.name)]] - [[USE_DATA(performance-review.period)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { border-bottom: 4px solid #2196f3; padding-bottom: 25px; margin-bottom: 30px; }
+    .title { font-size: 2.2em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    .subtitle { font-size: 1.2em; color: #7f8c8d; }
+    .employee-info { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+    .info-box { background: #e3f2fd; padding: 15px; border-radius: 5px; }
+    .label { font-weight: bold; color: #34495e; margin-bottom: 5px; }
+    .value { color: #2c3e50; }
+    .rating-badge { display: inline-block; padding: 8px 20px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+    .exceeds { background: #4caf50; color: white; }
+    .meets { background: #2196f3; color: white; }
+    .needs-improvement { background: #ff9800; color: white; }
+    .section { margin: 30px 0; }
+    .section-title { font-size: 1.5em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
+    .ratings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+    .rating-item { background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #2196f3; }
+    .rating-category { font-weight: bold; color: #34495e; margin-bottom: 8px; }
+    .content-box { background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #2196f3; }
+    .content-text { line-height: 1.8; color: #2c3e50; }
+    .goals-list { margin: 15px 0; padding-left: 25px; }
+    .goals-list li { margin: 10px 0; color: #2c3e50; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #ecf0f1; }
+    .signature-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin-top: 30px; }
+    .signature-box { padding: 15px; border: 2px solid #ecf0f1; border-radius: 5px; }
+    .signature-line { border-top: 2px solid #333; width: 100%; margin: 50px 0 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">Performance Review</div>
+      <div class="subtitle">[[USE_DATA(performance-review.period)]]</div>
+      <div class="employee-info">
+        <div class="info-box">
+          <div class="label">Employee Name</div>
+          <div class="value">[[USE_DATA(basic-info.name)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Employee ID</div>
+          <div class="value">[[USE_DATA(employee.employee-id)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Department</div>
+          <div class="value">[[USE_DATA(employee.department)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Position</div>
+          <div class="value">[[USE_DATA(employee.position)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Review Date</div>
+          <div class="value">[[USE_DATA(performance-review.review-date)]]</div>
+        </div>
+        <div class="info-box">
+          <div class="label">Reviewer</div>
+          <div class="value">[[USE_DATA(performance-review.reviewer)]]</div>
+        </div>
+      </div>
+      <div class="rating-badge [[USE_DATA(performance-review.overall-rating)]]">Overall Rating: [[USE_DATA(performance-review.overall-rating)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Performance Ratings</div>
+      <div class="ratings-grid">
+        <div class="rating-item">
+          <div class="rating-category">Technical Skills</div>
+          <div class="rating-badge [[USE_DATA(performance-review.ratings.technical-skills)]]">[[USE_DATA(performance-review.ratings.technical-skills)]]</div>
+        </div>
+        <div class="rating-item">
+          <div class="rating-category">Communication</div>
+          <div class="rating-badge [[USE_DATA(performance-review.ratings.communication)]]">[[USE_DATA(performance-review.ratings.communication)]]</div>
+        </div>
+        <div class="rating-item">
+          <div class="rating-category">Teamwork</div>
+          <div class="rating-badge [[USE_DATA(performance-review.ratings.teamwork)]]">[[USE_DATA(performance-review.ratings.teamwork)]]</div>
+        </div>
+        <div class="rating-item">
+          <div class="rating-category">Problem Solving</div>
+          <div class="rating-badge [[USE_DATA(performance-review.ratings.problem-solving)]]">[[USE_DATA(performance-review.ratings.problem-solving)]]</div>
+        </div>
+        <div class="rating-item">
+          <div class="rating-category">Leadership</div>
+          <div class="rating-badge [[USE_DATA(performance-review.ratings.leadership)]]">[[USE_DATA(performance-review.ratings.leadership)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Strengths</div>
+      <div class="content-box">
+        <div class="content-text">[[USE_DATA(performance-review.strengths)]]</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Areas for Improvement</div>
+      <div class="content-box">
+        <div class="content-text">[[USE_DATA(performance-review.areas-for-improvement)]]</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Goals for Next Period</div>
+      <div class="content-box">
+        <ul class="goals-list">
+          [[USE_DATA(performance-review.goals)]]
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Additional Comments</div>
+      <div class="content-box">
+        <div class="content-text">[[USE_DATA(performance-review.comments)]]</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="signature-section">
+        <div class="signature-box">
+          <div class="label">Employee Signature</div>
+          <div class="value">[[USE_DATA(basic-info.name)]]</div>
+          <div class="signature-line"></div>
+          <div style="margin-top: 10px; color: #7f8c8d;">Date: _______________</div>
+        </div>
+        <div class="signature-box">
+          <div class="label">Reviewer Signature</div>
+          <div class="value">[[USE_DATA(performance-review.reviewer)]]</div>
+          <div class="signature-line"></div>
+          <div style="margin-top: 10px; color: #7f8c8d;">Date: [[USE_DATA(performance-review.review-date)]]</div>
+        </div>
+      </div>
+      <div style="margin-top: 30px; text-align: center; color: #7f8c8d; font-size: 0.9em;">
+        <p><strong>[[USE_DATA(company-info.name)]]</strong></p>
+        <p>This review is confidential and should be kept in employee records.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

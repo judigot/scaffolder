@@ -1,0 +1,1 @@
+LOOP_FOLDERS(Contract-{{client.company-name}}-{{contract.type}}.docx --data-source=//DataSources/People/**/info.yaml --template=./templates/Contract.txt)

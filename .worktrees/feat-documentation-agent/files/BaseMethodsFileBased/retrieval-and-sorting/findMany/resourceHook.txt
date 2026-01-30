@@ -1,0 +1,30 @@
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { findManyResources } from '@/hooks/shared/useFindMany.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IFindManyParams {
+  ids: (string | number)[];
+  orderBy?: string;
+  orderDirection?: 'asc' | 'desc';
+}
+
+export const useFindMany{{tableNamePascalCasePlural}} = (
+  params: IFindManyParams,
+  options?: Omit<
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    'queryKey' | 'queryFn'
+  >,
+) => {
+  return useQuery({
+    queryKey: ['{{tableNameCamelCasePlural}}', 'findMany', params.ids, params.orderBy, params.orderDirection],
+    queryFn: () =>
+      findManyResources<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/find-many',
+        params.ids,
+        params.orderBy,
+        params.orderDirection
+      ),
+    enabled: Boolean(params.ids && params.ids.length > 0),
+    ...options,
+  });
+}; 

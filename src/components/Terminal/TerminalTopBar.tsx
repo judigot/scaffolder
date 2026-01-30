@@ -1,4 +1,7 @@
-import type { TerminalConnectionStatus, TerminalSecondaryTab } from "@/useTerminalStore.ts";
+import type {
+	TerminalConnectionStatus,
+	TerminalSecondaryTab,
+} from "@/useTerminalStore.ts";
 
 interface ITerminalTopBarProps {
 	connectionStatus: TerminalConnectionStatus;
@@ -20,7 +23,10 @@ function ConnectionIndicator({
 	const statusConfig = {
 		connected: {
 			dotClass: "bg-[var(--terminal-status-connected)]",
-			label: host ? `Connected to ${host}` : "Connected",
+			label:
+				host !== undefined && host.length > 0
+					? `Connected to ${host}`
+					: "Connected",
 			animation: "",
 		},
 		reconnecting: {

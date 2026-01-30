@@ -1,0 +1,14 @@
+{{tableNamePascalCase}} Conditions Test:
+  [[ LOOP(columnsInfo) --template="
+  Column: {{valueCamelCase}} | Type: {{data_type}} | TS Type: {{data_type}}
+  
+  /* Boolean Condition Results */
+  String Type: {% IF data_type EQUALS 'string' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'string' %}false{% ENDIF %}
+  Number Type: {% IF data_type EQUALS 'number' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'number' %}false{% ENDIF %}
+  Boolean Type: {% IF data_type EQUALS 'boolean' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'boolean' %}false{% ENDIF %}
+  Date Type: {% IF data_type EQUALS 'Date' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'Date' %}false{% ENDIF %}
+  
+  /* Database Type Checks */
+  Contains 'char': {% IF data_type CONTAINS 'char' %}true{% ENDIF %}{% IF data_type NOT CONTAINS 'char' %}false{% ENDIF %}
+  Contains 'int': {% IF data_type CONTAINS 'int' %}true{% ENDIF %}{% IF data_type NOT CONTAINS 'int' %}false{% ENDIF %}
+  " --separator="\n\n" ]] 

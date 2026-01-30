@@ -30,9 +30,10 @@ export function createRemoteAgentTools(client: ISSHConnection) {
 			),
 			execute: async ({ command, workingDirectory }): Promise<IToolResult> => {
 				try {
-					const fullCommand = workingDirectory
-						? `cd ${workingDirectory} && ${command}`
-						: command;
+					const fullCommand =
+						workingDirectory !== undefined && workingDirectory !== ""
+							? `cd ${workingDirectory} && ${command}`
+							: command;
 					const result = await executeCommand(client, fullCommand);
 					if (result.exitCode !== 0) {
 						return {

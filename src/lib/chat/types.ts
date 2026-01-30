@@ -12,7 +12,7 @@ export type MessageRole = "user" | "assistant" | "system";
 export type ChatStatus = "idle" | "loading" | "streaming" | "error";
 
 /** A single message in the conversation */
-export interface ChatMessage {
+export interface IChatMessage {
 	id: string;
 	role: MessageRole;
 	content: string;
@@ -22,14 +22,14 @@ export interface ChatMessage {
 }
 
 /** Error information */
-export interface ChatError {
+export interface IChatError {
 	message: string;
 	code?: string;
 	details?: unknown;
 }
 
 /** Configuration for a chat session */
-export interface ChatSessionConfig {
+export interface IChatSessionConfig {
 	/** API endpoint for the chat */
 	endpoint: string;
 	/** Optional session ID for continuing a conversation */
@@ -43,23 +43,23 @@ export interface ChatSessionConfig {
 	/** Additional headers to send with requests */
 	headers?: Record<string, string>;
 	/** Callback when a message is received */
-	onMessage?: (message: ChatMessage) => void;
+	onMessage?: (message: IChatMessage) => void;
 	/** Callback when streaming text is received */
 	onStreamingText?: (text: string, messageId: string) => void;
 	/** Callback when an error occurs */
-	onError?: (error: ChatError) => void;
+	onError?: (error: IChatError) => void;
 	/** Callback when the session finishes */
-	onFinish?: (message: ChatMessage) => void;
+	onFinish?: (message: IChatMessage) => void;
 }
 
 /** The stable interface exposed by useChatSession */
-export interface ChatSession {
+export interface IChatSession {
 	/** All messages in the conversation */
-	messages: ChatMessage[];
+	messages: IChatMessage[];
 	/** Current status of the chat */
 	status: ChatStatus;
 	/** Current error, if any */
-	error: ChatError | null;
+	error: IChatError | null;
 	/** Whether the chat is currently loading or streaming */
 	isLoading: boolean;
 	/** The current session ID */
@@ -73,16 +73,16 @@ export interface ChatSession {
 	/** Clear all messages */
 	clear: () => void;
 	/** Set messages directly (for restoring state) */
-	setMessages: (messages: ChatMessage[]) => void;
+	setMessages: (messages: IChatMessage[]) => void;
 }
 
 /** Adapter interface - implement this for each chat provider */
-export interface ChatAdapter {
+export interface IChatAdapter {
 	/** Send a message and handle streaming response */
 	send: (
 		content: string,
-		config: ChatSessionConfig,
-		callbacks: ChatAdapterCallbacks,
+		config: IChatSessionConfig,
+		callbacks: IChatAdapterCallbacks,
 	) => void;
 	/** Stop the current generation */
 	stop: () => void;
@@ -91,13 +91,27 @@ export interface ChatAdapter {
 }
 
 /** Callbacks passed to adapters */
-export interface ChatAdapterCallbacks {
+export interface IChatAdapterCallbacks {
 	onMessageStart: (messageId: string) => void;
 	onStreamingText: (text: string, messageId: string) => void;
-	onMessageComplete: (message: ChatMessage) => void;
-	onError: (error: ChatError) => void;
+	onMessageComplete: (message: IChatMessage) => void;
+	onError: (error: IChatError) => void;
 	onSessionId: (sessionId: string) => void;
 }
 
 /** Factory function type for creating adapters */
-export type ChatAdapterFactory = () => ChatAdapter;
+export type ChatAdapterFactory = () => IChatAdapter;
+
+// Legacy type aliases for backwards compatibility
+/** @deprecated Use IChatMessage instead */
+export type ChatMessage = IChatMessage;
+/** @deprecated Use IChatError instead */
+export type ChatError = IChatError;
+/** @deprecated Use IChatSessionConfig instead */
+export type ChatSessionConfig = IChatSessionConfig;
+/** @deprecated Use IChatSession instead */
+export type ChatSession = IChatSession;
+/** @deprecated Use IChatAdapter instead */
+export type ChatAdapter = IChatAdapter;
+/** @deprecated Use IChatAdapterCallbacks instead */
+export type ChatAdapterCallbacks = IChatAdapterCallbacks;

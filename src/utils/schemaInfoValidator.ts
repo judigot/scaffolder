@@ -14,10 +14,11 @@ const foreignKeyObjectSchema = z.object({
  */
 const foreignKeyStringSchema = z.string().transform((val) => {
 	const parts = val.split(".");
-	if (parts.length === 2 && parts[0] !== undefined && parts[1] !== undefined) {
+	if (parts.length === 2) {
+		const [tableName, columnName] = parts;
 		return {
-			foreign_table_name: parts[0],
-			foreign_column_name: parts[1],
+			foreign_table_name: tableName,
+			foreign_column_name: columnName,
 		};
 	}
 	// If it doesn't match "table.column" format, assume it's just the table name with "id" column
@@ -30,7 +31,10 @@ const foreignKeyStringSchema = z.string().transform((val) => {
 /**
  * Combined foreign key schema that accepts both formats
  */
-const foreignKeySchema = z.union([foreignKeyObjectSchema, foreignKeyStringSchema]);
+const foreignKeySchema = z.union([
+	foreignKeyObjectSchema,
+	foreignKeyStringSchema,
+]);
 
 /**
  * Zod schema for validating column information
@@ -92,17 +96,17 @@ const schemaInfoSchema = z
 			const hasPrimaryKey = table.columnsInfo.some((col) => col.primary_key);
 			return hasPrimaryKey;
 		},
-		{ message: "Each table must have at least one primary key column" }
+		{ message: "Each table must have at least one primary key column" },
 	)
 	.refine(
 		(table) => {
 			// Ensure id column exists (convention)
 			const hasIdColumn = table.columnsInfo.some(
-				(col) => col.column_name === "id"
+				(col) => col.column_name === "id",
 			);
 			return hasIdColumn;
 		},
-		{ message: "Each table should have an 'id' column" }
+		{ message: "Each table should have an 'id' column" },
 	);
 
 /**
@@ -118,7 +122,7 @@ export const schemaInfoArraySchema = z
 			const uniqueNames = new Set(tableNames);
 			return tableNames.length === uniqueNames.size;
 		},
-		{ message: "Duplicate table names found in schema" }
+		{ message: "Duplicate table names found in schema" },
 	)
 	.refine(
 		(tables) => {
@@ -135,7 +139,7 @@ export const schemaInfoArraySchema = z
 			}
 			return true;
 		},
-		{ message: "Foreign key references a non-existent table" }
+		{ message: "Foreign key references a non-existent table" },
 	)
 	.refine(
 		(tables) => {
@@ -158,7 +162,7 @@ export const schemaInfoArraySchema = z
 			}
 			return true;
 		},
-		{ message: "Relationship references a non-existent table" }
+		{ message: "Relationship references a non-existent table" },
 	);
 
 export type SchemaInfoArray = z.infer<typeof schemaInfoArraySchema>;
@@ -206,7 +210,9 @@ export function validateSchemaInfo(data: unknown): IValidationResult {
 /**
  * Parses and validates schemaInfo from a JSON string
  */
-export function parseAndValidateSchemaInfo(jsonString: string): IValidationResult {
+export function parseAndValidateSchemaInfo(
+	jsonString: string,
+): IValidationResult {
 	try {
 		const parsed: unknown = JSON.parse(jsonString);
 		return validateSchemaInfo(parsed);
@@ -223,7 +229,7 @@ export function parseAndValidateSchemaInfo(jsonString: string): IValidationResul
  * Tries compact format first, then JSON formats
  */
 export function extractSchemaInfoFromResponse(
-	responseText: string
+	responseText: string,
 ): string | null {
 	// Primary: Match hidden HTML comment format <!--schemaInfo:[...]-->
 	const hiddenSchemaRegex = /<!--schemaInfo:([\s\S]*?)-->/;
@@ -261,7 +267,7 @@ export function extractSchemaInfoFromResponse(
  * Compact format uses <@@SCHEMA@@>...<@@/SCHEMA@@> tags
  */
 export function hasCompactSchema(text: string): boolean {
-	return text.includes('<@@SCHEMA@@>');
+	return text.includes("<@@SCHEMA@@>");
 }
 
 /**
@@ -278,20 +284,15 @@ export function removeHiddenSchemaFromText(text: string): string {
 /**
  * Type mapping for compact format
  */
-const COMPACT_TYPE_MAP: Record<string, "string" | "number" | "boolean" | "Date" | "object"> = {
+const COMPACT_TYPE_MAP: Partial<
+	Record<string, "string" | "number" | "boolean" | "Date" | "object">
+> = {
 	s: "string",
 	n: "number",
 	b: "boolean",
 	D: "Date",
 	o: "object",
 };
-
-/**
- * Type guard for valid data types
- */
-function isValidDataType(value: string): value is "string" | "number" | "boolean" | "Date" | "object" {
-	return value === "string" || value === "number" || value === "boolean" || value === "Date" || value === "object";
-}
 
 /**
  * Parse a single column definition from compact format
@@ -304,26 +305,23 @@ function isValidDataType(value: string): value is "string" | "number" | "boolean
  */
 function parseCompactColumn(colDef: string): ColumnInfo | null {
 	// Match: column_name:type[?][!u][#pk][>fk_table]
-	const colRegex = /^([a-z][a-z0-9_]*):([snbDo])(\?)?(!u)?(#pk)?(>[a-z][a-z0-9_]*)?$/;
+	const colRegex =
+		/^([a-z][a-z0-9_]*):([snbDo])(\?)?(!u)?(#pk)?(>[a-z][a-z0-9_]*)?$/;
 	const match = colRegex.exec(colDef);
 
 	if (match === null) {
 		return null;
 	}
 
-	const columnName = match[1];
-	const typeChar = match[2];
-	const isNullable = match[3] === "?";
-	const isUnique = match[4] === "!u";
-	const isPrimaryKey = match[5] === "#pk";
-	const fkMatch = match[6];
-
-	if (columnName === undefined || typeChar === undefined) {
-		return null;
-	}
+	// Destructure match results - groups 1 and 2 are required by the regex pattern
+	const [, columnName, typeChar, nullableFlag, uniqueFlag, pkFlag, fkMatch] =
+		match;
+	const isNullable = nullableFlag === "?";
+	const isUnique = uniqueFlag === "!u";
+	const isPrimaryKey = pkFlag === "#pk";
 
 	const mappedType = COMPACT_TYPE_MAP[typeChar];
-	if (mappedType === undefined || !isValidDataType(mappedType)) {
+	if (mappedType === undefined) {
 		return null;
 	}
 
@@ -341,7 +339,7 @@ function parseCompactColumn(colDef: string): ColumnInfo | null {
 		column.unique = true;
 	}
 
-	if (fkMatch !== undefined && fkMatch.length > 1) {
+	if (fkMatch) {
 		const fkTable = fkMatch.slice(1); // Remove leading '>'
 		column.foreign_key = {
 			foreign_table_name: fkTable,
@@ -359,9 +357,10 @@ function parseCompactColumn(colDef: string): ColumnInfo | null {
 function parseCompactTable(tableDef: string): SchemaInfo | null {
 	// Split by | to separate columns from relationships
 	const parts = tableDef.split("|");
-	const mainPart = parts[0];
+	// parts[0] always exists after split (could be empty string)
+	const [mainPart] = parts;
 
-	if (!mainPart?.startsWith("@")) {
+	if (!mainPart.startsWith("@")) {
 		return null;
 	}
 
@@ -406,12 +405,15 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
 	// Parse relationships from remaining parts
 	for (let i = 1; i < parts.length; i++) {
 		const relPart = parts[i];
-		if (relPart === undefined || relPart.length < 2) {
+		if (relPart.length < 2) {
 			continue;
 		}
 
 		const relType = relPart[0];
-		const relTables = relPart.slice(1).split(",").filter((t) => t.length > 0);
+		const relTables = relPart
+			.slice(1)
+			.split(",")
+			.filter((t) => t.length > 0);
 
 		if (relTables.length === 0) {
 			continue;
@@ -486,7 +488,9 @@ export function parseCompactSchema(text: string): SchemaInfoArray | null {
  * Validates schemaInfo extracted from AI response
  * Tries compact format first, then falls back to JSON format
  */
-export function validateSchemaInfoFromResponse(responseText: string): IValidationResult & { extracted: boolean } {
+export function validateSchemaInfoFromResponse(
+	responseText: string,
+): IValidationResult & { extracted: boolean } {
 	// Try compact format first (saves tokens)
 	if (hasCompactSchema(responseText)) {
 		const compactResult = parseCompactSchema(responseText);

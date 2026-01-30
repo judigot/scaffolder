@@ -1,0 +1,1 @@
+{{methodNameCamelCase}}(array $ids): Collection

@@ -166,8 +166,8 @@ function ToolCallDisplay({ part }: { part: IToolInvocationPart }) {
 								}`}
 							>
 								{isSuccess
-									? result.output ?? "(no output)"
-									: result.error ?? "Unknown error"}
+									? (result.output ?? "(no output)")
+									: (result.error ?? "Unknown error")}
 							</pre>
 						</div>
 					)}
@@ -199,7 +199,7 @@ function AgentMessage({ message }: { message: UIMessage }) {
 										code(props) {
 											const { children, className, ...rest } = props;
 											const match = /language-(\w+)/.exec(className ?? "");
-											return match ? (
+											return match !== null ? (
 												<SyntaxHighlighter
 													PreTag="div"
 													language={match[1]}
@@ -210,10 +210,15 @@ function AgentMessage({ message }: { message: UIMessage }) {
 														fontSize: "var(--font-size-sm)",
 													}}
 												>
+													{/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
 													{String(children).replace(/\n$/, "")}
 												</SyntaxHighlighter>
 											) : (
-												<code {...rest} className={className}>
+												<code
+													ref={rest.ref}
+													style={rest.style}
+													className={className}
+												>
 													{children}
 												</code>
 											);
@@ -228,6 +233,7 @@ function AgentMessage({ message }: { message: UIMessage }) {
 							return (
 								<ToolCallDisplay
 									key={`tool-${message.id}-${String(index)}`}
+									// eslint-disable-next-line no-type-assertion/no-type-assertion -- AI SDK types don't match our IToolInvocationPart interface
 									part={part as unknown as IToolInvocationPart}
 								/>
 							);
@@ -299,9 +305,10 @@ export default function RemoteAgentChat({
 		() =>
 			new DefaultChatTransport({
 				api: "/api/agent/chat",
-				headers: accessToken
-					? { Authorization: `Bearer ${accessToken}` }
-					: undefined,
+				headers:
+					accessToken !== null && accessToken !== ""
+						? { Authorization: `Bearer ${accessToken}` }
+						: undefined,
 				body: {
 					infraCredentials: {
 						sshPrivateKey,
@@ -326,7 +333,7 @@ export default function RemoteAgentChat({
 
 	const adjustHeight = useCallback(() => {
 		const textarea = textareaRef.current;
-		if (textarea) {
+		if (textarea !== null) {
 			textarea.style.height = "auto";
 			const maxHeight = 160;
 			const newHeight = Math.min(textarea.scrollHeight, maxHeight);
@@ -351,7 +358,7 @@ export default function RemoteAgentChat({
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			if (input.trim() && !isLoading) {
+			if (input.trim() !== "" && !isLoading) {
 				handleSubmit(e);
 			}
 		}
@@ -359,12 +366,12 @@ export default function RemoteAgentChat({
 
 	const reload = () => {
 		if (messages.length > 0) {
-			stop();
+			void stop();
 			const lastUserMessage = [...messages]
 				.reverse()
 				.find((m) => m.role === "user");
 			const firstPart = lastUserMessage?.parts[0];
-			if (firstPart && firstPart.type === "text") {
+			if (firstPart?.type === "text") {
 				void sendMessage({ text: firstPart.text });
 			}
 		}
@@ -406,11 +413,11 @@ export default function RemoteAgentChat({
 			</div>
 
 			{/* Error display */}
-			{error && (
+			{error != null && (
 				<div className="mx-3 mb-2 md:mx-6">
 					<div className="max-w-5xl mx-auto p-3 bg-danger-900/20 border border-danger-700/40 rounded-lg flex items-center justify-between gap-3">
 						<p className="text-xs text-danger-200 truncate">
-							{error.message || "Connection error"}
+							{error.message !== "" ? error.message : "Connection error"}
 						</p>
 						<button
 							type="button"
@@ -442,7 +449,7 @@ export default function RemoteAgentChat({
 						/>
 						<button
 							type="submit"
-							disabled={isLoading || !input.trim()}
+							disabled={isLoading || input.trim() === ""}
 							className="p-1.5 bg-fg text-bg rounded-full hover:bg-fg-muted focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
 						>
 							{isLoading ? (

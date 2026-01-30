@@ -51,6 +51,36 @@ interface IConfigurationVersion {
 
 type ITerraformBaseConfig = Omit<ITerraformConfig, "workspace">;
 
+// Type guards and helper interfaces for API responses
+interface ITerraformApiError {
+	detail?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isApiError(item: unknown): item is ITerraformApiError {
+	return isRecord(item) && "detail" in item && typeof item.detail === "string";
+}
+
+function extractFirstErrorDetail(errorBody: unknown): string | null {
+	if (!isRecord(errorBody)) {
+		return null;
+	}
+	if (!("errors" in errorBody) || !Array.isArray(errorBody.errors)) {
+		return null;
+	}
+	if (errorBody.errors.length === 0) {
+		return null;
+	}
+	const firstError: unknown = errorBody.errors[0];
+	if (isApiError(firstError)) {
+		return firstError.detail ?? null;
+	}
+	return null;
+}
+
 const TFC_API_BASE_URL = "https://app.terraform.io/api/v2";
 
 const terraformBaseFetch = async (
@@ -186,41 +216,37 @@ export const getTerraformWorkspaceVariables = async (
 
 	const variables: ITerraformVariable[] = [];
 	for (const item of payload.data) {
-		if (
-			typeof item !== "object" ||
-			item === null ||
-			!("id" in item) ||
-			!("attributes" in item)
-		) {
+		if (!isRecord(item) || !("id" in item) || !("attributes" in item)) {
 			continue;
 		}
-		const attributes = item.attributes;
-		if (typeof attributes !== "object" || attributes === null) {
+		const itemId = item.id;
+		const rawAttributes = item.attributes;
+		if (!isRecord(rawAttributes)) {
 			continue;
 		}
 
 		const key =
-			"key" in attributes && typeof attributes.key === "string"
-				? attributes.key
+			"key" in rawAttributes && typeof rawAttributes.key === "string"
+				? rawAttributes.key
 				: null;
+		const rawCategory =
+			"category" in rawAttributes ? rawAttributes.category : null;
 		const category =
-			"category" in attributes &&
-			(attributes.category === "env" || attributes.category === "terraform")
-				? attributes.category
-				: null;
+			rawCategory === "env" || rawCategory === "terraform" ? rawCategory : null;
 		const sensitive =
-			"sensitive" in attributes && typeof attributes.sensitive === "boolean"
-				? attributes.sensitive
+			"sensitive" in rawAttributes &&
+			typeof rawAttributes.sensitive === "boolean"
+				? rawAttributes.sensitive
 				: false;
 		const value =
-			"value" in attributes && typeof attributes.value === "string"
-				? attributes.value
+			"value" in rawAttributes && typeof rawAttributes.value === "string"
+				? rawAttributes.value
 				: null;
 		if (key === null || category === null) {
 			continue;
 		}
 		variables.push({
-			id: typeof item.id === "string" ? item.id : "",
+			id: typeof itemId === "string" ? itemId : "",
 			key,
 			category,
 			sensitive,
@@ -333,46 +359,22 @@ export const createTerraformRun = async (
 		}
 		const errorBody: unknown = await response.json().catch(() => null);
 		if (response.status === 422) {
-			if (
-				errorBody !== null &&
-				typeof errorBody === "object" &&
-				"errors" in errorBody &&
-				Array.isArray(errorBody.errors) &&
-				errorBody.errors.length > 0
-			) {
-				const firstError = errorBody.errors[0];
-				if (
-					typeof firstError === "object" &&
-					firstError !== null &&
-					"detail" in firstError &&
-					typeof firstError.detail === "string"
-				) {
-					throw new Error(firstError.detail);
-				}
+			const detail = extractFirstErrorDetail(errorBody);
+			if (detail !== null) {
+				throw new Error(detail);
 			}
 			throw new Error(
 				"Workspace has no Terraform configuration. Upload configuration first.",
 			);
 		}
 		// Try to extract error message from response
-		if (
-			errorBody !== null &&
-			typeof errorBody === "object" &&
-			"errors" in errorBody &&
-			Array.isArray(errorBody.errors) &&
-			errorBody.errors.length > 0
-		) {
-			const firstError = errorBody.errors[0];
-			if (
-				typeof firstError === "object" &&
-				firstError !== null &&
-				"detail" in firstError &&
-				typeof firstError.detail === "string"
-			) {
-				throw new Error(firstError.detail);
-			}
+		const detail = extractFirstErrorDetail(errorBody);
+		if (detail !== null) {
+			throw new Error(detail);
 		}
-		throw new Error(`Failed to create Terraform run (HTTP ${response.status})`);
+		throw new Error(
+			`Failed to create Terraform run (HTTP ${String(response.status)})`,
+		);
 	}
 
 	const payload: unknown = await response.json();
@@ -486,20 +488,17 @@ export const getTerraformOutputs = async (
 	const outputs: Record<string, unknown> = {};
 	for (const item of outputsPayload.data) {
 		if (
-			typeof item !== "object" ||
-			item === null ||
+			!isRecord(item) ||
 			!("attributes" in item) ||
-			typeof item.attributes !== "object" ||
-			item.attributes === null
+			!isRecord(item.attributes)
 		) {
 			continue;
 		}
 
+		const attrs = item.attributes;
 		const name =
-			"name" in item.attributes && typeof item.attributes.name === "string"
-				? item.attributes.name
-				: null;
-		const value = "value" in item.attributes ? item.attributes.value : null;
+			"name" in attrs && typeof attrs.name === "string" ? attrs.name : null;
+		const value = "value" in attrs ? attrs.value : null;
 		if (name !== null) {
 			outputs[name] = value;
 		}
@@ -675,22 +674,9 @@ export const createTerraformWorkspace = async (
 		}
 		if (response.status === 422) {
 			const errorBody: unknown = await response.json().catch(() => null);
-			if (
-				errorBody !== null &&
-				typeof errorBody === "object" &&
-				"errors" in errorBody &&
-				Array.isArray(errorBody.errors) &&
-				errorBody.errors.length > 0
-			) {
-				const firstError = errorBody.errors[0];
-				if (
-					typeof firstError === "object" &&
-					firstError !== null &&
-					"detail" in firstError &&
-					typeof firstError.detail === "string"
-				) {
-					throw new Error(firstError.detail);
-				}
+			const detail = extractFirstErrorDetail(errorBody);
+			if (detail !== null) {
+				throw new Error(detail);
 			}
 			throw new Error("Workspace validation failed");
 		}
@@ -699,24 +685,24 @@ export const createTerraformWorkspace = async (
 
 	const payload: unknown = await response.json();
 	if (
-		typeof payload === "object" &&
-		payload !== null &&
+		isRecord(payload) &&
 		"data" in payload &&
-		typeof payload.data === "object" &&
-		payload.data !== null &&
+		isRecord(payload.data) &&
 		"id" in payload.data &&
 		typeof payload.data.id === "string"
 	) {
+		const payloadDataId: string = payload.data.id;
 		const attributes =
-			"attributes" in payload.data ? payload.data.attributes : null;
+			"attributes" in payload.data && isRecord(payload.data.attributes)
+				? payload.data.attributes
+				: null;
 		const name =
-			typeof attributes === "object" &&
 			attributes !== null &&
 			"name" in attributes &&
 			typeof attributes.name === "string"
 				? attributes.name
 				: workspaceName;
-		return { id: payload.data.id, name };
+		return { id: payloadDataId, name };
 	}
 
 	throw new Error("Terraform workspace creation response missing ID");
@@ -760,16 +746,13 @@ export const getTerraformState = async (
 
 	let jsonStateUrl: string | null = null;
 	if (
-		typeof stateVersionData === "object" &&
-		stateVersionData !== null &&
+		isRecord(stateVersionData) &&
 		"data" in stateVersionData &&
-		typeof stateVersionData.data === "object" &&
-		stateVersionData.data !== null &&
+		isRecord(stateVersionData.data) &&
 		"attributes" in stateVersionData.data &&
-		typeof stateVersionData.data.attributes === "object" &&
-		stateVersionData.data.attributes !== null
+		isRecord(stateVersionData.data.attributes)
 	) {
-		const attrs = stateVersionData.data.attributes as Record<string, unknown>;
+		const attrs = stateVersionData.data.attributes;
 		if (typeof attrs["hosted-json-state-download-url"] === "string") {
 			jsonStateUrl = attrs["hosted-json-state-download-url"];
 		}
@@ -796,33 +779,30 @@ export const getTerraformState = async (
 	};
 
 	if (
-		typeof stateJson !== "object" ||
-		stateJson === null ||
+		!isRecord(stateJson) ||
 		!("values" in stateJson) ||
-		typeof stateJson.values !== "object" ||
-		stateJson.values === null
+		!isRecord(stateJson.values)
 	) {
 		return result;
 	}
 
-	const values = stateJson.values as Record<string, unknown>;
-	const rootModule = values.root_module as Record<string, unknown> | undefined;
+	const values = stateJson.values;
+	const rootModule = isRecord(values.root_module) ? values.root_module : null;
 
-	if (!rootModule || !Array.isArray(rootModule.resources)) {
+	if (rootModule === null || !Array.isArray(rootModule.resources)) {
 		return result;
 	}
 
 	for (const resource of rootModule.resources) {
-		if (typeof resource !== "object" || resource === null) {continue;}
+		if (!isRecord(resource)) {
+			continue;
+		}
 
-		const r = resource as Record<string, unknown>;
-		const type = typeof r.type === "string" ? r.type : "";
-		const name = typeof r.name === "string" ? r.name : "";
-		const address = typeof r.address === "string" ? r.address : "";
-		const attributes =
-			typeof r.values === "object" && r.values !== null
-				? (r.values as Record<string, unknown>)
-				: {};
+		const type = typeof resource.type === "string" ? resource.type : "";
+		const name = typeof resource.name === "string" ? resource.name : "";
+		const address =
+			typeof resource.address === "string" ? resource.address : "";
+		const attributes = isRecord(resource.values) ? resource.values : {};
 
 		result.resources.push({ address, type, name, attributes });
 
@@ -838,16 +818,15 @@ export const getTerraformState = async (
 				result.region = az.slice(0, -1);
 			}
 			if (
-				typeof attributes.root_block_device === "object" &&
 				Array.isArray(attributes.root_block_device) &&
 				attributes.root_block_device.length > 0
 			) {
-				const rootBlock = attributes.root_block_device[0] as Record<
-					string,
-					unknown
-				>;
-				if (typeof rootBlock.volume_size === "number") {
-					result.diskSize = rootBlock.volume_size;
+				const rootBlockItem: unknown = attributes.root_block_device[0];
+				if (
+					isRecord(rootBlockItem) &&
+					typeof rootBlockItem.volume_size === "number"
+				) {
+					result.diskSize = rootBlockItem.volume_size;
 				}
 			}
 		}
@@ -893,16 +872,12 @@ export const listTerraformWorkspaces = async (
 
 	const workspaces: ITerraformWorkspace[] = [];
 	for (const item of payload.data) {
-		if (
-			typeof item !== "object" ||
-			item === null ||
-			!("id" in item) ||
-			typeof item.id !== "string"
-		) {
+		if (!isRecord(item) || !("id" in item) || typeof item.id !== "string") {
 			continue;
 		}
+		const itemId: string = item.id;
 		const attributes =
-			"attributes" in item && typeof item.attributes === "object"
+			"attributes" in item && isRecord(item.attributes)
 				? item.attributes
 				: null;
 		const name =
@@ -912,7 +887,7 @@ export const listTerraformWorkspaces = async (
 				? attributes.name
 				: null;
 		if (name !== null) {
-			workspaces.push({ id: item.id, name });
+			workspaces.push({ id: itemId, name });
 		}
 	}
 
@@ -1022,13 +997,15 @@ export const uploadConfigurationTar = async (
 	uploadUrl: string,
 	tarGzBuffer: Uint8Array,
 ): Promise<void> => {
+	// Create a new Uint8Array from the buffer to ensure proper ArrayBuffer type
+	const bodyData = new Uint8Array(tarGzBuffer).buffer;
 	const response = await fetch(uploadUrl, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/octet-stream",
 			"Content-Length": String(tarGzBuffer.length),
 		},
-		body: tarGzBuffer as unknown as BodyInit,
+		body: bodyData,
 	});
 
 	if (!response.ok) {
@@ -1141,16 +1118,12 @@ export const listOAuthClients = async (
 
 	const clients: IOAuthClient[] = [];
 	for (const item of payload.data) {
-		if (
-			typeof item !== "object" ||
-			item === null ||
-			!("id" in item) ||
-			typeof item.id !== "string"
-		) {
+		if (!isRecord(item) || !("id" in item) || typeof item.id !== "string") {
 			continue;
 		}
+		const itemId: string = item.id;
 		const attributes =
-			"attributes" in item && typeof item.attributes === "object"
+			"attributes" in item && isRecord(item.attributes)
 				? item.attributes
 				: null;
 		const name =
@@ -1165,7 +1138,7 @@ export const listOAuthClients = async (
 			typeof attributes["service-provider"] === "string"
 				? attributes["service-provider"]
 				: "";
-		clients.push({ id: item.id, name, serviceProvider });
+		clients.push({ id: itemId, name, serviceProvider });
 	}
 
 	return clients;
@@ -1202,16 +1175,12 @@ export const getOAuthTokens = async (
 
 	const tokens: IOAuthToken[] = [];
 	for (const item of payload.data) {
-		if (
-			typeof item !== "object" ||
-			item === null ||
-			!("id" in item) ||
-			typeof item.id !== "string"
-		) {
+		if (!isRecord(item) || !("id" in item) || typeof item.id !== "string") {
 			continue;
 		}
+		const itemId: string = item.id;
 		const attributes =
-			"attributes" in item && typeof item.attributes === "object"
+			"attributes" in item && isRecord(item.attributes)
 				? item.attributes
 				: null;
 		const serviceProviderUser =
@@ -1220,7 +1189,7 @@ export const getOAuthTokens = async (
 			typeof attributes["service-provider-user"] === "string"
 				? attributes["service-provider-user"]
 				: null;
-		tokens.push({ id: item.id, serviceProviderUser });
+		tokens.push({ id: itemId, serviceProviderUser });
 	}
 
 	return tokens;
@@ -1259,16 +1228,12 @@ export const listGitHubAppInstallations = async (
 
 	const installations: IGitHubAppInstallation[] = [];
 	for (const item of payload.data) {
-		if (
-			typeof item !== "object" ||
-			item === null ||
-			!("id" in item) ||
-			typeof item.id !== "string"
-		) {
+		if (!isRecord(item) || !("id" in item) || typeof item.id !== "string") {
 			continue;
 		}
+		const itemId: string = item.id;
 		const attributes =
-			"attributes" in item && typeof item.attributes === "object"
+			"attributes" in item && isRecord(item.attributes)
 				? item.attributes
 				: null;
 		const name =
@@ -1283,7 +1248,7 @@ export const listGitHubAppInstallations = async (
 			typeof attributes["installation-id"] === "number"
 				? attributes["installation-id"]
 				: 0;
-		installations.push({ id: item.id, name, installationId });
+		installations.push({ id: itemId, name, installationId });
 	}
 
 	return installations;
@@ -1387,22 +1352,9 @@ export const createTerraformWorkspaceWithVcs = async (
 		}
 		if (response.status === 422) {
 			const errorBody: unknown = await response.json().catch(() => null);
-			if (
-				errorBody !== null &&
-				typeof errorBody === "object" &&
-				"errors" in errorBody &&
-				Array.isArray(errorBody.errors) &&
-				errorBody.errors.length > 0
-			) {
-				const firstError = errorBody.errors[0];
-				if (
-					typeof firstError === "object" &&
-					firstError !== null &&
-					"detail" in firstError &&
-					typeof firstError.detail === "string"
-				) {
-					throw new Error(firstError.detail);
-				}
+			const detail = extractFirstErrorDetail(errorBody);
+			if (detail !== null) {
+				throw new Error(detail);
 			}
 			throw new Error("Workspace validation failed");
 		}
@@ -1411,24 +1363,24 @@ export const createTerraformWorkspaceWithVcs = async (
 
 	const payload: unknown = await response.json();
 	if (
-		typeof payload === "object" &&
-		payload !== null &&
+		isRecord(payload) &&
 		"data" in payload &&
-		typeof payload.data === "object" &&
-		payload.data !== null &&
+		isRecord(payload.data) &&
 		"id" in payload.data &&
 		typeof payload.data.id === "string"
 	) {
+		const payloadDataId: string = payload.data.id;
 		const attributes =
-			"attributes" in payload.data ? payload.data.attributes : null;
+			"attributes" in payload.data && isRecord(payload.data.attributes)
+				? payload.data.attributes
+				: null;
 		const name =
-			typeof attributes === "object" &&
 			attributes !== null &&
 			"name" in attributes &&
 			typeof attributes.name === "string"
 				? attributes.name
 				: workspaceName;
-		return { id: payload.data.id, name };
+		return { id: payloadDataId, name };
 	}
 
 	throw new Error("Terraform workspace creation response missing ID");

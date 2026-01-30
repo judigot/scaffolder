@@ -1,0 +1,4 @@
+const response = await axiosInstance.get(`{{url}}`, {
+  params: { relations }
+});
+return response.data; 

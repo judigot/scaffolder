@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { ModelId } from "@/components/AI/modelOptions.ts";
 import type { TabType } from "@/components/AI/TabBar.tsx";
 
 /**
@@ -36,7 +37,7 @@ export type TopLevelTab = "scaffolder" | "repositories" | "master";
 // Store Interface
 // ============================================================================
 
-interface UIStore {
+interface IUIStore {
 	// --- Navigation (persisted) ---
 	// These determine what the user sees and should survive page refresh
 
@@ -47,13 +48,20 @@ interface UIStore {
 	/** Which content tab is active (chat, code viewer, infra) */
 	activeTab: TabType;
 	setActiveTab: (tab: TabType) => void;
+
+	// --- Chat Preferences (persisted) ---
+	// Chat settings that should persist across sessions
+
+	/** Selected AI model for chat */
+	selectedModel: ModelId;
+	setSelectedModel: (model: ModelId) => void;
 }
 
 // ============================================================================
 // Store Implementation
 // ============================================================================
 
-export const useUIStore = create<UIStore>()(
+export const useUIStore = create<IUIStore>()(
 	persist(
 		(set) => ({
 			// Navigation
@@ -62,14 +70,19 @@ export const useUIStore = create<UIStore>()(
 
 			activeTab: "chat",
 			setActiveTab: (activeTab) => set({ activeTab }),
+
+			// Chat Preferences
+			selectedModel: "gpt-5-nano",
+			setSelectedModel: (selectedModel) => set({ selectedModel }),
 		}),
 		{
 			name: "ui-preferences",
 			storage: createJSONStorage(() => localStorage),
-			// Persist user's navigation state so they return where they left off
+			// Persist user's navigation and chat preferences so they return where they left off
 			partialize: (state) => ({
 				topLevelTab: state.topLevelTab,
 				activeTab: state.activeTab,
+				selectedModel: state.selectedModel,
 			}),
 		},
 	),

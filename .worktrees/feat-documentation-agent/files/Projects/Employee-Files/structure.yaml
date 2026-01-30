@@ -1,0 +1,20 @@
+Employee Master List:
+  - CREATE_FILE(Employee Master List.html --template ./templates/EmployeeMasterList.txt)
+
+All Employees' Resumes:
+  - LOOP_FOLDERS({{basic-info.name}}-Resume.html --data-source=/DataSources/People/**/info.yaml --template=./templates/Resume.txt)
+
+Employee Recognition:
+  - LOOP_FOLDERS({{recognition.type}} - {{basic-info.name}} - {{recognition.date}}.html --data-source=/DataSources/People/**/info.yaml --template=./templates/EmployeeRecognition.txt)
+
+Employee Files:
+  - FOLDER_LOOP({{basic-info.name}}'s Files --data-source=/DataSources/People/**/info.yaml):
+    - CREATE_FILE({{basic-info.name}}'s Resume.html --scoped --template ./templates/Resume.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - Employee Profile.html --scoped --template ./templates/EmployeeProfile.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - Payroll Statement - {{payroll.period}}.html --scoped --template ./templates/PayrollStatement.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - Performance Review - {{performance-review.period}}.html --scoped --template ./templates/PerformanceReview.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - Timesheet - {{timesheet.period}}.html --scoped --template ./templates/Timesheet.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - Leave Request - {{leave-request.id}}.html --scoped --template ./templates/LeaveRequest.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - Benefits Summary.html --scoped --template ./templates/BenefitsSummary.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - Emergency Contact.html --scoped --template ./templates/EmergencyContact.txt)
+    - CREATE_FILE({{basic-info.employee-id}} - {{recognition.type}} - {{recognition.date}}.html --scoped --template ./templates/EmployeeRecognition.txt)

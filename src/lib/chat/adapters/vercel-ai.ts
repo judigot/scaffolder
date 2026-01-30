@@ -6,23 +6,23 @@
  */
 
 import type {
-	ChatAdapter,
-	ChatAdapterCallbacks,
-	ChatMessage,
-	ChatSessionConfig,
-} from "../types";
+	IChatAdapter,
+	IChatAdapterCallbacks,
+	IChatMessage,
+	IChatSessionConfig,
+} from "../types.ts";
 
 /**
  * Creates a Vercel AI SDK adapter for streaming chat.
  * Uses fetch with SSE parsing to stream responses from Vercel AI SDK compatible endpoints.
  */
-export function createVercelAIAdapter(): ChatAdapter {
+export function createVercelAIAdapter(): IChatAdapter {
 	let abortController: AbortController | null = null;
 
 	const send = (
 		content: string,
-		config: ChatSessionConfig,
-		callbacks: ChatAdapterCallbacks,
+		config: IChatSessionConfig,
+		callbacks: IChatAdapterCallbacks,
 	): void => {
 		// Abort any existing request
 		if (abortController) {
@@ -30,7 +30,7 @@ export function createVercelAIAdapter(): ChatAdapter {
 		}
 		abortController = new AbortController();
 
-		const messageId = `msg-${Date.now()}`;
+		const messageId = `msg-${String(Date.now())}`;
 		callbacks.onMessageStart(messageId);
 
 		let fullContent = "";
@@ -46,7 +46,8 @@ export function createVercelAIAdapter(): ChatAdapter {
 					body: JSON.stringify({
 						messages: [{ role: "user", content }],
 						model: config.model,
-						...(config.systemPrompt && { system: config.systemPrompt }),
+						...(config.systemPrompt !== undefined &&
+							config.systemPrompt !== "" && { system: config.systemPrompt }),
 					}),
 					signal: abortController?.signal,
 				});
@@ -54,7 +55,7 @@ export function createVercelAIAdapter(): ChatAdapter {
 				if (!response.ok) {
 					const errorText = await response.text();
 					callbacks.onError({
-						message: `Request failed: ${response.status}`,
+						message: `Request failed: ${String(response.status)}`,
 						code: String(response.status),
 						details: errorText,
 					});
@@ -69,9 +70,12 @@ export function createVercelAIAdapter(): ChatAdapter {
 
 				const decoder = new TextDecoder();
 
+				// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- reader.read() returns done: true when stream ends
 				while (true) {
 					const { done, value } = await reader.read();
-					if (done) break;
+					if (done) {
+						break;
+					}
 
 					const chunk = decoder.decode(value, { stream: true });
 					const lines = chunk.split("\n");
@@ -80,7 +84,8 @@ export function createVercelAIAdapter(): ChatAdapter {
 						if (line.startsWith("0:")) {
 							// Vercel AI SDK text stream format: 0:"text content"
 							try {
-								const text = JSON.parse(line.slice(2)) as string;
+								const parsed: unknown = JSON.parse(line.slice(2));
+								const text = typeof parsed === "string" ? parsed : "";
 								fullContent += text;
 								callbacks.onStreamingText(fullContent, messageId);
 							} catch {
@@ -93,7 +98,7 @@ export function createVercelAIAdapter(): ChatAdapter {
 					}
 				}
 
-				const message: ChatMessage = {
+				const message: IChatMessage = {
 					id: messageId,
 					role: "assistant",
 					content: fullContent,

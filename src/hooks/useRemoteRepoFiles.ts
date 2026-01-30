@@ -94,8 +94,8 @@ const fetchLocalRepoFiles = async (
 		const headers: Record<string, string> = {
 			"Content-Type": "application/json",
 		};
-		if (authToken) {
-			headers["Authorization"] = `Bearer ${authToken}`;
+		if (authToken !== undefined && authToken !== "") {
+			headers.Authorization = `Bearer ${authToken}`;
 		}
 
 		const response = await fetch(`${getApiUrl()}/local-repo/files`, {
@@ -113,7 +113,11 @@ const fetchLocalRepoFiles = async (
 		}
 
 		const data: unknown = await response.json();
-		const typedData = data as ILocalFilesResponse;
+		const isLocalFilesResponse = (val: unknown): val is ILocalFilesResponse =>
+			typeof val === "object" && val !== null && "ok" in val;
+		const typedData: ILocalFilesResponse = isLocalFilesResponse(data)
+			? data
+			: { ok: false };
 
 		if (typedData.ok && typedData.files && isStructure(typedData.files)) {
 			return {
@@ -187,14 +191,16 @@ const fetchRemoteRepoFiles = async (
 			params.authToken,
 		);
 		if (localResult) {
-			console.log(
+			console.warn(
 				`[useRemoteRepoFiles] Using local clone: ${localResult.localPath}`,
 			);
 			return localResult.files;
 		}
 
 		// Fall back to remote
-		console.log(`[useRemoteRepoFiles] Fetching from remote: ${params.repoUrl}`);
+		console.warn(
+			`[useRemoteRepoFiles] Fetching from remote: ${params.repoUrl}`,
+		);
 		return await fetchRemoteRepoFilesOnly(params.repoUrl);
 	} catch (error: unknown) {
 		if (error instanceof Error) {
@@ -222,7 +228,9 @@ export const useRemoteRepoFiles = (
 		queryKey: [
 			"remoteRepoFiles",
 			params.repoUrl,
-			params.authToken ? "withAuth" : "noAuth",
+			params.authToken !== undefined && params.authToken !== ""
+				? "withAuth"
+				: "noAuth",
 		],
 		queryFn: () =>
 			fetchRemoteRepoFiles({

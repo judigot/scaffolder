@@ -1,0 +1,32 @@
+element:
+  symbol: "H"
+  name: "Hydrogen"
+  atomic-number: 1
+  atomic-mass: "1.008"
+  group: 1
+  period: 1
+  block: "s"
+  category: "Nonmetal"
+  electron-configuration: "1s¹"
+  electronegativity: 2.20
+  density: "0.00008988 g/cm³"
+  melting-point: "-259.16°C"
+  boiling-point: "-252.87°C"
+  state-at-room-temp: "Gas"
+  color: "Colorless"
+  discovery-year: 1766
+  discoverer: "Henry Cavendish"
+  uses: "Fuel cells, rocket fuel, ammonia production, hydrogenation of fats"
+  description: "Hydrogen is the lightest and most abundant element in the universe. It is a colorless, odorless, tasteless gas that is highly flammable."
+  safety-notes: "Highly flammable. Forms explosive mixtures with air. Handle with extreme caution."
+  isotopes:
+    - name: "Protium"
+      mass-number: 1
+      abundance: "99.985%"
+    - name: "Deuterium"
+      mass-number: 2
+      abundance: "0.015%"
+    - name: "Tritium"
+      mass-number: 3
+      abundance: "Trace (radioactive)"
+

@@ -1,13 +1,13 @@
 import { spawn as nodeSpawn } from "node:child_process";
 import { getGitHubToken } from "./auth0Service.ts";
 
-interface CommandResult {
+interface ICommandResult {
 	exitCode: number;
 	stdout: string;
 	stderr: string;
 }
 
-interface BunRuntime {
+interface IBunRuntime {
 	spawn: (
 		args: string[],
 		options: {
@@ -24,28 +24,54 @@ interface BunRuntime {
 	};
 }
 
-function getBunRuntime(): BunRuntime | null {
-	const globalWithBun = globalThis as { Bun?: unknown };
-	const maybeBun = globalWithBun.Bun;
-	if (!maybeBun || typeof maybeBun !== "object") {
+function hasSpawnFunction(
+	value: Record<string, unknown>,
+): value is Record<string, unknown> & { spawn: unknown } {
+	return typeof value.spawn === "function";
+}
+
+function isBunRuntime(value: unknown): value is IBunRuntime {
+	if (typeof value !== "object" || value === null || !("spawn" in value)) {
+		return false;
+	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
+	const record = value as Record<string, unknown>;
+	return hasSpawnFunction(record);
+}
+
+function getGlobalAsRecord(): Record<string, unknown> {
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
+	return globalThis as unknown as Record<string, unknown>;
+}
+
+function getBunRuntime(): IBunRuntime | null {
+	const g = getGlobalAsRecord();
+	if (!("Bun" in g)) {
+		return null;
+	}
+	const maybeBun = g.Bun;
+	if (
+		maybeBun === null ||
+		maybeBun === undefined ||
+		typeof maybeBun !== "object"
+	) {
 		return null;
 	}
 
-	const candidate = maybeBun as Partial<BunRuntime>;
-	if (typeof candidate.spawn !== "function") {
+	if (!isBunRuntime(maybeBun)) {
 		return null;
 	}
 
-	return candidate as BunRuntime;
+	return maybeBun;
 }
 
 async function runCommand(
 	args: string[],
 	options?: { cwd?: string; env?: Record<string, string> },
-): Promise<CommandResult> {
+): Promise<ICommandResult> {
 	const bun = getBunRuntime();
 
-	if (bun) {
+	if (bun !== null) {
 		const proc = bun.spawn(args, {
 			cwd: options?.cwd,
 			env: options?.env,
@@ -61,8 +87,8 @@ async function runCommand(
 
 		return {
 			exitCode,
-			stdout: stdout || "",
-			stderr: stderr || "",
+			stdout,
+			stderr,
 		};
 	}
 
@@ -75,10 +101,10 @@ async function runCommand(
 		let stdout = "";
 		let stderr = "";
 
-		proc.stdout?.on("data", (chunk: Buffer) => {
+		proc.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();
 		});
-		proc.stderr?.on("data", (chunk: Buffer) => {
+		proc.stderr.on("data", (chunk: Buffer) => {
 			stderr += chunk.toString();
 		});
 
@@ -92,10 +118,35 @@ async function runCommand(
 	});
 }
 
-export interface PRInfo {
+export interface IPRInfo {
 	number: number;
 	title: string;
 	url: string;
+}
+
+interface IPRFromApi {
+	number: number;
+	title: string;
+	url: string;
+}
+
+function isPRFromApi(value: unknown): value is IPRFromApi {
+	if (
+		typeof value !== "object" ||
+		value === null ||
+		!("number" in value) ||
+		!("title" in value) ||
+		!("url" in value)
+	) {
+		return false;
+	}
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
+	const record = value as Record<string, unknown>;
+	return (
+		typeof record.number === "number" &&
+		typeof record.title === "string" &&
+		typeof record.url === "string"
+	);
 }
 
 /**
@@ -105,10 +156,10 @@ export async function createPullRequest(
 	worktreePath: string,
 	branch: string,
 	auth0UserId: string,
-): Promise<PRInfo> {
+): Promise<IPRInfo> {
 	// Get GitHub token
 	const token = await getGitHubToken(auth0UserId);
-	if (!token) {
+	if (token === null || token === "") {
 		throw new Error("GitHub token not found");
 	}
 
@@ -160,11 +211,13 @@ export async function createPullRequest(
 	// 5. Get PR number from URL
 	// https://github.com/owner/repo/pull/42 → 42
 	const prNumberMatch = /\/pull\/(\d+)$/.exec(prUrl);
-	const prNumber = prNumberMatch?.[1]
-		? Number.parseInt(prNumberMatch[1], 10)
-		: 0;
+	const prNumberStr = prNumberMatch !== null ? prNumberMatch[1] : undefined;
+	const prNumber =
+		prNumberStr !== undefined && prNumberStr !== ""
+			? Number.parseInt(prNumberStr, 10)
+			: 0;
 
-	if (!prNumber) {
+	if (prNumber === 0) {
 		throw new Error("Could not parse PR number from URL");
 	}
 
@@ -182,9 +235,9 @@ export async function getPRForBranch(
 	repoPath: string,
 	branch: string,
 	auth0UserId: string,
-): Promise<PRInfo | null> {
+): Promise<IPRInfo | null> {
 	const token = await getGitHubToken(auth0UserId);
-	if (!token) {
+	if (token === null || token === "") {
 		return null;
 	}
 
@@ -204,14 +257,16 @@ export async function getPRForBranch(
 	}
 
 	try {
-		const prs = JSON.parse(result.stdout);
+		const prs: unknown = JSON.parse(result.stdout);
 		if (Array.isArray(prs) && prs.length > 0) {
-			const pr = prs[0];
-			return {
-				number: pr.number,
-				title: pr.title,
-				url: pr.url,
-			};
+			const pr: unknown = prs[0];
+			if (isPRFromApi(pr)) {
+				return {
+					number: pr.number,
+					title: pr.title,
+					url: pr.url,
+				};
+			}
 		}
 	} catch {
 		// JSON parse error

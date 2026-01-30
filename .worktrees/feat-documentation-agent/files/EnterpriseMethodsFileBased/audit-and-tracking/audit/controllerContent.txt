@@ -1,0 +1,21 @@
+        $validated = $request->validate([
+            'action' => 'required|string|in:create,update,delete,view,export',
+            'entity_type' => 'required|string',
+            'entity_id' => 'required',
+            'old_values' => 'nullable|array',
+            'new_values' => 'nullable|array',
+            'user_id' => 'nullable|integer',
+            'metadata' => 'nullable|array',
+        ]);
+
+        $auditLog = $this->service->createAuditLog(
+            $validated['action'],
+            $validated['entity_type'],
+            $validated['entity_id'],
+            $validated['old_values'] ?? null,
+            $validated['new_values'] ?? null,
+            $validated['user_id'] ?? auth()->id(),
+            $validated['metadata'] ?? null
+        );
+
+        return response()->json(['data' => $auditLog], 201); 

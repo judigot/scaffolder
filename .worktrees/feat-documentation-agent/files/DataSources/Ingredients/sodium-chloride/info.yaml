@@ -1,0 +1,23 @@
+ingredient:
+  name: "Sodium Chloride"
+  common-name: "Table Salt"
+  chemical-formula: "NaCl"
+  cas-number: "7647-14-5"
+  molecular-weight: "58.44 g/mol"
+  category: "Mineral, Electrolyte"
+  source: "Sea water, rock salt deposits"
+  purity: "Food grade: 99.9%"
+  appearance: "White crystalline solid"
+  solubility: "Highly soluble in water (35.9 g/100ml at 20°C)"
+  melting-point: "801°C"
+  boiling-point: "1465°C"
+  ph: "Neutral (7.0)"
+  uses: "Food seasoning, food preservation, water treatment, de-icing roads, chemical manufacturing, medical applications"
+  nutritional-value:
+    sodium: "39.3%"
+    chloride: "60.7%"
+  health-notes: "Essential for human health. Excessive intake can lead to hypertension. Recommended daily intake: <5g"
+  safety: "Generally safe. High concentrations can cause irritation. Keep away from eyes."
+  storage: "Store in cool, dry place. Protect from moisture."
+  research-applications: "Used in cell culture media, buffer solutions, protein crystallization, and various biochemical assays."
+

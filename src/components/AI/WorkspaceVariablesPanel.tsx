@@ -99,19 +99,24 @@ export function WorkspaceVariablesPanel({
 			if (!response.ok) {
 				throw new Error("Failed to fetch workspace variables");
 			}
+			// eslint-disable-next-line no-type-assertion/no-type-assertion
 			return (await response.json()) as IVariablesResponse;
 		},
 	});
 
 	const userVariables = useMemo(() => {
-		if (!variablesQuery.data?.variables) {return [];}
+		if (variablesQuery.data?.variables === undefined) {
+			return [];
+		}
 		return variablesQuery.data.variables.filter(
 			(v) => !SYSTEM_VARIABLES.has(v.key),
 		);
 	}, [variablesQuery.data]);
 
 	const displayVariables = useMemo(() => {
-		if (hasChanges) {return localVariables;}
+		if (hasChanges) {
+			return localVariables;
+		}
 		return userVariables.map((v) => ({
 			key: v.key,
 			value: v.value ?? "",
@@ -151,11 +156,14 @@ export function WorkspaceVariablesPanel({
 					errorBody !== null &&
 					typeof errorBody === "object" &&
 					"message" in errorBody &&
+					// eslint-disable-next-line no-type-assertion/no-type-assertion
 					typeof (errorBody as Record<string, unknown>).message === "string"
-						? (errorBody as Record<string, string>).message
+						? // eslint-disable-next-line no-type-assertion/no-type-assertion
+							(errorBody as Record<string, string>).message
 						: "Failed to save variables";
 				throw new Error(message);
 			}
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 			return response.json();
 		},
 		onSuccess: () => {
@@ -195,6 +203,7 @@ export function WorkspaceVariablesPanel({
 			const newVars: ILocalVariable[] = hasChanges
 				? [...localVariables]
 				: displayVariables.map((v) => ({ ...v }));
+
 			newVars[index] = { ...newVars[index], [field]: value };
 			setLocalVariables(newVars);
 			setHasChanges(true);
@@ -417,7 +426,7 @@ export function WorkspaceVariablesPanel({
 						<div className="space-y-2">
 							{displayVariables.map((variable, index) => (
 								<div
-									key={`${variable.key}-${index}`}
+									key={`${variable.key}-${String(index)}`}
 									className="flex items-center gap-2"
 								>
 									<input
@@ -489,7 +498,9 @@ export function WorkspaceVariablesPanel({
 						Add Variable
 					</button>
 
-					{error && <p className="text-xs text-red-300">{error}</p>}
+					{error !== null && error !== "" && (
+						<p className="text-xs text-red-300">{error}</p>
+					)}
 
 					{hasChanges && (
 						<div className="flex items-center gap-2 pt-2">
@@ -521,7 +532,7 @@ export function WorkspaceVariablesPanel({
 				</>
 			)}
 
-			{clipboardToast && (
+			{clipboardToast !== null && clipboardToast !== "" && (
 				<div className="fixed bottom-4 right-4 px-4 py-2 bg-bg-muted border border-border rounded-lg shadow-lg text-sm text-fg animate-in fade-in slide-in-from-bottom-2 z-50">
 					{clipboardToast}
 				</div>

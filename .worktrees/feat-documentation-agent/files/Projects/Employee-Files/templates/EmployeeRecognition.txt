@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Recognition - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+    .container { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+    .header { text-align: center; border-bottom: 4px solid #f39c12; padding-bottom: 30px; margin-bottom: 40px; }
+    .trophy { font-size: 4em; margin-bottom: 20px; }
+    .recognition-type { font-size: 2.5em; font-weight: bold; color: #f39c12; margin-bottom: 10px; }
+    .employee-name { font-size: 2em; color: #2c3e50; margin-top: 15px; }
+    .section { margin: 30px 0; }
+    .section-title { font-size: 1.4em; font-weight: bold; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
+    .info-row { margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #3498db; }
+    .label { font-weight: 600; color: #555; display: block; margin-bottom: 5px; }
+    .value { color: #2c3e50; font-size: 1.1em; line-height: 1.6; }
+    .presented-by { text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid #ecf0f1; }
+    .signature { font-size: 1.2em; font-weight: bold; color: #2c3e50; margin-top: 10px; }
+    .date { color: #7f8c8d; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="trophy">🏆</div>
+      <div class="recognition-type">[[USE_DATA(recognition.type)]]</div>
+      <div class="employee-name">[[USE_DATA(basic-info.name)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Recognition Details</div>
+      <div class="info-row">
+        <span class="label">Recognition Date:</span>
+        <span class="value">[[USE_DATA(recognition.date)]]</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Reason for Recognition:</span>
+        <span class="value">[[USE_DATA(recognition.reason)]]</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Description</div>
+      <div class="value">[[USE_DATA(recognition.description)]]</div>
+    </div>
+
+    <div class="presented-by">
+      <div class="label">Presented By</div>
+      <div class="signature">[[USE_DATA(recognition.presented-by)]]</div>
+      <div class="date">[[USE_DATA(recognition.date)]]</div>
+    </div>
+  </div>
+</body>
+</html>
+

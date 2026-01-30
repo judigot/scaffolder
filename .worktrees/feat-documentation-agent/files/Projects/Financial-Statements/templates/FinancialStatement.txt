@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Statement - [[USE_DATA(financial-statement.company-name)]] - [[USE_DATA(financial-statement.period)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; border-bottom: 4px solid #2c3e50; padding-bottom: 25px; margin-bottom: 30px; }
+    .company-name { font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    .statement-title { font-size: 1.8em; color: #34495e; margin-bottom: 10px; }
+    .period { font-size: 1.3em; color: #7f8c8d; }
+    .section { margin: 35px 0; }
+    .section-title { font-size: 1.6em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
+    .financial-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .financial-table th { background: #2c3e50; color: white; padding: 15px; text-align: left; }
+    .financial-table td { padding: 12px 15px; border-bottom: 1px solid #ecf0f1; }
+    .financial-table tr:hover { background: #f8f9fa; }
+    .text-right { text-align: right; }
+    .amount { font-weight: bold; }
+    .subtotal { background: #e8f5e9; font-weight: bold; }
+    .total { background: #c8e6c9; font-weight: bold; font-size: 1.1em; }
+    .profit-positive { color: #4caf50; }
+    .profit-negative { color: #f44336; }
+    .summary-box { background: #e3f2fd; padding: 25px; border-radius: 5px; margin: 30px 0; border-left: 4px solid #2196f3; }
+    .summary-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 1.1em; }
+    .summary-row.total { font-size: 1.5em; font-weight: bold; border-top: 2px solid #2196f3; padding-top: 15px; margin-top: 10px; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="company-name">[[USE_DATA(financial-statement.company-name)]]</div>
+      <div class="statement-title">[[USE_DATA(financial-statement.statement-type)]]</div>
+      <div class="period">[[USE_DATA(financial-statement.period)]]</div>
+      <div style="margin-top: 15px; color: #7f8c8d; font-size: 1em;">
+        Period: [[USE_DATA(financial-statement.period-start)]] to [[USE_DATA(financial-statement.period-end)]]
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Revenue</div>
+      <table class="financial-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th class="text-right">Amount</th>
+            <th class="text-right">Percentage</th>
+          </tr>
+        </thead>
+        <tbody>
+          [[USE_DATA(revenue.categories)]]
+          <tr class="subtotal">
+            <td><strong>Total Revenue</strong></td>
+            <td class="text-right amount">$[[USE_DATA(revenue.total)]]</td>
+            <td class="text-right">100%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Expenses</div>
+      <table class="financial-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th class="text-right">Amount</th>
+            <th class="text-right">Percentage</th>
+          </tr>
+        </thead>
+        <tbody>
+          [[USE_DATA(expenses.categories)]]
+          <tr class="subtotal">
+            <td><strong>Total Expenses</strong></td>
+            <td class="text-right amount">$[[USE_DATA(expenses.total)]]</td>
+            <td class="text-right">100%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="summary-box">
+      <div class="section-title">Financial Summary</div>
+      <div class="summary-row">
+        <div>Gross Profit:</div>
+        <div class="amount profit-positive">$[[USE_DATA(profit.gross-profit)]]</div>
+      </div>
+      <div class="summary-row">
+        <div>Operating Profit:</div>
+        <div class="amount profit-positive">$[[USE_DATA(profit.operating-profit)]]</div>
+      </div>
+      <div class="summary-row">
+        <div>Income Tax:</div>
+        <div class="amount">$[[USE_DATA(taxes.income-tax)]] ([[USE_DATA(taxes.tax-rate)]]%)</div>
+      </div>
+      <div class="summary-row total">
+        <div>Net Profit:</div>
+        <div class="amount profit-positive">$[[USE_DATA(profit.net-profit)]]</div>
+      </div>
+      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #90caf9;">
+        <div style="text-align: center; color: #1976d2; font-weight: bold;">
+          Profit Margin: [[USE_DATA(profit.profit-margin)]]%
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>Prepared By:</strong> [[USE_DATA(prepared-by.name)]], [[USE_DATA(prepared-by.title)]]</p>
+      <p><strong>Date:</strong> [[USE_DATA(prepared-by.date)]]</p>
+      <p style="margin-top: 20px;">
+        <strong>[[USE_DATA(company.name)]]</strong><br>
+        [[USE_DATA(company.address)]], [[USE_DATA(company.city)]], [[USE_DATA(company.state)]] [[USE_DATA(company.zip)]]<br>
+        Tax ID: [[USE_DATA(company.tax-id)]]
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+

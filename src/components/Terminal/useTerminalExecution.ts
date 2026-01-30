@@ -24,6 +24,27 @@ interface ICommandResult {
 	error?: string;
 }
 
+/** API response shape for terminal execution */
+interface ITerminalExecuteResponse {
+	success: boolean;
+	stdout?: string;
+	stderr?: string;
+	message?: string;
+	error?: string;
+}
+
+/** Type guard for terminal execute response */
+function isTerminalExecuteResponse(
+	data: unknown,
+): data is ITerminalExecuteResponse {
+	return (
+		typeof data === "object" &&
+		data !== null &&
+		"success" in data &&
+		typeof data.success === "boolean"
+	);
+}
+
 /**
  * Hook for executing terminal commands via the existing API
  *
@@ -59,7 +80,13 @@ export function useTerminalExecution({
 
 	// Check connection status when credentials change
 	useEffect(() => {
-		const hasCredentials = Boolean(host && sshPrivateKey && accessToken);
+		const hasCredentials =
+			host !== undefined &&
+			host.length > 0 &&
+			sshPrivateKey !== undefined &&
+			sshPrivateKey.length > 0 &&
+			accessToken !== undefined &&
+			accessToken.length > 0;
 		setIsConnected(hasCredentials);
 		onConnectionChangeRef.current?.(
 			hasCredentials ? "connected" : "disconnected",
@@ -72,7 +99,12 @@ export function useTerminalExecution({
 	 */
 	const executeCommand = useCallback(
 		async (command: string): Promise<ICommandResult> => {
-			if (!host || !sshPrivateKey) {
+			if (
+				host === undefined ||
+				host.length === 0 ||
+				sshPrivateKey === undefined ||
+				sshPrivateKey.length === 0
+			) {
 				const error =
 					"Terminal not connected. Configure SSH credentials in Infra tab.";
 				onErrorRef.current?.(error);
@@ -95,7 +127,7 @@ export function useTerminalExecution({
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-							...(accessToken
+							...(accessToken !== undefined && accessToken.length > 0
 								? { Authorization: `Bearer ${accessToken}` }
 								: {}),
 						},
@@ -110,29 +142,37 @@ export function useTerminalExecution({
 					},
 				);
 
-				const data = await response.json();
+				const rawData: unknown = await response.json();
+
+				if (!isTerminalExecuteResponse(rawData)) {
+					throw new Error(
+						`Invalid response format: Error ${String(response.status)}`,
+					);
+				}
+
+				const data = rawData;
 
 				if (!response.ok) {
 					const errorMessage =
-						data.message || data.error || `Error ${response.status}`;
+						data.message ?? data.error ?? `Error ${String(response.status)}`;
 					throw new Error(errorMessage);
 				}
 
 				// Handle response
-				const output = data.stdout || "";
-				const stderr = data.stderr || "";
+				const output = data.stdout ?? "";
+				const stderr = data.stderr ?? "";
 
-				if (output) {
+				if (output.length > 0) {
 					onOutputRef.current?.(output);
 				}
 
-				if (stderr && !data.success) {
+				if (stderr.length > 0 && !data.success) {
 					onErrorRef.current?.(stderr);
 				}
 
 				const result: ICommandResult = {
 					success: data.success,
-					output: output || stderr,
+					output: output.length > 0 ? output : stderr,
 					error: data.success ? undefined : stderr,
 				};
 

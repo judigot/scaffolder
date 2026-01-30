@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice [[USE_DATA(invoice.number)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 3px solid #333; padding-bottom: 20px; }
+    .company-info { }
+    .invoice-info { text-align: right; }
+    .invoice-title { font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    .invoice-number { font-size: 1.2em; color: #7f8c8d; }
+    .billing-section { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin: 30px 0; }
+    .billing-box { background: #f8f9fa; padding: 20px; border-radius: 5px; }
+    .billing-label { font-weight: bold; color: #34495e; margin-bottom: 10px; }
+    .items-table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+    .items-table th { background: #2c3e50; color: white; padding: 15px; text-align: left; }
+    .items-table td { padding: 12px; border-bottom: 1px solid #ecf0f1; }
+    .items-table tr:hover { background: #f8f9fa; }
+    .text-right { text-align: right; }
+    .totals { margin-top: 30px; }
+    .total-row { display: flex; justify-content: space-between; padding: 10px 0; }
+    .total-row.final { font-size: 1.3em; font-weight: bold; border-top: 2px solid #333; padding-top: 15px; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ecf0f1; color: #7f8c8d; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="company-info">
+      <div style="font-size: 1.5em; font-weight: bold; color: #2c3e50;">[[USE_DATA(company.name)]]</div>
+      <div>[[USE_DATA(company.address)]]</div>
+      <div>[[USE_DATA(company.city)]], [[USE_DATA(company.state)]] [[USE_DATA(company.zip)]]</div>
+      <div>Phone: [[USE_DATA(company.phone)]]</div>
+      <div>Email: [[USE_DATA(company.email)]]</div>
+    </div>
+    <div class="invoice-info">
+      <div class="invoice-title">INVOICE</div>
+      <div class="invoice-number">#[[USE_DATA(invoice.number)]]</div>
+      <div style="margin-top: 20px;">
+        <div><strong>Date:</strong> [[USE_DATA(invoice.date)]]</div>
+        <div><strong>Due Date:</strong> [[USE_DATA(invoice.due-date)]]</div>
+        <div><strong>Terms:</strong> [[USE_DATA(invoice.terms)]]</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="billing-section">
+    <div class="billing-box">
+      <div class="billing-label">Bill To:</div>
+      <div>[[USE_DATA(client.name)]]</div>
+      <div>[[USE_DATA(client.address)]]</div>
+      <div>[[USE_DATA(client.city)]], [[USE_DATA(client.state)]] [[USE_DATA(client.zip)]]</div>
+    </div>
+    <div class="billing-box">
+      <div class="billing-label">Ship To:</div>
+      <div>[[USE_DATA(ship-to.name)]]</div>
+      <div>[[USE_DATA(ship-to.address)]]</div>
+      <div>[[USE_DATA(ship-to.city)]], [[USE_DATA(ship-to.state)]] [[USE_DATA(ship-to.zip)]]</div>
+    </div>
+  </div>
+
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="text-right">Quantity</th>
+        <th class="text-right">Unit Price</th>
+        <th class="text-right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      [[USE_DATA(invoice.items)]]
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="total-row">
+      <div>Subtotal:</div>
+      <div>$[[USE_DATA(invoice.subtotal)]]</div>
+    </div>
+    <div class="total-row">
+      <div>Tax ([[USE_DATA(invoice.tax-rate)]]%):</div>
+      <div>$[[USE_DATA(invoice.tax)]]</div>
+    </div>
+    <div class="total-row">
+      <div>Discount:</div>
+      <div>-$[[USE_DATA(invoice.discount)]]</div>
+    </div>
+    <div class="total-row final">
+      <div>Total:</div>
+      <div>$[[USE_DATA(invoice.total)]]</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p><strong>Payment Instructions:</strong></p>
+    <p>[[USE_DATA(invoice.payment-instructions)]]</p>
+    <p style="margin-top: 20px;">Thank you for your business!</p>
+  </div>
+</body>
+</html>
+

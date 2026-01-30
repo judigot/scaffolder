@@ -13,9 +13,9 @@ export default function TopNav({
 }: ITopNavProps) {
 	const { topLevelTab: activeTab, setTopLevelTab: onTabChange } = useUIStore();
 	const { user } = useUser();
-	const showMasterView = isMasterDeveloper(
-		user?.nickname as string | undefined,
-	);
+	const nickname =
+		typeof user?.nickname === "string" ? user.nickname : undefined;
+	const showMasterView = isMasterDeveloper(nickname);
 	const showConfigBanner =
 		!isUserLoading &&
 		serverConfigStatus !== null &&

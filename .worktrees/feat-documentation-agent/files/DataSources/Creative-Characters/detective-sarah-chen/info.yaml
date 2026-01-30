@@ -1,0 +1,71 @@
+character:
+  name: "Detective Sarah Chen"
+  role: "Protagonist"
+  age: 35
+  gender: "Female"
+  species: "Human"
+  appearance:
+    height: "5'6\""
+    build: "Athletic"
+    hair-color: "Black"
+    eye-color: "Brown"
+    distinguishing-features: "Sharp eyes, always observant"
+    clothing-style: "Professional, practical detective attire"
+  
+  personality:
+    traits: ["Analytical", "Persistent", "Intuitive", "Guarded"]
+    strengths: ["Excellent observation skills", "Logical thinking", "Determination"]
+    weaknesses: ["Trust issues", "Workaholic", "Emotionally distant"]
+    fears: ["Failing to solve a case", "Losing another partner"]
+    motivations: ["Seek justice", "Solve the mystery", "Protect the innocent"]
+  
+  background:
+    origin: "Born and raised in San Francisco"
+    family: "Only child, parents are retired"
+    education: "Criminal Justice degree, FBI Academy"
+    occupation: "Detective, San Francisco Police Department"
+    significant-events:
+      - "Age 25: Joined FBI"
+      - "Age 30: Left FBI after partner's death"
+      - "Age 32: Joined SFPD as detective"
+      - "Age 35: Midnight Killer case"
+  
+  abilities:
+    primary: "Investigation"
+    skills:
+      - name: "Crime Scene Analysis"
+        level: "Expert"
+        description: "Can read crime scenes like a book"
+      - name: "Interrogation"
+        level: "Advanced"
+        description: "Skilled at getting information from suspects"
+      - name: "Forensics"
+        level: "Advanced"
+        description: "Knowledge of forensic science"
+      - name: "Profiling"
+        level: "Intermediate"
+        description: "Can profile criminals based on evidence"
+  
+  relationships:
+    - name: "Dr. Michael Roberts"
+      type: "Ally"
+      description: "Forensic pathologist, trusted colleague"
+    - name: "The Midnight Killer"
+      type: "Enemy"
+      description: "The killer she's hunting"
+  
+  story-arc:
+    beginning: "Assigned to the midnight murders case"
+    middle: "Discovers pattern and gets closer to the killer"
+    end: "Solves the case and brings the killer to justice"
+  
+  quotes:
+    - "Every detail matters. Nothing is coincidence."
+    - "I've seen too much to believe in happy endings."
+    - "The truth always comes out, even at midnight."
+
+tags:
+  Book: "Mystery at Midnight"
+  Genre: "Mystery"
+  Importance: "Main Character"
+

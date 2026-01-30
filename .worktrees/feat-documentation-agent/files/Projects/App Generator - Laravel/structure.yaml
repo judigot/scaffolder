@@ -1,0 +1,26 @@
+app:
+    Http:
+        Controllers:
+            - IMPORT_PROJECT(Projects/App Generator - Next.js.yaml)
+            - CREATE_FILE(BaseController.php --template ./templates/BaseController.txt)
+            - CREATE_FILE(AuthController.php --conditions hasUsers=true --template ./templates/AuthController.txt)
+            - FILE_LOOP({{tableNamePascalCaseSingular}}Controller.php --template ./templates/Controller.txt)
+        Resources:
+            - FILE_LOOP({{tableNamePascalCaseSingular}}Resource.php --template ./templates/Resource.txt)
+    Models:
+        - FILE_LOOP({{tableNamePascalCaseSingular}}.php --template ./templates/Model.txt)
+    Providers:
+        - CREATE_FILE(AppServiceProvider.php --template ./templates/AppServiceProvider.txt)
+    Repositories:
+        - CREATE_FILE(BaseInterface.php --template ./templates/BaseInterface.txt)
+        - CREATE_FILE(BaseRepository.php --template ./templates/BaseRepository.txt)
+        - FILE_LOOP({{tableNamePascalCaseSingular}}Repository.php --template ./templates/Repository.txt)
+        - FILE_LOOP({{tableNamePascalCaseSingular}}Interface.php --template ./templates/Interface.txt)
+    Services:
+        - CREATE_FILE(BaseService.php --template ./templates/BaseService.txt)
+        - FILE_LOOP({{tableNamePascalCaseSingular}}Service.php --template ./templates/Service.txt)
+routes:
+    - CREATE_FILE(api.php --template ./templates/api.txt)
+    - FILE_LOOP({{tableNameKebabCasePlural}}.php --template ./templates/Route.txt)
+
+# IMPORT_PROJECT(Projects/App Generator - Next.js/structure.yaml):

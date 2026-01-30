@@ -1,0 +1,17 @@
+src:
+  modules:
+    dashboard:
+      components:
+        - CREATE_FILE(Dashboard.tsx --template /Templates/frontend/react/components/Dashboard.txt)
+        - CREATE_FILE(Sidebar.tsx --template /Templates/frontend/react/components/Sidebar.txt)
+      helpers:
+        utils:
+          formatters:
+            - CREATE_FILE(dateFormatter.ts --template /Templates/frontend/react/utils/dateFormatter.txt)
+            - deeply:
+                nested:
+                  structure:
+                    with:
+                      circular:
+                        reference:
+                          - IMPORT_PROJECT(Projects/NestedC.yaml) 

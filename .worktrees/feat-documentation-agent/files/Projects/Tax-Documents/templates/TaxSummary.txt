@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Summary - [[USE_DATA(tax-document.taxpayer-name)]] - [[USE_DATA(tax-document.tax-year)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; border-bottom: 4px solid #f44336; padding-bottom: 25px; margin-bottom: 30px; }
+    .title { font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    .subtitle { font-size: 1.3em; color: #7f8c8d; }
+    .taxpayer-info { background: #ffebee; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f44336; }
+    .section { margin: 35px 0; }
+    .section-title { font-size: 1.6em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
+    .tax-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .tax-table th { background: #f44336; color: white; padding: 15px; text-align: left; }
+    .tax-table td { padding: 12px 15px; border-bottom: 1px solid #ecf0f1; }
+    .tax-table tr:hover { background: #f8f9fa; }
+    .text-right { text-align: right; }
+    .summary-box { background: #fff3e0; padding: 25px; border-radius: 5px; margin: 30px 0; border-left: 4px solid #ff9800; }
+    .summary-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 1.1em; }
+    .summary-row.total { font-size: 1.5em; font-weight: bold; border-top: 2px solid #ff9800; padding-top: 15px; margin-top: 10px; }
+    .refund-box { background: #e8f5e9; padding: 25px; border-radius: 5px; margin: 30px 0; border-left: 4px solid #4caf50; text-align: center; }
+    .owed-box { background: #ffebee; padding: 25px; border-radius: 5px; margin: 30px 0; border-left: 4px solid #f44336; text-align: center; }
+    .amount-large { font-size: 2em; font-weight: bold; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">TAX SUMMARY</div>
+      <div class="subtitle">Tax Year [[USE_DATA(tax-document.tax-year)]]</div>
+      <div style="margin-top: 15px; color: #7f8c8d;">
+        Document Type: [[USE_DATA(tax-document.type)]]
+      </div>
+    </div>
+
+    <div class="taxpayer-info">
+      <div style="font-weight: bold; margin-bottom: 10px;">Taxpayer Information</div>
+      <div>Name: [[USE_DATA(tax-document.taxpayer-name)]]</div>
+      <div>SSN: [[USE_DATA(tax-document.taxpayer-ssn)]]</div>
+      <div>Filing Status: [[USE_DATA(tax-document.filing-status)]]</div>
+      <div>Address: [[USE_DATA(address.street)]], [[USE_DATA(address.city)]], [[USE_DATA(address.state)]] [[USE_DATA(address.zip)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Income</div>
+      <table class="tax-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          [[USE_DATA(income.sources)]]
+          <tr style="background: #ffebee; font-weight: bold;">
+            <td>Total Income</td>
+            <td class="text-right">$[[USE_DATA(income.total)]]</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Deductions & Adjustments</div>
+      <div class="summary-box">
+        <div class="summary-row">
+          <div>Standard Deduction:</div>
+          <div>$[[USE_DATA(deductions.standard-deduction)]]</div>
+        </div>
+        <div class="summary-row">
+          <div>Itemized Deductions:</div>
+          <div>$[[USE_DATA(deductions.itemized-deductions)]]</div>
+        </div>
+        <div class="summary-row">
+          <div>Total Deductions:</div>
+          <div><strong>$[[USE_DATA(deductions.total-deductions)]]</strong></div>
+        </div>
+        <div class="summary-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcc80;">
+          <div>Adjustments to Income:</div>
+          <div>$[[USE_DATA(adjustments.total)]]</div>
+        </div>
+        <div class="summary-row total">
+          <div>Taxable Income:</div>
+          <div><strong>$[[USE_DATA(taxable-income)]]</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Tax Liability</div>
+      <table class="tax-table">
+        <thead>
+          <tr>
+            <th>Tax Type</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Federal Income Tax</td>
+            <td class="text-right">$[[USE_DATA(tax-liability.federal-income-tax)]]</td>
+          </tr>
+          <tr>
+            <td>State Income Tax</td>
+            <td class="text-right">$[[USE_DATA(tax-liability.state-income-tax)]]</td>
+          </tr>
+          <tr>
+            <td>Local Tax</td>
+            <td class="text-right">$[[USE_DATA(tax-liability.local-tax)]]</td>
+          </tr>
+          <tr style="background: #ffebee; font-weight: bold;">
+            <td>Total Tax Liability</td>
+            <td class="text-right">$[[USE_DATA(tax-liability.total-tax)]]</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Tax Credits</div>
+      <div class="summary-box">
+        <div class="summary-row">
+          <div>Total Credits:</div>
+          <div>$[[USE_DATA(credits.total)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Payments & Withholdings</div>
+      <table class="tax-table">
+        <thead>
+          <tr>
+            <th>Payment Type</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Federal Withholding</td>
+            <td class="text-right">$[[USE_DATA(payments.federal-withholding)]]</td>
+          </tr>
+          <tr>
+            <td>State Withholding</td>
+            <td class="text-right">$[[USE_DATA(payments.state-withholding)]]</td>
+          </tr>
+          <tr>
+            <td>Estimated Payments</td>
+            <td class="text-right">$[[USE_DATA(payments.estimated-payments)]]</td>
+          </tr>
+          <tr style="background: #e3f2fd; font-weight: bold;">
+            <td>Total Payments</td>
+            <td class="text-right">$[[USE_DATA(payments.total-payments)]]</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    {{#if refund-or-owed.type == "Refund"}}
+    <div class="refund-box">
+      <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">REFUND DUE</div>
+      <div class="amount-large" style="color: #4caf50;">$[[USE_DATA(refund-or-owed.amount)]]</div>
+    </div>
+    {{else}}
+    <div class="owed-box">
+      <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">AMOUNT OWED</div>
+      <div class="amount-large" style="color: #f44336;">$[[USE_DATA(refund-or-owed.amount)]]</div>
+    </div>
+    {{/if}}
+
+    <div class="footer">
+      <p><strong>Prepared By:</strong> [[USE_DATA(prepared-by.name)]]</p>
+      <p><strong>Preparer ID:</strong> [[USE_DATA(prepared-by.preparer-id)]]</p>
+      <p><strong>Date:</strong> [[USE_DATA(prepared-by.date)]]</p>
+      <p style="margin-top: 20px; font-size: 0.9em;">
+        This is a summary document. Please consult with a tax professional for detailed tax advice.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+

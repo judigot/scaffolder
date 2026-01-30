@@ -57,7 +57,7 @@ export interface IScaffolderStore {
 		{
 			structure: IStructure;
 			filesUsingUserEnv: string[];
-			filesFailedToFormat: Array<{ path: string; error: string }>;
+			filesFailedToFormat: { path: string; error: string }[];
 		}
 	>;
 	/** Set cache entry for a project */
@@ -66,7 +66,7 @@ export interface IScaffolderStore {
 		cache: {
 			structure: IStructure;
 			filesUsingUserEnv: string[];
-			filesFailedToFormat: Array<{ path: string; error: string }>;
+			filesFailedToFormat: { path: string; error: string }[];
 		},
 	) => void;
 	/** Invalidate (clear) cache for a project */

@@ -1,0 +1,4 @@
+        $column = $request->input('column');
+        $key = $request->input('key', null);
+        $values = $this->service->{{methodNameCamelCase}}($column, $key);
+        return response()->json($values);

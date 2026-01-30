@@ -1,7 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useCallback, useEffect, useState } from "react";
 
-interface RepoStatusInfo {
+interface IRepoStatusInfo {
 	branch: string | null;
 	isDirty: boolean;
 	ahead: number;
@@ -9,7 +9,7 @@ interface RepoStatusInfo {
 	lastCommit: { hash: string; message: string; date: string } | null;
 }
 
-interface RepoStatusPanelProps {
+interface IRepoStatusPanelProps {
 	repoPath: string | undefined;
 	onFetch?: () => void;
 	onPull?: () => void;
@@ -23,16 +23,16 @@ export default function RepoStatusPanel({
 	onFetch,
 	onPull,
 	onDeleteClone,
-}: RepoStatusPanelProps) {
+}: IRepoStatusPanelProps) {
 	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
-	const [status, setStatus] = useState<RepoStatusInfo | null>(null);
+	const [status, setStatus] = useState<IRepoStatusInfo | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [fetchStatus, setFetchStatus] = useState<OperationStatus>("idle");
 	const [pullStatus, setPullStatus] = useState<OperationStatus>("idle");
 
 	const fetchStatus_ = useCallback(async () => {
-		if (!repoPath || !isAuthenticated) {
+		if (repoPath === undefined || repoPath === "" || !isAuthenticated) {
 			return;
 		}
 
@@ -51,13 +51,15 @@ export default function RepoStatusPanel({
 			});
 
 			if (!response.ok) {
+				// eslint-disable-next-line no-type-assertion/no-type-assertion -- API error response shape
 				const errorData = (await response.json().catch(() => ({}))) as {
 					error?: string;
 				};
 				throw new Error(errorData.error ?? "Failed to fetch status");
 			}
 
-			const data = (await response.json()) as RepoStatusInfo & { ok: boolean };
+			// eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
+			const data = (await response.json()) as IRepoStatusInfo & { ok: boolean };
 			if (data.ok) {
 				setStatus(data);
 			}
@@ -74,7 +76,7 @@ export default function RepoStatusPanel({
 	}, [fetchStatus_]);
 
 	const handleFetch = async () => {
-		if (!repoPath || !isAuthenticated) {
+		if (repoPath === undefined || repoPath === "" || !isAuthenticated) {
 			return;
 		}
 
@@ -112,7 +114,7 @@ export default function RepoStatusPanel({
 	};
 
 	const handlePull = async () => {
-		if (!repoPath || !isAuthenticated) {
+		if (repoPath === undefined || repoPath === "" || !isAuthenticated) {
 			return;
 		}
 
@@ -149,7 +151,7 @@ export default function RepoStatusPanel({
 		}
 	};
 
-	if (!repoPath) {
+	if (repoPath === undefined || repoPath === "") {
 		return (
 			<div className="p-3 text-xs text-fg-subtle">No local clone available</div>
 		);
@@ -180,10 +182,12 @@ export default function RepoStatusPanel({
 		return null;
 	}
 
-	const shortHash = status.lastCommit?.hash.slice(0, 7) ?? "";
-	const commitDate = status.lastCommit?.date
-		? new Date(status.lastCommit.date).toLocaleDateString()
-		: "";
+	const shortHash =
+		status.lastCommit !== null ? status.lastCommit.hash.slice(0, 7) : "";
+	const commitDate =
+		status.lastCommit?.date !== undefined && status.lastCommit.date !== ""
+			? new Date(status.lastCommit.date).toLocaleDateString()
+			: "";
 
 	return (
 		<div className="space-y-3">

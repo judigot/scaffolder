@@ -1,5 +1,5 @@
-import { tool, zodSchema } from "ai";
 import type { Octokit } from "@octokit/rest";
+import { tool, zodSchema } from "ai";
 import { z } from "zod";
 
 interface IToolResult {
@@ -27,8 +27,15 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				"Read the contents of a file from the repository. Returns the file content as text.",
 			inputSchema: zodSchema(
 				z.object({
-					path: z.string().describe("Path to the file relative to repository root (e.g., 'src/index.ts')"),
-					branch: z.string().optional().describe("Branch to read from (defaults to base branch)"),
+					path: z
+						.string()
+						.describe(
+							"Path to the file relative to repository root (e.g., 'src/index.ts')",
+						),
+					branch: z
+						.string()
+						.optional()
+						.describe("Branch to read from (defaults to base branch)"),
 				}),
 			),
 			execute: async ({ path, branch }): Promise<IToolResult> => {
@@ -54,7 +61,9 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 						};
 					}
 
-					const content = Buffer.from(response.data.content, "base64").toString("utf-8");
+					const content = Buffer.from(response.data.content, "base64").toString(
+						"utf-8",
+					);
 					return {
 						success: true,
 						output: content,
@@ -79,18 +88,34 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				"Create or update a file in the repository. The file will be committed to the specified branch.",
 			inputSchema: zodSchema(
 				z.object({
-					path: z.string().describe("Path where the file should be created/updated (e.g., 'src/utils/helper.ts')"),
+					path: z
+						.string()
+						.describe(
+							"Path where the file should be created/updated (e.g., 'src/utils/helper.ts')",
+						),
 					content: z.string().describe("The content to write to the file"),
-					branch: z.string().describe("Branch name to commit to (must be a scaffolder/* branch)"),
-					commitMessage: z.string().describe("Commit message describing the change"),
+					branch: z
+						.string()
+						.describe(
+							"Branch name to commit to (must be a scaffolder/* branch)",
+						),
+					commitMessage: z
+						.string()
+						.describe("Commit message describing the change"),
 				}),
 			),
-			execute: async ({ path, content, branch, commitMessage }): Promise<IToolResult> => {
+			execute: async ({
+				path,
+				content,
+				branch,
+				commitMessage,
+			}): Promise<IToolResult> => {
 				// Enforce scaffolder branch naming
 				if (!branch.startsWith("scaffolder/")) {
 					return {
 						success: false,
-						error: "Branch name must start with 'scaffolder/' (e.g., scaffolder/add-login-feature)",
+						error:
+							"Branch name must start with 'scaffolder/' (e.g., scaffolder/add-login-feature)",
 					};
 				}
 
@@ -105,17 +130,24 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 							ref: branch,
 						});
 
-						if (!Array.isArray(existingFile.data) && "sha" in existingFile.data) {
+						if (
+							!Array.isArray(existingFile.data) &&
+							"sha" in existingFile.data
+						) {
 							fileSha = existingFile.data.sha;
 						}
 					} catch (err: unknown) {
-						if (!(err instanceof Error && "status" in err && err.status === 404)) {
+						if (
+							!(err instanceof Error && "status" in err && err.status === 404)
+						) {
 							throw err;
 						}
 						// File doesn't exist, that's fine for creation
 					}
 
-					const base64Content = Buffer.from(content, "utf-8").toString("base64");
+					const base64Content = Buffer.from(content, "utf-8").toString(
+						"base64",
+					);
 
 					await octokit.repos.createOrUpdateFileContents({
 						owner,
@@ -130,7 +162,10 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 					const fileUrl = `https://github.com/${owner}/${repo}/blob/${branch}/${path}`;
 					return {
 						success: true,
-						output: fileSha ? `File updated: ${path}` : `File created: ${path}`,
+						output:
+							fileSha !== undefined
+								? `File updated: ${path}`
+								: `File created: ${path}`,
 						url: fileUrl,
 					};
 				} catch (err: unknown) {
@@ -147,7 +182,11 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				"Create a new branch from the base branch. Branch names must follow the scaffolder/* convention.",
 			inputSchema: zodSchema(
 				z.object({
-					branchName: z.string().describe("Name for the new branch (e.g., 'scaffolder/add-user-auth')"),
+					branchName: z
+						.string()
+						.describe(
+							"Name for the new branch (e.g., 'scaffolder/add-user-auth')",
+						),
 				}),
 			),
 			execute: async ({ branchName }): Promise<IToolResult> => {
@@ -155,7 +194,8 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				if (!branchName.startsWith("scaffolder/")) {
 					return {
 						success: false,
-						error: "Branch name must start with 'scaffolder/' (e.g., scaffolder/add-login-feature)",
+						error:
+							"Branch name must start with 'scaffolder/' (e.g., scaffolder/add-login-feature)",
 					};
 				}
 
@@ -191,7 +231,8 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 					}
 					return {
 						success: false,
-						error: err instanceof Error ? err.message : "Failed to create branch",
+						error:
+							err instanceof Error ? err.message : "Failed to create branch",
 					};
 				}
 			},
@@ -203,8 +244,12 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 			inputSchema: zodSchema(
 				z.object({
 					title: z.string().describe("Title of the pull request"),
-					body: z.string().describe("Description of the changes in the pull request"),
-					branch: z.string().describe("Source branch name (must be a scaffolder/* branch)"),
+					body: z
+						.string()
+						.describe("Description of the changes in the pull request"),
+					branch: z
+						.string()
+						.describe("Source branch name (must be a scaffolder/* branch)"),
 				}),
 			),
 			execute: async ({ title, body, branch }): Promise<IToolResult> => {
@@ -212,7 +257,8 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				if (!branch.startsWith("scaffolder/")) {
 					return {
 						success: false,
-						error: "Branch name must start with 'scaffolder/' (e.g., scaffolder/add-login-feature)",
+						error:
+							"Branch name must start with 'scaffolder/' (e.g., scaffolder/add-login-feature)",
 					};
 				}
 
@@ -234,18 +280,24 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				} catch (err: unknown) {
 					// If API fails (permission issue), provide manual PR creation URL
 					const manualPrUrl = `https://github.com/${owner}/${repo}/compare/${baseBranch}...${branch}?expand=1&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
-					
-					const errorMsg = err instanceof Error ? err.message : "Failed to create pull request";
-					
+
+					const errorMsg =
+						err instanceof Error
+							? err.message
+							: "Failed to create pull request";
+
 					// Check if it's a permission error
-					if (errorMsg.includes("Resource not accessible") || errorMsg.includes("403")) {
+					if (
+						errorMsg.includes("Resource not accessible") ||
+						errorMsg.includes("403")
+					) {
 						return {
 							success: false,
 							error: `PR API not available. Create manually: ${manualPrUrl}`,
 							url: manualPrUrl,
 						};
 					}
-					
+
 					return {
 						success: false,
 						error: errorMsg,
@@ -260,13 +312,21 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				"List files and directories at a given path in the repository.",
 			inputSchema: zodSchema(
 				z.object({
-					path: z.string().optional().describe("Path to list (defaults to root). Use '' or '.' for root."),
-					branch: z.string().optional().describe("Branch to list from (defaults to base branch)"),
+					path: z
+						.string()
+						.optional()
+						.describe(
+							"Path to list (defaults to root). Use '' or '.' for root.",
+						),
+					branch: z
+						.string()
+						.optional()
+						.describe("Branch to list from (defaults to base branch)"),
 				}),
 			),
 			execute: async ({ path, branch }): Promise<IToolResult> => {
 				try {
-					const targetPath = path === "." || path === "" ? "" : path ?? "";
+					const targetPath = path === "." || path === "" ? "" : (path ?? "");
 					const response = await octokit.repos.getContent({
 						owner,
 						repo,
@@ -298,7 +358,8 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 					}
 					return {
 						success: false,
-						error: err instanceof Error ? err.message : "Failed to list directory",
+						error:
+							err instanceof Error ? err.message : "Failed to list directory",
 					};
 				}
 			},
@@ -331,7 +392,10 @@ export function createRepoAgentTools(octokit: Octokit, context: IRepoContext) {
 				} catch (err: unknown) {
 					return {
 						success: false,
-						error: err instanceof Error ? err.message : "Failed to get repository info",
+						error:
+							err instanceof Error
+								? err.message
+								: "Failed to get repository info",
 					};
 				}
 			},

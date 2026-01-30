@@ -1,0 +1,46 @@
+src:
+  app:
+    api:
+      - FOLDER_LOOP({{tableNameKebabCasePlural}}):
+          - CREATE_FILE(route.ts --scoped --template ./templates/app/{{table}}/route.txt)
+          - CREATE_FILE(GET.ts --scoped --template ./templates/app/{{table}}/GET.txt)
+          - CREATE_FILE(POST.ts --scoped --template ./templates/app/{{table}}/POST.txt)
+          - CREATE_FILE(PATCH.ts --scoped --template ./templates/app/{{table}}/PATCH.txt)
+          - CREATE_FILE(DELETE.ts --scoped --template ./templates/app/{{table}}/DELETE.txt)
+    FOLDER_LOOP({{tableNameKebabCasePlural}}):
+      - CREATE_FILE(page.tsx --scoped --template /Templates/frontend/react/components/page.txt)
+      - CREATE_FILE({{tableNamePascalCaseSingular}}Component.tsx --scoped --template /Templates/frontend/react/components/EntityComponent.txt)
+  prisma:
+    - CREATE_FILE(DatabaseClient.ts --template /Templates/backend/nextjs/prisma/DatabaseClient.txt)
+  Controllers:
+    - FILE_LOOP({{tableNamePascalCaseSingular}}Controller.ts --template ./templates/Controllers/EntityController.txt)
+  utils:
+    - CREATE_FILE(DataTypeParser.ts --template ./templates/utils/DataTypeParser.txt)
+  components:
+    - CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt)
+  hooks:
+    shared:
+      - CREATE_FILE(useResource.ts --template /Templates/frontend/nextjs/hooks/shared/useResource.txt)
+      - CREATE_FILE(useFindById.ts --template /Templates/frontend/nextjs/hooks/shared/useFindById.txt)
+      - CREATE_FILE(useCreate.ts --template /Templates/frontend/nextjs/hooks/shared/useCreate.txt)
+      - CREATE_FILE(useUpdate.ts --template /Templates/frontend/nextjs/hooks/shared/useUpdate.txt)
+      - CREATE_FILE(useDelete.ts --template /Templates/frontend/nextjs/hooks/shared/useDelete.txt)
+    FOLDER_LOOP({{tableNameKebabCaseSingular}}):
+      - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useIndexEntity.txt)
+      - CREATE_FILE(useFindById{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useFindByIdEntity.txt)
+      - CREATE_FILE(useCreate{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useCreateEntity.txt)
+      - CREATE_FILE(useUpdate{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useUpdateEntity.txt)
+      - CREATE_FILE(useDelete{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/hooks/{{table}}/useDeleteEntity.txt)
+  lib:
+    api:
+      FOLDER_LOOP({{tableNameKebabCaseSingular}}):
+        - CREATE_FILE(fetch{{tableNamePascalCasePlural}}.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/fetchManyEntity.txt)
+        - CREATE_FILE(fetch{{tableNamePascalCaseSingular}}ById.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/fetchEntityById.txt)
+        - CREATE_FILE(create{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/createEntity.txt)
+        - CREATE_FILE(update{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/updateEntity.txt)
+        - CREATE_FILE(delete{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/nextjs/lib/api/{{table}}/deleteEntity.txt)
+  vendor:
+    - CREATE_FILE(axiosInstance.ts --template /Templates/frontend/nextjs/vendor/axiosInstance.txt)
+    - CREATE_FILE(useQueryInstance.ts --template /Templates/frontend/nextjs/vendor/useQueryInstance.txt)
+  interfaces:
+    - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)

@@ -23,23 +23,26 @@
  * ```
  */
 
-export { createOpenCodeAdapter } from "./adapters/opencode";
+export { createOpenCodeAdapter } from "./adapters/opencode.ts";
 // Adapters
-export { createVercelAIAdapter } from "./adapters/vercel-ai";
-// Types
+export { createVercelAIAdapter } from "./adapters/vercel-ai.ts";
+// Types (new naming convention with I prefix)
 export type {
-	ChatAdapter,
-	ChatAdapterCallbacks,
 	ChatAdapterFactory,
-	ChatError,
-	ChatMessage,
-	ChatSession,
-	ChatSessionConfig,
 	ChatStatus,
+	IChatAdapter,
+	IChatAdapterCallbacks,
+	IChatError,
+	IChatMessage,
+	IChatSession,
+	IChatSessionConfig,
 	MessageRole,
-} from "./types";
-export type { UseChatSessionOptions } from "./useChatSession";
+} from "./types.ts";
+export type { IUseChatSessionOptions } from "./useChatSession.ts";
 // Hooks
-export { useChatSession } from "./useChatSession";
-export type { UseVercelChatOptions, VercelChatSession } from "./useVercelChat";
-export { useVercelChat } from "./useVercelChat";
+export { useChatSession } from "./useChatSession.ts";
+export type {
+	IUseVercelChatOptions,
+	IVercelChatSession,
+} from "./useVercelChat.ts";
+export { useVercelChat } from "./useVercelChat.ts";

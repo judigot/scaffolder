@@ -74,10 +74,9 @@ app.post("/execute", async (c) => {
 		);
 	}
 
-	const { sshPrivateKey, host } = credentials as {
-		sshPrivateKey: string;
-		host: string;
-	};
+	// Type narrowing already guaranteed above
+	const sshPrivateKey = credentials.sshPrivateKey;
+	const host = credentials.host;
 
 	const command = body.command;
 	const workingDirectory =
@@ -100,9 +99,10 @@ app.post("/execute", async (c) => {
 
 	// Execute command
 	try {
-		const fullCommand = workingDirectory
-			? `cd ${workingDirectory} && ${command}`
-			: command;
+		const fullCommand =
+			workingDirectory !== undefined && workingDirectory !== ""
+				? `cd ${workingDirectory} && ${command}`
+				: command;
 
 		const result = await executeCommand(client, fullCommand);
 

@@ -10,7 +10,7 @@
  */
 export function getShortHash(branch: string): string {
 	const match = /-([a-zA-Z0-9]{5})$/.exec(branch);
-	return match?.[1] || "";
+	return match?.[1] ?? "";
 }
 
 /**

@@ -1,0 +1,5 @@
+-- Seed data for all tables
+-- Generated seed data in dependency order (parent tables before child tables)
+
+[[USE_ROWS()]]
+

@@ -1,0 +1,47 @@
+name: Build and Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    name: Deploy Node.js Application to EC2 Instance
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # - name: Lint project
+      #   run: pnpm lint
+
+      # - name: Test project
+      #   run: pnpm test
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Deploy to /var/www/html
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          strip_components: 1 # Copies contents of 'dist' without including the 'dist' folder itself.
+          source: 'dist'
+          target: '/var/www/html'
+          script: 'sudo rm -rf /var/www/html/*'

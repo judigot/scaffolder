@@ -1,0 +1,30 @@
+import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
+import { batchUpdateResources } from '@/hooks/shared/useBatchUpdate.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IBatchUpdateData {
+  ids: (number | string)[];
+  data: Partial<I{{tableNamePascalCaseSingular}}>;
+}
+
+export const useBatchUpdate{{tableNamePascalCasePlural}} = (
+  options?: Omit<
+    UseMutationOptions<I{{tableNamePascalCaseSingular}}[], Error, IBatchUpdateData>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ids, data }: IBatchUpdateData) =>
+      batchUpdateResources<I{{tableNamePascalCaseSingular}}, Partial<I{{tableNamePascalCaseSingular}}>>(
+        '/{{tableNameCamelCasePlural}}/batch-update',
+        ids,
+        data
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+    },
+    ...options,
+  });
+}; 

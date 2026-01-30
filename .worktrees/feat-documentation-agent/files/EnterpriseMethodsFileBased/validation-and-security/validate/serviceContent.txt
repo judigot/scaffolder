@@ -1,0 +1,12 @@
+        // Apply custom validation rules
+        if ($rules) {
+            $validator = Validator::make($data, $rules);
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+        }
+
+        // Sanitize data
+        $sanitizedData = $this->repository->sanitizeData($data);
+
+        return $sanitizedData; 

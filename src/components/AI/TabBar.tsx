@@ -1,9 +1,6 @@
-import {
-	Build as BuildIcon,
-	Chat as ChatIcon,
-	CloudQueue as CloudIcon,
-} from "@mui/icons-material";
+import { CloudQueue as CloudIcon } from "@mui/icons-material";
 import type { ReactNode } from "react";
+import { CHAT_TAB_CONFIG } from "@/components/AI/tabBarConfig.tsx";
 
 export type TabType = "chat" | "fileViewer" | "infra";
 
@@ -39,18 +36,6 @@ function CodeStatusIcon({ hasGeneratedCode }: { hasGeneratedCode: boolean }) {
 	);
 }
 
-/** Default middle tab config for repositories mode */
-export const CHAT_TAB_CONFIG: IMiddleTabConfig = {
-	label: "Chat",
-	icon: <ChatIcon className="w-5 h-5 mb-1" />,
-};
-
-/** Default middle tab config for scaffolder mode */
-export const BUILDER_TAB_CONFIG: IMiddleTabConfig = {
-	label: "Builder",
-	icon: <BuildIcon className="w-5 h-5 mb-1" />,
-};
-
 export default function TabBar({
 	activeTab,
 	onTabChange,
@@ -72,7 +57,7 @@ export default function TabBar({
 				}}
 				aria-label={`${middleTab.label} View`}
 			>
-				{middleTab.customContent ? (
+				{middleTab.customContent !== undefined ? (
 					middleTab.customContent
 				) : (
 					<>

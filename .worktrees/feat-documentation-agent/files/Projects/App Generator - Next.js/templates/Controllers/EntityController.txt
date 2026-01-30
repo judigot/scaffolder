@@ -1,0 +1,268 @@
+import { Prisma } from '@prisma/client';
+import { prisma } from '@/prisma/DatabaseClient.ts';
+import { {{tableName}} } from '@prisma/client';
+
+export const {{tableNamePascalCase}} = {
+  /**
+   * Get all {{tableNamePhraseCase}}s (READ).
+   */
+  async index() {
+    return prisma.{{tableName}}.findMany();
+  },
+
+  /**
+   * Get a single {{tableNamePhraseCase}} by ID (READ).
+   */
+  async show({{getPrimaryKey()}}: number) {
+    return prisma.{{tableName}}.findUnique({
+      where: { {{getPrimaryKey()}} },
+    });
+  },
+
+  /**
+   * Create a new {{tableNamePhraseCase}} (CREATE).
+   */
+  async store(data: Prisma.{{tableName}}CreateInput) {
+    return prisma.{{tableName}}.create({
+      data,
+    });
+  },
+
+  /**
+   * Update a {{tableNamePhraseCase}} by ID (UPDATE).
+   */
+  async update({{getPrimaryKey()}}: number, data: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.update({
+      where: { {{getPrimaryKey()}} },
+      data,
+    });
+  },
+
+  /**
+   * Delete a {{tableNamePhraseCase}} by ID (DELETE).
+   */
+  async destroy({{getPrimaryKey()}}: number) {
+    return prisma.{{tableName}}.delete({
+      where: { {{getPrimaryKey()}} },
+    });
+  },
+
+  /**
+   * Find by attributes.
+   */
+  async findByAttributes(attributes: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.findFirst({
+      where: attributes,
+    });
+  },
+
+  /**
+   * Paginate records.
+   */
+  async paginate(page: number, perPage: number) {
+    const skip = (page - 1) * perPage;
+    return prisma.{{tableName}}.findMany({
+      skip,
+      take: perPage,
+    });
+  },
+
+  /**
+   * Search {{tableNamePhraseCase}}s by query.
+   */
+  async search(
+    query: string,
+    fields: (keyof {{tableName}})[],
+    perPage: number,
+    page: number,
+  ) {
+    const skip = (page - 1) * perPage;
+    return prisma.{{tableName}}.findMany({
+      where: {
+        OR: fields.map((field) => ({
+          [field]: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        })),
+      },
+      skip,
+      take: perPage,
+    });
+  },
+
+  /**
+   * Count {{tableNamePhraseCase}}s based on criteria.
+   */
+  async count(criteria: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.count({
+      where: criteria,
+    });
+  },
+
+  /**
+   * Get {{tableNamePhraseCase}}s with relations.
+   */
+  async getWithRelations(relations: string[]) {
+    return prisma.{{tableName}}.findMany({
+      include: Object.fromEntries(
+        relations.map((relation) => [relation, true]),
+      ),
+    });
+  },
+
+  /**
+   * Find a {{tableNamePhraseCase}} or fail.
+   */
+  async findOrFail({{getPrimaryKey()}}: number) {
+    return prisma.{{tableName}}.findUniqueOrThrow({
+      where: { {{getPrimaryKey()}} },
+    });
+  },
+
+  /**
+   * Update or create a {{tableNamePhraseCase}}.
+   */
+  async updateOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.upsert({
+      where: attributes,
+      update: values,
+      create: values,
+    });
+  },
+
+  /**
+   * Batch update {{tableNamePhraseCase}}s.
+   */
+  async batchUpdate(criteria: Partial<{{tableName}}>, data: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.updateMany({
+      where: criteria,
+      data,
+    });
+  },
+
+  /**
+   * Check if a {{tableNamePhraseCase}} exists based on criteria.
+   */
+  async exists(criteria: Partial<{{tableName}}>) {
+    const count = await prisma.{{tableName}}.count({
+      where: criteria,
+    });
+    return count > 0;
+  },
+
+  /**
+   * Pluck specific columns from {{tableNamePhraseCase}}s.
+   */
+  async pluck(column: keyof {{tableName}}, key?: keyof {{tableName}}) {
+    const results = await prisma.{{tableName}}.findMany({
+      select: { [column]: true, ...(key && { [key]: true }) },
+    });
+    return results.map((row) => row[column]);
+  },
+
+  /**
+   * First or create a {{tableNamePhraseCase}}.
+   */
+  async firstOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.upsert({
+      where: attributes,
+      update: {},
+      create: values,
+    });
+  },
+
+  /**
+   * First or return a new instance of a {{tableNamePhraseCase}}.
+   */
+  async firstOrNew(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
+    const existing = await prisma.{{tableName}}.findFirst({
+      where: attributes,
+    });
+    return existing ?? { ...attributes, ...values };
+  },
+
+  /**
+   * Get a random {{tableNamePhraseCase}}.
+   */
+  async random(count: number) {
+    return prisma.{{tableName}}.findMany({
+      take: count,
+      orderBy: { {{getPrimaryKey()}}: 'asc' },
+    });
+  },
+
+  /**
+   * Get the latest {{tableNamePhraseCase}}.
+   */
+  async latest(column = 'createdAt') {
+    return prisma.{{tableName}}.findFirst({
+      orderBy: { [column]: 'desc' },
+    });
+  },
+
+  /**
+   * Get the oldest {{tableNamePhraseCase}}.
+   */
+  async oldest(column = 'createdAt') {
+    return prisma.{{tableName}}.findFirst({
+      orderBy: { [column]: 'asc' },
+    });
+  },
+
+  /**
+   * Find Many {{tableNamePhraseCase}}s by IDs.
+   */
+  async findMany(ids: number[]) {
+    return prisma.{{tableName}}.findMany({
+      where: { {{getPrimaryKey()}}: { in: ids } },
+    });
+  },
+
+  /**
+   * Filter {{tableNamePhraseCase}}s using \`whereIn\`.
+   */
+  async whereIn(column: keyof {{tableName}}, values: unknown[]) {
+    return prisma.{{tableName}}.findMany({
+      where: { [column]: { in: values } },
+    });
+  },
+
+  /**
+   * Filter {{tableNamePhraseCase}}s using \`whereNotIn\`.
+   */
+  async whereNotIn(column: keyof {{tableName}}, values: unknown[]) {
+    return prisma.{{tableName}}.findMany({
+      where: { [column]: { notIn: values } },
+    });
+  },
+
+  /**
+   * Filter {{tableNamePhraseCase}}s using \`whereBetween\`.
+   */
+  async whereBetween(column: keyof {{tableName}}, range: [unknown, unknown]) {
+    return prisma.{{tableName}}.findMany({
+      where: { [column]: { gte: range[0], lte: range[1] } },
+    });
+  },
+
+  /**
+   * Order {{tableNamePhraseCase}}s by a column.
+   */
+  async orderBy(column: keyof {{tableName}}, direction: 'asc' | 'desc' = 'asc') {
+    return prisma.{{tableName}}.findMany({
+      orderBy: { [column]: direction },
+    });
+  },
+
+  /**
+   * Group {{tableNamePhraseCase}}s by a column.
+   */
+  async groupBy(column: keyof {{tableName}}) {
+    return prisma.{{tableName}}.groupBy({
+      by: [column],
+    });
+  },
+  
+  // {{softDeleteFunctions}}
+};

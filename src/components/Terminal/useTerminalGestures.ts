@@ -1,5 +1,13 @@
 import { useCallback, useRef, useState } from "react";
 
+/** Safely get first touch from touch list */
+function getFirstTouch(touches: React.TouchList): React.Touch | undefined {
+	if (touches.length === 0) {
+		return undefined;
+	}
+	return touches[0];
+}
+
 export type GestureDirection = "left" | "up" | "right" | null;
 
 interface IGestureState {
@@ -60,10 +68,14 @@ export function useTerminalGestures({
 
 	const handleTouchStart = useCallback(
 		(e: React.TouchEvent) => {
-			if (!enabled) {return;}
+			if (!enabled) {
+				return;
+			}
 
-			const touch = e.touches[0];
-			if (!touch) {return;}
+			const touch = getFirstTouch(e.touches);
+			if (touch === undefined) {
+				return;
+			}
 
 			touchStartRef.current = { x: touch.clientX, y: touch.clientY };
 			isScrollingRef.current = false;
@@ -73,10 +85,14 @@ export function useTerminalGestures({
 
 	const handleTouchMove = useCallback(
 		(e: React.TouchEvent) => {
-			if (!enabled || !touchStartRef.current) {return;}
+			if (!enabled || touchStartRef.current === null) {
+				return;
+			}
 
-			const touch = e.touches[0];
-			if (!touch) {return;}
+			const touch = getFirstTouch(e.touches);
+			if (touch === undefined) {
+				return;
+			}
 
 			const deltaX = touch.clientX - touchStartRef.current.x;
 			const deltaY = touch.clientY - touchStartRef.current.y;
@@ -91,7 +107,9 @@ export function useTerminalGestures({
 			}
 
 			// If we determined this is a scroll, don't handle as gesture
-			if (isScrollingRef.current) {return;}
+			if (isScrollingRef.current) {
+				return;
+			}
 
 			const absDeltaX = Math.abs(deltaX);
 			const absDeltaY = Math.abs(deltaY);

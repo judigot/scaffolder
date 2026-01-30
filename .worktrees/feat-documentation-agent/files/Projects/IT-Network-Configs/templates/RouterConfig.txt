@@ -1,0 +1,47 @@
+! [[USE_DATA(network.name)]] Router Configuration
+! Generated: {{current-date}}
+! Location: [[USE_DATA(network.location)]]
+
+hostname [[USE_DATA(devices[0].name)]]
+!
+! Basic Configuration
+!
+enable secret cisco
+service password-encryption
+!
+! Interface Configuration
+!
+[[USE_DATA(devices[0].interfaces)]]
+!
+! IP Routing Configuration
+!
+ip route 0.0.0.0 0.0.0.0 [[USE_DATA(routing.default-gateway)]]
+[[USE_DATA(routing.routes)]]
+!
+! DNS Configuration
+!
+ip name-server [[USE_DATA(dns.primary)]]
+ip name-server [[USE_DATA(dns.secondary)]]
+ip domain-name [[USE_DATA(network.name)]]
+!
+! DHCP Configuration
+!
+[[USE_DATA(dhcp)]]
+!
+! Access Control
+!
+line con 0
+ password cisco
+ login
+line vty 0 4
+ password cisco
+ login
+ transport input ssh
+!
+! Logging
+!
+logging buffered 4096
+logging trap informational
+!
+end
+

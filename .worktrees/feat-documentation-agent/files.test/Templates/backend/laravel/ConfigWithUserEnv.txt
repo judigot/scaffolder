@@ -1,0 +1,8 @@
+<?php
+
+return [
+    'api_key' => '[[USE_USER_ENV(API_KEY)]]',
+    'database_url' => '[[USE_USER_ENV(DATABASE_URL)]]',
+    'app_name' => 'My Application',
+];
+

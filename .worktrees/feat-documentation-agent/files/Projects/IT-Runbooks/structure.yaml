@@ -1,0 +1,2 @@
+- LOOP_FOLDERS({{service.name}}-Runbook.md --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/Runbook.txt)
+

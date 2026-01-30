@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Report - [[USE_DATA(experiment.id)]]</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { border-bottom: 4px solid #2196f3; padding-bottom: 20px; margin-bottom: 30px; }
+    .title { font-size: 2.2em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    .meta { color: #7f8c8d; font-size: 1.1em; }
+    .section { margin: 30px 0; }
+    .section-title { font-size: 1.5em; font-weight: bold; color: #2196f3; border-bottom: 2px solid #e3f2fd; padding-bottom: 8px; margin-bottom: 15px; }
+    .info-box { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #2196f3; }
+    .label { font-weight: bold; color: #34495e; margin-bottom: 5px; }
+    .value { color: #2c3e50; line-height: 1.6; }
+    .materials-list { background: #fff3e0; padding: 15px; border-radius: 5px; margin: 15px 0; }
+    .materials-list ul { margin: 10px 0; padding-left: 25px; }
+    .materials-list li { margin: 5px 0; color: #2c3e50; }
+    .protocol { background: #e8f5e9; padding: 20px; border-radius: 5px; margin: 15px 0; }
+    .protocol-step { margin: 10px 0; padding: 10px; background: white; border-radius: 3px; }
+    .results { background: #e3f2fd; padding: 20px; border-radius: 5px; margin: 15px 0; }
+    .success { color: #4caf50; font-weight: bold; }
+    .conclusion { background: #fff9c4; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #fbc02d; }
+    .notes { background: #f3e5f5; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #9c27b0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">[[USE_DATA(experiment.title)]]</div>
+      <div class="meta">
+        <div><strong>Experiment ID:</strong> [[USE_DATA(experiment.id)]]</div>
+        <div><strong>Date:</strong> [[USE_DATA(experiment.date)]]</div>
+        <div><strong>Researcher:</strong> [[USE_DATA(experiment.researcher)]]</div>
+        <div><strong>Lab:</strong> [[USE_DATA(experiment.lab)]]</div>
+        <div><strong>Institution:</strong> [[USE_DATA(experiment.institution)]]</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Objective</div>
+      <div class="value">[[USE_DATA(experiment.objective)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Hypothesis</div>
+      <div class="value">[[USE_DATA(experiment.hypothesis)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Materials</div>
+      <div class="materials-list">
+        <ul>
+          [[USE_DATA(experiment.materials)]]
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Protocol</div>
+      <div class="protocol">
+        <div class="protocol-step">
+          <div class="label">Step 1:</div>
+          <div class="value">[[USE_DATA(experiment.protocol.step1)]]</div>
+        </div>
+        <div class="protocol-step">
+          <div class="label">Step 2:</div>
+          <div class="value">[[USE_DATA(experiment.protocol.step2)]]</div>
+        </div>
+        <div class="protocol-step">
+          <div class="label">Step 3:</div>
+          <div class="value">[[USE_DATA(experiment.protocol.step3)]]</div>
+        </div>
+        <div class="protocol-step">
+          <div class="label">Step 4:</div>
+          <div class="value">[[USE_DATA(experiment.protocol.step4)]]</div>
+        </div>
+        <div class="protocol-step">
+          <div class="label">Step 5:</div>
+          <div class="value">[[USE_DATA(experiment.protocol.step5)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Experimental Conditions</div>
+      <div class="info-box">
+        [[USE_DATA(experiment.conditions)]]
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Results</div>
+      <div class="results">
+        <div class="value">
+          <div><strong>Success:</strong> <span class="success">[[USE_DATA(experiment.results.success)]]</span></div>
+          <div style="margin-top: 10px;"><strong>Results:</strong></div>
+          <div style="margin-left: 20px; margin-top: 10px;">[[USE_DATA(experiment.results)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Analysis</div>
+      <div class="value">[[USE_DATA(experiment.analysis)]]</div>
+    </div>
+
+    <div class="conclusion">
+      <div class="section-title">Conclusion</div>
+      <div class="value">[[USE_DATA(experiment.conclusion)]]</div>
+    </div>
+
+    <div class="notes">
+      <div class="section-title">Notes</div>
+      <div class="value">[[USE_DATA(experiment.notes)]]</div>
+    </div>
+  </div>
+</body>
+</html>
+

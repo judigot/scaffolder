@@ -1,0 +1,2 @@
+const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}`, data);
+return response.data;

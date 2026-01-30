@@ -1,0 +1,39 @@
+import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
+import { createAuditLog } from '@/hooks/shared/useAudit.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IAuditLogData {
+  action: 'create' | 'update' | 'delete' | 'view' | 'export';
+  entityId: string | number;
+  oldValues?: Partial<I{{tableNamePascalCaseSingular}}>;
+  newValues?: Partial<I{{tableNamePascalCaseSingular}}>;
+  userId?: string | number;
+  metadata?: Record<string, unknown>;
+}
+
+export const useAudit{{tableNamePascalCaseSingular}} = (
+  options?: Omit<
+    UseMutationOptions<unknown, Error, IAuditLogData>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ action, entityId, oldValues, newValues, userId, metadata }: IAuditLogData) =>
+      createAuditLog<I{{tableNamePascalCaseSingular}}>(
+        '/audit-logs',
+        action,
+        '{{tableNameCamelCaseSingular}}',
+        entityId,
+        oldValues,
+        newValues,
+        userId,
+        metadata
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+    },
+    ...options,
+  });
+}; 

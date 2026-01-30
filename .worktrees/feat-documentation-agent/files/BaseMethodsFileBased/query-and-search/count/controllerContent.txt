@@ -1,0 +1,3 @@
+        $criteria = $request->all();
+        ${{methodNameCamelCase}} = $this->service->{{methodNameCamelCase}}($criteria);
+        return response()->json(['{{methodName}}' => ${{methodNameCamelCase}}]);

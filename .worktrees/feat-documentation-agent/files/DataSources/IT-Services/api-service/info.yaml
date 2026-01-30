@@ -1,0 +1,100 @@
+service:
+  name: "api-service"
+  team: "backend"
+  description: "Main API service handling HTTP requests"
+  language: "nodejs"
+  runtime: "node:18"
+  version: "1.2.3"
+
+deployment:
+  platform: "kubernetes"
+  namespace: "production"
+  replicas: 5
+  strategy: "rolling-update"
+  max-surge: 1
+  max-unavailable: 0
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+
+ports:
+  - name: "http"
+    container-port: 8080
+    protocol: "TCP"
+    service-port: 80
+    target-port: 8080
+
+env-vars:
+  - name: "NODE_ENV"
+    value: "production"
+  - name: "DATABASE_URL"
+    value-from: "secret"
+    secret-name: "database-credentials"
+  - name: "REDIS_URL"
+    value-from: "secret"
+    secret-name: "redis-credentials"
+  - name: "LOG_LEVEL"
+    value: "info"
+
+health-checks:
+  liveness:
+    path: "/health"
+    port: 8080
+    initial-delay: 30
+    period: 10
+    timeout: 5
+    failure-threshold: 3
+  readiness:
+    path: "/ready"
+    port: 8080
+    initial-delay: 10
+    period: 5
+    timeout: 3
+    failure-threshold: 3
+
+auto-scaling:
+  enabled: true
+  min-replicas: 3
+  max-replicas: 10
+  target-cpu: 70
+  target-memory: 80
+
+volumes:
+  - name: "config"
+    config-map: "api-config"
+  - name: "logs"
+    empty-dir: {}
+
+networking:
+  service-type: "LoadBalancer"
+  ingress:
+    enabled: true
+    host: "api.example.com"
+    tls:
+      enabled: true
+      secret: "api-tls-cert"
+
+monitoring:
+  enabled: true
+  metrics-path: "/metrics"
+  log-level: "info"
+  tracing:
+    enabled: true
+    service: "jaeger"
+
+dependencies:
+  - name: "postgres-db"
+    type: "database"
+  - name: "redis-cache"
+    type: "cache"
+
+tags:
+  app: "api-service"
+  tier: "backend"
+  version: "1.2.3"
+

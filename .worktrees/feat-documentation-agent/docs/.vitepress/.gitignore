@@ -1,0 +1,5 @@
+# VitePress build output
+dist/
+.cache/
+temp/
+

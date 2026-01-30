@@ -1,0 +1,364 @@
+[
+  {
+    "tableName": "users",
+    "requiredColumns": [
+      "id",
+      "user_id",
+      "email",
+      "first_name",
+      "last_name",
+      "is_active",
+      "mfa_enabled",
+      "account_start_date",
+      "created_at"
+    ],
+    "columnsInfo": [
+      {
+        "column_name": "id",
+        "data_type": "number",
+        "is_nullable": "NO",
+        "column_default": "AUTO_INCREMENT",
+        "primary_key": true
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "unique": true
+      },
+      {
+        "column_name": "email",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "unique": true
+      },
+      {
+        "column_name": "phone_number",
+        "data_type": "string",
+        "is_nullable": "YES",
+        "unique": true
+      },
+      {
+        "column_name": "first_name",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "last_name",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "is_active",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": "true"
+      },
+      {
+        "column_name": "role",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "mfa_enabled",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": "true"
+      },
+      {
+        "column_name": "account_start_date",
+        "data_type": "Date",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "account_expiry_date",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "Date",
+        "is_nullable": "NO",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "Date",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "deleted_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      }
+    ],
+    "childTables": ["user_authentication"]
+  },
+  {
+    "tableName": "user_authentication",
+    "requiredColumns": [
+      "user_id",
+      "password",
+      "failure_count",
+      "lock_flag",
+      "created_at"
+    ],
+    "columnsInfo": [
+      {
+        "column_name": "user_id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "column_default": "AUTO_INCREMENT",
+        "primary_key": true,
+        "foreign_key": {
+          "foreign_table_name": "users",
+          "foreign_column_name": "user_id"
+        }
+      },
+      {
+        "column_name": "password",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "otp_code",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "otp_expiry",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "last_login_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "last_logout_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "failure_count",
+        "data_type": "number",
+        "is_nullable": "NO",
+        "column_default": "0"
+      },
+      {
+        "column_name": "lock_flag",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": "false"
+      },
+      {
+        "column_name": "lock_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "password_updated_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "password_expiry_date",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "password_reset_token",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "password_reset_expiry",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "Date",
+        "is_nullable": "NO",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "Date",
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "deleted_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      }
+    ],
+    "foreignTables": ["users"],
+    "foreignKeys": ["user_id"],
+    "belongsTo": ["users"],
+    "hasMany": ["user_authentication"]
+  },
+  {
+    "tableName": "flyway_schema_history",
+    "requiredColumns": [
+      "installed_rank",
+      "description",
+      "type",
+      "script",
+      "installed_by",
+      "installed_on",
+      "execution_time",
+      "success"
+    ],
+    "columnsInfo": [
+      {
+        "column_name": "installed_rank",
+        "data_type": "number",
+        "is_nullable": "NO",
+        "column_default": "AUTO_INCREMENT",
+        "primary_key": true
+      },
+      {
+        "column_name": "version",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "description",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "type",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "script",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "checksum",
+        "data_type": "number",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "installed_by",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "installed_on",
+        "data_type": "Date",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "execution_time",
+        "data_type": "number",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "success",
+        "data_type": "boolean",
+        "is_nullable": "NO"
+      }
+    ]
+  },
+  {
+    "tableName": "active_user_accounts",
+    "viewQuery": " SELECT u.id AS user_primary_id,\n    u.user_id AS login_id,\n    u.email,\n    u.first_name,\n    u.last_name,\n    u.is_active,\n    u.role,\n    u.mfa_enabled,\n    u.account_start_date,\n    u.account_expiry_date,\n    ua.last_login_at AS last_login,\n    ua.last_logout_at AS last_logout,\n    ua.failure_count,\n    ua.lock_flag,\n    ua.password_updated_at,\n    u.created_at AS user_created_at,\n    ua.created_at AS account_created_at\n   FROM (users u\n     JOIN user_authentication ua ON (((u.user_id)::text = (ua.user_id)::text)))\n  WHERE ((u.deleted_at IS NULL) AND (ua.deleted_at IS NULL) AND (u.is_active = true) AND (ua.lock_flag = false) AND ((u.account_start_date IS NULL) OR (CURRENT_TIMESTAMP >= u.account_start_date)) AND ((u.account_expiry_date IS NULL) OR (CURRENT_TIMESTAMP <= u.account_expiry_date)));",
+    "viewStructure": ["user_authentication", "users"],
+    "columnsInfo": [
+      {
+        "column_name": "user_primary_id",
+        "data_type": "number",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "login_id",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "email",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "first_name",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "last_name",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "is_active",
+        "data_type": "boolean",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "role",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "mfa_enabled",
+        "data_type": "boolean",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "account_start_date",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "account_expiry_date",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "last_login",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "last_logout",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "failure_count",
+        "data_type": "number",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "lock_flag",
+        "data_type": "boolean",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "password_updated_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "user_created_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "account_created_at",
+        "data_type": "Date",
+        "is_nullable": "YES"
+      }
+    ]
+  }
+]

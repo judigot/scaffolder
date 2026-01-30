@@ -1095,7 +1095,7 @@ function App() {
 														);
 														if (selectedProjectOption) {
 															if (
-																selectedProject?.name !==
+																selectedProject.name !==
 																selectedProjectOption.name
 															) {
 																selectProject(selectedProjectOption);

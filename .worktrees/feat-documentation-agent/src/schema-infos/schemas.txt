@@ -1,0 +1,66 @@
+1. User, Post, Comment
+    User (One-to-One: Each user has one profile)
+    Post (One-to-Many: A user can make many posts)
+    Comment (Many-to-Many: A post can have many comments, and a comment can be made on many posts)
+    Post_Comment (Pivot Table for Many-to-Many relationship between Post and Comment)
+
+2. Employee, Department, Project
+   Employee (One-to-One: Each employee belongs to one department)
+   Department (One-to-Many: A department can have many employees)
+   Project (Many-to-Many: A project can have many employees, and an employee can work on many projects)
+   Employee_Project (Pivot Table for Many-to-Many relationship between Employee and Project)
+
+3. Customer, Order, Product
+   Customer (One-to-One: Each customer has one profile)
+   Profile (One-to-One: Each customer has one profile)
+   Order (One-to-Many: A customer can have many orders)
+   Product (Many-to-Many: An order can have many products, and a product can appear in many orders)
+   Order_Product (Pivot Table for Many-to-Many relationship between Order and Product)
+
+4. Author, Book, Genre
+   Author (One-to-One: Each author has one biography or profile)
+   Book (One-to-Many: An author can write many books)
+   Publisher (One-to-One: Each book has one publisher)
+   Book_Genre (Pivot Table for Many-to-Many relationship between Book and Genre)
+
+5. User, Profile, Post
+   User (One-to-One: Each user has one profile)
+   Profile (One-to-One: Each user has one profile)
+   Post (One-to-Many: A user can make many posts)
+   Post_Tag (Pivot Table for Many-to-Many relationship between Post and Tag)
+
+6. Teacher, Class, Student
+   Teacher (One-to-One: Each teacher has one classroom or teaching assignment)
+   Class (One-to-Many: A teacher can teach many classes)
+   Student (Many-to-Many: A student can enroll in many classes, and a class can have many students)
+   Student_Class (Pivot Table for Many-to-Many relationship between Student and Class)
+
+7. Shop, Product, Category
+   Shop (One-to-One: Each shop has one unique owner)
+   Product (One-to-Many: A shop can have many products)
+   Category (Many-to-Many: A product can belong to many categories, and a category can contain many products)
+   Product_Category (Pivot Table for Many-to-Many relationship between Product and Category)
+
+8. Vehicle, Registration, Owner
+   Vehicle (One-to-One: Each vehicle has one unique registration number)
+   Registration (One-to-Many: A registration can apply to many vehicles)
+   Owner (Many-to-Many: An owner can own many vehicles, and a vehicle can have many owners over time)
+   Vehicle_Owner (Pivot Table for Many-to-Many relationship between Vehicle and Owner)
+
+9. Course, Instructor, Student
+   Course (One-to-One: Each course has one instructor)
+   Instructor (One-to-Many: An instructor can teach many courses)
+   Student (Many-to-Many: A student can take many courses, and a course can have many students)
+   Course_Student (Pivot Table for Many-to-Many relationship between Course and Student)
+
+10. Library, Book, Member
+   Library (One-to-One: Each library has one unique location)
+   Book (One-to-Many: A library can have many books)
+   Member (Many-to-Many: A member can borrow many books, and a book can be borrowed by many members)
+   Book_Member (Pivot Table for Many-to-Many relationship between Book and Member)
+
+11. Event, Participant, Location
+    Event (One-to-One: Each event has one organizer or coordinator)
+    Participant (Many-to-Many: A participant can attend many events, and an event can have many participants)
+    Location (One-to-Many: A location can host many events)
+    Event_Participant (Pivot Table for Many-to-Many relationship between Event and Participant)

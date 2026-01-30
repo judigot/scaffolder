@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}} with request body: { "{{getRequiredColumns()[0]}}": "value", "{{getRequiredColumns()[1]}}": "value" } - Creates a new {{tableNamePascalCaseSingular}} resource
+Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');

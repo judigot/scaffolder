@@ -1,27 +1,28 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
-	ChatAdapter,
-	ChatAdapterCallbacks,
-	ChatSessionConfig,
-} from "@/lib/chat/types";
-import { useChatSession } from "@/lib/chat/useChatSession";
+	IChatAdapter,
+	IChatAdapterCallbacks,
+	IChatError,
+	IChatMessage,
+	IChatSessionConfig,
+} from "@/lib/chat/types.ts";
+import { useChatSession } from "@/lib/chat/useChatSession.ts";
 
 // Mock adapter for testing
-function createMockAdapter(): ChatAdapter & {
+function createMockAdapter(): IChatAdapter & {
 	mockSend: ReturnType<typeof vi.fn>;
 	mockStop: ReturnType<typeof vi.fn>;
 	mockDispose: ReturnType<typeof vi.fn>;
-	triggerCallbacks: (callbacks: Partial<ChatAdapterCallbacks>) => void;
-	lastCallbacks: ChatAdapterCallbacks | null;
+	lastCallbacks: IChatAdapterCallbacks | null;
 } {
-	let lastCallbacks: ChatAdapterCallbacks | null = null;
+	let lastCallbacks: IChatAdapterCallbacks | null = null;
 
 	const mockSend = vi.fn(
 		(
 			_content: string,
-			_config: ChatSessionConfig,
-			callbacks: ChatAdapterCallbacks,
+			_config: IChatSessionConfig,
+			callbacks: IChatAdapterCallbacks,
 		) => {
 			lastCallbacks = callbacks;
 		},
@@ -37,43 +38,6 @@ function createMockAdapter(): ChatAdapter & {
 		mockSend,
 		mockStop,
 		mockDispose,
-		triggerCallbacks: (partialCallbacks: Partial<ChatAdapterCallbacks>) => {
-			if (lastCallbacks) {
-				if (partialCallbacks.onMessageStart) {
-					lastCallbacks.onMessageStart(
-						partialCallbacks.onMessageStart as unknown as string,
-					);
-				}
-				if (partialCallbacks.onStreamingText) {
-					const [text, id] = partialCallbacks.onStreamingText as unknown as [
-						string,
-						string,
-					];
-					lastCallbacks.onStreamingText(text, id);
-				}
-				if (partialCallbacks.onMessageComplete) {
-					lastCallbacks.onMessageComplete(
-						partialCallbacks.onMessageComplete as unknown as ReturnType<
-							ChatAdapterCallbacks["onMessageComplete"]
-						> extends void
-							? Parameters<ChatAdapterCallbacks["onMessageComplete"]>[0]
-							: never,
-					);
-				}
-				if (partialCallbacks.onError) {
-					lastCallbacks.onError(
-						partialCallbacks.onError as unknown as Parameters<
-							ChatAdapterCallbacks["onError"]
-						>[0],
-					);
-				}
-				if (partialCallbacks.onSessionId) {
-					lastCallbacks.onSessionId(
-						partialCallbacks.onSessionId as unknown as string,
-					);
-				}
-			}
-		},
 		get lastCallbacks() {
 			return lastCallbacks;
 		},
@@ -206,13 +170,15 @@ describe("useChatSession", () => {
 			mockAdapter.lastCallbacks?.onMessageStart("msg-123");
 		});
 
+		const completeMessage: IChatMessage = {
+			id: "msg-123",
+			role: "assistant",
+			content: "Hello! How can I help?",
+			createdAt: new Date(),
+		};
+
 		act(() => {
-			mockAdapter.lastCallbacks?.onMessageComplete({
-				id: "msg-123",
-				role: "assistant",
-				content: "Hello! How can I help?",
-				createdAt: new Date(),
-			});
+			mockAdapter.lastCallbacks?.onMessageComplete(completeMessage);
 		});
 
 		expect(result.current.status).toBe("idle");
@@ -231,8 +197,10 @@ describe("useChatSession", () => {
 			result.current.send("Hello");
 		});
 
+		const errorObj: IChatError = { message: "Network error" };
+
 		act(() => {
-			mockAdapter.lastCallbacks?.onError({ message: "Network error" });
+			mockAdapter.lastCallbacks?.onError(errorObj);
 		});
 
 		expect(result.current.status).toBe("error");
@@ -271,14 +239,16 @@ describe("useChatSession", () => {
 			result.current.send("Hello");
 		});
 
+		const completeMessage: IChatMessage = {
+			id: "msg-123",
+			role: "assistant",
+			content: "Hi!",
+			createdAt: new Date(),
+		};
+
 		act(() => {
 			mockAdapter.lastCallbacks?.onMessageStart("msg-123");
-			mockAdapter.lastCallbacks?.onMessageComplete({
-				id: "msg-123",
-				role: "assistant",
-				content: "Hi!",
-				createdAt: new Date(),
-			});
+			mockAdapter.lastCallbacks?.onMessageComplete(completeMessage);
 		});
 
 		expect(result.current.messages.length).toBe(2);

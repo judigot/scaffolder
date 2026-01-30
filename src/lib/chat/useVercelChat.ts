@@ -17,10 +17,10 @@ import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { ChatError, ChatMessage, ChatStatus } from "./types";
+import type { ChatStatus, IChatError, IChatMessage } from "./types.ts";
 
 /** Extended options for useVercelChat */
-export interface UseVercelChatOptions {
+export interface IUseVercelChatOptions {
 	/** API endpoint */
 	endpoint: string;
 	/** Current model ID */
@@ -31,16 +31,19 @@ export interface UseVercelChatOptions {
 	useChatOptions?: Record<string, unknown>;
 }
 
+/** @deprecated Use IUseVercelChatOptions instead */
+export type UseVercelChatOptions = IUseVercelChatOptions;
+
 /** Extended ChatSession that includes Vercel AI SDK specific features */
-export interface VercelChatSession {
+export interface IVercelChatSession {
 	/** All messages in the conversation (Vercel AI SDK UIMessage format) */
 	messages: UIMessage[];
 	/** Normalized messages in our standard format */
-	normalizedMessages: ChatMessage[];
+	normalizedMessages: IChatMessage[];
 	/** Current status */
 	status: ChatStatus;
 	/** Current error */
-	error: ChatError | null;
+	error: IChatError | null;
 	/** Whether loading or streaming */
 	isLoading: boolean;
 	/** Send a message */
@@ -55,10 +58,13 @@ export interface VercelChatSession {
 	sendMessage: (params: { text: string }) => Promise<void>;
 }
 
+/** @deprecated Use IVercelChatSession instead */
+export type VercelChatSession = IVercelChatSession;
+
 /**
- * Convert UIMessage to our ChatMessage format
+ * Convert UIMessage to our IChatMessage format
  */
-function normalizeMessage(message: UIMessage): ChatMessage {
+function normalizeMessage(message: UIMessage): IChatMessage {
 	// Extract text content from parts
 	const textContent = message.parts
 		.filter(
@@ -69,7 +75,7 @@ function normalizeMessage(message: UIMessage): ChatMessage {
 
 	return {
 		id: message.id,
-		role: message.role as "user" | "assistant" | "system",
+		role: message.role,
 		content: textContent,
 		createdAt: new Date(),
 		metadata: {
@@ -99,8 +105,8 @@ function normalizeMessage(message: UIMessage): ChatMessage {
  * ```
  */
 export function useVercelChat(
-	options: UseVercelChatOptions,
-): VercelChatSession {
+	options: IUseVercelChatOptions,
+): IVercelChatSession {
 	const { endpoint, model, useChatOptions } = options;
 
 	// Store model in ref so transport can access current value
@@ -123,9 +129,10 @@ export function useVercelChat(
 				trigger,
 				messageId,
 			}) => {
+				const bodyRecord: Record<string, unknown> = body ?? {};
 				return {
 					body: {
-						...(body as Record<string, unknown>),
+						...bodyRecord,
 						id,
 						messages,
 						trigger,
@@ -157,15 +164,23 @@ export function useVercelChat(
 
 	// Convert SDK status to our status
 	const status: ChatStatus = useMemo(() => {
-		if (sdkStatus === "streaming") return "streaming";
-		if (sdkStatus === "submitted") return "loading";
-		if (sdkError) return "error";
+		if (sdkStatus === "streaming") {
+			return "streaming";
+		}
+		if (sdkStatus === "submitted") {
+			return "loading";
+		}
+		if (sdkError) {
+			return "error";
+		}
 		return "idle";
 	}, [sdkStatus, sdkError]);
 
 	// Convert SDK error to our format
-	const error: ChatError | null = useMemo(() => {
-		if (!sdkError) return null;
+	const error: IChatError | null = useMemo(() => {
+		if (!sdkError) {
+			return null;
+		}
 		return {
 			message: sdkError.message,
 			details: sdkError,
@@ -183,7 +198,9 @@ export function useVercelChat(
 	const send = useCallback(
 		(content: string) => {
 			const trimmed = content.trim();
-			if (!trimmed || isLoading) return;
+			if (!trimmed || isLoading) {
+				return;
+			}
 
 			lastUserMessageRef.current = trimmed;
 			void sendMessage({ text: trimmed });
@@ -198,14 +215,16 @@ export function useVercelChat(
 
 	// Retry last message
 	const retry = useCallback(() => {
-		if (!lastUserMessageRef.current) return;
+		if (lastUserMessageRef.current === null) {
+			return;
+		}
 
 		// Stop current generation and resubmit
 		void sdkStop();
 
 		// Find last user message from messages if ref is empty
 		const lastUserMsg = lastUserMessageRef.current;
-		if (lastUserMsg) {
+		if (lastUserMsg !== "") {
 			void sendMessage({ text: lastUserMsg });
 		}
 	}, [sdkStop, sendMessage]);

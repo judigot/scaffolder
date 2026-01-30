@@ -57,7 +57,7 @@ export default function GroupedSelect({
 	// Handle keyboard events on the trigger button
 	const handleButtonKeyDown = (event: React.KeyboardEvent) => {
 		// Pass through to external handler if provided
-		if (onKeyDown) {
+		if (onKeyDown !== undefined) {
 			onKeyDown(event);
 		}
 
@@ -82,7 +82,8 @@ export default function GroupedSelect({
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (
-				containerRef.current &&
+				containerRef.current !== null &&
+				// eslint-disable-next-line no-type-assertion/no-type-assertion
 				!containerRef.current.contains(event.target as Node)
 			) {
 				setIsOpen(false);
@@ -107,11 +108,11 @@ export default function GroupedSelect({
 	}, [isOpen]);
 
 	useEffect(() => {
-		if (isOpen && listRef.current && value) {
+		if (isOpen && listRef.current !== null && value !== "") {
 			const selectedEl = listRef.current.querySelector(
 				`[data-value="${value}"]`,
 			);
-			if (selectedEl) {
+			if (selectedEl !== null) {
 				selectedEl.scrollIntoView({ block: "nearest" });
 			}
 		}
@@ -134,9 +135,11 @@ export default function GroupedSelect({
 				aria-haspopup="listbox"
 				className="form-select-trigger flex items-center justify-between gap-2 text-left text-sm"
 			>
-				<span className={selectedOption ? "text-fg" : "text-fg-muted"}>
-					{selectedOption
-						? `${selectedOption.label}${selectedOption.description ? ` — ${selectedOption.description}` : ""}`
+				<span
+					className={selectedOption !== undefined ? "text-fg" : "text-fg-muted"}
+				>
+					{selectedOption !== undefined
+						? `${selectedOption.label}${selectedOption.description !== undefined ? ` — ${selectedOption.description}` : ""}`
 						: placeholder}
 				</span>
 				<svg
@@ -181,7 +184,7 @@ export default function GroupedSelect({
 									}`}
 								>
 									<span className="font-medium">{option.label}</span>
-									{option.description && (
+									{option.description !== undefined && (
 										<span className="text-fg-subtle ml-1">
 											— {option.description}
 										</span>
@@ -243,7 +246,7 @@ export function SimpleSelect({
 	// Handle keyboard events on the trigger button
 	const handleButtonKeyDown = (event: React.KeyboardEvent) => {
 		// Pass through to external handler if provided
-		if (onKeyDown) {
+		if (onKeyDown !== undefined) {
 			onKeyDown(event);
 		}
 
@@ -268,7 +271,8 @@ export function SimpleSelect({
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (
-				containerRef.current &&
+				containerRef.current !== null &&
+				// eslint-disable-next-line no-type-assertion/no-type-assertion
 				!containerRef.current.contains(event.target as Node)
 			) {
 				setIsOpen(false);
@@ -293,11 +297,11 @@ export function SimpleSelect({
 	}, [isOpen]);
 
 	useEffect(() => {
-		if (isOpen && listRef.current && value) {
+		if (isOpen && listRef.current !== null && value !== "") {
 			const selectedEl = listRef.current.querySelector(
 				`[data-value="${value}"]`,
 			);
-			if (selectedEl) {
+			if (selectedEl !== null) {
 				selectedEl.scrollIntoView({ block: "nearest" });
 			}
 		}
@@ -322,9 +326,11 @@ export function SimpleSelect({
 				aria-haspopup="listbox"
 				className="form-select-trigger flex items-center justify-between gap-2 text-left text-sm"
 			>
-				<span className={selectedOption ? "text-fg" : "text-fg-muted"}>
-					{selectedOption
-						? `${selectedOption.label}${selectedOption.description ? ` — ${selectedOption.description}` : ""}`
+				<span
+					className={selectedOption !== undefined ? "text-fg" : "text-fg-muted"}
+				>
+					{selectedOption !== undefined
+						? `${selectedOption.label}${selectedOption.description !== undefined ? ` — ${selectedOption.description}` : ""}`
 						: placeholder}
 				</span>
 				<svg
@@ -364,7 +370,7 @@ export function SimpleSelect({
 							}`}
 						>
 							<span className="font-medium">{option.label}</span>
-							{option.description && (
+							{option.description !== undefined && (
 								<span className="text-fg-subtle ml-1">
 									— {option.description}
 								</span>

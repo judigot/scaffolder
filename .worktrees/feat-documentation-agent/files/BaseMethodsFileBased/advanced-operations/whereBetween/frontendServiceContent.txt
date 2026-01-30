@@ -1,0 +1,6 @@
+const response = await axiosInstance.post(`{{url}}`, {
+  column,
+  min, 
+  max
+});
+return response.data; 

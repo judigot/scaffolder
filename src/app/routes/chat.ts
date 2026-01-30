@@ -1,12 +1,17 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
-import { convertToModelMessages, streamText } from "ai";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { SCHEMA_BUILDER_SYSTEM_PROMPT } from "@/prompts/index.ts";
 
 // Model configuration
-type ModelId = "gpt-5-nano" | "gpt-5-mini" | "gpt-5.2-codex" | "claude-sonnet-4.5" | "claude-opus-4.5";
+type ModelId =
+	| "gpt-5-nano"
+	| "gpt-5-mini"
+	| "gpt-5.2-codex"
+	| "claude-sonnet-4.5"
+	| "claude-opus-4.5";
 
 interface IModelConfig {
 	id: ModelId;
@@ -60,6 +65,49 @@ const isValidModelId = (id: unknown): id is ModelId => {
 	return typeof id === "string" && id in MODEL_CONFIGS;
 };
 
+/**
+ * Type guard to check if value is a Record with string keys
+ */
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+	return typeof value === "object" && value !== null;
+};
+
+/**
+ * Type guard to validate if a value is a valid UIMessage object
+ */
+const isValidUIMessage = (msg: unknown): msg is Omit<UIMessage, "id"> => {
+	if (!isRecord(msg)) {
+		return false;
+	}
+
+	// Check role - required field
+	if (typeof msg.role !== "string") {
+		return false;
+	}
+
+	const validRoles = ["system", "user", "assistant"];
+	if (!validRoles.includes(msg.role)) {
+		return false;
+	}
+
+	// Check parts - required field
+	if (!Array.isArray(msg.parts)) {
+		return false;
+	}
+
+	// Validate each part has at least a type property
+	for (const part of msg.parts) {
+		if (!isRecord(part)) {
+			return false;
+		}
+		if (typeof part.type !== "string") {
+			return false;
+		}
+	}
+
+	return true;
+};
+
 const app = new Hono();
 
 app.use("*", cors());
@@ -99,18 +147,36 @@ app.post("/", async (c) => {
 			return c.json({ error: "Invalid messages format" }, 400);
 		}
 
-		// Get model from request, default to gpt-5-nano
-		const modelId: ModelId = isValidModelId(body.model) ? body.model : "gpt-5-nano";
+		// Validate each message is a valid UIMessage
+		if (!body.messages.every(isValidUIMessage)) {
+			return c.json({ error: "Invalid message structure" }, 400);
+		}
 
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+		// Get model from request, default to gpt-5-nano
+		const modelId: ModelId = isValidModelId(body.model)
+			? body.model
+			: "gpt-5-nano";
+
 		const convertedMessages = await convertToModelMessages(body.messages);
 
-		const result = streamText({
+		// Build streamText options - reasoning models like gpt-5.2-codex don't support temperature
+		const baseOptions = {
 			model: getModel(modelId),
 			system: SCHEMA_BUILDER_SYSTEM_PROMPT,
 			messages: convertedMessages,
-			temperature: 0.7,
-		});
+		};
+
+		// Only add temperature for non-reasoning models
+		if (modelId !== "gpt-5.2-codex") {
+			const optionsWithTemp = {
+				...baseOptions,
+				temperature: 0.7,
+			};
+			const result = streamText(optionsWithTemp);
+			return result.toUIMessageStreamResponse();
+		}
+
+		const result = streamText(baseOptions);
 
 		return result.toUIMessageStreamResponse();
 	} catch (error) {

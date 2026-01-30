@@ -31,13 +31,15 @@ app.use("*", cors());
 
 function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
 	const match = /github\.com\/([^/]+)\/([^/]+)/i.exec(url);
-	if (!match?.[1] || !match[2]) {
+	const owner = match?.[1];
+	const repo = match?.[2];
+	if (owner === undefined || repo === undefined) {
 		return null;
 	}
 
 	return {
-		owner: match[1],
-		repo: match[2].replace(/\.git$/, ""),
+		owner,
+		repo: repo.replace(/\.git$/, ""),
 	};
 }
 
@@ -75,9 +77,10 @@ app.post("/clone", async (c) => {
 	const auth0UserId = authResult.auth0UserId;
 
 	const token = await getGitHubToken(auth0UserId);
-	const cloneUrl = token
-		? `https://x-access-token:${token}@github.com/${repoInfo.owner}/${repoInfo.repo}.git`
-		: `https://github.com/${repoInfo.owner}/${repoInfo.repo}.git`;
+	const cloneUrl =
+		token !== null && token !== ""
+			? `https://x-access-token:${token}@github.com/${repoInfo.owner}/${repoInfo.repo}.git`
+			: `https://github.com/${repoInfo.owner}/${repoInfo.repo}.git`;
 
 	const repoPath = await prepareRepoPath(repoInfo.owner, repoInfo.repo);
 	const pathAlreadyExists = await pathExists(repoPath);
@@ -100,7 +103,7 @@ app.post("/clone", async (c) => {
 			status: "already_cloned",
 			repoPath,
 			defaultBranch: defaultBranch ?? "",
-			authType: token ? "github-token" : "public",
+			authType: token !== null && token !== "" ? "github-token" : "public",
 		});
 	}
 
@@ -124,7 +127,7 @@ app.post("/clone", async (c) => {
 		status: "cloned",
 		repoPath,
 		defaultBranch: defaultBranch ?? "",
-		authType: token ? "github-token" : "public",
+		authType: token !== null && token !== "" ? "github-token" : "public",
 	});
 });
 
@@ -421,7 +424,7 @@ app.post("/files", async (c) => {
 			}
 
 			localPath = await getLocalClonePath(repoInfo.owner, repoInfo.repo);
-			if (!localPath) {
+			if (localPath === null) {
 				return c.json(
 					{
 						error: "Repository not cloned locally",

@@ -1,0 +1,5 @@
+return $this->model->where(function ($q) use ($query, $fields) {
+            foreach ($fields as $field) {
+                $q->orWhere($field, 'LIKE', "%$query%");
+            }
+        })->paginate($perPage);

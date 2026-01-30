@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Models;
+
+[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{valuePascalCaseSingular}};" --separator="\n" ]]
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class {{tableNamePascalCaseSingular}} extends Model
+{
+    use HasFactory;
+
+    protected $table = '{{tableName}}';
+
+    protected $primaryKey = '{{getPrimaryKey()}}';
+
+    protected $hidden = [
+        [[ LOOP({{getAllColumns()}}) --template="'{{value}}'" --separator=",\n        " --filter="[[ USE_CONSTANT(hiddenColumns) ]]" ]]
+    ];
+
+    protected $fillable = [
+        [[ LOOP(requiredColumns) --template="'{{value}}'" --separator=",\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
+    ];
+
+    public function getForeignKey()
+    {
+        return $this->primaryKey;
+    }
+
+[[USE_TEMPLATE(/DomainMethods/laravel/model.txt)]]
+}

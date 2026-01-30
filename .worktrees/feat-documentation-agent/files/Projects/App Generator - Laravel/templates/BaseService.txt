@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Services;
+
+use App\Repositories\BaseRepository;
+use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
+
+abstract class BaseService
+{
+    protected BaseRepository $repository;
+
+    public function __construct(BaseRepository $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    public function getSortedQuery(?string $column = null, string $direction = 'asc'): \Illuminate\Database\Eloquent\Builder 
+    {
+        return $this->repository->getSortedQuery ($column, $direction); 
+    }
+
+    // Base Service Methods
+[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="    public function {{repositoryMethod}}
+    {
+        {{serviceContent}}\n    }"]]
+}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[[USE_DATA(element.name)]] ([[USE_DATA(element.symbol)]])</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .card { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; margin-bottom: 25px; }
+    .symbol { font-size: 4em; font-weight: bold; color: #3498db; margin: 10px 0; }
+    .name { font-size: 2em; color: #2c3e50; margin: 10px 0; }
+    .atomic-number { font-size: 1.2em; color: #7f8c8d; }
+    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+    .info-item { background: #f8f9fa; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; }
+    .label { font-weight: bold; color: #34495e; font-size: 0.9em; margin-bottom: 5px; }
+    .value { color: #2c3e50; }
+    .section { margin: 25px 0; }
+    .section-title { font-size: 1.3em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; margin-bottom: 15px; }
+    .description { line-height: 1.7; color: #34495e; margin: 15px 0; }
+    .uses { background: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; }
+    .safety { background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin-top: 15px; }
+    .category-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 0.9em; font-weight: bold; margin-top: 10px; }
+    .nonmetal { background: #e3f2fd; color: #1976d2; }
+    .metal { background: #fff3e0; color: #f57c00; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="atomic-number">Atomic Number: [[USE_DATA(element.atomic-number)]]</div>
+      <div class="symbol">[[USE_DATA(element.symbol)]]</div>
+      <div class="name">[[USE_DATA(element.name)]]</div>
+      <div class="category-badge [[USE_DATA(element.category)]]">[[USE_DATA(element.category)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Basic Properties</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Atomic Mass</div>
+          <div class="value">[[USE_DATA(element.atomic-mass)]] u</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Group</div>
+          <div class="value">[[USE_DATA(element.group)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Period</div>
+          <div class="value">[[USE_DATA(element.period)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Block</div>
+          <div class="value">[[USE_DATA(element.block)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Electronegativity</div>
+          <div class="value">[[USE_DATA(element.electronegativity)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Electron Configuration</div>
+          <div class="value">[[USE_DATA(element.electron-configuration)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Physical Properties</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">State at Room Temp</div>
+          <div class="value">[[USE_DATA(element.state-at-room-temp)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Color</div>
+          <div class="value">[[USE_DATA(element.color)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Density</div>
+          <div class="value">[[USE_DATA(element.density)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Melting Point</div>
+          <div class="value">[[USE_DATA(element.melting-point)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Boiling Point</div>
+          <div class="value">[[USE_DATA(element.boiling-point)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Description</div>
+      <div class="description">[[USE_DATA(element.description)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Uses</div>
+      <div class="uses">[[USE_DATA(element.uses)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Discovery</div>
+      <div class="info-item">
+        <div class="label">Year</div>
+        <div class="value">[[USE_DATA(element.discovery-year)]]</div>
+      </div>
+      <div class="info-item" style="margin-top: 10px;">
+        <div class="label">Discoverer</div>
+        <div class="value">[[USE_DATA(element.discoverer)]]</div>
+      </div>
+    </div>
+
+    <div class="safety">
+      <div class="section-title">Safety Notes</div>
+      <div class="value">[[USE_DATA(element.safety-notes)]]</div>
+    </div>
+  </div>
+</body>
+</html>
+

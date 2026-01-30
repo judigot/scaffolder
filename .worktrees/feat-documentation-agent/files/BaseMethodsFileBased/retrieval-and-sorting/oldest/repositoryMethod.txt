@@ -1,0 +1,1 @@
+{{methodNameCamelCase}}(string $column = 'created_at'): ?Model

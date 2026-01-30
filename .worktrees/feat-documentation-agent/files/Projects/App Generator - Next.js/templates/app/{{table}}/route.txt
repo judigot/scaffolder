@@ -1,0 +1,116 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+
+// Mock database - in a real app, this would be replaced with actual database calls
+let mockDb: I{{tableNamePascalCaseSingular}}[] = [];
+let nextId = 1;
+
+type ResponseData = {
+  data?: I{{tableNamePascalCaseSingular}} | I{{tableNamePascalCaseSingular}}[];
+  message?: string;
+  error?: string;
+};
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseData>
+) {
+  try {
+    const { method } = req;
+    const { id } = req.query;
+
+    switch (method) {
+      case 'GET':
+        // Get all {{tableNamePascalCasePlural}} or a specific one by ID
+        if (id) {
+          const item = mockDb.find(item => String(item.id) === id);
+          if (!item) {
+            return res.status(404).json({ 
+              error: '{{tableNamePascalCaseSingular}} not found' 
+            });
+          }
+          return res.status(200).json({ 
+            data: item,
+            message: '{{tableNamePascalCaseSingular}} retrieved successfully' 
+          });
+        } else {
+          return res.status(200).json({ 
+            data: mockDb,
+            message: '{{tableNamePascalCasePlural}} retrieved successfully' 
+          });
+        }
+
+      case 'POST':
+        // Create new {{tableNamePascalCaseSingular}}
+        const newItem: I{{tableNamePascalCaseSingular}} = {
+          id: nextId++,
+          ...(req.body as Omit<I{{tableNamePascalCaseSingular}}, 'id'>),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        mockDb.push(newItem);
+        return res.status(201).json({ 
+          data: newItem,
+          message: '{{tableNamePascalCaseSingular}} created successfully' 
+        });
+
+      case 'PUT':
+        // Update {{tableNamePascalCaseSingular}}
+        if (!id) {
+          return res.status(400).json({ 
+            error: 'ID is required for update' 
+          });
+        }
+        
+        const existingIndex = mockDb.findIndex(item => String(item.id) === id);
+        if (existingIndex === -1) {
+          return res.status(404).json({ 
+            error: '{{tableNamePascalCaseSingular}} not found' 
+          });
+        }
+        
+        const updatedItem: I{{tableNamePascalCaseSingular}} = {
+          ...mockDb[existingIndex],
+          ...req.body,
+          updatedAt: new Date().toISOString()
+        };
+        
+        mockDb[existingIndex] = updatedItem;
+        
+        return res.status(200).json({ 
+          data: updatedItem,
+          message: '{{tableNamePascalCaseSingular}} updated successfully' 
+        });
+
+      case 'DELETE':
+        // Delete {{tableNamePascalCaseSingular}}
+        if (!id) {
+          return res.status(400).json({ 
+            error: 'ID is required for deletion' 
+          });
+        }
+        
+        const initialLength = mockDb.length;
+        mockDb = mockDb.filter(item => String(item.id) !== id);
+        
+        if (mockDb.length === initialLength) {
+          return res.status(404).json({ 
+            error: '{{tableNamePascalCaseSingular}} not found' 
+          });
+        }
+        
+        return res.status(200).json({ 
+          message: '{{tableNamePascalCaseSingular}} deleted successfully' 
+        });
+
+      default:
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+        return res.status(405).json({ error: `Method ${String(method)} Not Allowed` });
+    }
+  } catch (error) {
+    console.error('API error:', error);
+    return res.status(500).json({ 
+      error: 'Internal Server Error',
+    });
+  }
+} 

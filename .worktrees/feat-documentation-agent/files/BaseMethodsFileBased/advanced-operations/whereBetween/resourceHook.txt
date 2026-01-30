@@ -1,0 +1,29 @@
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { whereBetweenResources } from '@/hooks/shared/useWhereBetween.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+interface IWhereBetweenParams {
+  column: string;
+  min: string | number;
+  max: string | number;
+}
+
+export const useWhereBetween{{tableNamePascalCasePlural}} = (
+  params: IWhereBetweenParams,
+  options?: Omit<
+    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    'queryKey' | 'queryFn'
+  >,
+) => {
+  return useQuery({
+    queryKey: ['{{tableNameCamelCasePlural}}', 'whereBetween', params.column, params.min, params.max],
+    queryFn: () =>
+      whereBetweenResources<I{{tableNamePascalCaseSingular}}>(
+        '/{{tableNameCamelCasePlural}}/where-between',
+        params.column,
+        params.min,
+        params.max
+      ),
+    ...options,
+  });
+}; 

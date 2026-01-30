@@ -1,0 +1,7 @@
+app:
+    Http:
+        Controllers:
+            - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
+    Models:
+        - FILE_LOOP({{tableNamePascalCaseSingular}}.php --template /Templates/backend/laravel/Model.txt)
+IMPORT_PROJECT(Projects/MultiLevelB.yaml): 

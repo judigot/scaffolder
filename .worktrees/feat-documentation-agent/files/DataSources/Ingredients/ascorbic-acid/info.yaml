@@ -1,0 +1,21 @@
+ingredient:
+  name: "Ascorbic Acid"
+  common-name: "Vitamin C"
+  chemical-formula: "C₆H₈O₆"
+  cas-number: "50-81-7"
+  molecular-weight: "176.12 g/mol"
+  category: "Vitamin, Antioxidant"
+  source: "Synthetic or extracted from fruits (citrus, berries)"
+  purity: "USP grade: ≥99%"
+  appearance: "White to light yellow crystalline powder"
+  solubility: "Soluble in water (33 g/100ml), slightly soluble in alcohol"
+  melting-point: "190-192°C (decomposes)"
+  ph: "Acidic (2.1-2.6 in 5% solution)"
+  uses: "Dietary supplement, food preservative, antioxidant in cosmetics, pharmaceutical applications, research reagent"
+  nutritional-value:
+    vitamin-c: "100%"
+  health-notes: "Essential vitamin. Recommended daily intake: 90mg (men), 75mg (women). Deficiency causes scurvy."
+  safety: "Generally safe. High doses (>2000mg/day) may cause gastrointestinal upset."
+  storage: "Store in airtight container, protect from light and moisture. Stable in dry form, degrades in solution."
+  research-applications: "Antioxidant studies, cell culture supplement, reducing agent in biochemical assays, collagen synthesis research."
+

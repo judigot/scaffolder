@@ -1,0 +1,3 @@
+
+        $record = $this->model->find($id);
+        return $record ? $record->{{methodNameCamelCase}}($data) : false;

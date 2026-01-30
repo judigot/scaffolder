@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Contact - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 20px; margin-bottom: 30px; }
+    .employee-name { font-size: 2em; font-weight: bold; color: #2c3e50; }
+    .document-title { font-size: 1.2em; color: #7f8c8d; margin-top: 10px; }
+    .card { background: #fff; border: 2px solid #ecf0f1; border-radius: 8px; padding: 25px; margin-bottom: 20px; }
+    .card.primary { border-color: #e74c3c; border-width: 3px; }
+    .card.secondary { border-color: #3498db; }
+    .card-title { font-size: 1.3em; font-weight: bold; color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #ecf0f1; }
+    .contact-info { margin: 15px 0; }
+    .info-row { display: flex; padding: 8px 0; }
+    .label { font-weight: 600; color: #555; width: 120px; }
+    .value { color: #2c3e50; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; margin-left: 10px; }
+    .badge-primary { background: #e74c3c; color: white; }
+    .badge-secondary { background: #3498db; color: white; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="employee-name">[[USE_DATA(basic-info.name)]]</div>
+    <div class="document-title">Emergency Contact Information</div>
+  </div>
+
+  <div class="card primary">
+    <div class="card-title">
+      Primary Emergency Contact
+      <span class="badge badge-primary">PRIMARY</span>
+    </div>
+    <div class="contact-info">
+      <div class="info-row">
+        <span class="label">Name:</span>
+        <span class="value">[[USE_DATA(emergency-contact.primary.name)]]</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Relationship:</span>
+        <span class="value">[[USE_DATA(emergency-contact.primary.relationship)]]</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Phone:</span>
+        <span class="value">[[USE_DATA(emergency-contact.primary.phone)]]</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Email:</span>
+        <span class="value">[[USE_DATA(emergency-contact.primary.email)]]</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card secondary">
+    <div class="card-title">
+      Secondary Emergency Contact
+      <span class="badge badge-secondary">SECONDARY</span>
+    </div>
+    <div class="contact-info">
+      <div class="info-row">
+        <span class="label">Name:</span>
+        <span class="value">[[USE_DATA(emergency-contact.secondary.name)]]</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Relationship:</span>
+        <span class="value">[[USE_DATA(emergency-contact.secondary.relationship)]]</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Phone:</span>
+        <span class="value">[[USE_DATA(emergency-contact.secondary.phone)]]</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Email:</span>
+        <span class="value">[[USE_DATA(emergency-contact.secondary.email)]]</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align: center; color: #7f8c8d; margin-top: 30px; font-size: 0.9em;">
+    Please keep this information updated with HR at [[USE_DATA(company-info.email)]]
+  </div>
+</body>
+</html>
+

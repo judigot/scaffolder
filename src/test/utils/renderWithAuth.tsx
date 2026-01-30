@@ -59,5 +59,4 @@ export function renderWithAuth(
 // RE-EXPORTS
 // =============================================================================
 
-export * from "@testing-library/react";
-export { authenticatedUserConfig } from "../fixtures/users.ts";
+// Re-exports are in testingLibrary.ts to satisfy react-refresh rule

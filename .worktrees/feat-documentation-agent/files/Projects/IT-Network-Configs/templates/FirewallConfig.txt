@@ -1,0 +1,36 @@
+! [[USE_DATA(network.name)]] Firewall Configuration
+! Generated: {{current-date}}
+! Location: [[USE_DATA(network.location)]]
+
+config system global
+    set hostname [[USE_DATA(devices[2].name)]]
+end
+
+config system interface
+[[USE_DATA(devices[2].interfaces)]]
+end
+
+config firewall address
+    edit "internal-network"
+        set subnet [[USE_DATA(network.subnet)]]
+    next
+end
+
+config firewall policy
+[[USE_DATA(security.firewall-rules)]]
+end
+
+config system dns
+    set primary [[USE_DATA(dns.primary)]]
+    set secondary [[USE_DATA(dns.secondary)]]
+end
+
+config router static
+    edit 1
+        set dst 0.0.0.0 0.0.0.0
+        set gateway [[USE_DATA(routing.default-gateway)]]
+    next
+end
+
+end
+

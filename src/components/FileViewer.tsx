@@ -141,6 +141,7 @@ function FileViewer({
 	const { schemaInfo, SQLSchema } = useTransformationsStore();
 	const { backendDir, publicRepoURL, dbConnection } = useFormStore();
 
+	// eslint-disable-next-line no-type-assertion/no-type-assertion
 	const isDevMode = isMasterDeveloper(user?.nickname as string | undefined);
 	const { editValue, newValue, promptModal, openRandomModal, openModal } =
 		useModalStore();
@@ -149,7 +150,9 @@ function FileViewer({
 
 	// Validate GitHub URL format
 	const isValidGitHubURL = (url: string | undefined): boolean => {
-		if (!url || url === "") return true; // Empty is valid (will use local)
+		if (url === undefined || url === "") {
+			return true;
+		} // Empty is valid (will use local)
 		return url.startsWith("https://github.com/");
 	};
 
@@ -275,7 +278,7 @@ function FileViewer({
 
 	// Save file content changes - wrapped in useCallback
 	const saveFileChanges = useCallback(() => {
-		if (!selectedFile || !editorRef.current) {
+		if (selectedFile === null || editorRef.current === null) {
 			return;
 		}
 
@@ -513,7 +516,11 @@ function FileViewer({
 	useEffect(() => {
 		const handleKeyDown = (e: globalThis.KeyboardEvent) => {
 			// Check if the editor has focus or fileViewer is in the document
-			if (!fileViewerRef.current || !selectedFile || !editorRef.current) {
+			if (
+				fileViewerRef.current === null ||
+				selectedFile === null ||
+				editorRef.current === null
+			) {
 				return;
 			}
 
@@ -546,7 +553,7 @@ function FileViewer({
 		}
 
 		const targetFile = openFiles.find((f) => f.uniqueId === targetId);
-		if (!targetFile) {
+		if (targetFile === undefined) {
 			return;
 		}
 
@@ -659,7 +666,7 @@ function FileViewer({
 
 	// Add new file
 	const addNewFile = (fileName: string, customPath?: string[]) => {
-		if (!fileName.trim()) {
+		if (fileName.trim() === "") {
 			return;
 		}
 
@@ -704,7 +711,7 @@ function FileViewer({
 
 	// Add new folder
 	const addNewFolder = (folderName: string, customPath?: string[]) => {
-		if (!folderName.trim()) {
+		if (folderName.trim() === "") {
 			return;
 		}
 
@@ -757,7 +764,7 @@ function FileViewer({
 		newName: string,
 		parentPath: string[] = [],
 	) => {
-		if (!newName.trim()) {
+		if (newName.trim() === "") {
 			return;
 		}
 
@@ -823,7 +830,7 @@ function FileViewer({
 
 	// Fix for non-null assertion in MenuItem
 	const handleDeleteItem = () => {
-		if (!contextMenu?.item) {
+		if (contextMenu?.item === undefined) {
 			return;
 		}
 
@@ -904,7 +911,7 @@ function FileViewer({
 		const url = URL.createObjectURL(blob);
 		const printWindow = window.open(url, "_blank");
 
-		if (!printWindow) {
+		if (printWindow === null) {
 			console.error("Failed to open print window");
 			URL.revokeObjectURL(url);
 			return;
@@ -2618,25 +2625,29 @@ function FileViewer({
 											<div className="form-group mb-2">
 												<span className="form-label">Source Files:</span>
 												<SimpleSelect
-													value={useLocalScaffolderFiles ? "local" : "remote"}
-													onChange={(value) =>
-														onToggleLocalScaffolderFiles(value === "local")
+													value={
+														useLocalScaffolderFiles === true
+															? "local"
+															: "remote"
 													}
+													onChange={(value) => {
+														onToggleLocalScaffolderFiles(value === "local");
+													}}
 													options={[
 														{ value: "local", label: "Local" },
 														{ value: "remote", label: "Remote" },
 													]}
 													aria-label="Source files location"
 												/>
-												{!useLocalScaffolderFiles &&
-													onRemoteScaffolderURLChange && (
+												{useLocalScaffolderFiles !== true &&
+													onRemoteScaffolderURLChange !== undefined && (
 														<>
 															<input
 																type="text"
 																value={remoteScaffolderURL}
-																onChange={(e) =>
-																	onRemoteScaffolderURLChange(e.target.value)
-																}
+																onChange={(e) => {
+																	onRemoteScaffolderURLChange(e.target.value);
+																}}
 																placeholder="https://github.com/user/repo"
 																className={`form-input form-input-sm ${
 																	!isValidGitHubURL(remoteScaffolderURL)
@@ -2945,25 +2956,27 @@ function FileViewer({
 												Source Files:
 											</span>
 											<SimpleSelect
-												value={useLocalScaffolderFiles ? "local" : "remote"}
-												onChange={(value) =>
-													onToggleLocalScaffolderFiles(value === "local")
+												value={
+													useLocalScaffolderFiles === true ? "local" : "remote"
 												}
+												onChange={(value) => {
+													onToggleLocalScaffolderFiles(value === "local");
+												}}
 												options={[
 													{ value: "local", label: "Local" },
 													{ value: "remote", label: "Remote" },
 												]}
 												aria-label="Source files location"
 											/>
-											{!useLocalScaffolderFiles &&
-												onRemoteScaffolderURLChange && (
+											{useLocalScaffolderFiles !== true &&
+												onRemoteScaffolderURLChange !== undefined && (
 													<>
 														<input
 															type="text"
 															value={remoteScaffolderURL}
-															onChange={(e) =>
-																onRemoteScaffolderURLChange(e.target.value)
-															}
+															onChange={(e) => {
+																onRemoteScaffolderURLChange(e.target.value);
+															}}
 															placeholder="https://github.com/user/repo"
 															className={`form-input form-input-sm ${
 																!isValidGitHubURL(remoteScaffolderURL)

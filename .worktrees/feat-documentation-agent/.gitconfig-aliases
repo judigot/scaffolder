@@ -1,0 +1,299 @@
+# Git Aliases for AI Agent Development
+# =====================================
+# Purpose: Provide token-efficient git commands optimized for AI agents
+# to discover feature history, trace files, and understand codebase evolution.
+#
+# Installation:
+#   Global (all repos): git config --global include.path ~/.gitconfig-aliases
+#   Local (this repo):  git config --local include.path ./.gitconfig-aliases
+#
+# Usage:
+#   git feature-commits F007       # Find all commits for feature
+#   git feature-files F007         # List files touched by feature
+#   git file-story path/to/file    # Show file evolution
+
+[alias]
+  # ============================================================================
+  # Feature Discovery (Find commits and files by Feature ID)
+  # ============================================================================
+  
+  # List all commits for a feature
+  # Usage: git feature-commits F007
+  feature-commits = "!f() { \
+    git log --grep=\"Feature: $1\" --grep=\"feat.*$1\" --grep=\"fix.*$1\" \
+    --oneline --color=always; \
+  }; f"
+  
+  # List all files ever touched by a feature
+  # Usage: git feature-files F007
+  feature-files = "!f() { \
+    git log --grep=\"Feature: $1\" --name-only --pretty=format: \
+    | sort -u | grep -v '^$'; \
+  }; f"
+  
+  # Show chronological timeline of feature development
+  # Usage: git feature-timeline F007
+  feature-timeline = "!f() { \
+    git log --grep=\"Feature: $1\" \
+    --pretty=format:'%C(yellow)%h%Creset - %C(green)%ar%Creset - %s' \
+    --color=always; \
+  }; f"
+  
+  # Show detailed stats for all feature commits
+  # Usage: git feature-stats F007
+  feature-stats = "!f() { \
+    git log --grep=\"Feature: $1\" --stat --color=always; \
+  }; f"
+  
+  # Show full diff for all feature commits
+  # Usage: git feature-diff F007
+  feature-diff = "!f() { \
+    git log --grep=\"Feature: $1\" -p --color=always; \
+  }; f"
+  
+  # Show first commit that introduced a feature
+  # Usage: git feature-first F007
+  feature-first = "!f() { \
+    git log --grep=\"Feature: $1\" --reverse --oneline --color=always | head -1; \
+  }; f"
+  
+  # Show most recent commit for a feature
+  # Usage: git feature-last F007
+  feature-last = "!f() { \
+    git log --grep=\"Feature: $1\" --oneline --color=always -1; \
+  }; f"
+  
+  # ============================================================================
+  # File History (Trace evolution of specific files)
+  # ============================================================================
+  
+  # Show file history with stats (follows renames)
+  # Usage: git file-story src/components/Feature.tsx
+  file-story = log --follow --stat --color=always --
+  
+  # Show file history with full diff (follows renames)
+  # Usage: git file-history src/components/Feature.tsx
+  file-history = log --follow -p --color=always --
+  
+  # Show who authored changes to a file (ranked by commit count)
+  # Usage: git file-authors src/components/Feature.tsx
+  file-authors = "!f() { \
+    git log --follow --format='%an' -- \"$1\" \
+    | sort | uniq -c | sort -rn; \
+  }; f"
+  
+  # Show when file was last modified
+  # Usage: git file-last-modified src/components/Feature.tsx
+  file-last-modified = "!f() { \
+    git log --follow -1 --pretty=format:'%C(yellow)%h%Creset - %C(green)%ar%Creset - %s' \
+    --color=always -- \"$1\"; \
+  }; f"
+  
+  # Show all commits that touched a file
+  # Usage: git file-commits src/components/Feature.tsx
+  file-commits = "!f() { \
+    git log --follow --oneline --color=always -- \"$1\"; \
+  }; f"
+  
+  # ============================================================================
+  # Area Expertise (Find who knows specific areas)
+  # ============================================================================
+  
+  # Find experts in a directory/area (ranked by commit count)
+  # Usage: git area-experts src/components/
+  area-experts = "!f() { \
+    git log --format='%an' -- \"$1\" \
+    | sort | uniq -c | sort -rn; \
+  }; f"
+  
+  # Count commits in a directory/area
+  # Usage: git area-activity src/components/
+  area-activity = "!f() { \
+    git log --oneline -- \"$1\" | wc -l; \
+  }; f"
+  
+  # Show recent activity in a directory/area
+  # Usage: git area-recent src/components/
+  area-recent = "!f() { \
+    git log --oneline --color=always -20 -- \"$1\"; \
+  }; f"
+  
+  # ============================================================================
+  # Recent Changes (Quick overview of what's happening)
+  # ============================================================================
+  
+  # Show recent commits (last 20)
+  # Usage: git recent
+  recent = log --oneline --color=always -20
+  
+  # Show files changed in recent commits
+  # Usage: git recent-files
+  recent-files = diff --name-only HEAD~10..HEAD
+  
+  # Show stats for recent commits
+  # Usage: git recent-stats
+  recent-stats = diff --stat --color=always HEAD~10..HEAD
+  
+  # Show recent commits with date
+  # Usage: git recent-dated
+  recent-dated = log --pretty=format:'%C(yellow)%h%Creset - %C(green)%ar%Creset - %s' --color=always -20
+  
+  # ============================================================================
+  # Feature Review (Deep dive into a feature)
+  # ============================================================================
+  
+  # Complete review: commits + stats + diffs
+  # Usage: git review-feature F007
+  review-feature = "!f() { \
+    echo '=== Commits ==='; \
+    git log --grep=\"Feature: $1\" --oneline --color=always; \
+    echo ''; \
+    echo '=== Stats ==='; \
+    git log --grep=\"Feature: $1\" --stat --color=always; \
+    echo ''; \
+    echo '=== Detailed Diff ==='; \
+    git log --grep=\"Feature: $1\" -p --color=always; \
+  }; f"
+  
+  # Find which features were affected by recent changes
+  # Usage: git changed-features HEAD~5..HEAD
+  changed-features = "!f() { \
+    git diff --name-only \"$1\" \
+    | xargs -I {} sh -c 'grep -l \"{}\" docs/features/implemented/*.md 2>/dev/null || true' \
+    | sed 's|.*/||' | sed 's|.md||' | sort -u; \
+  }; f"
+  
+  # Show features modified between two refs
+  # Usage: git features-between main..HEAD
+  features-between = "!f() { \
+    git log --pretty=format:%B \"$1\" \
+    | grep -oP 'Feature: \\K(F\\d+)' | sort -u; \
+  }; f"
+  
+  # ============================================================================
+  # Cross-Reference (Link commits to documentation)
+  # ============================================================================
+  
+  # Show commit and link to feature doc
+  # Usage: git commit-doc abc1234
+  commit-doc = "!f() { \
+    echo '=== Commit ==='; \
+    git show --stat --color=always \"$1\"; \
+    echo ''; \
+    FEATURE_ID=$(git show --format=%B \"$1\" | grep -oP 'Feature: \\K(F\\d+)' | head -1); \
+    if [ -n \"$FEATURE_ID\" ]; then \
+      echo \"=== Feature Documentation ===\"; \
+      echo \"Feature ID: $FEATURE_ID\"; \
+      DOC=$(find docs/features/implemented -name \"${FEATURE_ID}-*.md\" 2>/dev/null | head -1); \
+      if [ -n \"$DOC\" ]; then \
+        echo \"Doc: $DOC\"; \
+      else \
+        echo \"Doc: Not found\"; \
+      fi; \
+    fi; \
+  }; f"
+  
+  # List all features with commit counts
+  # Usage: git features-summary
+  features-summary = "!git log --all --format=%B \
+    | grep -oP 'Feature: \\K(F\\d+)' \
+    | sort | uniq -c | sort -rn"
+  
+  # ============================================================================
+  # Diff Helpers (Quick comparisons)
+  # ============================================================================
+  
+  # Show what changed in a feature between two points
+  # Usage: git feature-range F007 main..HEAD
+  feature-range = "!f() { \
+    git log --grep=\"Feature: $1\" --oneline --color=always \"$2\"; \
+  }; f"
+  
+  # Show files that would conflict with feature
+  # Usage: git feature-conflicts F007 main
+  feature-conflicts = "!f() { \
+    FEATURE_FILES=$(git log --grep=\"Feature: $1\" --name-only --pretty=format: | sort -u); \
+    OTHER_FILES=$(git diff --name-only \"$2\"...HEAD); \
+    comm -12 <(echo \"$FEATURE_FILES\" | sort) <(echo \"$OTHER_FILES\" | sort); \
+  }; f"
+  
+  # ============================================================================
+  # Token-Efficient Queries (Optimized for AI agents)
+  # ============================================================================
+  
+  # Minimal output: just commit hashes
+  # Usage: git feature-hashes F007
+  feature-hashes = "!f() { \
+    git log --grep=\"Feature: $1\" --format=%H; \
+  }; f"
+  
+  # Minimal output: just filenames (unique)
+  # Usage: git feature-filelist F007
+  feature-filelist = "!f() { \
+    git log --grep=\"Feature: $1\" --name-only --format= | sort -u | grep -v '^$'; \
+  }; f"
+  
+  # Compact timeline: hash + date + message
+  # Usage: git feature-compact F007
+  feature-compact = "!f() { \
+    git log --grep=\"Feature: $1\" --format='%h|%ar|%s'; \
+  }; f"
+  
+  # ============================================================================
+  # Debugging & Troubleshooting
+  # ============================================================================
+  
+  # Find commits that may have introduced a bug in a feature
+  # Usage: git feature-suspects F007 path/to/buggy/file
+  feature-suspects = "!f() { \
+    git log --grep=\"Feature: $1\" --oneline --color=always -- \"$2\"; \
+  }; f"
+  
+  # Show when feature was merged to main
+  # Usage: git feature-merged F007
+  feature-merged = "!f() { \
+    git log --grep=\"Feature: $1\" --merges --oneline --color=always | head -1; \
+  }; f"
+  
+  # ============================================================================
+  # Convenience Shortcuts
+  # ============================================================================
+  
+  # Quick status
+  st = status -sb
+  
+  # Quick log
+  lg = log --oneline --graph --decorate --color=always -20
+  
+  # Quick diff
+  df = diff --color=always
+  
+  # Quick show
+  sh = show --stat --color=always
+  
+  # Branch list with dates
+  branches = branch -a --sort=-committerdate --format='%(color:yellow)%(refname:short)%(color:reset) - %(color:green)%(committerdate:relative)%(color:reset)'
+  
+  # ============================================================================
+  # Notes for AI Agents
+  # ============================================================================
+  # 
+  # These aliases are optimized for token efficiency:
+  # 
+  # 1. Use feature-files first (cheapest - just filenames)
+  # 2. Then feature-commits (commit messages only)
+  # 3. Then feature-stats (includes file counts)
+  # 4. Finally feature-diff (most expensive - full diffs)
+  # 
+  # Token costs (approximate):
+  #   feature-files:    100-200 tokens
+  #   feature-commits:  200-500 tokens
+  #   feature-stats:    500-1000 tokens
+  #   feature-diff:     2000-5000 tokens
+  # 
+  # Compare to manual discovery:
+  #   grep codebase:    5000+ tokens
+  #   read all files:   20000+ tokens
+  # 
+  # Savings: 90%+ token reduction
+  # ============================================================================

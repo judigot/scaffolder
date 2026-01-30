@@ -3,15 +3,15 @@
  * Tests for the Terminal Mode UI rendering and functionality
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithAuth } from "../../test/utils/renderWithAuth.tsx";
-import TerminalMode from "./TerminalMode.tsx";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	authenticatedUserConfig,
 	newUserConfig,
 } from "../../test/fixtures/users.ts";
+import { renderWithAuth } from "../../test/utils/renderWithAuth.tsx";
+import TerminalMode from "./TerminalMode.tsx";
 
 // Mock ResizeObserver
 class MockResizeObserver {
@@ -19,11 +19,14 @@ class MockResizeObserver {
 	unobserve = vi.fn();
 	disconnect = vi.fn();
 }
-globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+/* eslint-disable no-type-assertion/no-type-assertion -- Test mock requires type assertion for global override */
+globalThis.ResizeObserver =
+	MockResizeObserver as unknown as typeof ResizeObserver;
+/* eslint-enable no-type-assertion/no-type-assertion */
 
 // Mock xterm.js - it requires browser APIs
 vi.mock("@xterm/xterm", () => {
-	const MockTerminal = vi.fn(function(this: Record<string, unknown>) {
+	const MockTerminal = vi.fn(function (this: Record<string, unknown>) {
 		this.open = vi.fn();
 		this.write = vi.fn();
 		this.writeln = vi.fn();
@@ -41,21 +44,21 @@ vi.mock("@xterm/xterm", () => {
 });
 
 vi.mock("@xterm/addon-fit", () => {
-	const MockFitAddon = vi.fn(function(this: Record<string, unknown>) {
+	const MockFitAddon = vi.fn(function (this: Record<string, unknown>) {
 		this.fit = vi.fn();
 	});
 	return { FitAddon: MockFitAddon };
 });
 
 vi.mock("@xterm/addon-web-links", () => {
-	const MockWebLinksAddon = vi.fn(function(this: Record<string, unknown>) {
+	const MockWebLinksAddon = vi.fn(function (this: Record<string, unknown>) {
 		// Empty addon
 	});
 	return { WebLinksAddon: MockWebLinksAddon };
 });
 
 vi.mock("@xterm/addon-unicode11", () => {
-	const MockUnicode11Addon = vi.fn(function(this: Record<string, unknown>) {
+	const MockUnicode11Addon = vi.fn(function (this: Record<string, unknown>) {
 		// Empty addon
 	});
 	return { Unicode11Addon: MockUnicode11Addon };
@@ -91,7 +94,9 @@ describe("TerminalMode", () => {
 				{ authConfig: authenticatedUserConfig },
 			);
 
-			expect(screen.getByRole("tab", { name: /terminal/i })).toBeInTheDocument();
+			expect(
+				screen.getByRole("tab", { name: /terminal/i }),
+			).toBeInTheDocument();
 			expect(screen.getByRole("tab", { name: /files/i })).toBeInTheDocument();
 			expect(screen.getByRole("tab", { name: /preview/i })).toBeInTheDocument();
 			expect(screen.getByRole("tab", { name: /logs/i })).toBeInTheDocument();
@@ -110,7 +115,9 @@ describe("TerminalMode", () => {
 			// Action buttons should be present
 			expect(screen.getByRole("button", { name: /yes/i })).toBeInTheDocument();
 			expect(screen.getByRole("button", { name: /no/i })).toBeInTheDocument();
-			expect(screen.getByRole("button", { name: /interrupt/i })).toBeInTheDocument();
+			expect(
+				screen.getByRole("button", { name: /interrupt/i }),
+			).toBeInTheDocument();
 			expect(screen.getByRole("button", { name: /exit/i })).toBeInTheDocument();
 		});
 
@@ -124,7 +131,9 @@ describe("TerminalMode", () => {
 				{ authConfig: authenticatedUserConfig },
 			);
 
-			expect(screen.getByRole("textbox", { name: /terminal input/i })).toBeInTheDocument();
+			expect(
+				screen.getByRole("textbox", { name: /terminal input/i }),
+			).toBeInTheDocument();
 		});
 
 		it("renders mode indicator", () => {
@@ -138,9 +147,15 @@ describe("TerminalMode", () => {
 			);
 
 			// Mode indicators should have buttons for Terminal, Agent, Ask
-			expect(screen.getByRole("button", { name: /terminal mode/i })).toBeInTheDocument();
-			expect(screen.getByRole("button", { name: /agent mode/i })).toBeInTheDocument();
-			expect(screen.getByRole("button", { name: /ask mode/i })).toBeInTheDocument();
+			expect(
+				screen.getByRole("button", { name: /terminal mode/i }),
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("button", { name: /agent mode/i }),
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("button", { name: /ask mode/i }),
+			).toBeInTheDocument();
 		});
 	});
 
@@ -156,7 +171,9 @@ describe("TerminalMode", () => {
 			);
 
 			// Should show "Connected to [host]" in top bar
-			expect(screen.getByText(/connected to 54\.123\.45\.67/i)).toBeInTheDocument();
+			expect(
+				screen.getByText(/connected to 54\.123\.45\.67/i),
+			).toBeInTheDocument();
 		});
 
 		it("shows disconnected status when no credentials", () => {
@@ -280,7 +297,10 @@ describe("TerminalMode", () => {
 				{ authConfig: authenticatedUserConfig },
 			);
 
-			const terminalContainer = container.firstChild as HTMLElement;
+			const terminalContainer = container.firstChild;
+			if (!(terminalContainer instanceof HTMLElement)) {
+				throw new Error("Expected container.firstChild to be an HTMLElement");
+			}
 			expect(terminalContainer).toHaveStyle({
 				background: "var(--terminal-bg)",
 			});
@@ -296,7 +316,10 @@ describe("TerminalMode", () => {
 				{ authConfig: authenticatedUserConfig },
 			);
 
-			const terminalContainer = container.firstChild as HTMLElement;
+			const terminalContainer = container.firstChild;
+			if (!(terminalContainer instanceof HTMLElement)) {
+				throw new Error("Expected container.firstChild to be an HTMLElement");
+			}
 			expect(terminalContainer).toHaveClass("h-full", "w-full");
 		});
 	});

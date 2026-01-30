@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Handbook - [[USE_DATA(company-info.name)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .cover { text-align: center; border-bottom: 4px solid #2c3e50; padding-bottom: 30px; margin-bottom: 40px; }
+    .cover-title { font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    .cover-subtitle { font-size: 1.5em; color: #7f8c8d; margin-bottom: 20px; }
+    .employee-name { font-size: 1.3em; color: #34495e; margin-top: 30px; }
+    .section { margin: 40px 0; }
+    .section-title { font-size: 1.8em; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
+    .subsection-title { font-size: 1.3em; font-weight: bold; color: #34495e; margin-top: 25px; margin-bottom: 15px; }
+    .content { line-height: 1.8; color: #2c3e50; margin: 15px 0; }
+    .list { margin: 15px 0; padding-left: 25px; }
+    .list li { margin: 10px 0; line-height: 1.6; }
+    .highlight-box { background: #e3f2fd; padding: 20px; border-radius: 5px; border-left: 4px solid #2196f3; margin: 20px 0; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="cover">
+      <div class="cover-title">EMPLOYEE HANDBOOK</div>
+      <div class="cover-subtitle">[[USE_DATA(company-info.name)]]</div>
+      <div class="employee-name">Issued to: [[USE_DATA(basic-info.name)]]</div>
+      <div style="margin-top: 20px; color: #7f8c8d;">Employee ID: [[USE_DATA(employee.employee-id)]]</div>
+      <div style="margin-top: 10px; color: #7f8c8d;">Date: [[USE_DATA(employee.hire-date)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Welcome</div>
+      <div class="content">
+        <p>Welcome to [[USE_DATA(company-info.name)]]! We are pleased to have you as part of our team. This handbook is designed to provide you with important information about our company policies, procedures, and benefits.</p>
+        <p>As a [[USE_DATA(employee.position)]] in the [[USE_DATA(employee.department)]] department, you play a vital role in our success. We are committed to providing you with a positive work environment and opportunities for professional growth.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Company Information</div>
+      <div class="content">
+        <p><strong>Company Name:</strong> [[USE_DATA(company-info.name)]]</p>
+        <p><strong>Address:</strong> [[USE_DATA(company-info.address)]], [[USE_DATA(company-info.city)]], [[USE_DATA(company-info.state)]] [[USE_DATA(company-info.zip)]]</p>
+        <p><strong>Phone:</strong> [[USE_DATA(company-info.phone)]]</p>
+        <p><strong>Email:</strong> [[USE_DATA(company-info.email)]]</p>
+        <p><strong>Website:</strong> [[USE_DATA(company-info.website)]]</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Employment Policies</div>
+      <div class="subsection-title">Employment Status</div>
+      <div class="content">
+        <p>Your employment with [[USE_DATA(company-info.name)]] is [[USE_DATA(employee.employment-type)]]. Employment is at-will, meaning either you or the company may terminate the employment relationship at any time, with or without cause or notice.</p>
+      </div>
+      <div class="subsection-title">Work Schedule</div>
+      <div class="content">
+        <p>Your regular work schedule is based on your position and department requirements. Standard business hours are Monday through Friday, 9:00 AM to 5:00 PM, with flexibility based on business needs.</p>
+      </div>
+      <div class="subsection-title">Attendance and Punctuality</div>
+      <div class="content">
+        <p>Regular attendance and punctuality are essential for the efficient operation of our business. Employees are expected to be present and ready to work at their scheduled start time.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Compensation and Benefits</div>
+      <div class="subsection-title">Payroll</div>
+      <div class="content">
+        <p>Employees are paid [[USE_DATA(payroll.pay-frequency)]]. Pay stubs are available through the employee portal.</p>
+      </div>
+      <div class="subsection-title">Benefits</div>
+      <div class="content">
+        <ul class="list">
+          <li><strong>Health Insurance:</strong> [[USE_DATA(benefits.health-insurance)]]</li>
+          <li><strong>Dental Insurance:</strong> [[USE_DATA(benefits.dental-insurance)]]</li>
+          <li><strong>Vision Insurance:</strong> [[USE_DATA(benefits.vision-insurance)]]</li>
+          <li><strong>Life Insurance:</strong> [[USE_DATA(benefits.life-insurance)]]</li>
+          <li><strong>Disability Insurance:</strong> [[USE_DATA(benefits.disability-insurance)]]</li>
+          <li><strong>Retirement Plan:</strong> [[USE_DATA(benefits.retirement-plan)]]</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Leave Policies</div>
+      <div class="content">
+        <p>Employees are eligible for various types of leave including vacation, sick leave, personal days, and family leave. Leave requests should be submitted through the employee portal and approved by your manager.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Code of Conduct</div>
+      <div class="content">
+        <p>All employees are expected to maintain the highest standards of professional conduct. This includes treating colleagues, customers, and vendors with respect, maintaining confidentiality, and adhering to all company policies and procedures.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Performance Reviews</div>
+      <div class="content">
+        <p>Performance reviews are conducted on a regular basis to provide feedback, set goals, and discuss career development opportunities. Reviews are typically conducted quarterly or annually, depending on your position.</p>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <div class="section-title">Important Contacts</div>
+      <div class="content">
+        <p><strong>Human Resources:</strong> [[USE_DATA(company-info.email)]]</p>
+        <p><strong>Your Manager:</strong> [[USE_DATA(employee.manager)]]</p>
+        <p><strong>Emergency Contact:</strong> [[USE_DATA(emergency-contact.primary.name)]] - [[USE_DATA(emergency-contact.primary.phone)]]</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>[[USE_DATA(company-info.name)]]</strong></p>
+      <p>This handbook is confidential and proprietary. Please keep it secure and return it upon termination of employment.</p>
+      <p style="margin-top: 20px;">Employee Acknowledgment:</p>
+      <p>I acknowledge that I have received and read this Employee Handbook. I understand that it is my responsibility to familiarize myself with its contents.</p>
+      <p style="margin-top: 20px;">Signature: _______________________ Date: _______________</p>
+    </div>
+  </div>
+</body>
+</html>
+
