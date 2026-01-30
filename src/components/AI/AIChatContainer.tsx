@@ -963,6 +963,10 @@ interface IAIChatContainerProps {
   worktreeFiles?: IStructure;
   /** Whether worktree files are currently loading */
   isWorktreeFilesLoading?: boolean;
+  /** Error from fetching scaffolder files */
+  scaffolderFilesError?: Error | null;
+  /** Whether scaffolder files are currently being fetched */
+  isScaffolderFilesFetching?: boolean;
 }
 
 export function AIChatContainer({
@@ -978,6 +982,8 @@ export function AIChatContainer({
   onRemoteScaffolderURLChange,
   worktreeFiles,
   isWorktreeFilesLoading = false,
+  scaffolderFilesError = null,
+  isScaffolderFilesFetching = false,
 }: IAIChatContainerProps) {
   const [input, setInput] = useState('');
   const { selectedModel, setSelectedModel } = useUIStore();
@@ -1125,24 +1131,54 @@ export function AIChatContainer({
   const hasRepoFiles: boolean =
     !isScaffolderRepo && displayFiles !== undefined && displayFiles.length > 0;
 
+  // Check if remote repo doesn't have scaffolder structure but has files
+  // In this case, show raw files in view mode instead of empty edit mode
+  const isRemoteWithoutScaffolderStructure =
+    isScaffolderRepo &&
+    !useLocalScaffolderFiles &&
+    builtProjectFiles.length === 0 &&
+    storeUserFiles.length > 0;
+
   return (
     <div className="flex h-full w-full bg-bg overflow-hidden">
-      {/* FileViewer panel - Scaffolder mode (always render when on fileViewer tab) */}
+      {/* FileViewer panel - Scaffolder mode (edit) or Remote view-only mode */}
       {isScaffolderRepo && activeTab === 'fileViewer' && (
         <div className="flex flex-col overflow-hidden w-full">
           <FileViewer
-            mode="edit"
-            folderStructure={builtProjectFiles}
-            projectName={selectedProject?.name ?? 'Select a project'}
-            filesUsingUserEnv={filesUsingUserEnv}
-            filesFailedToFormat={filesFailedToFormat}
-            projects={projects}
-            selectedProject={selectedProject ?? undefined}
-            onProjectChange={handleProjectChange}
+            mode={isRemoteWithoutScaffolderStructure ? 'view' : 'edit'}
+            folderStructure={
+              isRemoteWithoutScaffolderStructure
+                ? storeUserFiles
+                : builtProjectFiles
+            }
+            projectName={
+              isRemoteWithoutScaffolderStructure
+                ? 'Repository'
+                : (selectedProject?.name ?? 'Select a project')
+            }
+            filesUsingUserEnv={
+              isRemoteWithoutScaffolderStructure ? [] : filesUsingUserEnv
+            }
+            filesFailedToFormat={
+              isRemoteWithoutScaffolderStructure ? [] : filesFailedToFormat
+            }
+            projects={isRemoteWithoutScaffolderStructure ? [] : projects}
+            selectedProject={
+              isRemoteWithoutScaffolderStructure
+                ? undefined
+                : (selectedProject ?? undefined)
+            }
+            onProjectChange={
+              isRemoteWithoutScaffolderStructure
+                ? undefined
+                : handleProjectChange
+            }
             useLocalScaffolderFiles={useLocalScaffolderFiles}
             onToggleLocalScaffolderFiles={onToggleLocalScaffolderFiles}
             remoteScaffolderURL={remoteScaffolderURL}
             onRemoteScaffolderURLChange={onRemoteScaffolderURLChange}
+            fetchError={scaffolderFilesError}
+            isFetching={isScaffolderFilesFetching}
           />
         </div>
       )}

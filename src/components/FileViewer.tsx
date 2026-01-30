@@ -109,6 +109,8 @@ function FileViewer({
   onToggleLocalScaffolderFiles,
   remoteScaffolderURL,
   onRemoteScaffolderURLChange,
+  fetchError,
+  isFetching,
 }: {
   folderStructure: IStructure;
   mode: 'edit' | 'view';
@@ -126,6 +128,10 @@ function FileViewer({
   remoteScaffolderURL?: string;
   /** Callback to set remote scaffolder URL */
   onRemoteScaffolderURLChange?: (url: string) => void;
+  /** Error from fetching files */
+  fetchError?: Error | null;
+  /** Whether files are currently being fetched */
+  isFetching?: boolean;
 }) {
   const safeFilesUsingUserEnv = filesUsingUserEnv;
 
@@ -149,12 +155,27 @@ function FileViewer({
   const { selectedProject } = useProjectStore();
   const { userFiles } = useMockDatabaseStore();
 
-  // Validate GitHub URL format
+  // Validate GitHub URL or shorthand format (user/repo or https://github.com/user/repo)
   const isValidGitHubURL = (url: string | undefined): boolean => {
     if (url === undefined || url === '') {
+      return true; // Empty is valid (will use stock)
+    }
+    // Full URL format
+    if (url.startsWith('https://github.com/')) {
       return true;
-    } // Empty is valid (will use local)
-    return url.startsWith('https://github.com/');
+    }
+    // Shorthand format: user/repo (must have exactly one slash, no spaces)
+    const shorthandRegex = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
+    return shorthandRegex.test(url);
+  };
+
+  // Normalize shorthand (user/repo) to full GitHub URL
+  const normalizeGitHubURL = (url: string): string => {
+    if (url === '' || url.startsWith('https://github.com/')) {
+      return url;
+    }
+    // Assume shorthand format
+    return `https://github.com/${url}`;
   };
 
   // Local state for remote URL input with debounce
@@ -164,10 +185,13 @@ function FileViewer({
   const [debouncedRemoteURL] = useDebouncedValue(inputRemoteURL, 1000);
 
   // Sync local input when prop changes (e.g., from store)
+  // But don't overwrite if the normalized input matches the store value
   useEffect(() => {
     if (
       remoteScaffolderURL !== undefined &&
-      remoteScaffolderURL !== inputRemoteURL
+      remoteScaffolderURL !== inputRemoteURL &&
+      // Don't sync back if the input normalizes to the same URL
+      normalizeGitHubURL(inputRemoteURL) !== remoteScaffolderURL
     ) {
       setInputRemoteURL(remoteScaffolderURL);
     }
@@ -181,18 +205,58 @@ function FileViewer({
       debouncedRemoteURL !== remoteScaffolderURL &&
       isValidGitHubURL(debouncedRemoteURL)
     ) {
-      onRemoteScaffolderURLChange(debouncedRemoteURL);
+      // Normalize shorthand to full URL before passing to store
+      onRemoteScaffolderURLChange(normalizeGitHubURL(debouncedRemoteURL));
     }
   }, [debouncedRemoteURL, remoteScaffolderURL, onRemoteScaffolderURLChange]);
 
-  // Check if remote URL is invalid (for showing banner)
-  const showInvalidURLBanner = useMemo(() => {
+  // Check if there's a URL format error
+  const hasURLFormatError = useMemo(() => {
     return (
       useLocalScaffolderFiles !== true &&
       inputRemoteURL !== '' &&
       !isValidGitHubURL(inputRemoteURL)
     );
   }, [useLocalScaffolderFiles, inputRemoteURL]);
+
+  // Track the last known fetch error to prevent flashing during refetch
+  const [stableFetchError, setStableFetchError] = useState<Error | null>(null);
+
+  // Update stable error only when:
+  // 1. We have a new error (show it)
+  // 2. We have successful data AND not fetching (clear it)
+  useEffect(() => {
+    if (fetchError !== null && fetchError !== undefined) {
+      // Got a new error - show it
+      setStableFetchError(fetchError);
+    } else if (initialFolderStructure.length > 0 && isFetching !== true) {
+      // Got successful data and not fetching - clear error
+      setStableFetchError(null);
+    }
+    // During refetch (isFetching=true, fetchError=null), keep showing previous error
+  }, [fetchError, initialFolderStructure.length, isFetching]);
+
+  // Use stable error for display to prevent flashing
+  const hasStableFetchError = stableFetchError !== null;
+
+  // Combined error state - either URL format error or stable fetch error
+  const hasError = hasURLFormatError || hasStableFetchError;
+
+  // Get error message for display
+  const errorMessage = useMemo(() => {
+    if (hasURLFormatError) {
+      return 'Enter a valid format: user/repo or https://github.com/user/repo';
+    }
+    if (hasStableFetchError && stableFetchError instanceof Error) {
+      // Clean up the error message
+      const msg = stableFetchError.message;
+      if (msg.includes('invalid zip data')) {
+        return 'Repository not found. Please check the URL and ensure the repository exists and is public.';
+      }
+      return msg.replace(/^There was an error:\s*/i, '');
+    }
+    return null;
+  }, [hasURLFormatError, hasStableFetchError, stableFetchError]);
 
   const [folderStructure, setFolderStructure] = useState<IStructure>(
     initialFolderStructure,
@@ -2526,22 +2590,64 @@ function FileViewer({
             </div>
           </div>
         )}
-      {/* Invalid URL Banner */}
-      {showInvalidURLBanner && (
-        <Banner
-          variant="danger"
-          title="Invalid URL"
-          inline
-          className="mx-4 mt-2"
-        >
-          URL must start with https://github.com/
-        </Banner>
-      )}
+      {/* Error banner moved to content area */}
 
       {/* Main content area - flex to fill remaining space */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 text-white overflow-hidden">
+        {/* Mobile: Source Files selector - always visible at top */}
+        {isMobile &&
+          isDevEnvironment &&
+          onToggleLocalScaffolderFiles !== undefined && (
+            <div className="shrink-0 bg-panel border-b border-layout-border p-3">
+              <div className="form-group mb-0">
+                <span className="form-label">Source Files:</span>
+                <SimpleSelect
+                  value={useLocalScaffolderFiles === true ? 'local' : 'remote'}
+                  onChange={(value) => {
+                    onToggleLocalScaffolderFiles(value === 'local');
+                  }}
+                  options={[
+                    { value: 'local', label: 'Stock' },
+                    { value: 'remote', label: 'Remote' },
+                  ]}
+                  aria-label="Source files location"
+                />
+                {useLocalScaffolderFiles !== true &&
+                  onRemoteScaffolderURLChange !== undefined && (
+                    <>
+                      <input
+                        type="text"
+                        value={inputRemoteURL}
+                        onChange={(e) => {
+                          setInputRemoteURL(e.target.value);
+                        }}
+                        placeholder="judigot/repo or https://github.com/judigot/repo"
+                        className={`form-input form-input-sm ${
+                          !isValidGitHubURL(inputRemoteURL)
+                            ? 'form-input-error'
+                            : ''
+                        }`}
+                      />
+                      {inputRemoteURL === '' && (
+                        <span className="form-hint">
+                          Leave empty to use stock files
+                        </span>
+                      )}
+                      {inputRemoteURL !== '' &&
+                        !isValidGitHubURL(inputRemoteURL) && (
+                          <span className="form-error">
+                            Enter a valid format: user/repo or
+                            https://github.com/user/repo
+                          </span>
+                        )}
+                    </>
+                  )}
+              </div>
+            </div>
+          )}
+
         {/* Mobile: Accordion file explorer */}
-        {isMobile && (
+        {isMobile && !hasError && (
           <div className="flex flex-col shrink-0">
             {/* Accordion header - always visible on mobile */}
             <button
@@ -2624,96 +2730,54 @@ function FileViewer({
                     </button>
                   )}
 
-                  {/* Row 1: Export button */}
-                  <button
-                    type="button"
-                    onClick={handleOpenExportModal}
-                    disabled={
-                      isCreatingRepository ||
-                      isWaitingForInstallation ||
-                      folderStructure.length === 0 ||
-                      safeFilesUsingUserEnv.length > 0
-                    }
-                    className={`btn-primary w-full ${
-                      isCreatingRepository ||
-                      isWaitingForInstallation ||
-                      folderStructure.length === 0 ||
-                      safeFilesUsingUserEnv.length > 0
-                        ? 'opacity-50'
-                        : ''
-                    }`}
-                    title={getButtonTooltip()}
-                  >
-                    {isWaitingForInstallation
-                      ? 'Installing...'
-                      : isCreatingRepository
-                        ? 'Exporting...'
-                        : isDevMode
-                          ? `Export (${String(countFiles(folderStructure))})`
-                          : 'Export'}
-                  </button>
+                  {/* Export button - only shown when no sensitive files */}
+                  {safeFilesUsingUserEnv.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={handleOpenExportModal}
+                      disabled={
+                        isCreatingRepository ||
+                        isWaitingForInstallation ||
+                        folderStructure.length === 0
+                      }
+                      className={`btn-primary w-full ${
+                        isCreatingRepository ||
+                        isWaitingForInstallation ||
+                        folderStructure.length === 0
+                          ? 'opacity-50'
+                          : ''
+                      }`}
+                      title={getButtonTooltip()}
+                    >
+                      {isWaitingForInstallation
+                        ? 'Installing...'
+                        : isCreatingRepository
+                          ? 'Exporting...'
+                          : isDevMode
+                            ? `Export (${String(countFiles(folderStructure))})`
+                            : 'Export'}
+                    </button>
+                  )}
 
-                  {/* Row 2: Download button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      zipAndDownloadIStructure(
-                        folderStructure,
-                        getZipFileName(),
-                      );
-                    }}
-                    className="btn-secondary w-full flex items-center justify-center gap-2"
-                    title="Download ZIP"
-                  >
-                    <DownloadIcon sx={{ fontSize: 16 }} />
-                    <span>Download</span>
-                  </button>
+                  {/* Download ZIP - only shown when sensitive files detected */}
+                  {safeFilesUsingUserEnv.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        zipAndDownloadIStructure(
+                          folderStructure,
+                          getZipFileName(),
+                        );
+                      }}
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                      title="Download ZIP"
+                    >
+                      <DownloadIcon sx={{ fontSize: 16 }} />
+                      <span>Download ZIP</span>
+                    </button>
+                  )}
 
-                  {/* Row 3: File source toggle (dev mode only) + Project selector + New File/Folder buttons */}
-                  {isDevEnvironment &&
-                    onToggleLocalScaffolderFiles !== undefined && (
-                      <div className="form-group mb-2">
-                        <span className="form-label">Source Files:</span>
-                        <SimpleSelect
-                          value={
-                            useLocalScaffolderFiles === true
-                              ? 'local'
-                              : 'remote'
-                          }
-                          onChange={(value) => {
-                            onToggleLocalScaffolderFiles(value === 'local');
-                          }}
-                          options={[
-                            { value: 'local', label: 'Local' },
-                            { value: 'remote', label: 'Remote' },
-                          ]}
-                          aria-label="Source files location"
-                        />
-                        {useLocalScaffolderFiles !== true &&
-                          onRemoteScaffolderURLChange !== undefined && (
-                            <>
-                              <input
-                                type="text"
-                                value={inputRemoteURL}
-                                onChange={(e) => {
-                                  setInputRemoteURL(e.target.value);
-                                }}
-                                placeholder="https://github.com/user/repo"
-                                className={`form-input form-input-sm ${
-                                  !isValidGitHubURL(inputRemoteURL)
-                                    ? 'form-input-error'
-                                    : ''
-                                }`}
-                              />
-                              {!isValidGitHubURL(inputRemoteURL) && (
-                                <span className="form-error">
-                                  URL must start with https://github.com/
-                                </span>
-                              )}
-                            </>
-                          )}
-                      </div>
-                    )}
+                  {/* Row 3: Project selector + New File/Folder buttons */}
                   <div className="flex items-center gap-2">
                     {projects.length > 0 &&
                       selectedProjectProp &&
@@ -2786,39 +2850,20 @@ function FileViewer({
                     </div>
                   )}
 
-                  {/* Warning banners */}
+                  {/* Warning banner */}
                   {safeFilesUsingUserEnv.length > 0 && (
-                    <Banner
-                      variant="warning"
-                      title="Security Warning: Secrets Detected"
-                    >
+                    <Banner variant="warning" title="Secrets Detected">
                       <p className="mb-2">
                         {safeFilesUsingUserEnv.length} file(s) contain sensitive
-                        data. Exporting to GitHub will leak your secrets (API
-                        keys, passwords, tokens, etc.).
+                        data. GitHub export is disabled to protect your secrets.
                       </p>
-                      <ul className="list-disc list-inside mb-2 space-y-1">
+                      <ul className="list-disc list-inside space-y-1">
                         {safeFilesUsingUserEnv.map((filePath: string) => (
                           <li key={filePath} className="font-mono">
                             {filePath}
                           </li>
                         ))}
                       </ul>
-                      <p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            zipAndDownloadIStructure(
-                              folderStructure,
-                              getZipFileName(),
-                            );
-                          }}
-                          className="text-orange-300 hover:text-orange-200 underline font-medium"
-                        >
-                          Download ZIP
-                        </button>{' '}
-                        instead or use placeholders.
-                      </p>
                     </Banner>
                   )}
                   {filesFailedToFormat.length > 0 && (
@@ -2909,8 +2954,60 @@ function FileViewer({
         {/* Desktop: Side-by-side file tree panel - fixed width with horizontal scroll */}
         {!isMobile && (
           <div className="w-64 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-r border-layout-border">
+            {/* Source Files selector - always visible at top */}
+            {isDevEnvironment && onToggleLocalScaffolderFiles !== undefined && (
+              <div className="p-2 border-b border-layout-border shrink-0">
+                <div className="form-group mb-0">
+                  <span className="form-label">Source Files:</span>
+                  <SimpleSelect
+                    value={
+                      useLocalScaffolderFiles === true ? 'local' : 'remote'
+                    }
+                    onChange={(value) => {
+                      onToggleLocalScaffolderFiles(value === 'local');
+                    }}
+                    options={[
+                      { value: 'local', label: 'Stock' },
+                      { value: 'remote', label: 'Remote' },
+                    ]}
+                    aria-label="Source files location"
+                  />
+                  {useLocalScaffolderFiles !== true &&
+                    onRemoteScaffolderURLChange !== undefined && (
+                      <>
+                        <input
+                          type="text"
+                          value={inputRemoteURL}
+                          onChange={(e) => {
+                            setInputRemoteURL(e.target.value);
+                          }}
+                          placeholder="judigot/repo or https://github.com/judigot/repo"
+                          className={`form-input form-input-sm ${
+                            !isValidGitHubURL(inputRemoteURL)
+                              ? 'form-input-error'
+                              : ''
+                          }`}
+                        />
+                        {inputRemoteURL === '' && (
+                          <span className="form-hint">
+                            Leave empty to use stock files
+                          </span>
+                        )}
+                        {inputRemoteURL !== '' &&
+                          !isValidGitHubURL(inputRemoteURL) && (
+                            <span className="form-error">
+                              Enter a valid format: user/repo or
+                              https://github.com/user/repo
+                            </span>
+                          )}
+                      </>
+                    )}
+                </div>
+              </div>
+            )}
+
             {/* View mode toolbar - just new file/folder buttons */}
-            {mode === 'view' && (
+            {!hasError && mode === 'view' && (
               <div className="p-2 border-b border-layout-border shrink-0">
                 <div className="flex items-center gap-2">
                   <button
@@ -2944,7 +3041,7 @@ function FileViewer({
             )}
 
             {/* File tree toolbar */}
-            {mode === 'edit' && (
+            {!hasError && mode === 'edit' && (
               <div className="p-2 border-b border-layout-border space-y-2 shrink-0">
                 {/* Dev copy buttons */}
                 {isDevMode && (
@@ -2998,51 +3095,6 @@ function FileViewer({
                     <span>New Folder</span>
                   </button>
                 </div>
-                {/* File source toggle (dev mode only) */}
-                {isDevEnvironment &&
-                  onToggleLocalScaffolderFiles !== undefined && (
-                    <div className="form-group">
-                      <span className="form-label text-center">
-                        Source Files:
-                      </span>
-                      <SimpleSelect
-                        value={
-                          useLocalScaffolderFiles === true ? 'local' : 'remote'
-                        }
-                        onChange={(value) => {
-                          onToggleLocalScaffolderFiles(value === 'local');
-                        }}
-                        options={[
-                          { value: 'local', label: 'Local' },
-                          { value: 'remote', label: 'Remote' },
-                        ]}
-                        aria-label="Source files location"
-                      />
-                      {useLocalScaffolderFiles !== true &&
-                        onRemoteScaffolderURLChange !== undefined && (
-                          <>
-                            <input
-                              type="text"
-                              value={inputRemoteURL}
-                              onChange={(e) => {
-                                setInputRemoteURL(e.target.value);
-                              }}
-                              placeholder="https://github.com/user/repo"
-                              className={`form-input form-input-sm ${
-                                !isValidGitHubURL(inputRemoteURL)
-                                  ? 'form-input-error'
-                                  : ''
-                              }`}
-                            />
-                            {!isValidGitHubURL(inputRemoteURL) && (
-                              <span className="form-error">
-                                URL must start with https://github.com/
-                              </span>
-                            )}
-                          </>
-                        )}
-                    </div>
-                  )}
                 {/* Project selector */}
                 {projects.length > 0 &&
                   selectedProjectProp &&
@@ -3063,18 +3115,20 @@ function FileViewer({
               </div>
             )}
             {/* File tree */}
-            <div
-              className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
-              onContextMenu={(e) => {
-                handleContextMenu(e);
-              }}
-            >
-              <div className="min-w-max pb-2">
-                <SimpleTreeView>
-                  {renderTree(folderStructure, openFile)}
-                </SimpleTreeView>
+            {!hasError && (
+              <div
+                className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
+                onContextMenu={(e) => {
+                  handleContextMenu(e);
+                }}
+              >
+                <div className="min-w-max pb-2">
+                  <SimpleTreeView>
+                    {renderTree(folderStructure, openFile)}
+                  </SimpleTreeView>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -3275,6 +3329,18 @@ function FileViewer({
                 )}
               </div>
             </>
+          ) : hasError ? (
+            <div className="flex flex-col h-full">
+              <div className="p-4">
+                <Banner
+                  variant="danger"
+                  title={hasURLFormatError ? 'Invalid URL' : 'Error'}
+                  inline
+                >
+                  {errorMessage}
+                </Banner>
+              </div>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full text-content-subtle">
               <p>Select a file to view</p>
@@ -3283,7 +3349,7 @@ function FileViewer({
         </div>
 
         {/* Right panel - Export/Download actions (Desktop only) */}
-        {!isMobile && mode === 'edit' && (
+        {!isMobile && mode === 'edit' && !hasError && (
           <div className="w-56 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-l border-layout-border">
             <div className="p-3 space-y-3">
               {/* Section header */}
@@ -3302,82 +3368,67 @@ function FileViewer({
                 </button>
               )}
 
-              {/* Export to GitHub */}
-              <button
-                type="button"
-                onClick={handleOpenExportModal}
-                disabled={
-                  isCreatingRepository ||
-                  isWaitingForInstallation ||
-                  folderStructure.length === 0 ||
-                  safeFilesUsingUserEnv.length > 0
-                }
-                className={`btn-primary btn-full ${
-                  isCreatingRepository ||
-                  isWaitingForInstallation ||
-                  folderStructure.length === 0 ||
-                  safeFilesUsingUserEnv.length > 0
-                    ? 'opacity-50'
-                    : ''
-                }`}
-                title={getButtonTooltip()}
-              >
-                {isWaitingForInstallation
-                  ? 'Installing...'
-                  : isCreatingRepository
-                    ? 'Exporting...'
-                    : isDevMode
-                      ? `Export (${String(countFiles(folderStructure))})`
-                      : 'Export'}
-              </button>
-
-              {/* Download ZIP */}
-              <button
-                type="button"
-                onClick={() => {
-                  zipAndDownloadIStructure(folderStructure, getZipFileName());
-                }}
-                className="btn-secondary btn-full btn-icon"
-                title="Download ZIP"
-              >
-                <DownloadIcon sx={{ fontSize: 16 }} />
-                <span>Download ZIP</span>
-              </button>
-
-              {/* Warning banners */}
-              {safeFilesUsingUserEnv.length > 0 && (
-                <Banner
-                  variant="warning"
-                  title="Security Warning: Secrets Detected"
+              {/* Export - only shown when no sensitive files */}
+              {safeFilesUsingUserEnv.length === 0 && (
+                <button
+                  type="button"
+                  onClick={handleOpenExportModal}
+                  disabled={
+                    isCreatingRepository ||
+                    isWaitingForInstallation ||
+                    folderStructure.length === 0
+                  }
+                  className={`btn-primary btn-full ${
+                    isCreatingRepository ||
+                    isWaitingForInstallation ||
+                    folderStructure.length === 0
+                      ? 'opacity-50'
+                      : ''
+                  }`}
+                  title={getButtonTooltip()}
                 >
-                  <p className="mb-2">
-                    {safeFilesUsingUserEnv.length} file(s) contain sensitive
-                    data. Exporting to GitHub will leak your secrets (API keys,
-                    passwords, tokens, etc.).
-                  </p>
-                  <ul className="list-disc list-inside mb-2 space-y-1">
-                    {safeFilesUsingUserEnv.map((filePath: string) => (
-                      <li key={filePath} className="font-mono">
-                        {filePath}
-                      </li>
-                    ))}
-                  </ul>
-                  <p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        zipAndDownloadIStructure(
-                          folderStructure,
-                          getZipFileName(),
-                        );
-                      }}
-                      className="text-orange-300 hover:text-orange-200 underline font-medium"
-                    >
-                      Download ZIP
-                    </button>{' '}
-                    instead or use placeholders.
-                  </p>
-                </Banner>
+                  {isWaitingForInstallation
+                    ? 'Installing...'
+                    : isCreatingRepository
+                      ? 'Exporting...'
+                      : isDevMode
+                        ? `Export (${String(countFiles(folderStructure))})`
+                        : 'Export'}
+                </button>
+              )}
+
+              {/* Download ZIP - only shown when sensitive files detected */}
+              {safeFilesUsingUserEnv.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      zipAndDownloadIStructure(
+                        folderStructure,
+                        getZipFileName(),
+                      );
+                    }}
+                    className="btn-primary btn-full btn-icon"
+                    title="Download ZIP"
+                  >
+                    <DownloadIcon sx={{ fontSize: 16 }} />
+                    <span>Download ZIP</span>
+                  </button>
+
+                  <Banner variant="warning" title="Secrets Detected">
+                    <p className="mb-2">
+                      {safeFilesUsingUserEnv.length} file(s) contain sensitive
+                      data. GitHub export is disabled to protect your secrets.
+                    </p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {safeFilesUsingUserEnv.map((filePath: string) => (
+                        <li key={filePath} className="font-mono">
+                          {filePath}
+                        </li>
+                      ))}
+                    </ul>
+                  </Banner>
+                </>
               )}
               {filesFailedToFormat.length > 0 && (
                 <Banner variant="error" title="Formatting Failed">
@@ -3609,6 +3660,10 @@ function FileViewer({
         accessToken={exportAccessToken}
         onSelectMethod={handleExportMethodSelected}
         onSaveToken={saveGitHubToken}
+        onDownloadZip={() => {
+          zipAndDownloadIStructure(folderStructure, getZipFileName());
+        }}
+        fileCount={countFiles(folderStructure)}
       />
     </div>
   );

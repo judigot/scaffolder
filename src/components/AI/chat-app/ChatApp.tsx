@@ -332,7 +332,13 @@ export default function ChatApp() {
   // Load scaffolder template files
   // In dev mode: isUsingLocalFiles causes useUserFiles to read from local /files directory
   // In production: reads from the remote GitHub repo (judigot/scaffolder-files)
-  const { refetch: refetchUserFiles, data: userFiles } = useUserFiles(
+  const {
+    refetch: refetchUserFiles,
+    data: userFiles,
+    error: userFilesError,
+    isError: isUserFilesError,
+    isFetching: isUserFilesFetching,
+  } = useUserFiles(
     { publicRepoURL: effectiveRepoURL },
     {
       refetchInterval: 5 * 60 * 1000,
@@ -1584,6 +1590,8 @@ export default function ChatApp() {
             isWorktreeFilesLoading={
               isScaffolderMode ? false : isWorktreeFilesLoading
             }
+            scaffolderFilesError={isUserFilesError ? userFilesError : null}
+            isScaffolderFilesFetching={isUserFilesFetching}
           >
             {multiChatContent}
           </AIChatContainer>

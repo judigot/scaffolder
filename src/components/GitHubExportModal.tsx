@@ -35,6 +35,8 @@ interface IGitHubExportModalProps {
     tokenOrRepoUrl?: string,
   ) => void;
   onSaveToken?: (token: string) => Promise<void>;
+  onDownloadZip: () => void;
+  fileCount: number;
 }
 
 function GitHubExportModal({
@@ -44,6 +46,8 @@ function GitHubExportModal({
   accessToken,
   onSelectMethod,
   onSaveToken,
+  onDownloadZip,
+  fileCount,
 }: IGitHubExportModalProps) {
   const [options, setOptions] = useState<IExportOptionsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -651,6 +655,60 @@ function GitHubExportModal({
             {/* Options */}
             <div className="space-y-4">
               {options.options.map(renderOptionCard)}
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 pt-2">
+              <div className="flex-1 h-px bg-gray-700" />
+              <span className="text-xs text-gray-500 uppercase tracking-wider">
+                or
+              </span>
+              <div className="flex-1 h-px bg-gray-700" />
+            </div>
+
+            {/* Download ZIP option */}
+            <div
+              className="p-5 rounded-xl border-2 border-gray-600 hover:border-gray-500 bg-gray-800/50 cursor-pointer transition-all duration-200"
+              onClick={() => {
+                onDownloadZip();
+                onClose();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  onDownloadZip();
+                  onClose();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-blue-500/20 text-blue-400">
+                  📦
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white">
+                    Download as ZIP
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    Download {fileCount} file{fileCount !== 1 ? 's' : ''} to
+                    your computer
+                  </p>
+                </div>
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
         )}
