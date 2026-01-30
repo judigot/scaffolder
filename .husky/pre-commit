@@ -10,4 +10,4 @@ fi
 # SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd | tr -d '\r\n')"
 # "$SCRIPT_DIR/scripts/sync-files-repo.sh"
 
-# bun lint-staged # Run lint-staged commands in package.json
+bun lint-staged # Run lint-staged commands in package.json
