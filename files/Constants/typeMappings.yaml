@@ -157,12 +157,6 @@ primaryKey:
     group: 'Templates'
   mysql: 'BIGINT PRIMARY KEY AUTO_INCREMENT'
   postgresql: 'BIGSERIAL PRIMARY KEY'
-
-stringPrimaryKey:
-  info:
-    group: 'Templates'
-  mysql: 'VARCHAR(255) PRIMARY KEY'
-  postgresql: 'TEXT PRIMARY KEY'
   typescript: 'number'
   zod: 'number'
   drizzle: 'bigserial'
@@ -171,6 +165,20 @@ stringPrimaryKey:
   mikroorm: 'bigint'
   knex: 'bigIncrements'
   kysely: 'bigserial'
+
+stringPrimaryKey:
+  info:
+    group: 'Templates'
+  mysql: 'VARCHAR(255) PRIMARY KEY'
+  postgresql: 'TEXT PRIMARY KEY'
+  typescript: 'string'
+  zod: 'string'
+  drizzle: 'text'
+  prisma: 'String'
+  typeorm: 'text'
+  mikroorm: 'text'
+  knex: 'text'
+  kysely: 'text'
   postgresql-introspected:
     - 'bigint'
     - 'serial'

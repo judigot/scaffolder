@@ -124,9 +124,9 @@ function findAllFilesMatching(
  * Expected PostgreSQL types for each column type.
  * This defines what all ORMs should produce when generating migrations/schemas.
  */
-const EXPECTED_PG_TYPES: Record<string, string> = {
-  // Primary keys should use BIGSERIAL
-  id: 'BIGSERIAL',
+const EXPECTED_PG_TYPES: Record<string, string | string[]> = {
+  // Primary keys can be BIGSERIAL (numeric) or TEXT (string for Lucia auth)
+  id: ['BIGSERIAL', 'TEXT'],
   // Foreign keys should use BIGINT
   user_id: 'BIGINT',
   post_id: 'BIGINT',
@@ -706,7 +706,10 @@ describe('ORM Schema Parity Golden Test', () => {
 
       // Verify consistency - core ORMs should produce the same PostgreSQL type
       // All keyColumns are guaranteed to be in EXPECTED_PG_TYPES
-      const expectedType = EXPECTED_PG_TYPES[column];
+      const expectedTypeOrTypes = EXPECTED_PG_TYPES[column];
+      const expectedTypes = Array.isArray(expectedTypeOrTypes)
+        ? expectedTypeOrTypes
+        : [expectedTypeOrTypes];
       for (const orm of coreOrms) {
         const columns = columnsByOrm.get(orm);
         if (columns === undefined) {
@@ -715,15 +718,17 @@ describe('ORM Schema Parity Golden Test', () => {
         const actualType = columns.get(column);
         if (actualType !== undefined) {
           // Allow some flexibility in type representation
-          const normalizedExpected = expectedType
-            .replace(/\s*\(\d+\)\s*$/, '')
-            .trim()
-            .toUpperCase();
           const normalizedActual = actualType
             .replace(/\s*\(\d+\)\s*$/, '')
             .trim()
             .toUpperCase();
-          expect(normalizedActual).toBe(normalizedExpected);
+          const normalizedExpected = expectedTypes.map((t) =>
+            t
+              .replace(/\s*\(\d+\)\s*$/, '')
+              .trim()
+              .toUpperCase(),
+          );
+          expect(normalizedExpected).toContain(normalizedActual);
         }
       }
     }

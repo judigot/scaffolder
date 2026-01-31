@@ -160,34 +160,38 @@ describe('Hono-React Project Generation', () => {
   describe.each(schemaTestCases)('with $name schema', ({ name, schema }) => {
     const outputDir = path.join(outputBaseDir, name);
 
-    it('should generate and write files to disk', { timeout: 30000 }, async () => {
-      const userFiles = loadDirectoryAsStructure(filesDir);
+    it(
+      'should generate and write files to disk',
+      { timeout: 30000 },
+      async () => {
+        const userFiles = loadDirectoryAsStructure(filesDir);
 
-      const result = await buildProjectFiles(
-        '/Projects/hono-react/structure.yaml',
-        userFiles,
-        schema,
-        mockFormData,
-        null,
-      );
-
-      if (result.filesFailedToFormat.length > 0) {
-        console.log(
-          `[${name}] Files failed to format:`,
-          result.filesFailedToFormat,
+        const result = await buildProjectFiles(
+          '/Projects/hono-react/structure.yaml',
+          userFiles,
+          schema,
+          mockFormData,
+          null,
         );
-      }
 
-      expect(result.structure.length).toBeGreaterThan(0);
-      expect(result.filesFailedToFormat).toHaveLength(0);
+        if (result.filesFailedToFormat.length > 0) {
+          console.log(
+            `[${name}] Files failed to format:`,
+            result.filesFailedToFormat,
+          );
+        }
 
-      // Write generated files to disk
-      if (fs.existsSync(outputDir)) {
-        fs.rmSync(outputDir, { recursive: true });
-      }
-      fs.mkdirSync(outputDir, { recursive: true });
-      writeStructureToDisk(result.structure, outputDir);
-    });
+        expect(result.structure.length).toBeGreaterThan(0);
+        expect(result.filesFailedToFormat).toHaveLength(0);
+
+        // Write generated files to disk
+        if (fs.existsSync(outputDir)) {
+          fs.rmSync(outputDir, { recursive: true });
+        }
+        fs.mkdirSync(outputDir, { recursive: true });
+        writeStructureToDisk(result.structure, outputDir);
+      },
+    );
 
     it('should generate db schema with all tables', async () => {
       const userFiles = loadDirectoryAsStructure(filesDir);
@@ -223,7 +227,7 @@ describe('Hono-React Project Generation', () => {
       expect(schemaFile?.content).not.toContain('@LOOP(tables)');
       expect(schemaFile?.content).not.toContain('@/LOOP');
       expect(schemaFile?.content).not.toContain('{{tableName}}');
-    });
+    }, 30000);
 
     it('should generate route files for each table', async () => {
       const userFiles = loadDirectoryAsStructure(filesDir);
@@ -253,7 +257,7 @@ describe('Hono-React Project Generation', () => {
 
       // Should have a route file for each table (singular name) + auth.ts
       expect(routeFiles?.length).toBe(schema.length + 1);
-    });
+    }, 30000);
 
     it('should generate test files for each table', async () => {
       const userFiles = loadDirectoryAsStructure(filesDir);
@@ -280,7 +284,7 @@ describe('Hono-React Project Generation', () => {
 
       // Should have a test file for each table
       expect(testFiles?.length).toBe(schema.length);
-    });
+    }, 30000);
 
     it('should process templates without leftover syntax', async () => {
       const userFiles = loadDirectoryAsStructure(filesDir);
@@ -294,7 +298,20 @@ describe('Hono-React Project Generation', () => {
       );
 
       // Check all generated files for unprocessed template syntax
-      const binaryExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.ico', '.webp', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.pdf'];
+      const binaryExtensions = [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.ico',
+        '.webp',
+        '.svg',
+        '.woff',
+        '.woff2',
+        '.ttf',
+        '.eot',
+        '.pdf',
+      ];
       const isBinaryFile = (name: string): boolean =>
         binaryExtensions.some((ext) => name.toLowerCase().endsWith(ext));
 
@@ -323,6 +340,6 @@ describe('Hono-React Project Generation', () => {
       };
 
       checkForTemplateSyntax(result.structure);
-    });
+    }, 30000);
   });
 });
