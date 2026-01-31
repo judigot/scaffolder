@@ -34,7 +34,7 @@ if (!isISchemaInfoArray(masterSchemaJson)) {
 }
 const masterSchema = masterSchemaJson;
 
-const TEST_DB_NAME = 'golden_test_db';
+const TEST_DB_NAME = 'scaffolder';
 const TEST_PORT = 3999;
 const OUTPUT_DIR = '/tmp/golden-runtime-test';
 
