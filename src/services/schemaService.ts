@@ -2,6 +2,20 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { isUsingLocalFiles } from '@/hooks/useUserFiles.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 
+/**
+ * Type guard for error response objects
+ */
+function isErrorResponse(val: unknown): val is { error: string } {
+  if (typeof val !== 'object' || val === null) {
+    return false;
+  }
+  if (!('error' in val)) {
+    return false;
+  }
+  const obj: Record<string, unknown> = val;
+  return typeof obj.error === 'string';
+}
+
 interface ISaveSchemaParams {
   schemaName: string;
   content: ISchemaInfo[];
@@ -63,18 +77,6 @@ const saveSchemaLocally = async (
     const data: unknown = await response.json();
 
     if (!response.ok) {
-      const isErrorResponse = (val: unknown): val is { error: string } => {
-        if (typeof val !== 'object' || val === null) {
-          return false;
-        }
-        if (!('error' in val)) {
-          return false;
-        }
-        /* eslint-disable-next-line no-type-assertion/no-type-assertion */
-        const errorProp = (val as { error: unknown }).error;
-        return typeof errorProp === 'string';
-      };
-
       const errorMessage = isErrorResponse(data)
         ? data.error
         : 'Failed to save schema';
@@ -143,18 +145,6 @@ const saveSchemaToGitHub = async (
     const data: unknown = await response.json();
 
     if (!response.ok) {
-      const isErrorResponse = (val: unknown): val is { error: string } => {
-        if (typeof val !== 'object' || val === null) {
-          return false;
-        }
-        if (!('error' in val)) {
-          return false;
-        }
-        /* eslint-disable-next-line no-type-assertion/no-type-assertion */
-        const errorProp = (val as { error: unknown }).error;
-        return typeof errorProp === 'string';
-      };
-
       const errorMessage = isErrorResponse(data)
         ? data.error
         : 'Failed to save schema to GitHub';
@@ -213,18 +203,6 @@ const deleteSchemaLocally = async (
     const data: unknown = await response.json();
 
     if (!response.ok) {
-      const isErrorResponse = (val: unknown): val is { error: string } => {
-        if (typeof val !== 'object' || val === null) {
-          return false;
-        }
-        if (!('error' in val)) {
-          return false;
-        }
-        /* eslint-disable-next-line no-type-assertion/no-type-assertion */
-        const errorProp = (val as { error: unknown }).error;
-        return typeof errorProp === 'string';
-      };
-
       const errorMessage = isErrorResponse(data)
         ? data.error
         : 'Failed to delete schema';
@@ -291,18 +269,6 @@ const deleteSchemaFromGitHub = async (
     const data: unknown = await response.json();
 
     if (!response.ok) {
-      const isErrorResponse = (val: unknown): val is { error: string } => {
-        if (typeof val !== 'object' || val === null) {
-          return false;
-        }
-        if (!('error' in val)) {
-          return false;
-        }
-        /* eslint-disable-next-line no-type-assertion/no-type-assertion */
-        const errorProp = (val as { error: unknown }).error;
-        return typeof errorProp === 'string';
-      };
-
       const errorMessage = isErrorResponse(data)
         ? data.error
         : 'Failed to delete schema from GitHub';

@@ -6,14 +6,15 @@ const parseHtmlTagAttributes = (
 ): Record<string, string> => {
   const attrs: Record<string, string> = {};
   const attrRegex = /(\w+)="([^"]*)"|(\w+)='([^']*)'/g;
-  let match;
 
-  while ((match = attrRegex.exec(attributesStr)) !== null) {
+  let match: RegExpExecArray | null = attrRegex.exec(attributesStr);
+  while (match !== null) {
     const name = match[1] || match[3];
     const value = match[2] || match[4];
     if (name) {
       attrs[name] = value;
     }
+    match = attrRegex.exec(attributesStr);
   }
 
   return attrs;
@@ -50,7 +51,6 @@ const formatByLanguage = async (
 export const processHtmlFormat = async (content: string): Promise<string> => {
   const openRegex = /<@@FORMAT@@([^>]*)>/g;
   let result = content;
-  let match;
   let iterations = 0;
   const maxIterations = 100;
 
@@ -65,7 +65,8 @@ export const processHtmlFormat = async (content: string): Promise<string> => {
 
     openRegex.lastIndex = 0;
 
-    while ((match = openRegex.exec(result)) !== null) {
+    let match: RegExpExecArray | null = openRegex.exec(result);
+    while (match !== null) {
       const attributesStr = match[1];
       const attrs = parseHtmlTagAttributes(attributesStr);
       const language = attrs.language || '';
@@ -81,6 +82,7 @@ export const processHtmlFormat = async (content: string): Promise<string> => {
           innerContent: result.slice(openEnd, closeInfo.endIndex - 13),
         });
       }
+      match = openRegex.exec(result);
     }
 
     if (matches.length === 0) {

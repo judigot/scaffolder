@@ -103,8 +103,6 @@ function SQLSchemaInputModal() {
           }
         }
       }}
-      role="button"
-      tabIndex={-1}
       className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
     >
       <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full space-y-4">

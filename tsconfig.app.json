@@ -29,5 +29,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  "exclude": ["files", "files.test", "apps"]
+  "exclude": ["files", "files.test", "apps", "src/tests/golden-projects/output"]
 }

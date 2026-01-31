@@ -103,7 +103,6 @@ const processBlockLoops = (
   // Match opening [[LOOP(property)]] - but not tables or tablesReversed (those are handled separately)
   const openRegex = /\[\[\s*LOOP\(([^)]+)\)\s*\]\]/g;
   let result = content;
-  let match;
 
   // Collect all matches with their balanced closing tags
   const matches: {
@@ -114,10 +113,12 @@ const processBlockLoops = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const property = match[1];
     // Skip tables and tablesReversed - they're handled by processBlockLoopTables/Reversed
     if (property === 'tables' || property === 'tablesReversed') {
+      match = openRegex.exec(content);
       continue;
     }
 
@@ -136,6 +137,7 @@ const processBlockLoops = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   // Process matches in reverse order to avoid index shifting
@@ -311,7 +313,6 @@ const processAtLoopTables = (
 ): string => {
   const openRegex = /@LOOP\(tables\)\n?/g;
   let result = content;
-  let match;
 
   const matches: {
     start: number;
@@ -320,7 +321,8 @@ const processAtLoopTables = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const openEnd = match.index + match[0].length;
     const closeInfo = findAtLoopEnd(content, openEnd);
 
@@ -338,6 +340,7 @@ const processAtLoopTables = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   for (let i = matches.length - 1; i >= 0; i--) {
@@ -384,7 +387,6 @@ const processAtLoopTablesReversed = (
 ): string => {
   const openRegex = /@LOOP\(tablesReversed\)\n?/g;
   let result = content;
-  let match;
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
   const reversedSchema = [...filteredSchemaInfo].reverse();
@@ -396,7 +398,8 @@ const processAtLoopTablesReversed = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const openEnd = match.index + match[0].length;
     const closeInfo = findAtLoopEnd(content, openEnd);
 
@@ -414,6 +417,7 @@ const processAtLoopTablesReversed = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   for (let i = matches.length - 1; i >= 0; i--) {
@@ -455,14 +459,15 @@ const parseHtmlTagAttributes = (
   const attrs: Record<string, string> = {};
   // Match attribute="value" or attribute='value'
   const attrRegex = /(\w+)="([^"]*)"|(\w+)='([^']*)'/g;
-  let match;
 
-  while ((match = attrRegex.exec(attributesStr)) !== null) {
+  let match: RegExpExecArray | null = attrRegex.exec(attributesStr);
+  while (match !== null) {
     const name = match[1] || match[3];
     const value = match[2] || match[4];
     if (name) {
       attrs[name] = value;
     }
+    match = attrRegex.exec(attributesStr);
   }
 
   return attrs;
@@ -561,7 +566,6 @@ const processHtmlLoop = (
   // Match <@@LOOP@@ data="tables" separator="\n">
   const openRegex = /<@@LOOP@@([^>]*)>/g;
   let result = content;
-  let match;
   let iterations = 0;
   const maxIterations = 100;
 
@@ -579,7 +583,8 @@ const processHtmlLoop = (
     // Reset regex lastIndex for new search
     openRegex.lastIndex = 0;
 
-    while ((match = openRegex.exec(result)) !== null) {
+    let match: RegExpExecArray | null = openRegex.exec(result);
+    while (match !== null) {
       const attributesStr = match[1];
       const attrs = parseHtmlTagAttributes(attributesStr);
       const data = attrs.data || '';
@@ -602,6 +607,7 @@ const processHtmlLoop = (
           templateContent: result.slice(openEnd, closeInfo.endIndex - 11), // -11 for </@@LOOP@@>
         });
       }
+      match = openRegex.exec(result);
     }
 
     if (matches.length === 0) {
@@ -669,14 +675,11 @@ export const processHtmlIf = (
   // Match <@@IF@@ condition="var EQUALS 'value'">
   const openRegex = /<@@IF@@([^>]*)>/g;
   let result = content;
-  let match;
   let iterations = 0;
   const maxIterations = 100;
 
-  while (
-    (match = openRegex.exec(result)) !== null &&
-    iterations < maxIterations
-  ) {
+  let match: RegExpExecArray | null = openRegex.exec(result);
+  while (match !== null && iterations < maxIterations) {
     iterations++;
 
     const attributesStr = match[1];
@@ -756,6 +759,7 @@ export const processHtmlIf = (
 
     // Reset regex to start from beginning since we modified the string
     openRegex.lastIndex = 0;
+    match = openRegex.exec(result);
   }
 
   return result;
@@ -939,7 +943,6 @@ export const processHtmlLoopColumnsInfo = (
 ): string => {
   const openRegex = /<@@LOOP@@([^>]*)>/g;
   let result = content;
-  let match;
   let iterations = 0;
   const maxIterations = 100;
 
@@ -956,12 +959,14 @@ export const processHtmlLoopColumnsInfo = (
     // Reset regex lastIndex for new search
     openRegex.lastIndex = 0;
 
-    while ((match = openRegex.exec(result)) !== null) {
+    let match: RegExpExecArray | null = openRegex.exec(result);
+    while (match !== null) {
       const attributesStr = match[1];
       const attrs = parseHtmlTagAttributes(attributesStr);
       const data = attrs.data || '';
 
       if (data !== 'columnsInfo') {
+        match = openRegex.exec(result);
         continue;
       }
 
@@ -983,6 +988,7 @@ export const processHtmlLoopColumnsInfo = (
           templateContent: result.slice(openEnd, closeInfo.endIndex - 11),
         });
       }
+      match = openRegex.exec(result);
     }
 
     if (matches.length === 0) {
@@ -1022,7 +1028,6 @@ const processAtLoopColumnsInfo = (
 ): string => {
   const openRegex = /@LOOP\(columnsInfo\)\n?/g;
   let result = content;
-  let match;
 
   const matches: {
     start: number;
@@ -1031,7 +1036,8 @@ const processAtLoopColumnsInfo = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const openEnd = match.index + match[0].length;
     const closeInfo = findAtLoopEnd(content, openEnd);
 
@@ -1048,6 +1054,7 @@ const processAtLoopColumnsInfo = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   for (let i = matches.length - 1; i >= 0; i--) {
@@ -1378,7 +1385,7 @@ const parseQuotedString = (
       } else if (char === '\\') {
         result += '\\';
       } else {
-        result += '\\' + char;
+        result += `\\${char}`;
       }
       escaped = false;
     } else if (char === '\\') {
@@ -1451,11 +1458,12 @@ export const processLoopDataSources = (
   userMetadata?: Record<string, unknown> | null,
 ): string => {
   let result = content;
-  let match: RegExpExecArray | null;
 
   LOOP_DATA_SOURCES_START_REGEX.lastIndex = 0;
 
-  while ((match = LOOP_DATA_SOURCES_START_REGEX.exec(result)) !== null) {
+  let match: RegExpExecArray | null =
+    LOOP_DATA_SOURCES_START_REGEX.exec(result);
+  while (match !== null) {
     const startIndex = match.index;
     const contentStartIndex = startIndex + match[0].length;
 
@@ -1520,6 +1528,7 @@ export const processLoopDataSources = (
       result.substring(fullMatchEnd);
 
     LOOP_DATA_SOURCES_START_REGEX.lastIndex = startIndex + replacement.length;
+    match = LOOP_DATA_SOURCES_START_REGEX.exec(result);
   }
 
   return result;
@@ -1815,14 +1824,8 @@ export const processIterateCommand = (
     }
 
     // Flatten the filter list to handle both direct values and arrays from USE_CONSTANT
-    const flattenedFilterList = filterList.reduce<string[]>(
-      (acc, filterPattern) => {
-        if (Array.isArray(filterPattern)) {
-          return [...acc, ...filterPattern];
-        }
-        return [...acc, filterPattern];
-      },
-      [],
+    const flattenedFilterList = filterList.flatMap((filterPattern) =>
+      Array.isArray(filterPattern) ? filterPattern : [filterPattern],
     );
 
     return values.filter((value) => flattenedFilterList.includes(value));

@@ -63,12 +63,12 @@ export const detectCircularPlaceholderImports = (
 
     // Check for placeholders in string values
     if (typeof value === 'string') {
-      let match;
       // Reset regex internal state
       placeholderPattern.lastIndex = 0;
 
       // Find all placeholders in the value
-      while ((match = placeholderPattern.exec(value)) !== null) {
+      let match: RegExpExecArray | null = placeholderPattern.exec(value);
+      while (match !== null) {
         const referencedKey = match[1].trim();
 
         // Check if the referenced key exists
@@ -78,18 +78,19 @@ export const detectCircularPlaceholderImports = (
             return true;
           }
         }
+        match = placeholderPattern.exec(value);
       }
     }
     // Check for placeholders in array values
     else if (Array.isArray(value)) {
       for (const item of value) {
         if (typeof item === 'string') {
-          let match;
           // Reset regex internal state
           placeholderPattern.lastIndex = 0;
 
           // Find all placeholders in the array item
-          while ((match = placeholderPattern.exec(item)) !== null) {
+          let match: RegExpExecArray | null = placeholderPattern.exec(item);
+          while (match !== null) {
             const referencedKey = match[1].trim();
 
             // Check if the referenced key exists
@@ -99,6 +100,7 @@ export const detectCircularPlaceholderImports = (
                 return true;
               }
             }
+            match = placeholderPattern.exec(item);
           }
         }
       }

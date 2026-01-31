@@ -27,10 +27,7 @@ class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tabl
 
 const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
-    )
+    .filter(({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot))
     .map((tableInfo) => {
       const { tableName } = tableInfo;
       const { pascalCase: tableNamePascalCase } = changeCase(tableName);

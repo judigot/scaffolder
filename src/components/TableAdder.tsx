@@ -12,8 +12,6 @@ function TableAdder({ className = '' }: ITableAdderProps) {
 
   const handleAddTable = () => {
     if (newTableName) {
-      const newTableId = `${newTableName}_id`;
-
       // Check if table already exists
       const doesTableExist = schemaInfo.some(
         (table) => table.tableName === newTableName,
@@ -24,14 +22,14 @@ function TableAdder({ className = '' }: ITableAdderProps) {
           tableName: newTableName,
           columnsInfo: [
             {
-              column_name: newTableId,
+              column_name: 'id',
               data_type: 'number',
               is_nullable: 'NO',
               column_default: 'AUTO_INCREMENT',
               primary_key: true,
             },
           ],
-          requiredColumns: [newTableId],
+          requiredColumns: ['id'],
         };
 
         const updatedSchema: ISchemaInfo[] = [...schemaInfo, newTableSchema];

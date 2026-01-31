@@ -51,7 +51,6 @@ export const delete{{className}} = async (id: number): Promise<void> => {
 const createCRUDTemplates = (schemaInfo: ISchemaInfo[]): IStructure => {
   return schemaInfo
     .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {

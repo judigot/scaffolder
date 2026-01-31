@@ -32,26 +32,32 @@ function hasSpawnFunction(
   return typeof value.spawn === 'function';
 }
 
+function isObjectWithSpawn(
+  value: object,
+): value is object & { spawn: unknown } {
+  return 'spawn' in value;
+}
+
 function isBunRuntime(value: unknown): value is IBunRuntime {
-  if (typeof value !== 'object' || value === null || !('spawn' in value)) {
+  if (typeof value !== 'object' || value === null) {
     return false;
   }
-  // eslint-disable-next-line no-type-assertion/no-type-assertion
-  const record = value as Record<string, unknown>;
+  if (!isObjectWithSpawn(value)) {
+    return false;
+  }
+  const record: Record<string, unknown> = { spawn: value.spawn };
   return hasSpawnFunction(record);
 }
 
-function getGlobalAsRecord(): Record<string, unknown> {
-  // eslint-disable-next-line no-type-assertion/no-type-assertion
-  return globalThis as unknown as Record<string, unknown>;
+function getGlobalBunValue(): unknown {
+  if ('Bun' in globalThis) {
+    return Reflect.get(globalThis, 'Bun');
+  }
+  return null;
 }
 
 function getBunRuntime(): IBunRuntime | null {
-  const g = getGlobalAsRecord();
-  if (!('Bun' in g)) {
-    return null;
-  }
-  const maybeBun = g.Bun;
+  const maybeBun = getGlobalBunValue();
   if (
     maybeBun === null ||
     maybeBun === undefined ||
@@ -661,8 +667,14 @@ export async function listWorktrees(
         currentWorktree.chatId !== undefined &&
         currentWorktree.chatId !== ''
       ) {
-        // eslint-disable-next-line no-type-assertion/no-type-assertion
-        worktrees.push(currentWorktree as IWorktreeInfo);
+        const completeWorktree: IWorktreeInfo = {
+          path: currentWorktree.path,
+          branch: currentWorktree.branch,
+          chatId: currentWorktree.chatId,
+          commitCount: currentWorktree.commitCount ?? 0,
+          lastActivity: currentWorktree.lastActivity,
+        };
+        worktrees.push(completeWorktree);
       }
       currentWorktree = {};
     }
@@ -805,6 +817,31 @@ export interface IChatMetadata {
   }[];
 }
 
+function isIChatMetadata(value: unknown): value is IChatMetadata {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (
+    !('chatId' in value) ||
+    !('branch' in value) ||
+    !('title' in value) ||
+    !('createdAt' in value) ||
+    !('updatedAt' in value) ||
+    !('messages' in value)
+  ) {
+    return false;
+  }
+  const obj = value;
+  return (
+    typeof obj.chatId === 'string' &&
+    typeof obj.branch === 'string' &&
+    typeof obj.title === 'string' &&
+    typeof obj.createdAt === 'string' &&
+    typeof obj.updatedAt === 'string' &&
+    Array.isArray(obj.messages)
+  );
+}
+
 /**
  * Read chat metadata from worktree
  */
@@ -824,9 +861,11 @@ async function readIChatMetadata(
     // Read metadata.json file
     const metadataFile = path.join(metadataDir, 'metadata.json');
     const content = await fs.readFile(metadataFile, 'utf-8');
-    // eslint-disable-next-line no-type-assertion/no-type-assertion
-    const metadata = JSON.parse(content) as IChatMetadata;
-    return metadata;
+    const parsed: unknown = JSON.parse(content);
+    if (!isIChatMetadata(parsed)) {
+      return null;
+    }
+    return parsed;
   } catch {
     // Fallback: read individual files for backward compatibility
     try {

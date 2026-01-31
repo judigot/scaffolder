@@ -160,14 +160,13 @@ app.post('/', async (c) => {
       responseData !== null &&
       'parts' in responseData
     ) {
-      // eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
       const partsContainer = responseData as { parts: unknown };
       if (Array.isArray(partsContainer.parts)) {
         const parts = partsContainer.parts.filter((p): p is IOpenCodePart => {
           if (typeof p !== 'object' || p === null || !('type' in p)) {
             return false;
           }
-          // eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
+
           const pObj = p as { type: unknown };
           return typeof pObj.type === 'string';
         });

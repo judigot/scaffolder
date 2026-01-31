@@ -89,7 +89,6 @@ const generateAttributes = (schemaInfo: ISchemaInfo): string => {
 const createResources = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
     .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map((tableInfo) => {

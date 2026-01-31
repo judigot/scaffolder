@@ -179,7 +179,7 @@ export const buildProjectFiles = async (
     const mockData = generateMockData({
       mockDataRows: 10,
       schemaInfo,
-      dbType: formData?.dbType ?? 'postgresql',
+      dbType: formData.dbType ?? 'postgresql',
       useCamelCase: true,
     });
 

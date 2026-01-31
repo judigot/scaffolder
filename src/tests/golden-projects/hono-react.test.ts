@@ -6,25 +6,61 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles';
-import type { IStructure, IFile, IFolder } from '@/components/FileViewer';
-import type { IFormStore } from '@/useFormStore';
-import type { ISchemaInfo } from '@/interfaces/interfaces';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
+import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
+import type { IFormStore } from '@/useFormStore.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 // Import available schemas
-import oneToOneSchema from '@/schema-infos/oneToOne';
-import oneToManySchema from '@/schema-infos/oneToMany';
-import manyToManySchema from '@/schema-infos/manyToMany';
-import masterSchema from '@/schema-infos/masterSchema';
+import oneToOneSchema from '@/schema-infos/oneToOne.ts';
+import oneToManySchema from '@/schema-infos/oneToMany.ts';
+import manyToManySchema from '@/schema-infos/manyToMany.ts';
+import masterSchema from '@/schema-infos/masterSchema.ts';
 
-// Mock form data
-const mockFormData: Partial<IFormStore> = {
+// Mock form data - fully typed
+const mockFormData: IFormStore = {
   backendUrl: 'http://localhost:3000',
   dbType: 'postgresql',
   framework: 'hono',
+  // Required IFormStore fields with defaults
+  schemaInput: {},
+  backendDir: '',
+  frontendDir: '',
+  dbConnection: '',
+  includeInsertData: false,
+  insertOption: 'SQLInsertQueriesFromMockData',
+  includeTypeGuards: false,
+  outputOnSingleFile: false,
+  quote: '"',
+  publicRepoURL: '',
+  clientID: '',
+  clientSecret: '',
+  creationMode: 'Schema Builder',
+  dbUsername: '',
+  dbPassword: '',
+  dbHost: '',
+  dbPort: 0,
+  dbName: '',
+  setCreationMode: () => undefined,
+  setMasterSchema: () => undefined,
+  setOneToOne: () => undefined,
+  setOneToMany: () => undefined,
+  setManyToMany: () => undefined,
+  setDBType: () => undefined,
+  setPublicRepoURL: () => undefined,
+  setDbConnection: () => undefined,
 };
+
+// Type-safe factory functions for IStructure items
+function createFile(name: string, content: string): IFile {
+  return { type: 'file', name, content };
+}
+
+function createFolder(name: string, children: IStructure): IFolder {
+  return { type: 'folder', name, children };
+}
 
 /**
  * Recursively loads a directory into IStructure format
@@ -46,17 +82,9 @@ function loadDirectoryAsStructure(dirPath: string): IStructure {
     const fullPath = path.join(dirPath, entry.name);
 
     if (entry.isDirectory()) {
-      items.push({
-        type: 'folder',
-        name: entry.name,
-        children: loadDirectoryAsStructure(fullPath),
-      });
+      items.push(createFolder(entry.name, loadDirectoryAsStructure(fullPath)));
     } else if (entry.isFile()) {
-      items.push({
-        type: 'file',
-        name: entry.name,
-        content: fs.readFileSync(fullPath, 'utf-8'),
-      });
+      items.push(createFile(entry.name, fs.readFileSync(fullPath, 'utf-8')));
     }
   }
 
@@ -122,161 +150,158 @@ describe('Hono-React Project Generation', () => {
     );
   });
 
-  describe.each(schemaTestCases)(
-    'with $name schema',
-    ({ name, schema }) => {
-      const outputDir = path.join(outputBaseDir, name);
+  describe.each(schemaTestCases)('with $name schema', ({ name, schema }) => {
+    const outputDir = path.join(outputBaseDir, name);
 
-      it('should generate and write files to disk', async () => {
-        const userFiles = loadDirectoryAsStructure(filesDir);
+    it('should generate and write files to disk', async () => {
+      const userFiles = loadDirectoryAsStructure(filesDir);
 
-        const result = await buildProjectFiles(
-          '/Projects/hono-react/structure.yaml',
-          userFiles,
-          schema,
-          mockFormData as IFormStore,
-          null,
+      const result = await buildProjectFiles(
+        '/Projects/hono-react/structure.yaml',
+        userFiles,
+        schema,
+        mockFormData,
+        null,
+      );
+
+      if (result.filesFailedToFormat.length > 0) {
+        console.log(
+          `[${name}] Files failed to format:`,
+          result.filesFailedToFormat,
         );
+      }
 
-        if (result.filesFailedToFormat.length > 0) {
-          console.log(`[${name}] Files failed to format:`, result.filesFailedToFormat);
-        }
+      expect(result.structure.length).toBeGreaterThan(0);
+      expect(result.filesFailedToFormat).toHaveLength(0);
 
-        expect(result.structure.length).toBeGreaterThan(0);
-        expect(result.filesFailedToFormat).toHaveLength(0);
+      // Write generated files to disk
+      if (fs.existsSync(outputDir)) {
+        fs.rmSync(outputDir, { recursive: true });
+      }
+      fs.mkdirSync(outputDir, { recursive: true });
+      writeStructureToDisk(result.structure, outputDir);
+    });
 
-        // Write generated files to disk
-        if (fs.existsSync(outputDir)) {
-          fs.rmSync(outputDir, { recursive: true });
-        }
-        fs.mkdirSync(outputDir, { recursive: true });
-        writeStructureToDisk(result.structure, outputDir);
-      });
+    it('should generate db schema with all tables', async () => {
+      const userFiles = loadDirectoryAsStructure(filesDir);
 
-      it('should generate db schema with all tables', async () => {
-        const userFiles = loadDirectoryAsStructure(filesDir);
+      const result = await buildProjectFiles(
+        '/Projects/hono-react/structure.yaml',
+        userFiles,
+        schema,
+        mockFormData,
+        null,
+      );
 
-        const result = await buildProjectFiles(
-          '/Projects/hono-react/structure.yaml',
-          userFiles,
-          schema,
-          mockFormData as IFormStore,
-          null,
-        );
+      const apiFolder = result.structure.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'api',
+      );
+      const dbFolder = apiFolder?.children.find(
+        (item): item is IFolder => item.type === 'folder' && item.name === 'db',
+      );
+      const schemaFile = dbFolder?.children.find(
+        (item): item is IFile =>
+          item.type === 'file' && item.name === 'schema.ts',
+      );
 
-        const apiFolder = result.structure.find(
-          (item): item is IFolder =>
-            item.type === 'folder' && item.name === 'api',
-        );
-        const dbFolder = apiFolder?.children.find(
-          (item): item is IFolder =>
-            item.type === 'folder' && item.name === 'db',
-        );
-        const schemaFile = dbFolder?.children.find(
-          (item): item is IFile =>
-            item.type === 'file' && item.name === 'schema.ts',
-        );
+      expect(schemaFile).toBeDefined();
 
-        expect(schemaFile).toBeDefined();
+      // Should contain a pgTable export for each table in schema
+      for (const table of schema) {
+        expect(schemaFile?.content).toContain(`pgTable('${table.tableName}'`);
+      }
 
-        // Should contain a pgTable export for each table in schema
-        for (const table of schema) {
-          expect(schemaFile?.content).toContain(
-            `pgTable('${table.tableName}'`,
-          );
-        }
+      // Should not contain unprocessed template syntax
+      expect(schemaFile?.content).not.toContain('@LOOP(tables)');
+      expect(schemaFile?.content).not.toContain('@/LOOP');
+      expect(schemaFile?.content).not.toContain('{{tableName}}');
+    });
 
-        // Should not contain unprocessed template syntax
-        expect(schemaFile?.content).not.toContain('@LOOP(tables)');
-        expect(schemaFile?.content).not.toContain('@/LOOP');
-        expect(schemaFile?.content).not.toContain('{{tableName}}');
-      });
+    it('should generate route files for each table', async () => {
+      const userFiles = loadDirectoryAsStructure(filesDir);
 
-      it('should generate route files for each table', async () => {
-        const userFiles = loadDirectoryAsStructure(filesDir);
+      const result = await buildProjectFiles(
+        '/Projects/hono-react/structure.yaml',
+        userFiles,
+        schema,
+        mockFormData,
+        null,
+      );
 
-        const result = await buildProjectFiles(
-          '/Projects/hono-react/structure.yaml',
-          userFiles,
-          schema,
-          mockFormData as IFormStore,
-          null,
-        );
+      const apiFolder = result.structure.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'api',
+      );
+      const routesFolder = apiFolder?.children.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'routes',
+      );
 
-        const apiFolder = result.structure.find(
-          (item): item is IFolder =>
-            item.type === 'folder' && item.name === 'api',
-        );
-        const routesFolder = apiFolder?.children.find(
-          (item): item is IFolder =>
-            item.type === 'folder' && item.name === 'routes',
-        );
+      expect(routesFolder).toBeDefined();
 
-        expect(routesFolder).toBeDefined();
+      const routeFiles = routesFolder?.children.filter(
+        (item): item is IFile => item.type === 'file',
+      );
 
-        const routeFiles = routesFolder?.children.filter(
-          (item): item is IFile => item.type === 'file',
-        );
+      // Should have a route file for each table (singular name)
+      expect(routeFiles?.length).toBe(schema.length);
+    });
 
-        // Should have a route file for each table (singular name)
-        expect(routeFiles?.length).toBe(schema.length);
-      });
+    it('should generate test files for each table', async () => {
+      const userFiles = loadDirectoryAsStructure(filesDir);
 
-      it('should generate test files for each table', async () => {
-        const userFiles = loadDirectoryAsStructure(filesDir);
+      const result = await buildProjectFiles(
+        '/Projects/hono-react/structure.yaml',
+        userFiles,
+        schema,
+        mockFormData,
+        null,
+      );
 
-        const result = await buildProjectFiles(
-          '/Projects/hono-react/structure.yaml',
-          userFiles,
-          schema,
-          mockFormData as IFormStore,
-          null,
-        );
+      const testsFolder = result.structure.find(
+        (item): item is IFolder =>
+          item.type === 'folder' && item.name === 'tests',
+      );
 
-        const testsFolder = result.structure.find(
-          (item): item is IFolder =>
-            item.type === 'folder' && item.name === 'tests',
-        );
+      expect(testsFolder).toBeDefined();
 
-        expect(testsFolder).toBeDefined();
+      const testFiles = testsFolder?.children.filter(
+        (item): item is IFile =>
+          item.type === 'file' && item.name.endsWith('.test.ts'),
+      );
 
-        const testFiles = testsFolder?.children.filter(
-          (item): item is IFile =>
-            item.type === 'file' && item.name.endsWith('.test.ts'),
-        );
+      // Should have a test file for each table
+      expect(testFiles?.length).toBe(schema.length);
+    });
 
-        // Should have a test file for each table
-        expect(testFiles?.length).toBe(schema.length);
-      });
+    it('should process templates without leftover syntax', async () => {
+      const userFiles = loadDirectoryAsStructure(filesDir);
 
-      it('should process templates without leftover syntax', async () => {
-        const userFiles = loadDirectoryAsStructure(filesDir);
+      const result = await buildProjectFiles(
+        '/Projects/hono-react/structure.yaml',
+        userFiles,
+        schema,
+        mockFormData,
+        null,
+      );
 
-        const result = await buildProjectFiles(
-          '/Projects/hono-react/structure.yaml',
-          userFiles,
-          schema,
-          mockFormData as IFormStore,
-          null,
-        );
-
-        // Check all generated files for unprocessed template syntax
-        const checkForTemplateSyntax = (items: IStructure): void => {
-          for (const item of items) {
-            if (item.type === 'file') {
-              expect(item.content).not.toContain('{{');
-              expect(item.content).not.toContain('[[ LOOP');
-              expect(item.content).not.toContain('@LOOP');
-              expect(item.content).not.toContain('<@@LOOP@@');
-              expect(item.content).not.toContain('{% IF');
-            } else {
-              checkForTemplateSyntax(item.children);
-            }
+      // Check all generated files for unprocessed template syntax
+      const checkForTemplateSyntax = (items: IStructure): void => {
+        for (const item of items) {
+          if (item.type === 'file') {
+            expect(item.content).not.toContain('{{');
+            expect(item.content).not.toContain('[[ LOOP');
+            expect(item.content).not.toContain('@LOOP');
+            expect(item.content).not.toContain('<@@LOOP@@');
+            expect(item.content).not.toContain('{% IF');
+          } else {
+            checkForTemplateSyntax(item.children);
           }
-        };
+        }
+      };
 
-        checkForTemplateSyntax(result.structure);
-      });
-    },
-  );
+      checkForTemplateSyntax(result.structure);
+    });
+  });
 });

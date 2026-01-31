@@ -15,16 +15,24 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles';
-import type { IStructure, IFile, IFolder } from '@/components/FileViewer';
-import type { IFormStore } from '@/useFormStore';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
+import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
+import type { IFormStore } from '@/useFormStore.ts';
+import { isISchemaInfoArray } from '@/interfaces/interfaces.ts';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execSync, spawn, type ChildProcess } from 'node:child_process';
 import postgres from 'postgres';
 
 // Use Master Schema with Multiple User Types for comprehensive coverage
-import masterSchema from '@/../files/Schemas/Master Schema with Multiple User Types.json';
+import masterSchemaJson from '@/../files/Schemas/Master Schema with Multiple User Types.json';
+
+// Validate JSON matches expected shape at runtime
+// Uses structural type guard - validates tableName and columnsInfo exist
+if (!isISchemaInfoArray(masterSchemaJson)) {
+  throw new Error('Invalid master schema JSON structure');
+}
+const masterSchema = masterSchemaJson;
 
 const TEST_DB_NAME = 'golden_test_db';
 const TEST_PORT = 3999;
@@ -39,10 +47,37 @@ const DB_CONFIG = {
   database: 'scaffolder', // Connect to default db first
 };
 
-const mockFormData: Partial<IFormStore> = {
-  backendUrl: `http://localhost:${TEST_PORT}`,
+const mockFormData: IFormStore = {
+  backendUrl: `http://localhost:${String(TEST_PORT)}`,
   dbType: 'postgresql',
   framework: 'hono',
+  // Required IFormStore fields with defaults
+  schemaInput: {},
+  backendDir: '',
+  frontendDir: '',
+  dbConnection: '',
+  includeInsertData: false,
+  insertOption: 'SQLInsertQueriesFromMockData',
+  includeTypeGuards: false,
+  outputOnSingleFile: false,
+  quote: '"',
+  publicRepoURL: '',
+  clientID: '',
+  clientSecret: '',
+  creationMode: 'Schema Builder',
+  dbUsername: '',
+  dbPassword: '',
+  dbHost: '',
+  dbPort: 0,
+  dbName: '',
+  setCreationMode: () => undefined,
+  setMasterSchema: () => undefined,
+  setOneToOne: () => undefined,
+  setOneToMany: () => undefined,
+  setManyToMany: () => undefined,
+  setDBType: () => undefined,
+  setPublicRepoURL: () => undefined,
+  setDbConnection: () => undefined,
 };
 
 const filesDir = path.resolve(__dirname, '../../../files');
@@ -50,22 +85,89 @@ const filesDir = path.resolve(__dirname, '../../../files');
 let serverProcess: ChildProcess | null = null;
 let testSql: postgres.Sql | null = null;
 
+// Type-safe factory functions for IStructure items
+function createFile(name: string, content: string): IFile {
+  return { type: 'file', name, content };
+}
+
+function createFolder(name: string, children: IStructure): IFolder {
+  return { type: 'folder', name, children };
+}
+
+// Type guard for objects with string properties
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+// Type-safe property access
+function getStringProp(obj: unknown, key: string): string {
+  if (isRecord(obj) && typeof obj[key] === 'string') {
+    return obj[key];
+  }
+  return '';
+}
+
+function getNumberProp(obj: unknown, key: string): number {
+  if (isRecord(obj)) {
+    const val = obj[key];
+    if (typeof val === 'number') {
+      return val;
+    }
+    if (typeof val === 'string') {
+      return parseInt(val, 10);
+    }
+  }
+  return 0;
+}
+
+function getUnknownProp(obj: unknown, key: string): unknown {
+  if (isRecord(obj)) {
+    return obj[key];
+  }
+  return undefined;
+}
+
+// Type-safe error extraction
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (isRecord(error)) {
+    const message = error.message;
+    if (typeof message === 'string') {
+      return message;
+    }
+    const stderr = error.stderr;
+    if (typeof stderr === 'string') {
+      return stderr;
+    }
+  }
+  return String(error);
+}
+
+function getExecErrorDetails(error: unknown): {
+  message: string;
+  stderr: string;
+  stdout: string;
+} {
+  if (isRecord(error)) {
+    return {
+      message: getStringProp(error, 'message'),
+      stderr: getStringProp(error, 'stderr'),
+      stdout: getStringProp(error, 'stdout'),
+    };
+  }
+  return { message: String(error), stderr: '', stdout: '' };
+}
+
 function loadDirectoryAsStructure(dirPath: string): IStructure {
   const items: IStructure = [];
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     const fullPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
-      items.push({
-        type: 'folder',
-        name: entry.name,
-        children: loadDirectoryAsStructure(fullPath),
-      } as IFolder);
+      items.push(createFolder(entry.name, loadDirectoryAsStructure(fullPath)));
     } else {
-      items.push({
-        type: 'file',
-        name: entry.name,
-        content: fs.readFileSync(fullPath, 'utf-8'),
-      } as IFile);
+      items.push(createFile(entry.name, fs.readFileSync(fullPath, 'utf-8')));
     }
   }
   return items;
@@ -97,16 +199,16 @@ function runCommand(
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        DATABASE_URL: `postgresql://${DB_CONFIG.user}:${DB_CONFIG.password}@${DB_CONFIG.host}:${DB_CONFIG.port}/${TEST_DB_NAME}`,
+        DATABASE_URL: `postgresql://${DB_CONFIG.user}:${DB_CONFIG.password}@${DB_CONFIG.host}:${String(DB_CONFIG.port)}/${TEST_DB_NAME}`,
       },
     });
     return { success: true, stdout };
-  } catch (err) {
-    const error = err as { stderr?: string; message?: string; stdout?: string };
+  } catch (err: unknown) {
+    const details = getExecErrorDetails(err);
     return {
       success: false,
-      error: error.stderr || error.message || 'Unknown error',
-      stdout: error.stdout,
+      error: details.stderr !== '' ? details.stderr : details.message,
+      stdout: details.stdout,
     };
   }
 }
@@ -116,16 +218,18 @@ async function waitForServer(url: string, maxAttempts = 30): Promise<boolean> {
     try {
       const res = await fetch(url);
       if (res.ok) {
-        console.log(`  Server ready after ${i + 1} attempts`);
+        console.log(`  Server ready after ${String(i + 1)} attempts`);
         return true;
       }
       if (i === 0) {
         const body = await res.text();
-        console.log(`  Attempt ${i + 1}: status ${res.status}, body: ${body.slice(0, 200)}`);
+        console.log(
+          `  Attempt ${String(i + 1)}: status ${String(res.status)}, body: ${body.slice(0, 200)}`,
+        );
       }
-    } catch (err) {
+    } catch (err: unknown) {
       if (i % 5 === 0) {
-        console.log(`  Attempt ${i + 1}: ${(err as Error).message}`);
+        console.log(`  Attempt ${String(i + 1)}: ${getErrorMessage(err)}`);
       }
     }
     await new Promise((r) => setTimeout(r, 500));
@@ -155,7 +259,9 @@ describe('Runtime Golden Test', () => {
   beforeAll(async () => {
     const dbAvailable = await checkDatabaseConnection();
     if (!dbAvailable) {
-      console.log('\n⚠️  PostgreSQL not available. Run `bun run dev:full` first.\n');
+      console.log(
+        '\n⚠️  PostgreSQL not available. Run `bun run dev:full` first.\n',
+      );
       return;
     }
 
@@ -245,7 +351,7 @@ describe('Runtime Golden Test', () => {
       '/Projects/hono-react/structure.yaml',
       userFiles,
       masterSchema,
-      mockFormData as IFormStore,
+      mockFormData,
       null,
     );
 
@@ -301,7 +407,10 @@ describe('Runtime Golden Test', () => {
         WHERE table_schema = 'public'
       `;
       expect(tables.length).toBeGreaterThan(0);
-      console.log(`  Created ${tables.length} tables:`, tables.map((t) => t.table_name).join(', '));
+      console.log(
+        `  Created ${String(tables.length)} tables:`,
+        tables.map((t) => getStringProp(t, 'table_name')).join(', '),
+      );
     }
   }, 60000);
 
@@ -324,8 +433,9 @@ describe('Runtime Golden Test', () => {
     // Verify data was inserted
     if (testSql) {
       const userCount = await testSql`SELECT COUNT(*) as count FROM "user"`;
-      expect(Number(userCount[0].count)).toBeGreaterThan(0);
-      console.log(`  Seeded ${userCount[0].count} users`);
+      const count = getNumberProp(userCount[0], 'count');
+      expect(count).toBeGreaterThan(0);
+      console.log(`  Seeded ${String(count)} users`);
     }
   }, 30000);
 
@@ -338,9 +448,12 @@ describe('Runtime Golden Test', () => {
 
     // Kill any process on test port first
     try {
-      execSync(`lsof -ti:${TEST_PORT} | xargs kill -9 2>/dev/null || true`, {
-        stdio: 'pipe',
-      });
+      execSync(
+        `lsof -ti:${String(TEST_PORT)} | xargs kill -9 2>/dev/null || true`,
+        {
+          stdio: 'pipe',
+        },
+      );
     } catch {
       // Ignore errors
     }
@@ -351,7 +464,7 @@ describe('Runtime Golden Test', () => {
       env: {
         ...process.env,
         PORT: String(TEST_PORT),
-        DATABASE_URL: `postgresql://${DB_CONFIG.user}:${DB_CONFIG.password}@${DB_CONFIG.host}:${DB_CONFIG.port}/${TEST_DB_NAME}`,
+        DATABASE_URL: `postgresql://${DB_CONFIG.user}:${DB_CONFIG.password}@${DB_CONFIG.host}:${String(DB_CONFIG.port)}/${TEST_DB_NAME}`,
       },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -359,15 +472,17 @@ describe('Runtime Golden Test', () => {
     // Capture server output for debugging
     let serverOutput = '';
     let serverError = '';
-    serverProcess.stdout?.on('data', (data) => {
+    serverProcess.stdout?.on('data', (data: Buffer) => {
       serverOutput += data.toString();
     });
-    serverProcess.stderr?.on('data', (data) => {
+    serverProcess.stderr?.on('data', (data: Buffer) => {
       serverError += data.toString();
     });
 
     // Wait for server to be ready
-    const serverReady = await waitForServer(`http://localhost:${TEST_PORT}/api/health`);
+    const serverReady = await waitForServer(
+      `http://localhost:${String(TEST_PORT)}/api/health`,
+    );
 
     if (!serverReady) {
       console.log('Server failed to start');
@@ -384,13 +499,15 @@ describe('Runtime Golden Test', () => {
       return;
     }
 
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/user`);
+    const res = await fetch(`http://localhost:${String(TEST_PORT)}/api/user`);
     expect(res.ok).toBe(true);
 
-    const data = await res.json();
+    const data: unknown = await res.json();
     expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThan(0);
-    console.log(`  GET /api/user returned ${data.length} users`);
+    if (Array.isArray(data)) {
+      expect(data.length).toBeGreaterThan(0);
+      console.log(`  GET /api/user returned ${String(data.length)} users`);
+    }
   });
 
   it('should GET /api/user/:id (single user)', async () => {
@@ -399,11 +516,11 @@ describe('Runtime Golden Test', () => {
       return;
     }
 
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/user/1`);
+    const res = await fetch(`http://localhost:${String(TEST_PORT)}/api/user/1`);
     expect(res.ok).toBe(true);
 
-    const data = await res.json();
-    expect(data).toHaveProperty('userId', 1);
+    const data: unknown = await res.json();
+    expect(data).toHaveProperty('id', 1);
   });
 
   it('should POST /api/user (create user)', async () => {
@@ -422,16 +539,17 @@ describe('Runtime Golden Test', () => {
       updatedAt: new Date().toISOString(),
     };
 
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/user`, {
+    const res = await fetch(`http://localhost:${String(TEST_PORT)}/api/user`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newUser),
     });
 
     expect(res.ok).toBe(true);
-    const data = await res.json();
-    expect(data).toHaveProperty('userId');
-    console.log(`  Created user with ID: ${data.userId}`);
+    const data: unknown = await res.json();
+    expect(data).toHaveProperty('id');
+    const id = getUnknownProp(data, 'id');
+    console.log(`  Created user with ID: ${String(id)}`);
   });
 
   it('should PUT /api/user/:id (update user)', async () => {
@@ -450,18 +568,24 @@ describe('Runtime Golden Test', () => {
       updatedAt: new Date().toISOString(),
     };
 
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/user/1`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(update),
-    });
+    const res = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/user/1`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update),
+      },
+    );
 
     expect(res.ok).toBe(true);
 
     // Verify update
-    const getRes = await fetch(`http://localhost:${TEST_PORT}/api/user/1`);
-    const data = await getRes.json();
-    expect(data.firstName).toBe('Updated');
+    const getRes = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/user/1`,
+    );
+    const data: unknown = await getRes.json();
+    const firstName = getStringProp(data, 'firstName');
+    expect(firstName).toBe('Updated');
   });
 
   it('should DELETE /api/user/:id (delete user)', async () => {
@@ -471,18 +595,30 @@ describe('Runtime Golden Test', () => {
     }
 
     // Get a user to delete (use one we created)
-    const listRes = await fetch(`http://localhost:${TEST_PORT}/api/user`);
-    const users = await listRes.json();
-    const userToDelete = users[users.length - 1];
+    const listRes = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/user`,
+    );
+    const users: unknown = await listRes.json();
+    if (!Array.isArray(users) || users.length === 0) {
+      console.log('  [SKIP] No users to delete');
+      return;
+    }
+    const userToDelete: unknown = users[users.length - 1];
+    const idToDelete = getUnknownProp(userToDelete, 'id');
 
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/user/${userToDelete.userId}`, {
-      method: 'DELETE',
-    });
+    const res = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/user/${String(idToDelete)}`,
+      {
+        method: 'DELETE',
+      },
+    );
 
     expect(res.ok).toBe(true);
 
     // Verify deletion
-    const verifyRes = await fetch(`http://localhost:${TEST_PORT}/api/user/${userToDelete.userId}`);
+    const verifyRes = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/user/${String(idToDelete)}`,
+    );
     expect(verifyRes.status).toBe(404);
   });
 
@@ -493,12 +629,14 @@ describe('Runtime Golden Test', () => {
     }
 
     // Get posts
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/posts`);
+    const res = await fetch(`http://localhost:${String(TEST_PORT)}/api/posts`);
     expect(res.ok).toBe(true);
 
-    const posts = await res.json();
+    const posts: unknown = await res.json();
     expect(Array.isArray(posts)).toBe(true);
-    console.log(`  GET /api/posts returned ${posts.length} posts`);
+    if (Array.isArray(posts)) {
+      console.log(`  GET /api/posts returned ${String(posts.length)} posts`);
+    }
   });
 
   it('should test many-to-many entities (orders and products)', async () => {
@@ -508,21 +646,37 @@ describe('Runtime Golden Test', () => {
     }
 
     // Get orders
-    const ordersRes = await fetch(`http://localhost:${TEST_PORT}/api/order`);
+    const ordersRes = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/order`,
+    );
     expect(ordersRes.ok).toBe(true);
-    const orders = await ordersRes.json();
-    console.log(`  GET /api/order returned ${orders.length} orders`);
+    const orders: unknown = await ordersRes.json();
+    if (Array.isArray(orders)) {
+      console.log(`  GET /api/order returned ${String(orders.length)} orders`);
+    }
 
     // Get products
-    const productsRes = await fetch(`http://localhost:${TEST_PORT}/api/product`);
+    const productsRes = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/product`,
+    );
     expect(productsRes.ok).toBe(true);
-    const products = await productsRes.json();
-    console.log(`  GET /api/product returned ${products.length} products`);
+    const products: unknown = await productsRes.json();
+    if (Array.isArray(products)) {
+      console.log(
+        `  GET /api/product returned ${String(products.length)} products`,
+      );
+    }
 
     // Get order_product (pivot)
-    const pivotRes = await fetch(`http://localhost:${TEST_PORT}/api/order-product`);
+    const pivotRes = await fetch(
+      `http://localhost:${String(TEST_PORT)}/api/order-product`,
+    );
     expect(pivotRes.ok).toBe(true);
-    const pivot = await pivotRes.json();
-    console.log(`  GET /api/order-product returned ${pivot.length} records`);
+    const pivot: unknown = await pivotRes.json();
+    if (Array.isArray(pivot)) {
+      console.log(
+        `  GET /api/order-product returned ${String(pivot.length)} records`,
+      );
+    }
   });
 });

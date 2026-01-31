@@ -2,6 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 
+/** Type for package.json structure in tests */
+interface ITestPackageJson {
+  name?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+}
+
+/** Type guard to validate if a value is a package.json object */
+function isITestPackageJson(value: unknown): value is ITestPackageJson {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Safely parses JSON content as package.json */
+function parseTestPackageJson(content: string): ITestPackageJson {
+  const parsed: unknown = JSON.parse(content);
+  if (isITestPackageJson(parsed)) {
+    return parsed;
+  }
+  return {};
+}
+
 describe('mergeCoreFilesWithScaffolded', () => {
   it('should merge core and scaffolded files with no conflicts', () => {
     const coreFiles: IStructure = [
@@ -352,7 +374,9 @@ describe('mergeCoreFilesWithScaffolded', () => {
     expect(packageJson).toBeDefined();
     if (packageJson?.type === 'file') {
       // Package.json merging formats with indentation
-      expect(JSON.parse(packageJson.content)).toEqual({ name: 'scaffolded' });
+      expect(parseTestPackageJson(packageJson.content)).toEqual({
+        name: 'scaffolded',
+      });
     }
 
     const srcFolder = result.find((f) => f.name === 'src');
@@ -428,7 +452,7 @@ describe('mergeCoreFilesWithScaffolded', () => {
     const packageJson = result[0];
     expect(packageJson.type).toBe('file');
     if (packageJson.type === 'file') {
-      const content = JSON.parse(packageJson.content);
+      const content = parseTestPackageJson(packageJson.content);
       expect(content.name).toBe('core-project');
       expect(content.dependencies).toEqual({
         react: '^19.0.0',

@@ -30,8 +30,9 @@ export function FeatureCard({
   };
 
   return (
-    <div
-      className={`bg-bg-muted/30 backdrop-blur-sm border border-border rounded-2xl p-3 md:p-5 ${variantStyles[variant]} transition-all duration-300 cursor-pointer group`}
+    <button
+      type="button"
+      className={`bg-bg-muted/30 backdrop-blur-sm border border-border rounded-2xl p-3 md:p-5 ${variantStyles[variant]} transition-all duration-300 cursor-pointer group w-full text-left`}
       onClick={onClick}
     >
       <div className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-3 text-center md:text-left">
@@ -49,6 +50,6 @@ export function FeatureCard({
           </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

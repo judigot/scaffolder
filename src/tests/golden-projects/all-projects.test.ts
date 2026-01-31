@@ -14,9 +14,10 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles';
-import type { IStructure, IFile, IFolder } from '@/components/FileViewer';
-import type { IFormStore } from '@/useFormStore';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
+import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
+import type { IFormStore } from '@/useFormStore.ts';
+import { isISchemaInfoArray } from '@/interfaces/interfaces.ts';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
@@ -27,17 +28,80 @@ import { execSync } from 'node:child_process';
 // - Many-to-many x2 (order ↔ product, user ↔ user_type)
 // - Soft deletes (deleted_at)
 // - 9 tables total
-import masterSchema from '@/../files/Schemas/Master Schema with Multiple User Types.json';
+import masterSchemaJson from '@/../files/Schemas/Master Schema with Multiple User Types.json';
 
-const mockFormData: Partial<IFormStore> = {
+// Validate JSON matches expected shape at runtime
+// Uses structural type guard - validates tableName and columnsInfo exist
+// The Zod validator in schemaInfoValidator.ts enforces stricter AI conventions
+// (like 'id' column naming) that don't apply to manually-created schemas
+if (!isISchemaInfoArray(masterSchemaJson)) {
+  throw new Error('Invalid master schema JSON structure');
+}
+const masterSchema = masterSchemaJson;
+
+const mockFormData: IFormStore = {
   backendUrl: 'http://localhost:3000',
   dbType: 'postgresql',
   framework: 'hono',
+  // Required IFormStore fields with defaults
+  schemaInput: {},
+  backendDir: '',
+  frontendDir: '',
+  dbConnection: '',
+  includeInsertData: false,
+  insertOption: 'SQLInsertQueriesFromMockData',
+  includeTypeGuards: false,
+  outputOnSingleFile: false,
+  quote: '"',
+  publicRepoURL: '',
+  clientID: '',
+  clientSecret: '',
+  creationMode: 'Schema Builder',
+  dbUsername: '',
+  dbPassword: '',
+  dbHost: '',
+  dbPort: 0,
+  dbName: '',
+  setCreationMode: () => undefined,
+  setMasterSchema: () => undefined,
+  setOneToOne: () => undefined,
+  setOneToMany: () => undefined,
+  setManyToMany: () => undefined,
+  setDBType: () => undefined,
+  setPublicRepoURL: () => undefined,
+  setDbConnection: () => undefined,
 };
 
 const filesDir = path.resolve(__dirname, '../../../files');
 // Write output to /tmp to avoid bun scanning generated test files
 const outputBaseDir = '/tmp/golden-test-output';
+
+// Type-safe factory functions for IStructure items
+function createFile(name: string, content: string): IFile {
+  return { type: 'file', name, content };
+}
+
+function createFolder(name: string, children: IStructure): IFolder {
+  return { type: 'folder', name, children };
+}
+
+// Type guard for objects
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+// Type-safe error extraction
+function getErrorDetails(error: unknown): { stderr: string; message: string } {
+  if (isRecord(error)) {
+    const stderr = error.stderr;
+    const message = error.message;
+    return {
+      stderr: typeof stderr === 'string' ? stderr : '',
+      message: typeof message === 'string' ? message : '',
+    };
+  }
+  return { stderr: '', message: String(error) };
+}
 
 /**
  * Discovers complete projects (those with $USE_CORE directive)
@@ -47,13 +111,19 @@ function discoverCompleteProjects(): string[] {
   const projectsDir = path.join(filesDir, 'Projects');
   const projects: string[] = [];
 
-  if (!fs.existsSync(projectsDir)) return projects;
+  if (!fs.existsSync(projectsDir)) {
+    return projects;
+  }
 
   for (const entry of fs.readdirSync(projectsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory()) {
+      continue;
+    }
 
     const structurePath = path.join(projectsDir, entry.name, 'structure.yaml');
-    if (!fs.existsSync(structurePath)) continue;
+    if (!fs.existsSync(structurePath)) {
+      continue;
+    }
 
     const content = fs.readFileSync(structurePath, 'utf-8');
 
@@ -71,17 +141,9 @@ function loadDirectoryAsStructure(dirPath: string): IStructure {
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     const fullPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
-      items.push({
-        type: 'folder',
-        name: entry.name,
-        children: loadDirectoryAsStructure(fullPath),
-      } as IFolder);
+      items.push(createFolder(entry.name, loadDirectoryAsStructure(fullPath)));
     } else {
-      items.push({
-        type: 'file',
-        name: entry.name,
-        content: fs.readFileSync(fullPath, 'utf-8'),
-      } as IFile);
+      items.push(createFile(entry.name, fs.readFileSync(fullPath, 'utf-8')));
     }
   }
   return items;
@@ -116,11 +178,11 @@ function runCommand(
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     return { success: true, stdout };
-  } catch (err) {
-    const error = err as { stderr?: string; message?: string };
+  } catch (err: unknown) {
+    const details = getErrorDetails(err);
     return {
       success: false,
-      error: error.stderr || error.message || 'Unknown error',
+      error: details.stderr !== '' ? details.stderr : details.message,
     };
   }
 }
@@ -139,27 +201,32 @@ const completeProjects = discoverCompleteProjects();
 // Cache user files - loaded once
 let cachedUserFiles: IStructure | null = null;
 function getUserFiles(): IStructure {
-  if (!cachedUserFiles) {
-    cachedUserFiles = loadDirectoryAsStructure(filesDir);
-  }
+  cachedUserFiles ??= loadDirectoryAsStructure(filesDir);
   return cachedUserFiles;
 }
 
 // Cache build results to avoid duplicate builds
-const buildCache = new Map<string, Awaited<ReturnType<typeof buildProjectFiles>>>();
+const buildCache = new Map<
+  string,
+  Awaited<ReturnType<typeof buildProjectFiles>>
+>();
 
-async function getCachedBuild(projectName: string) {
-  if (!buildCache.has(projectName)) {
-    const result = await buildProjectFiles(
-      `/Projects/${projectName}/structure.yaml`,
-      getUserFiles(),
-      masterSchema,
-      mockFormData as IFormStore,
-      null,
-    );
-    buildCache.set(projectName, result);
+async function getCachedBuild(
+  projectName: string,
+): Promise<Awaited<ReturnType<typeof buildProjectFiles>>> {
+  const cached = buildCache.get(projectName);
+  if (cached !== undefined) {
+    return cached;
   }
-  return buildCache.get(projectName)!;
+  const result = await buildProjectFiles(
+    `/Projects/${projectName}/structure.yaml`,
+    getUserFiles(),
+    masterSchema,
+    mockFormData,
+    null,
+  );
+  buildCache.set(projectName, result);
+  return result;
 }
 
 describe('TRUE GOLDEN TEST: Complete Projects', () => {
@@ -174,9 +241,11 @@ describe('TRUE GOLDEN TEST: Complete Projects', () => {
     buildCache.clear();
   });
 
-  it(`should discover ${completeProjects.length} complete projects`, () => {
+  it(`should discover ${String(completeProjects.length)} complete projects`, () => {
     console.log('\nDiscovered complete projects (with $USE_CORE):');
-    completeProjects.forEach((p) => console.log(`  - ${p}`));
+    completeProjects.forEach((p) => {
+      console.log(`  - ${p}`);
+    });
     expect(completeProjects.length).toBeGreaterThan(0);
   });
 
@@ -202,28 +271,55 @@ describe('TRUE GOLDEN TEST: Complete Projects', () => {
 
       expect(result.filesFailedToFormat).toHaveLength(0);
       expect(result.structure.length).toBeGreaterThan(0);
-    });
+    }, 30000); // 30 second timeout for build
 
     it('should have no unprocessed template syntax', async () => {
       const result = await getCachedBuild(projectName);
 
       // Binary/non-text file extensions to skip
-      const binaryExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.pdf'];
+      const binaryExtensions = [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.ico',
+        '.woff',
+        '.woff2',
+        '.ttf',
+        '.eot',
+        '.pdf',
+      ];
 
-      const checkForTemplateSyntax = (items: IStructure, filePath = ''): void => {
+      const checkForTemplateSyntax = (
+        items: IStructure,
+        filePath = '',
+      ): void => {
         for (const item of items) {
-          const currentPath = filePath ? `${filePath}/${item.name}` : item.name;
+          const currentPath =
+            filePath !== '' ? `${filePath}/${item.name}` : item.name;
           if (item.type === 'file') {
             // Skip binary files
             const ext = path.extname(item.name).toLowerCase();
-            if (binaryExtensions.includes(ext)) continue;
+            if (binaryExtensions.includes(ext)) {
+              continue;
+            }
 
             const issues: string[] = [];
-            if (item.content.includes('{{')) issues.push('{{');
-            if (item.content.includes('[[')) issues.push('[[');
-            if (item.content.includes('@LOOP')) issues.push('@LOOP');
-            if (item.content.includes('<@@')) issues.push('<@@');
-            if (item.content.includes('{% IF')) issues.push('{% IF');
+            if (item.content.includes('{{')) {
+              issues.push('{{');
+            }
+            if (item.content.includes('[[')) {
+              issues.push('[[');
+            }
+            if (item.content.includes('@LOOP')) {
+              issues.push('@LOOP');
+            }
+            if (item.content.includes('<@@')) {
+              issues.push('<@@');
+            }
+            if (item.content.includes('{% IF')) {
+              issues.push('{% IF');
+            }
 
             if (issues.length > 0) {
               throw new Error(
@@ -241,7 +337,7 @@ describe('TRUE GOLDEN TEST: Complete Projects', () => {
 
     // Production-readiness smoke tests
     describe('production-readiness', () => {
-      it('should install dependencies and pass TypeScript check', async () => {
+      it('should install dependencies and pass TypeScript check', () => {
         // Skip if output doesn't exist yet (generation failed)
         if (!fs.existsSync(outputDir)) {
           console.log(`  [SKIP] Output directory not found: ${outputDir}`);

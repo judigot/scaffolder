@@ -1,41 +1,86 @@
 import type { IStructure, IFolder, IFile } from '@/components/FileViewer.tsx';
 
+/** Type for package.json structure */
+interface IPackageJson {
+  name?: string;
+  version?: string;
+  type?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+/**
+ * Type guard to validate if a value is a package.json object.
+ * Since IPackageJson has an index signature [key: string]: unknown,
+ * any non-null object is structurally compatible.
+ */
+function isIPackageJson(value: unknown): value is IPackageJson {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Safely parses JSON and returns a typed object or null on failure
+ */
+function parsePackageJson(content: string): IPackageJson | null {
+  try {
+    const parsed: unknown = JSON.parse(content);
+    if (isIPackageJson(parsed)) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Merges two package.json contents by combining dependencies.
  * Later (new) values override earlier (existing) for same packages.
  */
-const mergePackageJson = (existingContent: string, newContent: string): string => {
-  try {
-    const existing = JSON.parse(existingContent);
-    const incoming = JSON.parse(newContent);
+const mergePackageJson = (
+  existingContent: string,
+  newContent: string,
+): string => {
+  const existing = parsePackageJson(existingContent);
+  const incoming = parsePackageJson(newContent);
 
-    const merged = { ...existing };
-
-    // Merge top-level fields (name, version, type, etc.)
-    for (const key of Object.keys(incoming)) {
-      if (key === 'dependencies' || key === 'devDependencies' || key === 'peerDependencies') {
-        // Merge dependency objects
-        merged[key] = {
-          ...(existing[key] || {}),
-          ...(incoming[key] || {}),
-        };
-      } else if (key === 'scripts') {
-        // Merge scripts
-        merged.scripts = {
-          ...(existing.scripts || {}),
-          ...(incoming.scripts || {}),
-        };
-      } else {
-        // For other fields, incoming overwrites existing
-        merged[key] = incoming[key];
-      }
-    }
-
-    return JSON.stringify(merged, null, 2) + '\n';
-  } catch {
+  if (existing === null || incoming === null) {
     // If parsing fails, return the new content
     return newContent;
   }
+
+  const merged: IPackageJson = { ...existing };
+
+  // Merge top-level fields (name, version, type, etc.)
+  for (const key of Object.keys(incoming)) {
+    if (
+      key === 'dependencies' ||
+      key === 'devDependencies' ||
+      key === 'peerDependencies'
+    ) {
+      // Merge dependency objects
+      const existingDeps = existing[key] ?? {};
+      const incomingDeps = incoming[key] ?? {};
+      merged[key] = {
+        ...existingDeps,
+        ...incomingDeps,
+      };
+    } else if (key === 'scripts') {
+      // Merge scripts
+      merged.scripts = {
+        ...existing.scripts,
+        ...incoming.scripts,
+      };
+    } else {
+      // For other fields, incoming overwrites existing
+      merged[key] = incoming[key];
+    }
+  }
+
+  return `${JSON.stringify(merged, null, 2)}\n`;
 };
 
 /**
@@ -82,8 +127,14 @@ export const mergeCoreFilesWithScaffolded = (
         merged[existingIndex] = mergedFolder;
       } else if (scaffoldedItem.type === 'file') {
         // Special handling for package.json - merge dependencies
-        if (scaffoldedItem.name === 'package.json' && existingItem.type === 'file') {
-          const mergedContent = mergePackageJson(existingItem.content, scaffoldedItem.content);
+        if (
+          scaffoldedItem.name === 'package.json' &&
+          existingItem.type === 'file'
+        ) {
+          const mergedContent = mergePackageJson(
+            existingItem.content,
+            scaffoldedItem.content,
+          );
           const mergedFile: IFile = {
             type: 'file',
             name: 'package.json',

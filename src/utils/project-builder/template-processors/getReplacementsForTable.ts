@@ -79,7 +79,9 @@ export const getReplacementsForTable = (
 
   // Get primary key and its camelCase version
   const primaryKey = schemaInfoParsed.getPrimaryKey(table.tableName);
-  const primaryKeyCamelCase = primaryKey ? changeCase(primaryKey).camelCase : '';
+  const primaryKeyCamelCase = primaryKey
+    ? changeCase(primaryKey).camelCase
+    : '';
 
   // Generate sample payloads for API testing
   const columnsInfo = schemaInfoParsed.getColumnsInfo(table.tableName);
@@ -88,24 +90,46 @@ export const getReplacementsForTable = (
     const payload: Record<string, unknown> = {};
     for (const col of columnsInfo) {
       // Skip primary key
-      if (col.column_name === primaryKey) continue;
+      if (col.column_name === primaryKey) {
+        continue;
+      }
       // Skip auto-generated timestamp columns
-      if (col.column_name.endsWith('_at') || col.column_name === 'created_at' || col.column_name === 'updated_at' || col.column_name === 'deleted_at') continue;
+      if (
+        col.column_name.endsWith('_at') ||
+        col.column_name === 'created_at' ||
+        col.column_name === 'updated_at' ||
+        col.column_name === 'deleted_at'
+      ) {
+        continue;
+      }
 
       const camelName = changeCase(col.column_name).camelCase;
       const prefix = isUpdate ? 'Updated ' : 'Test ';
 
       // Check if this is a foreign key column (ends with _id and references another table)
-      const isForeignKey = col.column_name.endsWith('_id') && foreignTablesList.some(ft =>
-        col.column_name === `${ft}_id` || col.column_name === changeCase(ft).snakeCase + '_id'
-      );
+      const isForeignKey =
+        col.column_name.endsWith('_id') &&
+        foreignTablesList.some(
+          (ft) =>
+            col.column_name === `${ft}_id` ||
+            col.column_name === `${changeCase(ft).snakeCase}_id`,
+        );
 
       // Generate sample value based on type
-      if (isForeignKey || col.data_type.includes('int') || col.data_type === 'serial') {
+      if (
+        isForeignKey ||
+        col.data_type.includes('int') ||
+        col.data_type === 'serial'
+      ) {
         payload[camelName] = 1;
       } else if (col.data_type.includes('bool')) {
         payload[camelName] = true;
-      } else if (col.data_type.includes('numeric') || col.data_type.includes('decimal') || col.data_type.includes('float') || col.data_type.includes('double')) {
+      } else if (
+        col.data_type.includes('numeric') ||
+        col.data_type.includes('decimal') ||
+        col.data_type.includes('float') ||
+        col.data_type.includes('double')
+      ) {
         payload[camelName] = 9.99;
       } else {
         payload[camelName] = `${prefix}${camelName}`;

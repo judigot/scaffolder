@@ -203,10 +203,11 @@ function GitHubExportModal({
       isExistingRepo && option.action?.type === 'needs_repo_url';
 
     return (
-      <div
+      <button
+        type="button"
         key={option.method}
         className={`
-          relative p-5 rounded-xl border-2 transition-all duration-200
+          relative p-5 rounded-xl border-2 transition-all duration-200 w-full text-left
           ${
             isSelected
               ? 'border-gray-600 bg-gray-600/10 shadow-lg shadow-gray-600/20 cursor-pointer'
@@ -224,20 +225,8 @@ function GitHubExportModal({
             setSelectedMethod(option.method);
           }
         }}
-        onKeyDown={(e) => {
-          if (
-            e.key === 'Enter' &&
-            option.available &&
-            (!isExistingRepo || isExistingRepoSelectable)
-          ) {
-            setSelectedMethod(option.method);
-          }
-        }}
-        role="button"
-        tabIndex={
-          option.available && (!isExistingRepo || isExistingRepoSelectable)
-            ? 0
-            : -1
+        disabled={
+          !option.available || (isExistingRepo && !isExistingRepoSelectable)
         }
       >
         {/* Recommended badge */}
@@ -271,6 +260,7 @@ function GitHubExportModal({
             >
               {isSelected && (
                 <svg
+                  aria-hidden="true"
                   className="w-3 h-3 text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
@@ -298,9 +288,9 @@ function GitHubExportModal({
               Advantages
             </p>
             <ul className="space-y-1">
-              {option.pros.map((pro, i) => (
+              {option.pros.map((pro) => (
                 <li
-                  key={i}
+                  key={pro}
                   className="flex items-start gap-1.5 text-xs text-gray-300"
                 >
                   <span className="text-emerald-400 mt-0.5">✓</span>
@@ -314,10 +304,10 @@ function GitHubExportModal({
               Considerations
             </p>
             <ul className="space-y-1">
-              {option.cons.map((con, i) => (
+              {option.cons.map((con) => (
                 <li
-                  key={i}
-                  className="flex items-start gap-1.5 text-xs text-gray-400"
+                  key={con}
+                  className="flex items-start gap-1.5 text-xs text-gray-300"
                 >
                   <span className="text-rose-400 mt-0.5">•</span>
                   <span>{con}</span>
@@ -333,6 +323,7 @@ function GitHubExportModal({
             {option.action.type === 'has_token' && (
               <div className="flex items-center gap-2 text-sm text-emerald-400">
                 <svg
+                  aria-hidden="true"
                   className="w-4 h-4"
                   fill="currentColor"
                   viewBox="0 0 20 20"
@@ -378,6 +369,7 @@ function GitHubExportModal({
                 {isWaitingForInstall ? (
                   <div className="flex items-center gap-2 text-sm text-blue-400">
                     <svg
+                      aria-hidden="true"
                       className="w-4 h-4 animate-spin"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -416,6 +408,7 @@ function GitHubExportModal({
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-emerald-400">
                   <svg
+                    aria-hidden="true"
                     className="w-4 h-4"
                     fill="currentColor"
                     viewBox="0 0 20 20"
@@ -431,10 +424,14 @@ function GitHubExportModal({
 
                 {/* Repository URL input */}
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-300 font-medium">
+                  <label
+                    htmlFor="repo-url-input"
+                    className="text-sm text-gray-300 font-medium"
+                  >
                     Repository URL
                   </label>
                   <input
+                    id="repo-url-input"
                     type="text"
                     value={repoUrlInput}
                     onChange={(e) => {
@@ -465,6 +462,7 @@ function GitHubExportModal({
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-4 h-4"
                       fill="currentColor"
                       viewBox="0 0 24 24"
@@ -478,7 +476,7 @@ function GitHubExportModal({
             )}
           </div>
         )}
-      </div>
+      </button>
     );
   };
 
@@ -559,6 +557,7 @@ function GitHubExportModal({
           {isSavingToken ? (
             <span className="flex items-center gap-2">
               <svg
+                aria-hidden="true"
                 className="w-4 h-4 animate-spin"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -667,20 +666,13 @@ function GitHubExportModal({
             </div>
 
             {/* Download ZIP option */}
-            <div
-              className="p-5 rounded-xl border-2 border-gray-600 hover:border-gray-500 bg-gray-800/50 cursor-pointer transition-all duration-200"
+            <button
+              type="button"
+              className="w-full text-left p-5 rounded-xl border-2 border-gray-600 hover:border-gray-500 bg-gray-800/50 cursor-pointer transition-all duration-200"
               onClick={() => {
                 onDownloadZip();
                 onClose();
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  onDownloadZip();
-                  onClose();
-                }
-              }}
-              role="button"
-              tabIndex={0}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-blue-500/20 text-blue-400">
@@ -696,6 +688,7 @@ function GitHubExportModal({
                   </p>
                 </div>
                 <svg
+                  aria-hidden="true"
                   className="w-5 h-5 text-gray-400"
                   fill="none"
                   stroke="currentColor"
@@ -709,7 +702,7 @@ function GitHubExportModal({
                   />
                 </svg>
               </div>
-            </div>
+            </button>
           </div>
         )}
       </div>

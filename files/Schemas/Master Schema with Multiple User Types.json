@@ -1,10 +1,10 @@
 [
   {
     "tableName": "product",
-    "requiredColumns": ["product_id", "product_name"],
+    "requiredColumns": ["id", "product_name"],
     "columnsInfo": [
       {
-        "column_name": "product_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -28,10 +28,10 @@
   },
   {
     "tableName": "customer",
-    "requiredColumns": ["customer_id", "name"],
+    "requiredColumns": ["id", "name"],
     "columnsInfo": [
       {
-        "column_name": "customer_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -48,10 +48,10 @@
   },
   {
     "tableName": "order",
-    "requiredColumns": ["order_id", "customer_id"],
+    "requiredColumns": ["id", "customer_id"],
     "columnsInfo": [
       {
-        "column_name": "order_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -63,7 +63,7 @@
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "customer",
-          "foreign_column_name": "customer_id"
+          "foreign_column_name": "id"
         }
       }
     ],
@@ -82,10 +82,10 @@
   },
   {
     "tableName": "order_product",
-    "requiredColumns": ["order_product_id", "order_id", "product_id"],
+    "requiredColumns": ["id", "order_id", "product_id"],
     "columnsInfo": [
       {
-        "column_name": "order_product_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -97,7 +97,7 @@
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "order",
-          "foreign_column_name": "order_id"
+          "foreign_column_name": "id"
         }
       },
       {
@@ -106,7 +106,7 @@
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "product",
-          "foreign_column_name": "product_id"
+          "foreign_column_name": "id"
         }
       }
     ],
@@ -118,7 +118,7 @@
   {
     "tableName": "user",
     "requiredColumns": [
-      "user_id",
+      "id",
       "first_name",
       "last_name",
       "email",
@@ -129,7 +129,7 @@
     ],
     "columnsInfo": [
       {
-        "column_name": "user_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -186,16 +186,10 @@
   },
   {
     "tableName": "profile",
-    "requiredColumns": [
-      "profile_id",
-      "user_id",
-      "bio",
-      "created_at",
-      "updated_at"
-    ],
+    "requiredColumns": ["id", "user_id", "bio", "created_at", "updated_at"],
     "columnsInfo": [
       {
-        "column_name": "profile_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -208,7 +202,7 @@
         "unique": true,
         "foreign_key": {
           "foreign_table_name": "user",
-          "foreign_column_name": "user_id"
+          "foreign_column_name": "id"
         }
       },
       {
@@ -233,16 +227,10 @@
   },
   {
     "tableName": "posts",
-    "requiredColumns": [
-      "post_id",
-      "user_id",
-      "title",
-      "created_at",
-      "updated_at"
-    ],
+    "requiredColumns": ["id", "user_id", "title", "created_at", "updated_at"],
     "columnsInfo": [
       {
-        "column_name": "post_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -254,7 +242,7 @@
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "user",
-          "foreign_column_name": "user_id"
+          "foreign_column_name": "id"
         }
       },
       {
@@ -284,9 +272,10 @@
   },
   {
     "tableName": "user_type",
+    "requiredColumns": ["id"],
     "columnsInfo": [
       {
-        "column_name": "user_type_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -314,7 +303,6 @@
         "is_nullable": "YES"
       }
     ],
-    "requiredColumns": ["user_type_id"],
     "belongsToMany": ["user"],
     "hasMany": ["user_user_type"],
     "childTables": ["user_user_type"],
@@ -327,9 +315,10 @@
   },
   {
     "tableName": "user_user_type",
+    "requiredColumns": ["id", "user_id", "user_type_id"],
     "columnsInfo": [
       {
-        "column_name": "user_user_type_id",
+        "column_name": "id",
         "data_type": "number",
         "is_nullable": "NO",
         "column_default": "AUTO_INCREMENT",
@@ -341,7 +330,7 @@
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "user",
-          "foreign_column_name": "user_id"
+          "foreign_column_name": "id"
         }
       },
       {
@@ -350,7 +339,7 @@
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "user_type",
-          "foreign_column_name": "user_type_id"
+          "foreign_column_name": "id"
         }
       },
       {
@@ -369,7 +358,6 @@
         "is_nullable": "YES"
       }
     ],
-    "requiredColumns": ["user_user_type_id", "user_id", "user_type_id"],
     "foreignTables": ["user", "user_type"],
     "foreignKeys": ["user_id", "user_type_id"],
     "isPivot": true,

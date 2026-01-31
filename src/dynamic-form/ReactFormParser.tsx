@@ -349,7 +349,7 @@ export function FormParser({
 
           if (allFieldsFilled) {
             // Use console.log instead of alert for better type safety
-            // eslint-disable-next-line no-console
+
             console.log(JSON.stringify(formData, null, 2));
           } else {
             // Set custom validity for required fields

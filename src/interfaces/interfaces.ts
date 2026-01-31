@@ -70,21 +70,14 @@ export interface IIntrospectedSchemaInfo {
 }
 
 export const isISchemaInfo = (data: unknown): data is ISchemaInfo => {
+  // Only tableName and columnsInfo are required; all other fields are optional
   return (
     typeof data === 'object' &&
     data !== null &&
     'tableName' in data &&
-    'requiredColumns' in data &&
+    typeof data.tableName === 'string' &&
     'columnsInfo' in data &&
-    'foreignTables' in data &&
-    'foreignKeys' in data &&
-    'childTables' in data &&
-    'isPivot' in data &&
-    'hasOne' in data &&
-    'hasMany' in data &&
-    'belongsTo' in data &&
-    'belongsToMany' in data &&
-    'pivotRelationships' in data
+    Array.isArray(data.columnsInfo)
   );
 };
 

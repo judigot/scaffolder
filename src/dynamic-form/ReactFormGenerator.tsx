@@ -62,7 +62,7 @@ export function DynamicForm(structure: typeof JSONFormStructure) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // eslint-disable-next-line no-console
+
     /*prettier-ignore*/ (($= formData)=>{console.log(["string","number"].includes(typeof $)?$:JSON.stringify($,null,4));})();
     // try {
     //   const response = await fetch(structure.buttons.submit.action, {

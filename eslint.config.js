@@ -113,6 +113,7 @@ export default defineConfig([
     '**/tailwind.config.js',
     '**/postcss.config.js',
     '**/vitest.setup.ts',
+    '**/bun-test-setup.ts',
     'next-env.d.ts',
 
     // Utility scripts
