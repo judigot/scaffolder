@@ -22,6 +22,7 @@ import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
 import { sortTablesBasedOnHierarchy } from '@/utils/sortTablesBasedOnHierarchy.ts';
 import { MAX_MOCK_DATA_ROWS } from '@/constants.ts';
+import { warnInvalidSchemaInfo } from '@/utils/validateSchemaInfo.ts';
 
 interface ITransformations extends Record<PropertyKey, unknown> {
   schemaInfo: ISchemaInfo[];
@@ -72,6 +73,9 @@ export const useTransformationsStore = create<ITransformations>()(
       setSchemaInfo: (schemaInfo) => {
         const { invalidateProjectCache, selectedProject } =
           useProjectStore.getState();
+
+        // Validate schema consistency before committing
+        warnInvalidSchemaInfo(schemaInfo);
 
         const sortedSchemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
 

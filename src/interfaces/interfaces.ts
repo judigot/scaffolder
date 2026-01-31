@@ -34,22 +34,32 @@ export interface IColumnInfo {
   };
 }
 
+/**
+ * Table metadata interface.
+ *
+ * NOTE: When adding new properties that reference other tables or columns,
+ * update validateSchemaInfo.ts to validate them.
+ *
+ * Table references (validated): foreignTables, childTables, hasOne, hasMany,
+ *   belongsTo, belongsToMany, pivotRelationships.relatedTable, pivotRelationships.pivotTable
+ * Column references (validated): ownerField, foreignKeys
+ */
 export interface ITableInfo {
   tableName: string;
   viewQuery?: string;
   viewStructure?: string[];
-  foreignTables?: string[]; // One or none
-  childTables?: string[]; // One or none
+  foreignTables?: string[]; // References to other tables
+  childTables?: string[]; // References to other tables
   isPivot?: true;
   isAuthResource?: true; // Table is a descendant of user table
-  ownerField?: string; // FK field linking to user (e.g., "user_id")
-  hasOne?: string[]; // One or none
-  hasMany?: string[]; // One or none
-  belongsTo?: string[]; // One or none
-  belongsToMany?: string[]; // One or none
+  ownerField?: string; // Column name in this table's columnsInfo
+  hasOne?: string[]; // References to other tables
+  hasMany?: string[]; // References to other tables
+  belongsTo?: string[]; // References to other tables
+  belongsToMany?: string[]; // References to other tables
   pivotRelationships?: {
-    relatedTable: string;
-    pivotTable: string;
+    relatedTable: string; // Reference to other table
+    pivotTable: string; // Reference to other table
   }[];
 }
 

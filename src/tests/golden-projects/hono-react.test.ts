@@ -125,7 +125,8 @@ const schemaTestCases: { name: string; schema: ISchemaInfo[] }[] = [
 
 describe('Hono-React Project Generation', () => {
   const filesDir = path.resolve(__dirname, '../../../files');
-  const outputBaseDir = path.resolve(__dirname, 'output');
+  // Output to temp directory outside src to avoid bun test picking up generated .test.ts files
+  const outputBaseDir = '/tmp/golden-projects-output';
 
   // Clean and create output directory before all tests
   beforeAll(() => {
