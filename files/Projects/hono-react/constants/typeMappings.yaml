@@ -1,11 +1,10 @@
-# Type mappings for Hono + React + Drizzle project
-# Includes: Drizzle ORM types, Zod validation types
+# Type mappings for database types and programming language primitives
+# Framework-specific mappings (Drizzle, Prisma, etc.) should use template conditions
 
 string:
   mysql: 'VARCHAR(255)'
   postgresql: 'TEXT'
   typescript: 'string'
-  drizzle: 'text'
   zod: 'string'
   postgresql-introspected:
     - 'text'
@@ -24,7 +23,6 @@ number:
   mysql: 'BIGINT'
   postgresql: 'BIGINT'
   typescript: 'number'
-  drizzle: 'integer'
   zod: 'number'
   postgresql-introspected:
     - 'bigint'
@@ -44,7 +42,6 @@ float:
   mysql: 'DECIMAL(10, 2)'
   postgresql: 'NUMERIC(10, 2)'
   typescript: 'number'
-  drizzle: 'numeric'
   zod: 'number'
   postgresql-introspected:
     - 'numeric'
@@ -60,7 +57,6 @@ boolean:
   mysql: 'BOOLEAN'
   postgresql: 'BOOLEAN'
   typescript: 'boolean'
-  drizzle: 'boolean'
   zod: 'boolean'
   postgresql-introspected:
     - 'boolean'
@@ -73,7 +69,6 @@ Date:
   mysql: 'TIMESTAMP(6)'
   postgresql: 'TIMESTAMPTZ(6)'
   typescript: 'Date'
-  drizzle: 'timestamp'
   zod: 'string'
   postgresql-introspected:
     - 'timestamp with time zone'
@@ -91,7 +86,6 @@ primaryKey:
   mysql: 'BIGINT PRIMARY KEY AUTO_INCREMENT'
   postgresql: 'BIGSERIAL PRIMARY KEY'
   typescript: 'number'
-  drizzle: 'serial'
   zod: 'number'
   postgresql-introspected:
     - 'bigint'
@@ -106,7 +100,6 @@ foreignKey:
   mysql: 'BIGINT'
   postgresql: 'BIGINT'
   typescript: 'number'
-  drizzle: 'integer'
   zod: 'number'
   postgresql-introspected:
     - 'bigint'
@@ -119,7 +112,6 @@ email:
   mysql: 'VARCHAR(255)'
   postgresql: 'VARCHAR(255)'
   typescript: 'string'
-  drizzle: 'varchar'
   zod: 'string().email'
   postgresql-introspected:
     - 'varchar'
@@ -133,7 +125,6 @@ uuid:
   mysql: 'CHAR(36)'
   postgresql: 'UUID'
   typescript: 'string'
-  drizzle: 'uuid'
   zod: 'string().uuid'
   postgresql-introspected:
     - 'uuid'
@@ -145,7 +136,6 @@ password:
   mysql: 'CHAR(60)'
   postgresql: 'CHAR(60)'
   typescript: 'string'
-  drizzle: 'char'
   zod: 'string().min(8)'
   postgresql-introspected:
     - 'character'
@@ -157,7 +147,6 @@ created_at:
   mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)'
   postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
   typescript: 'Date'
-  drizzle: 'timestamp'
   zod: 'string'
   postgresql-introspected:
     - 'timestamp with time zone'
@@ -170,7 +159,6 @@ updated_at:
   mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)'
   postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
   typescript: 'Date'
-  drizzle: 'timestamp'
   zod: 'string'
   postgresql-introspected:
     - 'timestamp with time zone'
@@ -183,7 +171,6 @@ monetary:
   mysql: 'DECIMAL(19, 4)'
   postgresql: 'NUMERIC(19, 4)'
   typescript: 'number'
-  drizzle: 'numeric'
   zod: 'number'
   postgresql-introspected:
     - 'numeric'
