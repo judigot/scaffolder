@@ -389,7 +389,7 @@ describe('renameTable', () => {
         foreignKeys: ['userz_id'],
         belongsTo: ['userz'],
         isAuthResource: true,
-        ownerField: 'user_id',
+        ownerField: 'userz_id',
       },
     ] satisfies ISchemaInfo[]);
   });
