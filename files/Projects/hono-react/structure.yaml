@@ -9,6 +9,7 @@
 
 $USE_CORE:
   - /Core/vite-react
+  - /Core/configs
   - /Core/hono-api
   - /Core/drizzle-data
   - /Core/vitest-test
