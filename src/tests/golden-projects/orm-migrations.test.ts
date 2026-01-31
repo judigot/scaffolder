@@ -34,7 +34,7 @@ const DB_HOST = process.env.DB_HOST ?? 'localhost';
 const DB_PORT = Number(process.env.POSTGRESQL_PORT ?? 15432);
 const DB_USER = process.env.DB_USERNAME ?? 'scaffolder';
 const DB_PASSWORD = process.env.DB_PASSWORD ?? 'scaffolder123';
-const DB_NAME = 'scaffolder';
+const DB_NAME = 'golden_orm_migrations_test';
 const PRISMA_CONSENT = 'I consent';
 
 const filesDir = path.resolve(__dirname, '../../../files');
