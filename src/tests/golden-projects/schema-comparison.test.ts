@@ -166,7 +166,7 @@ async function exportSchemaAsync(dbName: string): Promise<string> {
     const definitions: string[] = [];
 
     for (const table of tables) {
-      const tableName = table.table_name as string;
+      const tableName = String(table.table_name);
 
       // Get column definitions
       const columns = await sql`
@@ -177,8 +177,8 @@ async function exportSchemaAsync(dbName: string): Promise<string> {
       `;
 
       const columnDefs = columns.map((col) => {
-        const colName = col.column_name as string;
-        const dataType = col.data_type as string;
+        const colName = String(col.column_name);
+        const dataType = String(col.data_type);
         const nullable = col.is_nullable === 'YES' ? '' : ' NOT NULL';
         return `${colName} ${dataType}${nullable}`;
       });
@@ -199,14 +199,14 @@ async function exportSchemaAsync(dbName: string): Promise<string> {
  */
 function extractTableDefinitions(schema: string): Map<string, string> {
   const tables = new Map<string, string>();
-  const tableRegex =
-    /CREATE TABLE[^;]+;/gi;
+  const tableRegex = /CREATE TABLE[^;]+;/gi;
   const matches = schema.match(tableRegex) ?? [];
 
   for (const match of matches) {
-    const nameMatch = /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:public\.)?["']?(\w+)["']?/i.exec(
-      match,
-    );
+    const nameMatch =
+      /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:public\.)?["']?(\w+)["']?/i.exec(
+        match,
+      );
     const tableName = nameMatch?.[1];
     if (tableName !== undefined && tableName !== '') {
       tables.set(tableName.toLowerCase(), normalizeSchema(match));
@@ -244,7 +244,9 @@ describe('Schema Comparison Golden Test', () => {
     // Check database availability
     dbAvailable = await isPostgresAvailable();
     if (!dbAvailable) {
-      console.log('\n⚠️  PostgreSQL not available - schema comparison tests will be skipped');
+      console.log(
+        '\n⚠️  PostgreSQL not available - schema comparison tests will be skipped',
+      );
       console.log(`   Connection: ${DB_USER}@${DB_HOST}:${String(DB_PORT)}`);
       return;
     }
@@ -372,7 +374,10 @@ describe('Schema Comparison Golden Test', () => {
       execSync('bunx drizzle-kit push --force', {
         cwd: outputDir,
         timeout: 60000,
-        env: { ...process.env, DATABASE_URL: `postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${String(DB_PORT)}/${DB_DRIZZLE}` },
+        env: {
+          ...process.env,
+          DATABASE_URL: `postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${String(DB_PORT)}/${DB_DRIZZLE}`,
+        },
       });
     } catch (e) {
       console.error('Migration failed:', e);
@@ -402,10 +407,14 @@ describe('Schema Comparison Golden Test', () => {
     const drizzleTableNames = [...drizzleTables.keys()].sort();
 
     console.log('\n=== Raw SQL Tables ===');
-    rawTableNames.forEach((t) => { console.log(`  - ${t}`); });
+    rawTableNames.forEach((t) => {
+      console.log(`  - ${t}`);
+    });
 
     console.log('\n=== Drizzle Tables ===');
-    drizzleTableNames.forEach((t) => { console.log(`  - ${t}`); });
+    drizzleTableNames.forEach((t) => {
+      console.log(`  - ${t}`);
+    });
 
     // Both should have the same tables
     expect(rawTableNames).toEqual(drizzleTableNames);
