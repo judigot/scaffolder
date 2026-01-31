@@ -1,12 +1,13 @@
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
-export const masterSchema: ISchemaInfo[] = [
+export const masterSchema = [
+  // Product-Order-Customer (Many-to-Many)
   {
     tableName: 'product',
-    requiredColumns: ['id', 'product_name'],
+    requiredColumns: ['product_id', 'product_name'],
     columnsInfo: [
       {
-        column_name: 'id',
+        column_name: 'product_id',
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
@@ -30,10 +31,10 @@ export const masterSchema: ISchemaInfo[] = [
   },
   {
     tableName: 'customer',
-    requiredColumns: ['id', 'name'],
+    requiredColumns: ['customer_id', 'name'],
     columnsInfo: [
       {
-        column_name: 'id',
+        column_name: 'customer_id',
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
@@ -50,10 +51,10 @@ export const masterSchema: ISchemaInfo[] = [
   },
   {
     tableName: 'order',
-    requiredColumns: ['id', 'customer_id'],
+    requiredColumns: ['order_id', 'customer_id'],
     columnsInfo: [
       {
-        column_name: 'id',
+        column_name: 'order_id',
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
@@ -65,7 +66,7 @@ export const masterSchema: ISchemaInfo[] = [
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'customer',
-          foreign_column_name: 'id',
+          foreign_column_name: 'customer_id',
         },
       },
     ],
@@ -84,10 +85,10 @@ export const masterSchema: ISchemaInfo[] = [
   },
   {
     tableName: 'order_product',
-    requiredColumns: ['id', 'order_id', 'product_id'],
+    requiredColumns: ['order_product_id', 'order_id', 'product_id'],
     columnsInfo: [
       {
-        column_name: 'id',
+        column_name: 'order_product_id',
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
@@ -99,7 +100,7 @@ export const masterSchema: ISchemaInfo[] = [
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'order',
-          foreign_column_name: 'id',
+          foreign_column_name: 'order_id',
         },
       },
       {
@@ -108,7 +109,7 @@ export const masterSchema: ISchemaInfo[] = [
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'product',
-          foreign_column_name: 'id',
+          foreign_column_name: 'product_id',
         },
       },
     ],
@@ -117,15 +118,37 @@ export const masterSchema: ISchemaInfo[] = [
     foreignKeys: ['order_id', 'product_id'],
     belongsTo: ['order', 'product'],
   },
+
+  // User-Profile (One-to-One)
   {
     tableName: 'user',
-    requiredColumns: ['id', 'email', 'username'],
+    requiredColumns: [
+      'user_id',
+      'first_name',
+      'last_name',
+      'email',
+      'username',
+      'password',
+      'created_at',
+      'updated_at',
+    ],
     columnsInfo: [
       {
-        column_name: 'id',
+        column_name: 'user_id',
+        data_type: 'number',
+        is_nullable: 'NO',
+        column_default: 'AUTO_INCREMENT',
+        primary_key: true,
+      },
+      {
+        column_name: 'first_name',
         data_type: 'string',
         is_nullable: 'NO',
-        primary_key: true,
+      },
+      {
+        column_name: 'last_name',
+        data_type: 'string',
+        is_nullable: 'NO',
       },
       {
         column_name: 'email',
@@ -140,127 +163,37 @@ export const masterSchema: ISchemaInfo[] = [
         unique: true,
       },
       {
-        column_name: 'password_hash',
+        column_name: 'password',
         data_type: 'string',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'first_name',
-        data_type: 'string',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'last_name',
-        data_type: 'string',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'avatar_url',
-        data_type: 'string',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'email_verified',
-        data_type: 'boolean',
         is_nullable: 'NO',
-        column_default: 'false',
       },
       {
         column_name: 'created_at',
         data_type: 'Date',
-        is_nullable: 'YES',
+        is_nullable: 'NO',
       },
       {
         column_name: 'updated_at',
         data_type: 'Date',
-        is_nullable: 'YES',
+        is_nullable: 'NO',
       },
     ],
-    childTables: ['profile', 'posts', 'user_user_type', 'session', 'oauth_account'],
+    childTables: ['profile', 'posts'],
     hasOne: ['profile'],
-    hasMany: ['posts', 'user_user_type', 'session', 'oauth_account'],
-    belongsToMany: ['user_type'],
-    pivotRelationships: [
-      {
-        relatedTable: 'user_type',
-        pivotTable: 'user_user_type',
-      },
-    ],
-  },
-  {
-    tableName: 'session',
-    requiredColumns: ['id', 'user_id', 'expires_at'],
-    columnsInfo: [
-      {
-        column_name: 'id',
-        data_type: 'string',
-        is_nullable: 'NO',
-        primary_key: true,
-      },
-      {
-        column_name: 'user_id',
-        data_type: 'string',
-        is_nullable: 'NO',
-        foreign_key: {
-          foreign_table_name: 'user',
-          foreign_column_name: 'id',
-        },
-      },
-      {
-        column_name: 'expires_at',
-        data_type: 'Date',
-        is_nullable: 'NO',
-      },
-    ],
-    foreignTables: ['user'],
-    foreignKeys: ['user_id'],
-    isAuthResource: true,
-    ownerField: 'user_id',
-    belongsTo: ['user'],
-  },
-  {
-    tableName: 'oauth_account',
-    requiredColumns: ['id', 'provider_id', 'provider_user_id', 'user_id'],
-    columnsInfo: [
-      {
-        column_name: 'id',
-        data_type: 'number',
-        is_nullable: 'NO',
-        column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-      },
-      {
-        column_name: 'provider_id',
-        data_type: 'string',
-        is_nullable: 'NO',
-      },
-      {
-        column_name: 'provider_user_id',
-        data_type: 'string',
-        is_nullable: 'NO',
-      },
-      {
-        column_name: 'user_id',
-        data_type: 'string',
-        is_nullable: 'NO',
-        foreign_key: {
-          foreign_table_name: 'user',
-          foreign_column_name: 'id',
-        },
-      },
-    ],
-    foreignTables: ['user'],
-    foreignKeys: ['user_id'],
-    isAuthResource: true,
-    ownerField: 'user_id',
-    belongsTo: ['user'],
+    hasMany: ['posts'],
   },
   {
     tableName: 'profile',
-    requiredColumns: ['id', 'user_id', 'bio', 'created_at', 'updated_at'],
+    requiredColumns: [
+      'profile_id',
+      'user_id',
+      'bio',
+      'created_at',
+      'updated_at',
+    ],
     columnsInfo: [
       {
-        column_name: 'id',
+        column_name: 'profile_id',
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
@@ -268,12 +201,12 @@ export const masterSchema: ISchemaInfo[] = [
       },
       {
         column_name: 'user_id',
-        data_type: 'string',
+        data_type: 'number',
         is_nullable: 'NO',
         unique: true,
         foreign_key: {
           foreign_table_name: 'user',
-          foreign_column_name: 'id',
+          foreign_column_name: 'user_id',
         },
       },
       {
@@ -284,26 +217,32 @@ export const masterSchema: ISchemaInfo[] = [
       {
         column_name: 'created_at',
         data_type: 'Date',
-        is_nullable: 'YES',
+        is_nullable: 'NO',
       },
       {
         column_name: 'updated_at',
         data_type: 'Date',
-        is_nullable: 'YES',
+        is_nullable: 'NO',
       },
     ],
     foreignTables: ['user'],
     foreignKeys: ['user_id'],
-    isAuthResource: true,
-    ownerField: 'user_id',
     belongsTo: ['user'],
   },
+
+  // User-Posts (One-to-Many)
   {
     tableName: 'posts',
-    requiredColumns: ['id', 'user_id', 'title', 'created_at', 'updated_at'],
+    requiredColumns: [
+      'post_id',
+      'user_id',
+      'title',
+      'created_at',
+      'updated_at',
+    ],
     columnsInfo: [
       {
-        column_name: 'id',
+        column_name: 'post_id',
         data_type: 'number',
         is_nullable: 'NO',
         column_default: 'AUTO_INCREMENT',
@@ -311,11 +250,11 @@ export const masterSchema: ISchemaInfo[] = [
       },
       {
         column_name: 'user_id',
-        data_type: 'string',
+        data_type: 'number',
         is_nullable: 'NO',
         foreign_key: {
           foreign_table_name: 'user',
-          foreign_column_name: 'id',
+          foreign_column_name: 'user_id',
         },
       },
       {
@@ -331,113 +270,21 @@ export const masterSchema: ISchemaInfo[] = [
       {
         column_name: 'created_at',
         data_type: 'Date',
-        is_nullable: 'YES',
+        is_nullable: 'NO',
       },
       {
         column_name: 'updated_at',
         data_type: 'Date',
-        is_nullable: 'YES',
+        is_nullable: 'NO',
       },
     ],
     foreignTables: ['user'],
     foreignKeys: ['user_id'],
-    isAuthResource: true,
-    ownerField: 'user_id',
     belongsTo: ['user'],
   },
-  {
-    tableName: 'user_type',
-    requiredColumns: ['id'],
-    columnsInfo: [
-      {
-        column_name: 'id',
-        data_type: 'number',
-        is_nullable: 'NO',
-        column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-      },
-      {
-        column_name: 'name',
-        data_type: 'string',
-        is_nullable: 'NO',
-        unique: true,
-      },
-      {
-        column_name: 'created_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'updated_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'deleted_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-      },
-    ],
-    belongsToMany: ['user'],
-    hasMany: ['user_user_type'],
-    childTables: ['user_user_type'],
-    pivotRelationships: [
-      {
-        relatedTable: 'user',
-        pivotTable: 'user_user_type',
-      },
-    ],
-  },
-  {
-    tableName: 'user_user_type',
-    requiredColumns: ['id', 'user_id', 'user_type_id'],
-    columnsInfo: [
-      {
-        column_name: 'id',
-        data_type: 'number',
-        is_nullable: 'NO',
-        column_default: 'AUTO_INCREMENT',
-        primary_key: true,
-      },
-      {
-        column_name: 'user_id',
-        data_type: 'string',
-        is_nullable: 'NO',
-        foreign_key: {
-          foreign_table_name: 'user',
-          foreign_column_name: 'id',
-        },
-      },
-      {
-        column_name: 'user_type_id',
-        data_type: 'number',
-        is_nullable: 'NO',
-        foreign_key: {
-          foreign_table_name: 'user_type',
-          foreign_column_name: 'id',
-        },
-      },
-      {
-        column_name: 'created_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'updated_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-      },
-      {
-        column_name: 'deleted_at',
-        data_type: 'Date',
-        is_nullable: 'YES',
-      },
-    ],
-    foreignTables: ['user', 'user_type'],
-    foreignKeys: ['user_id', 'user_type_id'],
-    isPivot: true,
-    belongsTo: ['user', 'user_type'],
-  },
-];
+] satisfies ISchemaInfo[];
 
 export default masterSchema;
+
+// import pics from './pics.ts';
+// export default pics;
