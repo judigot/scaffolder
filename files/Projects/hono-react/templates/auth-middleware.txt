@@ -1,0 +1,16 @@
+import type { Context, Next } from 'hono';
+
+// TODO: Implement your auth verification (JWT, session, etc.)
+export const authMiddleware = async (c: Context, next: Next) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  // Verify token and extract user ID
+  // const decoded = verifyToken(token);
+  // c.set('userId', decoded.userId);
+  c.set('userId', 1); // Placeholder - replace with real auth
+  await next();
+};
+
+export const getUser = (c: Context) => ({ id: c.get('userId') as number });

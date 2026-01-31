@@ -1,0 +1,171 @@
+/**
+ * Compare ORM schema results
+ * Reads all *_result.json files and compares them against raw SQL (baseline)
+ */
+
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import type { SchemaResult, TableSchema } from './db-utils.ts';
+
+const resultsDir = path.join(process.cwd(), 'results');
+
+function normalizeType(dataType: string): string {
+  const normalized = dataType.toLowerCase().trim();
+
+  const typeMap: Record<string, string> = {
+    'bigint': 'bigint',
+    'int8': 'bigint',
+    'integer': 'integer',
+    'int4': 'integer',
+    'smallint': 'smallint',
+    'int2': 'smallint',
+    'text': 'text',
+    'character varying': 'varchar',
+    'varchar': 'varchar',
+    'character': 'char',
+    'char': 'char',
+    'boolean': 'boolean',
+    'bool': 'boolean',
+    'timestamp with time zone': 'timestamptz',
+    'timestamptz': 'timestamptz',
+    'timestamp without time zone': 'timestamp',
+    'timestamp': 'timestamp',
+  };
+
+  return typeMap[normalized] ?? normalized;
+}
+
+function compareSchemas(
+  baseline: TableSchema[],
+  target: TableSchema[],
+  baselineName: string,
+  targetName: string,
+): string[] {
+  const differences: string[] = [];
+
+  const baselineTables = new Map(baseline.map((t) => [t.tableName.toLowerCase(), t]));
+  const targetTables = new Map(target.map((t) => [t.tableName.toLowerCase(), t]));
+
+  // Check for missing tables
+  for (const [name] of baselineTables) {
+    if (!targetTables.has(name)) {
+      differences.push(`Table '${name}' exists in ${baselineName} but not in ${targetName}`);
+    }
+  }
+
+  for (const [name] of targetTables) {
+    if (!baselineTables.has(name)) {
+      differences.push(`Table '${name}' exists in ${targetName} but not in ${baselineName}`);
+    }
+  }
+
+  // Compare columns for common tables
+  for (const [name, baselineTable] of baselineTables) {
+    const targetTable = targetTables.get(name);
+    if (!targetTable) continue;
+
+    const baselineCols = new Map(baselineTable.columns.map((c) => [c.column_name, c]));
+    const targetCols = new Map(targetTable.columns.map((c) => [c.column_name, c]));
+
+    // Check columns
+    for (const [colName, baselineCol] of baselineCols) {
+      const targetCol = targetCols.get(colName);
+
+      if (!targetCol) {
+        differences.push(`Column '${name}.${colName}' missing in ${targetName}`);
+        continue;
+      }
+
+      // Compare types
+      const baselineType = normalizeType(baselineCol.data_type);
+      const targetType = normalizeType(targetCol.data_type);
+
+      if (baselineType !== targetType) {
+        differences.push(
+          `Type mismatch: ${name}.${colName} (${baselineName}: ${baselineType}, ${targetName}: ${targetType})`
+        );
+      }
+
+      // Compare nullability
+      if (baselineCol.is_nullable !== targetCol.is_nullable) {
+        differences.push(
+          `Nullable mismatch: ${name}.${colName} (${baselineName}: ${baselineCol.is_nullable}, ${targetName}: ${targetCol.is_nullable})`
+        );
+      }
+    }
+
+    // Check for extra columns in target
+    for (const colName of targetCols.keys()) {
+      if (!baselineCols.has(colName)) {
+        differences.push(`Column '${name}.${colName}' exists in ${targetName} but not in ${baselineName}`);
+      }
+    }
+  }
+
+  return differences;
+}
+
+function main() {
+  console.log('\n=== ORM Schema Comparison ===\n');
+
+  // Load all result files
+  const results: Map<string, SchemaResult> = new Map();
+
+  if (!fs.existsSync(resultsDir)) {
+    console.error('Results directory not found. Run test scripts first.');
+    process.exit(1);
+  }
+
+  const files = fs.readdirSync(resultsDir).filter((f) => f.endsWith('_result.json'));
+
+  if (files.length === 0) {
+    console.error('No result files found. Run test scripts first.');
+    process.exit(1);
+  }
+
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(resultsDir, file), 'utf-8');
+    const result = JSON.parse(content) as SchemaResult;
+    results.set(result.orm, result);
+    console.log(`Loaded: ${result.orm} (${result.tables.length} tables)`);
+  }
+
+  console.log('');
+
+  // Use raw as baseline
+  const baseline = results.get('raw');
+  if (!baseline) {
+    console.error('Raw SQL result not found. Run test:raw first.');
+    process.exit(1);
+  }
+
+  // Compare each ORM against baseline
+  let totalDifferences = 0;
+
+  for (const [orm, result] of results) {
+    if (orm === 'raw') continue;
+
+    console.log(`\n--- ${orm.toUpperCase()} vs RAW SQL ---`);
+
+    const differences = compareSchemas(baseline.tables, result.tables, 'raw', orm);
+
+    if (differences.length === 0) {
+      console.log('  MATCH');
+    } else {
+      totalDifferences += differences.length;
+      for (const diff of differences) {
+        console.log(`  ${diff}`);
+      }
+    }
+  }
+
+  console.log('\n=== Summary ===');
+  console.log(`Total ORMs compared: ${results.size - 1}`);
+  console.log(`Total differences: ${totalDifferences}`);
+
+  if (totalDifferences > 0) {
+    process.exit(1);
+  }
+}
+
+main();

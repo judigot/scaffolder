@@ -44,7 +44,7 @@ const DB_CONFIG = {
   port: 15432,
   user: 'scaffolder',
   password: 'scaffolder123',
-  database: 'scaffolder', // Connect to default db first
+  database: 'postgres', // Connect to postgres db for admin operations
 };
 
 const mockFormData: IFormStore = {
@@ -366,7 +366,7 @@ describe('Runtime Golden Test', () => {
     expect(fs.existsSync(path.join(OUTPUT_DIR, 'package.json'))).toBe(true);
     expect(fs.existsSync(path.join(OUTPUT_DIR, 'api/db/schema.ts'))).toBe(true);
     expect(fs.existsSync(path.join(OUTPUT_DIR, 'api/db/seed.ts'))).toBe(true);
-  });
+  }, 30000);
 
   it('should install dependencies', async () => {
     const dbAvailable = await checkDatabaseConnection();

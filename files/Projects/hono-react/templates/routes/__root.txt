@@ -1,0 +1,45 @@
+import { Outlet, createRootRouteWithContext, Link } from '@tanstack/react-router';
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import type { AuthContextValue } from '../auth/context/AuthContext';
+import { LogoutButton } from '../auth/components/LogoutButton';
+
+export interface RouterContext {
+  auth: AuthContextValue;
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  component: RootComponent,
+});
+
+function RootComponent() {
+  const { auth } = Route.useRouteContext();
+
+  return (
+    <>
+      <header className="app-header">
+        <nav className="app-nav">
+          <Link to="/" className="nav-brand">
+            [[USE_FORM_DATA(projectName)]]
+          </Link>
+          <div className="nav-links">
+            {auth.isAuthenticated ? (
+              <>
+<@@LOOP@@ data="tables" separator="\n">                <Link to="/{{tableNameKebabCaseSingular}}">{{tableNameTitleCase}}</Link></@@LOOP@@>
+                <LogoutButton />
+              </>
+            ) : (
+              <>
+                <Link to="/login">Login</Link>
+                <Link to="/register">Register</Link>
+              </>
+            )}
+          </div>
+        </nav>
+      </header>
+      <main className="app-main">
+        <Outlet />
+      </main>
+      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
+    </>
+  );
+}

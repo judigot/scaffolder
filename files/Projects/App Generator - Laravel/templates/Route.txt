@@ -4,12 +4,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{{tableNamePascalCaseSingular}}Controller;
 
 // Custom routes for {{tableNamePascalCaseSingular}}
-[[ LOOP(hasOne) --template="[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]" --separator="\n" ]]
-[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="[[USE_TEMPLATE(/DomainMethods/hasMany/laravel/route.txt)]]\n[[USE_TEMPLATE(/DomainMethods/getAllWithRelated/laravel/route.txt)]]" --separator="\n" ]]
-[[ LOOP(belongsTo) --template="[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]" --separator="\n" ]]
+<@@LOOP@@ data="hasOne" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]</@@LOOP@@>
+<@@LOOP@@ data="hasMany, pivotRelationships.relatedTable" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasMany/laravel/route.txt)]]
+[[USE_TEMPLATE(/DomainMethods/getAllWithRelated/laravel/route.txt)]]</@@LOOP@@>
+<@@LOOP@@ data="belongsTo" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]</@@LOOP@@>
 
 // Base routes
-[[LOOP(/BaseMethodsFileBased/**/**) --ignore="/BaseMethodsFileBased/crud/**" --separator="\n" --template="// {{description}}\n{{route}}"]]
+<@@LOOP@@ data="/BaseMethodsFileBased/**/**" ignore="/BaseMethodsFileBased/crud/**" separator="\n">// {{description}}
+{{route}}</@@LOOP@@>
 
 // Resource routes for {{tableNamePascalCaseSingular}}
 Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCaseSingular}}Controller::class);

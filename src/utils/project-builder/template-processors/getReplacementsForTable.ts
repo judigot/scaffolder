@@ -2,6 +2,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { getReplacementsForAuth } from '@/utils/project-builder/template-processors/getReplacementsForAuth.ts';
 
 /**
  * Creates a helper function to support dynamic separators
@@ -65,6 +66,12 @@ export const getReplacementsForTable = (
   const foreignTables = schemaInfoParsed.getForeignTables(table.tableName);
   const hiddenColumns = schemaInfoParsed.getHiddenColumns(table.tableName);
   const childTables = schemaInfoParsed.getChildTables(table.tableName);
+
+  // Auth resource detection
+  const isAuthResource = table.isAuthResource === true;
+  const ownerField = table.ownerField ?? '';
+  const ownerFieldCamelCase = ownerField ? changeCase(ownerField).camelCase : '';
+
   const columnInfoNames = schemaInfoParsed
     .getColumnsInfo(table.tableName)
     .map((col) => col.column_name);
@@ -84,6 +91,9 @@ export const getReplacementsForTable = (
     : '';
 
   // Generate sample payloads for API testing
+  // @deprecated Use DSL operators (CONTAINS, ENDS_WITH, STARTS_WITH, --filter) instead.
+  // These functions will be removed in a future version.
+  // Example filter: <@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND NOT value ENDS_WITH '_at'">
   const columnsInfo = schemaInfoParsed.getColumnsInfo(table.tableName);
   const foreignTablesList = schemaInfoParsed.getForeignTables(table.tableName);
   const generatePayload = (isUpdate: boolean): string => {
@@ -138,8 +148,12 @@ export const getReplacementsForTable = (
     return JSON.stringify(payload);
   };
 
+  // Get auth-related replacements (project-level)
+  const authReplacements = getReplacementsForAuth(schemaInfoParsed.schema);
+
   // Create base replacements object
   const baseReplacements: Replacements = {
+    ...authReplacements,
     tableNamePascalCase: caseFormats.pascalCase,
     tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
     tableNameKebabCasePlural: caseFormats.kebabCasePlural,
@@ -177,6 +191,11 @@ export const getReplacementsForTable = (
     'getColumnsInfoNames()': columnInfoNames,
     'getChildTables()': childTables,
     'isPivot()': String(schemaInfoParsed.isPivot(table.tableName)),
+    // Auth resource template variables
+    isAuthResource: String(isAuthResource),
+    'isAuthResource()': String(isAuthResource),
+    ownerField,
+    ownerFieldCamelCase,
     'hasOneRelationships()': hasOneRelationships,
     'hasManyRelationships()': hasManyRelationships,
     'belongsToRelationships()': belongsToRelationships,

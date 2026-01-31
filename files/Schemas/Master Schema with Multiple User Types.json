@@ -119,31 +119,15 @@
     "tableName": "user",
     "requiredColumns": [
       "id",
-      "first_name",
-      "last_name",
       "email",
-      "username",
-      "password",
-      "created_at",
-      "updated_at"
+      "username"
     ],
     "columnsInfo": [
       {
         "column_name": "id",
-        "data_type": "number",
+        "data_type": "string",
         "is_nullable": "NO",
-        "column_default": "AUTO_INCREMENT",
         "primary_key": true
-      },
-      {
-        "column_name": "first_name",
-        "data_type": "string",
-        "is_nullable": "NO"
-      },
-      {
-        "column_name": "last_name",
-        "data_type": "string",
-        "is_nullable": "NO"
       },
       {
         "column_name": "email",
@@ -158,9 +142,30 @@
         "unique": true
       },
       {
-        "column_name": "password",
+        "column_name": "password_hash",
         "data_type": "string",
-        "is_nullable": "NO"
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "first_name",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "last_name",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "avatar_url",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "email_verified",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": "false"
       },
       {
         "column_name": "created_at",
@@ -173,9 +178,9 @@
         "is_nullable": "YES"
       }
     ],
-    "childTables": ["profile", "posts", "user_user_type"],
+    "childTables": ["profile", "posts", "user_user_type", "session", "oauth_account"],
     "hasOne": ["profile"],
-    "hasMany": ["posts", "user_user_type"],
+    "hasMany": ["posts", "user_user_type", "session", "oauth_account"],
     "belongsToMany": ["user_type"],
     "pivotRelationships": [
       {
@@ -183,6 +188,74 @@
         "pivotTable": "user_user_type"
       }
     ]
+  },
+  {
+    "tableName": "session",
+    "requiredColumns": ["id", "user_id", "expires_at"],
+    "columnsInfo": [
+      {
+        "column_name": "id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "primary_key": true
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "foreign_key": {
+          "foreign_table_name": "user",
+          "foreign_column_name": "id"
+        }
+      },
+      {
+        "column_name": "expires_at",
+        "data_type": "Date",
+        "is_nullable": "NO"
+      }
+    ],
+    "foreignTables": ["user"],
+    "foreignKeys": ["user_id"],
+    "isAuthResource": true,
+    "ownerField": "user_id",
+    "belongsTo": ["user"]
+  },
+  {
+    "tableName": "oauth_account",
+    "requiredColumns": ["id", "provider_id", "provider_user_id", "user_id"],
+    "columnsInfo": [
+      {
+        "column_name": "id",
+        "data_type": "number",
+        "is_nullable": "NO",
+        "column_default": "AUTO_INCREMENT",
+        "primary_key": true
+      },
+      {
+        "column_name": "provider_id",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "provider_user_id",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "foreign_key": {
+          "foreign_table_name": "user",
+          "foreign_column_name": "id"
+        }
+      }
+    ],
+    "foreignTables": ["user"],
+    "foreignKeys": ["user_id"],
+    "isAuthResource": true,
+    "ownerField": "user_id",
+    "belongsTo": ["user"]
   },
   {
     "tableName": "profile",
@@ -197,7 +270,7 @@
       },
       {
         "column_name": "user_id",
-        "data_type": "number",
+        "data_type": "string",
         "is_nullable": "NO",
         "unique": true,
         "foreign_key": {
@@ -223,6 +296,8 @@
     ],
     "foreignTables": ["user"],
     "foreignKeys": ["user_id"],
+    "isAuthResource": true,
+    "ownerField": "user_id",
     "belongsTo": ["user"]
   },
   {
@@ -238,7 +313,7 @@
       },
       {
         "column_name": "user_id",
-        "data_type": "number",
+        "data_type": "string",
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "user",
@@ -268,6 +343,8 @@
     ],
     "foreignTables": ["user"],
     "foreignKeys": ["user_id"],
+    "isAuthResource": true,
+    "ownerField": "user_id",
     "belongsTo": ["user"]
   },
   {
@@ -326,7 +403,7 @@
       },
       {
         "column_name": "user_id",
-        "data_type": "number",
+        "data_type": "string",
         "is_nullable": "NO",
         "foreign_key": {
           "foreign_table_name": "user",

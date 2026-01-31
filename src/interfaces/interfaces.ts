@@ -41,6 +41,8 @@ export interface ITableInfo {
   foreignTables?: string[]; // One or none
   childTables?: string[]; // One or none
   isPivot?: true;
+  isAuthResource?: true; // Table is a descendant of user table
+  ownerField?: string; // FK field linking to user (e.g., "user_id")
   hasOne?: string[]; // One or none
   hasMany?: string[]; // One or none
   belongsTo?: string[]; // One or none

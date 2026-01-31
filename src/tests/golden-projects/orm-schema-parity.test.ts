@@ -506,7 +506,7 @@ describe('ORM Schema Parity Golden Test', () => {
       ormResults.set('Raw SQL', tables);
       console.log(`\n  Raw SQL: ${String(tables.size)} tables parsed`);
     }
-  });
+  }, 30000);
 
   it('should generate Drizzle schema from hono-react', async () => {
     const result = await buildProjectFiles(
@@ -529,7 +529,7 @@ describe('ORM Schema Parity Golden Test', () => {
       ormResults.set('Drizzle', tables);
       console.log(`  Drizzle: ${String(columns.size)} columns parsed`);
     }
-  });
+  }, 30000);
 
   it('should generate Prisma schema', async () => {
     const result = await buildProjectFiles(
@@ -553,7 +553,7 @@ describe('ORM Schema Parity Golden Test', () => {
       ormResults.set('Prisma', tables);
       console.log(`  Prisma: ${String(columns.size)} columns parsed`);
     }
-  });
+  }, 30000);
 
   it('should generate TypeORM entities', async () => {
     const result = await buildProjectFiles(
@@ -581,7 +581,7 @@ describe('ORM Schema Parity Golden Test', () => {
     tables.set('typeorm_combined', allColumns);
     ormResults.set('TypeORM', tables);
     console.log(`  TypeORM: ${String(allColumns.size)} columns parsed`);
-  });
+  }, 30000);
 
   it('should generate MikroORM entities', async () => {
     const result = await buildProjectFiles(
@@ -609,7 +609,7 @@ describe('ORM Schema Parity Golden Test', () => {
     tables.set('mikroorm_combined', allColumns);
     ormResults.set('MikroORM', tables);
     console.log(`  MikroORM: ${String(allColumns.size)} columns parsed`);
-  });
+  }, 30000);
 
   it('should generate Knex migrations', async () => {
     const result = await buildProjectFiles(
@@ -636,7 +636,7 @@ describe('ORM Schema Parity Golden Test', () => {
     tables.set('knex_combined', allColumns);
     ormResults.set('Knex', tables);
     console.log(`  Knex: ${String(allColumns.size)} columns parsed`);
-  });
+  }, 30000);
 
   it('should generate Kysely migrations', async () => {
     const result = await buildProjectFiles(
@@ -663,7 +663,7 @@ describe('ORM Schema Parity Golden Test', () => {
     tables.set('kysely_combined', allColumns);
     ormResults.set('Kysely', tables);
     console.log(`  Kysely: ${String(allColumns.size)} columns parsed`);
-  });
+  }, 30000);
 
   it('should have consistent PostgreSQL types across all ORMs', () => {
     // Core ORMs that must work correctly

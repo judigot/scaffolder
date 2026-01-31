@@ -39,24 +39,20 @@ bun test:watch
 
 ## API Endpoints
 
-@LOOP(tables)
-### {{tableNamePascalCaseSingular}}
+<@@LOOP@@ data="tables" separator="\n">### {{tableNamePascalCaseSingular}}
 - `GET /api/{{tableNameKebabCase}}` - List all {{tableName}}
 - `GET /api/{{tableNameKebabCase}}/:id` - Get single {{tableNameSingular}}
 - `POST /api/{{tableNameKebabCase}}` - Create {{tableNameSingular}}
 - `PUT /api/{{tableNameKebabCase}}/:id` - Update {{tableNameSingular}}
-- `DELETE /api/{{tableNameKebabCase}}/:id` - Delete {{tableNameSingular}}
-@/LOOP --separator="\n"
+- `DELETE /api/{{tableNameKebabCase}}/:id` - Delete {{tableNameSingular}}</@@LOOP@@>
 
 ## Database Schema
 
-@LOOP(tables)
-### {{tableNamePascalCaseSingular}}
+<@@LOOP@@ data="tables" separator="\n\n">### {{tableNamePascalCaseSingular}}
 
 | Column | Type | Nullable |
 |--------|------|----------|
-[[ LOOP(columnsInfo) --template="| {{value}} | {{data_type}} | {{is_nullable}} |" --separator="\n" ]]
-@/LOOP --separator="\n\n"
+<@@LOOP@@ data="columnsInfo" separator="\n">| {{value}} | {{data_type}} | {{is_nullable}} |</@@LOOP@@></@@LOOP@@>
 
 ## Deployment
 

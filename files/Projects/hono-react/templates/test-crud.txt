@@ -18,11 +18,11 @@ describe('{{tableNamePascalCase}} API - CRUD Testing (C→R→U→R→D→R)', (
 
   // Test data - using mock values for each column
   const testData = {
-[[ LOOP(columnsInfo) --template="{% IF is_primary_key NOT EQUAL 'true' %}    {{valueCamelCase}}: {% IF data_type EQUALS 'string' %}'test-{{valueCamelCase}}'{% ENDIF %}{% IF data_type EQUALS 'number' %}1{% ENDIF %}{% IF data_type EQUALS 'boolean' %}true{% ENDIF %}{% IF data_type EQUALS 'Date' %}new Date('2024-01-01T00:00:00Z'){% ENDIF %}{% ENDIF %}" --separator=",\n" ]]
+<@@LOOP@@ data="columnsInfo" separator=",\n">{% IF is_primary_key NOT EQUAL 'true' %}    {{valueCamelCase}}: {% IF data_type EQUALS 'string' %}'test-{{valueCamelCase}}'{% ENDIF %}{% IF data_type EQUALS 'number' %}1{% ENDIF %}{% IF data_type EQUALS 'boolean' %}true{% ENDIF %}{% IF data_type EQUALS 'Date' %}new Date('2024-01-01T00:00:00Z'){% ENDIF %}{% ENDIF %}</@@LOOP@@>
   };
 
   const updateData = {
-[[ LOOP(columnsInfo) --template="{% IF is_primary_key NOT EQUAL 'true' %}    {{valueCamelCase}}: {% IF data_type EQUALS 'string' %}'updated-{{valueCamelCase}}'{% ENDIF %}{% IF data_type EQUALS 'number' %}2{% ENDIF %}{% IF data_type EQUALS 'boolean' %}false{% ENDIF %}{% IF data_type EQUALS 'Date' %}new Date('2024-12-31T00:00:00Z'){% ENDIF %}{% ENDIF %}" --separator=",\n" ]]
+<@@LOOP@@ data="columnsInfo" separator=",\n">{% IF is_primary_key NOT EQUAL 'true' %}    {{valueCamelCase}}: {% IF data_type EQUALS 'string' %}'updated-{{valueCamelCase}}'{% ENDIF %}{% IF data_type EQUALS 'number' %}2{% ENDIF %}{% IF data_type EQUALS 'boolean' %}false{% ENDIF %}{% IF data_type EQUALS 'Date' %}new Date('2024-12-31T00:00:00Z'){% ENDIF %}{% ENDIF %}</@@LOOP@@>
   };
 
   // 1. CREATE - Create new record

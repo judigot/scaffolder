@@ -7,6 +7,7 @@ import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceh
 import {
   processAtIf,
   processHtmlIf,
+  evaluateCondition,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
@@ -255,6 +256,7 @@ export const processColumnsInfoIteration = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  filterCondition?: string,
 ): string => {
   const dbType =
     formData && typeof formData.dbType === 'string' ? formData.dbType : '';
@@ -264,11 +266,10 @@ export const processColumnsInfoIteration = (
   const results: string[] = [];
 
   for (const column of tableObj.columnsInfo) {
+    // Build replacements early so we can use them for filtering
     const caseFormats = changeCase(column.column_name);
-
-    const replacements: Record<string, string> = {
+    const columnReplacements: Record<string, string> = {
       ...dataSourceReplacements,
-      // Legacy flat keys (for backwards compatibility)
       value: column.column_name,
       valuePlural: caseFormats.plural,
       valueSingular: caseFormats.singular,
@@ -279,6 +280,29 @@ export const processColumnsInfoIteration = (
       valueCamelCase: caseFormats.camelCase,
       valueKebabCase: caseFormats.kebabCase,
       valueSnakeCase: caseFormats.snakeCase,
+      data_type: column.data_type,
+      dbType,
+      is_nullable: column.is_nullable,
+      column_default: column.column_default ?? '',
+      is_primary_key: column.primary_key === true ? 'true' : 'false',
+      is_unique: column.unique === true ? 'true' : 'false',
+      foreign_table: column.foreign_key?.foreign_table_name ?? '',
+      foreign_column: column.foreign_key?.foreign_column_name ?? '',
+      has_foreign_key: column.foreign_key !== undefined ? 'true' : 'false',
+    };
+
+    // Apply filter condition if provided
+    if (
+      filterCondition !== undefined &&
+      filterCondition !== '' &&
+      !evaluateCondition(filterCondition, columnReplacements)
+    ) {
+      continue;
+    }
+
+    // Extend with additional case formats and namespaced keys
+    const replacements: Record<string, string> = {
+      ...columnReplacements,
       valueTitleCasePlural: caseFormats.titleCasePlural,
       valueSentenceCasePlural: caseFormats.sentenceCasePlural,
       valuePhraseCasePlural: caseFormats.phraseCasePlural,
@@ -294,15 +318,6 @@ export const processColumnsInfoIteration = (
       valueKebabCaseSingular: caseFormats.kebabCaseSingular,
       valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
       columnNameCamelCase: caseFormats.camelCase,
-      data_type: column.data_type,
-      dbType,
-      is_nullable: column.is_nullable,
-      column_default: column.column_default ?? '',
-      is_primary_key: column.primary_key === true ? 'true' : 'false',
-      is_unique: column.unique === true ? 'true' : 'false',
-      foreign_table: column.foreign_key?.foreign_table_name ?? '',
-      foreign_column: column.foreign_key?.foreign_column_name ?? '',
-      has_foreign_key: column.foreign_key !== undefined ? 'true' : 'false',
       // Verbose namespaced keys (explicit source)
       'column.name': column.column_name,
       'column.value': column.column_name,

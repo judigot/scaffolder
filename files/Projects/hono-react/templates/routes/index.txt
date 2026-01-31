@@ -1,0 +1,35 @@
+import { createFileRoute, Link } from '@tanstack/react-router';
+
+export const Route = createFileRoute('/')({
+  component: HomeComponent,
+});
+
+function HomeComponent() {
+  const { auth } = Route.useRouteContext();
+
+  return (
+    <div className="home-page">
+      <h1>Welcome to {{appName}}</h1>
+      {auth.isAuthenticated ? (
+        <div className="home-authenticated">
+          <p>Hello, {auth.user?.email}!</p>
+          <div className="data-links">
+            <h2>Your Data</h2>
+            <ul>
+<@@LOOP@@ data="tables" separator="\n">              <li><Link to="/{{tableNameKebabCaseSingular}}">{{tableNameTitleCase}}</Link></li></@@LOOP@@>
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <div className="home-guest">
+          <p>Please login to access your data.</p>
+          <div className="auth-links">
+            <Link to="/login" className="btn btn-primary">Login</Link>
+            <span> or </span>
+            <Link to="/register" className="btn btn-secondary">Register</Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

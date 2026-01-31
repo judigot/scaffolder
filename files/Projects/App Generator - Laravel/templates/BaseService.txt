@@ -21,7 +21,8 @@ abstract class BaseService
     }
 
     // Base Service Methods
-[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="    public function {{repositoryMethod}}
+<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">    public function {{repositoryMethod}}
     {
-        {{serviceContent}}\n    }"]]
+        {{serviceContent}}
+    }</@@LOOP@@>
 }

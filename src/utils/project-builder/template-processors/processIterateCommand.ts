@@ -41,6 +41,97 @@ import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceh
 import { parse } from 'yaml';
 
 /**
+ * Evaluate a condition expression against replacements.
+ * Supports operators: EQUALS, NOT EQUAL, CONTAINS, STARTS_WITH, ENDS_WITH
+ * Also supports compound conditions with AND/OR.
+ *
+ * @param condition - The condition string (e.g., "varName EQUALS 'value'")
+ * @param replacements - The replacement values to evaluate against
+ * @returns boolean result of the condition evaluation
+ */
+export const evaluateCondition = (
+  condition: string,
+  replacements: Record<string, string | string[]>,
+): boolean => {
+  const trimmedCondition = condition.trim();
+
+  // Handle compound AND conditions (split and evaluate each)
+  if (trimmedCondition.includes(' AND ')) {
+    const parts = trimmedCondition.split(/\s+AND\s+/);
+    return parts.every((part) => evaluateCondition(part, replacements));
+  }
+
+  // Handle compound OR conditions
+  if (trimmedCondition.includes(' OR ')) {
+    const parts = trimmedCondition.split(/\s+OR\s+/);
+    return parts.some((part) => evaluateCondition(part, replacements));
+  }
+
+  // Handle NOT prefix
+  if (trimmedCondition.startsWith('NOT ')) {
+    return !evaluateCondition(trimmedCondition.slice(4), replacements);
+  }
+
+  // EQUALS condition: varName EQUALS 'value'
+  const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
+    trimmedCondition,
+  );
+  if (equalsMatch) {
+    const [, varName, expectedValue] = equalsMatch;
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue === expectedValue;
+  }
+
+  // NOT EQUAL condition: varName NOT EQUAL 'value'
+  const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
+    trimmedCondition,
+  );
+  if (notEqualMatch) {
+    const [, varName, expectedValue] = notEqualMatch;
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue !== expectedValue;
+  }
+
+  // CONTAINS condition: varName CONTAINS 'substring'
+  const containsMatch = /^(\S+)\s+CONTAINS\s+['"]([^'"]*)['"]\s*$/.exec(
+    trimmedCondition,
+  );
+  if (containsMatch) {
+    const [, varName, substring] = containsMatch;
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue.includes(substring);
+  }
+
+  // STARTS_WITH condition: varName STARTS_WITH 'prefix'
+  const startsWithMatch = /^(\S+)\s+STARTS_WITH\s+['"]([^'"]*)['"]\s*$/.exec(
+    trimmedCondition,
+  );
+  if (startsWithMatch) {
+    const [, varName, prefix] = startsWithMatch;
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue.startsWith(prefix);
+  }
+
+  // ENDS_WITH condition: varName ENDS_WITH 'suffix'
+  const endsWithMatch = /^(\S+)\s+ENDS_WITH\s+['"]([^'"]*)['"]\s*$/.exec(
+    trimmedCondition,
+  );
+  if (endsWithMatch) {
+    const [, varName, suffix] = endsWithMatch;
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue.endsWith(suffix);
+  }
+
+  // If no pattern matched, return false
+  return false;
+};
+
+/**
  * Find a folder in the file structure given a path
  */
 const findFolderByPath = (
@@ -763,30 +854,8 @@ export const processHtmlIf = (
       ifContent = ifContent.slice(0, elseIdx - 10);
     }
 
-    // Parse condition
-    let conditionResult = false;
-
-    // EQUALS condition
-    const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (equalsMatch) {
-      const [, varName, expectedValue] = equalsMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue === expectedValue;
-    }
-
-    // NOT EQUAL condition
-    const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (notEqualMatch) {
-      const [, varName, expectedValue] = notEqualMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue !== expectedValue;
-    }
+    // Evaluate condition using the unified evaluator
+    const conditionResult = evaluateCondition(condition, replacements);
 
     // Replace the <@@IF@@> block with the appropriate content
     const replacement = conditionResult ? ifContent : elseContent;
@@ -936,30 +1005,8 @@ export const processAtIf = (
       }
     }
 
-    // Parse condition
-    let conditionResult = false;
-
-    // EQUALS condition
-    const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (equalsMatch) {
-      const [, varName, expectedValue] = equalsMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue === expectedValue;
-    }
-
-    // NOT EQUAL condition
-    const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (notEqualMatch) {
-      const [, varName, expectedValue] = notEqualMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue !== expectedValue;
-    }
+    // Evaluate condition using the unified evaluator
+    const conditionResult = evaluateCondition(condition, replacements);
 
     // Replace the @IF block with the appropriate content
     const replacement = conditionResult ? ifContent : elseContent;
@@ -997,6 +1044,7 @@ export const processHtmlLoopColumnsInfo = (
       start: number;
       end: number;
       separator: string;
+      filter: string;
       templateContent: string;
     }[] = [];
 
@@ -1021,6 +1069,8 @@ export const processHtmlLoopColumnsInfo = (
             .replace(/\\"/g, '"')
         : '';
 
+      const filter = 'filter' in attrs ? attrs.filter : '';
+
       const openEnd = match.index + match[0].length;
       const closeInfo = findHtmlLoopEnd(result, openEnd);
 
@@ -1029,6 +1079,7 @@ export const processHtmlLoopColumnsInfo = (
           start: match.index,
           end: closeInfo.endIndex,
           separator,
+          filter,
           templateContent: result.slice(openEnd, closeInfo.endIndex - 11),
         });
       }
@@ -1040,7 +1091,7 @@ export const processHtmlLoopColumnsInfo = (
     }
 
     for (let i = matches.length - 1; i >= 0; i--) {
-      const { start, end, separator, templateContent } = matches[i];
+      const { start, end, separator, filter, templateContent } = matches[i];
 
       const processed = processColumnsInfoIteration(
         table,
@@ -1052,6 +1103,7 @@ export const processHtmlLoopColumnsInfo = (
         formData,
         userMetadata,
         dataSource,
+        filter || undefined,
       );
 
       result = result.slice(0, start) + processed + result.slice(end);

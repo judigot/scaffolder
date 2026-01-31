@@ -3,8 +3,13 @@
 # Auto-generated API Test Script
 # Tests all CRUD endpoints following C→R→U→R→D→R pattern
 #
-# Usage: ./api-test.sh [base-url]
+# Usage: ./api-test.sh [base-url] [auth-token]
 # Default: http://localhost:3000/api
+#
+# For auth-protected routes, provide a Bearer token:
+#   ./api-test.sh http://localhost:3000/api "your-jwt-token"
+# Or set AUTH_TOKEN environment variable:
+#   AUTH_TOKEN="your-jwt-token" ./api-test.sh
 
 set -e
 
@@ -14,6 +19,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 API_BASE="${1:-http://localhost:3000/api}"
+AUTH_TOKEN="${2:-$AUTH_TOKEN}"
 TESTS_PASSED=0
 TESTS_FAILED=0
 
@@ -22,12 +28,18 @@ log_success() { echo -e "${GREEN}✓ $1${NC}"; TESTS_PASSED=$((TESTS_PASSED + 1)
 log_error() { echo -e "${RED}✗ $1${NC}"; TESTS_FAILED=$((TESTS_FAILED + 1)); }
 
 api_call() {
-  local method=$1 url=$2 data=$3
-  local response
+  local method=$1 url=$2 data=$3 use_auth=${4:-false}
+  local response auth_header=""
+
+  # Add Authorization header if token provided and auth is requested
+  if [ -n "$AUTH_TOKEN" ] && [ "$use_auth" = "true" ]; then
+    auth_header="-H \"Authorization: Bearer $AUTH_TOKEN\""
+  fi
+
   if [ -n "$data" ]; then
-    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" -H "Content-Type: application/json" -d "$data")
+    response=$(eval curl -s -w "|||%{http_code}" -X "$method" "$url" -H "Content-Type: application/json" $auth_header -d "'$data'")
   else
-    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url")
+    response=$(eval curl -s -w "|||%{http_code}" -X "$method" "$url" $auth_header)
   fi
   BODY="${response%|||*}"
   STATUS="${response##*|||}"
@@ -55,38 +67,38 @@ echo -e "${BLUE}                    CRUD API TESTS                              
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
 test_crud() {
-  local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5
+  local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
 
-  log_step "Testing $name API (C→R→U→R→D→R)"
+  log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
 
   # CREATE
-  api_call POST "$API_BASE/$endpoint" "$create_data"
+  api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
   assert_status 201 "POST /api/$endpoint (create)"
   ID=$(echo "$BODY" | jq -r ".$pk")
   echo "  Created $name ID: $ID"
 
   # READ
-  api_call GET "$API_BASE/$endpoint/$ID"
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
   assert_status 200 "GET /api/$endpoint/$ID (read)"
 
   # UPDATE
-  api_call PUT "$API_BASE/$endpoint/$ID" "$update_data"
+  api_call PUT "$API_BASE/$endpoint/$ID" "$update_data" "$use_auth"
   assert_status 200 "PUT /api/$endpoint/$ID (update)"
 
   # READ (verify)
-  api_call GET "$API_BASE/$endpoint/$ID"
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
   assert_status 200 "GET /api/$endpoint/$ID (after update)"
 
   # DELETE
-  api_call DELETE "$API_BASE/$endpoint/$ID"
+  api_call DELETE "$API_BASE/$endpoint/$ID" "" "$use_auth"
   assert_status 200 "DELETE /api/$endpoint/$ID"
 
   # READ (verify deleted)
-  api_call GET "$API_BASE/$endpoint/$ID"
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
   assert_status 404 "GET /api/$endpoint/$ID (should be 404)"
 }
 
-[[ LOOP(tables) --template="test_crud '{{tableNameTitleCase}}' '{{tableNameKebabCase}}' '{{primaryKey}}' '{{createPayload}}' '{{updatePayload}}'" --separator="\n" ]]
+[[ LOOP(tables) --template="test_crud '{{tableNameTitleCase}}' '{{tableNameKebabCase}}' '{{primaryKey}}' '{{createPayload}}' '{{updatePayload}}' '{{isAuthResource}}'" --separator="\n" ]]
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}                       TEST SUMMARY                             ${NC}"

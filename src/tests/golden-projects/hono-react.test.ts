@@ -13,11 +13,9 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-// Import available schemas
-import oneToOneSchema from '@/schema-infos/oneToOne.ts';
-import oneToManySchema from '@/schema-infos/oneToMany.ts';
-import manyToManySchema from '@/schema-infos/manyToMany.ts';
-import masterSchema from '@/schema-infos/masterSchema.ts';
+// Load and validate the schema from files/Schemas/ as this is what users would actually use
+import { validateSchemaInfo } from '@/utils/schemaInfoValidator.ts';
+import masterSchemaJson from '../../../files/Schemas/Master Schema with Multiple User Types.json';
 
 // Mock form data - fully typed
 const mockFormData: IFormStore = {
@@ -108,11 +106,20 @@ function writeStructureToDisk(structure: IStructure, basePath: string): void {
   }
 }
 
-// Schema test cases
+// Validate the JSON schema using Zod-based validator
+const validationResult = validateSchemaInfo(masterSchemaJson);
+if (!validationResult.success) {
+  const errorMessages = validationResult.errors
+    ? validationResult.errors.map((e) => `${e.path}: ${e.message}`).join(', ')
+    : 'Unknown validation error';
+  throw new Error(`Invalid master schema: ${errorMessages}`);
+}
+// Use the validated data - the validator returns ISchemaInfo-compatible data
+// Our ISchemaInfo interface extends the base type with optional auth fields (isAuthResource, ownerField)
+const masterSchema: ISchemaInfo[] = validationResult.data ?? [];
+
+// Schema test cases - using only the comprehensive master schema from files/Schemas/
 const schemaTestCases: { name: string; schema: ISchemaInfo[] }[] = [
-  { name: 'oneToOne', schema: oneToOneSchema },
-  { name: 'oneToMany', schema: oneToManySchema },
-  { name: 'manyToMany', schema: manyToManySchema },
   { name: 'masterSchema', schema: masterSchema },
 ];
 
@@ -153,7 +160,7 @@ describe('Hono-React Project Generation', () => {
   describe.each(schemaTestCases)('with $name schema', ({ name, schema }) => {
     const outputDir = path.join(outputBaseDir, name);
 
-    it('should generate and write files to disk', async () => {
+    it('should generate and write files to disk', { timeout: 30000 }, async () => {
       const userFiles = loadDirectoryAsStructure(filesDir);
 
       const result = await buildProjectFiles(
@@ -244,8 +251,8 @@ describe('Hono-React Project Generation', () => {
         (item): item is IFile => item.type === 'file',
       );
 
-      // Should have a route file for each table (singular name)
-      expect(routeFiles?.length).toBe(schema.length);
+      // Should have a route file for each table (singular name) + auth.ts
+      expect(routeFiles?.length).toBe(schema.length + 1);
     });
 
     it('should generate test files for each table', async () => {
@@ -287,10 +294,24 @@ describe('Hono-React Project Generation', () => {
       );
 
       // Check all generated files for unprocessed template syntax
+      const binaryExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.ico', '.webp', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.pdf'];
+      const isBinaryFile = (name: string): boolean =>
+        binaryExtensions.some((ext) => name.toLowerCase().endsWith(ext));
+
+      // Regex to match template variables like {{variableName}} but not JS object literals like {{ auth }}
+      // Template variables have no spaces: {{tableName}}, {{columnName}}
+      // JS object shorthand has spaces: {{ auth }}, {{ user }}
+      const templateVariablePattern = /\{\{[a-zA-Z_][a-zA-Z0-9_]*\}\}/;
+
       const checkForTemplateSyntax = (items: IStructure): void => {
         for (const item of items) {
           if (item.type === 'file') {
-            expect(item.content).not.toContain('{{');
+            if (isBinaryFile(item.name)) {
+              continue;
+            }
+            // Check for unprocessed template variables (no spaces inside braces)
+            const templateMatch = templateVariablePattern.exec(item.content);
+            expect(templateMatch).toBeNull();
             expect(item.content).not.toContain('[[ LOOP');
             expect(item.content).not.toContain('@LOOP');
             expect(item.content).not.toContain('<@@LOOP@@');

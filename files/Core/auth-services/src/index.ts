@@ -1,0 +1,35 @@
+// Types
+export * from './types';
+
+// Lucia (session management)
+export { initializeLucia, getLucia, Lucia } from './lucia';
+
+// Sessions
+export {
+  createSession,
+  validateSession,
+  invalidateSession,
+  invalidateAllUserSessions,
+  getSessionCookieName,
+} from './session';
+
+// Password utilities
+export { hashPassword, verifyPassword, validatePassword } from './password';
+
+// OAuth providers (Arctic)
+export {
+  initializeOAuthProviders,
+  getOAuthProvider,
+  isProviderConfigured,
+  getConfiguredProviders,
+  fetchOAuthUserInfo,
+  GitHub,
+  Google,
+  Facebook,
+  Discord,
+  generateState,
+  generateCodeVerifier,
+} from './oauth-providers';
+
+// Re-export ID generation from Lucia
+export { generateIdFromEntropySize } from 'lucia';

@@ -1,0 +1,54 @@
+/**
+ * Test Prisma ORM migrations
+ * 1. Clean database
+ * 2. Run prisma db push
+ * 3. Export schema to results/prisma_result.json
+ */
+
+import { execSync } from 'node:child_process';
+import { cleanDatabase, exportSchema, writeResult } from './db-utils.ts';
+
+const ORM_NAME = 'prisma';
+
+async function main() {
+  console.log(`\n=== Testing ${ORM_NAME.toUpperCase()} ORM ===`);
+
+  // Step 1: Clean database
+  console.log('1. Cleaning database...');
+  await cleanDatabase();
+
+  // Step 2: Run prisma db push
+  console.log('2. Running prisma db push...');
+  try {
+    execSync('bunx prisma db push --force-reset --accept-data-loss', {
+      cwd: process.cwd(),
+      stdio: 'pipe',
+      env: {
+        ...process.env,
+        // User consent for AI-invoked dangerous actions
+        PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: process.env.PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION ?? 'I consent',
+      },
+    });
+    console.log('  Prisma migration completed');
+  } catch (err) {
+    const error = err as { stderr?: Buffer };
+    console.error('  Migration error:', error.stderr?.toString() ?? err);
+    throw err;
+  }
+
+  // Step 3: Export schema
+  console.log('3. Exporting schema...');
+  const result = await exportSchema(ORM_NAME);
+  console.log(`  Found ${result.tables.length} tables`);
+
+  // Step 4: Write result
+  console.log('4. Writing result...');
+  writeResult(result);
+
+  console.log(`\n${ORM_NAME.toUpperCase()} test completed successfully!\n`);
+}
+
+main().catch((err) => {
+  console.error(`${ORM_NAME.toUpperCase()} test failed:`, err);
+  process.exit(1);
+});

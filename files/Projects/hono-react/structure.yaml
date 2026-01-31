@@ -13,6 +13,8 @@ $USE_CORE:
   - /Core/hono-api
   - /Core/drizzle-data
   - /Core/vitest-test
+  - /Core/tanstack-router
+  - /Core/auth-react
 
 # API routes - one file per table
 api:
@@ -21,16 +23,28 @@ api:
     CREATE_FILE(index.ts --template ./templates/db-index.txt):
     CREATE_FILE(schema.ts --template ./templates/db-schema.txt --data-source=/Constants/typeMappings.yaml):
     CREATE_FILE(seed.ts --template ./templates/db-seed.txt):
+  middleware:
+    CREATE_FILE(auth.ts --template ./templates/auth-middleware.txt):
   routes:
     FILE_LOOP({{tableNameCamelCaseSingular}}.ts --template ./templates/route.txt --data-source=/Constants/typeMappings.yaml):
+    CREATE_FILE(auth.ts --template ./templates/auth-routes.txt):
 
 # Frontend source - imports reusable hooks, interfaces, services
 src:
   IMPORT_PROJECT(Projects/App Generator - Template - Frontend/structure.yaml):
   CREATE_FILE(App.tsx --template ./templates/app.txt):
   CREATE_FILE(main.tsx --template ./templates/main.txt):
+  CREATE_FILE(router.tsx --template ./templates/router.txt):
   components:
     CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt):
+  routes:
+    CREATE_FILE(__root.tsx --template ./templates/routes/__root.txt):
+    CREATE_FILE(index.tsx --template ./templates/routes/index.txt):
+    CREATE_FILE(login.tsx --template ./templates/routes/login.txt):
+    CREATE_FILE(register.tsx --template ./templates/routes/register.txt):
+    _authenticated:
+      CREATE_FILE(_authenticated.tsx --template ./templates/routes/_authenticated.txt):
+      FILE_LOOP({{tableNameKebabCaseSingular}}.tsx --template ./templates/routes/table-route.txt):
   styles:
     CREATE_FILE(main.scss --template ./templates/styles.txt):
 

@@ -106,6 +106,9 @@ export default defineConfig([
     'coverage/**',
     'src/tests/golden-projects/output/**',
 
+    // Template source files (not part of scaffolder codebase)
+    'files/Core/**',
+
     // Config files (not linted)
     '**/eslint.config.js',
     '**/vite.config.ts',

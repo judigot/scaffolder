@@ -1,0 +1,562 @@
+<@@IF@@ condition="hasAuthTables NOT EQUAL 'true'">
+// Auth routes require user and session tables in your schema.
+// Add the following tables to enable authentication:
+// - user (with email, password_hash columns)
+// - session (with user_id, expires_at columns)
+// - oauth_account (optional, for OAuth support)
+import { Hono } from 'hono';
+
+const app = new Hono();
+
+app.get('/', (c) => {
+  return c.json({ message: 'Auth not configured. Add user and session tables to your schema.' });
+});
+
+export default app;
+</@@IF@@>
+<@@IF@@ condition="hasAuthWithoutOAuth EQUALS 'true'">
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { db } from '../db';
+import { {{userTableCamelCase}}, {{sessionTableCamelCase}} } from '../db/schema';
+import { eq } from 'drizzle-orm';
+import {
+  createSession,
+  validateSession,
+  invalidateSession,
+  hashPassword,
+  verifyPassword,
+  validatePassword,
+  getSessionCookieName,
+  generateIdFromEntropySize,
+} from '../auth';
+
+const app = new Hono();
+
+// Validation schemas
+const loginSchema = z.object({
+  {{userEmailColumnCamelCase}}: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+const registerSchema = z.object({
+  {{userEmailColumnCamelCase}}: z.string().email('Invalid email address'),
+  {{userUsernameColumnCamelCase}}: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  {{userFirstNameColumnCamelCase}}: z.string().optional(),
+  {{userLastNameColumnCamelCase}}: z.string().optional(),
+});
+
+// Helper to set session cookie
+function setSessionCookie(c: any, sessionCookie: string) {
+  const [name, ...rest] = sessionCookie.split('=');
+  const value = rest.join('=').split(';')[0];
+  setCookie(c, name, value, {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+}
+
+// POST /auth/register - Create new account
+app.post('/register', zValidator('json', registerSchema), async (c) => {
+  const data = c.req.valid('json');
+
+  // Validate password strength
+  const passwordValidation = validatePassword(data.password);
+  if (!passwordValidation.valid) {
+    return c.json({ error: passwordValidation.errors.join(', ') }, 400);
+  }
+
+  // Check if email already exists
+  const existingUser = await db
+    .select()
+    .from({{userTableCamelCase}})
+    .where(eq({{userTableCamelCase}}.{{userEmailColumnCamelCase}}, data.{{userEmailColumnCamelCase}}))
+    .limit(1);
+
+  if (existingUser.length > 0) {
+    return c.json({ error: 'Email already registered' }, 400);
+  }
+
+  // Check if username already exists
+  const existingUsername = await db
+    .select()
+    .from({{userTableCamelCase}})
+    .where(eq({{userTableCamelCase}}.{{userUsernameColumnCamelCase}}, data.{{userUsernameColumnCamelCase}}))
+    .limit(1);
+
+  if (existingUsername.length > 0) {
+    return c.json({ error: 'Username already taken' }, 400);
+  }
+
+  // Create user
+  const userId = generateIdFromEntropySize(10);
+  const passwordHash = await hashPassword(data.password);
+
+  await db.insert({{userTableCamelCase}}).values({
+    {{userPrimaryKeyCamelCase}}: userId,
+    {{userEmailColumnCamelCase}}: data.{{userEmailColumnCamelCase}},
+    {{userUsernameColumnCamelCase}}: data.{{userUsernameColumnCamelCase}},
+    {{userPasswordColumnCamelCase}}: passwordHash,
+    {{userFirstNameColumnCamelCase}}: data.{{userFirstNameColumnCamelCase}} || null,
+    {{userLastNameColumnCamelCase}}: data.{{userLastNameColumnCamelCase}} || null,
+    {{userEmailVerifiedColumnCamelCase}}: false,
+  });
+
+  // Create session
+  const { session: newSession, sessionCookie } = await createSession(userId);
+  setSessionCookie(c, sessionCookie);
+
+  // Fetch created user
+  const [createdUser] = await db.select().from({{userTableCamelCase}}).where(eq({{userTableCamelCase}}.{{userPrimaryKeyCamelCase}}, userId));
+
+  return c.json({
+    user: {
+      {{userPrimaryKeyCamelCase}}: createdUser.{{userPrimaryKeyCamelCase}},
+      {{userEmailColumnCamelCase}}: createdUser.{{userEmailColumnCamelCase}},
+      {{userUsernameColumnCamelCase}}: createdUser.{{userUsernameColumnCamelCase}},
+      {{userFirstNameColumnCamelCase}}: createdUser.{{userFirstNameColumnCamelCase}},
+      {{userLastNameColumnCamelCase}}: createdUser.{{userLastNameColumnCamelCase}},
+      {{userEmailVerifiedColumnCamelCase}}: createdUser.{{userEmailVerifiedColumnCamelCase}},
+    },
+    session: newSession,
+  }, 201);
+});
+
+// POST /auth/login - Login with email/password
+app.post('/login', zValidator('json', loginSchema), async (c) => {
+  const { {{userEmailColumnCamelCase}}, password } = c.req.valid('json');
+
+  // Find user by email
+  const [existingUser] = await db
+    .select()
+    .from({{userTableCamelCase}})
+    .where(eq({{userTableCamelCase}}.{{userEmailColumnCamelCase}}, {{userEmailColumnCamelCase}}))
+    .limit(1);
+
+  if (!existingUser || !existingUser.{{userPasswordColumnCamelCase}}) {
+    return c.json({ error: 'Invalid email or password' }, 401);
+  }
+
+  // Verify password
+  const validPassword = await verifyPassword(password, existingUser.{{userPasswordColumnCamelCase}});
+  if (!validPassword) {
+    return c.json({ error: 'Invalid email or password' }, 401);
+  }
+
+  // Create session
+  const { session: newSession, sessionCookie } = await createSession(existingUser.{{userPrimaryKeyCamelCase}});
+  setSessionCookie(c, sessionCookie);
+
+  return c.json({
+    user: {
+      {{userPrimaryKeyCamelCase}}: existingUser.{{userPrimaryKeyCamelCase}},
+      {{userEmailColumnCamelCase}}: existingUser.{{userEmailColumnCamelCase}},
+      {{userUsernameColumnCamelCase}}: existingUser.{{userUsernameColumnCamelCase}},
+      {{userFirstNameColumnCamelCase}}: existingUser.{{userFirstNameColumnCamelCase}},
+      {{userLastNameColumnCamelCase}}: existingUser.{{userLastNameColumnCamelCase}},
+      {{userEmailVerifiedColumnCamelCase}}: existingUser.{{userEmailVerifiedColumnCamelCase}},
+    },
+    session: newSession,
+  });
+});
+
+// POST /auth/logout - Logout current session
+app.post('/logout', async (c) => {
+  const sessionId = getCookie(c, getSessionCookieName());
+
+  if (sessionId) {
+    await invalidateSession(sessionId);
+    deleteCookie(c, getSessionCookieName());
+  }
+
+  return c.json({ success: true });
+});
+
+// GET /auth/me - Get current user
+app.get('/me', async (c) => {
+  const sessionId = getCookie(c, getSessionCookieName());
+
+  if (!sessionId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const result = await validateSession(sessionId);
+
+  if (!result.user) {
+    deleteCookie(c, getSessionCookieName());
+    return c.json({ error: 'Invalid session' }, 401);
+  }
+
+  // Refresh cookie if needed
+  if (result.sessionCookie) {
+    setSessionCookie(c, result.sessionCookie);
+  }
+
+  return c.json({ user: result.user, session: result.session });
+});
+
+export default app;
+</@@IF@@>
+<@@IF@@ condition="hasFullAuthSystem EQUALS 'true'">
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { db } from '../db';
+import { {{userTableCamelCase}}, {{sessionTableCamelCase}}, {{oauthTableCamelCase}} } from '../db/schema';
+import { eq, and } from 'drizzle-orm';
+import {
+  createSession,
+  validateSession,
+  invalidateSession,
+  hashPassword,
+  verifyPassword,
+  validatePassword,
+  getSessionCookieName,
+  generateIdFromEntropySize,
+  getOAuthProvider,
+  isProviderConfigured,
+  getConfiguredProviders,
+  fetchOAuthUserInfo,
+  generateState,
+  generateCodeVerifier,
+} from '../auth';
+import type { OAuthProvider } from '../auth';
+
+const app = new Hono();
+
+// Validation schemas
+const loginSchema = z.object({
+  {{userEmailColumnCamelCase}}: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+const registerSchema = z.object({
+  {{userEmailColumnCamelCase}}: z.string().email('Invalid email address'),
+  {{userUsernameColumnCamelCase}}: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  {{userFirstNameColumnCamelCase}}: z.string().optional(),
+  {{userLastNameColumnCamelCase}}: z.string().optional(),
+});
+
+// Helper to set session cookie
+function setSessionCookie(c: any, sessionCookie: string) {
+  const [name, ...rest] = sessionCookie.split('=');
+  const value = rest.join('=').split(';')[0];
+  setCookie(c, name, value, {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+}
+
+// POST /auth/register - Create new account
+app.post('/register', zValidator('json', registerSchema), async (c) => {
+  const data = c.req.valid('json');
+
+  // Validate password strength
+  const passwordValidation = validatePassword(data.password);
+  if (!passwordValidation.valid) {
+    return c.json({ error: passwordValidation.errors.join(', ') }, 400);
+  }
+
+  // Check if email already exists
+  const existingUser = await db
+    .select()
+    .from({{userTableCamelCase}})
+    .where(eq({{userTableCamelCase}}.{{userEmailColumnCamelCase}}, data.{{userEmailColumnCamelCase}}))
+    .limit(1);
+
+  if (existingUser.length > 0) {
+    return c.json({ error: 'Email already registered' }, 400);
+  }
+
+  // Check if username already exists
+  const existingUsername = await db
+    .select()
+    .from({{userTableCamelCase}})
+    .where(eq({{userTableCamelCase}}.{{userUsernameColumnCamelCase}}, data.{{userUsernameColumnCamelCase}}))
+    .limit(1);
+
+  if (existingUsername.length > 0) {
+    return c.json({ error: 'Username already taken' }, 400);
+  }
+
+  // Create user
+  const userId = generateIdFromEntropySize(10);
+  const passwordHash = await hashPassword(data.password);
+
+  await db.insert({{userTableCamelCase}}).values({
+    {{userPrimaryKeyCamelCase}}: userId,
+    {{userEmailColumnCamelCase}}: data.{{userEmailColumnCamelCase}},
+    {{userUsernameColumnCamelCase}}: data.{{userUsernameColumnCamelCase}},
+    {{userPasswordColumnCamelCase}}: passwordHash,
+    {{userFirstNameColumnCamelCase}}: data.{{userFirstNameColumnCamelCase}} || null,
+    {{userLastNameColumnCamelCase}}: data.{{userLastNameColumnCamelCase}} || null,
+    {{userEmailVerifiedColumnCamelCase}}: false,
+  });
+
+  // Create session
+  const { session: newSession, sessionCookie } = await createSession(userId);
+  setSessionCookie(c, sessionCookie);
+
+  // Fetch created user
+  const [createdUser] = await db.select().from({{userTableCamelCase}}).where(eq({{userTableCamelCase}}.{{userPrimaryKeyCamelCase}}, userId));
+
+  return c.json({
+    user: {
+      {{userPrimaryKeyCamelCase}}: createdUser.{{userPrimaryKeyCamelCase}},
+      {{userEmailColumnCamelCase}}: createdUser.{{userEmailColumnCamelCase}},
+      {{userUsernameColumnCamelCase}}: createdUser.{{userUsernameColumnCamelCase}},
+      {{userFirstNameColumnCamelCase}}: createdUser.{{userFirstNameColumnCamelCase}},
+      {{userLastNameColumnCamelCase}}: createdUser.{{userLastNameColumnCamelCase}},
+      {{userEmailVerifiedColumnCamelCase}}: createdUser.{{userEmailVerifiedColumnCamelCase}},
+    },
+    session: newSession,
+  }, 201);
+});
+
+// POST /auth/login - Login with email/password
+app.post('/login', zValidator('json', loginSchema), async (c) => {
+  const { {{userEmailColumnCamelCase}}, password } = c.req.valid('json');
+
+  // Find user by email
+  const [existingUser] = await db
+    .select()
+    .from({{userTableCamelCase}})
+    .where(eq({{userTableCamelCase}}.{{userEmailColumnCamelCase}}, {{userEmailColumnCamelCase}}))
+    .limit(1);
+
+  if (!existingUser || !existingUser.{{userPasswordColumnCamelCase}}) {
+    return c.json({ error: 'Invalid email or password' }, 401);
+  }
+
+  // Verify password
+  const validPassword = await verifyPassword(password, existingUser.{{userPasswordColumnCamelCase}});
+  if (!validPassword) {
+    return c.json({ error: 'Invalid email or password' }, 401);
+  }
+
+  // Create session
+  const { session: newSession, sessionCookie } = await createSession(existingUser.{{userPrimaryKeyCamelCase}});
+  setSessionCookie(c, sessionCookie);
+
+  return c.json({
+    user: {
+      {{userPrimaryKeyCamelCase}}: existingUser.{{userPrimaryKeyCamelCase}},
+      {{userEmailColumnCamelCase}}: existingUser.{{userEmailColumnCamelCase}},
+      {{userUsernameColumnCamelCase}}: existingUser.{{userUsernameColumnCamelCase}},
+      {{userFirstNameColumnCamelCase}}: existingUser.{{userFirstNameColumnCamelCase}},
+      {{userLastNameColumnCamelCase}}: existingUser.{{userLastNameColumnCamelCase}},
+      {{userEmailVerifiedColumnCamelCase}}: existingUser.{{userEmailVerifiedColumnCamelCase}},
+    },
+    session: newSession,
+  });
+});
+
+// POST /auth/logout - Logout current session
+app.post('/logout', async (c) => {
+  const sessionId = getCookie(c, getSessionCookieName());
+
+  if (sessionId) {
+    await invalidateSession(sessionId);
+    deleteCookie(c, getSessionCookieName());
+  }
+
+  return c.json({ success: true });
+});
+
+// GET /auth/me - Get current user
+app.get('/me', async (c) => {
+  const sessionId = getCookie(c, getSessionCookieName());
+
+  if (!sessionId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const result = await validateSession(sessionId);
+
+  if (!result.user) {
+    deleteCookie(c, getSessionCookieName());
+    return c.json({ error: 'Invalid session' }, 401);
+  }
+
+  // Refresh cookie if needed
+  if (result.sessionCookie) {
+    setSessionCookie(c, result.sessionCookie);
+  }
+
+  return c.json({ user: result.user, session: result.session });
+});
+
+// GET /auth/providers - List configured OAuth providers
+app.get('/providers', (c) => {
+  return c.json({ providers: getConfiguredProviders() });
+});
+
+// GET /auth/oauth/:provider - Start OAuth flow
+app.get('/oauth/:provider', async (c) => {
+  const providerName = c.req.param('provider') as OAuthProvider;
+
+  if (!isProviderConfigured(providerName)) {
+    return c.json({ error: `OAuth provider ${providerName} not configured` }, 400);
+  }
+
+  const provider = getOAuthProvider(providerName);
+  const state = generateState();
+  const codeVerifier = generateCodeVerifier();
+
+  // Store state and verifier in cookies for callback
+  setCookie(c, 'oauth_state', state, {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 60 * 10,
+    sameSite: 'lax',
+  });
+
+  setCookie(c, 'oauth_code_verifier', codeVerifier, {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 60 * 10,
+    sameSite: 'lax',
+  });
+
+  let url: URL;
+  const scopes = getOAuthScopes(providerName);
+
+  if ('createAuthorizationURL' in provider) {
+    if (providerName === 'github') {
+      url = provider.createAuthorizationURL(state, scopes);
+    } else {
+      url = (provider as any).createAuthorizationURL(state, codeVerifier, scopes);
+    }
+  } else {
+    throw new Error('Provider does not support createAuthorizationURL');
+  }
+
+  return c.redirect(url.toString());
+});
+
+// GET /auth/oauth/:provider/callback - Handle OAuth callback
+app.get('/oauth/:provider/callback', async (c) => {
+  const providerName = c.req.param('provider') as OAuthProvider;
+  const { code, state } = c.req.query();
+
+  const storedState = getCookie(c, 'oauth_state');
+  const codeVerifier = getCookie(c, 'oauth_code_verifier');
+
+  deleteCookie(c, 'oauth_state');
+  deleteCookie(c, 'oauth_code_verifier');
+
+  if (!code || !state || state !== storedState) {
+    return c.json({ error: 'Invalid OAuth callback' }, 400);
+  }
+
+  try {
+    const provider = getOAuthProvider(providerName);
+    let tokens: any;
+
+    if (providerName === 'github') {
+      tokens = await (provider as any).validateAuthorizationCode(code);
+    } else {
+      tokens = await (provider as any).validateAuthorizationCode(code, codeVerifier);
+    }
+
+    const accessToken = tokens.accessToken();
+    const oauthUserInfo = await fetchOAuthUserInfo(providerName, accessToken);
+
+    const [existingOAuthAccount] = await db
+      .select()
+      .from({{oauthTableCamelCase}})
+      .where(
+        and(
+          eq({{oauthTableCamelCase}}.{{oauthProviderIdColumnCamelCase}}, providerName),
+          eq({{oauthTableCamelCase}}.{{oauthProviderUserIdColumnCamelCase}}, oauthUserInfo.id),
+        ),
+      )
+      .limit(1);
+
+    let userId: string;
+
+    if (existingOAuthAccount) {
+      userId = existingOAuthAccount.{{oauthUserColumnCamelCase}};
+    } else {
+      const [existingUser] = await db
+        .select()
+        .from({{userTableCamelCase}})
+        .where(eq({{userTableCamelCase}}.{{userEmailColumnCamelCase}}, oauthUserInfo.email))
+        .limit(1);
+
+      if (existingUser) {
+        userId = existingUser.{{userPrimaryKeyCamelCase}};
+        await db.insert({{oauthTableCamelCase}}).values({
+          {{oauthProviderIdColumnCamelCase}}: providerName,
+          {{oauthProviderUserIdColumnCamelCase}}: oauthUserInfo.id,
+          {{oauthUserColumnCamelCase}}: userId,
+        });
+      } else {
+        userId = generateIdFromEntropySize(10);
+        const username = generateUsername(oauthUserInfo.name || oauthUserInfo.email);
+
+        await db.insert({{userTableCamelCase}}).values({
+          {{userPrimaryKeyCamelCase}}: userId,
+          {{userEmailColumnCamelCase}}: oauthUserInfo.email,
+          {{userUsernameColumnCamelCase}}: username,
+          {{userFirstNameColumnCamelCase}}: oauthUserInfo.name?.split(' ')[0] || null,
+          {{userLastNameColumnCamelCase}}: oauthUserInfo.name?.split(' ').slice(1).join(' ') || null,
+          {{userAvatarColumnCamelCase}}: oauthUserInfo.avatarUrl || null,
+          {{userEmailVerifiedColumnCamelCase}}: true,
+        });
+
+        await db.insert({{oauthTableCamelCase}}).values({
+          {{oauthProviderIdColumnCamelCase}}: providerName,
+          {{oauthProviderUserIdColumnCamelCase}}: oauthUserInfo.id,
+          {{oauthUserColumnCamelCase}}: userId,
+        });
+      }
+    }
+
+    const { sessionCookie } = await createSession(userId);
+    setSessionCookie(c, sessionCookie);
+
+    return c.redirect('/dashboard');
+  } catch (error) {
+    console.error('OAuth error:', error);
+    return c.redirect('/login?error=oauth_failed');
+  }
+});
+
+function getOAuthScopes(provider: OAuthProvider): string[] {
+  switch (provider) {
+    case 'github':
+      return ['user:email'];
+    case 'google':
+      return ['openid', 'profile', 'email'];
+    case 'facebook':
+      return ['email', 'public_profile'];
+    case 'discord':
+      return ['identify', 'email'];
+    default:
+      return [];
+  }
+}
+
+function generateUsername(base: string): string {
+  const cleanBase = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 15);
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${cleanBase}${suffix}`;
+}
+
+export default app;
+</@@IF@@>
