@@ -3,7 +3,7 @@ import { useFormStore } from '@/useFormStore.ts';
 import { useModalStore } from '@/useModalStore.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 interface IForm {
   SQLSchemaEditable: string;
@@ -15,6 +15,7 @@ function SQLSchemaInputModal() {
     useModalStore();
   const { setIntrospectedSchema } = useTransformationsStore();
 
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [formData, setFormData] = useState<IForm>({ SQLSchemaEditable: '' });
   const [isEdited, setIsEdited] = useState<boolean>(false);
 
@@ -22,6 +23,19 @@ function SQLSchemaInputModal() {
     setFormData({ SQLSchemaEditable });
     setIsEdited(false);
   }, [SQLSchemaEditable]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      return;
+    }
+
+    if (isSQLSchemaModalOpen) {
+      dialog.showModal();
+    } else {
+      dialog.close();
+    }
+  }, [isSQLSchemaModalOpen]);
 
   const handleInputChange = (e: FormEvent<HTMLTextAreaElement>) => {
     const { value } = e.currentTarget;
@@ -70,8 +84,8 @@ function SQLSchemaInputModal() {
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget && !isEdited) {
+  const handleClose = () => {
+    if (!isEdited) {
       setIsSQLSchemaModalOpen(false);
       resetForm();
     }
@@ -88,25 +102,25 @@ function SQLSchemaInputModal() {
     setIsEdited(false);
   };
 
-  if (!isSQLSchemaModalOpen) {
-    return null;
-  }
-
   return (
-    <div
-      role="presentation"
-      onClick={handleBackdropClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          if (e.target === e.currentTarget && !isEdited) {
-            setIsSQLSchemaModalOpen(false);
-            resetForm();
-          }
+    <dialog
+      ref={dialogRef}
+      onClose={handleClose}
+      onClick={(e) => {
+        if (e.target === dialogRef.current && !isEdited) {
+          setIsSQLSchemaModalOpen(false);
+          resetForm();
         }
       }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && !isEdited) {
+          setIsSQLSchemaModalOpen(false);
+          resetForm();
+        }
+      }}
+      className="backdrop:bg-black backdrop:bg-opacity-50 bg-transparent p-0 max-w-md w-full"
     >
-      <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full space-y-4">
+      <div className="bg-gray-800 p-8 rounded-lg shadow-lg space-y-4">
         <h1 className="text-lg font-bold text-white">Edit SQL Schema</h1>
         <form
           id="schemaInputForm"
@@ -145,7 +159,7 @@ function SQLSchemaInputModal() {
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 }
 

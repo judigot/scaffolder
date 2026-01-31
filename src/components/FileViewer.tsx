@@ -3270,9 +3270,10 @@ function FileViewer({
                   !fileContent.startsWith('data:') &&
                   !fileContent.includes('base64') &&
                   fileContent.trim().startsWith('<') ? (
-                    <div
-                      className="max-h-full max-w-full"
-                      dangerouslySetInnerHTML={{ __html: fileContent }}
+                    <img
+                      src={`data:image/svg+xml;base64,${btoa(fileContent)}`}
+                      alt={selectedFile.name}
+                      className="max-h-full max-w-full object-contain"
                     />
                   ) : (
                     <img
