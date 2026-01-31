@@ -157,6 +157,12 @@ primaryKey:
     group: 'Templates'
   mysql: 'BIGINT PRIMARY KEY AUTO_INCREMENT'
   postgresql: 'BIGSERIAL PRIMARY KEY'
+
+stringPrimaryKey:
+  info:
+    group: 'Templates'
+  mysql: 'VARCHAR(255) PRIMARY KEY'
+  postgresql: 'TEXT PRIMARY KEY'
   typescript: 'number'
   zod: 'number'
   drizzle: 'bigserial'

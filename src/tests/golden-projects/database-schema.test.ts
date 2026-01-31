@@ -159,8 +159,11 @@ describe('App Generator - Database Schema Golden Test', () => {
       }
     });
 
-    it('should have BIGSERIAL for primary keys', () => {
+    it('should have correct primary key types', () => {
+      // Numeric primary keys use BIGSERIAL
       expect(goldenSnapshot).toContain('"id" BIGSERIAL PRIMARY KEY');
+      // String primary keys (e.g., user table for Lucia auth) use TEXT
+      expect(goldenSnapshot).toContain('"id" TEXT PRIMARY KEY');
     });
 
     it('should have BIGINT for some foreign keys', () => {
@@ -174,8 +177,12 @@ describe('App Generator - Database Schema Golden Test', () => {
     });
 
     it('should have TIMESTAMPTZ for timestamps', () => {
-      expect(goldenSnapshot).toContain('"created_at" TIMESTAMPTZ (6) DEFAULT NOW ()');
-      expect(goldenSnapshot).toContain('"updated_at" TIMESTAMPTZ (6) DEFAULT NOW ()');
+      expect(goldenSnapshot).toContain(
+        '"created_at" TIMESTAMPTZ (6) DEFAULT NOW ()',
+      );
+      expect(goldenSnapshot).toContain(
+        '"updated_at" TIMESTAMPTZ (6) DEFAULT NOW ()',
+      );
     });
 
     it('should have foreign key constraints', () => {

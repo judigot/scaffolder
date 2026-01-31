@@ -42,7 +42,7 @@ CREATE TABLE "order_product" (
 );
 
 CREATE TABLE "user" (
-  "id" BIGSERIAL PRIMARY KEY,
+  "id" TEXT PRIMARY KEY,
   "email" VARCHAR(255) UNIQUE NOT NULL,
   "username" TEXT UNIQUE NOT NULL,
   "password_hash" TEXT,
@@ -55,7 +55,7 @@ CREATE TABLE "user" (
 );
 
 CREATE TABLE "session" (
-  "id" BIGSERIAL PRIMARY KEY,
+  "id" TEXT PRIMARY KEY,
   "user_id" TEXT NOT NULL,
   "expires_at" TIMESTAMPTZ (6) NOT NULL,
   CONSTRAINT "FK_session_user_id" FOREIGN KEY ("user_id") REFERENCES "user" ("id")
