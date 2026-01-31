@@ -8,36 +8,54 @@ import type {
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
 
 /**
+ * Replace a single placeholder with its value from replacements
+ */
+const replaceSingleCommandPlaceholder = (
+  key: string,
+  replacements: Replacements,
+  originalPlaceholder: string,
+): string => {
+  const trimmedKey = key.trim();
+  if (trimmedKey in replacements) {
+    const value = replacements[trimmedKey];
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+  }
+  return originalPlaceholder;
+};
+
+/**
  * Pre-process placeholders inside [[...]] commands so that command parameters
- * like [[USE_ROWS(tableName={{tableName}})]] work correctly.
- * This replaces {{...}} placeholders INSIDE command brackets before commands are processed.
+ * like [[USE_ROWS(tableName={{tableName}})]] or [[USE_ROWS(tableName=<@@>tableName</@@>)]] work correctly.
+ * This replaces placeholders INSIDE command brackets before commands are processed.
+ * Supports both {{...}} (legacy) and <@@>...</@@> (new) syntax.
  */
 const preProcessCommandPlaceholders = (
   text: string,
   replacements: Replacements,
 ): string => {
-  // Match [[COMMAND(...)]] patterns and replace {{...}} placeholders inside them
+  // Match [[COMMAND(...)]] patterns and replace placeholders inside them
   return text.replace(
     /\[\[\s*([A-Z_]+)\(([^)]*)\)\s*\]\]/g,
     (_fullMatch, commandName: string, params: string) => {
-      // Replace {{...}} placeholders in the params
-      const processedParams = params.replace(
-        /\{\{([^}]+)\}\}/g,
-        (_placeholder: string, key: string) => {
-          const trimmedKey = key.trim();
-          if (trimmedKey in replacements) {
-            const value = replacements[trimmedKey];
-            if (typeof value === 'string') {
-              return value;
-            }
-            if (typeof value === 'number' || typeof value === 'boolean') {
-              return String(value);
-            }
-          }
-          // Return the original placeholder if not found
-          return `{{${key}}}`;
-        },
+      // Replace <@@>...</@@> placeholders in the params (new syntax)
+      let processedParams = params.replace(
+        /<@@>([^<]+)<\/@@>/g,
+        (_placeholder: string, key: string) =>
+          replaceSingleCommandPlaceholder(key, replacements, `<@@>${key}</@@>`),
       );
+
+      // Replace {{...}} placeholders in the params (legacy syntax)
+      processedParams = processedParams.replace(
+        /\{\{([^}]+)\}\}/g,
+        (_placeholder: string, key: string) =>
+          replaceSingleCommandPlaceholder(key, replacements, `{{${key}}}`),
+      );
+
       return `[[${commandName}(${processedParams})]]`;
     },
   );

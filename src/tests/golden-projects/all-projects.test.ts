@@ -305,8 +305,9 @@ describe('TRUE GOLDEN TEST: Complete Projects', () => {
             }
 
             const issues: string[] = [];
-            if (item.content.includes('{{')) {
-              issues.push('{{');
+            // Match template placeholders like {{variableName}} but not JSX like {{ prop }}
+            if (/\{\{[a-zA-Z_][a-zA-Z0-9_()]*\}\}/.test(item.content)) {
+              issues.push('{{...}}');
             }
             if (item.content.includes('[[')) {
               issues.push('[[');

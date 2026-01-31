@@ -123,10 +123,50 @@ const evaluateExpression = (
 };
 
 /**
+ * Process a single dynamic lookup expression
+ */
+const processSingleDynamicExpression = (
+  content: string,
+  replacements: Record<string, string>,
+  dataSource: DataContext,
+  originalMatch: string,
+): string => {
+  const trimmedContent = content.trim();
+
+  // Check if this is a JavaScript-like property access (contains . or [)
+  if (!trimmedContent.includes('.') && !trimmedContent.includes('[')) {
+    // Not a property access, return original for other processors
+    return originalMatch;
+  }
+
+  // Handle fallback operator ||
+  if (trimmedContent.includes('||')) {
+    const expressions = trimmedContent.split('||').map((e) => e.trim());
+    for (const expr of expressions) {
+      const result = evaluateExpression(expr, replacements, dataSource);
+      if (result !== undefined && result !== '') {
+        return result;
+      }
+    }
+    return ''; // All expressions failed
+  }
+
+  // Single expression
+  const result = evaluateExpression(trimmedContent, replacements, dataSource);
+  if (result !== undefined) {
+    return result;
+  }
+
+  // Return original if not resolved (might be handled by other processors)
+  return originalMatch;
+};
+
+/**
  * Process JavaScript-like dynamic lookups in template
+ * Supports both {{...}} (legacy) and <@@>...</@@> (new) syntax
  * Supports:
- * - Dot notation: {{typeMappings.string.postgresql}}
- * - Bracket notation: {{typeMappings[data_type][dbType]}}
+ * - Dot notation: {{typeMappings.string.postgresql}} or <@@>typeMappings.string.postgresql</@@>
+ * - Bracket notation: {{typeMappings[data_type][dbType]}} or <@@>typeMappings[data_type][dbType]</@@>
  * - Mixed: {{typeMappings.string[dbType]}} or {{typeMappings[data_type].postgresql}}
  * - Fallback with ||: {{typeMappings[value][dbType] || typeMappings[data_type][dbType]}}
  */
@@ -139,40 +179,19 @@ const processDynamicLookup = (
     return template;
   }
 
-  // Match {{expression}} or {{expr1 || expr2}}
-  // The expression can contain: word chars, dots, brackets with content
-  const placeholderRegex = /\{\{([^}]+)\}\}/g;
+  // First, process <@@>expression</@@> (new syntax)
+  let result = template.replace(
+    /<@@>([^<]+)<\/@@>/g,
+    (match, content: string) =>
+      processSingleDynamicExpression(content, replacements, dataSource, match),
+  );
 
-  return template.replace(placeholderRegex, (match, content: string) => {
-    const trimmedContent = content.trim();
+  // Then, process {{expression}} (legacy syntax)
+  result = result.replace(/\{\{([^}]+)\}\}/g, (match, content: string) =>
+    processSingleDynamicExpression(content, replacements, dataSource, match),
+  );
 
-    // Check if this is a JavaScript-like property access (contains . or [)
-    if (!trimmedContent.includes('.') && !trimmedContent.includes('[')) {
-      // Not a property access, return original for other processors
-      return match;
-    }
-
-    // Handle fallback operator ||
-    if (trimmedContent.includes('||')) {
-      const expressions = trimmedContent.split('||').map((e) => e.trim());
-      for (const expr of expressions) {
-        const result = evaluateExpression(expr, replacements, dataSource);
-        if (result !== undefined && result !== '') {
-          return result;
-        }
-      }
-      return ''; // All expressions failed
-    }
-
-    // Single expression
-    const result = evaluateExpression(trimmedContent, replacements, dataSource);
-    if (result !== undefined) {
-      return result;
-    }
-
-    // Return original if not resolved (might be handled by other processors)
-    return match;
-  });
+  return result;
 };
 
 // Legacy support for old syntax: {{[var1].[var2]}}, {{staticKey.[var]}}, {{[var].staticKey}}

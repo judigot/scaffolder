@@ -1,2 +1,2 @@
-[[USE_ROWS(tableName={{tableName}}, format=json, pretty=true)]]
+[[USE_ROWS(tableName=<@@>tableName</@@>, format=json, pretty=true)]]
 

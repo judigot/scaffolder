@@ -9,7 +9,7 @@ function HomeComponent() {
 
   return (
     <div className="home-page">
-      <h1>Welcome to {{appName}}</h1>
+      <h1>Welcome</h1>
       {auth.isAuthenticated ? (
         <div className="home-authenticated">
           <p>Hello, {auth.user?.email}!</p>

@@ -1,16 +1,16 @@
-export interface I{{tableNamePascalCase}} {
-[[ LOOP(columnsInfo) --template="  {{value}}{% IF is_nullable EQUALS 'YES' %}?{% ENDIF %}: {% IF data_type EQUALS 'string' %}string{% ENDIF %}{% IF data_type EQUALS 'number' %}number{% ENDIF %}{% IF data_type EQUALS 'boolean' %}boolean{% ENDIF %}{% IF data_type EQUALS 'Date' %}Date{% ENDIF %};" --separator="\n" ]]
+export interface I<@@>tableNamePascalCase</@@> {
+<@@LOOP@@ data="columnsInfo" separator="\n">  <@@>value</@@><@@IF@@ condition="is_nullable EQUALS 'YES'">?</@@IF@@>: <@@IF@@ condition="data_type EQUALS 'string'">string</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">number</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">Date</@@IF@@>;</@@LOOP@@>
 }
 
-export function isI{{tableNamePascalCase}}(data: unknown): data is I{{tableNamePascalCase}} {
+export function isI<@@>tableNamePascalCase</@@>(data: unknown): data is I<@@>tableNamePascalCase</@@> {
   return (
     data !== null &&
     typeof data === 'object' &&
-    [[ LOOP(columnsInfo) --template="'{{value}}' in data" --separator=" &&\n    " ]] &&
-    [[ LOOP(columnsInfo) --template="{% IF data_type EQUALS 'Date' %}typeof data.{{value}} === 'string'{% ENDIF %}{% IF data_type NOT EQUAL 'Date' %}typeof data.{{value}} === '{{data_type}}'{% ENDIF %}" --separator=" &&\n    " ]]
+<@@LOOP@@ data="columnsInfo" separator=" &&\n    ">    '<@@>value</@@>' in data</@@LOOP@@> &&
+<@@LOOP@@ data="columnsInfo" separator=" &&\n    ">    <@@IF@@ condition="data_type EQUALS 'Date'">typeof data.<@@>value</@@> === 'string'</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'Date'">typeof data.<@@>value</@@> === '<@@>data_type</@@>'</@@IF@@></@@LOOP@@>
   );
 }
 
-export function isI{{tableNamePascalCase}}Array(data: unknown): data is I{{tableNamePascalCase}}[] {
-  return Array.isArray(data) && data.every(isI{{tableNamePascalCase}});
+export function isI<@@>tableNamePascalCase</@@>Array(data: unknown): data is I<@@>tableNamePascalCase</@@>[] {
+  return Array.isArray(data) && data.every(isI<@@>tableNamePascalCase</@@>);
 }

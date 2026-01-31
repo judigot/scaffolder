@@ -1,11 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity('{{tableName}}')
-export class {{tableNamePascalCaseSingular}} {
+@Entity('<@@>tableName</@@>')
+export class <@@>tableNamePascalCaseSingular</@@> {
 <@@LOOP@@ data="columnsInfo" separator="\n\n">
   <@@IF@@ condition="is_primary_key EQUALS 'true'">
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
-  {{valueCamelCase}}: number;
+  <@@>valueCamelCase</@@>: number;
   </@@IF@@>
   <@@IF@@ condition="is_primary_key EQUALS 'false'">
   @Column({
@@ -17,7 +17,7 @@ export class {{tableNamePascalCaseSingular}} {
     nullable: true</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'">,
     unique: true</@@IF@@>
   })
-  {{valueCamelCase}}: <@@IF@@ condition="data_type EQUALS 'number'">number<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'Date'">Date<@@ELSE@@>string</@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@>;
+  <@@>valueCamelCase</@@>: <@@IF@@ condition="data_type EQUALS 'number'">number<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'Date'">Date<@@ELSE@@>string</@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@>;
   </@@IF@@>
 </@@LOOP@@>
 }

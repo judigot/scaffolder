@@ -5,7 +5,7 @@ import { prettyJSON } from 'hono/pretty-json';
 import { hc } from 'hono/client';
 
 // Import route modules
-<@@LOOP@@ data="tables" separator="\n">import {{tableNameCamelCase}}Routes from './routes/{{tableNameCamelCaseSingular}}';</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">import <@@>tableNameCamelCase</@@>Routes from './routes/<@@>tableNameCamelCaseSingular</@@>';</@@LOOP@@>
 
 const app = new Hono().basePath('/api');
 
@@ -18,7 +18,7 @@ app.use('*', prettyJSON());
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Mount routes
-<@@LOOP@@ data="tables" separator="\n">app.route('/{{tableNameKebabCase}}', {{tableNameCamelCase}}Routes);</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">app.route('/<@@>tableNameKebabCase</@@>', <@@>tableNameCamelCase</@@>Routes);</@@LOOP@@>
 
 // Export types for RPC client
 export type AppType = typeof app;

@@ -67,61 +67,125 @@ export const evaluateCondition = (
     return parts.some((part) => evaluateCondition(part, replacements));
   }
 
-  // Handle NOT prefix
-  if (trimmedCondition.startsWith('NOT ')) {
+  // Handle NOT prefix (but not "NOT EQUAL" or "NOT NULL" or "NOT CONTAINS")
+  if (
+    trimmedCondition.startsWith('NOT ') &&
+    !trimmedCondition.includes(' NOT EQUAL ') &&
+    !trimmedCondition.includes(' IS NOT NULL') &&
+    !trimmedCondition.includes(' NOT CONTAINS ')
+  ) {
     return !evaluateCondition(trimmedCondition.slice(4), replacements);
   }
 
-  // EQUALS condition: varName EQUALS 'value'
-  const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
-    trimmedCondition,
-  );
+  // EXISTS condition: varName EXISTS
+  const existsMatch = /^(\S+)\s+EXISTS\s*$/.exec(trimmedCondition);
+  if (existsMatch) {
+    const [, varName] = existsMatch;
+    const value = varName in replacements ? replacements[varName] : undefined;
+    return value !== undefined && value !== '' && value !== 'false';
+  }
+
+  // IS TRUE condition: varName IS TRUE
+  const isTrueMatch = /^(\S+)\s+IS\s+TRUE\s*$/i.exec(trimmedCondition);
+  if (isTrueMatch) {
+    const [, varName] = isTrueMatch;
+    const value = varName in replacements ? replacements[varName] : undefined;
+    return value === 'true';
+  }
+
+  // IS NOT NULL condition: varName IS NOT NULL
+  const isNotNullMatch = /^(\S+)\s+IS\s+NOT\s+NULL\s*$/i.exec(trimmedCondition);
+  if (isNotNullMatch) {
+    const [, varName] = isNotNullMatch;
+    const value = varName in replacements ? replacements[varName] : undefined;
+    return value !== undefined && value !== '';
+  }
+
+  // NOT CONTAINS condition: varName NOT CONTAINS 'substring' or unquoted
+  const notContainsMatch =
+    /^(\S+)\s+NOT\s+CONTAINS\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (notContainsMatch) {
+    const [, varName, quotedValue, unquotedValue] = notContainsMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const substring = quotedValue ?? unquotedValue ?? '';
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return !actualValue.includes(substring);
+  }
+
+  // EQUALS condition: varName EQUALS 'value' or varName EQUALS value (unquoted)
+  const equalsMatch =
+    /^(\S+)\s+EQUALS\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
   if (equalsMatch) {
-    const [, varName, expectedValue] = equalsMatch;
+    const [, varName, quotedValue, unquotedValue] = equalsMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const expectedValue = quotedValue ?? unquotedValue ?? '';
     const actualValue =
       typeof replacements[varName] === 'string' ? replacements[varName] : '';
     return actualValue === expectedValue;
   }
 
-  // NOT EQUAL condition: varName NOT EQUAL 'value'
-  const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
-    trimmedCondition,
-  );
+  // NOT EQUAL condition: varName NOT EQUAL 'value' or unquoted
+  const notEqualMatch =
+    /^(\S+)\s+NOT\s+EQUAL\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
   if (notEqualMatch) {
-    const [, varName, expectedValue] = notEqualMatch;
+    const [, varName, quotedValue, unquotedValue] = notEqualMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const expectedValue = quotedValue ?? unquotedValue ?? '';
     const actualValue =
       typeof replacements[varName] === 'string' ? replacements[varName] : '';
     return actualValue !== expectedValue;
   }
 
-  // CONTAINS condition: varName CONTAINS 'substring'
-  const containsMatch = /^(\S+)\s+CONTAINS\s+['"]([^'"]*)['"]\s*$/.exec(
-    trimmedCondition,
-  );
+  // CONTAINS condition: varName CONTAINS 'substring' or unquoted
+  const containsMatch =
+    /^(\S+)\s+CONTAINS\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
   if (containsMatch) {
-    const [, varName, substring] = containsMatch;
+    const [, varName, quotedValue, unquotedValue] = containsMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const substring = quotedValue ?? unquotedValue ?? '';
     const actualValue =
       typeof replacements[varName] === 'string' ? replacements[varName] : '';
     return actualValue.includes(substring);
   }
 
-  // STARTS_WITH condition: varName STARTS_WITH 'prefix'
-  const startsWithMatch = /^(\S+)\s+STARTS_WITH\s+['"]([^'"]*)['"]\s*$/.exec(
-    trimmedCondition,
-  );
+  // STARTS_WITH condition: varName STARTS_WITH 'prefix' or unquoted
+  const startsWithMatch =
+    /^(\S+)\s+STARTS_WITH\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
   if (startsWithMatch) {
-    const [, varName, prefix] = startsWithMatch;
+    const [, varName, quotedValue, unquotedValue] = startsWithMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const prefix = quotedValue ?? unquotedValue ?? '';
     const actualValue =
       typeof replacements[varName] === 'string' ? replacements[varName] : '';
     return actualValue.startsWith(prefix);
   }
 
-  // ENDS_WITH condition: varName ENDS_WITH 'suffix'
-  const endsWithMatch = /^(\S+)\s+ENDS_WITH\s+['"]([^'"]*)['"]\s*$/.exec(
-    trimmedCondition,
-  );
+  // ENDS_WITH condition: varName ENDS_WITH 'suffix' or unquoted
+  const endsWithMatch =
+    /^(\S+)\s+ENDS_WITH\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
   if (endsWithMatch) {
-    const [, varName, suffix] = endsWithMatch;
+    const [, varName, quotedValue, unquotedValue] = endsWithMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const suffix = quotedValue ?? unquotedValue ?? '';
     const actualValue =
       typeof replacements[varName] === 'string' ? replacements[varName] : '';
     return actualValue.endsWith(suffix);

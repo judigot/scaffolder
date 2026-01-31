@@ -6,14 +6,14 @@
  */
 
 import { db } from './index';
-<@@LOOP@@ data="tables" separator="\n">import { {{tableNameCamelCase}} } from './schema';</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">import { <@@>tableNameCamelCase</@@> } from './schema';</@@LOOP@@>
 
 // Generated seed data
 const seedData = [[USE_ROWS(format=json, pretty=true)]];
 
 // Table name to drizzle table mapping
 const tables = {
-<@@LOOP@@ data="tables" separator="\n">  {{tableName}}: {{tableNameCamelCase}},</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">  <@@>tableName</@@>: <@@>tableNameCamelCase</@@>,</@@LOOP@@>
 };
 
 type TableName = keyof typeof tables;
