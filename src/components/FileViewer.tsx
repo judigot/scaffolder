@@ -2961,6 +2961,7 @@ function FileViewer({
 
               {/* File tree */}
               <div
+                role="tree"
                 className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
                 onContextMenu={(e) => {
                   handleContextMenu(e);
@@ -3142,6 +3143,7 @@ function FileViewer({
             {/* File tree */}
             {!hasError && (
               <div
+                role="tree"
                 className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
                 onContextMenu={(e) => {
                   handleContextMenu(e);

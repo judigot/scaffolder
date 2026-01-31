@@ -360,7 +360,7 @@ export default function RemoteAgentChat({
 
   useEffect(() => {
     adjustHeight();
-  }, [input, adjustHeight]);
+  }, [adjustHeight]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,4 +1,7 @@
 {
+  "files": {
+    "includes": ["src/**", "!src/tests/golden-projects/output/**"]
+  },
   "linter": {
     "rules": {
       "recommended": true,

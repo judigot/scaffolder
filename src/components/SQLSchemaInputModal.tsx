@@ -94,6 +94,7 @@ function SQLSchemaInputModal() {
 
   return (
     <div
+      role="presentation"
       onClick={handleBackdropClick}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
