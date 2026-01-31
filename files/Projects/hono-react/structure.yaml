@@ -2,13 +2,13 @@
 # Production-ready, Vercel-deployable, with CRUD API and testing
 #
 # Modular Core imports (later entries override earlier):
-# - bun-base: Bun runtime essentials (package.json, tsconfig, etc.)
+# - vite-react: Vite + React + TypeScript + Tailwind frontend
 # - hono-api: Hono RPC API with Zod validation
 # - drizzle-data: Drizzle ORM with PostgreSQL
 # - vitest-test: Vitest testing framework
 
 $USE_CORE:
-  - /Core/bun-base
+  - /Core/vite-react
   - /Core/hono-api
   - /Core/drizzle-data
   - /Core/vitest-test
@@ -23,10 +23,13 @@ api:
   routes:
     FILE_LOOP({{tableNameCamelCaseSingular}}.ts --template ./templates/route.txt --data-source=./constants/typeMappings.yaml):
 
-# Frontend source
+# Frontend source - imports reusable hooks, interfaces, services
 src:
+  IMPORT_PROJECT(Projects/App Generator - Template - Frontend/structure.yaml):
   CREATE_FILE(App.tsx --template ./templates/app.txt):
   CREATE_FILE(main.tsx --template ./templates/main.txt):
+  components:
+    CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt):
   styles:
     CREATE_FILE(main.scss --template ./templates/styles.txt):
 
