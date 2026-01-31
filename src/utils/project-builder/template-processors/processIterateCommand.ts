@@ -474,6 +474,38 @@ const parseHtmlTagAttributes = (
 };
 
 /**
+ * Validate that template has balanced opening/closing tags.
+ * Throws an error if tags are unbalanced, preventing silent failures.
+ */
+const validateHtmlTemplateTags = (content: string, context?: string): void => {
+  const ifOpens = (content.match(/<@@IF@@/g) ?? []).length;
+  const ifCloses = (content.match(/<\/@@IF@@>/g) ?? []).length;
+  const loopOpens = (content.match(/<@@LOOP@@/g) ?? []).length;
+  const loopCloses = (content.match(/<\/@@LOOP@@>/g) ?? []).length;
+
+  const errors: string[] = [];
+
+  if (ifOpens !== ifCloses) {
+    errors.push(
+      `<@@IF@@>: ${String(ifOpens)} opens, ${String(ifCloses)} closes`,
+    );
+  }
+  if (loopOpens !== loopCloses) {
+    errors.push(
+      `<@@LOOP@@>: ${String(loopOpens)} opens, ${String(loopCloses)} closes`,
+    );
+  }
+
+  if (errors.length > 0) {
+    const contextInfo =
+      context !== undefined && context !== '' ? ` in "${context}"` : '';
+    throw new Error(
+      `Unbalanced template tags${contextInfo}:\n  ${errors.join('\n  ')}`,
+    );
+  }
+};
+
+/**
  * Find matching </@@LOOP@@> for a <@@LOOP@@> block, handling nested blocks
  */
 const findHtmlLoopEnd = (
@@ -563,6 +595,9 @@ const processHtmlLoop = (
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
 ): string => {
+  // Validate template tags before processing
+  validateHtmlTemplateTags(content, 'HTML LOOP');
+
   // Match <@@LOOP@@ data="tables" separator="\n">
   const openRegex = /<@@LOOP@@([^>]*)>/g;
   let result = content;
@@ -690,7 +725,10 @@ export const processHtmlIf = (
     const closeInfo = findHtmlIfEnd(result, openEnd);
 
     if (!closeInfo) {
-      break;
+      // This should not happen if validateHtmlTemplateTags was called first
+      throw new Error(
+        `Unbalanced <@@IF@@> tag: could not find matching </@@IF@@> for condition "${condition}"`,
+      );
     }
 
     // Extract content between <@@IF@@> and </@@IF@@>
@@ -941,6 +979,12 @@ export const processHtmlLoopColumnsInfo = (
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
 ): string => {
+  // Validate template tags before processing
+  validateHtmlTemplateTags(
+    content,
+    `columnsInfo loop for table "${table.tableName}"`,
+  );
+
   const openRegex = /<@@LOOP@@([^>]*)>/g;
   let result = content;
   let iterations = 0;
