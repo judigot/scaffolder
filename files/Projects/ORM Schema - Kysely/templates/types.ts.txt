@@ -1,0 +1,22 @@
+import type { Generated, ColumnType, Selectable, Insertable, Updateable } from 'kysely';
+
+@LOOP(tables)
+// {{tableNamePascalCaseSingular}} table interface
+export interface {{tableNamePascalCaseSingular}}Table {
+<@@LOOP@@ data="columnsInfo" separator="\n">  {{valueCamelCase}}: <@@IF@@ condition="is_primary_key EQUALS 'true'">Generated<number><@@ELSE@@><@@IF@@ condition="value EQUALS 'created_at'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="value EQUALS 'updated_at'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="value EQUALS 'deleted_at'">ColumnType<Date | null, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">number<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'string'">string<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'Date'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@>string</@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@>;<@@IF@@ condition="is_nullable EQUALS 'YES'"> // nullable</@@IF@@></@@LOOP@@>
+}
+@/LOOP --separator="\n"
+
+// Database interface combining all tables
+export interface Database {
+@LOOP(tables)
+  {{tableNameSnakeCaseSingular}}: {{tableNamePascalCaseSingular}}Table;
+@/LOOP --separator="\n"
+}
+
+// Export types for select/insert operations
+@LOOP(tables)
+export type {{tableNamePascalCaseSingular}} = Selectable<{{tableNamePascalCaseSingular}}Table>;
+export type New{{tableNamePascalCaseSingular}} = Insertable<{{tableNamePascalCaseSingular}}Table>;
+export type {{tableNamePascalCaseSingular}}Update = Updateable<{{tableNamePascalCaseSingular}}Table>;
+@/LOOP --separator="\n"

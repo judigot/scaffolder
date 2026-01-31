@@ -1,0 +1,9 @@
+# ORM Schema - Prisma
+# Generates Prisma schema file from database schema definition
+#
+# Prisma uses a declarative schema format with:
+# - generator: Prisma Client configuration
+# - datasource: Database connection
+# - model: Table definitions with fields and attributes
+
+CREATE_FILE(schema.prisma --template ./templates/schema.prisma.txt --data-source=/Constants/typeMappings.yaml):

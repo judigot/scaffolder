@@ -19,10 +19,10 @@ api:
   CREATE_FILE(index.ts --template ./templates/api-index.txt):
   db:
     CREATE_FILE(index.ts --template ./templates/db-index.txt):
-    CREATE_FILE(schema.ts --template ./templates/db-schema.txt --data-source=./constants/typeMappings.yaml):
+    CREATE_FILE(schema.ts --template ./templates/db-schema.txt --data-source=/Constants/typeMappings.yaml):
     CREATE_FILE(seed.ts --template ./templates/db-seed.txt):
   routes:
-    FILE_LOOP({{tableNameCamelCaseSingular}}.ts --template ./templates/route.txt --data-source=./constants/typeMappings.yaml):
+    FILE_LOOP({{tableNameCamelCaseSingular}}.ts --template ./templates/route.txt --data-source=/Constants/typeMappings.yaml):
 
 # Frontend source - imports reusable hooks, interfaces, services
 src:

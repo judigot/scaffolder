@@ -1,0 +1,14 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+@LOOP(tables)
+model {{tableNamePascalCaseSingular}} {
+<@@LOOP@@ data="columnsInfo" separator="\n">  {{valueCamelCase}} <@@IF@@ condition="is_primary_key EQUALS 'true'">BigInt @id @default(autoincrement())<@@ELSE@@><@@IF@@ condition="value EQUALS 'email'">String @db.VarChar(255)<@@ELSE@@><@@IF@@ condition="value EQUALS 'password'">String @db.Char(60)<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">BigInt</@@IF@@><@@IF@@ condition="data_type EQUALS 'string'">String</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">Boolean</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">DateTime @default(now()) @db.Timestamptz(6)</@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@><@@IF@@ condition="is_nullable EQUALS 'YES'">?</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'"></@@IF@@></@@ELSE@@></@@IF@@></@@LOOP@@>
+}
+@/LOOP --separator="\n"

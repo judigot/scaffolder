@@ -1,9 +1,23 @@
+# Comprehensive Type Mappings - Single Source of Truth
+# Database types, language primitives, ORMs, and introspection mappings
+
 string:
   info:
     group: 'Common Types'
-  mysql: 'VARCHAR (32)'
+  # Database types
+  mysql: 'VARCHAR(255)'
   postgresql: 'TEXT'
+  # Language primitives
   typescript: 'string'
+  zod: 'string'
+  # ORM type identifiers
+  drizzle: 'text'
+  prisma: 'String'
+  typeorm: 'text'
+  mikroorm: 'text'
+  knex: 'text'
+  kysely: 'text'
+  # Introspection mappings
   postgresql-introspected:
     - 'text'
     - 'character varying'
@@ -17,8 +31,6 @@ string:
     - 'nvarchar'
     - 'nvarchar2'
     - 'citext'
-    - 'json'
-    - 'jsonb'
   mysql-introspected:
     - 'text'
     - 'varchar'
@@ -27,7 +39,6 @@ string:
     - 'tinytext'
     - 'mediumtext'
     - 'longtext'
-    - 'json'
 
 number:
   info:
@@ -35,6 +46,13 @@ number:
   mysql: 'BIGINT'
   postgresql: 'BIGINT'
   typescript: 'number'
+  zod: 'number'
+  drizzle: 'bigint'
+  prisma: 'BigInt'
+  typeorm: 'bigint'
+  mikroorm: 'bigint'
+  knex: 'bigint'
+  kysely: 'int8'
   postgresql-introspected:
     - 'bigint'
     - 'int8'
@@ -61,6 +79,13 @@ float:
   mysql: 'DECIMAL(10, 2)'
   postgresql: 'NUMERIC(10, 2)'
   typescript: 'number'
+  zod: 'number'
+  drizzle: 'numeric'
+  prisma: 'Decimal'
+  typeorm: 'numeric'
+  mikroorm: 'numeric'
+  knex: 'decimal'
+  kysely: 'numeric'
   postgresql-introspected:
     - 'numeric'
     - 'decimal'
@@ -82,6 +107,13 @@ boolean:
   mysql: 'BOOLEAN'
   postgresql: 'BOOLEAN'
   typescript: 'boolean'
+  zod: 'boolean'
+  drizzle: 'boolean'
+  prisma: 'Boolean'
+  typeorm: 'boolean'
+  mikroorm: 'boolean'
+  knex: 'boolean'
+  kysely: 'boolean'
   postgresql-introspected:
     - 'boolean'
     - 'bool'
@@ -95,6 +127,13 @@ Date:
   mysql: 'TIMESTAMP(6)'
   postgresql: 'TIMESTAMPTZ(6)'
   typescript: 'Date'
+  zod: 'string'
+  drizzle: 'timestamp'
+  prisma: 'DateTime'
+  typeorm: 'timestamptz'
+  mikroorm: 'timestamptz'
+  knex: 'timestamp'
+  kysely: 'timestamptz'
   postgresql-introspected:
     - 'timestamp with time zone'
     - 'timestamptz'
@@ -119,6 +158,13 @@ primaryKey:
   mysql: 'BIGINT PRIMARY KEY AUTO_INCREMENT'
   postgresql: 'BIGSERIAL PRIMARY KEY'
   typescript: 'number'
+  zod: 'number'
+  drizzle: 'bigserial'
+  prisma: 'BigInt'
+  typeorm: 'bigint'
+  mikroorm: 'bigint'
+  knex: 'bigIncrements'
+  kysely: 'bigserial'
   postgresql-introspected:
     - 'bigint'
     - 'serial'
@@ -142,6 +188,13 @@ foreignKey:
   mysql: 'BIGINT'
   postgresql: 'BIGINT'
   typescript: 'number'
+  zod: 'number'
+  drizzle: 'bigint'
+  prisma: 'BigInt'
+  typeorm: 'bigint'
+  mikroorm: 'bigint'
+  knex: 'bigint'
+  kysely: 'int8'
   postgresql-introspected:
     - 'bigint'
     - 'serial'
@@ -165,11 +218,125 @@ password:
   mysql: 'CHAR(60)'
   postgresql: 'CHAR(60)'
   typescript: 'string'
+  zod: 'string().min(8)'
+  drizzle: 'char'
+  prisma: 'String'
+  typeorm: 'char'
+  mikroorm: 'char'
+  knex: 'specificType'
+  kysely: 'char'
   postgresql-introspected:
     - 'character'
     - 'char'
   mysql-introspected:
     - 'char(60)'
+
+email:
+  info:
+    group: 'Templates'
+  mysql: 'VARCHAR(255)'
+  postgresql: 'VARCHAR(255)'
+  typescript: 'string'
+  zod: 'string().email'
+  drizzle: 'varchar'
+  prisma: 'String'
+  typeorm: 'varchar'
+  mikroorm: 'varchar'
+  knex: 'string'
+  kysely: 'varchar'
+  postgresql-introspected:
+    - 'varchar'
+    - 'character varying'
+    - 'text'
+  mysql-introspected:
+    - 'varchar'
+    - 'text'
+
+phone:
+  info:
+    group: 'Templates'
+  mysql: 'VARCHAR(20)'
+  postgresql: 'VARCHAR(20)'
+  typescript: 'string'
+  zod: 'string'
+  drizzle: 'varchar'
+  prisma: 'String'
+  typeorm: 'varchar'
+  mikroorm: 'varchar'
+  knex: 'string'
+  kysely: 'varchar'
+  postgresql-introspected:
+    - 'varchar'
+    - 'character varying'
+    - 'text'
+  mysql-introspected:
+    - 'varchar'
+    - 'text'
+
+uuid:
+  info:
+    group: 'Templates'
+  mysql: 'CHAR(36)'
+  postgresql: 'UUID'
+  typescript: 'string'
+  zod: 'string().uuid'
+  drizzle: 'uuid'
+  prisma: 'String'
+  typeorm: 'uuid'
+  mikroorm: 'uuid'
+  knex: 'uuid'
+  kysely: 'uuid'
+  postgresql-introspected:
+    - 'uuid'
+    - 'char'
+    - 'character'
+  mysql-introspected:
+    - 'char'
+    - 'varchar'
+
+created_at:
+  info:
+    group: 'Templates'
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
+  typescript: 'Date'
+  zod: 'string'
+  drizzle: 'timestamp'
+  prisma: 'DateTime'
+  typeorm: 'timestamptz'
+  mikroorm: 'timestamptz'
+  knex: 'timestamp'
+  kysely: 'timestamptz'
+  postgresql-introspected:
+    - 'timestamp with time zone'
+    - 'timestamptz'
+    - 'timestamp'
+    - 'timestamp without time zone'
+  mysql-introspected:
+    - 'timestamp'
+    - 'datetime'
+
+updated_at:
+  info:
+    group: 'Templates'
+  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)'
+  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
+  typescript: 'Date'
+  zod: 'string'
+  drizzle: 'timestamp'
+  prisma: 'DateTime'
+  typeorm: 'timestamptz'
+  mikroorm: 'timestamptz'
+  knex: 'timestamp'
+  kysely: 'timestamptz'
+  postgresql-introspected:
+    - 'timestamp with time zone'
+    - 'timestamptz'
+    - 'timestamp'
+    - 'timestamp without time zone'
+  mysql-introspected:
+    - 'timestamp'
+    - 'datetime'
 
 deleted_at:
   info:
@@ -177,6 +344,13 @@ deleted_at:
   mysql: 'TIMESTAMP(6)'
   postgresql: 'TIMESTAMPTZ(6)'
   typescript: 'Date'
+  zod: 'string'
+  drizzle: 'timestamp'
+  prisma: 'DateTime'
+  typeorm: 'timestamptz'
+  mikroorm: 'timestamptz'
+  knex: 'timestamp'
+  kysely: 'timestamptz'
   postgresql-introspected:
     - 'timestamp with time zone'
     - 'timestamptz'
@@ -195,84 +369,19 @@ deleted_at:
     - 'datetime'
     - 'year'
 
-email:
-  info:
-    group: 'Templates'
-  mysql: 'VARCHAR(255)'
-  postgresql: 'VARCHAR(255)'
-  typescript: 'string'
-  postgresql-introspected:
-    - 'varchar'
-    - 'character varying'
-    - 'text'
-  mysql-introspected:
-    - 'varchar'
-    - 'text'
-
-phone:
-  info:
-    group: 'Templates'
-  mysql: 'VARCHAR(20)'
-  postgresql: 'VARCHAR(20)'
-  typescript: 'string'
-  postgresql-introspected:
-    - 'varchar'
-    - 'character varying'
-    - 'text'
-  mysql-introspected:
-    - 'varchar'
-    - 'text'
-
-uuid:
-  info:
-    group: 'Templates'
-  mysql: 'CHAR(36)'
-  postgresql: 'UUID'
-  typescript: 'string'
-  postgresql-introspected:
-    - 'uuid'
-    - 'char'
-    - 'character'
-  mysql-introspected:
-    - 'char'
-    - 'varchar'
-
-created_at:
-  info:
-    group: 'Templates'
-  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)'
-  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
-  typescript: 'Date'
-  postgresql-introspected:
-    - 'timestamp with time zone'
-    - 'timestamptz'
-    - 'timestamp'
-    - 'timestamp without time zone'
-  mysql-introspected:
-    - 'timestamp'
-    - 'datetime'
-
-updated_at:
-  info:
-    group: 'Templates'
-  mysql: 'TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)'
-  postgresql: 'TIMESTAMPTZ(6) DEFAULT NOW()'
-  typescript: 'Date'
-  postgresql-introspected:
-    - 'timestamp with time zone'
-    - 'timestamptz'
-    - 'timestamp'
-    - 'timestamp without time zone'
-  mysql-introspected:
-    - 'timestamp'
-    - 'datetime'
-
 slug:
   info:
     group: 'Templates'
   mysql: 'VARCHAR(255)'
   postgresql: 'VARCHAR(255)'
   typescript: 'string'
+  zod: 'string'
+  drizzle: 'varchar'
+  prisma: 'String'
+  typeorm: 'varchar'
+  mikroorm: 'varchar'
+  knex: 'string'
+  kysely: 'varchar'
   postgresql-introspected:
     - 'varchar'
     - 'character varying'
@@ -287,6 +396,13 @@ status:
   mysql: "ENUM('active', 'inactive', 'pending')"
   postgresql: "VARCHAR(20) CHECK (status IN ('active', 'inactive', 'pending'))"
   typescript: 'string'
+  zod: "enum(['active', 'inactive', 'pending'])"
+  drizzle: 'varchar'
+  prisma: 'String'
+  typeorm: 'varchar'
+  mikroorm: 'varchar'
+  knex: 'string'
+  kysely: 'varchar'
   postgresql-introspected:
     - 'varchar'
     - 'character varying'
@@ -302,6 +418,13 @@ monetary:
   mysql: 'DECIMAL(19, 4)'
   postgresql: 'NUMERIC(19, 4)'
   typescript: 'number'
+  zod: 'number'
+  drizzle: 'numeric'
+  prisma: 'Decimal'
+  typeorm: 'numeric'
+  mikroorm: 'numeric'
+  knex: 'decimal'
+  kysely: 'numeric'
   postgresql-introspected:
     - 'numeric'
     - 'decimal'
@@ -309,6 +432,47 @@ monetary:
   mysql-introspected:
     - 'decimal'
     - 'numeric'
+
+json:
+  info:
+    group: 'Common Types'
+  mysql: 'JSON'
+  postgresql: 'JSONB'
+  typescript: 'Record<string, unknown>'
+  zod: 'record(string(), unknown())'
+  drizzle: 'jsonb'
+  prisma: 'Json'
+  typeorm: 'jsonb'
+  mikroorm: 'jsonb'
+  knex: 'jsonb'
+  kysely: 'jsonb'
+  postgresql-introspected:
+    - 'json'
+    - 'jsonb'
+  mysql-introspected:
+    - 'json'
+
+text:
+  info:
+    group: 'Common Types'
+  mysql: 'TEXT'
+  postgresql: 'TEXT'
+  typescript: 'string'
+  zod: 'string'
+  drizzle: 'text'
+  prisma: 'String'
+  typeorm: 'text'
+  mikroorm: 'text'
+  knex: 'text'
+  kysely: 'text'
+  postgresql-introspected:
+    - 'text'
+  mysql-introspected:
+    - 'text'
+    - 'mediumtext'
+    - 'longtext'
+
+# Sensitive column patterns (for security filtering)
 # password:
 # hashed_password:
 # api_token:

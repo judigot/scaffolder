@@ -1,0 +1,27 @@
+# Kysely ORM Schema Generator
+# Generates TypeScript type definitions and migrations for Kysely
+#
+# Type definitions use Generated<T> and ColumnType for proper Kysely typing
+# Migrations use the Kysely schema builder API
+
+# Type definitions - single file with all table interfaces
+types:
+  CREATE_FILE(database.ts --template ./templates/types.ts.txt --data-source=/Constants/typeMappings.yaml):
+
+# Migration files with different indexing styles
+migrations:
+  # Simple index (0-based, no padding)
+  simple-index:
+    FILE_LOOP({{index}}_create_{{tableNameSnakeCaseSingular}}.ts --template ./templates/migration.ts.txt --data-source=/Constants/typeMappings.yaml):
+
+  # 1-based index with zero-padding (auto-width)
+  indexed:
+    FILE_LOOP({{index(1)}}_create_{{tableNameSnakeCaseSingular}}.ts --template ./templates/migration.ts.txt --data-source=/Constants/typeMappings.yaml):
+
+  # Zero-padded 3-digit index (1-based)
+  zero-padded-3:
+    FILE_LOOP({{index(1, 3)}}_create_{{tableNameSnakeCaseSingular}}.ts --template ./templates/migration.ts.txt --data-source=/Constants/typeMappings.yaml):
+
+  # Rails-style timestamp
+  timestamp:
+    FILE_LOOP({{timestamp('YYYYMMDDHHmmss')}}_create_{{tableNameSnakeCaseSingular}}.ts --template ./templates/migration.ts.txt --data-source=/Constants/typeMappings.yaml):

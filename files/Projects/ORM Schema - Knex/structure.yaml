@@ -1,0 +1,19 @@
+# ORM Schema - Knex
+# Generates Knex migration files for database schema
+#
+# Uses centralized type mappings from /Constants/typeMappings.yaml
+# Access ORM types via {{typeMappings.number.knex}} pattern
+
+# Migration files with different naming conventions
+migrations:
+  # Timestamp-based (Knex default style)
+  timestamp:
+    FILE_LOOP({{timestamp('YYYYMMDDHHmmss')}}_create_{{tableNameSnakeCaseSingular}}.ts --template ./templates/migration.txt --data-source=/Constants/typeMappings.yaml):
+
+  # Zero-padded index style
+  indexed:
+    FILE_LOOP({{index(1, 3)}}_create_{{tableNameSnakeCaseSingular}}.ts --template ./templates/migration.txt --data-source=/Constants/typeMappings.yaml):
+
+  # Simple index style
+  simple:
+    FILE_LOOP({{index}}_{{tableNameSnakeCaseSingular}}.ts --template ./templates/migration.txt --data-source=/Constants/typeMappings.yaml):

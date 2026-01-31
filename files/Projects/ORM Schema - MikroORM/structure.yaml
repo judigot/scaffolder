@@ -1,0 +1,9 @@
+# ORM Schema - MikroORM
+# Generates MikroORM entity files from database schema
+#
+# Usage: Generates TypeScript entity classes with MikroORM decorators
+# Each table produces a separate entity file
+
+# Entity files - one per table
+entities:
+  FILE_LOOP({{tableNamePascalCaseSingular}}.ts --template ./templates/entity.txt --data-source=/Constants/typeMappings.yaml):
