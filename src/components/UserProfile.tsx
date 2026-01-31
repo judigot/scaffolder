@@ -77,6 +77,39 @@ const createEmptyInfraCredentials = (): IInfraCredentials => ({
   tfcWorkspaces: [],
 });
 
+/**
+ * Type-safe merge for infra credentials. Only copies properties that exist
+ * in IInfraCredentials, ignoring extra keys from the source Record.
+ */
+function mergeInfraCredentials(
+  base: IInfraCredentials,
+  updates: Record<string, string>,
+): IInfraCredentials {
+  return {
+    sshPublicKey:
+      'sshPublicKey' in updates ? updates.sshPublicKey : base.sshPublicKey,
+    sshPrivateKey:
+      'sshPrivateKey' in updates ? updates.sshPrivateKey : base.sshPrivateKey,
+    awsAccessKeyId:
+      'awsAccessKeyId' in updates
+        ? updates.awsAccessKeyId
+        : base.awsAccessKeyId,
+    awsSecretAccessKey:
+      'awsSecretAccessKey' in updates
+        ? updates.awsSecretAccessKey
+        : base.awsSecretAccessKey,
+    awsSessionToken:
+      'awsSessionToken' in updates
+        ? updates.awsSessionToken
+        : base.awsSessionToken,
+    tfcToken: 'tfcToken' in updates ? updates.tfcToken : base.tfcToken,
+    tfcOrg: 'tfcOrg' in updates ? updates.tfcOrg : base.tfcOrg,
+    tfcWorkspace:
+      'tfcWorkspace' in updates ? updates.tfcWorkspace : base.tfcWorkspace,
+    tfcWorkspaces: base.tfcWorkspaces,
+  };
+}
+
 const extractEnvEntriesFromMetadata = (
   metadata: Record<string, unknown> | null | undefined,
 ): IEnvEntry[] => {
@@ -897,8 +930,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
         return;
       }
       setInfraCredentials((prev) => {
-        // eslint-disable-next-line no-type-assertion/no-type-assertion
-        const next = { ...prev, ...fields } as IInfraCredentials;
+        const next = mergeInfraCredentials(prev, fields);
         if (typeof fields.tfcWorkspace === 'string') {
           const merged = normalizeWorkspaceList([
             ...prev.tfcWorkspaces,

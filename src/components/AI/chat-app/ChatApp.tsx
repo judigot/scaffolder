@@ -1,6 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { z } from 'zod';
 import App from '@/App.tsx';
 import { AIChatContainer } from '@/components/AI/AIChatContainer.tsx';
 import { MODEL_OPTIONS, type ModelId } from '@/components/AI/modelOptions.ts';
@@ -48,6 +49,99 @@ import {
   removeHiddenSchemaFromText,
   validateSchemaInfoFromResponse,
 } from '@/utils/schemaInfoValidator.ts';
+
+// API response schemas for type-safe parsing
+const ChatMessageSchema = z.object({
+  id: z.string(),
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+  timestamp: z.string(),
+});
+
+const ChatMetadataSchema = z.object({
+  chatId: z.string(),
+  branch: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  prNumber: z.number().optional(),
+  prTitle: z.string().optional(),
+  prUrl: z.string().optional(),
+  prStatus: z.enum(['draft', 'ready']).nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  messages: z.array(ChatMessageSchema),
+});
+
+const ChatsListResponseSchema = z.object({
+  ok: z.boolean(),
+  chats: z.array(
+    z.object({
+      worktreePath: z.string(),
+      metadata: ChatMetadataSchema,
+    }),
+  ),
+});
+
+const CloneResponseSchema = z.object({
+  ok: z.boolean(),
+  repoPath: z.string().optional(),
+  defaultBranch: z.string().optional(),
+  authType: z.enum(['public', 'github-token']).optional(),
+});
+
+const ErrorResponseSchema = z.object({
+  error: z.string().optional(),
+  details: z.string().optional(),
+});
+
+const WorktreeCreateResponseSchema = z.object({
+  ok: z.boolean(),
+  worktreePath: z.string(),
+  branch: z.string(),
+});
+
+const WorktreeValidationResponseSchema = z.object({
+  valid: z.boolean(),
+  commitCount: z.number(),
+  error: z.string().optional(),
+});
+
+const AgentSessionResponseSchema = z.object({
+  sessionId: z.string().optional(),
+  assistantText: z.string().optional(),
+});
+
+const PostValidationResponseSchema = z.object({
+  valid: z.boolean(),
+  newCommits: z.number(),
+  lastCommitMessage: z.string().optional(),
+  branch: z.string().optional(),
+  branchRenamed: z.boolean().optional(),
+  worktreeRenamed: z.boolean().optional(),
+  newWorktreePath: z.string().optional(),
+});
+
+const PullRequestResponseSchema = z.object({
+  ok: z.boolean(),
+  number: z.number(),
+  title: z.string(),
+  url: z.string(),
+});
+
+function getErrorFromResponse(data: unknown, fallback: string): string {
+  const result = ErrorResponseSchema.safeParse(data);
+  if (result.success) {
+    const details = result.data.details;
+    const error = result.data.error;
+    if (details !== undefined && details !== '') {
+      return details;
+    }
+    if (error !== undefined && error !== '') {
+      return error;
+    }
+  }
+  return fallback;
+}
 
 /**
  * Convert stored repository (from Auth0) to full IRepository with local state
@@ -151,7 +245,6 @@ export default function ChatApp() {
   // Function to load chats from filesystem
   const loadChatsFromFilesystem = useCallback(
     async (repoId: string, repoPath: string) => {
-      // eslint-disable-next-line no-console -- Debug logging for filesystem operations
       console.log(`[ChatApp] Loading chats from filesystem for ${repoId}`);
 
       try {
@@ -168,34 +261,11 @@ export default function ChatApp() {
         });
 
         if (response.ok) {
-          // eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
-          const data = (await response.json()) as {
-            ok: boolean;
-            chats: {
-              worktreePath: string;
-              metadata: {
-                chatId: string;
-                branch: string;
-                title: string;
-                description?: string;
-                prNumber?: number;
-                prTitle?: string;
-                prUrl?: string;
-                prStatus?: 'draft' | 'ready' | null;
-                createdAt: string;
-                updatedAt: string;
-                messages: {
-                  id: string;
-                  role: 'user' | 'assistant';
-                  content: string;
-                  timestamp: string;
-                }[];
-              };
-            }[];
-          };
+          const jsonData: unknown = await response.json();
+          const parseResult = ChatsListResponseSchema.safeParse(jsonData);
 
-          if (data.ok && Array.isArray(data.chats)) {
-            // eslint-disable-next-line no-console -- Debug logging for filesystem operations
+          if (parseResult.success && parseResult.data.ok) {
+            const data = parseResult.data;
             console.log(
               `[ChatApp] Loaded ${String(data.chats.length)} chats from filesystem`,
             );
@@ -235,7 +305,6 @@ export default function ChatApp() {
                     localChat.worktreePath === '',
                 );
 
-                // eslint-disable-next-line no-console -- Debug logging for filesystem operations
                 console.log(
                   `[ChatApp] Merging ${String(chats.length)} filesystem chats with ${String(localChatsWithoutWorktrees.length)} local chats`,
                 );
@@ -267,7 +336,6 @@ export default function ChatApp() {
 
     // Skip if already loaded
     if (loadedReposRef.current.has(activeRepoId)) {
-      // eslint-disable-next-line no-console -- Debug logging for filesystem operations
       console.log(
         `[ChatApp] Skipping load for ${activeRepoId} - already loaded`,
       );
@@ -276,7 +344,6 @@ export default function ChatApp() {
 
     const activeRepo = repositories.find((r) => r.id === activeRepoId);
     if (activeRepo?.localPath === undefined || activeRepo.localPath === '') {
-      // eslint-disable-next-line no-console -- Debug logging for filesystem operations
       console.log(`[ChatApp] Skipping load for ${activeRepoId} - no localPath`);
       return;
     }
@@ -531,29 +598,18 @@ export default function ChatApp() {
     });
 
     if (!response.ok) {
-      // eslint-disable-next-line no-type-assertion/no-type-assertion -- API error response shape
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        details?: string;
-      };
-      const message =
-        (errorData.details !== undefined && errorData.details !== ''
-          ? errorData.details
-          : null) ??
-        (errorData.error !== undefined && errorData.error !== ''
-          ? errorData.error
-          : null) ??
-        'Failed to clone repository';
-      throw new Error(message);
+      const errorData: unknown = await response.json().catch(() => null);
+      throw new Error(
+        getErrorFromResponse(errorData, 'Failed to clone repository'),
+      );
     }
 
-    // eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
-    const cloneData = (await response.json()) as {
-      ok: boolean;
-      repoPath?: string;
-      defaultBranch?: string;
-      authType?: 'public' | 'github-token';
-    };
+    const cloneJson: unknown = await response.json();
+    const cloneResult = CloneResponseSchema.safeParse(cloneJson);
+    if (!cloneResult.success) {
+      throw new Error('Invalid response from clone API');
+    }
+    const cloneData = cloneResult.data;
 
     if (
       !cloneData.ok ||
@@ -626,11 +682,10 @@ export default function ChatApp() {
     });
 
     if (!response.ok) {
-      // eslint-disable-next-line no-type-assertion/no-type-assertion -- API error response shape
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: string;
-      };
-      throw new Error(errorData.error ?? 'Failed to delete local clone');
+      const errorData: unknown = await response.json().catch(() => null);
+      throw new Error(
+        getErrorFromResponse(errorData, 'Failed to delete local clone'),
+      );
     }
 
     // Note: We don't remove the repo from the list, just the local clone
@@ -1066,12 +1121,12 @@ export default function ChatApp() {
           throw new Error('Failed to create worktree');
         }
 
-        // eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
-        const createData = (await createResponse.json()) as {
-          ok: boolean;
-          worktreePath: string;
-          branch: string;
-        };
+        const createJson: unknown = await createResponse.json();
+        const createResult = WorktreeCreateResponseSchema.safeParse(createJson);
+        if (!createResult.success) {
+          throw new Error('Invalid response from worktree create API');
+        }
+        const createData = createResult.data;
 
         if (createData.ok) {
           worktreePath = createData.worktreePath;
@@ -1125,12 +1180,14 @@ export default function ChatApp() {
         });
 
         if (validationResponse.ok) {
-          // eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
-          const validationData = (await validationResponse.json()) as {
-            valid: boolean;
-            commitCount: number;
-            error?: string;
-          };
+          const validationJson: unknown = await validationResponse.json();
+          const validationResult =
+            WorktreeValidationResponseSchema.safeParse(validationJson);
+          if (!validationResult.success) {
+            console.error('Invalid validation response');
+            return;
+          }
+          const validationData = validationResult.data;
           if (!validationData.valid) {
             const errorMessage: IMessage = {
               id: `msg-${String(Date.now() + 1)}`,
@@ -1184,11 +1241,16 @@ export default function ChatApp() {
         return;
       }
 
-      // eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
-      const data = (await response.json()) as {
-        sessionId?: string;
-        assistantText?: string;
-      };
+      const sessionJson: unknown = await response.json();
+      const sessionResult = AgentSessionResponseSchema.safeParse(sessionJson);
+      if (!sessionResult.success) {
+        updateLastAssistantMessage(
+          chatId,
+          'Error: Invalid response from agent',
+        );
+        return;
+      }
+      const data = sessionResult.data;
 
       if (data.sessionId !== undefined && data.sessionId !== '') {
         updateChatSessionId(chatId, data.sessionId);
@@ -1249,16 +1311,13 @@ export default function ChatApp() {
           );
 
           if (postValidationResponse.ok) {
-            // eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
-            const postData = (await postValidationResponse.json()) as {
-              valid: boolean;
-              newCommits: number;
-              lastCommitMessage?: string;
-              branch?: string;
-              branchRenamed?: boolean;
-              worktreeRenamed?: boolean;
-              newWorktreePath?: string;
-            };
+            const postJson: unknown = await postValidationResponse.json();
+            const postResult = PostValidationResponseSchema.safeParse(postJson);
+            if (!postResult.success) {
+              console.error('Invalid post-validation response');
+              return;
+            }
+            const postData = postResult.data;
 
             if (postData.newCommits > 0) {
               console.warn(
@@ -1354,13 +1413,14 @@ export default function ChatApp() {
                   });
 
                   if (prResponse.ok) {
-                    // eslint-disable-next-line no-type-assertion/no-type-assertion -- API response shape from our backend
-                    const prData = (await prResponse.json()) as {
-                      ok: boolean;
-                      number: number;
-                      title: string;
-                      url: string;
-                    };
+                    const prJson: unknown = await prResponse.json();
+                    const prResult =
+                      PullRequestResponseSchema.safeParse(prJson);
+                    if (!prResult.success) {
+                      console.error('Invalid PR response');
+                      return;
+                    }
+                    const prData = prResult.data;
 
                     if (prData.ok) {
                       // Update chat with PR info (branch already updated above)

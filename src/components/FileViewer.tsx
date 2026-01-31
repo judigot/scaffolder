@@ -148,15 +148,16 @@ function FileViewer({
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
 
-  // eslint-disable-next-line no-type-assertion/no-type-assertion
-  const isDevMode = isMasterDeveloper(user?.nickname as string | undefined);
+  const isDevMode = isMasterDeveloper(
+    typeof user?.nickname === 'string' ? user.nickname : undefined,
+  );
   const { editValue, newValue, promptModal, openRandomModal, openModal } =
     useModalStore();
   const { selectedProject } = useProjectStore();
   const { userFiles } = useMockDatabaseStore();
 
   // Validate GitHub URL or shorthand format (user/repo or https://github.com/user/repo)
-  const isValidGitHubURL = (url: string | undefined): boolean => {
+  const isValidGitHubURL = useCallback((url: string | undefined): boolean => {
     if (url === undefined || url === '') {
       return true; // Empty is valid (will use stock)
     }
@@ -167,16 +168,16 @@ function FileViewer({
     // Shorthand format: user/repo (must have exactly one slash, no spaces)
     const shorthandRegex = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
     return shorthandRegex.test(url);
-  };
+  }, []);
 
   // Normalize shorthand (user/repo) to full GitHub URL
-  const normalizeGitHubURL = (url: string): string => {
+  const normalizeGitHubURL = useCallback((url: string): string => {
     if (url === '' || url.startsWith('https://github.com/')) {
       return url;
     }
     // Assume shorthand format
     return `https://github.com/${url}`;
-  };
+  }, []);
 
   // Local state for remote URL input with debounce
   const [inputRemoteURL, setInputRemoteURL] = useState(
@@ -195,8 +196,11 @@ function FileViewer({
     ) {
       setInputRemoteURL(remoteScaffolderURL);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only sync when prop changes, not on inputRemoteURL changes
-  }, [remoteScaffolderURL]);
+  }, [
+    remoteScaffolderURL,
+    inputRemoteURL, // Don't sync back if the input normalizes to the same URL
+    normalizeGitHubURL,
+  ]);
 
   // Update store when debounced value changes and is valid
   useEffect(() => {
@@ -208,7 +212,13 @@ function FileViewer({
       // Normalize shorthand to full URL before passing to store
       onRemoteScaffolderURLChange(normalizeGitHubURL(debouncedRemoteURL));
     }
-  }, [debouncedRemoteURL, remoteScaffolderURL, onRemoteScaffolderURLChange]);
+  }, [
+    debouncedRemoteURL,
+    remoteScaffolderURL,
+    onRemoteScaffolderURLChange,
+    isValidGitHubURL,
+    normalizeGitHubURL,
+  ]);
 
   // Check if there's a URL format error
   const hasURLFormatError = useMemo(() => {
@@ -217,7 +227,7 @@ function FileViewer({
       inputRemoteURL !== '' &&
       !isValidGitHubURL(inputRemoteURL)
     );
-  }, [useLocalScaffolderFiles, inputRemoteURL]);
+  }, [useLocalScaffolderFiles, inputRemoteURL, isValidGitHubURL]);
 
   // Track the last known fetch error to prevent flashing during refetch
   const [stableFetchError, setStableFetchError] = useState<Error | null>(null);
@@ -1605,6 +1615,7 @@ function FileViewer({
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <svg
+                      aria-hidden="true"
                       className="w-5 h-5 text-green-600 dark:text-green-400"
                       fill="none"
                       stroke="currentColor"
@@ -1663,6 +1674,7 @@ function FileViewer({
                     className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-5 h-5"
                       fill="currentColor"
                       viewBox="0 0 24 24"
@@ -1673,6 +1685,7 @@ function FileViewer({
                     </svg>
                     <span>Open Repository</span>
                     <svg
+                      aria-hidden="true"
                       className="w-4 h-4"
                       fill="none"
                       stroke="currentColor"
@@ -1798,6 +1811,7 @@ function FileViewer({
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <svg
+                  aria-hidden="true"
                   className="w-5 h-5 text-green-600 dark:text-green-400"
                   fill="none"
                   stroke="currentColor"
@@ -1852,6 +1866,7 @@ function FileViewer({
                   className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
                 >
                   <svg
+                    aria-hidden="true"
                     className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -1862,6 +1877,7 @@ function FileViewer({
                   </svg>
                   <span>Open Repository</span>
                   <svg
+                    aria-hidden="true"
                     className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
@@ -2027,6 +2043,7 @@ function FileViewer({
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <svg
+                  aria-hidden="true"
                   className="w-5 h-5 text-green-600 dark:text-green-400"
                   fill="none"
                   stroke="currentColor"
@@ -2082,6 +2099,7 @@ function FileViewer({
                   className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
                 >
                   <svg
+                    aria-hidden="true"
                     className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -2092,6 +2110,7 @@ function FileViewer({
                   </svg>
                   <span>Open Repository</span>
                   <svg
+                    aria-hidden="true"
                     className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
@@ -2478,6 +2497,7 @@ function FileViewer({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg
+                aria-hidden="true"
                 className="w-5 h-5 text-red-400 flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 20 20"
@@ -2499,6 +2519,7 @@ function FileViewer({
               aria-label="Dismiss error"
             >
               <svg
+                aria-hidden="true"
                 className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
@@ -2522,6 +2543,7 @@ function FileViewer({
           <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md mb-2 w-fit">
             <div className="flex items-start gap-2">
               <svg
+                aria-hidden="true"
                 className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 20 20"
@@ -2550,6 +2572,7 @@ function FileViewer({
                     className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium rounded-md transition-colors shadow-sm"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-4 h-4"
                       fill="none"
                       stroke="currentColor"
@@ -2571,6 +2594,7 @@ function FileViewer({
                     className="inline-flex items-center gap-1 text-xs text-yellow-300 hover:text-yellow-200 underline"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-3.5 h-3.5"
                       fill="none"
                       stroke="currentColor"
@@ -2661,6 +2685,7 @@ function FileViewer({
                 {isTreeOpen ? 'Hide Files' : 'View Files'}
               </span>
               <svg
+                aria-hidden="true"
                 className={`w-4 h-4 text-content-muted transition-transform ${isTreeOpen ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
@@ -3223,112 +3248,111 @@ function FileViewer({
             </div>
           )}
           {selectedFile ? (
-            <>
-              <div className="flex-1 min-h-0">
-                {isFileContentLoading ? (
-                  <div className="flex items-center justify-center h-full bg-surface p-4">
-                    <div className="text-content">Loading file content...</div>
+            <div className="flex-1 min-h-0">
+              {isFileContentLoading ? (
+                <div className="flex items-center justify-center h-full bg-surface p-4">
+                  <div className="text-content">Loading file content...</div>
+                </div>
+              ) : fileContentError ? (
+                <div className="flex items-center justify-center h-full bg-surface p-4">
+                  <div className="text-red-400">
+                    Error loading file:{' '}
+                    {fileContentError instanceof Error
+                      ? fileContentError.message
+                      : 'Unknown error'}
                   </div>
-                ) : fileContentError ? (
-                  <div className="flex items-center justify-center h-full bg-surface p-4">
-                    <div className="text-red-400">
-                      Error loading file:{' '}
-                      {fileContentError instanceof Error
-                        ? fileContentError.message
-                        : 'Unknown error'}
-                    </div>
-                  </div>
-                ) : isImageFile(selectedFile.name) && fileContent ? (
-                  <div className="flex items-center justify-center h-full bg-surface p-4">
-                    {selectedFile.name.toLowerCase().endsWith('.svg') &&
-                    !fileContent.startsWith('data:') &&
-                    !fileContent.includes('base64') &&
-                    fileContent.trim().startsWith('<') ? (
-                      <div
-                        className="max-h-full max-w-full"
-                        dangerouslySetInnerHTML={{ __html: fileContent }}
-                      />
-                    ) : (
-                      <img
-                        src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${fileContent}`}
-                        alt={selectedFile.name}
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <Editor
-                    height="100%"
-                    defaultValue={selectedFile.content}
-                    value={fileContent}
-                    beforeMount={(monaco) => {
-                      monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
-                        {
-                          noSemanticValidation: true,
-                          noSyntaxValidation: false,
-                        },
-                      );
-                    }}
-                    language={(() => {
-                      const fileExtension: string | undefined =
-                        selectedFile.name.split('.').pop();
-                      if (fileExtension === undefined) {
-                        return 'plaintext';
-                      }
-                      const languageMap: Record<string, string> = {
-                        ts: 'typescript',
-                        js: 'javascript',
-                        php: 'php',
-                        css: 'css',
-                        sass: 'sass',
-                        scss: 'scss',
-                        java: 'java',
-                        sql: 'sql',
-                        txt: 'plaintext',
-                        jsx: 'javascript',
-                        tsx: 'typescript',
-                        html: 'html',
-                        htm: 'html',
-                        xml: 'xml',
-                        json: 'json',
-                        yaml: 'yaml',
-                        yml: 'yaml',
-                        md: 'markdown',
-                        markdown: 'markdown',
-                        sh: 'shell',
-                        bash: 'shell',
-                        zsh: 'shell',
-                        py: 'python',
-                        rb: 'ruby',
-                        go: 'go',
-                        rs: 'rust',
-                        cpp: 'cpp',
-                        c: 'c',
-                        h: 'c',
-                        hpp: 'cpp',
-                        cs: 'csharp',
-                        swift: 'swift',
-                        kt: 'kotlin',
-                        dockerfile: 'dockerfile',
-                        tf: 'hcl',
-                        terraform: 'hcl',
-                      };
-                      return languageMap[fileExtension] ?? 'plaintext';
-                    })()}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: mode === 'view',
-                      domReadOnly: mode === 'view',
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      lineNumbers: 'on',
-                    }}
-                    onChange={handleEditorChange}
-                    onMount={handleEditorDidMount}
-                  />
-                )}
-              </div>
-            </>
+                </div>
+              ) : isImageFile(selectedFile.name) && fileContent ? (
+                <div className="flex items-center justify-center h-full bg-surface p-4">
+                  {selectedFile.name.toLowerCase().endsWith('.svg') &&
+                  !fileContent.startsWith('data:') &&
+                  !fileContent.includes('base64') &&
+                  fileContent.trim().startsWith('<') ? (
+                    <div
+                      className="max-h-full max-w-full"
+                      dangerouslySetInnerHTML={{ __html: fileContent }}
+                    />
+                  ) : (
+                    <img
+                      src={`data:image/${selectedFile.name.split('.').pop() ?? 'png'};base64,${fileContent}`}
+                      alt={selectedFile.name}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  )}
+                </div>
+              ) : (
+                <Editor
+                  height="100%"
+                  defaultValue={selectedFile.content}
+                  value={fileContent}
+                  beforeMount={(monaco) => {
+                    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
+                      {
+                        noSemanticValidation: true,
+                        noSyntaxValidation: false,
+                      },
+                    );
+                  }}
+                  language={(() => {
+                    const fileExtension: string | undefined = selectedFile.name
+                      .split('.')
+                      .pop();
+                    if (fileExtension === undefined) {
+                      return 'plaintext';
+                    }
+                    const languageMap: Record<string, string> = {
+                      ts: 'typescript',
+                      js: 'javascript',
+                      php: 'php',
+                      css: 'css',
+                      sass: 'sass',
+                      scss: 'scss',
+                      java: 'java',
+                      sql: 'sql',
+                      txt: 'plaintext',
+                      jsx: 'javascript',
+                      tsx: 'typescript',
+                      html: 'html',
+                      htm: 'html',
+                      xml: 'xml',
+                      json: 'json',
+                      yaml: 'yaml',
+                      yml: 'yaml',
+                      md: 'markdown',
+                      markdown: 'markdown',
+                      sh: 'shell',
+                      bash: 'shell',
+                      zsh: 'shell',
+                      py: 'python',
+                      rb: 'ruby',
+                      go: 'go',
+                      rs: 'rust',
+                      cpp: 'cpp',
+                      c: 'c',
+                      h: 'c',
+                      hpp: 'cpp',
+                      cs: 'csharp',
+                      swift: 'swift',
+                      kt: 'kotlin',
+                      dockerfile: 'dockerfile',
+                      tf: 'hcl',
+                      terraform: 'hcl',
+                    };
+                    return languageMap[fileExtension] ?? 'plaintext';
+                  })()}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: mode === 'view',
+                    domReadOnly: mode === 'view',
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                  }}
+                  onChange={handleEditorChange}
+                  onMount={handleEditorDidMount}
+                />
+              )}
+            </div>
           ) : hasError ? (
             <div className="flex flex-col h-full">
               <div className="p-4">

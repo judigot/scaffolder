@@ -27,6 +27,7 @@ import {
   isITableArray,
 } from '@/interfaces/interfaces.ts';
 import { useVercelChat } from '@/lib/chat/index.ts';
+import { getErrorMessage } from '@/schemas/apiResponses.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useProjectStore } from '@/useProjectStore.ts';
@@ -107,8 +108,10 @@ function ChatMessage({ message }: IChatMessageProps) {
                             fontSize: 'var(--font-size-sm)',
                           }}
                         >
-                          {/* eslint-disable-next-line @typescript-eslint/no-base-to-string */}
-                          {String(children).replace(/\n$/, '')}
+                          {(typeof children === 'string'
+                            ? children
+                            : ''
+                          ).replace(/\n$/, '')}
                         </SyntaxHighlighter>
                       ) : (
                         <code
@@ -299,8 +302,8 @@ export function ModelSelector({
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current !== null &&
-        // eslint-disable-next-line no-type-assertion/no-type-assertion
-        !dropdownRef.current.contains(event.target as Node)
+        event.target instanceof Node &&
+        !dropdownRef.current.contains(event.target)
       ) {
         setIsOpen(false);
       }
@@ -376,8 +379,9 @@ export function ModelSelector({
       {isOpen && (
         <>
           {/* Mobile backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/50 md:hidden cursor-default"
             onClick={() => {
               setIsOpen(false);
             }}
@@ -386,8 +390,6 @@ export function ModelSelector({
                 setIsOpen(false);
               }
             }}
-            role="button"
-            tabIndex={0}
             aria-label="Close dropdown"
           />
           <div className="fixed inset-x-0 bottom-0 z-50 bg-secondary border-t border-border rounded-t-2xl p-4 md:absolute md:inset-auto md:left-0 md:bottom-full md:mb-2 md:w-44 md:rounded-lg md:border md:p-0 md:shadow-lg overflow-hidden">
@@ -745,11 +747,10 @@ function IntrospectorPanel() {
       });
 
       if (!response.ok) {
-        // eslint-disable-next-line no-type-assertion/no-type-assertion
-        const errorData = (await response.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        throw new Error(errorData.error ?? 'Failed to introspect database');
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(
+          getErrorMessage(errorData, 'Failed to introspect database'),
+        );
       }
 
       const jsonData: unknown = await response.json();
@@ -1047,10 +1048,7 @@ export function AIChatContainer({
     // Auto-select first project if none selected (scaffolder mode only)
     if (isScaffolderRepo && projects.length > 0 && selectedProject === null) {
       const firstProject = projects[0];
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (firstProject !== undefined) {
-        selectProject(firstProject);
-      }
+      selectProject(firstProject);
     }
   }, [projects, selectedProject, selectProject, isScaffolderRepo]);
 
