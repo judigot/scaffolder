@@ -106,7 +106,9 @@ function compareSchemas(
 }
 
 function main() {
-  console.log('\n=== ORM Schema Comparison ===\n');
+  console.log(`
+=== ORM Schema Comparison ===
+`);
 
   // Load all result files
   const results: Map<string, SchemaResult> = new Map();
@@ -145,7 +147,8 @@ function main() {
   for (const [orm, result] of results) {
     if (orm === 'raw') continue;
 
-    console.log(`\n--- ${orm.toUpperCase()} vs RAW SQL ---`);
+    console.log(`
+--- ${orm.toUpperCase()} vs RAW SQL ---`);
 
     const differences = compareSchemas(baseline.tables, result.tables, 'raw', orm);
 
@@ -159,7 +162,8 @@ function main() {
     }
   }
 
-  console.log('\n=== Summary ===');
+  console.log(`
+=== Summary ===`);
   console.log(`Total ORMs compared: ${results.size - 1}`);
   console.log(`Total differences: ${totalDifferences}`);
 
