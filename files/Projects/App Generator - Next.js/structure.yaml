@@ -44,3 +44,6 @@ src:
     - CREATE_FILE(useQueryInstance.ts --template /Templates/frontend/nextjs/vendor/useQueryInstance.txt)
   interfaces:
     - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
+
+# API test script
+CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):

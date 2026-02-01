@@ -2,6 +2,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { getReplacementsForAuth } from '@/utils/project-builder/template-processors/getReplacementsForAuth.ts';
 
 /**
  * Creates a helper function to support dynamic separators
@@ -65,6 +66,12 @@ export const getReplacementsForTable = (
   const foreignTables = schemaInfoParsed.getForeignTables(table.tableName);
   const hiddenColumns = schemaInfoParsed.getHiddenColumns(table.tableName);
   const childTables = schemaInfoParsed.getChildTables(table.tableName);
+
+  // Auth resource detection
+  const isAuthResource = table.isAuthResource === true;
+  const ownerField = table.ownerField ?? '';
+  const ownerFieldCamelCase = ownerField ? changeCase(ownerField).camelCase : '';
+
   const columnInfoNames = schemaInfoParsed
     .getColumnsInfo(table.tableName)
     .map((col) => col.column_name);
@@ -77,8 +84,76 @@ export const getReplacementsForTable = (
   const belongsToManyRelationships =
     schemaInfoParsed.getRelationships(table.tableName).belongsToMany ?? [];
 
+  // Get primary key and its camelCase version
+  const primaryKey = schemaInfoParsed.getPrimaryKey(table.tableName);
+  const primaryKeyCamelCase = primaryKey
+    ? changeCase(primaryKey).camelCase
+    : '';
+
+  // Generate sample payloads for API testing
+  // @deprecated Use DSL operators (CONTAINS, ENDS_WITH, STARTS_WITH, --filter) instead.
+  // These functions will be removed in a future version.
+  // Example filter: <@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND NOT value ENDS_WITH '_at'">
+  const columnsInfo = schemaInfoParsed.getColumnsInfo(table.tableName);
+  const foreignTablesList = schemaInfoParsed.getForeignTables(table.tableName);
+  const generatePayload = (isUpdate: boolean): string => {
+    const payload: Record<string, unknown> = {};
+    for (const col of columnsInfo) {
+      // Skip primary key
+      if (col.column_name === primaryKey) {
+        continue;
+      }
+      // Skip auto-generated timestamp columns
+      if (
+        col.column_name.endsWith('_at') ||
+        col.column_name === 'created_at' ||
+        col.column_name === 'updated_at' ||
+        col.column_name === 'deleted_at'
+      ) {
+        continue;
+      }
+
+      const camelName = changeCase(col.column_name).camelCase;
+      const prefix = isUpdate ? 'Updated ' : 'Test ';
+
+      // Check if this is a foreign key column (ends with _id and references another table)
+      const isForeignKey =
+        col.column_name.endsWith('_id') &&
+        foreignTablesList.some(
+          (ft) =>
+            col.column_name === `${ft}_id` ||
+            col.column_name === `${changeCase(ft).snakeCase}_id`,
+        );
+
+      // Generate sample value based on type
+      if (
+        isForeignKey ||
+        col.data_type.includes('int') ||
+        col.data_type === 'serial'
+      ) {
+        payload[camelName] = 1;
+      } else if (col.data_type.includes('bool')) {
+        payload[camelName] = true;
+      } else if (
+        col.data_type.includes('numeric') ||
+        col.data_type.includes('decimal') ||
+        col.data_type.includes('float') ||
+        col.data_type.includes('double')
+      ) {
+        payload[camelName] = 9.99;
+      } else {
+        payload[camelName] = `${prefix}${camelName}`;
+      }
+    }
+    return JSON.stringify(payload);
+  };
+
+  // Get auth-related replacements (project-level)
+  const authReplacements = getReplacementsForAuth(schemaInfoParsed.schema);
+
   // Create base replacements object
   const baseReplacements: Replacements = {
+    ...authReplacements,
     tableNamePascalCase: caseFormats.pascalCase,
     tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
     tableNameKebabCasePlural: caseFormats.kebabCasePlural,
@@ -93,6 +168,7 @@ export const getReplacementsForTable = (
     tableNameCamelCase: caseFormats.camelCase,
     tableNameKebabCase: caseFormats.kebabCase,
     tableNameSnakeCase: caseFormats.snakeCase,
+    tableNameUpperCase: caseFormats.snakeCase.toUpperCase(),
     tableNameTitleCasePlural: caseFormats.titleCasePlural,
     tableNameSentenceCasePlural: caseFormats.sentenceCasePlural,
     tableNamePhraseCasePlural: caseFormats.phraseCasePlural,
@@ -103,7 +179,11 @@ export const getReplacementsForTable = (
     tableNamePhraseCaseSingular: caseFormats.phraseCaseSingular,
     tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
     tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
-    'getPrimaryKey()': schemaInfoParsed.getPrimaryKey(table.tableName),
+    'getPrimaryKey()': primaryKey,
+    'getPrimaryKeyCamelCase()': primaryKeyCamelCase,
+    primaryKey: primaryKeyCamelCase,
+    createPayload: generatePayload(false),
+    updatePayload: generatePayload(true),
     'getRequiredColumns()': requiredColumns,
     'getAllColumns()': allColumns,
     'getForeignTables()': foreignTables,
@@ -111,6 +191,11 @@ export const getReplacementsForTable = (
     'getColumnsInfoNames()': columnInfoNames,
     'getChildTables()': childTables,
     'isPivot()': String(schemaInfoParsed.isPivot(table.tableName)),
+    // Auth resource template variables
+    isAuthResource: String(isAuthResource),
+    'isAuthResource()': String(isAuthResource),
+    ownerField,
+    ownerFieldCamelCase,
     'hasOneRelationships()': hasOneRelationships,
     'hasManyRelationships()': hasManyRelationships,
     'belongsToRelationships()': belongsToRelationships,

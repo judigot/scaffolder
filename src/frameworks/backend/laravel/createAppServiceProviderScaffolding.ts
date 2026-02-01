@@ -63,7 +63,6 @@ class AppServiceProvider extends ServiceProvider
 
   const importStatements = schemaInfo
     .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map(({ tableName }) => {
@@ -76,7 +75,6 @@ class AppServiceProvider extends ServiceProvider
 
   const bindStatements = schemaInfo
     .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
     )
     .map(({ tableName }) => {

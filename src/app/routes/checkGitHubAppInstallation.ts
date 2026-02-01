@@ -117,12 +117,6 @@ router.post('/', async (c) => {
         throw userError instanceof Error ? userError : orgError;
       }
     }
-
-    /* Fallback: not installed */
-    return c.json({
-      installed: false,
-      message: 'GitHub App is not installed',
-    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       return c.json(
@@ -144,4 +138,3 @@ router.post('/', async (c) => {
 });
 
 export default router;
-

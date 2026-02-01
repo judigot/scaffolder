@@ -1,0 +1,50 @@
+/**
+ * Test MikroORM migrations
+ * 1. Clean database
+ * 2. Run MikroORM schema generator
+ * 3. Export schema to results/mikroorm_result.json
+ */
+
+import { MikroORM } from '@mikro-orm/postgresql';
+import { cleanDatabase, exportSchema, writeResult } from './db-utils.ts';
+import config from '../src/mikroorm/config.ts';
+
+const ORM_NAME = 'mikroorm';
+
+async function main() {
+  console.log(`\n=== Testing ${ORM_NAME.toUpperCase()} ===`);
+
+  // Step 1: Clean database
+  console.log('1. Cleaning database...');
+  await cleanDatabase();
+
+  // Step 2: Initialize MikroORM and create schema
+  console.log('2. Running MikroORM schema generator...');
+  let orm: MikroORM | null = null;
+  try {
+    orm = await MikroORM.init(config);
+    const generator = orm.getSchemaGenerator();
+    await generator.createSchema();
+    console.log('  MikroORM migration completed');
+  } finally {
+    if (orm) {
+      await orm.close();
+    }
+  }
+
+  // Step 3: Export schema
+  console.log('3. Exporting schema...');
+  const result = await exportSchema(ORM_NAME);
+  console.log(`  Found ${result.tables.length} tables`);
+
+  // Step 4: Write result
+  console.log('4. Writing result...');
+  writeResult(result);
+
+  console.log(`\n${ORM_NAME.toUpperCase()} test completed successfully!\n`);
+}
+
+main().catch((err) => {
+  console.error(`${ORM_NAME.toUpperCase()} test failed:`, err);
+  process.exit(1);
+});

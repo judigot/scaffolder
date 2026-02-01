@@ -2,8 +2,13 @@
 # Preload happy-dom for DOM testing
 preload = ["./bun-test-setup.ts"]
 
-# Test timeout (10 seconds)
-timeout = 10000
+# Test timeout (30 seconds for build tests)
+timeout = 30000
+
+# Only scan src directory for tests (excludes e2e/, .vercel/, .worktrees/)
+root = "./src"
+
+# Note: Tests using vi.mock() are named *.vitest-only.tsx and skipped by bun
 
 # Coverage configuration
 coverageSkipTestFiles = true

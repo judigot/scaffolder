@@ -25,6 +25,7 @@ import masterSchema from '@/schema-infos/masterSchema.ts';
 export const frameworks = {
   LARAVEL: 'Laravel',
   NEXTJS: 'Next.js',
+  HONO: 'hono',
   // SPRING_BOOT: 'Spring Boot',
 } as const;
 

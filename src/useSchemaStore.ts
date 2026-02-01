@@ -45,22 +45,34 @@ interface ISchemaStore {
   generateDuplicateName: (originalName: string) => string;
 }
 
+function isSchemaInfoLike(
+  item: unknown,
+): item is { tableName: unknown; columnsInfo: unknown } {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'tableName' in item &&
+    'columnsInfo' in item
+  );
+}
+
+function isValidSchemaInfo(item: {
+  tableName: unknown;
+  columnsInfo: unknown;
+}): item is ISchemaInfo {
+  return typeof item.tableName === 'string' && Array.isArray(item.columnsInfo);
+}
+
 const isISchemaInfoArray = (val: unknown): val is ISchemaInfo[] => {
   if (!Array.isArray(val)) {
     return false;
   }
-  return val.every((item): item is ISchemaInfo => {
-    if (typeof item !== 'object' || item === null) {
+  const items: unknown[] = val;
+  return items.every((item: unknown): item is ISchemaInfo => {
+    if (!isSchemaInfoLike(item)) {
       return false;
     }
-    if (!('tableName' in item) || !('columnsInfo' in item)) {
-      return false;
-    }
-    /* eslint-disable-next-line no-type-assertion/no-type-assertion */
-    const tableNameProp = (item as { tableName: unknown }).tableName;
-    /* eslint-disable-next-line no-type-assertion/no-type-assertion */
-    const columnsInfoProp = (item as { columnsInfo: unknown }).columnsInfo;
-    return typeof tableNameProp === 'string' && Array.isArray(columnsInfoProp);
+    return isValidSchemaInfo(item);
   });
 };
 

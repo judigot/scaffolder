@@ -4,7 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-[[LOOP(tables) --separator="\n" --template="use App\Repositories\{{tableNamePascalCaseSingular}}Repository;\nuse App\Repositories\{{tableNamePascalCaseSingular}}Interface;"]]
+<@@LOOP@@ data="tables" separator="\n">use App\Repositories\{{tableNamePascalCaseSingular}}Repository;
+use App\Repositories\{{tableNamePascalCaseSingular}}Interface;</@@LOOP@@>
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        [[LOOP(tables) --separator="\n        " --template="$this->app->bind({{tableNamePascalCaseSingular}}Interface::class, {{tableNamePascalCaseSingular}}Repository::class);"]]
+        <@@LOOP@@ data="tables" separator="\n        ">$this->app->bind({{tableNamePascalCaseSingular}}Interface::class, {{tableNamePascalCaseSingular}}Repository::class);</@@LOOP@@>
     }
 
     /**

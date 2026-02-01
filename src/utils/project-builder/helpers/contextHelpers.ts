@@ -4,7 +4,7 @@ import type {
   IBuildContext,
   IActionFlags,
 } from '../interfaces/interfaces.ts';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IFormStore } from '@/useFormStore.ts';
@@ -39,6 +39,7 @@ export const createContext = (
   options?: IActionFlags,
   onFileUsingUserEnv?: (filePath: string) => void,
   onFileFailedToFormat?: (filePath: string, errorMessage: string) => void,
+  mockData?: ParsedJSONSchema,
 ): IBuildContext => ({
   userFiles,
   schemaInfo,
@@ -46,6 +47,7 @@ export const createContext = (
   projectYamlPath,
   formData,
   userMetadata,
+  mockData,
   table,
   dataContext,
   currentPath,

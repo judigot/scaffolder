@@ -1,5 +1,5 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import type { IFormStore } from '@/useFormStore.ts';
@@ -37,6 +37,7 @@ export interface IBuildContext {
   // Optional form/user data
   readonly formData?: IFormStore;
   readonly userMetadata?: Record<string, unknown> | null;
+  readonly mockData?: ParsedJSONSchema;
 
   // Contextual data (varies per scope)
   readonly table?: ISchemaInfo;

@@ -78,10 +78,7 @@ export const createFillable = (tableInfo: ISchemaInfo): string => {
 
 const createModels = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
-    )
+    .filter(({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot))
     .map((tableInfo) => {
       const { tableName, columnsInfo } = tableInfo;
       const { pascalCase: className } = changeCase(tableName);

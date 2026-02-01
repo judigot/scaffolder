@@ -199,6 +199,10 @@ export const getTypeMapping = (
   const typeMappings = getTypeMappings();
 
   if (primary_key) {
+    // Use stringPrimaryKey for string/text primary keys (e.g., Lucia auth)
+    if (data_type === 'string') {
+      return getTypeMappingValue(typeMappings, 'stringPrimaryKey', columnType);
+    }
     return getTypeMappingValue(typeMappings, 'primaryKey', columnType);
   }
 

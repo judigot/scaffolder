@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
+import { z } from 'zod';
 import {
   createOpenCodeAdapter,
   type IChatMessage,
   useChatSession,
 } from '@/lib/chat/index.ts';
+
+const OpenCodeHealthSchema = z.object({
+  connected: z.boolean(),
+  url: z.string().optional(),
+  version: z.string().optional(),
+  directory: z.string().optional(),
+  error: z.string().optional(),
+});
 
 interface IOpenCodeHealth {
   connected: boolean;
@@ -94,15 +103,20 @@ export default function OpenCodeChatPanel({
         setHealth({ connected: false, error: errorText });
         return;
       }
-      // eslint-disable-next-line no-type-assertion/no-type-assertion
-      const data = (await response.json()) as IOpenCodeHealth;
-      setHealth(data);
-      if (
-        directory === '' &&
-        data.directory !== undefined &&
-        data.directory !== ''
-      ) {
-        setDirectory(data.directory);
+
+      const json: unknown = await response.json();
+      const result = OpenCodeHealthSchema.safeParse(json);
+      if (result.success) {
+        setHealth(result.data);
+        if (
+          directory === '' &&
+          result.data.directory !== undefined &&
+          result.data.directory !== ''
+        ) {
+          setDirectory(result.data.directory);
+        }
+      } else {
+        setHealth({ connected: false, error: 'Invalid response format' });
       }
     } catch (error) {
       const message =

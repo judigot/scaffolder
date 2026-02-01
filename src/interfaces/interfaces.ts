@@ -34,20 +34,32 @@ export interface IColumnInfo {
   };
 }
 
+/**
+ * Table metadata interface.
+ *
+ * NOTE: When adding new properties that reference other tables or columns,
+ * update validateSchemaInfo.ts to validate them.
+ *
+ * Table references (validated): foreignTables, childTables, hasOne, hasMany,
+ *   belongsTo, belongsToMany, pivotRelationships.relatedTable, pivotRelationships.pivotTable
+ * Column references (validated): ownerField, foreignKeys
+ */
 export interface ITableInfo {
   tableName: string;
   viewQuery?: string;
   viewStructure?: string[];
-  foreignTables?: string[]; // One or none
-  childTables?: string[]; // One or none
+  foreignTables?: string[]; // References to other tables
+  childTables?: string[]; // References to other tables
   isPivot?: true;
-  hasOne?: string[]; // One or none
-  hasMany?: string[]; // One or none
-  belongsTo?: string[]; // One or none
-  belongsToMany?: string[]; // One or none
+  isAuthResource?: true; // Table is a descendant of user table
+  ownerField?: string; // Column name in this table's columnsInfo
+  hasOne?: string[]; // References to other tables
+  hasMany?: string[]; // References to other tables
+  belongsTo?: string[]; // References to other tables
+  belongsToMany?: string[]; // References to other tables
   pivotRelationships?: {
-    relatedTable: string;
-    pivotTable: string;
+    relatedTable: string; // Reference to other table
+    pivotTable: string; // Reference to other table
   }[];
 }
 
@@ -70,21 +82,14 @@ export interface IIntrospectedSchemaInfo {
 }
 
 export const isISchemaInfo = (data: unknown): data is ISchemaInfo => {
+  // Only tableName and columnsInfo are required; all other fields are optional
   return (
     typeof data === 'object' &&
     data !== null &&
     'tableName' in data &&
-    'requiredColumns' in data &&
+    typeof data.tableName === 'string' &&
     'columnsInfo' in data &&
-    'foreignTables' in data &&
-    'foreignKeys' in data &&
-    'childTables' in data &&
-    'isPivot' in data &&
-    'hasOne' in data &&
-    'hasMany' in data &&
-    'belongsTo' in data &&
-    'belongsToMany' in data &&
-    'pivotRelationships' in data
+    Array.isArray(data.columnsInfo)
   );
 };
 

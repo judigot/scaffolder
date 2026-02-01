@@ -230,7 +230,6 @@ app.post('/', async (c) => {
                 typeof parsed.properties === 'object' &&
                 parsed.properties !== null
               ) {
-                // eslint-disable-next-line no-type-assertion/no-type-assertion -- Safe after type guard
                 eventProperties = parsed.properties as IEventProps;
               }
               const event: IEvent = {

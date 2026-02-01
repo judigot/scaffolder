@@ -1,22 +1,22 @@
 -- SQL Schema for {{tableNamePascalCase}} table
 CREATE TABLE {{tableNameSnakeCase}} (
   [[ LOOP(columnsInfo) --template="
-  {{valueSnakeCase}} {% IF data_type EQUALS string %}VARCHAR(255){% ENDIF %}{% IF data_type EQUALS number %}INTEGER{% ENDIF %}{% IF data_type EQUALS boolean %}BOOLEAN{% ENDIF %}{% IF data_type EQUALS Date %}TIMESTAMP{% ENDIF %}{% IF is_nullable EQUALS 'NO' %} NOT NULL{% ENDIF %}{% IF column_default IS NOT NULL %} DEFAULT {{column_default}}{% ENDIF %}{% IF primary_key IS TRUE %} PRIMARY KEY{% ENDIF %}{% IF unique IS TRUE %} UNIQUE{% ENDIF %}," --separator="\n  " ]]
-  
+  {{valueSnakeCase}} <@@IF@@ condition="data_type EQUALS string">VARCHAR(255)</@@IF@@><@@IF@@ condition="data_type EQUALS number">INTEGER</@@IF@@><@@IF@@ condition="data_type EQUALS boolean">BOOLEAN</@@IF@@><@@IF@@ condition="data_type EQUALS Date">TIMESTAMP</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'"> NOT NULL</@@IF@@><@@IF@@ condition="column_default IS NOT NULL"> DEFAULT {{column_default}}</@@IF@@><@@IF@@ condition="primary_key IS TRUE"> PRIMARY KEY</@@IF@@><@@IF@@ condition="unique IS TRUE"> UNIQUE</@@IF@@>," --separator="\n  " ]]
+
   -- Foreign key constraints
   [[ LOOP(columnsInfo) --template="
-  {% IF foreign_key EXISTS %}FOREIGN KEY ({{valueSnakeCase}}) REFERENCES {{foreign_table}}({{foreign_column}}),{% ENDIF %}" --separator="\n  " ]]
-  
+  <@@IF@@ condition="foreign_key EXISTS">FOREIGN KEY ({{valueSnakeCase}}) REFERENCES {{foreign_table}}({{foreign_column}}),</@@IF@@>" --separator="\n  " ]]
+
   -- Timestamp columns
   [[ LOOP(columnsInfo) --template="
-  {% IF column_name EQUALS 'createdAt' %}created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,{% ENDIF %}
-  {% IF column_name EQUALS 'updatedAt' %}updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,{% ENDIF %}" --separator="\n  " ]]
-  
+  <@@IF@@ condition="column_name EQUALS 'createdAt'">created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,</@@IF@@>
+  <@@IF@@ condition="column_name EQUALS 'updatedAt'">updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,</@@IF@@>" --separator="\n  " ]]
+
   -- Add any special indexes
   [[ LOOP(columnsInfo) --template="
-  {% IF column_name EQUALS 'email' %}INDEX idx_{{tableNameSnakeCase}}_email ({{valueSnakeCase}}),{% ENDIF %}
-  {% IF column_name CONTAINS 'name' %}INDEX idx_{{tableNameSnakeCase}}_{{valueSnakeCase}} ({{valueSnakeCase}}),{% ENDIF %}" --separator="\n  " ]]
-  
+  <@@IF@@ condition="column_name EQUALS 'email'">INDEX idx_{{tableNameSnakeCase}}_email ({{valueSnakeCase}}),</@@IF@@>
+  <@@IF@@ condition="column_name CONTAINS 'name'">INDEX idx_{{tableNameSnakeCase}}_{{valueSnakeCase}} ({{valueSnakeCase}}),</@@IF@@>" --separator="\n  " ]]
+
   -- Remove trailing comma (this is just a placeholder, you'd need special handling for this)
   placeholder_to_remove_trailing_comma
 );
@@ -26,5 +26,5 @@ COMMENT ON TABLE {{tableNameSnakeCase}} IS '{{tableNameSentenceCase}}';
 
 -- Column comments
 [[ LOOP(columnsInfo) --template="
-COMMENT ON COLUMN {{tableNameSnakeCase}}.{{valueSnakeCase}} IS '{% IF primary_key IS TRUE %}Primary key for {% ENDIF %}{% IF foreign_key EXISTS %}Foreign key to {{foreign_table}} {% ENDIF %}{% IF column_name EQUALS 'password' %}Hashed password - never expose! {% ENDIF %}{{valueSentenceCase}}';
-" --separator="\n" ]] 
+COMMENT ON COLUMN {{tableNameSnakeCase}}.{{valueSnakeCase}} IS '<@@IF@@ condition="primary_key IS TRUE">Primary key for </@@IF@@><@@IF@@ condition="foreign_key EXISTS">Foreign key to {{foreign_table}} </@@IF@@><@@IF@@ condition="column_name EQUALS 'password'">Hashed password - never expose! </@@IF@@>{{valueSentenceCase}}';
+" --separator="\n" ]]

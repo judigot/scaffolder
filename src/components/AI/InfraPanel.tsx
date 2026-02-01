@@ -1,125 +1,112 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { WorkspaceVariablesPanel } from "@/components/AI/WorkspaceVariablesPanel.tsx";
-import CustomModal from "@/components/Modal/base/CustomModal.tsx";
-import { TerminalMode } from "@/components/Terminal/index.ts";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { z } from 'zod';
+import { WorkspaceVariablesPanel } from '@/components/AI/WorkspaceVariablesPanel.tsx';
+import CustomModal from '@/components/Modal/base/CustomModal.tsx';
+import { TerminalMode } from '@/components/Terminal/index.ts';
 
-import GroupedSelect, { SimpleSelect } from "@/components/UI/GroupedSelect.tsx";
-import ToggleSwitch from "@/components/UI/ToggleSwitch.tsx";
+import GroupedSelect, { SimpleSelect } from '@/components/UI/GroupedSelect.tsx';
+import ToggleSwitch from '@/components/UI/ToggleSwitch.tsx';
 import {
-	AWS_REGION_GROUPS,
-	DEFAULT_AWS_REGION,
-	DEFAULT_EC2_INSTANCE_TYPE,
-	DEFAULT_RDS_INSTANCE_TYPE,
-	EC2_INSTANCE_GROUPS,
-	RDS_INSTANCE_GROUPS,
-	WORKSPACE_MODES,
-	type WorkspaceMode,
-} from "@/constants/awsInstanceTypes.ts";
-import { useDecryptedUserMetadata } from "@/hooks/useDecryptedUserMetadata.ts";
-import { useUser } from "@/hooks/useUser.ts";
-import { useInfraStore } from "@/useInfraStore.ts";
-import { isMasterDeveloper } from "@/useUIStore.ts";
-import { useUserProfileStore } from "@/useUserProfileStore.ts";
-import { hasEncryptedInfraValues } from "@/utils/decryptUserMetadata.ts";
-import { getApiUrl } from "@/utils/getApiUrl.ts";
-import { isRecord } from "@/utils/typeGuards.ts";
+  AWS_REGION_GROUPS,
+  DEFAULT_AWS_REGION,
+  DEFAULT_EC2_INSTANCE_TYPE,
+  DEFAULT_RDS_INSTANCE_TYPE,
+  EC2_INSTANCE_GROUPS,
+  RDS_INSTANCE_GROUPS,
+  WORKSPACE_MODES,
+  type WorkspaceMode,
+} from '@/constants/awsInstanceTypes.ts';
+import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
+import { useUser } from '@/hooks/useUser.ts';
+import {
+  TerraformCreateRunResponseSchema,
+  TerraformRunResponseSchema,
+  TerraformStatusResponseSchema,
+  TerraformVariablesResponseSchema,
+  WorkspacesResponseSchema,
+  getErrorMessage,
+} from '@/schemas/apiResponses.ts';
+import { useInfraStore } from '@/useInfraStore.ts';
+import { isMasterDeveloper } from '@/useUIStore.ts';
+import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { hasEncryptedInfraValues } from '@/utils/decryptUserMetadata.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 const WORKSPACE_MODE_OPTIONS = [
-	{
-		value: WORKSPACE_MODES.API,
-		label: "Ubuntu EC2",
-		description: "API-driven with Ubuntu template",
-	},
-	{
-		value: WORKSPACE_MODES.VCS,
-		label: "VCS-connected",
-		description: "Link to a GitHub repository",
-	},
+  {
+    value: WORKSPACE_MODES.API,
+    label: 'Ubuntu EC2',
+    description: 'API-driven with Ubuntu template',
+  },
+  {
+    value: WORKSPACE_MODES.VCS,
+    label: 'VCS-connected',
+    description: 'Link to a GitHub repository',
+  },
 ];
 
 interface IInfraCredentials {
-	sshPublicKey: string;
-	sshPrivateKey: string;
-	awsAccessKeyId: string;
-	awsSecretAccessKey: string;
-	awsSessionToken: string;
-	tfcToken: string;
-	tfcOrg: string;
-}
-
-interface ITfcWorkspace {
-	id: string;
-	name: string;
-}
-
-interface IWorkspacesResponse {
-	success: boolean;
-	workspaces: ITfcWorkspace[];
-}
-
-interface ITerraformRunResponse {
-	run: {
-		id: string;
-		status: string;
-	};
-}
-
-interface ITerraformStatusResponse {
-	enableEc2: boolean;
-	outputs: Record<string, unknown>;
+  sshPublicKey: string;
+  sshPrivateKey: string;
+  awsAccessKeyId: string;
+  awsSecretAccessKey: string;
+  awsSessionToken: string;
+  tfcToken: string;
+  tfcOrg: string;
 }
 
 const TERMINAL_STATUSES = new Set([
-	"applied",
-	"planned_and_finished",
-	"errored",
-	"canceled",
-	"discarded",
+  'applied',
+  'planned_and_finished',
+  'errored',
+  'canceled',
+  'discarded',
 ]);
 
 const parseInfraCredentials = (
-	metadata: Record<string, unknown> | null,
+  metadata: Record<string, unknown> | null,
 ): IInfraCredentials => {
-	if (metadata && isRecord(metadata.infra)) {
-		return {
-			sshPublicKey:
-				typeof metadata.infra.sshPublicKey === "string"
-					? metadata.infra.sshPublicKey
-					: "",
-			sshPrivateKey:
-				typeof metadata.infra.sshPrivateKey === "string"
-					? metadata.infra.sshPrivateKey
-					: "",
-			awsAccessKeyId:
-				typeof metadata.infra.awsAccessKeyId === "string"
-					? metadata.infra.awsAccessKeyId
-					: "",
-			awsSecretAccessKey:
-				typeof metadata.infra.awsSecretAccessKey === "string"
-					? metadata.infra.awsSecretAccessKey
-					: "",
-			awsSessionToken:
-				typeof metadata.infra.awsSessionToken === "string"
-					? metadata.infra.awsSessionToken
-					: "",
-			tfcToken:
-				typeof metadata.infra.tfcToken === "string"
-					? metadata.infra.tfcToken
-					: "",
-			tfcOrg:
-				typeof metadata.infra.tfcOrg === "string" ? metadata.infra.tfcOrg : "",
-		};
-	}
-	return {
-		sshPublicKey: "",
-		sshPrivateKey: "",
-		awsAccessKeyId: "",
-		awsSecretAccessKey: "",
-		awsSessionToken: "",
-		tfcToken: "",
-		tfcOrg: "",
-	};
+  if (metadata && isRecord(metadata.infra)) {
+    return {
+      sshPublicKey:
+        typeof metadata.infra.sshPublicKey === 'string'
+          ? metadata.infra.sshPublicKey
+          : '',
+      sshPrivateKey:
+        typeof metadata.infra.sshPrivateKey === 'string'
+          ? metadata.infra.sshPrivateKey
+          : '',
+      awsAccessKeyId:
+        typeof metadata.infra.awsAccessKeyId === 'string'
+          ? metadata.infra.awsAccessKeyId
+          : '',
+      awsSecretAccessKey:
+        typeof metadata.infra.awsSecretAccessKey === 'string'
+          ? metadata.infra.awsSecretAccessKey
+          : '',
+      awsSessionToken:
+        typeof metadata.infra.awsSessionToken === 'string'
+          ? metadata.infra.awsSessionToken
+          : '',
+      tfcToken:
+        typeof metadata.infra.tfcToken === 'string'
+          ? metadata.infra.tfcToken
+          : '',
+      tfcOrg:
+        typeof metadata.infra.tfcOrg === 'string' ? metadata.infra.tfcOrg : '',
+    };
+  }
+  return {
+    sshPublicKey: '',
+    sshPrivateKey: '',
+    awsAccessKeyId: '',
+    awsSecretAccessKey: '',
+    awsSessionToken: '',
+    tfcToken: '',
+    tfcOrg: '',
+  };
 };
 
 export type { IInfraCredentials };
@@ -127,1787 +114,1781 @@ export type { IInfraCredentials };
 type IInfraPanelProps = Record<string, never>;
 
 interface IInfraWorkspaceCardProps {
-	workspace: string;
-	accessToken: string | null;
-	infraCredentials: IInfraCredentials;
-	infraReady: boolean;
-	awsReady: boolean;
-	tfcReady: boolean;
-	infraHasEncryptedValues: boolean;
-	isMetadataLoading: boolean;
-	isDeleting: boolean;
-	isDevWorkspace?: boolean;
-	onOpenTerminal?: (host: string) => void;
-	onOpenProfile: () => void;
-	onDelete: () => void;
+  workspace: string;
+  accessToken: string | null;
+  infraCredentials: IInfraCredentials;
+  infraReady: boolean;
+  awsReady: boolean;
+  tfcReady: boolean;
+  infraHasEncryptedValues: boolean;
+  isMetadataLoading: boolean;
+  isDeleting: boolean;
+  isDevWorkspace?: boolean;
+  onOpenTerminal?: (host: string) => void;
+  onOpenProfile: () => void;
+  onDelete: () => void;
 }
 
 function InfraWorkspaceCard({
-	workspace,
-	accessToken,
-	infraCredentials,
-	infraReady,
-	awsReady,
-	tfcReady,
-	infraHasEncryptedValues,
-	isMetadataLoading,
-	isDeleting,
-	isDevWorkspace = false,
-	onOpenTerminal,
-	onOpenProfile,
-	onDelete,
+  workspace,
+  accessToken,
+  infraCredentials,
+  infraReady,
+  awsReady,
+  tfcReady,
+  infraHasEncryptedValues,
+  isMetadataLoading,
+  isDeleting,
+  isDevWorkspace = false,
+  onOpenTerminal,
+  onOpenProfile,
+  onDelete,
 }: IInfraWorkspaceCardProps) {
-	const [enableEc2, setEnableEc2] = useState<boolean>(false);
-	const [runStatus, setRunStatus] = useState<string | null>(null);
-	const [runId, setRunId] = useState<string | null>(null);
-	const [outputs, setOutputs] = useState<Record<string, unknown>>({});
-	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [error, setError] = useState<string | null>(null);
-	const [showVariables, setShowVariables] = useState<boolean>(false);
-	const [isEditing, setIsEditing] = useState<boolean>(false);
-	const [editEc2Type, setEditEc2Type] = useState<string>(
-		DEFAULT_EC2_INSTANCE_TYPE,
-	);
-	const [editEnableRds, setEditEnableRds] = useState<boolean>(false);
-	const [editRdsClass, setEditRdsClass] = useState<string>(
-		DEFAULT_RDS_INSTANCE_TYPE,
-	);
-	const [editDiskSize, setEditDiskSize] = useState<number>(10);
-	const [editRegion, setEditRegion] = useState<string>(DEFAULT_AWS_REGION);
-	const [currentRegion, setCurrentRegion] = useState<string | null>(null);
-	const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
-	const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
-	const previousValueRef = useRef<boolean>(false);
+  const [enableEc2, setEnableEc2] = useState<boolean>(false);
+  const [runStatus, setRunStatus] = useState<string | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [outputs, setOutputs] = useState<Record<string, unknown>>({});
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showVariables, setShowVariables] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editEc2Type, setEditEc2Type] = useState<string>(
+    DEFAULT_EC2_INSTANCE_TYPE,
+  );
+  const [editEnableRds, setEditEnableRds] = useState<boolean>(false);
+  const [editRdsClass, setEditRdsClass] = useState<string>(
+    DEFAULT_RDS_INSTANCE_TYPE,
+  );
+  const [editDiskSize, setEditDiskSize] = useState<number>(10);
+  const [editRegion, setEditRegion] = useState<string>(DEFAULT_AWS_REGION);
+  const [currentRegion, setCurrentRegion] = useState<string | null>(null);
+  const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
+  const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
+  const previousValueRef = useRef<boolean>(false);
 
-	const workspaceValue = workspace.trim();
-	const workspaceLabel = workspaceValue !== "" ? workspaceValue : "Workspace";
+  const workspaceValue = workspace.trim();
+  const workspaceLabel = workspaceValue !== '' ? workspaceValue : 'Workspace';
 
-	const toggleVariables = useCallback(() => {
-		setShowVariables((prev) => !prev);
-	}, []);
+  const toggleVariables = useCallback(() => {
+    setShowVariables((prev) => !prev);
+  }, []);
 
-	const { getWorkspaceStatus, setWorkspaceStatus } = useInfraStore();
-	const cachedStatus = getWorkspaceStatus(workspaceValue);
+  const { getWorkspaceStatus, setWorkspaceStatus } = useInfraStore();
+  const cachedStatus = getWorkspaceStatus(workspaceValue);
 
-	useEffect(() => {
-		if (cachedStatus !== null) {
-			setEnableEc2(cachedStatus.enableEc2);
-			setOutputs(cachedStatus.outputs);
-		}
-	}, [cachedStatus]);
+  useEffect(() => {
+    if (cachedStatus !== null) {
+      setEnableEc2(cachedStatus.enableEc2);
+      setOutputs(cachedStatus.outputs);
+    }
+  }, [cachedStatus]);
 
-	const statusQuery = useQuery({
-		queryKey: [
-			"terraform-status",
-			infraCredentials.tfcToken,
-			infraCredentials.tfcOrg,
-			workspaceValue,
-		],
-		enabled:
-			!isMetadataLoading &&
-			workspaceValue !== "" &&
-			infraReady &&
-			accessToken !== null &&
-			accessToken !== "" &&
-			!isLoading,
-		staleTime: 30_000,
-		queryFn: async () => {
-			if (accessToken === null || accessToken === "") {
-				throw new Error("Missing access token");
-			}
-			const payload: Record<string, unknown> = {
-				tfcToken: infraCredentials.tfcToken,
-				tfcOrg: infraCredentials.tfcOrg,
-				tfcWorkspace: workspaceValue,
-				autoCreate: isDevWorkspace,
-			};
+  const statusQuery = useQuery({
+    queryKey: [
+      'terraform-status',
+      infraCredentials.tfcToken,
+      infraCredentials.tfcOrg,
+      workspaceValue,
+    ],
+    enabled:
+      !isMetadataLoading &&
+      workspaceValue !== '' &&
+      infraReady &&
+      accessToken !== null &&
+      accessToken !== '' &&
+      !isLoading,
+    staleTime: 30_000,
+    queryFn: async () => {
+      if (accessToken === null || accessToken === '') {
+        throw new Error('Missing access token');
+      }
+      const payload: Record<string, unknown> = {
+        tfcToken: infraCredentials.tfcToken,
+        tfcOrg: infraCredentials.tfcOrg,
+        tfcWorkspace: workspaceValue,
+        autoCreate: isDevWorkspace,
+      };
 
-			if (isDevWorkspace) {
-				payload.awsAccessKeyId = infraCredentials.awsAccessKeyId;
-				payload.awsSecretAccessKey = infraCredentials.awsSecretAccessKey;
-				payload.awsSessionToken = infraCredentials.awsSessionToken;
-				payload.sshPublicKey = infraCredentials.sshPublicKey;
-			}
+      if (isDevWorkspace) {
+        payload.awsAccessKeyId = infraCredentials.awsAccessKeyId;
+        payload.awsSecretAccessKey = infraCredentials.awsSecretAccessKey;
+        payload.awsSessionToken = infraCredentials.awsSessionToken;
+        payload.sshPublicKey = infraCredentials.sshPublicKey;
+      }
 
-			const response = await fetch(`${getApiUrl()}/terraform/status`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(payload),
-			});
-			if (!response.ok) {
-				throw new Error("Failed to fetch Terraform status");
-			}
-			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-			return (await response.json()) as ITerraformStatusResponse;
-		},
-	});
+      const response = await fetch(`${getApiUrl()}/terraform/status`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch Terraform status');
+      }
 
-	useEffect(() => {
-		if (statusQuery.data !== undefined) {
-			const newEnableEc2 = statusQuery.data.enableEc2;
-			const newOutputs = statusQuery.data.outputs;
-			setEnableEc2(newEnableEc2);
-			setOutputs(newOutputs);
-			setWorkspaceStatus(workspaceValue, {
-				enableEc2: newEnableEc2,
-				outputs: newOutputs,
-			});
-		}
-	}, [statusQuery.data, workspaceValue, setWorkspaceStatus]);
+      const data: unknown = await response.json();
+      return TerraformStatusResponseSchema.parse(data);
+    },
+  });
 
-	useEffect(() => {
-		if (statusQuery.error instanceof Error) {
-			setError(statusQuery.error.message);
-		}
-	}, [statusQuery.error]);
+  useEffect(() => {
+    if (statusQuery.data !== undefined) {
+      const newEnableEc2 = statusQuery.data.enableEc2;
+      const newOutputs = statusQuery.data.outputs;
+      setEnableEc2(newEnableEc2);
+      setOutputs(newOutputs);
+      setWorkspaceStatus(workspaceValue, {
+        enableEc2: newEnableEc2,
+        outputs: newOutputs,
+      });
+    }
+  }, [statusQuery.data, workspaceValue, setWorkspaceStatus]);
 
-	const shouldShowSkeleton =
-		isMetadataLoading ||
-		(!statusQuery.data && !cachedStatus && statusQuery.isLoading);
-	const shouldShowNotices = !shouldShowSkeleton;
-	const updatedLabel = useMemo(() => {
-		if (statusQuery.data === undefined) {
-			return "Not updated yet";
-		}
-		if (statusQuery.isFetching) {
-			return "Updating...";
-		}
-		const updatedAt = statusQuery.dataUpdatedAt;
-		if (!updatedAt) {
-			return "Updated just now";
-		}
-		const deltaMs = Date.now() - updatedAt;
-		if (deltaMs < 60_000) {
-			return "Updated just now";
-		}
-		const minutes = Math.floor(deltaMs / 60_000);
-		if (minutes < 60) {
-			return `Updated ${String(minutes)}m ago`;
-		}
-		const hours = Math.floor(minutes / 60);
-		if (hours < 24) {
-			return `Updated ${String(hours)}h ago`;
-		}
-		const days = Math.floor(hours / 24);
-		return `Updated ${String(days)}d ago`;
-	}, [statusQuery.data, statusQuery.dataUpdatedAt, statusQuery.isFetching]);
+  useEffect(() => {
+    if (statusQuery.error instanceof Error) {
+      setError(statusQuery.error.message);
+    }
+  }, [statusQuery.error]);
 
-	const refetchStatus = statusQuery.refetch;
-	useEffect(() => {
-		if (runId === null || accessToken === null || accessToken === "") {
-			return;
-		}
-		if (!infraReady || workspaceValue === "") {
-			return;
-		}
-		let timeoutId: number | null = null;
-		let isActive = true;
+  const shouldShowSkeleton =
+    isMetadataLoading ||
+    (!statusQuery.data && !cachedStatus && statusQuery.isLoading);
+  const shouldShowNotices = !shouldShowSkeleton;
+  const updatedLabel = useMemo(() => {
+    if (statusQuery.data === undefined) {
+      return 'Not updated yet';
+    }
+    if (statusQuery.isFetching) {
+      return 'Updating...';
+    }
+    const updatedAt = statusQuery.dataUpdatedAt;
+    if (!updatedAt) {
+      return 'Updated just now';
+    }
+    const deltaMs = Date.now() - updatedAt;
+    if (deltaMs < 60_000) {
+      return 'Updated just now';
+    }
+    const minutes = Math.floor(deltaMs / 60_000);
+    if (minutes < 60) {
+      return `Updated ${String(minutes)}m ago`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return `Updated ${String(hours)}h ago`;
+    }
+    const days = Math.floor(hours / 24);
+    return `Updated ${String(days)}d ago`;
+  }, [statusQuery.data, statusQuery.dataUpdatedAt, statusQuery.isFetching]);
 
-		const poll = async () => {
-			if (!isActive) {
-				return;
-			}
-			try {
-				const response = await fetch(`${getApiUrl()}/terraform/run/${runId}`, {
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						tfcToken: infraCredentials.tfcToken,
-						tfcOrg: infraCredentials.tfcOrg,
-						tfcWorkspace: workspaceValue,
-					}),
-				});
-				if (!response.ok) {
-					throw new Error("Failed to fetch Terraform run status");
-				}
-				// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-				const result = (await response.json()) as ITerraformRunResponse;
-				setRunStatus(result.run.status);
-				if (!TERMINAL_STATUSES.has(result.run.status)) {
-					timeoutId = window.setTimeout(() => {
-						void poll();
-					}, 4000);
-					return;
-				}
-				setIsLoading(false);
-				await refetchStatus();
-			} catch (pollError: unknown) {
-				if (pollError instanceof Error) {
-					setError(pollError.message);
-				}
-				setIsLoading(false);
-			}
-		};
+  const refetchStatus = statusQuery.refetch;
+  useEffect(() => {
+    if (runId === null || accessToken === null || accessToken === '') {
+      return;
+    }
+    if (!infraReady || workspaceValue === '') {
+      return;
+    }
+    let timeoutId: number | null = null;
+    let isActive = true;
 
-		void poll();
+    const poll = async () => {
+      if (!isActive) {
+        return;
+      }
+      try {
+        const response = await fetch(`${getApiUrl()}/terraform/run/${runId}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tfcToken: infraCredentials.tfcToken,
+            tfcOrg: infraCredentials.tfcOrg,
+            tfcWorkspace: workspaceValue,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch Terraform run status');
+        }
 
-		return () => {
-			isActive = false;
-			if (timeoutId !== null) {
-				window.clearTimeout(timeoutId);
-			}
-		};
-	}, [
-		runId,
-		accessToken,
-		refetchStatus,
-		infraReady,
-		infraCredentials.tfcToken,
-		infraCredentials.tfcOrg,
-		workspaceValue,
-	]);
+        const data: unknown = await response.json();
+        const result = TerraformRunResponseSchema.parse(data);
+        setRunStatus(result.run.status);
+        if (!TERMINAL_STATUSES.has(result.run.status)) {
+          timeoutId = window.setTimeout(() => {
+            void poll();
+          }, 4000);
+          return;
+        }
+        setIsLoading(false);
+        await refetchStatus();
+      } catch (pollError: unknown) {
+        if (pollError instanceof Error) {
+          setError(pollError.message);
+        }
+        setIsLoading(false);
+      }
+    };
 
-	const toggleMutation = useMutation({
-		mutationFn: async (nextValue: boolean) => {
-			const response = await fetch(`${getApiUrl()}/terraform/run`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accessToken ?? ""}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					enableEc2: nextValue,
-					awsAccessKeyId: infraCredentials.awsAccessKeyId,
-					awsSecretAccessKey: infraCredentials.awsSecretAccessKey,
-					awsSessionToken: infraCredentials.awsSessionToken,
-					sshPublicKey: infraCredentials.sshPublicKey,
-					tfcToken: infraCredentials.tfcToken,
-					tfcOrg: infraCredentials.tfcOrg,
-					tfcWorkspace: workspaceValue,
-				}),
-			});
-			if (!response.ok) {
-				const errorBody: unknown = await response.json().catch(() => null);
-				let serverMessage = "Failed to trigger Terraform run";
-				if (
-					errorBody !== null &&
-					typeof errorBody === "object" &&
-					"message" in errorBody
-				) {
-					// eslint-disable-next-line no-type-assertion/no-type-assertion -- Type narrowing after object check
-					const messageValue = (errorBody as Record<string, unknown>).message;
-					if (typeof messageValue === "string") {
-						serverMessage = messageValue;
-					}
-				}
-				throw new Error(serverMessage);
-			}
-			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-			return (await response.json()) as ITerraformRunResponse;
-		},
-		onMutate: (nextValue: boolean) => {
-			previousValueRef.current = enableEc2;
-			setEnableEc2(nextValue);
-			setError(null);
-			setIsLoading(true);
-		},
-		onSuccess: (data) => {
-			setRunId(data.run.id);
-			setRunStatus(data.run.status);
-		},
-		onError: (err: unknown) => {
-			setEnableEc2(previousValueRef.current);
-			setIsLoading(false);
-			if (err instanceof Error) {
-				setError(err.message);
-			} else {
-				setError("Failed to trigger Terraform run");
-			}
-		},
-	});
+    void poll();
 
-	const handleToggle = () => {
-		if (accessToken === null || accessToken === "") {
-			return;
-		}
-		if (!infraReady) {
-			setError("Add and unlock your infrastructure credentials first.");
-			return;
-		}
-		if (workspaceValue === "") {
-			setError("Add a Terraform Cloud workspace first.");
-			return;
-		}
-		toggleMutation.mutate(!enableEc2);
-	};
+    return () => {
+      isActive = false;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    runId,
+    accessToken,
+    refetchStatus,
+    infraReady,
+    infraCredentials.tfcToken,
+    infraCredentials.tfcOrg,
+    workspaceValue,
+  ]);
 
-	const handleStartEdit = async () => {
-		if (accessToken === null || accessToken === "") {
-			return;
-		}
+  const toggleMutation = useMutation({
+    mutationFn: async (nextValue: boolean) => {
+      const response = await fetch(`${getApiUrl()}/terraform/run`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken ?? ''}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          enableEc2: nextValue,
+          awsAccessKeyId: infraCredentials.awsAccessKeyId,
+          awsSecretAccessKey: infraCredentials.awsSecretAccessKey,
+          awsSessionToken: infraCredentials.awsSessionToken,
+          sshPublicKey: infraCredentials.sshPublicKey,
+          tfcToken: infraCredentials.tfcToken,
+          tfcOrg: infraCredentials.tfcOrg,
+          tfcWorkspace: workspaceValue,
+        }),
+      });
+      if (!response.ok) {
+        const errorBody: unknown = await response.json().catch(() => null);
+        const serverMessage = getErrorMessage(
+          errorBody,
+          'Failed to trigger Terraform run',
+        );
+        throw new Error(serverMessage);
+      }
 
-		setIsLoadingConfig(true);
-		setError(null);
+      const data: unknown = await response.json();
+      return TerraformRunResponseSchema.parse(data);
+    },
+    onMutate: (nextValue: boolean) => {
+      previousValueRef.current = enableEc2;
+      setEnableEc2(nextValue);
+      setError(null);
+      setIsLoading(true);
+    },
+    onSuccess: (data) => {
+      setRunId(data.run.id);
+      setRunStatus(data.run.status);
+    },
+    onError: (err: unknown) => {
+      setEnableEc2(previousValueRef.current);
+      setIsLoading(false);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to trigger Terraform run');
+      }
+    },
+  });
 
-		try {
-			const [variablesResponse, stateResponse] = await Promise.all([
-				fetch(
-					`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/variables`,
-					{
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${accessToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							tfcToken: infraCredentials.tfcToken,
-							tfcOrg: infraCredentials.tfcOrg,
-						}),
-					},
-				),
-				fetch(
-					`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/state`,
-					{
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${accessToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							tfcToken: infraCredentials.tfcToken,
-							tfcOrg: infraCredentials.tfcOrg,
-						}),
-					},
-				),
-			]);
+  const handleToggle = () => {
+    if (accessToken === null || accessToken === '') {
+      return;
+    }
+    if (!infraReady) {
+      setError('Add and unlock your infrastructure credentials first.');
+      return;
+    }
+    if (workspaceValue === '') {
+      setError('Add a Terraform Cloud workspace first.');
+      return;
+    }
+    toggleMutation.mutate(!enableEc2);
+  };
 
-			if (!variablesResponse.ok) {
-				throw new Error("Failed to fetch current configuration");
-			}
+  const handleStartEdit = async () => {
+    if (accessToken === null || accessToken === '') {
+      return;
+    }
 
-			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-			const variablesData = (await variablesResponse.json()) as {
-				variables?: { key: string; value: string | null }[];
-			};
+    setIsLoadingConfig(true);
+    setError(null);
 
-			const variables = variablesData.variables ?? [];
-			const getVar = (key: string): string | null => {
-				const found = variables.find((v) => v.key === key);
-				return found?.value ?? null;
-			};
+    try {
+      const [variablesResponse, stateResponse] = await Promise.all([
+        fetch(
+          `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/variables`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tfcToken: infraCredentials.tfcToken,
+              tfcOrg: infraCredentials.tfcOrg,
+            }),
+          },
+        ),
+        fetch(
+          `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/state`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tfcToken: infraCredentials.tfcToken,
+              tfcOrg: infraCredentials.tfcOrg,
+            }),
+          },
+        ),
+      ]);
 
-			interface IStateData {
-				ec2InstanceType?: string;
-				region?: string;
-				diskSize?: number;
-				rdsInstanceClass?: string;
-				rdsEnabled?: boolean;
-			}
-			let stateData: IStateData | null = null;
-			if (stateResponse.ok) {
-				// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-				const stateJson = (await stateResponse.json()) as {
-					state?: IStateData | null;
-				};
-				stateData = stateJson.state ?? null;
-			}
+      if (!variablesResponse.ok) {
+        throw new Error('Failed to fetch current configuration');
+      }
 
-			const instanceType =
-				stateData?.ec2InstanceType ?? getVar("TF_VAR_instance_type");
-			const enableRds =
-				stateData?.rdsEnabled ?? getVar("TF_VAR_enable_rds") === "true";
-			const rdsClass =
-				stateData?.rdsInstanceClass ?? getVar("TF_VAR_db_instance_class");
-			const diskSize = stateData?.diskSize ?? getVar("TF_VAR_disk_size");
-			const region = stateData?.region ?? getVar("TF_VAR_aws_region");
+      const variablesJson: unknown = await variablesResponse.json();
+      const variablesResult =
+        TerraformVariablesResponseSchema.safeParse(variablesJson);
+      const variables = variablesResult.success
+        ? variablesResult.data.variables
+        : [];
+      const getVar = (key: string): string | null => {
+        const found = variables.find((v) => v.key === key);
+        return found?.value ?? null;
+      };
 
-			setEditEc2Type(instanceType ?? DEFAULT_EC2_INSTANCE_TYPE);
-			setEditEnableRds(enableRds);
-			setEditRdsClass(rdsClass ?? DEFAULT_RDS_INSTANCE_TYPE);
-			setEditDiskSize(
-				typeof diskSize === "number"
-					? diskSize
-					: diskSize !== null
-						? parseInt(diskSize, 10)
-						: 10,
-			);
-			setEditRegion(region ?? DEFAULT_AWS_REGION);
-			setCurrentRegion(region ?? null);
+      interface IStateData {
+        ec2InstanceType?: string;
+        region?: string;
+        diskSize?: number;
+        rdsInstanceClass?: string;
+        rdsEnabled?: boolean;
+      }
+      const StateDataSchema = z.object({
+        ec2InstanceType: z.string().optional(),
+        region: z.string().optional(),
+        diskSize: z.number().optional(),
+        rdsInstanceClass: z.string().optional(),
+        rdsEnabled: z.boolean().optional(),
+      });
+      const StateResponseSchema = z.object({
+        state: StateDataSchema.nullable().optional(),
+      });
+      let stateData: IStateData | null = null;
+      if (stateResponse.ok) {
+        const stateJson: unknown = await stateResponse.json();
+        const stateResult = StateResponseSchema.safeParse(stateJson);
+        if (stateResult.success) {
+          stateData = stateResult.data.state ?? null;
+        }
+      }
 
-			setIsEditing(true);
-		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Failed to load configuration",
-			);
-		} finally {
-			setIsLoadingConfig(false);
-		}
-	};
+      const instanceType =
+        stateData?.ec2InstanceType ?? getVar('TF_VAR_instance_type');
+      const enableRds =
+        stateData?.rdsEnabled ?? getVar('TF_VAR_enable_rds') === 'true';
+      const rdsClass =
+        stateData?.rdsInstanceClass ?? getVar('TF_VAR_db_instance_class');
+      const diskSize = stateData?.diskSize ?? getVar('TF_VAR_disk_size');
+      const region = stateData?.region ?? getVar('TF_VAR_aws_region');
 
-	const handleApplyConfig = async () => {
-		if (accessToken === null || accessToken === "") {
-			return;
-		}
-		if (workspaceValue === "") {
-			setError("Workspace name is required.");
-			return;
-		}
+      setEditEc2Type(instanceType ?? DEFAULT_EC2_INSTANCE_TYPE);
+      setEditEnableRds(enableRds);
+      setEditRdsClass(rdsClass ?? DEFAULT_RDS_INSTANCE_TYPE);
+      setEditDiskSize(
+        typeof diskSize === 'number'
+          ? diskSize
+          : diskSize !== null
+            ? parseInt(diskSize, 10)
+            : 10,
+      );
+      setEditRegion(region ?? DEFAULT_AWS_REGION);
+      setCurrentRegion(region ?? null);
 
-		setIsSavingConfig(true);
-		setError(null);
+      setIsEditing(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to load configuration',
+      );
+    } finally {
+      setIsLoadingConfig(false);
+    }
+  };
 
-		try {
-			const response = await fetch(
-				`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/config`,
-				{
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						tfcToken: infraCredentials.tfcToken,
-						tfcOrg: infraCredentials.tfcOrg,
-						ec2InstanceType: editEc2Type,
-						diskSize: editDiskSize,
-						enableRds: editEnableRds,
-						rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
-						awsRegion: editRegion,
-						enableEc2,
-					}),
-				},
-			);
+  const handleApplyConfig = async () => {
+    if (accessToken === null || accessToken === '') {
+      return;
+    }
+    if (workspaceValue === '') {
+      setError('Workspace name is required.');
+      return;
+    }
 
-			if (!response.ok) {
-				// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-				const errorData = (await response.json()) as { message?: string };
-				throw new Error(errorData.message ?? "Failed to update configuration");
-			}
+    setIsSavingConfig(true);
+    setError(null);
 
-			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-			const data = (await response.json()) as { run?: { id: string } };
-			if (data.run?.id !== undefined && data.run.id !== "") {
-				setRunId(data.run.id);
-				setIsLoading(true);
-			}
+    try {
+      const response = await fetch(
+        `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/config`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tfcToken: infraCredentials.tfcToken,
+            tfcOrg: infraCredentials.tfcOrg,
+            ec2InstanceType: editEc2Type,
+            diskSize: editDiskSize,
+            enableRds: editEnableRds,
+            rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
+            awsRegion: editRegion,
+            enableEc2,
+          }),
+        },
+      );
 
-			setIsEditing(false);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to apply changes");
-		} finally {
-			setIsSavingConfig(false);
-		}
-	};
+      if (!response.ok) {
+        const errorJson: unknown = await response.json();
+        const errorMessage = getErrorMessage(
+          errorJson,
+          'Failed to update configuration',
+        );
+        throw new Error(errorMessage);
+      }
 
-	const rawPublicIp = outputs.dev_ip;
-	const rawSshCommand = outputs.ssh_command;
-	const publicIp =
-		typeof rawPublicIp === "string" && rawPublicIp !== "" ? rawPublicIp : null;
-	const sshCommand =
-		typeof rawSshCommand === "string" && rawSshCommand !== ""
-			? rawSshCommand
-			: null;
-	const hasPublicIp = publicIp !== null;
-	const showConnectionDetails = enableEc2 && hasPublicIp;
+      const responseJson: unknown = await response.json();
+      const createResult =
+        TerraformCreateRunResponseSchema.safeParse(responseJson);
+      if (
+        createResult.success &&
+        createResult.data.run?.id !== undefined &&
+        createResult.data.run.id !== ''
+      ) {
+        setRunId(createResult.data.run.id);
+        setIsLoading(true);
+      }
 
-	return (
-		<div
-			className={`p-4 border rounded-lg space-y-4 ${
-				isDevWorkspace
-					? "bg-success-900/20 border-success-700/50"
-					: "bg-bg-muted border-border"
-			}`}
-		>
-			<div className="flex items-start justify-between gap-4">
-				<div>
-					<p className="text-xs uppercase tracking-wide text-fg-muted">
-						Terraform Workspace
-					</p>
-					<p className="text-lg font-semibold text-fg">{workspaceLabel}</p>
-					{shouldShowSkeleton ? (
-						<div className="mt-2 h-3 w-20 bg-border rounded animate-pulse" />
-					) : (
-						<div className="mt-1 space-y-1">
-							<p className="text-xs text-fg-subtle">
-								{enableEc2 ? "Provisioned" : "Stopped"}
-							</p>
-							<p className="text-[11px] text-fg-muted">{updatedLabel}</p>
-						</div>
-					)}
-				</div>
-				<ToggleSwitch
-					checked={enableEc2}
-					onChange={handleToggle}
-					disabled={
-						isLoading || !infraReady || shouldShowSkeleton || isDeleting
-					}
-					label="Toggle EC2 instance"
-				/>
-			</div>
+      setIsEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to apply changes');
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
 
-			{!infraReady && !tfcReady && shouldShowNotices && (
-				<div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200 space-y-2">
-					<p className="font-medium">Connect Terraform Cloud</p>
-					<p>
-						Add your Terraform Cloud API token, organization, and workspace in
-						the profile panel to enable infrastructure control.
-					</p>
-					<button
-						type="button"
-						onClick={onOpenProfile}
-						className="mt-1 px-3 py-1.5 bg-blue-700/40 hover:bg-blue-700/60 text-blue-100 rounded text-xs transition-colors"
-					>
-						Open Profile
-					</button>
-				</div>
-			)}
+  const rawPublicIp = outputs.dev_ip;
+  const rawSshCommand = outputs.ssh_command;
+  const publicIp =
+    typeof rawPublicIp === 'string' && rawPublicIp !== '' ? rawPublicIp : null;
+  const sshCommand =
+    typeof rawSshCommand === 'string' && rawSshCommand !== ''
+      ? rawSshCommand
+      : null;
+  const hasPublicIp = publicIp !== null;
+  const showConnectionDetails = enableEc2 && hasPublicIp;
 
-			{!infraReady && tfcReady && !awsReady && shouldShowNotices && (
-				<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
-					Add your SSH public key and AWS credentials in the profile panel to
-					enable toggling.
-				</div>
-			)}
+  return (
+    <div
+      className={`p-4 border rounded-lg space-y-4 ${
+        isDevWorkspace
+          ? 'bg-success-900/20 border-success-700/50'
+          : 'bg-bg-muted border-border'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-fg-muted">
+            Terraform Workspace
+          </p>
+          <p className="text-lg font-semibold text-fg">{workspaceLabel}</p>
+          {shouldShowSkeleton ? (
+            <div className="mt-2 h-3 w-20 bg-border rounded animate-pulse" />
+          ) : (
+            <div className="mt-1 space-y-1">
+              <p className="text-xs text-fg-subtle">
+                {enableEc2 ? 'Provisioned' : 'Stopped'}
+              </p>
+              <p className="text-[11px] text-fg-muted">{updatedLabel}</p>
+            </div>
+          )}
+        </div>
+        <ToggleSwitch
+          checked={enableEc2}
+          onChange={handleToggle}
+          disabled={
+            isLoading || !infraReady || shouldShowSkeleton || isDeleting
+          }
+          label="Toggle EC2 instance"
+        />
+      </div>
 
-			{!infraReady && infraHasEncryptedValues && shouldShowNotices && (
-				<div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
-					Unlock your credentials with your passphrase to enable toggling.
-				</div>
-			)}
+      {!infraReady && !tfcReady && shouldShowNotices && (
+        <div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200 space-y-2">
+          <p className="font-medium">Connect Terraform Cloud</p>
+          <p>
+            Add your Terraform Cloud API token, organization, and workspace in
+            the profile panel to enable infrastructure control.
+          </p>
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            className="mt-1 px-3 py-1.5 bg-blue-700/40 hover:bg-blue-700/60 text-blue-100 rounded text-xs transition-colors"
+          >
+            Open Profile
+          </button>
+        </div>
+      )}
 
-			{error !== null && error !== "" && (
-				<div className="p-3 bg-red-900/30 border border-red-700/50 rounded-md text-xs text-red-200">
-					{error}
-				</div>
-			)}
+      {!infraReady && tfcReady && !awsReady && shouldShowNotices && (
+        <div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
+          Add your SSH public key and AWS credentials in the profile panel to
+          enable toggling.
+        </div>
+      )}
 
-			{isLoading && runStatus !== null && (
-				<div className="p-3 bg-secondary border border-border rounded-md">
-					<p className="text-xs text-fg-subtle">Run Status</p>
-					<p className="text-sm text-fg mt-1">{runStatus}</p>
-				</div>
-			)}
+      {!infraReady && infraHasEncryptedValues && shouldShowNotices && (
+        <div className="p-3 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200">
+          Unlock your credentials with your passphrase to enable toggling.
+        </div>
+      )}
 
-			{showConnectionDetails && !shouldShowSkeleton && (
-				<div className="pt-2 border-t border-border space-y-3">
-					<p className="text-sm font-medium text-fg">Connection Details</p>
-					<div className="text-xs text-fg-subtle space-y-2">
-						<div>
-							<p className="text-[11px] uppercase tracking-wide text-fg-muted">
-								Public IP
-							</p>
-							<div className="flex items-center gap-2">
-								<a
-									href={`http://${publicIp}`}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-sm text-primary-400 hover:text-primary-300 hover:underline break-all"
-								>
-									{publicIp}
-								</a>
-								<button
-									type="button"
-									onClick={() => {
-										void navigator.clipboard.writeText(publicIp);
-									}}
-									className="p-1 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
-									title="Copy IP"
-								>
-									<svg
-										className="w-4 h-4"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<title>Copy</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-										/>
-									</svg>
-								</button>
-							</div>
-						</div>
-						<div>
-							<p className="text-[11px] uppercase tracking-wide text-fg-muted">
-								SSH Command
-							</p>
-							<div className="flex items-start gap-2">
-								<p className="text-sm text-fg break-all">
-									{sshCommand ?? "Not available"}
-								</p>
-								{sshCommand !== null && (
-									<button
-										type="button"
-										onClick={() => {
-											void navigator.clipboard.writeText(sshCommand);
-										}}
-										className="p-1 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
-										title="Copy SSH command"
-									>
-										<svg
-											className="w-4 h-4"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<title>Copy</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-											/>
-										</svg>
-									</button>
-								)}
-							</div>
-						</div>
-						<div>
-							<p className="text-[11px] uppercase tracking-wide text-fg-muted">
-								Terraform Cloud
-							</p>
-							<p className="text-sm text-fg break-all">
-								{tfcReady && !infraHasEncryptedValues
-									? `${infraCredentials.tfcOrg} / ${workspaceLabel}`
-									: "Not connected"}
-							</p>
-						</div>
-					</div>
-					{infraCredentials.sshPrivateKey.trim() !== "" &&
-						onOpenTerminal !== undefined && (
-							<button
-								type="button"
-								onClick={() => {
-									onOpenTerminal(publicIp);
-								}}
-								className="btn-primary btn-full btn-icon mt-2"
-							>
-								<svg
-									className="w-4 h-4"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<title>Terminal</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-									/>
-								</svg>
-								Open Terminal
-							</button>
-						)}
-					{infraCredentials.sshPrivateKey.trim() === "" && (
-						<div className="p-2 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200 mt-2">
-							Add your SSH private key in the profile to enable the remote
-							agent.
-						</div>
-					)}
-				</div>
-			)}
+      {error !== null && error !== '' && (
+        <div className="p-3 bg-red-900/30 border border-red-700/50 rounded-md text-xs text-red-200">
+          {error}
+        </div>
+      )}
 
-			{!shouldShowSkeleton && isEditing && (
-				<>
-					<WorkspaceVariablesPanel
-						workspace={workspaceValue}
-						accessToken={accessToken}
-						tfcToken={infraCredentials.tfcToken}
-						tfcOrg={infraCredentials.tfcOrg}
-						isExpanded={showVariables}
-						onToggle={toggleVariables}
-					/>
-					<div className="pt-3 border-t border-border space-y-3">
-						<div className="flex items-center justify-between">
-							<p className="text-xs font-medium text-fg-muted">
-								Edit Configuration
-							</p>
-							<button
-								type="button"
-								onClick={() => {
-									setIsEditing(false);
-								}}
-								className="text-xs text-fg-muted hover:text-fg transition-colors"
-							>
-								Cancel
-							</button>
-						</div>
-						<div>
-							<label
-								htmlFor={`edit-region-${workspaceValue}`}
-								className="block text-[11px] text-fg-subtle mb-1"
-							>
-								AWS Region
-							</label>
-							<GroupedSelect
-								id={`edit-region-${workspaceValue}`}
-								value={editRegion}
-								onChange={setEditRegion}
-								groups={AWS_REGION_GROUPS}
-								aria-label="AWS region"
-							/>
-							{currentRegion !== null && editRegion !== currentRegion && (
-								<div className="mt-2 p-2 bg-amber-900/30 border border-amber-700/50 rounded-md">
-									<p className="text-[10px] text-amber-300 flex items-start gap-1.5">
-										<svg
-											className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
-											fill="currentColor"
-											viewBox="0 0 20 20"
-										>
-											<title>Warning</title>
-											<path
-												fillRule="evenodd"
-												d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-												clipRule="evenodd"
-											/>
-										</svg>
-										<span>
-											Changing region will destroy and recreate all resources.
-											Data will be lost.
-										</span>
-									</p>
-								</div>
-							)}
-						</div>
-						<div>
-							<label
-								htmlFor={`edit-ec2-${workspaceValue}`}
-								className="block text-[11px] text-fg-subtle mb-1"
-							>
-								EC2 Instance Type
-							</label>
-							<GroupedSelect
-								id={`edit-ec2-${workspaceValue}`}
-								value={editEc2Type}
-								onChange={setEditEc2Type}
-								groups={EC2_INSTANCE_GROUPS}
-								aria-label="EC2 instance type"
-							/>
-						</div>
-						<div>
-							<label
-								htmlFor={`edit-disk-${workspaceValue}`}
-								className="block text-[11px] text-fg-subtle mb-1"
-							>
-								Disk Size (GB)
-							</label>
-							<div className="flex items-stretch">
-								<button
-									type="button"
-									onClick={() => {
-										setEditDiskSize(Math.max(10, editDiskSize - 10));
-									}}
-									disabled={editDiskSize <= 10}
-									className="px-4 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
-									aria-label="Decrease disk size"
-								>
-									<svg
-										className="w-5 h-5"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<title>Decrease</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M20 12H4"
-										/>
-									</svg>
-								</button>
-								<input
-									id={`edit-disk-${workspaceValue}`}
-									type="text"
-									inputMode="numeric"
-									pattern="[0-9]*"
-									value={editDiskSize}
-									onChange={(e) => {
-										const val = parseInt(e.target.value, 10);
-										if (!isNaN(val)) {
-											setEditDiskSize(Math.max(10, Math.min(500, val)));
-										} else if (e.target.value === "") {
-											setEditDiskSize(10);
-										}
-									}}
-									className="flex-1 min-w-0 px-3 py-2 bg-bg-muted border-y border-border text-fg text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-								/>
-								<button
-									type="button"
-									onClick={() => {
-										setEditDiskSize(Math.min(500, editDiskSize + 10));
-									}}
-									disabled={editDiskSize >= 500}
-									className="px-4 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
-									aria-label="Increase disk size"
-								>
-									<svg
-										className="w-5 h-5"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<title>Increase</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M12 4v16m8-8H4"
-										/>
-									</svg>
-								</button>
-							</div>
-							<p className="text-[10px] text-fg-subtle mt-1">
-								Min: 10 GB, Max: 500 GB (can only increase)
-							</p>
-						</div>
-						<div className="flex items-center justify-between py-1">
-							<span className="text-[11px] text-fg-subtle">Include RDS</span>
-							<ToggleSwitch
-								checked={editEnableRds}
-								onChange={() => {
-									setEditEnableRds(!editEnableRds);
-								}}
-								label="Toggle RDS"
-							/>
-						</div>
-						{editEnableRds && (
-							<div>
-								<label
-									htmlFor={`edit-rds-${workspaceValue}`}
-									className="block text-[11px] text-fg-subtle mb-1"
-								>
-									RDS Instance Class
-								</label>
-								<GroupedSelect
-									id={`edit-rds-${workspaceValue}`}
-									value={editRdsClass}
-									onChange={setEditRdsClass}
-									groups={RDS_INSTANCE_GROUPS}
-									aria-label="RDS instance class"
-								/>
-							</div>
-						)}
-						<button
-							type="button"
-							onClick={() => {
-								void handleApplyConfig();
-							}}
-							disabled={isSavingConfig}
-							className="btn-primary btn-full btn-sm"
-						>
-							{isSavingConfig ? "Applying..." : "Apply Changes"}
-						</button>
-					</div>
-				</>
-			)}
+      {isLoading && runStatus !== null && (
+        <div className="p-3 bg-secondary border border-border rounded-md">
+          <p className="text-xs text-fg-subtle">Run Status</p>
+          <p className="text-sm text-fg mt-1">{runStatus}</p>
+        </div>
+      )}
 
-			{!shouldShowSkeleton && !isEditing && infraReady && (
-				<WorkspaceVariablesPanel
-					workspace={workspaceValue}
-					accessToken={accessToken}
-					tfcToken={infraCredentials.tfcToken}
-					tfcOrg={infraCredentials.tfcOrg}
-					isExpanded={showVariables}
-					onToggle={toggleVariables}
-				/>
-			)}
+      {showConnectionDetails && !shouldShowSkeleton && (
+        <div className="pt-2 border-t border-border space-y-3">
+          <p className="text-sm font-medium text-fg">Connection Details</p>
+          <div className="text-xs text-fg-subtle space-y-2">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-fg-muted">
+                Public IP
+              </p>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`http://${publicIp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary-400 hover:text-primary-300 hover:underline break-all"
+                >
+                  {publicIp}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(publicIp);
+                  }}
+                  className="p-1 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+                  title="Copy IP"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Copy</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-fg-muted">
+                SSH Command
+              </p>
+              <div className="flex items-start gap-2">
+                <p className="text-sm text-fg break-all">
+                  {sshCommand ?? 'Not available'}
+                </p>
+                {sshCommand !== null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(sshCommand);
+                    }}
+                    className="p-1 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+                    title="Copy SSH command"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <title>Copy</title>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-fg-muted">
+                Terraform Cloud
+              </p>
+              <p className="text-sm text-fg break-all">
+                {tfcReady && !infraHasEncryptedValues
+                  ? `${infraCredentials.tfcOrg} / ${workspaceLabel}`
+                  : 'Not connected'}
+              </p>
+            </div>
+          </div>
+          {infraCredentials.sshPrivateKey.trim() !== '' &&
+            onOpenTerminal !== undefined && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenTerminal(publicIp);
+                }}
+                className="btn-primary btn-full btn-icon mt-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <title>Terminal</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                Open Terminal
+              </button>
+            )}
+          {infraCredentials.sshPrivateKey.trim() === '' && (
+            <div className="p-2 bg-warning-900/20 border border-warning-700/40 rounded-md text-xs text-warning-200 mt-2">
+              Add your SSH private key in the profile to enable the remote
+              agent.
+            </div>
+          )}
+        </div>
+      )}
 
-			{!shouldShowSkeleton && (
-				<div className="pt-3 border-t border-border flex items-center gap-2">
-					{!isEditing && infraReady && (
-						<button
-							type="button"
-							onClick={() => {
-								void handleStartEdit();
-							}}
-							disabled={isLoading || isDeleting || isLoadingConfig}
-							className="flex-1 px-3 py-2 text-sm text-fg-muted hover:text-fg hover:bg-secondary-hover border border-transparent hover:border-border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-							title="Edit configuration"
-						>
-							<svg
-								className="w-4 h-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<title>Edit configuration</title>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-								/>
-							</svg>
-							Edit
-						</button>
-					)}
-					{!isDevWorkspace && (
-						<button
-							type="button"
-							onClick={onDelete}
-							disabled={isLoading || isDeleting || enableEc2}
-							className={`${!isEditing && infraReady ? "flex-1" : "w-full"} px-3 py-2 text-sm text-fg-muted hover:text-red-400 hover:bg-red-900/10 border border-transparent hover:border-red-700/30 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-							title={
-								enableEc2 ? "Stop EC2 before deleting" : "Delete workspace"
-							}
-						>
-							{isDeleting ? (
-								<>
-									<svg
-										className="w-4 h-4 animate-spin"
-										fill="none"
-										viewBox="0 0 24 24"
-									>
-										<title>Deleting</title>
-										<circle
-											className="opacity-25"
-											cx="12"
-											cy="12"
-											r="10"
-											stroke="currentColor"
-											strokeWidth="4"
-										/>
-										<path
-											className="opacity-75"
-											fill="currentColor"
-											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-										/>
-									</svg>
-									Deleting...
-								</>
-							) : (
-								<>
-									<svg
-										className="w-4 h-4"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<title>Delete workspace</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-										/>
-									</svg>
-									Delete
-								</>
-							)}
-						</button>
-					)}
-				</div>
-			)}
-		</div>
-	);
+      {!shouldShowSkeleton && isEditing && (
+        <>
+          <WorkspaceVariablesPanel
+            workspace={workspaceValue}
+            accessToken={accessToken}
+            tfcToken={infraCredentials.tfcToken}
+            tfcOrg={infraCredentials.tfcOrg}
+            isExpanded={showVariables}
+            onToggle={toggleVariables}
+          />
+          <div className="pt-3 border-t border-border space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-fg-muted">
+                Edit Configuration
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                }}
+                className="text-xs text-fg-muted hover:text-fg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+            <div>
+              <label
+                htmlFor={`edit-region-${workspaceValue}`}
+                className="block text-[11px] text-fg-subtle mb-1"
+              >
+                AWS Region
+              </label>
+              <GroupedSelect
+                id={`edit-region-${workspaceValue}`}
+                value={editRegion}
+                onChange={setEditRegion}
+                groups={AWS_REGION_GROUPS}
+                aria-label="AWS region"
+              />
+              {currentRegion !== null && editRegion !== currentRegion && (
+                <div className="mt-2 p-2 bg-amber-900/30 border border-amber-700/50 rounded-md">
+                  <p className="text-[10px] text-amber-300 flex items-start gap-1.5">
+                    <svg
+                      className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <title>Warning</title>
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>
+                      Changing region will destroy and recreate all resources.
+                      Data will be lost.
+                    </span>
+                  </p>
+                </div>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor={`edit-ec2-${workspaceValue}`}
+                className="block text-[11px] text-fg-subtle mb-1"
+              >
+                EC2 Instance Type
+              </label>
+              <GroupedSelect
+                id={`edit-ec2-${workspaceValue}`}
+                value={editEc2Type}
+                onChange={setEditEc2Type}
+                groups={EC2_INSTANCE_GROUPS}
+                aria-label="EC2 instance type"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor={`edit-disk-${workspaceValue}`}
+                className="block text-[11px] text-fg-subtle mb-1"
+              >
+                Disk Size (GB)
+              </label>
+              <div className="flex items-stretch">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditDiskSize(Math.max(10, editDiskSize - 10));
+                  }}
+                  disabled={editDiskSize <= 10}
+                  className="px-4 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
+                  aria-label="Decrease disk size"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Decrease</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 12H4"
+                    />
+                  </svg>
+                </button>
+                <input
+                  id={`edit-disk-${workspaceValue}`}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={editDiskSize}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(val)) {
+                      setEditDiskSize(Math.max(10, Math.min(500, val)));
+                    } else if (e.target.value === '') {
+                      setEditDiskSize(10);
+                    }
+                  }}
+                  className="flex-1 min-w-0 px-3 py-2 bg-bg-muted border-y border-border text-fg text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditDiskSize(Math.min(500, editDiskSize + 10));
+                  }}
+                  disabled={editDiskSize >= 500}
+                  className="px-4 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
+                  aria-label="Increase disk size"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Increase</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-[10px] text-fg-subtle mt-1">
+                Min: 10 GB, Max: 500 GB (can only increase)
+              </p>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <span className="text-[11px] text-fg-subtle">Include RDS</span>
+              <ToggleSwitch
+                checked={editEnableRds}
+                onChange={() => {
+                  setEditEnableRds(!editEnableRds);
+                }}
+                label="Toggle RDS"
+              />
+            </div>
+            {editEnableRds && (
+              <div>
+                <label
+                  htmlFor={`edit-rds-${workspaceValue}`}
+                  className="block text-[11px] text-fg-subtle mb-1"
+                >
+                  RDS Instance Class
+                </label>
+                <GroupedSelect
+                  id={`edit-rds-${workspaceValue}`}
+                  value={editRdsClass}
+                  onChange={setEditRdsClass}
+                  groups={RDS_INSTANCE_GROUPS}
+                  aria-label="RDS instance class"
+                />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                void handleApplyConfig();
+              }}
+              disabled={isSavingConfig}
+              className="btn-primary btn-full btn-sm"
+            >
+              {isSavingConfig ? 'Applying...' : 'Apply Changes'}
+            </button>
+          </div>
+        </>
+      )}
+
+      {!shouldShowSkeleton && !isEditing && infraReady && (
+        <WorkspaceVariablesPanel
+          workspace={workspaceValue}
+          accessToken={accessToken}
+          tfcToken={infraCredentials.tfcToken}
+          tfcOrg={infraCredentials.tfcOrg}
+          isExpanded={showVariables}
+          onToggle={toggleVariables}
+        />
+      )}
+
+      {!shouldShowSkeleton && (
+        <div className="pt-3 border-t border-border flex items-center gap-2">
+          {!isEditing && infraReady && (
+            <button
+              type="button"
+              onClick={() => {
+                void handleStartEdit();
+              }}
+              disabled={isLoading || isDeleting || isLoadingConfig}
+              className="flex-1 px-3 py-2 text-sm text-fg-muted hover:text-fg hover:bg-secondary-hover border border-transparent hover:border-border rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              title="Edit configuration"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <title>Edit configuration</title>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+              Edit
+            </button>
+          )}
+          {!isDevWorkspace && (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={isLoading || isDeleting || enableEc2}
+              className={`${!isEditing && infraReady ? 'flex-1' : 'w-full'} px-3 py-2 text-sm text-fg-muted hover:text-red-400 hover:bg-red-900/10 border border-transparent hover:border-red-700/30 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+              title={
+                enableEc2 ? 'Stop EC2 before deleting' : 'Delete workspace'
+              }
+            >
+              {isDeleting ? (
+                <>
+                  <svg
+                    className="w-4 h-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Deleting</title>
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Delete workspace</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Delete
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function InfraPanel(_props: IInfraPanelProps) {
-	const { user, accessToken } = useUser();
-	const { decryptedMetadata, isLoading: isMetadataLoading } =
-		useDecryptedUserMetadata();
-	const { openUserProfile } = useUserProfileStore();
+  const { user, accessToken } = useUser();
+  const { decryptedMetadata, isLoading: isMetadataLoading } =
+    useDecryptedUserMetadata();
+  const { openUserProfile } = useUserProfileStore();
 
-	const isDevMode = isMasterDeveloper(
-		typeof user?.nickname === "string" ? user.nickname : undefined,
-	);
-	const DEV_WORKSPACE_NAME = "scaffolder-ssh-backend-service";
-	const queryClient = useQueryClient();
-	const [newWorkspace, setNewWorkspace] = useState<string>("");
-	const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
-		WORKSPACE_MODES.API,
-	);
-	const [ec2InstanceType, setEc2InstanceType] = useState<string>(
-		DEFAULT_EC2_INSTANCE_TYPE,
-	);
-	const [rdsInstanceClass, setRdsInstanceClass] = useState<string>(
-		DEFAULT_RDS_INSTANCE_TYPE,
-	);
-	const [enableRds, setEnableRds] = useState<boolean>(false);
-	const [githubOrg, setGithubOrg] = useState<string>("");
-	const [useGithubUsername, setUseGithubUsername] = useState<boolean>(true);
-	const [workspaceError, setWorkspaceError] = useState<string | null>(null);
-	const [isWorkspaceSaving, setIsWorkspaceSaving] = useState<boolean>(false);
-	const [deletingWorkspace, setDeletingWorkspace] = useState<string | null>(
-		null,
-	);
-	const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(
-		null,
-	);
-	const [terminalHost, setTerminalHost] = useState<string | null>(null);
-	const [isTerminalExpanded, setIsTerminalExpanded] = useState<boolean>(false);
+  const isDevMode = isMasterDeveloper(
+    typeof user?.nickname === 'string' ? user.nickname : undefined,
+  );
+  const DEV_WORKSPACE_NAME = 'scaffolder-ssh-backend-service';
+  const queryClient = useQueryClient();
+  const [newWorkspace, setNewWorkspace] = useState<string>('');
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
+    WORKSPACE_MODES.API,
+  );
+  const [ec2InstanceType, setEc2InstanceType] = useState<string>(
+    DEFAULT_EC2_INSTANCE_TYPE,
+  );
+  const [rdsInstanceClass, setRdsInstanceClass] = useState<string>(
+    DEFAULT_RDS_INSTANCE_TYPE,
+  );
+  const [enableRds, setEnableRds] = useState<boolean>(false);
+  const [githubOrg, setGithubOrg] = useState<string>('');
+  const [useGithubUsername, setUseGithubUsername] = useState<boolean>(true);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  const [isWorkspaceSaving, setIsWorkspaceSaving] = useState<boolean>(false);
+  const [deletingWorkspace, setDeletingWorkspace] = useState<string | null>(
+    null,
+  );
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(
+    null,
+  );
+  const [terminalHost, setTerminalHost] = useState<string | null>(null);
+  const [isTerminalExpanded, setIsTerminalExpanded] = useState<boolean>(false);
 
-	const infraCredentials = useMemo(
-		() => parseInfraCredentials(decryptedMetadata),
-		[decryptedMetadata],
-	);
+  const infraCredentials = useMemo(
+    () => parseInfraCredentials(decryptedMetadata),
+    [decryptedMetadata],
+  );
 
-	const infraHasEncryptedValues = useMemo(() => {
-		return hasEncryptedInfraValues(decryptedMetadata);
-	}, [decryptedMetadata]);
+  const infraHasEncryptedValues = useMemo(() => {
+    return hasEncryptedInfraValues(decryptedMetadata);
+  }, [decryptedMetadata]);
 
-	const isMetadataPending = isMetadataLoading || decryptedMetadata === null;
+  const isMetadataPending = isMetadataLoading || decryptedMetadata === null;
 
-	const tfcCredentialsReady =
-		!infraHasEncryptedValues &&
-		infraCredentials.tfcToken.trim() !== "" &&
-		infraCredentials.tfcOrg.trim() !== "";
+  const tfcCredentialsReady =
+    !infraHasEncryptedValues &&
+    infraCredentials.tfcToken.trim() !== '' &&
+    infraCredentials.tfcOrg.trim() !== '';
 
-	const workspacesQuery = useQuery({
-		queryKey: [
-			"terraform-workspaces",
-			infraCredentials.tfcToken,
-			infraCredentials.tfcOrg,
-		],
-		enabled:
-			!isMetadataPending &&
-			tfcCredentialsReady &&
-			accessToken !== null &&
-			accessToken !== "",
-		staleTime: 60_000,
-		queryFn: async () => {
-			if (accessToken === null || accessToken === "") {
-				throw new Error("Missing access token");
-			}
-			const response = await fetch(`${getApiUrl()}/terraform/workspaces`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					tfcToken: infraCredentials.tfcToken,
-					tfcOrg: infraCredentials.tfcOrg,
-				}),
-			});
-			if (!response.ok) {
-				throw new Error("Failed to fetch workspaces");
-			}
-			// eslint-disable-next-line no-type-assertion/no-type-assertion -- Response type assertion from API
-			return (await response.json()) as IWorkspacesResponse;
-		},
-	});
+  const workspacesQuery = useQuery({
+    queryKey: [
+      'terraform-workspaces',
+      infraCredentials.tfcToken,
+      infraCredentials.tfcOrg,
+    ],
+    enabled:
+      !isMetadataPending &&
+      tfcCredentialsReady &&
+      accessToken !== null &&
+      accessToken !== '',
+    staleTime: 60_000,
+    queryFn: async () => {
+      if (accessToken === null || accessToken === '') {
+        throw new Error('Missing access token');
+      }
+      const response = await fetch(`${getApiUrl()}/terraform/workspaces`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tfcToken: infraCredentials.tfcToken,
+          tfcOrg: infraCredentials.tfcOrg,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch workspaces');
+      }
 
-	const workspaceList = useMemo((): string[] => {
-		return workspacesQuery.data?.workspaces.map((ws) => ws.name) ?? [];
-	}, [workspacesQuery.data]);
+      const data: unknown = await response.json();
+      return WorkspacesResponseSchema.parse(data);
+    },
+  });
 
-	const githubUsername = useMemo(() => {
-		if (
-			user !== null &&
-			typeof user.nickname === "string" &&
-			user.nickname !== "" &&
-			user.nickname !== user.email
-		) {
-			return user.nickname;
-		}
-		return null;
-	}, [user]);
+  const workspaceList = useMemo((): string[] => {
+    return workspacesQuery.data?.workspaces.map((ws) => ws.name) ?? [];
+  }, [workspacesQuery.data]);
 
-	const awsReady = useMemo(() => {
-		return (
-			infraCredentials.sshPublicKey.trim() !== "" &&
-			infraCredentials.awsAccessKeyId.trim() !== "" &&
-			infraCredentials.awsSecretAccessKey.trim() !== ""
-		);
-	}, [infraCredentials]);
+  const githubUsername = useMemo(() => {
+    if (
+      user !== null &&
+      typeof user.nickname === 'string' &&
+      user.nickname !== '' &&
+      user.nickname !== user.email
+    ) {
+      return user.nickname;
+    }
+    return null;
+  }, [user]);
 
-	const tfcReady = useMemo(() => {
-		return tfcCredentialsReady && workspaceList.length > 0;
-	}, [tfcCredentialsReady, workspaceList]);
+  const awsReady = useMemo(() => {
+    return (
+      infraCredentials.sshPublicKey.trim() !== '' &&
+      infraCredentials.awsAccessKeyId.trim() !== '' &&
+      infraCredentials.awsSecretAccessKey.trim() !== ''
+    );
+  }, [infraCredentials]);
 
-	const infraReady = useMemo(() => {
-		return awsReady && tfcReady && !infraHasEncryptedValues;
-	}, [awsReady, tfcReady, infraHasEncryptedValues]);
+  const tfcReady = useMemo(() => {
+    return tfcCredentialsReady && workspaceList.length > 0;
+  }, [tfcCredentialsReady, workspaceList]);
 
-	const visibleWorkspaces = isDevMode
-		? workspaceList.filter((ws) => ws !== DEV_WORKSPACE_NAME)
-		: workspaceList;
-	const showInitialSkeleton =
-		isMetadataPending || (tfcCredentialsReady && workspacesQuery.isLoading);
-	const canAddWorkspace =
-		!isWorkspaceSaving &&
-		tfcCredentialsReady &&
-		accessToken !== null &&
-		accessToken !== "";
+  const infraReady = useMemo(() => {
+    return awsReady && tfcReady && !infraHasEncryptedValues;
+  }, [awsReady, tfcReady, infraHasEncryptedValues]);
 
-	const handleAddWorkspace = async () => {
-		setWorkspaceError(null);
-		const trimmed = newWorkspace.trim();
-		if (trimmed === "") {
-			setWorkspaceError("Enter a workspace name to continue.");
-			return;
-		}
-		if (!canAddWorkspace) {
-			setWorkspaceError("Add your Terraform Cloud credentials first.");
-			return;
-		}
-		if (workspaceList.includes(trimmed)) {
-			setWorkspaceError("That workspace already exists.");
-			return;
-		}
-		if (workspaceMode === WORKSPACE_MODES.VCS) {
-			if (useGithubUsername) {
-				if (githubUsername === null) {
-					setWorkspaceError(
-						"Could not determine your GitHub username. Please log in with GitHub.",
-					);
-					return;
-				}
-			} else if (githubOrg.trim() === "") {
-				setWorkspaceError("Enter a GitHub organization for VCS mode.");
-				return;
-			}
-		}
+  const visibleWorkspaces = isDevMode
+    ? workspaceList.filter((ws) => ws !== DEV_WORKSPACE_NAME)
+    : workspaceList;
+  const showInitialSkeleton =
+    isMetadataPending || (tfcCredentialsReady && workspacesQuery.isLoading);
+  const canAddWorkspace =
+    !isWorkspaceSaving &&
+    tfcCredentialsReady &&
+    accessToken !== null &&
+    accessToken !== '';
 
-		setIsWorkspaceSaving(true);
+  const handleAddWorkspace = async () => {
+    setWorkspaceError(null);
+    const trimmed = newWorkspace.trim();
+    if (trimmed === '') {
+      setWorkspaceError('Enter a workspace name to continue.');
+      return;
+    }
+    if (!canAddWorkspace) {
+      setWorkspaceError('Add your Terraform Cloud credentials first.');
+      return;
+    }
+    if (workspaceList.includes(trimmed)) {
+      setWorkspaceError('That workspace already exists.');
+      return;
+    }
+    if (workspaceMode === WORKSPACE_MODES.VCS) {
+      if (useGithubUsername) {
+        if (githubUsername === null) {
+          setWorkspaceError(
+            'Could not determine your GitHub username. Please log in with GitHub.',
+          );
+          return;
+        }
+      } else if (githubOrg.trim() === '') {
+        setWorkspaceError('Enter a GitHub organization for VCS mode.');
+        return;
+      }
+    }
 
-		try {
-			const createResponse = await fetch(`${getApiUrl()}/terraform/workspace`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					tfcToken: infraCredentials.tfcToken,
-					tfcOrg: infraCredentials.tfcOrg,
-					workspaceName: trimmed,
-					mode: workspaceMode,
-					ec2InstanceType:
-						workspaceMode === WORKSPACE_MODES.API ? ec2InstanceType : undefined,
-					rdsInstanceClass:
-						workspaceMode === WORKSPACE_MODES.API && enableRds
-							? rdsInstanceClass
-							: undefined,
-					githubOrg:
-						workspaceMode === WORKSPACE_MODES.VCS
-							? useGithubUsername
-								? githubUsername
-								: githubOrg.trim()
-							: undefined,
-				}),
-			});
+    setIsWorkspaceSaving(true);
 
-			if (!createResponse.ok) {
-				let message = "Failed to create workspace in Terraform Cloud.";
-				try {
-					const errorBody: unknown = await createResponse.json();
-					if (
-						errorBody !== null &&
-						typeof errorBody === "object" &&
-						"message" in errorBody
-					) {
-						// eslint-disable-next-line no-type-assertion/no-type-assertion -- Type narrowing after object check
-						const msgValue = (errorBody as Record<string, unknown>).message;
-						if (typeof msgValue === "string") {
-							message = msgValue;
-						}
-					}
-				} catch {
-					message = "Failed to create workspace in Terraform Cloud.";
-				}
-				throw new Error(message);
-			}
+    try {
+      const createResponse = await fetch(`${getApiUrl()}/terraform/workspace`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tfcToken: infraCredentials.tfcToken,
+          tfcOrg: infraCredentials.tfcOrg,
+          workspaceName: trimmed,
+          mode: workspaceMode,
+          ec2InstanceType:
+            workspaceMode === WORKSPACE_MODES.API ? ec2InstanceType : undefined,
+          rdsInstanceClass:
+            workspaceMode === WORKSPACE_MODES.API && enableRds
+              ? rdsInstanceClass
+              : undefined,
+          githubOrg:
+            workspaceMode === WORKSPACE_MODES.VCS
+              ? useGithubUsername
+                ? githubUsername
+                : githubOrg.trim()
+              : undefined,
+        }),
+      });
 
-			await queryClient.invalidateQueries({
-				queryKey: [
-					"terraform-workspaces",
-					infraCredentials.tfcToken,
-					infraCredentials.tfcOrg,
-				],
-			});
-			setNewWorkspace("");
-			setWorkspaceMode(WORKSPACE_MODES.API);
-			setEc2InstanceType(DEFAULT_EC2_INSTANCE_TYPE);
-			setRdsInstanceClass(DEFAULT_RDS_INSTANCE_TYPE);
-			setEnableRds(false);
-			setGithubOrg("");
-			setUseGithubUsername(true);
-		} catch (error: unknown) {
-			if (error instanceof Error) {
-				setWorkspaceError(error.message);
-			} else {
-				setWorkspaceError("Failed to create workspace.");
-			}
-		} finally {
-			setIsWorkspaceSaving(false);
-		}
-	};
+      if (!createResponse.ok) {
+        const errorBody: unknown = await createResponse
+          .json()
+          .catch(() => null);
+        const message = getErrorMessage(
+          errorBody,
+          'Failed to create workspace in Terraform Cloud.',
+        );
+        throw new Error(message);
+      }
 
-	const handleDeleteWorkspace = async (workspaceName: string) => {
-		if (accessToken === null || accessToken === "" || !tfcCredentialsReady) {
-			setWorkspaceError("Unable to delete workspace. Check your credentials.");
-			return;
-		}
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'terraform-workspaces',
+          infraCredentials.tfcToken,
+          infraCredentials.tfcOrg,
+        ],
+      });
+      setNewWorkspace('');
+      setWorkspaceMode(WORKSPACE_MODES.API);
+      setEc2InstanceType(DEFAULT_EC2_INSTANCE_TYPE);
+      setRdsInstanceClass(DEFAULT_RDS_INSTANCE_TYPE);
+      setEnableRds(false);
+      setGithubOrg('');
+      setUseGithubUsername(true);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setWorkspaceError(error.message);
+      } else {
+        setWorkspaceError('Failed to create workspace.');
+      }
+    } finally {
+      setIsWorkspaceSaving(false);
+    }
+  };
 
-		setDeletingWorkspace(workspaceName);
-		setWorkspaceError(null);
+  const handleDeleteWorkspace = async (workspaceName: string) => {
+    if (accessToken === null || accessToken === '' || !tfcCredentialsReady) {
+      setWorkspaceError('Unable to delete workspace. Check your credentials.');
+      return;
+    }
 
-		try {
-			const deleteResponse = await fetch(
-				`${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceName)}`,
-				{
-					method: "DELETE",
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						tfcToken: infraCredentials.tfcToken,
-						tfcOrg: infraCredentials.tfcOrg,
-					}),
-				},
-			);
+    setDeletingWorkspace(workspaceName);
+    setWorkspaceError(null);
 
-			if (!deleteResponse.ok) {
-				let message = "Failed to delete workspace from Terraform Cloud.";
-				try {
-					const errorBody: unknown = await deleteResponse.json();
-					if (
-						errorBody !== null &&
-						typeof errorBody === "object" &&
-						"message" in errorBody
-					) {
-						// eslint-disable-next-line no-type-assertion/no-type-assertion -- Type narrowing after object check
-						const msgValue = (errorBody as Record<string, unknown>).message;
-						if (typeof msgValue === "string") {
-							message = msgValue;
-						}
-					}
-				} catch {
-					message = "Failed to delete workspace from Terraform Cloud.";
-				}
-				throw new Error(message);
-			}
+    try {
+      const deleteResponse = await fetch(
+        `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceName)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tfcToken: infraCredentials.tfcToken,
+            tfcOrg: infraCredentials.tfcOrg,
+          }),
+        },
+      );
 
-			await queryClient.invalidateQueries({
-				queryKey: [
-					"terraform-workspaces",
-					infraCredentials.tfcToken,
-					infraCredentials.tfcOrg,
-				],
-			});
-		} catch (error: unknown) {
-			if (error instanceof Error) {
-				setWorkspaceError(error.message);
-			} else {
-				setWorkspaceError("Failed to delete workspace.");
-			}
-		} finally {
-			setDeletingWorkspace(null);
-			setWorkspaceToDelete(null);
-		}
-	};
+      if (!deleteResponse.ok) {
+        const errorBody: unknown = await deleteResponse
+          .json()
+          .catch(() => null);
+        const message = getErrorMessage(
+          errorBody,
+          'Failed to delete workspace from Terraform Cloud.',
+        );
+        throw new Error(message);
+      }
 
-	const handleConfirmDelete = () => {
-		if (workspaceToDelete !== null) {
-			void handleDeleteWorkspace(workspaceToDelete);
-		}
-	};
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'terraform-workspaces',
+          infraCredentials.tfcToken,
+          infraCredentials.tfcOrg,
+        ],
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setWorkspaceError(error.message);
+      } else {
+        setWorkspaceError('Failed to delete workspace.');
+      }
+    } finally {
+      setDeletingWorkspace(null);
+      setWorkspaceToDelete(null);
+    }
+  };
 
-	return (
-		<div className="flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable_both-edges]">
-			<div className="max-w-2xl mx-auto px-3 pt-6 pb-6 md:px-6 md:pt-8 md:pb-8 space-y-6">
-				<div className="flex items-center justify-between gap-4">
-					<div>
-						<h2 className="text-xl md:text-2xl font-semibold text-fg">
-							Infrastructure Control
-						</h2>
-						<p className="text-sm text-fg-subtle mt-1">
-							Toggle EC2 provisioning via Terraform Cloud.
-						</p>
-					</div>
-					<button
-						type="button"
-						onClick={() => {
-							openUserProfile("infra");
-						}}
-						className="btn-secondary btn-sm"
-					>
-						Manage Credentials
-					</button>
-				</div>
+  const handleConfirmDelete = () => {
+    if (workspaceToDelete !== null) {
+      void handleDeleteWorkspace(workspaceToDelete);
+    }
+  };
 
-				<div className="space-y-4">
-					{showInitialSkeleton && (
-						<div className="p-4 bg-bg-muted border border-border rounded-lg space-y-4 animate-pulse">
-							<div className="flex items-start justify-between gap-4">
-								<div className="space-y-2">
-									<div className="h-3 w-28 bg-border rounded" />
-									<div className="h-5 w-40 bg-border rounded" />
-								</div>
-								<div className="h-6 w-12 bg-border rounded-full" />
-							</div>
-							<div className="grid gap-3 md:grid-cols-2">
-								<div className="p-3 bg-secondary border border-border rounded-md">
-									<div className="h-3 w-16 bg-border rounded" />
-									<div className="h-4 w-20 bg-border rounded mt-2" />
-								</div>
-								<div className="p-3 bg-secondary border border-border rounded-md">
-									<div className="h-3 w-20 bg-border rounded" />
-									<div className="h-4 w-32 bg-border rounded mt-2" />
-								</div>
-							</div>
-						</div>
-					)}
+  return (
+    <div className="flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable_both-edges]">
+      <div className="max-w-2xl mx-auto px-3 pt-6 pb-6 md:px-6 md:pt-8 md:pb-8 space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-semibold text-fg">
+              Infrastructure Control
+            </h2>
+            <p className="text-sm text-fg-subtle mt-1">
+              Toggle EC2 provisioning via Terraform Cloud.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              openUserProfile('infra');
+            }}
+            className="btn-secondary btn-sm"
+          >
+            Manage Credentials
+          </button>
+        </div>
 
-					{/* Dev mode: SSH Backend workspace */}
-					{!showInitialSkeleton && isDevMode && (
-						<InfraWorkspaceCard
-							key={DEV_WORKSPACE_NAME}
-							workspace={DEV_WORKSPACE_NAME}
-							accessToken={accessToken}
-							infraCredentials={infraCredentials}
-							infraReady={infraReady}
-							awsReady={awsReady}
-							tfcReady={tfcReady}
-							infraHasEncryptedValues={infraHasEncryptedValues}
-							isMetadataLoading={isMetadataPending}
-							isDeleting={deletingWorkspace === DEV_WORKSPACE_NAME}
-							onOpenTerminal={(host) => {
-								setTerminalHost(host);
-							}}
-							onOpenProfile={() => {
-								openUserProfile("infra");
-							}}
-							onDelete={() => {
-								setWorkspaceToDelete(DEV_WORKSPACE_NAME);
-							}}
-							isDevWorkspace
-						/>
-					)}
+        <div className="space-y-4">
+          {showInitialSkeleton && (
+            <div className="p-4 bg-bg-muted border border-border rounded-lg space-y-4 animate-pulse">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="h-3 w-28 bg-border rounded" />
+                  <div className="h-5 w-40 bg-border rounded" />
+                </div>
+                <div className="h-6 w-12 bg-border rounded-full" />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="p-3 bg-secondary border border-border rounded-md">
+                  <div className="h-3 w-16 bg-border rounded" />
+                  <div className="h-4 w-20 bg-border rounded mt-2" />
+                </div>
+                <div className="p-3 bg-secondary border border-border rounded-md">
+                  <div className="h-3 w-20 bg-border rounded" />
+                  <div className="h-4 w-32 bg-border rounded mt-2" />
+                </div>
+              </div>
+            </div>
+          )}
 
-					{!showInitialSkeleton &&
-						visibleWorkspaces.map((workspace) => (
-							<InfraWorkspaceCard
-								key={workspace.trim() !== "" ? workspace : "workspace-new"}
-								workspace={workspace}
-								accessToken={accessToken}
-								infraCredentials={infraCredentials}
-								infraReady={infraReady}
-								awsReady={awsReady}
-								tfcReady={tfcReady}
-								infraHasEncryptedValues={infraHasEncryptedValues}
-								isMetadataLoading={isMetadataPending}
-								isDeleting={deletingWorkspace === workspace}
-								onOpenTerminal={(host) => {
-									setTerminalHost(host);
-								}}
-								onOpenProfile={() => {
-									openUserProfile("infra");
-								}}
-								onDelete={() => {
-									setWorkspaceToDelete(workspace);
-								}}
-							/>
-						))}
+          {/* Dev mode: SSH Backend workspace */}
+          {!showInitialSkeleton && isDevMode && (
+            <InfraWorkspaceCard
+              key={DEV_WORKSPACE_NAME}
+              workspace={DEV_WORKSPACE_NAME}
+              accessToken={accessToken}
+              infraCredentials={infraCredentials}
+              infraReady={infraReady}
+              awsReady={awsReady}
+              tfcReady={tfcReady}
+              infraHasEncryptedValues={infraHasEncryptedValues}
+              isMetadataLoading={isMetadataPending}
+              isDeleting={deletingWorkspace === DEV_WORKSPACE_NAME}
+              onOpenTerminal={(host) => {
+                setTerminalHost(host);
+              }}
+              onOpenProfile={() => {
+                openUserProfile('infra');
+              }}
+              onDelete={() => {
+                setWorkspaceToDelete(DEV_WORKSPACE_NAME);
+              }}
+              isDevWorkspace
+            />
+          )}
 
-					{!showInitialSkeleton && visibleWorkspaces.length === 0 && (
-						<div className="px-4 py-3 bg-secondary border border-border rounded-lg text-sm text-fg-muted">
-							No workspaces added yet.
-						</div>
-					)}
+          {!showInitialSkeleton &&
+            visibleWorkspaces.map((workspace) => (
+              <InfraWorkspaceCard
+                key={workspace.trim() !== '' ? workspace : 'workspace-new'}
+                workspace={workspace}
+                accessToken={accessToken}
+                infraCredentials={infraCredentials}
+                infraReady={infraReady}
+                awsReady={awsReady}
+                tfcReady={tfcReady}
+                infraHasEncryptedValues={infraHasEncryptedValues}
+                isMetadataLoading={isMetadataPending}
+                isDeleting={deletingWorkspace === workspace}
+                onOpenTerminal={(host) => {
+                  setTerminalHost(host);
+                }}
+                onOpenProfile={() => {
+                  openUserProfile('infra');
+                }}
+                onDelete={() => {
+                  setWorkspaceToDelete(workspace);
+                }}
+              />
+            ))}
 
-					<div className="p-4 bg-secondary border border-border rounded-lg space-y-4">
-						<p className="text-sm font-medium text-fg">Add workspace</p>
+          {!showInitialSkeleton && visibleWorkspaces.length === 0 && (
+            <div className="px-4 py-3 bg-secondary border border-border rounded-lg text-sm text-fg-muted">
+              No workspaces added yet.
+            </div>
+          )}
 
-						<div className="space-y-3">
-							<div>
-								<label
-									htmlFor="workspace-name"
-									className="block text-xs font-medium text-fg-muted mb-1.5"
-								>
-									Workspace name
-								</label>
-								<input
-									id="workspace-name"
-									type="text"
-									value={newWorkspace}
-									onChange={(event) => {
-										setNewWorkspace(event.target.value);
-										setWorkspaceError(null);
-									}}
-									placeholder="my-workspace"
-									className="form-input text-sm"
-									disabled={!canAddWorkspace}
-								/>
-							</div>
+          <div className="p-4 bg-secondary border border-border rounded-lg space-y-4">
+            <p className="text-sm font-medium text-fg">Add workspace</p>
 
-							<div>
-								<label
-									htmlFor="workspace-mode"
-									className="block text-xs font-medium text-fg-muted mb-1.5"
-								>
-									Mode
-								</label>
-								<SimpleSelect
-									id="workspace-mode"
-									value={workspaceMode}
-									onChange={(value) => {
-										if (
-											value === WORKSPACE_MODES.API ||
-											value === WORKSPACE_MODES.VCS
-										) {
-											setWorkspaceMode(value);
-										}
-									}}
-									options={WORKSPACE_MODE_OPTIONS}
-									disabled={!canAddWorkspace}
-									aria-label="Workspace mode"
-								/>
-							</div>
+            <div className="space-y-3">
+              <div>
+                <label
+                  htmlFor="workspace-name"
+                  className="block text-xs font-medium text-fg-muted mb-1.5"
+                >
+                  Workspace name
+                </label>
+                <input
+                  id="workspace-name"
+                  type="text"
+                  value={newWorkspace}
+                  onChange={(event) => {
+                    setNewWorkspace(event.target.value);
+                    setWorkspaceError(null);
+                  }}
+                  placeholder="my-workspace"
+                  className="form-input text-sm"
+                  disabled={!canAddWorkspace}
+                />
+              </div>
 
-							{workspaceMode === WORKSPACE_MODES.API && (
-								<>
-									<div>
-										<label
-											htmlFor="ec2-instance-type"
-											className="block text-xs font-medium text-fg-muted mb-1.5"
-										>
-											EC2 Instance Type
-										</label>
-										<GroupedSelect
-											id="ec2-instance-type"
-											value={ec2InstanceType}
-											onChange={setEc2InstanceType}
-											groups={EC2_INSTANCE_GROUPS}
-											disabled={!canAddWorkspace}
-											aria-label="EC2 instance type"
-										/>
-									</div>
+              <div>
+                <label
+                  htmlFor="workspace-mode"
+                  className="block text-xs font-medium text-fg-muted mb-1.5"
+                >
+                  Mode
+                </label>
+                <SimpleSelect
+                  id="workspace-mode"
+                  value={workspaceMode}
+                  onChange={(value) => {
+                    if (
+                      value === WORKSPACE_MODES.API ||
+                      value === WORKSPACE_MODES.VCS
+                    ) {
+                      setWorkspaceMode(value);
+                    }
+                  }}
+                  options={WORKSPACE_MODE_OPTIONS}
+                  disabled={!canAddWorkspace}
+                  aria-label="Workspace mode"
+                />
+              </div>
 
-									<div className="flex items-center justify-between py-2">
-										<div>
-											<p className="text-xs font-medium text-fg-muted">
-												Include RDS Database
-											</p>
-											<p className="text-[11px] text-fg-subtle mt-0.5">
-												Add a managed PostgreSQL database
-											</p>
-										</div>
-										<ToggleSwitch
-											checked={enableRds}
-											onChange={() => {
-												setEnableRds(!enableRds);
-											}}
-											disabled={!canAddWorkspace}
-											label="Toggle RDS"
-										/>
-									</div>
+              {workspaceMode === WORKSPACE_MODES.API && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="ec2-instance-type"
+                      className="block text-xs font-medium text-fg-muted mb-1.5"
+                    >
+                      EC2 Instance Type
+                    </label>
+                    <GroupedSelect
+                      id="ec2-instance-type"
+                      value={ec2InstanceType}
+                      onChange={setEc2InstanceType}
+                      groups={EC2_INSTANCE_GROUPS}
+                      disabled={!canAddWorkspace}
+                      aria-label="EC2 instance type"
+                    />
+                  </div>
 
-									{enableRds && (
-										<div>
-											<label
-												htmlFor="rds-instance-class"
-												className="block text-xs font-medium text-fg-muted mb-1.5"
-											>
-												RDS Instance Class
-											</label>
-											<GroupedSelect
-												id="rds-instance-class"
-												value={rdsInstanceClass}
-												onChange={setRdsInstanceClass}
-												groups={RDS_INSTANCE_GROUPS}
-												disabled={!canAddWorkspace}
-												aria-label="RDS instance class"
-											/>
-										</div>
-									)}
-								</>
-							)}
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-xs font-medium text-fg-muted">
+                        Include RDS Database
+                      </p>
+                      <p className="text-[11px] text-fg-subtle mt-0.5">
+                        Add a managed PostgreSQL database
+                      </p>
+                    </div>
+                    <ToggleSwitch
+                      checked={enableRds}
+                      onChange={() => {
+                        setEnableRds(!enableRds);
+                      }}
+                      disabled={!canAddWorkspace}
+                      label="Toggle RDS"
+                    />
+                  </div>
 
-							{workspaceMode === WORKSPACE_MODES.VCS && (
-								<>
-									<div className="flex items-center justify-between py-2">
-										<div>
-											<p className="text-xs font-medium text-fg-muted">
-												Use personal GitHub account
-											</p>
-											<p className="text-[11px] text-fg-subtle mt-0.5">
-												{useGithubUsername
-													? "Repository owned by your username"
-													: "Repository owned by an organization"}
-											</p>
-										</div>
-										<ToggleSwitch
-											checked={useGithubUsername}
-											onChange={() => {
-												setUseGithubUsername(!useGithubUsername);
-												setWorkspaceError(null);
-											}}
-											disabled={!canAddWorkspace}
-											label="Toggle personal account"
-										/>
-									</div>
-									{useGithubUsername ? (
-										<div className="p-3 bg-bg-muted border border-border rounded-md">
-											<p className="text-[11px] text-fg-subtle">
-												The workspace will be linked to{" "}
-												<span className="font-mono text-fg-muted">
-													{githubUsername ?? "your-username"}/
-													{newWorkspace.trim() || "repo"}
-												</span>
-											</p>
-											{githubUsername === null && (
-												<p className="text-[11px] text-amber-400 mt-1">
-													Could not detect GitHub username from your account.
-												</p>
-											)}
-										</div>
-									) : (
-										<div>
-											<label
-												htmlFor="github-org"
-												className="block text-xs font-medium text-fg-muted mb-1.5"
-											>
-												Organization
-											</label>
-											<input
-												id="github-org"
-												type="text"
-												value={githubOrg}
-												onChange={(event) => {
-													setGithubOrg(event.target.value);
-													setWorkspaceError(null);
-												}}
-												placeholder="org-name"
-												className="form-input text-sm"
-												disabled={!canAddWorkspace}
-											/>
-											<p className="text-[11px] text-fg-subtle mt-1">
-												The workspace will be linked to{" "}
-												<span className="font-mono text-fg-muted">
-													{githubOrg.trim() || "org"}/
-													{newWorkspace.trim() || "repo"}
-												</span>
-											</p>
-										</div>
-									)}
-									<div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200">
-										<p className="font-medium mb-1">VCS-connected workspace</p>
-										<p>
-											Ensure you have connected GitHub to Terraform Cloud in
-											your organization settings and the repository exists.
-										</p>
-									</div>
-								</>
-							)}
-						</div>
+                  {enableRds && (
+                    <div>
+                      <label
+                        htmlFor="rds-instance-class"
+                        className="block text-xs font-medium text-fg-muted mb-1.5"
+                      >
+                        RDS Instance Class
+                      </label>
+                      <GroupedSelect
+                        id="rds-instance-class"
+                        value={rdsInstanceClass}
+                        onChange={setRdsInstanceClass}
+                        groups={RDS_INSTANCE_GROUPS}
+                        disabled={!canAddWorkspace}
+                        aria-label="RDS instance class"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
 
-						<div className="flex flex-col gap-2 pt-2 border-t border-border md:flex-row">
-							<button
-								type="button"
-								onClick={() => {
-									void handleAddWorkspace();
-								}}
-								disabled={!canAddWorkspace}
-								className="btn-primary flex-1"
-							>
-								{isWorkspaceSaving ? "Creating..." : "Create Workspace"}
-							</button>
-						</div>
+              {workspaceMode === WORKSPACE_MODES.VCS && (
+                <>
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-xs font-medium text-fg-muted">
+                        Use personal GitHub account
+                      </p>
+                      <p className="text-[11px] text-fg-subtle mt-0.5">
+                        {useGithubUsername
+                          ? 'Repository owned by your username'
+                          : 'Repository owned by an organization'}
+                      </p>
+                    </div>
+                    <ToggleSwitch
+                      checked={useGithubUsername}
+                      onChange={() => {
+                        setUseGithubUsername(!useGithubUsername);
+                        setWorkspaceError(null);
+                      }}
+                      disabled={!canAddWorkspace}
+                      label="Toggle personal account"
+                    />
+                  </div>
+                  {useGithubUsername ? (
+                    <div className="p-3 bg-bg-muted border border-border rounded-md">
+                      <p className="text-[11px] text-fg-subtle">
+                        The workspace will be linked to{' '}
+                        <span className="font-mono text-fg-muted">
+                          {githubUsername ?? 'your-username'}/
+                          {newWorkspace.trim() || 'repo'}
+                        </span>
+                      </p>
+                      {githubUsername === null && (
+                        <p className="text-[11px] text-amber-400 mt-1">
+                          Could not detect GitHub username from your account.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <label
+                        htmlFor="github-org"
+                        className="block text-xs font-medium text-fg-muted mb-1.5"
+                      >
+                        Organization
+                      </label>
+                      <input
+                        id="github-org"
+                        type="text"
+                        value={githubOrg}
+                        onChange={(event) => {
+                          setGithubOrg(event.target.value);
+                          setWorkspaceError(null);
+                        }}
+                        placeholder="org-name"
+                        className="form-input text-sm"
+                        disabled={!canAddWorkspace}
+                      />
+                      <p className="text-[11px] text-fg-subtle mt-1">
+                        The workspace will be linked to{' '}
+                        <span className="font-mono text-fg-muted">
+                          {githubOrg.trim() || 'org'}/
+                          {newWorkspace.trim() || 'repo'}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  <div className="p-3 bg-blue-900/20 border border-blue-700/40 rounded-md text-xs text-blue-200">
+                    <p className="font-medium mb-1">VCS-connected workspace</p>
+                    <p>
+                      Ensure you have connected GitHub to Terraform Cloud in
+                      your organization settings and the repository exists.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
 
-						{workspaceError !== null && workspaceError !== "" && (
-							<p className="text-xs text-red-200">{workspaceError}</p>
-						)}
+            <div className="flex flex-col gap-2 pt-2 border-t border-border md:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  void handleAddWorkspace();
+                }}
+                disabled={!canAddWorkspace}
+                className="btn-primary flex-1"
+              >
+                {isWorkspaceSaving ? 'Creating...' : 'Create Workspace'}
+              </button>
+            </div>
 
-						<p className="text-xs text-fg-muted">
-							Workspaces use your global Terraform Cloud organization.
-						</p>
-					</div>
-				</div>
-			</div>
+            {workspaceError !== null && workspaceError !== '' && (
+              <p className="text-xs text-red-200">{workspaceError}</p>
+            )}
 
-			<CustomModal
-				isOpen={workspaceToDelete !== null}
-				title="Delete Workspace"
-				onClose={() => {
-					if (deletingWorkspace === null) {
-						setWorkspaceToDelete(null);
-					}
-				}}
-				size="small"
-				footer={
-					<div className="flex gap-3">
-						<button
-							type="button"
-							onClick={() => {
-								setWorkspaceToDelete(null);
-							}}
-							disabled={deletingWorkspace !== null}
-							className="btn-secondary flex-1"
-						>
-							Cancel
-						</button>
-						<button
-							type="button"
-							onClick={handleConfirmDelete}
-							disabled={deletingWorkspace !== null}
-							className="btn-danger btn-icon flex-1"
-						>
-							{deletingWorkspace !== null ? (
-								<>
-									<svg
-										className="w-4 h-4 animate-spin"
-										fill="none"
-										viewBox="0 0 24 24"
-									>
-										<title>Deleting</title>
-										<circle
-											className="opacity-25"
-											cx="12"
-											cy="12"
-											r="10"
-											stroke="currentColor"
-											strokeWidth="4"
-										/>
-										<path
-											className="opacity-75"
-											fill="currentColor"
-											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-										/>
-									</svg>
-									Deleting...
-								</>
-							) : (
-								"Delete"
-							)}
-						</button>
-					</div>
-				}
-			>
-				<div className="flex items-start gap-3">
-					<div className="p-2 bg-red-900/30 rounded-full flex-shrink-0">
-						<svg
-							className="w-5 h-5 text-red-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<title>Warning</title>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth={2}
-								d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-							/>
-						</svg>
-					</div>
-					<p className="text-sm">
-						Are you sure you want to delete{" "}
-						<span className="font-medium text-fg">{workspaceToDelete}</span>?
-						This will permanently remove the workspace from Terraform Cloud.
-					</p>
-				</div>
-			</CustomModal>
+            <p className="text-xs text-fg-muted">
+              Workspaces use your global Terraform Cloud organization.
+            </p>
+          </div>
+        </div>
+      </div>
 
-			{/* Terminal Overlay */}
-			{terminalHost !== null && (
-				<div
-					className={`fixed inset-0 z-50 flex flex-col bg-bg ${
-						isTerminalExpanded ? "" : "top-1/2"
-					}`}
-				>
-					{/* Terminal Header */}
-					<div className="flex items-center justify-between px-4 py-2 bg-secondary border-b border-border">
-						<div className="flex items-center gap-2">
-							<svg
-								className="w-4 h-4 text-fg-muted"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<title>Terminal</title>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-								/>
-							</svg>
-							<span className="text-sm font-medium text-fg">
-								{terminalHost}
-							</span>
-						</div>
-						<div className="flex items-center gap-1">
-							<button
-								type="button"
-								onClick={() => {
-									setIsTerminalExpanded(!isTerminalExpanded);
-								}}
-								className="p-1.5 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
-								title={isTerminalExpanded ? "Minimize" : "Expand"}
-							>
-								{isTerminalExpanded ? (
-									<svg
-										className="w-4 h-4"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<title>Minimize</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M19 9l-7 7-7-7"
-										/>
-									</svg>
-								) : (
-									<svg
-										className="w-4 h-4"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<title>Expand</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M5 15l7-7 7 7"
-										/>
-									</svg>
-								)}
-							</button>
-							<button
-								type="button"
-								onClick={() => {
-									setTerminalHost(null);
-									setIsTerminalExpanded(false);
-								}}
-								className="p-1.5 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
-								title="Close terminal"
-							>
-								<svg
-									className="w-4 h-4"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<title>Close</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M6 18L18 6M6 6l12 12"
-									/>
-								</svg>
-							</button>
-						</div>
-					</div>
-					{/* Terminal Content */}
-					<div className="flex-1 min-h-0">
-						<TerminalMode
-							host={terminalHost}
-							sshPrivateKey={infraCredentials.sshPrivateKey}
-							accessToken={accessToken ?? undefined}
-						/>
-					</div>
-				</div>
-			)}
-		</div>
-	);
+      <CustomModal
+        isOpen={workspaceToDelete !== null}
+        title="Delete Workspace"
+        onClose={() => {
+          if (deletingWorkspace === null) {
+            setWorkspaceToDelete(null);
+          }
+        }}
+        size="small"
+        footer={
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setWorkspaceToDelete(null);
+              }}
+              disabled={deletingWorkspace !== null}
+              className="btn-secondary flex-1"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDelete}
+              disabled={deletingWorkspace !== null}
+              className="btn-danger btn-icon flex-1"
+            >
+              {deletingWorkspace !== null ? (
+                <>
+                  <svg
+                    className="w-4 h-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Deleting</title>
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-red-900/30 rounded-full flex-shrink-0">
+            <svg
+              className="w-5 h-5 text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <title>Warning</title>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <p className="text-sm">
+            Are you sure you want to delete{' '}
+            <span className="font-medium text-fg">{workspaceToDelete}</span>?
+            This will permanently remove the workspace from Terraform Cloud.
+          </p>
+        </div>
+      </CustomModal>
+
+      {/* Terminal Overlay */}
+      {terminalHost !== null && (
+        <div
+          className={`fixed inset-0 z-50 flex flex-col bg-bg ${
+            isTerminalExpanded ? '' : 'top-1/2'
+          }`}
+        >
+          {/* Terminal Header */}
+          <div className="flex items-center justify-between px-4 py-2 bg-secondary border-b border-border">
+            <div className="flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-fg-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <title>Terminal</title>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <span className="text-sm font-medium text-fg">
+                {terminalHost}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTerminalExpanded(!isTerminalExpanded);
+                }}
+                className="p-1.5 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+                title={isTerminalExpanded ? 'Minimize' : 'Expand'}
+              >
+                {isTerminalExpanded ? (
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Minimize</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Expand</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTerminalHost(null);
+                  setIsTerminalExpanded(false);
+                }}
+                className="p-1.5 text-fg-muted hover:text-fg hover:bg-secondary-hover rounded transition-colors"
+                title="Close terminal"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <title>Close</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {/* Terminal Content */}
+          <div className="flex-1 min-h-0">
+            <TerminalMode
+              host={terminalHost}
+              sshPrivateKey={infraCredentials.sshPrivateKey}
+              accessToken={accessToken ?? undefined}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

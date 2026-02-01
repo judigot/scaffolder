@@ -1,0 +1,28 @@
+import { createFileRoute, useNavigate, Link, redirect } from '@tanstack/react-router';
+import { RegisterForm } from '../auth/components/RegisterForm';
+
+export const Route = createFileRoute('/register')({
+  beforeLoad: ({ context }) => {
+    if (context.auth.isAuthenticated) {
+      throw redirect({ to: '/' });
+    }
+  },
+  component: RegisterPage,
+});
+
+function RegisterPage() {
+  const navigate = useNavigate();
+
+  const handleSuccess = () => {
+    navigate({ to: '/' });
+  };
+
+  return (
+    <div className="auth-page">
+      <RegisterForm onSuccess={handleSuccess} />
+      <p className="auth-switch">
+        Already have an account? <Link to="/login">Login</Link>
+      </p>
+    </div>
+  );
+}

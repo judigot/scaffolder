@@ -135,6 +135,8 @@ describe('identifySchema', () => {
         ],
         foreignTables: ['user'],
         foreignKeys: ['user_id'],
+        isAuthResource: true,
+        ownerField: 'user_id',
 
         belongsTo: ['user'],
       },
@@ -259,6 +261,8 @@ describe('identifySchema', () => {
         ],
         foreignTables: ['user'],
         foreignKeys: ['user_id'],
+        isAuthResource: true,
+        ownerField: 'user_id',
 
         belongsTo: ['user'],
       },

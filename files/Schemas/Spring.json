@@ -198,6 +198,8 @@
     ],
     "foreignTables": ["users"],
     "foreignKeys": ["user_id"],
+    "isAuthResource": true,
+    "ownerField": "user_id",
     "belongsTo": ["users"],
     "hasMany": ["user_authentication"]
   },

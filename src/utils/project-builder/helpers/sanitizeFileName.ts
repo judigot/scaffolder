@@ -14,8 +14,15 @@ export const sanitizeFileName = (fileName: string): string => {
 
   // Remove control characters (0x00-0x1F and 0x80-0x9F)
   // These can cause unexpected behavior and security issues
-  // eslint-disable-next-line no-control-regex
-  sanitized = sanitized.replace(/[\x00-\x1F\x80-\x9F]/g, '');
+  // Using character code filtering to avoid regex control character issues
+  sanitized = sanitized
+    .split('')
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      // Filter out control characters: 0x00-0x1F and 0x80-0x9F
+      return !(code <= 0x1f || (code >= 0x80 && code <= 0x9f));
+    })
+    .join('');
 
   // Replace or remove invalid characters for cross-platform compatibility
   // Windows invalid: : < > " | ? * / \

@@ -1,0 +1,63 @@
+# App Generator - ORM Tester
+# Pre-configured project with all ORMs for schema migration testing
+#
+# Usage:
+#   1. Generate this project with your schema
+#   2. Run `bun install` once
+#   3. Run individual ORM tests: `bun run test:drizzle`, `bun run test:prisma`, etc.
+#   4. Each test: cleans DB → runs migration → exports schema to results/
+#
+# Supported ORMs:
+#   - Raw SQL (baseline reference)
+#   - Drizzle ORM
+#   - Prisma
+#   - TypeORM
+#   - MikroORM
+#   - Knex
+#   - Kysely
+
+# Root configuration files
+CREATE_FILE(package.json --template ./templates/package.json.txt):
+CREATE_FILE(tsconfig.json --template ./templates/tsconfig.json.txt):
+CREATE_FILE(.env.example --template ./templates/env.example.txt):
+CREATE_FILE(drizzle.config.ts --template ./templates/drizzle.config.txt):
+CREATE_FILE(README.md --template ./templates/readme.txt):
+
+# Prisma schema
+prisma:
+  CREATE_FILE(schema.prisma --template /Projects/ORM Schema - Prisma/templates/schema.prisma.txt --data-source=/Constants/typeMappings.yaml):
+
+# Drizzle schema
+src:
+  drizzle:
+    CREATE_FILE(schema.ts --template ./templates/drizzle-schema.txt --data-source=/Constants/typeMappings.yaml):
+
+  # TypeORM entities
+  typeorm:
+    entities:
+      FILE_LOOP({{tableNamePascalCaseSingular}}.ts --template /Projects/ORM Schema - TypeORM/templates/entity.txt --data-source=/Constants/typeMappings.yaml):
+    CREATE_FILE(data-source.ts --template ./templates/typeorm-datasource.txt):
+
+  # MikroORM entities
+  mikroorm:
+    entities:
+      FILE_LOOP({{tableNamePascalCaseSingular}}.ts --template /Projects/ORM Schema - MikroORM/templates/entity.txt --data-source=/Constants/typeMappings.yaml):
+    CREATE_FILE(config.ts --template ./templates/mikroorm-config.txt):
+
+  # Raw SQL schema
+  raw:
+    CREATE_FILE(schema.sql --template /Templates/schema.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+
+# Migration scripts - each script cleans DB, runs migration, exports result
+scripts:
+  CREATE_FILE(db-utils.ts --template ./templates/scripts/db-utils.txt):
+  CREATE_FILE(test-raw.ts --template ./templates/scripts/test-raw.txt):
+  CREATE_FILE(test-drizzle.ts --template ./templates/scripts/test-drizzle.txt):
+  CREATE_FILE(test-prisma.ts --template ./templates/scripts/test-prisma.txt):
+  CREATE_FILE(test-typeorm.ts --template ./templates/scripts/test-typeorm.txt):
+  CREATE_FILE(test-mikroorm.ts --template ./templates/scripts/test-mikroorm.txt):
+  CREATE_FILE(compare-results.ts --template ./templates/scripts/compare-results.txt):
+
+# Results directory (empty, populated by test scripts)
+results:
+  CREATE_FILE(.gitkeep --template ./templates/gitkeep.txt):

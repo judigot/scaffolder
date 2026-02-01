@@ -1,0 +1,33 @@
+{
+  "name": "orm-tester",
+  "version": "1.0.0",
+  "description": "ORM schema migration tester - compare schemas across ORMs",
+  "type": "module",
+  "scripts": {
+    "test:raw": "bun run scripts/test-raw.ts",
+    "test:drizzle": "bun run scripts/test-drizzle.ts",
+    "test:prisma": "bun run scripts/test-prisma.ts",
+    "test:typeorm": "bun run scripts/test-typeorm.ts",
+    "test:mikroorm": "bun run scripts/test-mikroorm.ts",
+    "test:all": "bun run test:raw && bun run test:drizzle && bun run test:prisma && bun run test:typeorm && bun run test:mikroorm",
+    "compare": "bun run scripts/compare-results.ts",
+    "db:create": "bun run scripts/db-utils.ts create",
+    "db:drop": "bun run scripts/db-utils.ts drop",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "postgres": "^3.4.5",
+    "drizzle-orm": "^0.38.0",
+    "@prisma/client": "^6.0.0",
+    "typeorm": "^0.3.20",
+    "reflect-metadata": "^0.2.2",
+    "@mikro-orm/core": "^6.4.0",
+    "@mikro-orm/postgresql": "^6.4.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "typescript": "^5.7.0",
+    "drizzle-kit": "^0.30.0",
+    "prisma": "^6.0.0"
+  }
+}

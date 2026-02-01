@@ -1,4 +1,4 @@
--- Seed data for {{tableName}} in CSV format
+-- Seed data for <@@>tableName</@@> in CSV format
 
-[[USE_ROWS(tableName={{tableName}}, format=csv)]]
+[[USE_ROWS(tableName=<@@>tableName</@@>, format=csv)]]
 

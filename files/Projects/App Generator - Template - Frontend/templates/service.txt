@@ -1,7 +1,7 @@
 import { axiosInstance } from '@/vendor/axiosInstance.ts';
 import { {{tableNamePascalCase}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
 
-[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="
+<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">
 /**
  * {{description}}
  */
@@ -13,4 +13,4 @@ export const {{methodNameCamelCase}} = async {{frontendServiceMethod}} => {
     throw error;
   }
 };
-"]]
+</@@LOOP@@>

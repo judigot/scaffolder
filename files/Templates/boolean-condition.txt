@@ -1,14 +1,14 @@
 {{tableNamePascalCase}} Conditions Test:
   [[ LOOP(columnsInfo) --template="
   Column: {{valueCamelCase}} | Type: {{data_type}} | TS Type: {{data_type}}
-  
+
   /* Boolean Condition Results */
-  String Type: {% IF data_type EQUALS 'string' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'string' %}false{% ENDIF %}
-  Number Type: {% IF data_type EQUALS 'number' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'number' %}false{% ENDIF %}
-  Boolean Type: {% IF data_type EQUALS 'boolean' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'boolean' %}false{% ENDIF %}
-  Date Type: {% IF data_type EQUALS 'Date' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'Date' %}false{% ENDIF %}
-  
+  String Type: <@@IF@@ condition="data_type EQUALS 'string'">true</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'string'">false</@@IF@@>
+  Number Type: <@@IF@@ condition="data_type EQUALS 'number'">true</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'number'">false</@@IF@@>
+  Boolean Type: <@@IF@@ condition="data_type EQUALS 'boolean'">true</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'boolean'">false</@@IF@@>
+  Date Type: <@@IF@@ condition="data_type EQUALS 'Date'">true</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'Date'">false</@@IF@@>
+
   /* Database Type Checks */
-  Contains 'char': {% IF data_type CONTAINS 'char' %}true{% ENDIF %}{% IF data_type NOT CONTAINS 'char' %}false{% ENDIF %}
-  Contains 'int': {% IF data_type CONTAINS 'int' %}true{% ENDIF %}{% IF data_type NOT CONTAINS 'int' %}false{% ENDIF %}
-  " --separator="\n\n" ]] 
+  Contains 'char': <@@IF@@ condition="data_type CONTAINS 'char'">true</@@IF@@><@@IF@@ condition="data_type NOT CONTAINS 'char'">false</@@IF@@>
+  Contains 'int': <@@IF@@ condition="data_type CONTAINS 'int'">true</@@IF@@><@@IF@@ condition="data_type NOT CONTAINS 'int'">false</@@IF@@>
+  " --separator="\n\n" ]]

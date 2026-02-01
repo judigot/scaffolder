@@ -7,6 +7,7 @@ import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceh
 import {
   processAtIf,
   processHtmlIf,
+  evaluateCondition,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
@@ -122,10 +123,50 @@ const evaluateExpression = (
 };
 
 /**
+ * Process a single dynamic lookup expression
+ */
+const processSingleDynamicExpression = (
+  content: string,
+  replacements: Record<string, string>,
+  dataSource: DataContext,
+  originalMatch: string,
+): string => {
+  const trimmedContent = content.trim();
+
+  // Check if this is a JavaScript-like property access (contains . or [)
+  if (!trimmedContent.includes('.') && !trimmedContent.includes('[')) {
+    // Not a property access, return original for other processors
+    return originalMatch;
+  }
+
+  // Handle fallback operator ||
+  if (trimmedContent.includes('||')) {
+    const expressions = trimmedContent.split('||').map((e) => e.trim());
+    for (const expr of expressions) {
+      const result = evaluateExpression(expr, replacements, dataSource);
+      if (result !== undefined && result !== '') {
+        return result;
+      }
+    }
+    return ''; // All expressions failed
+  }
+
+  // Single expression
+  const result = evaluateExpression(trimmedContent, replacements, dataSource);
+  if (result !== undefined) {
+    return result;
+  }
+
+  // Return original if not resolved (might be handled by other processors)
+  return originalMatch;
+};
+
+/**
  * Process JavaScript-like dynamic lookups in template
+ * Supports both {{...}} (legacy) and <@@>...</@@> (new) syntax
  * Supports:
- * - Dot notation: {{typeMappings.string.postgresql}}
- * - Bracket notation: {{typeMappings[data_type][dbType]}}
+ * - Dot notation: {{typeMappings.string.postgresql}} or <@@>typeMappings.string.postgresql</@@>
+ * - Bracket notation: {{typeMappings[data_type][dbType]}} or <@@>typeMappings[data_type][dbType]</@@>
  * - Mixed: {{typeMappings.string[dbType]}} or {{typeMappings[data_type].postgresql}}
  * - Fallback with ||: {{typeMappings[value][dbType] || typeMappings[data_type][dbType]}}
  */
@@ -138,40 +179,19 @@ const processDynamicLookup = (
     return template;
   }
 
-  // Match {{expression}} or {{expr1 || expr2}}
-  // The expression can contain: word chars, dots, brackets with content
-  const placeholderRegex = /\{\{([^}]+)\}\}/g;
+  // First, process <@@>expression</@@> (new syntax)
+  let result = template.replace(
+    /<@@>([^<]+)<\/@@>/g,
+    (match, content: string) =>
+      processSingleDynamicExpression(content, replacements, dataSource, match),
+  );
 
-  return template.replace(placeholderRegex, (match, content: string) => {
-    const trimmedContent = content.trim();
+  // Then, process {{expression}} (legacy syntax)
+  result = result.replace(/\{\{([^}]+)\}\}/g, (match, content: string) =>
+    processSingleDynamicExpression(content, replacements, dataSource, match),
+  );
 
-    // Check if this is a JavaScript-like property access (contains . or [)
-    if (!trimmedContent.includes('.') && !trimmedContent.includes('[')) {
-      // Not a property access, return original for other processors
-      return match;
-    }
-
-    // Handle fallback operator ||
-    if (trimmedContent.includes('||')) {
-      const expressions = trimmedContent.split('||').map((e) => e.trim());
-      for (const expr of expressions) {
-        const result = evaluateExpression(expr, replacements, dataSource);
-        if (result !== undefined && result !== '') {
-          return result;
-        }
-      }
-      return ''; // All expressions failed
-    }
-
-    // Single expression
-    const result = evaluateExpression(trimmedContent, replacements, dataSource);
-    if (result !== undefined) {
-      return result;
-    }
-
-    // Return original if not resolved (might be handled by other processors)
-    return match;
-  });
+  return result;
 };
 
 // Legacy support for old syntax: {{[var1].[var2]}}, {{staticKey.[var]}}, {{[var].staticKey}}
@@ -255,6 +275,7 @@ export const processColumnsInfoIteration = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  filterCondition?: string,
 ): string => {
   const dbType =
     formData && typeof formData.dbType === 'string' ? formData.dbType : '';
@@ -264,11 +285,10 @@ export const processColumnsInfoIteration = (
   const results: string[] = [];
 
   for (const column of tableObj.columnsInfo) {
+    // Build replacements early so we can use them for filtering
     const caseFormats = changeCase(column.column_name);
-
-    const replacements: Record<string, string> = {
+    const columnReplacements: Record<string, string> = {
       ...dataSourceReplacements,
-      // Legacy flat keys (for backwards compatibility)
       value: column.column_name,
       valuePlural: caseFormats.plural,
       valueSingular: caseFormats.singular,
@@ -279,6 +299,29 @@ export const processColumnsInfoIteration = (
       valueCamelCase: caseFormats.camelCase,
       valueKebabCase: caseFormats.kebabCase,
       valueSnakeCase: caseFormats.snakeCase,
+      data_type: column.data_type,
+      dbType,
+      is_nullable: column.is_nullable,
+      column_default: column.column_default ?? '',
+      is_primary_key: column.primary_key === true ? 'true' : 'false',
+      is_unique: column.unique === true ? 'true' : 'false',
+      foreign_table: column.foreign_key?.foreign_table_name ?? '',
+      foreign_column: column.foreign_key?.foreign_column_name ?? '',
+      has_foreign_key: column.foreign_key !== undefined ? 'true' : 'false',
+    };
+
+    // Apply filter condition if provided
+    if (
+      filterCondition !== undefined &&
+      filterCondition !== '' &&
+      !evaluateCondition(filterCondition, columnReplacements)
+    ) {
+      continue;
+    }
+
+    // Extend with additional case formats and namespaced keys
+    const replacements: Record<string, string> = {
+      ...columnReplacements,
       valueTitleCasePlural: caseFormats.titleCasePlural,
       valueSentenceCasePlural: caseFormats.sentenceCasePlural,
       valuePhraseCasePlural: caseFormats.phraseCasePlural,
@@ -294,15 +337,6 @@ export const processColumnsInfoIteration = (
       valueKebabCaseSingular: caseFormats.kebabCaseSingular,
       valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
       columnNameCamelCase: caseFormats.camelCase,
-      data_type: column.data_type,
-      dbType,
-      is_nullable: column.is_nullable,
-      column_default: column.column_default ?? '',
-      is_primary_key: column.primary_key === true ? 'true' : 'false',
-      is_unique: column.unique === true ? 'true' : 'false',
-      foreign_table: column.foreign_key?.foreign_table_name ?? '',
-      foreign_column: column.foreign_key?.foreign_column_name ?? '',
-      has_foreign_key: column.foreign_key !== undefined ? 'true' : 'false',
       // Verbose namespaced keys (explicit source)
       'column.name': column.column_name,
       'column.value': column.column_name,

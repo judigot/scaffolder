@@ -107,3 +107,5 @@ Desktop.ini
 .agent-task-context/.state/
 test-results/
 .vercel
+# Generated test output
+src/tests/golden-projects/output/

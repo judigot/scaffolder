@@ -1,0 +1,12 @@
+# ORM Schema - TypeORM Entity Generator
+# Generates TypeORM entity files from database schema
+#
+# Usage:
+#   - Each table becomes a TypeORM entity class
+#   - Uses @PrimaryGeneratedColumn for primary keys
+#   - Uses @Column with appropriate type decorators
+#   - Supports nullable, unique constraints
+
+# Entity files - one entity per table
+entities:
+  FILE_LOOP({{tableNamePascalCaseSingular}}.ts --template ./templates/entity.txt --data-source=/Constants/typeMappings.yaml):

@@ -1,1 +1,1 @@
-[[LOOP(/BaseMethodsNew/advanced-operations) --include-files="chunk" --exclude-files="next" --template="{{methodName}}\n{{route}}"]]
+<@@LOOP@@ data="/BaseMethodsNew/advanced-operations" include-files="chunk" exclude-files="next" separator="">{{methodName}}\n{{route}}</@@LOOP@@>

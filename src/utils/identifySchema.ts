@@ -11,6 +11,7 @@ import {
   getRequiredColumns,
 } from '@/utils/convertIntrospectedStructure.ts';
 import { sortTablesBasedOnHierarchy } from '@/utils/sortTablesBasedOnHierarchy.ts';
+import { identifyAuthResources } from '@/utils/identifyAuthResources.ts';
 
 /* Relationship Rules:
 
@@ -465,6 +466,7 @@ export function addSchemaInfo(
   schemaInfo = sortTablesBasedOnHierarchy(schemaInfo);
   schemaInfo = identifyPivotTables(schemaInfo);
   schemaInfo = addParentRelationships(schemaInfo);
+  schemaInfo = identifyAuthResources(schemaInfo);
 
   if (!isIntrospection) {
     schemaInfo = determineUniqueForeignKeys(schemaInfo);
@@ -548,6 +550,16 @@ function cleanUpSchemaInfo(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
     // Only add isPivot if true
     if (item.isPivot) {
       cleaned.isPivot = true;
+    }
+
+    // Only add isAuthResource if true
+    if (item.isAuthResource) {
+      cleaned.isAuthResource = true;
+    }
+
+    // Only add ownerField if set
+    if (item.ownerField !== undefined && item.ownerField !== '') {
+      cleaned.ownerField = item.ownerField;
     }
 
     // Only add these relationship arrays if non-empty

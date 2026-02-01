@@ -33,10 +33,7 @@ export function clearInstallationTokenCache(installationId?: number): void {
 
 export function getAppJWT(appId: string, privateKey: string): string {
   /* Validate private key format */
-  if (
-    !privateKey.includes('-----BEGIN') ||
-    !privateKey.includes('-----END')
-  ) {
+  if (!privateKey.includes('-----BEGIN') || !privateKey.includes('-----END')) {
     throw new Error(
       'Invalid private key format. Private key must be in PEM format with -----BEGIN and -----END markers.',
     );
@@ -44,9 +41,11 @@ export function getAppJWT(appId: string, privateKey: string): string {
 
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    iat: now - 60, /* Issued at time (60 seconds in the past to account for clock skew) */
-    exp: now + 60 * 10, /* Expires in 10 minutes */
-    iss: appId, /* Issuer (GitHub App ID) */
+    iat:
+      now -
+      60 /* Issued at time (60 seconds in the past to account for clock skew) */,
+    exp: now + 60 * 10 /* Expires in 10 minutes */,
+    iss: appId /* Issuer (GitHub App ID) */,
   };
 
   try {
@@ -85,10 +84,7 @@ async function getInstallationId(
     /* If no exact match, try to find any installation */
     if (installations.data.length > 0) {
       const firstInstallation = installations.data[0];
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (firstInstallation !== undefined) {
-        return firstInstallation.id;
-      }
+      return firstInstallation.id;
     }
 
     return null;
@@ -166,7 +162,9 @@ export async function getGitHubAppToken(
   const token = await getInstallationToken(appJWT, finalInstallationId);
 
   /* Cache the token with expiration per installation */
-  const expiresAt = Date.now() + 50 * 60 * 1000; /* GitHub tokens expire in ~1 hour, cache for 50 minutes */
+  const expiresAt =
+    Date.now() +
+    50 * 60 * 1000; /* GitHub tokens expire in ~1 hour, cache for 50 minutes */
   tokenCache.set(finalInstallationId, {
     token,
     expiresAt,
@@ -197,7 +195,10 @@ async function getAppSlug(appJWT: string): Promise<string | null> {
       const appName = app.data.name;
       if (typeof appName === 'string' && appName !== '') {
         /* Convert app name to slug format (lowercase, replace spaces with hyphens) */
-        return appName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        return appName
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
       }
     }
     return null;
@@ -256,7 +257,7 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
 
   /* Private key might be base64 encoded or have newlines escaped */
   let privateKey = privateKeyEnv.trim();
-  
+
   /* If it doesn't look like a PEM key, try base64 decode */
   if (!privateKey.includes('-----BEGIN')) {
     try {
@@ -265,10 +266,10 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
       /* If base64 decode fails, use as-is */
     }
   }
-  
+
   /* Replace escaped newlines (handle both \n and \\n) */
   privateKey = privateKey.replace(/\\n/g, '\n');
-  
+
   /* If the key is all on one line (no actual newlines), we need to add them */
   /* Check if BEGIN and END are on the same "line" (no newline between them) */
   if (
@@ -287,10 +288,13 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
       '$1\n$2',
     );
   }
-  
+
   /* Also handle case where newlines might be missing in the middle of the key */
   /* If we have BEGIN and END but the key content looks compressed, try to format it */
-  const beginMatch = /-----BEGIN RSA PRIVATE KEY-----(.+?)-----END RSA PRIVATE KEY-----/s.exec(privateKey);
+  const beginMatch =
+    /-----BEGIN RSA PRIVATE KEY-----(.+?)-----END RSA PRIVATE KEY-----/s.exec(
+      privateKey,
+    );
   const keyContent = beginMatch?.[1];
   if (keyContent !== undefined && keyContent.length > 0) {
     const trimmedContent = keyContent.trim();
@@ -321,4 +325,3 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
 
   return config;
 }
-

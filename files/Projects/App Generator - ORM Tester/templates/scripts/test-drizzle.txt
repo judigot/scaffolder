@@ -1,0 +1,50 @@
+/**
+ * Test Drizzle ORM migrations
+ * 1. Clean database
+ * 2. Run drizzle-kit push
+ * 3. Export schema to results/drizzle_result.json
+ */
+
+import { execSync } from 'node:child_process';
+import { cleanDatabase, exportSchema, writeResult } from './db-utils.ts';
+
+const ORM_NAME = 'drizzle';
+
+async function main() {
+  console.log(`\n=== Testing ${ORM_NAME.toUpperCase()} ORM ===`);
+
+  // Step 1: Clean database
+  console.log('1. Cleaning database...');
+  await cleanDatabase();
+
+  // Step 2: Run drizzle-kit push
+  console.log('2. Running drizzle-kit push...');
+  try {
+    execSync('bunx drizzle-kit push --force', {
+      cwd: process.cwd(),
+      stdio: 'pipe',
+      env: process.env,
+    });
+    console.log('  Drizzle migration completed');
+  } catch (err) {
+    const error = err as { stderr?: Buffer };
+    console.error('  Migration error:', error.stderr?.toString() ?? err);
+    throw err;
+  }
+
+  // Step 3: Export schema
+  console.log('3. Exporting schema...');
+  const result = await exportSchema(ORM_NAME);
+  console.log(`  Found ${result.tables.length} tables`);
+
+  // Step 4: Write result
+  console.log('4. Writing result...');
+  writeResult(result);
+
+  console.log(`\n${ORM_NAME.toUpperCase()} test completed successfully!\n`);
+}
+
+main().catch((err) => {
+  console.error(`${ORM_NAME.toUpperCase()} test failed:`, err);
+  process.exit(1);
+});
