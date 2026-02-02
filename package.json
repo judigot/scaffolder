@@ -18,6 +18,7 @@
     "opencode:dev": "bash -lc 'command -v opencode >/dev/null && dotenvx run -- opencode serve --hostname 127.0.0.1 --port 4096 || echo opencode-not-installed'",
     "opencode:old": "bash -lc 'command -v opencode >/dev/null && dotenvx run -- opencode serve --hostname 127.0.0.1 --port 4096 || echo opencode-not-installed'",
     "generate:golden-apps": "bun run scripts/generate-golden-apps.ts",
+    "test:ci": "bash scripts/test-ci.sh",
     "test": "bun test --passWithNoTests",
     "test:watch": "bun test --watch --passWithNoTests",
     "vitest": "vitest --run",
