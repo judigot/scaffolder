@@ -42,7 +42,7 @@ export interface IColumnInfo {
  *
  * Table references (validated): foreignTables, childTables, hasOne, hasMany,
  *   belongsTo, belongsToMany, pivotRelationships.relatedTable, pivotRelationships.pivotTable
- * Column references (validated): ownerField, foreignKeys
+ * Column references (validated): ownerField, foreignKeys, compositePrimaryKey
  */
 export interface ITableInfo {
   tableName: string;
@@ -61,6 +61,12 @@ export interface ITableInfo {
     relatedTable: string; // Reference to other table
     pivotTable: string; // Reference to other table
   }[];
+  /**
+   * Composite primary key - array of column names that together form the PK.
+   * When set, individual columns should NOT have primary_key: true.
+   * Example: ["provider_id", "provider_user_id"] for OAuth account tables.
+   */
+  compositePrimaryKey?: string[];
 }
 
 export interface ISchemaInfo extends ITableInfo {

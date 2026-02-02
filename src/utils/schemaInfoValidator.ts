@@ -89,24 +89,47 @@ const schemaInfoSchema = z
     belongsTo: z.array(z.string()).optional(),
     belongsToMany: z.array(z.string()).optional(),
     pivotRelationships: z.array(pivotRelationshipSchema).optional(),
+    compositePrimaryKey: z.array(z.string()).min(2).optional(),
   })
   .refine(
     (table) => {
-      // Ensure at least one column is marked as primary key
-      const hasPrimaryKey = table.columnsInfo.some((col) => col.primary_key);
-      return hasPrimaryKey;
+      // Ensure table has either a single PK column OR a composite PK
+      const hasSinglePrimaryKey = table.columnsInfo.some(
+        (col) => col.primary_key,
+      );
+      const hasCompositePrimaryKey =
+        table.compositePrimaryKey && table.compositePrimaryKey.length >= 2;
+      return hasSinglePrimaryKey || hasCompositePrimaryKey;
     },
-    { message: 'Each table must have at least one primary key column' },
+    {
+      message:
+        'Each table must have either a primary_key column or compositePrimaryKey',
+    },
   )
   .refine(
     (table) => {
-      // Ensure id column exists (follows relational schema best practices)
+      // For composite PKs, verify all columns exist
+      if (table.compositePrimaryKey) {
+        const columnNames = table.columnsInfo.map((col) => col.column_name);
+        return table.compositePrimaryKey.every((pk) =>
+          columnNames.includes(pk),
+        );
+      }
+      return true;
+    },
+    { message: 'compositePrimaryKey references non-existent column' },
+  )
+  .refine(
+    (table) => {
+      // Ensure id column exists OR table uses composite PK
       const hasIdColumn = table.columnsInfo.some(
         (col) => col.column_name === 'id',
       );
-      return hasIdColumn;
+      const hasCompositePrimaryKey =
+        table.compositePrimaryKey && table.compositePrimaryKey.length >= 2;
+      return hasIdColumn || hasCompositePrimaryKey;
     },
-    { message: "Each table must have an 'id' column" },
+    { message: "Each table must have an 'id' column or compositePrimaryKey" },
   );
 
 /**
