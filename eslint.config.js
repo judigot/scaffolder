@@ -106,6 +106,9 @@ export default defineConfig([
     'coverage/**',
     'src/tests/golden-projects/output/**',
 
+    // Generated apps (have their own eslint config)
+    '.apps/**',
+
     // Template source files (not part of scaffolder codebase)
     'files/Core/**',
 

@@ -11,6 +11,7 @@ export default defineConfig({
       '**/node_modules/**',
       '.worktrees/**',
       '.vercel/**',
+      '.apps/**',
       'e2e/**',
       '**/golden-projects/output/**',
     ],
