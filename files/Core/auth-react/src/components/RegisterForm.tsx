@@ -6,14 +6,16 @@ interface RegisterFormProps {
   onError?: (error: Error) => void;
 }
 
+/**
+ * Registration form aligned with base.json schema
+ * Only requires email, password, and optional username
+ */
 export function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
   const { register, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -25,17 +27,21 @@ export function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
       return;
     }
 
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
     try {
       await register({
         email,
-        username,
         password,
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
+        username: username || undefined,
       });
       onSuccess?.();
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Registration failed');
+      const error =
+        err instanceof Error ? err : new Error('Registration failed');
       setError(error.message);
       onError?.(error);
     }
@@ -47,45 +53,6 @@ export function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
 
       {error && <div className="auth-error">{error}</div>}
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="firstName">First Name</label>
-          <input
-            id="firstName"
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            autoComplete="given-name"
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="lastName">Last Name</label>
-          <input
-            id="lastName"
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            autoComplete="family-name"
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="username">Username</label>
-        <input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          autoComplete="username"
-          disabled={isLoading}
-        />
-      </div>
-
       <div className="form-group">
         <label htmlFor="registerEmail">Email</label>
         <input
@@ -96,6 +63,22 @@ export function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
           required
           autoComplete="email"
           disabled={isLoading}
+          placeholder="you@example.com"
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="username">
+          Username <span className="optional">(optional)</span>
+        </label>
+        <input
+          id="username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoComplete="username"
+          disabled={isLoading}
+          placeholder="Choose a username"
         />
       </div>
 
@@ -110,6 +93,7 @@ export function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
           minLength={8}
           autoComplete="new-password"
           disabled={isLoading}
+          placeholder="At least 8 characters"
         />
       </div>
 
@@ -123,6 +107,7 @@ export function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
           required
           autoComplete="new-password"
           disabled={isLoading}
+          placeholder="Re-enter your password"
         />
       </div>
 

@@ -6,7 +6,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   flexRender,
-  ColumnDef,
+  type ColumnDef,
 } from '@tanstack/react-table';
 
 interface Column<T> extends ColumnDef<T> {}

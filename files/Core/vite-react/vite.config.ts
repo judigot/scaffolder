@@ -6,6 +6,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 // https://vite.dev/config/
 import path from 'node:path';
 export default defineConfig({
+  base: process.env.VITE_BASE ?? '/',
   /* </newBuildOutput> */ /*<alias>*/ resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },

@@ -8,4 +8,14 @@ export { useAuth, useUser, useIsAuthenticated } from './hooks/useAuth';
 export * from './components';
 
 // Types
-export type * from './types';
+export type {
+  User,
+  Session,
+  LoginCredentials,
+  RegisterData,
+  AuthResponse,
+  AuthState,
+  AuthContextValue,
+  UserWithProfile,
+  RegisterDataWithProfile,
+} from './types';

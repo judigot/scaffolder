@@ -3,43 +3,59 @@
 # Auto-generated API Test Script
 # Tests all CRUD endpoints following C→R→U→R→D→R pattern
 #
-# Usage: ./api-test.sh [base-url] [auth-token]
+# Usage: ./api-test.sh [base-url]
 # Default: http://localhost:3000/api
 #
-# For auth-protected routes, provide a Bearer token:
-#   ./api-test.sh http://localhost:3000/api "your-jwt-token"
-# Or set AUTH_TOKEN environment variable:
-#   AUTH_TOKEN="your-jwt-token" ./api-test.sh
+# The script automatically:
+# 1. Registers a test user
+# 2. Uses session cookie for authenticated routes
+# 3. Cleans up test user after tests
 
 set -e
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
 API_BASE="${1:-http://localhost:3000/api}"
-AUTH_TOKEN="${2:-$AUTH_TOKEN}"
+COOKIE_JAR=$(mktemp)
 TESTS_PASSED=0
 TESTS_FAILED=0
+
+# Generate unique test user credentials
+TEST_EMAIL="test-$(date +%s)@example.com"
+TEST_USERNAME="testuser$(date +%s)"
+TEST_PASSWORD="TestPassword123!"
+
+cleanup() {
+  rm -f "$COOKIE_JAR"
+}
+trap cleanup EXIT
 
 log_step() { echo -e "\n${BLUE}▶ $1${NC}"; }
 log_success() { echo -e "${GREEN}✓ $1${NC}"; TESTS_PASSED=$((TESTS_PASSED + 1)); }
 log_error() { echo -e "${RED}✗ $1${NC}"; TESTS_FAILED=$((TESTS_FAILED + 1)); }
+log_info() { echo -e "${YELLOW}ℹ $1${NC}"; }
 
+# API call with cookie support
 api_call() {
   local method=$1 url=$2 data=$3 use_auth=${4:-false}
-  local response auth_header=""
+  local response cookie_opts=""
 
-  # Add Authorization header if token provided and auth is requested
-  if [ -n "$AUTH_TOKEN" ] && [ "$use_auth" = "true" ]; then
-    auth_header="-H \"Authorization: Bearer $AUTH_TOKEN\""
+  # Use cookie jar for authenticated requests
+  if [ "$use_auth" = "true" ]; then
+    cookie_opts="-b $COOKIE_JAR -c $COOKIE_JAR"
   fi
 
   if [ -n "$data" ]; then
-    response=$(eval curl -s -w "|||%{http_code}" -X "$method" "$url" -H "Content-Type: application/json" $auth_header -d "'$data'")
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+      -H "Content-Type: application/json" \
+      $cookie_opts \
+      -d "$data")
   else
-    response=$(eval curl -s -w "|||%{http_code}" -X "$method" "$url" $auth_header)
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" $cookie_opts)
   fi
   BODY="${response%|||*}"
   STATUS="${response##*|||}"
@@ -51,21 +67,69 @@ assert_status() {
     log_success "$message (status: $STATUS)"
   else
     log_error "$message (expected: $expected, got: $STATUS)"
+    echo "  Response: $BODY"
   fi
 }
 
 command -v curl &> /dev/null || { echo "curl not found"; exit 1; }
 command -v jq &> /dev/null || { echo "jq not found"; exit 1; }
 
+echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}                    API TEST SUITE                              ${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+
 log_step "Checking API health"
 api_call GET "$API_BASE/health"
-[ "$STATUS" = "200" ] || { log_error "API not responding"; exit 1; }
+[ "$STATUS" = "200" ] || { log_error "API not responding at $API_BASE"; exit 1; }
 log_success "API is running"
+
+# ═══════════════════════════════════════════════════════════════
+# AUTHENTICATION SETUP
+# ═══════════════════════════════════════════════════════════════
+
+log_step "Setting up authentication"
+log_info "Registering test user: $TEST_EMAIL"
+
+# Register test user
+api_call POST "$API_BASE/auth/register" "{\"email\":\"$TEST_EMAIL\",\"username\":\"$TEST_USERNAME\",\"password\":\"$TEST_PASSWORD\"}" true
+
+if [ "$STATUS" = "201" ]; then
+  log_success "Test user registered"
+  TEST_USER_ID=$(echo "$BODY" | jq -r '.user.id')
+  log_info "User ID: $TEST_USER_ID"
+elif [ "$STATUS" = "400" ]; then
+  # User might already exist, try logging in
+  log_info "User may exist, attempting login..."
+  api_call POST "$API_BASE/auth/login" "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" true
+  if [ "$STATUS" = "200" ]; then
+    log_success "Logged in with existing user"
+    TEST_USER_ID=$(echo "$BODY" | jq -r '.user.id')
+  else
+    log_error "Failed to authenticate"
+    echo "  Response: $BODY"
+    exit 1
+  fi
+else
+  log_error "Failed to register test user"
+  echo "  Response: $BODY"
+  exit 1
+fi
+
+# Verify authentication works
+api_call GET "$API_BASE/auth/me" "" true
+if [ "$STATUS" = "200" ]; then
+  log_success "Session cookie is valid"
+else
+  log_error "Session verification failed"
+  exit 1
+fi
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}                    CRUD API TESTS                              ${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
+# Test CRUD operations for a resource
+# Args: name, endpoint, pk, create_data, update_data, use_auth
 test_crud() {
   local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
 
@@ -74,6 +138,12 @@ test_crud() {
   # CREATE
   api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
   assert_status 201 "POST /api/$endpoint (create)"
+
+  if [ "$STATUS" != "201" ]; then
+    log_error "Skipping remaining $name tests due to create failure"
+    return
+  fi
+
   ID=$(echo "$BODY" | jq -r ".$pk")
   echo "  Created $name ID: $ID"
 
@@ -85,7 +155,7 @@ test_crud() {
   api_call PUT "$API_BASE/$endpoint/$ID" "$update_data" "$use_auth"
   assert_status 200 "PUT /api/$endpoint/$ID (update)"
 
-  # READ (verify)
+  # READ (verify update)
   api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
   assert_status 200 "GET /api/$endpoint/$ID (after update)"
 
@@ -99,6 +169,14 @@ test_crud() {
 }
 
 [[ LOOP(tables) --template="test_crud '{{tableNameTitleCase}}' '{{tableNameKebabCase}}' '{{primaryKey}}' '{{createPayload}}' '{{updatePayload}}' '{{isAuthResource}}'" --separator="\n" ]]
+
+# ═══════════════════════════════════════════════════════════════
+# CLEANUP & SUMMARY
+# ═══════════════════════════════════════════════════════════════
+
+log_step "Cleanup"
+api_call POST "$API_BASE/auth/logout" "" true
+log_info "Logged out test user"
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}                       TEST SUMMARY                             ${NC}"

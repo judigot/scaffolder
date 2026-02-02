@@ -1,0 +1,103 @@
+{
+  "$schema": "../../schema-definition.json",
+  "name": "auth-mfa",
+  "description": "Multi-Factor Authentication (TOTP, backup codes)",
+  "version": "1.0.0",
+  "requires": ["auth-base"],
+  "tables": {
+    "mfaDevice": {
+      "description": "Registered MFA devices (authenticator apps)",
+      "columns": {
+        "id": {
+          "type": "uuid",
+          "primary": true,
+          "default": "gen_random_uuid()"
+        },
+        "userId": {
+          "type": "uuid",
+          "nullable": false,
+          "references": {
+            "table": "user",
+            "column": "id",
+            "onDelete": "CASCADE"
+          }
+        },
+        "name": {
+          "type": "varchar",
+          "length": 100,
+          "nullable": false,
+          "description": "User-friendly device name"
+        },
+        "type": {
+          "type": "varchar",
+          "length": 20,
+          "nullable": false,
+          "default": "'totp'",
+          "description": "MFA type: totp, webauthn, sms"
+        },
+        "secret": {
+          "type": "varchar",
+          "length": 255,
+          "nullable": false,
+          "description": "Encrypted TOTP secret or WebAuthn credential"
+        },
+        "verified": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether device setup was completed"
+        },
+        "lastUsedAt": {
+          "type": "timestamp",
+          "nullable": true
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "default": "now()",
+          "nullable": false
+        }
+      },
+      "indexes": [
+        { "columns": ["userId"] },
+        { "columns": ["userId", "verified"] }
+      ]
+    },
+    "backupCode": {
+      "description": "One-time backup codes for MFA recovery",
+      "columns": {
+        "id": {
+          "type": "uuid",
+          "primary": true,
+          "default": "gen_random_uuid()"
+        },
+        "userId": {
+          "type": "uuid",
+          "nullable": false,
+          "references": {
+            "table": "user",
+            "column": "id",
+            "onDelete": "CASCADE"
+          }
+        },
+        "codeHash": {
+          "type": "varchar",
+          "length": 255,
+          "nullable": false,
+          "description": "Hashed backup code"
+        },
+        "usedAt": {
+          "type": "timestamp",
+          "nullable": true
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "default": "now()",
+          "nullable": false
+        }
+      },
+      "indexes": [
+        { "columns": ["userId"] },
+        { "columns": ["userId", "usedAt"] }
+      ]
+    }
+  }
+}

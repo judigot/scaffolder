@@ -1,7 +1,7 @@
 import { Outlet, createRootRouteWithContext, Link } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import type { AuthContextValue } from '../auth/context/AuthContext';
-import { LogoutButton } from '../auth/components/LogoutButton';
+import type { AuthContextValue } from '@/types';
+import { LogoutButton } from '@/components/LogoutButton';
 
 export interface RouterContext {
   auth: AuthContextValue;

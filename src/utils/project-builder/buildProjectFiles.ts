@@ -8,6 +8,7 @@ import { detectCircularImports } from '@/utils/project-builder/utils/detectCircu
 import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
 import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/detectCircularPlaceholderImports.ts';
 import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import { loadSchemas } from '@/utils/project-builder/utils/loadSchemas.ts';
 import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
 import { processCoreFiles } from '@/utils/project-builder/utils/processCoreFiles.ts';
 import type { IFormStore } from '@/useFormStore.ts';
@@ -151,6 +152,9 @@ export const buildProjectFiles = async (
 
     const rawCoreFiles = loadCoreFiles(projectYamlPath, userFiles);
 
+    // Load auth schemas if $USE_SCHEMA is specified
+    const authSchema = loadSchemas(projectYamlPath, userFiles);
+
     // Process core files to handle template commands like USE_USER_ENV
     const coreFiles = processCoreFiles(
       rawCoreFiles,
@@ -166,11 +170,11 @@ export const buildProjectFiles = async (
     if (
       parsedYaml !== null &&
       typeof parsedYaml === 'object' &&
-      !Array.isArray(parsedYaml) &&
-      '$USE_CORE' in parsedYaml
+      !Array.isArray(parsedYaml)
     ) {
+      // Remove special directives from YAML processing
       const entries = Object.entries(parsedYaml).filter(
-        ([key]) => key !== '$USE_CORE',
+        ([key]) => key !== '$USE_CORE' && key !== '$USE_SCHEMA',
       );
       yamlStructureToProcess = Object.fromEntries(entries);
     }
@@ -201,6 +205,7 @@ export const buildProjectFiles = async (
       trackFileUsingUserEnv,
       trackFileFailedToFormat,
       mockData,
+      authSchema, // auth schema from $USE_SCHEMA
     );
 
     const scaffoldedFiles = await processYamlStructure(ctx);

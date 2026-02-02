@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { use<@@>tableNamePascalCaseSingular</@@> } from '../../hooks/<@@>tableNameKebabCaseSingular</@@>/use<@@>tableNamePascalCaseSingular</@@>';
-import { deleteResource } from '../../hooks/shared/useDestroy';
-import { useUpdate } from '../../hooks/shared/useUpdate';
-import DataTable from '../../components/DataTable';
-import type { I<@@>tableNamePascalCaseSingular</@@> } from '../../interfaces/I<@@>tableNamePascalCaseSingular</@@>';
+import { use<@@>tableNamePascalCaseSingular</@@> } from '@/hooks/<@@>tableNameKebabCaseSingular</@@>/useIndex<@@>tableNamePascalCaseSingular</@@>';
+import { deleteResource } from '@/hooks/shared/useDestroy';
+import { useUpdate } from '@/hooks/shared/useUpdate';
+import DataTable from '@/components/DataTable';
+import type { I<@@>tableNamePascalCaseSingular</@@> } from '@/interfaces/I<@@>tableNamePascalCaseSingular</@@>';
 
 export const Route = createFileRoute('/_authenticated/<@@>tableNameKebabCaseSingular</@@>')({
   component: <@@>tableNamePascalCaseSingular</@@>Page,

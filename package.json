@@ -13,10 +13,11 @@
   "scripts": {
     "dev": "bun install && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\"",
     "postinstall": "git config core.fileMode false",
-    "dev:full": "bun install && docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\"",
+    "dev:full": "bun install && bun run generate:golden-apps && docker compose -f compose.yml -f docker/compose.golden.yml up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\"",
     "dev with test": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\"",
     "opencode:dev": "bash -lc 'command -v opencode >/dev/null && dotenvx run -- opencode serve --hostname 127.0.0.1 --port 4096 || echo opencode-not-installed'",
     "opencode:old": "bash -lc 'command -v opencode >/dev/null && dotenvx run -- opencode serve --hostname 127.0.0.1 --port 4096 || echo opencode-not-installed'",
+    "generate:golden-apps": "bun run scripts/generate-golden-apps.ts",
     "test": "bun test --passWithNoTests",
     "test:watch": "bun test --watch --passWithNoTests",
     "vitest": "vitest --run",

@@ -1,0 +1,5 @@
+url=hono
+service=hono-react
+depends=postgresql
+env.DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgresql:5432/${DB_DATABASE}
+env.VITE_BASE=/hono/

@@ -15,6 +15,7 @@ $USE_CORE:
   - /Core/vitest-test
   - /Core/tanstack-router
   - /Core/auth-react
+  - /Core/auth-services
 
 # API routes - one file per table
 api:
@@ -37,14 +38,16 @@ src:
   CREATE_FILE(router.tsx --template ./templates/router.txt):
   components:
     CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt):
+  services:
+    auth:
+      CREATE_FILE(index.ts --template ./templates/auth-services.txt):
   routes:
     CREATE_FILE(__root.tsx --template ./templates/routes/__root.txt):
     CREATE_FILE(index.tsx --template ./templates/routes/index.txt):
     CREATE_FILE(login.tsx --template ./templates/routes/login.txt):
     CREATE_FILE(register.tsx --template ./templates/routes/register.txt):
-    _authenticated:
-      CREATE_FILE(_authenticated.tsx --template ./templates/routes/_authenticated.txt):
-      FILE_LOOP({{tableNameKebabCaseSingular}}.tsx --template ./templates/routes/table-route.txt):
+    CREATE_FILE(_authenticated.tsx --template ./templates/routes/_authenticated.txt):
+    FILE_LOOP(_authenticated.{{tableNameKebabCaseSingular}}.tsx --template ./templates/routes/table-route.txt):
   styles:
     CREATE_FILE(main.scss --template ./templates/styles.txt):
 
@@ -56,3 +59,4 @@ tests:
 # Root config files
 CREATE_FILE(README.md --template ./templates/readme.txt):
 CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):
+CREATE_FILE(Dockerfile --template ./templates/Dockerfile):

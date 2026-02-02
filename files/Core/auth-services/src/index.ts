@@ -1,10 +1,26 @@
-// Types
+// ============================================================================
+// Types (always exported)
+// ============================================================================
 export * from './types';
+
+// ============================================================================
+// Client-side (browser)
+// ============================================================================
+
+// Storage utilities
+export { tokenStorage, userStorage, clearAuthStorage } from './storage';
+
+// API client
+export { authApi } from './api';
+
+// ============================================================================
+// Server-side
+// ============================================================================
 
 // Lucia (session management)
 export { initializeLucia, getLucia, Lucia } from './lucia';
 
-// Sessions
+// Session management
 export {
   createSession,
   validateSession,

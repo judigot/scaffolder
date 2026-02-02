@@ -1,17 +1,20 @@
 import { Lucia, TimeSpan } from 'lucia';
 import { DrizzlePostgreSQLAdapter } from '@lucia-auth/adapter-drizzle';
-import type { User } from './types';
 
 // This will be initialized with the actual db and tables from the app
-let luciaInstance: Lucia<Record<never, never>, DatabaseUserAttributes> | null = null;
+let luciaInstance: Lucia<Record<never, never>, DatabaseUserAttributes> | null =
+  null;
 
+/**
+ * Database user attributes matching base.json schema
+ * Only includes fields from the base auth schema
+ */
 interface DatabaseUserAttributes {
   email: string;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
-  avatarUrl: string | null;
+  username: string | null;
   emailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 declare module 'lucia' {
@@ -41,10 +44,9 @@ export function initializeLucia(
     getUserAttributes: (attributes) => ({
       email: attributes.email,
       username: attributes.username,
-      firstName: attributes.firstName,
-      lastName: attributes.lastName,
-      avatarUrl: attributes.avatarUrl,
       emailVerified: attributes.emailVerified,
+      createdAt: attributes.createdAt,
+      updatedAt: attributes.updatedAt,
     }),
   });
 

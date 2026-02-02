@@ -1,13 +1,21 @@
 import {
   createContext,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
-import type { User, LoginCredentials, RegisterData, AuthContextValue } from '../types';
-import { authApi, tokenStorage, userStorage, clearAuthStorage } from '../../../auth-services/src';
+import type {
+  User,
+  LoginCredentials,
+  RegisterData,
+  AuthContextValue,
+} from '../types';
+
+// API base URL - can be configured via environment variable
+const API_BASE = '/api/auth';
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -15,28 +23,79 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Auth API client using cookies for session management
+ */
+const authApi = {
+  async login(credentials: LoginCredentials): Promise<{ user: User }> {
+    const response = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Important for cookies
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Login failed');
+    }
+
+    return response.json();
+  },
+
+  async register(data: RegisterData): Promise<{ user: User }> {
+    const response = await fetch(`${API_BASE}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Registration failed');
+    }
+
+    return response.json();
+  },
+
+  async logout(): Promise<void> {
+    await fetch(`${API_BASE}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  },
+
+  async getSession(): Promise<{ authenticated: boolean; user: User | null }> {
+    const response = await fetch(`${API_BASE}/session`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      return { authenticated: false, user: null };
+    }
+
+    return response.json();
+  },
+};
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state from storage
+  // Initialize auth state by checking session
   useEffect(() => {
     const initAuth = async () => {
-      const storedUser = userStorage.getUser();
-      const tokens = tokenStorage.getTokens();
-
-      if (storedUser && tokens) {
-        try {
-          // Validate token by fetching current user
-          const currentUser = await authApi.getCurrentUser();
+      try {
+        const { authenticated, user: currentUser } = await authApi.getSession();
+        if (authenticated && currentUser) {
           setUser(currentUser);
-          userStorage.setUser(currentUser);
-        } catch {
-          // Token invalid, clear storage
-          clearAuthStorage();
         }
+      } catch {
+        // Session check failed, user is not authenticated
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initAuth();
@@ -45,10 +104,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
-      const response = await authApi.login(credentials);
-      tokenStorage.setTokens(response.tokens);
-      userStorage.setUser(response.user);
-      setUser(response.user);
+      const { user: loggedInUser } = await authApi.login(credentials);
+      setUser(loggedInUser);
     } finally {
       setIsLoading(false);
     }
@@ -57,10 +114,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = useCallback(async (data: RegisterData) => {
     setIsLoading(true);
     try {
-      const response = await authApi.register(data);
-      tokenStorage.setTokens(response.tokens);
-      userStorage.setUser(response.user);
-      setUser(response.user);
+      const { user: newUser } = await authApi.register(data);
+      setUser(newUser);
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +127,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch {
       // Ignore logout API errors
     } finally {
-      clearAuthStorage();
       setUser(null);
     }
   }, []);
@@ -90,4 +144,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

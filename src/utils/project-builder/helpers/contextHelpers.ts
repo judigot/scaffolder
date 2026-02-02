@@ -8,6 +8,7 @@ import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IFormStore } from '@/useFormStore.ts';
+import type { IMergedSchema } from '@/utils/project-builder/utils/loadSchemas.ts';
 
 /**
  * Single source of truth for BuildContext creation and modification.
@@ -40,6 +41,7 @@ export const createContext = (
   onFileUsingUserEnv?: (filePath: string) => void,
   onFileFailedToFormat?: (filePath: string, errorMessage: string) => void,
   mockData?: ParsedJSONSchema,
+  authSchema?: IMergedSchema | null,
 ): IBuildContext => ({
   userFiles,
   schemaInfo,
@@ -48,6 +50,7 @@ export const createContext = (
   formData,
   userMetadata,
   mockData,
+  authSchema,
   table,
   dataContext,
   currentPath,

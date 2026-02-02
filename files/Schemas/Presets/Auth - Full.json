@@ -1,0 +1,19 @@
+{
+  "$schema": "../schema-definition.json",
+  "name": "auth-full",
+  "description": "All authentication features enabled",
+  "version": "1.0.0",
+  "preset": true,
+  "includes": [
+    "/Schemas/Auth/base",
+    "/Schemas/Auth/oauth",
+    "/Schemas/Auth/otp",
+    "/Schemas/Auth/mfa"
+  ],
+  "features": {
+    "emailPassword": true,
+    "oauth": true,
+    "otp": true,
+    "mfa": true
+  }
+}
