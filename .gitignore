@@ -43,6 +43,7 @@ build
 .next
 out
 *.tsbuildinfo
+*.node
 
 # Testing
 coverage
