@@ -10,6 +10,8 @@ set -e
 
 APP_NAME="${1:-hono-react}"
 APP_DIR=".apps/$APP_NAME"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Colors
 RED='\033[0;31m'
@@ -24,8 +26,17 @@ log_error() { echo -e "${RED}✗ $1${NC}"; exit 1; }
 # Check prerequisites
 command -v docker &> /dev/null || log_error "docker is required but not installed"
 command -v act &> /dev/null || log_error "act is required. Install: curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash"
+command -v bun &> /dev/null || log_error "bun is required but not installed"
 
-# Check app exists
+# Change to project root
+cd "$PROJECT_ROOT"
+
+# Regenerate the app first
+log_info "Regenerating $APP_NAME app..."
+bun run scripts/generate-golden-apps.ts . "$APP_NAME"
+log_success "App regenerated"
+
+# Check app exists and has workflow
 [ -d "$APP_DIR" ] || log_error "App directory not found: $APP_DIR"
 [ -f "$APP_DIR/.github/workflows/api-test.yml" ] || log_error "GitHub Actions workflow not found in $APP_DIR"
 
