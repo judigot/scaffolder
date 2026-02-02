@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { createInsertSchema } from 'drizzle-zod';
+import { createSchemaFactory } from 'drizzle-zod';
 import { db } from '../db';
 import { oauthAccount } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -10,11 +10,13 @@ const app = new Hono();
 
 app.use('*', authMiddleware);
 
+// Create schema factory with date coercion (JSON sends ISO strings, Drizzle expects Date objects)
+const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
+
 // Validation schemas - auto-generated from Drizzle schema
-const createOauthAccountSchema = createInsertSchema(oauthAccount, {
-  createdAt: (schema) => schema.optional(),
-  updatedAt: (schema) => schema.optional(),
-}).omit({ id: true });
+const createOauthAccountSchema = createInsertSchema(oauthAccount).omit({
+  id: true,
+});
 
 const updateOauthAccountSchema = createOauthAccountSchema.partial();
 
