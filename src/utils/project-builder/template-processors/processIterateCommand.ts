@@ -1,5 +1,5 @@
 import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IFormStore } from '@/useFormStore.ts';
@@ -254,6 +254,7 @@ const processBlockLoops = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Match opening [[LOOP(property)]] - but not tables or tablesReversed (those are handled separately)
   const openRegex = /\[\[\s*LOOP\(([^)]+)\)\s*\]\]/g;
@@ -324,6 +325,8 @@ const processBlockLoops = (
         formData,
         userMetadata,
         dataSource,
+        undefined,
+        mockData,
       );
     } else {
       // For other properties, use processIterateCommand with inline format
@@ -364,6 +367,7 @@ const processInnerLoops = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const result = processBlockLoops(
     content,
@@ -373,6 +377,7 @@ const processInnerLoops = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then process inline LOOPs (legacy syntax)
@@ -465,6 +470,7 @@ const processAtLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(tables\)\n?/g;
   let result = content;
@@ -520,6 +526,7 @@ const processAtLoopTables = (
       formData,
       userMetadata,
       dataSource,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -539,6 +546,7 @@ const processAtLoopTablesReversed = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(tablesReversed\)\n?/g;
   let result = content;
@@ -597,6 +605,7 @@ const processAtLoopTablesReversed = (
       formData,
       userMetadata,
       dataSource,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -749,6 +758,7 @@ const processHtmlLoop = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Validate template tags before processing
   validateHtmlTemplateTags(content, 'HTML LOOP');
@@ -825,6 +835,7 @@ const processHtmlLoop = (
           formData,
           userMetadata,
           dataSource,
+          mockData,
         );
       } else if (type === 'tablesReversed') {
         /* Filter out view tables using centralized function */
@@ -842,6 +853,7 @@ const processHtmlLoop = (
           formData,
           userMetadata,
           dataSource,
+          mockData,
         );
       } else if (type === 'columnsInfo') {
         // Skip columnsInfo at top level - it will be processed per-table in processAtLoopTablesTemplate
@@ -1089,6 +1101,7 @@ export const processHtmlLoopColumnsInfo = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Validate template tags before processing
   validateHtmlTemplateTags(
@@ -1168,6 +1181,7 @@ export const processHtmlLoopColumnsInfo = (
         userMetadata,
         dataSource,
         filter || undefined,
+        mockData,
       );
 
       result = result.slice(0, start) + processed + result.slice(end);
@@ -1185,6 +1199,7 @@ const processAtLoopColumnsInfo = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(columnsInfo\)\n?/g;
   let result = content;
@@ -1240,6 +1255,8 @@ const processAtLoopColumnsInfo = (
       formData,
       userMetadata,
       dataSource,
+      undefined,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -1260,6 +1277,7 @@ const processAtLoopTablesTemplate = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   return tables
     .map((table) => {
@@ -1274,6 +1292,7 @@ const processAtLoopTablesTemplate = (
         formData,
         userMetadata,
         dataSource,
+        mockData,
       );
 
       // Then process inner @LOOP(columnsInfo)
@@ -1285,6 +1304,7 @@ const processAtLoopTablesTemplate = (
         formData,
         userMetadata,
         dataSource,
+        mockData,
       );
 
       // Then replace placeholders
@@ -1354,6 +1374,7 @@ export const processLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
@@ -1367,6 +1388,7 @@ export const processLoopTables = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process @LOOP(tables) experimental syntax
@@ -1378,6 +1400,7 @@ export const processLoopTables = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process inline LOOP(tables) with --template="..."
@@ -1428,6 +1451,7 @@ export const processLoopTablesReversed = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
@@ -1442,6 +1466,7 @@ export const processLoopTablesReversed = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process @LOOP(tablesReversed) experimental syntax
@@ -1453,6 +1478,7 @@ export const processLoopTablesReversed = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process inline LOOP(tablesReversed) with --template="..."
@@ -2023,6 +2049,7 @@ export const processIterateCommand = (
       userFiles,
       projectFilePath,
       formData,
+      userMetadata,
     );
   }
 

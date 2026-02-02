@@ -234,12 +234,16 @@ export const processMultipleFiles = async (
             userFiles,
             formData,
             userMetadata,
+            ctx.dataContext,
+            ctx.mockData,
           ),
           schemaInfo,
           schemaInfoParsed,
           userFiles,
           formData,
           userMetadata,
+          ctx.dataContext,
+          ctx.mockData,
         ),
         userFiles,
         schemaInfoParsed,
@@ -256,6 +260,7 @@ export const processMultipleFiles = async (
         formData,
         userMetadata,
         ctx.dataContext,
+        ctx.mockData,
       );
 
       content = replacePlaceholders(

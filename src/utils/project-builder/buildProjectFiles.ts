@@ -174,7 +174,11 @@ export const buildProjectFiles = async (
     ) {
       // Remove special directives from YAML processing
       const entries = Object.entries(parsedYaml).filter(
-        ([key]) => key !== '$USE_CORE' && key !== '$USE_SCHEMA',
+        ([key]) =>
+          key !== '$USE_CORE' &&
+          key !== '$USE_SCHEMA' &&
+          key !== '$SCHEMA_FILTER' &&
+          key !== '$CONFIG',
       );
       yamlStructureToProcess = Object.fromEntries(entries);
     }

@@ -1,11 +1,10 @@
 # Hono + React Fullstack Project
-# Production-ready, Vercel-deployable, with CRUD API and testing
-#
-# Modular Core imports (later entries override earlier):
-# - vite-react: Vite + React + TypeScript + Tailwind frontend
-# - hono-api: Hono RPC API with Zod validation
-# - drizzle-data: Drizzle ORM with PostgreSQL
-# - vitest-test: Vitest testing framework
+
+$SCHEMA_FILTER:
+  - "user"                        # Must have user table
+  - "session"                     # Must have session table
+  - "user.id.data_type=uuid"      # UUID primary keys
+  - "session.userId.foreign_key"  # Session references user
 
 $USE_CORE:
   - /Core/vite-react

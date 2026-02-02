@@ -1,20 +1,22 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { createInsertSchema } from 'drizzle-zod';
 import { db } from '../db';
 import { <@@>tableNameCamelCase</@@> } from '../db/schema';
 import { eq<@@IF@@ condition="isAuthResource EQUALS 'true'">, and</@@IF@@> } from 'drizzle-orm';
 <@@IF@@ condition="isAuthResource EQUALS 'true'">import { authMiddleware, getUser } from '../middleware/auth';</@@IF@@>
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">import { generateIdFromEntropySize } from 'lucia';</@@IF@@>
 
 const app = new Hono();
 <@@IF@@ condition="isAuthResource EQUALS 'true'">
 app.use('*', authMiddleware);
 </@@IF@@>
 
-// Validation schemas
-const create<@@>tableNamePascalCaseSingular</@@>Schema = z.object({
-<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">  <@@>valueCamelCase</@@>: z.<@@IF@@ condition="data_type EQUALS 'string'">string</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">number</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">coerce.date</@@IF@@>()<@@IF@@ condition="is_nullable EQUALS 'YES'">.optional()</@@IF@@></@@IF@@></@@LOOP@@>
-});
+// Validation schemas - auto-generated from Drizzle schema
+const create<@@>tableNamePascalCaseSingular</@@>Schema = createInsertSchema(<@@>tableNameCamelCase</@@>, {
+  createdAt: (schema) => schema.optional(),
+  updatedAt: (schema) => schema.optional(),
+}).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true });
 
 const update<@@>tableNamePascalCaseSingular</@@>Schema = create<@@>tableNamePascalCaseSingular</@@>Schema.partial();
 
@@ -28,7 +30,7 @@ app.get('/', async (c) => {
 
 // GET single <@@>tableNameSingular</@@> by ID
 app.get('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id)));
 </@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id));
@@ -41,15 +43,16 @@ app.get('/:id', async (c) => {
 // POST create new <@@>tableNameSingular</@@>
 app.post('/', zValidator('json', create<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
   const data = c.req.valid('json');
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = generateIdFromEntropySize(10);</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
-  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, <@@>ownerFieldCamelCase</@@>: user.id }).returning();
-</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values(data).returning();
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, id, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@>
+</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values(data).returning();</@@IF@@>
 </@@IF@@>  return c.json(result[0], 201);
 });
 
 // PUT update <@@>tableNameSingular</@@>
 app.put('/:id', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
-  const id = Number(c.req.param('id'));
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
   const data = c.req.valid('json');
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.update(<@@>tableNameCamelCase</@@>).set(data).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
@@ -62,7 +65,7 @@ app.put('/:id', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Sch
 
 // DELETE <@@>tableNameSingular</@@>
 app.delete('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.delete(<@@>tableNameCamelCase</@@>).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
 </@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.delete(<@@>tableNameCamelCase</@@>).where(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id)).returning();

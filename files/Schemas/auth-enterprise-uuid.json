@@ -1,0 +1,63 @@
+[
+  {
+    "tableName": "user",
+    "columnsInfo": [
+      { "column_name": "id", "data_type": "uuid", "is_nullable": "NO", "column_default": "gen_random_uuid()", "primary_key": true, "unique": true },
+      { "column_name": "email", "data_type": "varchar(255)", "is_nullable": "NO", "unique": true },
+      { "column_name": "username", "data_type": "varchar(50)", "is_nullable": "YES", "unique": true },
+      { "column_name": "passwordHash", "data_type": "varchar(255)", "is_nullable": "YES" },
+      { "column_name": "emailVerified", "data_type": "boolean", "is_nullable": "NO", "column_default": "false" },
+      { "column_name": "createdAt", "data_type": "timestamp", "is_nullable": "NO", "column_default": "now()" },
+      { "column_name": "updatedAt", "data_type": "timestamp", "is_nullable": "NO", "column_default": "now()" }
+    ],
+    "childTables": ["session", "oauthAccount", "mfaDevice", "backupCode"]
+  },
+  {
+    "tableName": "session",
+    "columnsInfo": [
+      { "column_name": "id", "data_type": "varchar(255)", "is_nullable": "NO", "primary_key": true, "unique": true },
+      { "column_name": "userId", "data_type": "uuid", "is_nullable": "NO", "foreign_key": { "foreign_table_name": "user", "foreign_column_name": "id" } },
+      { "column_name": "expiresAt", "data_type": "timestamp", "is_nullable": "NO" }
+    ],
+    "foreignTables": ["user"]
+  },
+  {
+    "tableName": "oauthAccount",
+    "columnsInfo": [
+      { "column_name": "id", "data_type": "uuid", "is_nullable": "NO", "column_default": "gen_random_uuid()", "primary_key": true, "unique": true },
+      { "column_name": "userId", "data_type": "uuid", "is_nullable": "NO", "foreign_key": { "foreign_table_name": "user", "foreign_column_name": "id" } },
+      { "column_name": "provider", "data_type": "varchar(50)", "is_nullable": "NO" },
+      { "column_name": "providerAccountId", "data_type": "varchar(255)", "is_nullable": "NO" },
+      { "column_name": "accessToken", "data_type": "text", "is_nullable": "YES" },
+      { "column_name": "refreshToken", "data_type": "text", "is_nullable": "YES" },
+      { "column_name": "tokenExpiresAt", "data_type": "timestamp", "is_nullable": "YES" },
+      { "column_name": "createdAt", "data_type": "timestamp", "is_nullable": "NO", "column_default": "now()" }
+    ],
+    "foreignTables": ["user"]
+  },
+  {
+    "tableName": "mfaDevice",
+    "columnsInfo": [
+      { "column_name": "id", "data_type": "uuid", "is_nullable": "NO", "column_default": "gen_random_uuid()", "primary_key": true, "unique": true },
+      { "column_name": "userId", "data_type": "uuid", "is_nullable": "NO", "foreign_key": { "foreign_table_name": "user", "foreign_column_name": "id" } },
+      { "column_name": "name", "data_type": "varchar(100)", "is_nullable": "NO" },
+      { "column_name": "type", "data_type": "varchar(20)", "is_nullable": "NO", "column_default": "'totp'" },
+      { "column_name": "secret", "data_type": "varchar(255)", "is_nullable": "NO" },
+      { "column_name": "verified", "data_type": "boolean", "is_nullable": "NO", "column_default": "false" },
+      { "column_name": "lastUsedAt", "data_type": "timestamp", "is_nullable": "YES" },
+      { "column_name": "createdAt", "data_type": "timestamp", "is_nullable": "NO", "column_default": "now()" }
+    ],
+    "foreignTables": ["user"]
+  },
+  {
+    "tableName": "backupCode",
+    "columnsInfo": [
+      { "column_name": "id", "data_type": "uuid", "is_nullable": "NO", "column_default": "gen_random_uuid()", "primary_key": true, "unique": true },
+      { "column_name": "userId", "data_type": "uuid", "is_nullable": "NO", "foreign_key": { "foreign_table_name": "user", "foreign_column_name": "id" } },
+      { "column_name": "codeHash", "data_type": "varchar(255)", "is_nullable": "NO" },
+      { "column_name": "usedAt", "data_type": "timestamp", "is_nullable": "YES" },
+      { "column_name": "createdAt", "data_type": "timestamp", "is_nullable": "NO", "column_default": "now()" }
+    ],
+    "foreignTables": ["user"]
+  }
+]

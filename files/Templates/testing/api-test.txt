@@ -135,6 +135,10 @@ test_crud() {
 
   log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
 
+  # Expand $TEST_USER_ID in payloads (bash variable substitution)
+  create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+  update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+
   # CREATE
   api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
   assert_status 201 "POST /api/$endpoint (create)"
@@ -168,7 +172,13 @@ test_crud() {
   assert_status 404 "GET /api/$endpoint/$ID (should be 404)"
 }
 
-[[ LOOP(tables) --template="test_crud '{{tableNameTitleCase}}' '{{tableNameKebabCase}}' '{{primaryKey}}' '{{createPayload}}' '{{updatePayload}}' '{{isAuthResource}}'" --separator="\n" ]]
+# ═══════════════════════════════════════════════════════════════
+# TABLE TESTS
+# ═══════════════════════════════════════════════════════════════
+<@@LOOP@@ data="tables" separator="\n\n">
+# Test <@@>tableNameTitleCase</@@>
+test_crud '<@@>tableNameTitleCase</@@>' '<@@>tableNameKebabCase</@@>' '<@@>primaryKey</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'
+</@@LOOP@@>
 
 # ═══════════════════════════════════════════════════════════════
 # CLEANUP & SUMMARY
