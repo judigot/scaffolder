@@ -14,6 +14,7 @@ import {
   processLoopTablesReversed,
   processLoopDataSources,
   processHtmlLoopColumnsInfo,
+  evaluateCondition,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
@@ -155,14 +156,28 @@ export const processMultipleFiles = async (
     const includeTableOption = options[ACTION_FLAGS.INCLUDE_TABLE];
     const excludeTableOption = options[ACTION_FLAGS.EXCLUDE_TABLE];
     const scopedOption = options[ACTION_FLAGS.SCOPED];
+    const filterOption = options[ACTION_FLAGS.FILTER];
+
+    // Get replacements for this table (needed for filter and other options)
+    const replacements = getReplacementsForTable(table, schemaInfoParsed);
+
+    // Evaluate filter condition if provided (e.g., "hasCompositePrimaryKey() NOT EQUAL 'true'")
+    if (
+      filterOption !== undefined &&
+      typeof filterOption === 'string' &&
+      filterOption.trim().length > 0
+    ) {
+      const filterResult = evaluateCondition(filterOption, replacements);
+      if (!filterResult) {
+        return false;
+      }
+    }
 
     if (
       (includeTableOption?.trim().length ?? 0) > 0 ||
       (excludeTableOption?.trim().length ?? 0) > 0 ||
       scopedOption === true
     ) {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
-
       if (
         includeTableOption !== undefined &&
         includeTableOption.trim().length > 0
@@ -183,7 +198,6 @@ export const processMultipleFiles = async (
       excludeTableOption !== undefined &&
       excludeTableOption.trim().length > 0
     ) {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
       const processedExcludeTable = replacePlaceholders(
         excludeTableOption,
         replacements,
