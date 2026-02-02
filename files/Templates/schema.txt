@@ -23,6 +23,7 @@ CREATE TABLE "<@@>tableName</@@>" (
     <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
     CONSTRAINT "FK_<@@>tableName</@@>_<@@>column.name</@@>" FOREIGN KEY ("<@@>column.name</@@>") REFERENCES "<@@>column.foreign_table</@@>" ("<@@>column.foreign_column</@@>")
     </@@IF@@>
-  </@@LOOP@@>
+  </@@LOOP@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">,
+  PRIMARY KEY (<@@>getCompositePrimaryKeySQL()</@@>)</@@IF@@>
 );
 </@@LOOP@@>

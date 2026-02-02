@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { createSchemaFactory } from 'drizzle-zod';
 import { db } from '../db';
 import { <@@>tableNameCamelCase</@@> } from '../db/schema';
-import { eq<@@IF@@ condition="isAuthResource EQUALS 'true'">, and</@@IF@@> } from 'drizzle-orm';
+import { eq<@@IF@@ condition="isAuthResource EQUALS 'true' OR hasCompositePrimaryKey() EQUALS 'true'">, and</@@IF@@> } from 'drizzle-orm';
 <@@IF@@ condition="isAuthResource EQUALS 'true'">import { authMiddleware, getUser } from '../middleware/auth';</@@IF@@>
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">import { generateIdFromEntropySize } from 'lucia';</@@IF@@>
 
@@ -16,8 +16,9 @@ app.use('*', authMiddleware);
 const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
 
 // Validation schemas - auto-generated from Drizzle schema
-const create<@@>tableNamePascalCaseSingular</@@>Schema = createInsertSchema(<@@>tableNameCamelCase</@@>).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true });
-
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">const create<@@>tableNamePascalCaseSingular</@@>Schema = createInsertSchema(<@@>tableNameCamelCase</@@>);
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">const create<@@>tableNamePascalCaseSingular</@@>Schema = createInsertSchema(<@@>tableNameCamelCase</@@>).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true });
+</@@IF@@>
 const update<@@>tableNamePascalCaseSingular</@@>Schema = create<@@>tableNamePascalCaseSingular</@@>Schema.partial();
 
 // GET all <@@>tableName</@@>
@@ -29,7 +30,15 @@ app.get('/', async (c) => {
 });
 
 // GET single <@@>tableNameSingular</@@> by ID
-app.get('/:id', async (c) => {
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.get('<@@>getCompositePrimaryKeyRouteParams()</@@>', async (c) => {
+<@@>getCompositePrimaryKeyParamExtraction()</@@>
+  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(<@@>getCompositePrimaryKeyWhereClause()</@@>);
+  if (result.length === 0) {
+    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+  }
+  return c.json(result[0]);
+});
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.get('/:id', async (c) => {
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id)));
@@ -39,19 +48,30 @@ app.get('/:id', async (c) => {
   }
   return c.json(result[0]);
 });
+</@@IF@@>
 
 // POST create new <@@>tableNameSingular</@@>
 app.post('/', zValidator('json', create<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
   const data = c.req.valid('json');
-<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = generateIdFromEntropySize(10);</@@IF@@>
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values(data).returning();
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = generateIdFromEntropySize(10);</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, id, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@>
 </@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values(data).returning();</@@IF@@>
-</@@IF@@>  return c.json(result[0], 201);
+</@@IF@@></@@IF@@>  return c.json(result[0], 201);
 });
 
 // PUT update <@@>tableNameSingular</@@>
-app.put('/:id', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.put('<@@>getCompositePrimaryKeyRouteParams()</@@>', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
+<@@>getCompositePrimaryKeyParamExtraction()</@@>
+  const data = c.req.valid('json');
+  const result = await db.update(<@@>tableNameCamelCase</@@>).set(data).where(<@@>getCompositePrimaryKeyWhereClause()</@@>).returning();
+  if (result.length === 0) {
+    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+  }
+  return c.json(result[0]);
+});
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.put('/:id', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
   const data = c.req.valid('json');
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
@@ -62,9 +82,18 @@ app.put('/:id', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Sch
   }
   return c.json(result[0]);
 });
+</@@IF@@>
 
 // DELETE <@@>tableNameSingular</@@>
-app.delete('/:id', async (c) => {
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.delete('<@@>getCompositePrimaryKeyRouteParams()</@@>', async (c) => {
+<@@>getCompositePrimaryKeyParamExtraction()</@@>
+  const result = await db.delete(<@@>tableNameCamelCase</@@>).where(<@@>getCompositePrimaryKeyWhereClause()</@@>).returning();
+  if (result.length === 0) {
+    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+  }
+  return c.json({ success: true });
+});
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.delete('/:id', async (c) => {
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.delete(<@@>tableNameCamelCase</@@>).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
@@ -74,5 +103,6 @@ app.delete('/:id', async (c) => {
   }
   return c.json({ success: true });
 });
+</@@IF@@>
 
 export default app;

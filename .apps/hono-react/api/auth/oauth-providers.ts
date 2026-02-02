@@ -8,16 +8,11 @@ interface OAuthConfig {
   discord?: { clientId: string; clientSecret: string; redirectUri: string };
 }
 
-let providers: Partial<
-  Record<OAuthProvider, GitHub | Google | Facebook | Discord>
-> = {};
+let providers: Partial<Record<OAuthProvider, GitHub | Google | Facebook | Discord>> = {};
 
 export function initializeOAuthProviders(config: OAuthConfig) {
   if (config.github) {
-    providers.github = new GitHub(
-      config.github.clientId,
-      config.github.clientSecret,
-    );
+    providers.github = new GitHub(config.github.clientId, config.github.clientSecret);
   }
   if (config.google) {
     providers.google = new Google(
@@ -104,12 +99,9 @@ async function fetchGitHubUser(accessToken: string): Promise<OAuthUserInfo> {
 }
 
 async function fetchGoogleUser(accessToken: string): Promise<OAuthUserInfo> {
-  const response = await fetch(
-    'https://www.googleapis.com/oauth2/v3/userinfo',
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   const data = await response.json();
 
   return {

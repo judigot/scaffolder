@@ -15,6 +15,7 @@ $USE_CORE:
   - /Core/tanstack-router
   - /Core/auth-react
   - /Core/auth-services
+  - /Core/ci-api-testing
 
 # API routes - one file per table
 api:
@@ -53,7 +54,7 @@ src:
 # Tests - one file per table following C→R→U→R→D→R pattern
 tests:
   CREATE_FILE(setup.ts --template ./templates/test-setup.txt):
-  FILE_LOOP({{tableNameCamelCase}}.test.ts --template ./templates/test-crud.txt):
+  FILE_LOOP({{tableNameCamelCase}}.test.ts --template ./templates/test-crud.txt --filter="hasCompositePrimaryKey() NOT EQUAL 'true'"):
 
 # Root config files
 CREATE_FILE(README.md --template ./templates/readme.txt):

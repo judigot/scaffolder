@@ -90,9 +90,22 @@ export const getReplacementsForTable = (
     ? changeCase(primaryKey).camelCase
     : '';
 
+  // Get composite primary key info
+  const compositePrimaryKey = schemaInfoParsed.getCompositePrimaryKey(
+    table.tableName,
+  );
+  const compositePrimaryKeyCamelCase = compositePrimaryKey.map(
+    (col) => changeCase(col).camelCase,
+  );
+  const hasCompositePK = schemaInfoParsed.hasCompositePrimaryKey(
+    table.tableName,
+  );
+
   // Get primary key data type
   const columnsInfo = schemaInfoParsed.getColumnsInfo(table.tableName);
-  const primaryKeyColumn = columnsInfo.find((col) => col.primary_key === true);
+  const primaryKeyColumn = hasCompositePK
+    ? columnsInfo.find((col) => col.column_name === compositePrimaryKey[0])
+    : columnsInfo.find((col) => col.primary_key === true);
   const rawPkDataType = primaryKeyColumn?.data_type ?? '';
   // Schema uses normalized types ('string', 'number', 'Date', 'boolean')
   const primaryKeyDataType = rawPkDataType === 'string' ? 'string' : 'number';
@@ -139,6 +152,37 @@ export const getReplacementsForTable = (
     'getColumnsInfoNames()': columnInfoNames,
     'getChildTables()': childTables,
     'isPivot()': String(schemaInfoParsed.isPivot(table.tableName)),
+    // Composite primary key support
+    'hasCompositePrimaryKey()': String(hasCompositePK),
+    'getCompositePrimaryKey()': compositePrimaryKey,
+    'getCompositePrimaryKeyCamelCase()': compositePrimaryKeyCamelCase,
+    // Pre-formatted for Drizzle: table.col1, table.col2
+    'getCompositePrimaryKeyDrizzle()': compositePrimaryKeyCamelCase
+      .map((col) => `table.${col}`)
+      .join(', '),
+    // Pre-formatted for SQL: "col1", "col2"
+    'getCompositePrimaryKeySQL()': compositePrimaryKey
+      .map((col) => `"${col}"`)
+      .join(', '),
+    // Pre-formatted route params: /:orderId/:productId
+    'getCompositePrimaryKeyRouteParams()': compositePrimaryKeyCamelCase
+      .map((col) => `/:${col}`)
+      .join(''),
+    // Pre-formatted param extraction for route handlers (with type conversion)
+    'getCompositePrimaryKeyParamExtraction()': compositePrimaryKey
+      .map((colName) => {
+        const col = columnsInfo.find((c) => c.column_name === colName);
+        const camelCaseName = changeCase(colName).camelCase;
+        const isNumber = col?.data_type === 'number';
+        return isNumber
+          ? `  const ${camelCaseName} = Number(c.req.param('${camelCaseName}'));`
+          : `  const ${camelCaseName} = c.req.param('${camelCaseName}');`;
+      })
+      .join('\n'),
+    // Pre-formatted where clause: and(eq(table.col1, col1), eq(table.col2, col2))
+    'getCompositePrimaryKeyWhereClause()': hasCompositePK
+      ? `and(${compositePrimaryKeyCamelCase.map((col) => `eq(${caseFormats.camelCase}.${col}, ${col})`).join(', ')})`
+      : '',
     // Auth resource template variables
     isAuthResource: String(isAuthResource),
     'isAuthResource()': String(isAuthResource),
@@ -168,6 +212,8 @@ export const getReplacementsForTable = (
     ['hasManyRelationships', hasManyRelationships],
     ['belongsToRelationships', belongsToRelationships],
     ['belongsToManyRelationships', belongsToManyRelationships],
+    ['getCompositePrimaryKey', compositePrimaryKey],
+    ['getCompositePrimaryKeyCamelCase', compositePrimaryKeyCamelCase],
   ];
 
   // Add indexed access for all array properties

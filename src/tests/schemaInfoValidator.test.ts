@@ -316,7 +316,7 @@ describe("schemaInfoValidator", () => {
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
 				if (result.errors?.[0]) {
-					expect(result.errors[0].message).toContain("primary key");
+					expect(result.errors[0].message).toContain("primary_key");
 				}
 			});
 

@@ -37,7 +37,6 @@ function OauthAccountPage() {
   });
 
   const columns = [
-    { accessorKey: 'id', header: 'Id' },
     { accessorKey: 'providerId', header: 'Provider Id' },
     { accessorKey: 'providerUserId', header: 'Provider User Id' },
     { accessorKey: 'userId', header: 'User Id' },

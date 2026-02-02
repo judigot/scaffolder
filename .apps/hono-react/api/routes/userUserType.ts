@@ -3,7 +3,9 @@ import { zValidator } from '@hono/zod-validator';
 import { createSchemaFactory } from 'drizzle-zod';
 import { db } from '../db';
 import { userUserType } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+
+import { generateIdFromEntropySize } from 'lucia';
 
 const app = new Hono();
 
@@ -11,9 +13,7 @@ const app = new Hono();
 const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
 
 // Validation schemas - auto-generated from Drizzle schema
-const createUserUserTypeSchema = createInsertSchema(userUserType).omit({
-  id: true,
-});
+const createUserUserTypeSchema = createInsertSchema(userUserType);
 
 const updateUserUserTypeSchema = createUserUserTypeSchema.partial();
 
@@ -24,12 +24,18 @@ app.get('/', async (c) => {
 });
 
 // GET single user_user_type by ID
-app.get('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
+app.get('/:userId/:userTypeId', async (c) => {
+  const userId = c.req.param('userId');
+  const userTypeId = Number(c.req.param('userTypeId'));
   const result = await db
     .select()
     .from(userUserType)
-    .where(eq(userUserType.id, id));
+    .where(
+      and(
+        eq(userUserType.userId, userId),
+        eq(userUserType.userTypeId, userTypeId),
+      ),
+    );
   if (result.length === 0) {
     return c.json({ error: 'UserUserType not found' }, 404);
   }
@@ -39,32 +45,47 @@ app.get('/:id', async (c) => {
 // POST create new user_user_type
 app.post('/', zValidator('json', createUserUserTypeSchema), async (c) => {
   const data = c.req.valid('json');
-
   const result = await db.insert(userUserType).values(data).returning();
   return c.json(result[0], 201);
 });
 
 // PUT update user_user_type
-app.put('/:id', zValidator('json', updateUserUserTypeSchema), async (c) => {
-  const id = Number(c.req.param('id'));
-  const data = c.req.valid('json');
-  const result = await db
-    .update(userUserType)
-    .set(data)
-    .where(eq(userUserType.id, id))
-    .returning();
-  if (result.length === 0) {
-    return c.json({ error: 'UserUserType not found' }, 404);
-  }
-  return c.json(result[0]);
-});
+app.put(
+  '/:userId/:userTypeId',
+  zValidator('json', updateUserUserTypeSchema),
+  async (c) => {
+    const userId = c.req.param('userId');
+    const userTypeId = Number(c.req.param('userTypeId'));
+    const data = c.req.valid('json');
+    const result = await db
+      .update(userUserType)
+      .set(data)
+      .where(
+        and(
+          eq(userUserType.userId, userId),
+          eq(userUserType.userTypeId, userTypeId),
+        ),
+      )
+      .returning();
+    if (result.length === 0) {
+      return c.json({ error: 'UserUserType not found' }, 404);
+    }
+    return c.json(result[0]);
+  },
+);
 
 // DELETE user_user_type
-app.delete('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
+app.delete('/:userId/:userTypeId', async (c) => {
+  const userId = c.req.param('userId');
+  const userTypeId = Number(c.req.param('userTypeId'));
   const result = await db
     .delete(userUserType)
-    .where(eq(userUserType.id, id))
+    .where(
+      and(
+        eq(userUserType.userId, userId),
+        eq(userUserType.userTypeId, userTypeId),
+      ),
+    )
     .returning();
   if (result.length === 0) {
     return c.json({ error: 'UserUserType not found' }, 404);

@@ -24,9 +24,7 @@ async function authFetch<T>(
   });
 
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ message: 'Request failed' }));
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new Error(error.message || `HTTP ${response.status}`);
   }
 
@@ -46,9 +44,11 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
-  logout: (): Promise<void> => authFetch('/logout', { method: 'POST' }),
+  logout: (): Promise<void> =>
+    authFetch('/logout', { method: 'POST' }),
 
-  getCurrentUser: (): Promise<User> => authFetch('/me'),
+  getCurrentUser: (): Promise<User> =>
+    authFetch('/me'),
 
   refreshToken: (): Promise<AuthResponse> =>
     authFetch('/refresh', { method: 'POST' }),

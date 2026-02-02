@@ -1,9 +1,11 @@
-import { pgTable, bigserial, bigint, boolean, timestamp, text, varchar, char } from 'drizzle-orm/pg-core';
+import { pgTable, bigserial, bigint, boolean, timestamp, text, varchar, char, primaryKey } from 'drizzle-orm/pg-core';
 
 <@@LOOP@@ data="tables" separator="\n">// <@@>tableNamePascalCaseSingular</@@> table
 export const <@@>tableNameCamelCase</@@> = pgTable('<@@>tableName</@@>', {
 <@@LOOP@@ data="columnsInfo" separator=",\n">  <@@>valueCamelCase</@@>: <@@IF@@ condition="is_primary_key EQUALS 'true'"><@@IF@@ condition="data_type EQUALS 'string'">text('<@@>value</@@>').primaryKey()</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'string'">bigserial('<@@>value</@@>', { mode: 'number' }).primaryKey()</@@IF@@><@@ELSE@@><@@IF@@ condition="value EQUALS 'email'">varchar('<@@>value</@@>', { length: 255 })<@@ELSE@@><@@IF@@ condition="value EQUALS 'password'">char('<@@>value</@@>', { length: 60 })<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">bigint('<@@>value</@@>', { mode: 'number' })</@@IF@@><@@IF@@ condition="data_type EQUALS 'string'">text('<@@>value</@@>')</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean('<@@>value</@@>')</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">timestamp('<@@>value</@@>', { withTimezone: true, precision: 6 })</@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'">.notNull()</@@IF@@></@@ELSE@@></@@IF@@></@@LOOP@@>
-});
+}<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">, (table) => [
+  primaryKey({ columns: [<@@>getCompositePrimaryKeyDrizzle()</@@>] })
+]</@@IF@@>);
 
 export type <@@>tableNamePascalCaseSingular</@@> = typeof <@@>tableNameCamelCase</@@>.$inferSelect;
 export type New<@@>tableNamePascalCaseSingular</@@> = typeof <@@>tableNameCamelCase</@@>.$inferInsert;</@@LOOP@@>

@@ -38,8 +38,8 @@ describe('OauthAccount API - CRUD Testing (C→R→U→R→D→R)', () => {
     });
     expect(res.status).toBe(201);
     const data = await res.json();
-    expect(data.id).toBeDefined();
-    createdId = data.id;
+    expect(data.providerId).toBeDefined();
+    createdId = data.providerId;
   });
 
   // 2. READ - Read after create
@@ -47,7 +47,7 @@ describe('OauthAccount API - CRUD Testing (C→R→U→R→D→R)', () => {
     const res = await fetch(`${BASE_URL}/api/oauth-account/${createdId}`);
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.id).toBe(createdId);
+    expect(data.providerId).toBe(createdId);
   });
 
   // 3. UPDATE - Update the record

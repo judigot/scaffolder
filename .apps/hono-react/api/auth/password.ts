@@ -25,10 +25,7 @@ export async function verifyPassword(
 }
 
 // Password validation rules
-export function validatePassword(password: string): {
-  valid: boolean;
-  errors: string[];
-} {
+export function validatePassword(password: string): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (password.length < 8) {

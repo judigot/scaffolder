@@ -5,6 +5,7 @@ import { db } from '../db';
 import { oauthAccount } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware, getUser } from '../middleware/auth';
+import { generateIdFromEntropySize } from 'lucia';
 
 const app = new Hono();
 
@@ -14,9 +15,7 @@ app.use('*', authMiddleware);
 const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
 
 // Validation schemas - auto-generated from Drizzle schema
-const createOauthAccountSchema = createInsertSchema(oauthAccount).omit({
-  id: true,
-});
+const createOauthAccountSchema = createInsertSchema(oauthAccount);
 
 const updateOauthAccountSchema = createOauthAccountSchema.partial();
 
@@ -31,13 +30,18 @@ app.get('/', async (c) => {
 });
 
 // GET single oauth_account by ID
-app.get('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  const user = getUser(c);
+app.get('/:providerId/:providerUserId', async (c) => {
+  const providerId = c.req.param('providerId');
+  const providerUserId = c.req.param('providerUserId');
   const result = await db
     .select()
     .from(oauthAccount)
-    .where(and(eq(oauthAccount.id, id), eq(oauthAccount.userId, user.id)));
+    .where(
+      and(
+        eq(oauthAccount.providerId, providerId),
+        eq(oauthAccount.providerUserId, providerUserId),
+      ),
+    );
   if (result.length === 0) {
     return c.json({ error: 'OauthAccount not found' }, 404);
   }
@@ -47,38 +51,47 @@ app.get('/:id', async (c) => {
 // POST create new oauth_account
 app.post('/', zValidator('json', createOauthAccountSchema), async (c) => {
   const data = c.req.valid('json');
-
-  const user = getUser(c);
-  const result = await db
-    .insert(oauthAccount)
-    .values({ ...data, userId: user.id })
-    .returning();
+  const result = await db.insert(oauthAccount).values(data).returning();
   return c.json(result[0], 201);
 });
 
 // PUT update oauth_account
-app.put('/:id', zValidator('json', updateOauthAccountSchema), async (c) => {
-  const id = Number(c.req.param('id'));
-  const data = c.req.valid('json');
-  const user = getUser(c);
-  const result = await db
-    .update(oauthAccount)
-    .set(data)
-    .where(and(eq(oauthAccount.id, id), eq(oauthAccount.userId, user.id)))
-    .returning();
-  if (result.length === 0) {
-    return c.json({ error: 'OauthAccount not found' }, 404);
-  }
-  return c.json(result[0]);
-});
+app.put(
+  '/:providerId/:providerUserId',
+  zValidator('json', updateOauthAccountSchema),
+  async (c) => {
+    const providerId = c.req.param('providerId');
+    const providerUserId = c.req.param('providerUserId');
+    const data = c.req.valid('json');
+    const result = await db
+      .update(oauthAccount)
+      .set(data)
+      .where(
+        and(
+          eq(oauthAccount.providerId, providerId),
+          eq(oauthAccount.providerUserId, providerUserId),
+        ),
+      )
+      .returning();
+    if (result.length === 0) {
+      return c.json({ error: 'OauthAccount not found' }, 404);
+    }
+    return c.json(result[0]);
+  },
+);
 
 // DELETE oauth_account
-app.delete('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  const user = getUser(c);
+app.delete('/:providerId/:providerUserId', async (c) => {
+  const providerId = c.req.param('providerId');
+  const providerUserId = c.req.param('providerUserId');
   const result = await db
     .delete(oauthAccount)
-    .where(and(eq(oauthAccount.id, id), eq(oauthAccount.userId, user.id)))
+    .where(
+      and(
+        eq(oauthAccount.providerId, providerId),
+        eq(oauthAccount.providerUserId, providerUserId),
+      ),
+    )
     .returning();
   if (result.length === 0) {
     return c.json({ error: 'OauthAccount not found' }, 404);

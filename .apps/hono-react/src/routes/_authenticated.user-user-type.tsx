@@ -37,7 +37,6 @@ function UserUserTypePage() {
   });
 
   const columns = [
-    { accessorKey: 'id', header: 'Id' },
     { accessorKey: 'userId', header: 'User Id' },
     { accessorKey: 'userTypeId', header: 'User Type Id' },
     { accessorKey: 'createdAt', header: 'Created At' },

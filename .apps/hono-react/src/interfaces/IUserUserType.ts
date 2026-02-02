@@ -1,5 +1,4 @@
 export interface IUserUserType {
-  id: number;
   user_id: string;
   user_type_id: number;
   created_at?: Date;
@@ -11,13 +10,11 @@ export function isIUserUserType(data: unknown): data is IUserUserType {
   return (
     data !== null &&
     typeof data === 'object' &&
-    'id' in data &&
     'user_id' in data &&
     'user_type_id' in data &&
     'created_at' in data &&
     'updated_at' in data &&
     'deleted_at' in data &&
-    typeof data.id === 'number' &&
     typeof data.user_id === 'string' &&
     typeof data.user_type_id === 'number' &&
     typeof data.created_at === 'string' &&

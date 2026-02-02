@@ -93,8 +93,9 @@ const populateFieldInfo = (
   return fields;
 };
 
-/* 
+/*
   Mark whether each table is a pivot table (junction table).
+  Preserves existing compositePrimaryKey if already defined.
 */
 export function identifyPivotTables(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
   return schemaInfo.map((relationship) => {
@@ -550,6 +551,11 @@ function cleanUpSchemaInfo(schemaInfo: ISchemaInfo[]): ISchemaInfo[] {
     // Only add isPivot if true
     if (item.isPivot) {
       cleaned.isPivot = true;
+    }
+
+    // Only add compositePrimaryKey if set
+    if (item.compositePrimaryKey && item.compositePrimaryKey.length >= 2) {
+      cleaned.compositePrimaryKey = item.compositePrimaryKey;
     }
 
     // Only add isAuthResource if true

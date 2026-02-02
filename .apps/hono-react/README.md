@@ -133,7 +133,6 @@ bun test:watch
 
 | Column | Type | Nullable |
 |--------|------|----------|
-| id | number | NO |
 | order_id | number | NO |
 | product_id | number | NO |
 
@@ -164,7 +163,6 @@ bun test:watch
 
 | Column | Type | Nullable |
 |--------|------|----------|
-| id | number | NO |
 | provider_id | string | NO |
 | provider_user_id | string | NO |
 | user_id | string | NO |
@@ -204,7 +202,6 @@ bun test:watch
 
 | Column | Type | Nullable |
 |--------|------|----------|
-| id | number | NO |
 | user_id | string | NO |
 | user_type_id | number | NO |
 | created_at | Date | YES |

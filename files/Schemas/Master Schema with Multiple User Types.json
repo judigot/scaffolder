@@ -82,15 +82,9 @@
   },
   {
     "tableName": "order_product",
-    "requiredColumns": ["id", "order_id", "product_id"],
+    "compositePrimaryKey": ["order_id", "product_id"],
+    "requiredColumns": ["order_id", "product_id"],
     "columnsInfo": [
-      {
-        "column_name": "id",
-        "data_type": "number",
-        "is_nullable": "NO",
-        "column_default": "AUTO_INCREMENT",
-        "primary_key": true
-      },
       {
         "column_name": "order_id",
         "data_type": "number",
@@ -222,15 +216,9 @@
   },
   {
     "tableName": "oauth_account",
-    "requiredColumns": ["id", "provider_id", "provider_user_id", "user_id"],
+    "compositePrimaryKey": ["provider_id", "provider_user_id"],
+    "requiredColumns": ["provider_id", "provider_user_id", "user_id"],
     "columnsInfo": [
-      {
-        "column_name": "id",
-        "data_type": "number",
-        "is_nullable": "NO",
-        "column_default": "AUTO_INCREMENT",
-        "primary_key": true
-      },
       {
         "column_name": "provider_id",
         "data_type": "string",
@@ -392,15 +380,9 @@
   },
   {
     "tableName": "user_user_type",
-    "requiredColumns": ["id", "user_id", "user_type_id"],
+    "compositePrimaryKey": ["user_id", "user_type_id"],
+    "requiredColumns": ["user_id", "user_type_id"],
     "columnsInfo": [
-      {
-        "column_name": "id",
-        "data_type": "number",
-        "is_nullable": "NO",
-        "column_default": "AUTO_INCREMENT",
-        "primary_key": true
-      },
       {
         "column_name": "user_id",
         "data_type": "string",

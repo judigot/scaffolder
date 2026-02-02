@@ -36,8 +36,8 @@ describe('OrderProduct API - CRUD Testing (C→R→U→R→D→R)', () => {
     });
     expect(res.status).toBe(201);
     const data = await res.json();
-    expect(data.id).toBeDefined();
-    createdId = data.id;
+    expect(data.orderId).toBeDefined();
+    createdId = data.orderId;
   });
 
   // 2. READ - Read after create
@@ -45,7 +45,7 @@ describe('OrderProduct API - CRUD Testing (C→R→U→R→D→R)', () => {
     const res = await fetch(`${BASE_URL}/api/order-product/${createdId}`);
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.id).toBe(createdId);
+    expect(data.orderId).toBe(createdId);
   });
 
   // 3. UPDATE - Update the record

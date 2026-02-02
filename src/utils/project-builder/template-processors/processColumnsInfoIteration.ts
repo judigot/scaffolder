@@ -387,9 +387,10 @@ export const processColumnsInfoIteration = (
       // Mock value from generateMockData for API testing
       mockValue: (() => {
         const data = mockData ?? useTransformationsStore.getState().mockData;
-        if (!data) return '""';
+        if (Object.keys(data).length === 0) {return '""';}
+        if (!(tableObj.tableName in data)) {return '""';}
         const tableData = data[tableObj.tableName];
-        if (!tableData || tableData.length === 0) return '""';
+        if (tableData.length === 0) {return '""';}
         const firstRow = tableData[0];
         const camelKey = caseFormats.camelCase;
         const value = camelKey in firstRow ? firstRow[camelKey] : firstRow[column.column_name];

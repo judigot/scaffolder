@@ -1307,6 +1307,9 @@ const processAtLoopTablesTemplate = (
         mockData,
       );
 
+      // Process table-level <@@IF@@> conditions
+      processed = processHtmlIf(processed, replacements);
+
       // Then replace placeholders
       const ctx = {
         userFiles,

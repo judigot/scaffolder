@@ -137,7 +137,7 @@ const evaluateFilter = (
   // Handle $schema_name filter
   if (filter.startsWith('$schema_name=')) {
     const pattern = filter.substring('$schema_name='.length);
-    if (!schemaName) {
+    if (schemaName === undefined || schemaName === '') {
       return false;
     }
     return matchWildcard(pattern, schemaName);
@@ -189,7 +189,15 @@ const evaluateFilter = (
         return false;
       }
 
-      return String(actualValue).toLowerCase() === expectedValue.toLowerCase();
+      // Only compare string/number/boolean primitives
+      if (typeof actualValue === 'string') {
+        return actualValue.toLowerCase() === expectedValue.toLowerCase();
+      }
+      if (typeof actualValue === 'number' || typeof actualValue === 'boolean') {
+        return String(actualValue).toLowerCase() === expectedValue.toLowerCase();
+      }
+
+      return false;
     }
 
     // Just check property existence

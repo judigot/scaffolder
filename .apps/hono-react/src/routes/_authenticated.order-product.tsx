@@ -37,7 +37,6 @@ function OrderProductPage() {
   });
 
   const columns = [
-    { accessorKey: 'id', header: 'Id' },
     { accessorKey: 'orderId', header: 'Order Id' },
     { accessorKey: 'productId', header: 'Product Id' },
   ];
