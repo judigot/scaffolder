@@ -46,6 +46,15 @@ interface IEnvEntry {
   isSaved?: boolean;
 }
 
+type AIKey = 'OPENAI_API_KEY' | 'ANTHROPIC_API_KEY';
+
+interface IAIKeyConfig {
+  key: AIKey;
+  label: string;
+  placeholder: string;
+  helper: string;
+}
+
 interface IInfraCredentials {
   sshPublicKey: string;
   sshPrivateKey: string;
@@ -63,6 +72,35 @@ const createEmptyEnvEntry = (): IEnvEntry => ({
   key: '',
   value: '',
   isSaved: false,
+});
+
+const AI_KEY_CONFIGS: IAIKeyConfig[] = [
+  {
+    key: 'OPENAI_API_KEY',
+    label: 'OpenAI API Key',
+    placeholder: 'sk-... or sk-proj-...',
+    helper: 'Starts with sk- or sk-proj-',
+  },
+  {
+    key: 'ANTHROPIC_API_KEY',
+    label: 'Anthropic API Key',
+    placeholder: 'sk-ant-...',
+    helper: 'Starts with sk-ant-',
+  },
+];
+
+const isAIKey = (value: string): value is AIKey => {
+  return value === 'OPENAI_API_KEY' || value === 'ANTHROPIC_API_KEY';
+};
+
+const createAIKeyInputs = (): Record<AIKey, string> => ({
+  OPENAI_API_KEY: '',
+  ANTHROPIC_API_KEY: '',
+});
+
+const createAIKeyRemovals = (): Record<AIKey, boolean> => ({
+  OPENAI_API_KEY: false,
+  ANTHROPIC_API_KEY: false,
 });
 
 const createEmptyInfraCredentials = (): IInfraCredentials => ({
@@ -316,6 +354,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   );
   const [originalEnvEntries, setOriginalEnvEntries] = useState<IEnvEntry[]>(
     () => extractEnvEntriesFromMetadata(userMetadata),
+  );
+  const [aiKeyInputs, setAiKeyInputs] = useState<Record<AIKey, string>>(() =>
+    createAIKeyInputs(),
+  );
+  const [aiKeyRemovals, setAiKeyRemovals] = useState<Record<AIKey, boolean>>(
+    () => createAIKeyRemovals(),
   );
   const [isEnvSaving, setIsEnvSaving] = useState<boolean>(false);
   const [envError, setEnvError] = useState<string | null>(null);
@@ -651,7 +695,11 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     decryptInfraCredentials,
   ]);
 
-  const isEnvDirty = !areEnvEntriesEqual(envEntries, originalEnvEntries);
+  const aiKeyDirty = AI_KEY_CONFIGS.some((config) => {
+    return aiKeyInputs[config.key].trim() !== '' || aiKeyRemovals[config.key];
+  });
+  const isEnvDirty =
+    !areEnvEntriesEqual(envEntries, originalEnvEntries) || aiKeyDirty;
   const isInfraDirty = !areInfraCredentialsEqual(
     infraCredentials,
     originalInfraCredentials,
@@ -850,6 +898,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     }
     setEnvError(null);
     setEnvSuccessMessage(null);
+    resetAIKeyState();
     setPassphraseInput('');
     setConfirmPassphraseInput('');
     setPassphraseErrors([]);
@@ -998,6 +1047,66 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       }
     },
     [showClipboardToast],
+  );
+
+  const resetAIKeyState = useCallback(() => {
+    setAiKeyInputs(createAIKeyInputs());
+    setAiKeyRemovals(createAIKeyRemovals());
+  }, []);
+
+  const handleAIKeyChange = useCallback((key: AIKey, value: string) => {
+    setAiKeyInputs((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+    setAiKeyRemovals((prev) => ({
+      ...prev,
+      [key]: false,
+    }));
+    setEnvError(null);
+    setEnvSuccessMessage(null);
+  }, []);
+
+  const handleAIKeyRemove = useCallback((key: AIKey) => {
+    setAiKeyRemovals((prev) => {
+      const nextValue = !prev[key];
+      return {
+        ...prev,
+        [key]: nextValue,
+      };
+    });
+    setAiKeyInputs((prev) => ({
+      ...prev,
+      [key]: '',
+    }));
+    setEnvError(null);
+    setEnvSuccessMessage(null);
+  }, []);
+
+  const applyAIKeyChanges = useCallback(
+    (entries: { key: string; value: string }[]) => {
+      const baseEntries = entries.filter((entry) => !isAIKey(entry.key));
+      const updatedEntries = [...baseEntries];
+
+      for (const config of AI_KEY_CONFIGS) {
+        const inputValue = aiKeyInputs[config.key].trim();
+        const isRemoval = aiKeyRemovals[config.key];
+        if (isRemoval) {
+          continue;
+        }
+        if (inputValue !== '') {
+          updatedEntries.push({ key: config.key, value: inputValue });
+          continue;
+        }
+        const existing = entries.find((entry) => entry.key === config.key);
+        if (existing && existing.value.trim() !== '') {
+          updatedEntries.push(existing);
+        }
+      }
+
+      return updatedEntries;
+    },
+    [aiKeyInputs, aiKeyRemovals],
   );
 
   const createEnvEntry = useCallback(
@@ -1481,15 +1590,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
           value: entry.value,
         }))
         .filter((entry) => !(entry.key === '' && entry.value.trim() === ''));
+      const adjustedEntries = applyAIKeyChanges(sanitizedEntries);
 
-      const incompleteRows = sanitizedEntries.filter(
+      const incompleteRows = adjustedEntries.filter(
         (entry) => entry.key === '' && entry.value.trim() !== '',
       );
       if (incompleteRows.length > 0) {
         throw new Error('Environment variable names cannot be empty.');
       }
 
-      const duplicateKeys = sanitizedEntries
+      const duplicateKeys = adjustedEntries
         .map((entry) => entry.key)
         .filter((key) => key !== '');
 
@@ -1502,7 +1612,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       }
 
       const encryptedEntries = await Promise.all(
-        sanitizedEntries
+        adjustedEntries
           .filter((entry) => entry.key !== '')
           .map(async (entry) => {
             if (entry.value.trim() === '') {
@@ -1605,6 +1715,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       });
 
       setEnvSuccessMessage('Environment variables saved successfully');
+      resetAIKeyState();
     } catch (envSaveError: unknown) {
       if (envSaveError instanceof Error) {
         setEnvError(envSaveError.message);
@@ -3065,6 +3176,94 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         </div>
                         <div className="space-y-4">
                           <div className="border border-border rounded-md p-4">
+                            <div className="flex items-start justify-between gap-4 mb-3">
+                              <div>
+                                <h3 className="text-sm font-semibold text-fg">
+                                  AI Provider Keys
+                                </h3>
+                                <p className="text-xs text-fg-subtle mt-1">
+                                  Stored encrypted in your Auth0 metadata. Leave
+                                  blank to keep current keys.
+                                </p>
+                              </div>
+                              <div className="text-xs text-fg-subtle text-right">
+                                Masked for security
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              {AI_KEY_CONFIGS.map((config) => {
+                                const existingEntry = envEntries.find(
+                                  (entry) => entry.key === config.key,
+                                );
+                                const hasSavedValue =
+                                  existingEntry !== undefined &&
+                                  existingEntry.value.trim() !== '';
+                                const isRemoval = aiKeyRemovals[config.key];
+                                const statusLabel = isRemoval
+                                  ? 'Will remove'
+                                  : hasSavedValue
+                                    ? 'Saved'
+                                    : 'Not set';
+                                const statusClass = isRemoval
+                                  ? 'text-amber-300 bg-amber-900/30 border-amber-700'
+                                  : hasSavedValue
+                                    ? 'text-green-300 bg-green-900/30 border-green-700'
+                                    : 'text-fg-subtle bg-secondary border-border';
+
+                                return (
+                                  <div
+                                    key={config.key}
+                                    className="grid gap-3 md:grid-cols-[180px,1fr,auto] items-start"
+                                  >
+                                    <div className="space-y-1">
+                                      <div className="text-sm font-medium text-fg">
+                                        {config.label}
+                                      </div>
+                                      <div className="text-xs text-fg-subtle">
+                                        {config.helper}
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <input
+                                        type="password"
+                                        value={aiKeyInputs[config.key]}
+                                        onChange={(event) => {
+                                          handleAIKeyChange(
+                                            config.key,
+                                            event.target.value,
+                                          );
+                                        }}
+                                        placeholder={config.placeholder}
+                                        autoComplete="off"
+                                        className="px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full text-left"
+                                      />
+                                      <div className="text-[11px] text-fg-subtle">
+                                        Leave blank to keep the current key.
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-end">
+                                      <span
+                                        className={`text-xs px-2 py-1 rounded-full border ${statusClass}`}
+                                      >
+                                        {statusLabel}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleAIKeyRemove(config.key);
+                                        }}
+                                        disabled={!hasSavedValue && !isRemoval}
+                                        className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-border text-fg-muted hover:text-fg hover:bg-secondary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {isRemoval ? 'Undo' : 'Remove'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div className="border border-border rounded-md p-4">
                             <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-border mb-3">
                               <div className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                 Key
@@ -3078,8 +3277,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                               {(() => {
                                 const editableEntries = envEntries.filter(
                                   (entry) =>
-                                    entry.isSaved !== true ||
-                                    editingEntryIds.has(entry.id),
+                                    (entry.isSaved !== true ||
+                                      editingEntryIds.has(entry.id)) &&
+                                    !isAIKey(entry.key),
                                 );
 
                                 return (
@@ -3239,7 +3439,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             const savedEntries = envEntries.filter(
                               (entry) =>
                                 entry.isSaved === true &&
-                                !editingEntryIds.has(entry.id),
+                                !editingEntryIds.has(entry.id) &&
+                                !isAIKey(entry.key),
                             );
 
                             if (savedEntries.length === 0) {

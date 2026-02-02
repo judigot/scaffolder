@@ -18,6 +18,7 @@ import FileViewer from '@/components/FileViewer.tsx';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
 import { Banner } from '@/components/UI/Banner.tsx';
 import { CREATION_MODES } from '@/constants.ts';
+import { useAIProviders } from '@/hooks/useAIProviders.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
 import { useRemoteRepoFiles } from '@/hooks/useRemoteRepoFiles.ts';
 import { useUser } from '@/hooks/useUser.ts';
@@ -294,6 +295,53 @@ export function ModelSelector({
 }: IModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { hasOpenAIKey, hasAnthropicKey } = useAIProviders();
+
+  // Check if a model is available (free tier or user has key for provider)
+  const isModelAvailable = useCallback(
+    (model: (typeof MODEL_OPTIONS)[0]) => {
+      if (model.tier === 'free') {
+        return true;
+      }
+      // Premium models require user API key for the provider
+      if (model.provider === 'openai') {
+        return hasOpenAIKey;
+      }
+      return hasAnthropicKey;
+    },
+    [hasOpenAIKey, hasAnthropicKey],
+  );
+
+  // Get available models (can be selected)
+  const availableModels = useMemo(() => {
+    return MODEL_OPTIONS.filter(isModelAvailable);
+  }, [isModelAvailable]);
+
+  // All OpenAI models (for display, some may be locked)
+  const openaiModels = useMemo(
+    () => MODEL_OPTIONS.filter((m) => m.provider === 'openai'),
+    [],
+  );
+
+  // All Anthropic models (for display, some may be locked)
+  const anthropicModels = useMemo(
+    () => MODEL_OPTIONS.filter((m) => m.provider === 'anthropic'),
+    [],
+  );
+
+  // Auto-select first available model if current selection is unavailable
+  useEffect(() => {
+    if (availableModels.length === 0) {
+      return;
+    }
+    const isCurrentModelAvailable = availableModels.some(
+      (m) => m.id === selectedModel,
+    );
+    if (!isCurrentModelAvailable) {
+      // Safe to access [0] since we checked length > 0 above
+      onModelChange(availableModels[0].id);
+    }
+  }, [availableModels, selectedModel, onModelChange]);
 
   const currentModel = MODEL_OPTIONS.find((m) => m.id === selectedModel);
 
@@ -335,14 +383,75 @@ export function ModelSelector({
     };
   }, [isOpen]);
 
-  const openaiModels = MODEL_OPTIONS.filter((m) => m.provider === 'openai');
-  const anthropicModels = MODEL_OPTIONS.filter(
-    (m) => m.provider === 'anthropic',
-  );
-
-  const handleSelect = (modelId: ModelId) => {
-    onModelChange(modelId);
+  const handleSelect = (model: (typeof MODEL_OPTIONS)[0]) => {
+    if (!isModelAvailable(model)) {
+      return; // Don't select locked models
+    }
+    onModelChange(model.id);
     setIsOpen(false);
+  };
+
+  // Render a model option with tier badge and locked state
+  const renderModelOption = (model: (typeof MODEL_OPTIONS)[0]) => {
+    const isAvailable = isModelAvailable(model);
+    const isSelected = selectedModel === model.id;
+    const providerName = model.provider === 'openai' ? 'OpenAI' : 'Anthropic';
+
+    // Check if user has their own key for this provider
+    const userHasKeyForProvider =
+      (model.provider === 'openai' && hasOpenAIKey) ||
+      (model.provider === 'anthropic' && hasAnthropicKey);
+
+    // Show "Free" only when using server keys (no user key configured)
+    const showFreeBadge = model.tier === 'free' && !userHasKeyForProvider;
+
+    return (
+      <button
+        key={model.id}
+        type="button"
+        onClick={() => {
+          handleSelect(model);
+        }}
+        disabled={!isAvailable}
+        title={
+          !isAvailable
+            ? `Add your ${providerName} API key in Settings to unlock`
+            : undefined
+        }
+        className={`w-full px-3 py-3 md:py-2 text-sm text-left transition-colors flex items-center justify-between gap-2 ${
+          isAvailable
+            ? isSelected
+              ? 'text-primary-400 bg-bg'
+              : 'text-fg hover:bg-bg'
+            : 'text-fg-subtle cursor-not-allowed opacity-50'
+        }`}
+      >
+        <span className="truncate">{model.name}</span>
+        <span className="flex items-center gap-1.5 shrink-0">
+          {showFreeBadge && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-success-900/40 text-success-400 font-medium">
+              Free
+            </span>
+          )}
+          {model.tier === 'premium' && !isAvailable && (
+            <svg
+              className="w-3.5 h-3.5 text-fg-subtle"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <title>Locked - requires API key</title>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          )}
+        </span>
+      </button>
+    );
   };
 
   return (
@@ -392,7 +501,7 @@ export function ModelSelector({
             }}
             aria-label="Close dropdown"
           />
-          <div className="fixed inset-x-0 bottom-0 z-50 bg-secondary border-t border-border rounded-t-2xl p-4 md:absolute md:inset-auto md:left-0 md:bottom-full md:mb-2 md:w-44 md:rounded-lg md:border md:p-0 md:shadow-lg overflow-hidden">
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-secondary border-t border-border rounded-t-2xl p-4 md:absolute md:inset-auto md:left-0 md:bottom-full md:mb-2 md:w-56 md:rounded-lg md:border md:p-0 md:shadow-lg overflow-hidden">
             {/* Mobile drag handle */}
             <div className="md:hidden w-10 h-1 bg-border rounded-full mx-auto mb-3" />
 
@@ -400,43 +509,13 @@ export function ModelSelector({
             <div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-b border-border">
               OpenAI
             </div>
-            {openaiModels.map((model) => (
-              <button
-                key={model.id}
-                type="button"
-                onClick={() => {
-                  handleSelect(model.id);
-                }}
-                className={`w-full px-3 py-3 md:py-2 text-sm text-left hover:bg-bg transition-colors ${
-                  selectedModel === model.id
-                    ? 'text-primary-400 bg-bg'
-                    : 'text-fg'
-                }`}
-              >
-                {model.name}
-              </button>
-            ))}
+            {openaiModels.map(renderModelOption)}
 
             {/* Anthropic group */}
             <div className="px-3 py-1.5 text-xs text-fg-subtle font-medium border-y border-border">
               Anthropic
             </div>
-            {anthropicModels.map((model) => (
-              <button
-                key={model.id}
-                type="button"
-                onClick={() => {
-                  handleSelect(model.id);
-                }}
-                className={`w-full px-3 py-3 md:py-2 text-sm text-left hover:bg-bg transition-colors ${
-                  selectedModel === model.id
-                    ? 'text-primary-400 bg-bg'
-                    : 'text-fg'
-                }`}
-              >
-                {model.name}
-              </button>
-            ))}
+            {anthropicModels.map(renderModelOption)}
           </div>
         </>
       )}
@@ -1037,6 +1116,7 @@ export function AIChatContainer({
   const chat = useVercelChat({
     endpoint: '/api/chat',
     model: selectedModel,
+    accessToken,
   });
 
   const { messages, sendMessage, error, retry: reload } = chat;

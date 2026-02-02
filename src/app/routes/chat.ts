@@ -1,188 +1,206 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { SCHEMA_BUILDER_SYSTEM_PROMPT } from "@/prompts/index.ts";
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { getUserMetadata } from '@/app/services/auth0Service.ts';
+import { SCHEMA_BUILDER_SYSTEM_PROMPT } from '@/prompts/index.ts';
+import {
+  extractAIKeysFromMetadata,
+  isValidModelId,
+  validateChatRequest,
+  type ModelId,
+} from '@/schemas/chatSchemas.ts';
+import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
-// Model configuration
-type ModelId =
-	| "gpt-5-nano"
-	| "gpt-5-mini"
-	| "gpt-5.2-codex"
-	| "claude-sonnet-4.5"
-	| "claude-opus-4.5";
+// =============================================================================
+// Model Configuration
+// =============================================================================
+
+type ModelTier = 'free' | 'premium';
 
 interface IModelConfig {
-	id: ModelId;
-	name: string;
-	provider: "openai" | "anthropic";
-	modelString: string;
+  id: ModelId;
+  name: string;
+  provider: 'openai' | 'anthropic';
+  modelString: string;
+  tier: ModelTier;
 }
 
 const MODEL_CONFIGS: Record<ModelId, IModelConfig> = {
-	"gpt-5-nano": {
-		id: "gpt-5-nano",
-		name: "GPT-5 Nano",
-		provider: "openai",
-		modelString: "gpt-5-nano",
-	},
-	"gpt-5-mini": {
-		id: "gpt-5-mini",
-		name: "GPT-5 Mini",
-		provider: "openai",
-		modelString: "gpt-5-mini",
-	},
-	"gpt-5.2-codex": {
-		id: "gpt-5.2-codex",
-		name: "GPT-5.2 Codex",
-		provider: "openai",
-		modelString: "gpt-5.2-codex",
-	},
-	"claude-sonnet-4.5": {
-		id: "claude-sonnet-4.5",
-		name: "Claude Sonnet 4.5",
-		provider: "anthropic",
-		modelString: "claude-sonnet-4-5-20250929",
-	},
-	"claude-opus-4.5": {
-		id: "claude-opus-4.5",
-		name: "Claude Opus 4.5",
-		provider: "anthropic",
-		modelString: "claude-opus-4-5-20251101",
-	},
+  'gpt-5-nano': {
+    id: 'gpt-5-nano',
+    name: 'GPT-5 Nano',
+    provider: 'openai',
+    modelString: 'gpt-5-nano',
+    tier: 'free',
+  },
+  'gpt-5-mini': {
+    id: 'gpt-5-mini',
+    name: 'GPT-5 Mini',
+    provider: 'openai',
+    modelString: 'gpt-5-mini',
+    tier: 'premium',
+  },
+  'gpt-5.2-codex': {
+    id: 'gpt-5.2-codex',
+    name: 'GPT-5.2 Codex',
+    provider: 'openai',
+    modelString: 'gpt-5.2-codex',
+    tier: 'premium',
+  },
+  'claude-haiku-3.5': {
+    id: 'claude-haiku-3.5',
+    name: 'Claude Haiku 3.5',
+    provider: 'anthropic',
+    modelString: 'claude-3-5-haiku-20241022',
+    tier: 'free',
+  },
+  'claude-sonnet-4.5': {
+    id: 'claude-sonnet-4.5',
+    name: 'Claude Sonnet 4.5',
+    provider: 'anthropic',
+    modelString: 'claude-sonnet-4-5-20250929',
+    tier: 'premium',
+  },
+  'claude-opus-4.5': {
+    id: 'claude-opus-4.5',
+    name: 'Claude Opus 4.5',
+    provider: 'anthropic',
+    modelString: 'claude-opus-4-5-20251101',
+    tier: 'premium',
+  },
 };
 
-const getModel = (modelId: ModelId) => {
-	const config = MODEL_CONFIGS[modelId];
-	if (config.provider === "anthropic") {
-		return anthropic(config.modelString);
-	}
-	return openai(config.modelString);
-};
+// =============================================================================
+// Model Instance Factory
+// =============================================================================
 
-const isValidModelId = (id: unknown): id is ModelId => {
-	return typeof id === "string" && id in MODEL_CONFIGS;
-};
+interface IUserAIKeys {
+  openaiApiKey: string | null;
+  anthropicApiKey: string | null;
+}
 
 /**
- * Type guard to check if value is a Record with string keys
+ * Create model instance with appropriate API key
+ * Uses user key when available, falls back to server key (from env)
  */
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-	return typeof value === "object" && value !== null;
-};
+function getModel(
+  modelId: ModelId,
+  userKeys: IUserAIKeys,
+):
+  | ReturnType<ReturnType<typeof createOpenAI>>
+  | ReturnType<ReturnType<typeof createAnthropic>> {
+  const config = MODEL_CONFIGS[modelId];
 
-/**
- * Type guard to validate if a value is a valid UIMessage object
- */
-const isValidUIMessage = (msg: unknown): msg is Omit<UIMessage, "id"> => {
-	if (!isRecord(msg)) {
-		return false;
-	}
+  if (config.provider === 'anthropic') {
+    const anthropic = createAnthropic({
+      apiKey: userKeys.anthropicApiKey ?? undefined,
+    });
+    return anthropic(config.modelString);
+  }
 
-	// Check role - required field
-	if (typeof msg.role !== "string") {
-		return false;
-	}
+  const openai = createOpenAI({
+    apiKey: userKeys.openaiApiKey ?? undefined,
+  });
+  return openai(config.modelString);
+}
 
-	const validRoles = ["system", "user", "assistant"];
-	if (!validRoles.includes(msg.role)) {
-		return false;
-	}
-
-	// Check parts - required field
-	if (!Array.isArray(msg.parts)) {
-		return false;
-	}
-
-	// Validate each part has at least a type property
-	for (const part of msg.parts) {
-		if (!isRecord(part)) {
-			return false;
-		}
-		if (typeof part.type !== "string") {
-			return false;
-		}
-	}
-
-	return true;
-};
+// =============================================================================
+// Routes
+// =============================================================================
 
 const app = new Hono();
 
-app.use("*", cors());
+app.use('*', cors());
 
 // Get available models
-app.get("/models", (c) => {
-	const models = Object.values(MODEL_CONFIGS).map((config) => ({
-		id: config.id,
-		name: config.name,
-		provider: config.provider,
-	}));
-	return c.json({ models });
+app.get('/models', (c) => {
+  const models = Object.values(MODEL_CONFIGS).map((config) => ({
+    id: config.id,
+    name: config.name,
+    provider: config.provider,
+    tier: config.tier,
+  }));
+  return c.json({ models });
 });
 
-app.post("/", async (c) => {
-	try {
-		const body: unknown = await c.req.json();
+app.post('/', async (c) => {
+  try {
+    const body: unknown = await c.req.json();
 
-		if (typeof body !== "object" || body === null || !("messages" in body)) {
-			return c.json({ error: "Invalid request body" }, 400);
-		}
+    // Validate request body using Zod schema
+    // Type parameter ensures messages are compatible with AI SDK
+    const validation = validateChatRequest<Omit<UIMessage, 'id'>>(body);
+    if (!validation.success) {
+      return c.json({ error: validation.error }, 400);
+    }
 
-		interface IRequestBody {
-			messages: unknown;
-			model?: unknown;
-		}
+    const { messages, model } = validation;
 
-		function isRequestBody(obj: object): obj is IRequestBody {
-			return "messages" in obj;
-		}
+    // Get model from request, default to gpt-5-nano
+    const modelId: ModelId = isValidModelId(model) ? model : 'gpt-5-nano';
+    const config = MODEL_CONFIGS[modelId];
 
-		if (!isRequestBody(body)) {
-			return c.json({ error: "Invalid request body" }, 400);
-		}
+    // Try to get user API keys from auth token
+    let userKeys: IUserAIKeys = { openaiApiKey: null, anthropicApiKey: null };
+    const authHeader = c.req.header('authorization');
 
-		if (!Array.isArray(body.messages)) {
-			return c.json({ error: "Invalid messages format" }, 400);
-		}
+    if (authHeader !== undefined) {
+      const verification = await verifyAuth0TokenFromAuthHeader(authHeader);
+      if (verification.ok && verification.auth0UserId !== '') {
+        try {
+          const metadata = await getUserMetadata(verification.auth0UserId);
+          userKeys = extractAIKeysFromMetadata(metadata);
+        } catch {
+          // Silently fail - user keys not available, use server keys
+        }
+      }
+    }
 
-		// Validate each message is a valid UIMessage
-		if (!body.messages.every(isValidUIMessage)) {
-			return c.json({ error: "Invalid message structure" }, 400);
-		}
+    // Check if user has key for the requested provider
+    const hasUserKeyForProvider =
+      (config.provider === 'openai' && userKeys.openaiApiKey !== null) ||
+      (config.provider === 'anthropic' && userKeys.anthropicApiKey !== null);
 
-		// Get model from request, default to gpt-5-nano
-		const modelId: ModelId = isValidModelId(body.model)
-			? body.model
-			: "gpt-5-nano";
+    // Enforce tier restrictions: premium models require user API key
+    if (config.tier === 'premium' && !hasUserKeyForProvider) {
+      return c.json(
+        {
+          error: 'Premium model requires API key',
+          message: `${config.name} requires you to configure your own ${config.provider === 'openai' ? 'OpenAI' : 'Anthropic'} API key in Settings.`,
+          code: 'PREMIUM_MODEL_REQUIRES_KEY',
+        },
+        403,
+      );
+    }
 
-		const convertedMessages = await convertToModelMessages(body.messages);
+    const convertedMessages = await convertToModelMessages(messages);
 
-		// Build streamText options - reasoning models like gpt-5.2-codex don't support temperature
-		const baseOptions = {
-			model: getModel(modelId),
-			system: SCHEMA_BUILDER_SYSTEM_PROMPT,
-			messages: convertedMessages,
-		};
+    // Build streamText options - reasoning models like gpt-5.2-codex don't support temperature
+    const baseOptions = {
+      model: getModel(modelId, userKeys),
+      system: SCHEMA_BUILDER_SYSTEM_PROMPT,
+      messages: convertedMessages,
+    };
 
-		// Only add temperature for non-reasoning models
-		if (modelId !== "gpt-5.2-codex") {
-			const optionsWithTemp = {
-				...baseOptions,
-				temperature: 0.7,
-			};
-			const result = streamText(optionsWithTemp);
-			return result.toUIMessageStreamResponse();
-		}
+    // Only add temperature for non-reasoning models
+    if (modelId !== 'gpt-5.2-codex') {
+      const optionsWithTemp = {
+        ...baseOptions,
+        temperature: 0.7,
+      };
+      const result = streamText(optionsWithTemp);
+      return result.toUIMessageStreamResponse();
+    }
 
-		const result = streamText(baseOptions);
+    const result = streamText(baseOptions);
 
-		return result.toUIMessageStreamResponse();
-	} catch (error) {
-		console.error("Chat API error:", error);
-		return c.json({ error: "Internal server error" }, 500);
-	}
+    return result.toUIMessageStreamResponse();
+  } catch (error) {
+    console.error('Chat API error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 
 export default app;
