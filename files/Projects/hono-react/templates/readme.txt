@@ -11,6 +11,13 @@ A production-ready Hono + React fullstack application with Drizzle ORM.
 - **Testing**: Vitest
 - **Deployment**: Vercel
 
+## Environment
+
+- Node.js `24.13.0` (bundled npm `11.6.2`)
+- npm `11.6.2`
+- pnpm `10.28.0` (installed for tooling parity)
+- Bun `1.3.8` (primary runtime, bundler, and package manager)
+
 ## Getting Started
 
 ```bash

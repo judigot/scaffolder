@@ -1,4 +1,4 @@
-name: API Tests
+name: Hono-react Golden App CI
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
     branches: [main, develop]
 
 jobs:
-  api-test:
+  golden:
+    name: Test hono-react golden app
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:16
@@ -24,12 +24,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     env:
       DATABASE_URL: postgresql://app:app123@localhost:5432/app
-
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -37,7 +35,7 @@ jobs:
         with:
           node-version: '24.13.0'
 
-      - name: Align npm & pnpm
+      - name: Align npm & pnpm versions
         run: |
           npm install -g npm@11.6.2 pnpm@10.28.0
 
@@ -46,18 +44,29 @@ jobs:
         with:
           bun-version: '1.3.8'
 
-      - name: Install dependencies
+      - name: Install scaffolder dependencies
         run: bun install
 
-      - name: Run database migrations
+      - name: Generate hono-react golden app
+        run: bun run scripts/generate-golden-apps.ts . hono-react
+
+      - name: Install hono-react dependencies
+        working-directory: .apps/hono-react
+        run: bun install
+
+      - name: Push database migrations
+        working-directory: .apps/hono-react
         run: bun drizzle-kit push
 
-      - name: Start API server
+      - name: Start hono-react dev server
+        working-directory: .apps/hono-react
         run: |
           bun run dev &
           echo $! > .server.pid
+          sleep 5
 
-      - name: Wait for server to be ready
+      - name: Wait for server
+        working-directory: .apps/hono-react
         run: |
           for i in {1..30}; do
             if curl -s http://localhost:3000/api/health > /dev/null 2>&1; then
@@ -71,10 +80,12 @@ jobs:
           exit 1
 
       - name: Run API tests
+        working-directory: .apps/hono-react
         run: bash api-test.sh
 
-      - name: Stop server
+      - name: Stop dev server
         if: always()
+        working-directory: .apps/hono-react
         run: |
           if [ -f .server.pid ]; then
             kill $(cat .server.pid) 2>/dev/null || true

@@ -1,27 +1,26 @@
 # Template DSL Improvements
 
 ## Context
+
 The scaffolder uses a custom DSL for templates with two syntaxes:
+
 - `@LOOP(tables)` - file-level iteration
 - `<@@LOOP@@ data="columnsInfo">` - inline iteration
 
 We've had bugs with unbalanced tags causing silent failures. A validation layer was added to catch these at runtime.
 
 ## Completed
+
 - [x] Add `validateHtmlTemplateTags()` function to catch unbalanced tags
 - [x] Throw errors instead of silently failing in `processHtmlIf`
 - [x] Fix unbalanced tags in Knex and Kysely templates
+- [x] Add template linting CLI (`bun run lint:templates`) and docs
 
 ## Planned Improvements
 
 ### Quick Wins
-1. **Template Linting CLI** (like ESLint)
-   - Standalone script: `bun run lint:templates`
-   - Scans all `.txt` template files in `files/Projects/`
-   - Validates tag balance, reports file paths
-   - Can run in CI/CD or as pre-commit hook
 
-2. **Documentation**
+1. **Documentation**
    - Document DSL syntax and available placeholders
    - Document loop contexts (`tables`, `columnsInfo`, `dataSources`)
    - Add examples for common patterns
@@ -34,11 +33,13 @@ We've had bugs with unbalanced tags causing silent failures. A validation layer 
    - Would make deeply nested templates maintainable
 
    Before:
+
    ```
    <@@IF@@ condition="is_primary_key EQUALS 'true'">bigserial<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">int8<@@ELSE@@>text</@@IF@@></@@IF@@>
    ```
 
    After:
+
    ```
    <@@IF@@ condition="is_primary_key EQUALS 'true'">
      bigserial
@@ -61,6 +62,7 @@ We've had bugs with unbalanced tags causing silent failures. A validation layer 
    - Cleaner, more readable, less error-prone
 
    Syntax:
+
    ```
    <@@SWITCH@@ on="data_type">
      <@@CASE@@ value="number">bigInteger</@@CASE@@>
@@ -82,6 +84,7 @@ We've had bugs with unbalanced tags causing silent failures. A validation layer 
    - Add: `>`, `<`, `>=`, `<=` for numeric comparisons
 
    Examples:
+
    ```
    <@@IF@@ condition="is_nullable EQUALS 'NO' AND is_unique EQUALS 'true'">
    <@@IF@@ condition="value IN 'created_at,updated_at,deleted_at'">
@@ -115,6 +118,7 @@ We've had bugs with unbalanced tags causing silent failures. A validation layer 
    - DRY principle for templates
 
    Syntax:
+
    ```
    <@@INCLUDE@@ file="common/nullable-check.txt" />
    <@@INCLUDE@@ file="common/timestamp-columns.txt" data="columnsInfo" />
@@ -138,6 +142,7 @@ We've had bugs with unbalanced tags causing silent failures. A validation layer 
    - Or: Create `.tmLanguage` file for manual installation
 
 ## Notes
+
 - The DSL is tightly coupled with scaffolder-specific concepts (columnsInfo, typeMappings, etc.)
 - Switching to Handlebars/EJS would require rewriting all templates and custom helpers
 - Focus on incremental improvements that don't break existing templates

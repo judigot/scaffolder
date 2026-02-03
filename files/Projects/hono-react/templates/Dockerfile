@@ -2,7 +2,7 @@
 # Hono + React Development Dockerfile
 # ========================================
 
-ARG BUN_VERSION=latest
+ARG BUN_VERSION=1.3.8
 FROM oven/bun:${BUN_VERSION}
 
 WORKDIR /app
