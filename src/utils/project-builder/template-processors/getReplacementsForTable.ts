@@ -3,6 +3,13 @@ import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForAuth } from '@/utils/project-builder/template-processors/getReplacementsForAuth.ts';
+import type { IFormStore } from '@/useFormStore.ts';
+
+// Database identifier quote characters
+const IDENTIFIER_QUOTES: Record<string, string> = {
+  mysql: '`',
+  postgresql: '"',
+};
 
 /**
  * Creates a helper function to support dynamic separators
@@ -56,6 +63,7 @@ export const getReplacementsForTable = (
   schemaInfoParsed: ISchemaInfoResult,
   tableIndex?: number,
   totalTables?: number,
+  formData?: IFormStore,
 ): Replacements => {
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
@@ -115,9 +123,20 @@ export const getReplacementsForTable = (
   // Get auth-related replacements (project-level)
   const authReplacements = getReplacementsForAuth(schemaInfoParsed.schema);
 
+  // Database-related replacements
+  const dbType =
+    formData !== undefined && typeof formData.dbType === 'string'
+      ? formData.dbType
+      : 'postgresql';
+  const identifierQuote = IDENTIFIER_QUOTES[dbType] ?? '"';
+
   // Create base replacements object
   const baseReplacements: Replacements = {
     ...authReplacements,
+    // Database-specific replacements
+    dbType,
+    identifierQuote,
+    'formData.dbType': dbType,
     tableNamePascalCase: caseFormats.pascalCase,
     tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
     tableNameKebabCasePlural: caseFormats.kebabCasePlural,

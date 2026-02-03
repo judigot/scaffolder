@@ -1411,7 +1411,13 @@ const processAtLoopTablesTemplate = (
 ): string => {
   return tables
     .map((table) => {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const replacements = getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      );
 
       // First process HTML-like <@@LOOP@@ data="columnsInfo">
       let processed = processHtmlLoopColumnsInfo(
@@ -1482,7 +1488,13 @@ const processTablesTemplate = (
 ): string => {
   return tables
     .map((table) => {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const replacements = getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      );
       const ctx = {
         userFiles,
         schemaInfo: tables,
@@ -1961,7 +1973,13 @@ export const processIterateCommand = (
           );
         }
         // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          table,
+          schemaInfoParsed,
+          undefined,
+          undefined,
+          formData,
+        );
         const ignoreCtx = {
           userFiles,
           schemaInfo: [],
@@ -2114,7 +2132,13 @@ export const processIterateCommand = (
           );
         }
         // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          table,
+          schemaInfoParsed,
+          undefined,
+          undefined,
+          formData,
+        );
         const filterCtx = {
           userFiles,
           schemaInfo: [],
@@ -2402,7 +2426,13 @@ export const processIterateCommand = (
       valueKebabCaseSingular: caseFormats.kebabCaseSingular,
       valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
       // Add table replacements for other placeholders that might be in the template
-      ...getReplacementsForTable(table, schemaInfoParsed),
+      ...getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      ),
     };
 
     // Add all placeholders found in the YAML file for this value

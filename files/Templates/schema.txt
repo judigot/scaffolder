@@ -1,11 +1,11 @@
 <@@LOOP@@ data="tablesReversed" separator="\n">
-DROP TABLE IF EXISTS "<@@>tableName</@@>";
+DROP TABLE IF EXISTS <@@>identifierQuote</@@><@@>tableName</@@><@@>identifierQuote</@@>;
 </@@LOOP@@>
 
 <@@LOOP@@ data="tables" separator="\n\n">
-CREATE TABLE "<@@>tableName</@@>" (
+CREATE TABLE <@@>identifierQuote</@@><@@>tableName</@@><@@>identifierQuote</@@> (
   <@@LOOP@@ data="columnsInfo" separator=",\n">
-    "<@@>column.name</@@>"
+    <@@>identifierQuote</@@><@@>column.name</@@><@@>identifierQuote</@@>
     <@@IF@@ condition="is_primary_key EQUALS 'true'">
       <@@IF@@ condition="data_type EQUALS 'string'"><@@>typeMappings.stringPrimaryKey[formData.dbType]</@@></@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'string'"><@@>typeMappings.primaryKey[formData.dbType]</@@></@@IF@@>
     </@@IF@@>
@@ -21,9 +21,9 @@ CREATE TABLE "<@@>tableName</@@>" (
   </@@LOOP@@>
   <@@LOOP@@ data="columnsInfo" separator="">
     <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
-    CONSTRAINT "FK_<@@>tableName</@@>_<@@>column.name</@@>" FOREIGN KEY ("<@@>column.name</@@>") REFERENCES "<@@>column.foreign_table</@@>" ("<@@>column.foreign_column</@@>")
+    CONSTRAINT <@@>identifierQuote</@@>FK_<@@>tableName</@@>_<@@>column.name</@@><@@>identifierQuote</@@> FOREIGN KEY (<@@>identifierQuote</@@><@@>column.name</@@><@@>identifierQuote</@@>) REFERENCES <@@>identifierQuote</@@><@@>column.foreign_table</@@><@@>identifierQuote</@@> (<@@>identifierQuote</@@><@@>column.foreign_column</@@><@@>identifierQuote</@@>)
     </@@IF@@>
   </@@LOOP@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">,
-  PRIMARY KEY (<@@LOOP@@ data="compositePrimaryKey" separator=", ">"<@@>value</@@>"</@@LOOP@@>)</@@IF@@>
+  PRIMARY KEY (<@@LOOP@@ data="compositePrimaryKey" separator=", "><@@>identifierQuote</@@><@@>value</@@><@@>identifierQuote</@@></@@LOOP@@>)</@@IF@@>
 );
 </@@LOOP@@>

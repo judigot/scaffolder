@@ -938,6 +938,12 @@ docker exec scaffolder-postgresql-1 psql -U scaffolder -d test_db -f /tmp/db-sch
 - [ ] Per-table exports
 - [ ] Combined exports
 
+### Multi-Database Support
+- [x] PostgreSQL schema with double quotes (`"table"`) ✅
+- [x] MySQL schema with backticks (`` `table` ``) ✅ **Implemented**
+- [x] Type mappings work for both (BIGSERIAL vs AUTO_INCREMENT) ✅
+- [x] Default values work for both (NOW() vs CURRENT_TIMESTAMP) ✅
+
 ### Edge Cases
 - [ ] Empty tables (no columns except PK)
 - [ ] Tables with only required columns
@@ -1076,3 +1082,26 @@ diff -r /tmp/golden-before .apps/hono-react
 - **Core SQL template:** `files/Templates/schema.txt`
 - **Master schema:** `files/Schemas/Master Schema with Multiple User Types.json`
 - **Type mappings:** `files/Constants/typeMappings.yaml`
+
+---
+
+## Known Issues / Future Improvements
+
+### ~~MySQL Identifier Quotes~~ ✅ RESOLVED
+
+**Status:** Fixed. MySQL schema now uses backticks, PostgreSQL uses double quotes.
+
+**Implementation:**
+1. Added `identifierQuote` to `getReplacementsForTable.ts`:
+   ```typescript
+   const IDENTIFIER_QUOTES: Record<string, string> = {
+     mysql: '`',
+     postgresql: '"',
+   };
+   ```
+
+2. Added `identifierQuote` and `dbType` to table/column-level replacements
+
+3. Updated `schema.txt` template to use `<@@>identifierQuote</@@>` placeholder
+
+4. Also added `identifierQuote` to typeMappings.yaml for documentation purposes

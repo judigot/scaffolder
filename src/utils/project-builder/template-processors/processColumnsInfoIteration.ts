@@ -311,7 +311,9 @@ export const processColumnsInfoIteration = (
   mockData?: ParsedJSONSchema,
 ): string => {
   const dbType =
-    formData && typeof formData.dbType === 'string' ? formData.dbType : '';
+    formData !== undefined && typeof formData.dbType === 'string'
+      ? formData.dbType
+      : 'postgresql';
 
   const dataSourceReplacements = flattenDataSource(dataSource);
 
@@ -383,18 +385,37 @@ export const processColumnsInfoIteration = (
       'column.has_foreign_key':
         column.foreign_key !== undefined ? 'true' : 'false',
       'formData.dbType': dbType,
-      ...getReplacementsForTable(tableObj, schemaInfoParsed),
+      ...getReplacementsForTable(
+        tableObj,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      ),
       // Mock value from generateMockData for API testing
       mockValue: (() => {
         const data = mockData ?? useTransformationsStore.getState().mockData;
-        if (Object.keys(data).length === 0) {return '""';}
-        if (!(tableObj.tableName in data)) {return '""';}
+        if (Object.keys(data).length === 0) {
+          return '""';
+        }
+        if (!(tableObj.tableName in data)) {
+          return '""';
+        }
         const tableData = data[tableObj.tableName];
-        if (tableData.length === 0) {return '""';}
+        if (tableData.length === 0) {
+          return '""';
+        }
         const firstRow = tableData[0];
         const camelKey = caseFormats.camelCase;
-        const value = camelKey in firstRow ? firstRow[camelKey] : firstRow[column.column_name];
-        return formatMockValue(value, column.column_name, column.foreign_key?.foreign_table_name);
+        const value =
+          camelKey in firstRow
+            ? firstRow[camelKey]
+            : firstRow[column.column_name];
+        return formatMockValue(
+          value,
+          column.column_name,
+          column.foreign_key?.foreign_table_name,
+        );
       })(),
     };
 
