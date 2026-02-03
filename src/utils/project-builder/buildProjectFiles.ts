@@ -1,20 +1,25 @@
-import type { IStructure } from '@/components/FileViewer.tsx';
 import { parse } from 'yaml';
+import type { IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IScaffolderMessage } from '@/interfaces/scaffolderMessages.ts';
+import type { IFormStore } from '@/useFormStore.ts';
+import generateMockData from '@/utils/generateMockData.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
-import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
+import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import { createContext } from '@/utils/project-builder/helpers/contextHelpers.ts';
+import {
+  createScaffolderMessage,
+  formatMessagesAsMarkdown,
+} from '@/utils/project-builder/messages.ts';
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
 import { detectCircularImports } from '@/utils/project-builder/utils/detectCircularImports.ts';
-import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
 import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/detectCircularPlaceholderImports.ts';
+import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
+import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import { loadSchemas } from '@/utils/project-builder/utils/loadSchemas.ts';
 import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
 import { processCoreFiles } from '@/utils/project-builder/utils/processCoreFiles.ts';
-import type { IFormStore } from '@/useFormStore.ts';
-import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
-import { createContext } from '@/utils/project-builder/helpers/contextHelpers.ts';
-import generateMockData from '@/utils/generateMockData.ts';
 
 export interface IFailedFormatEntry {
   filePath: string;
@@ -25,6 +30,7 @@ export interface IBuildProjectFilesResult {
   structure: IStructure;
   filesUsingUserEnv: string[];
   filesFailedToFormat: IFailedFormatEntry[];
+  messages?: IScaffolderMessage[];
 }
 
 export const buildProjectFiles = async (
@@ -36,6 +42,21 @@ export const buildProjectFiles = async (
 ): Promise<IBuildProjectFilesResult> => {
   const filesUsingUserEnv: string[] = [];
   const filesFailedToFormat: IFailedFormatEntry[] = [];
+  const messages: IScaffolderMessage[] = [];
+
+  const attachMessageFile = (structure: IStructure): IStructure => {
+    if (messages.length === 0) {
+      return structure;
+    }
+    return [
+      ...structure,
+      {
+        type: 'file',
+        name: '_MESSAGES_.md',
+        content: formatMessagesAsMarkdown(messages),
+      },
+    ];
+  };
 
   const trackFileUsingUserEnv = (filePath: string): void => {
     if (!filesUsingUserEnv.includes(filePath)) {
@@ -55,8 +76,22 @@ export const buildProjectFiles = async (
   const file = findFileInStructure(projectYamlPath, userFiles);
 
   if (!file) {
+    const message = createScaffolderMessage({
+      code: 'FILE_NOT_FOUND',
+      title: 'Project specification missing',
+      severity: 'error',
+      details: [
+        `Path: ${projectYamlPath}`,
+        'Please ensure the structure.yaml exists.',
+      ],
+      suggestion: 'Add the requested project YAML file under /files/Projects.',
+      dismissible: false,
+      file: projectYamlPath,
+    });
+    messages.push(message);
+
     return {
-      structure: [
+      structure: attachMessageFile([
         {
           type: 'file',
           name: 'file-not-found.log',
@@ -68,17 +103,29 @@ export const buildProjectFiles = async (
             '',
           ].join('\n'),
         },
-      ],
+      ]),
       filesUsingUserEnv: [],
       filesFailedToFormat: [],
+      messages,
     };
   }
 
   const circularImportCheck = detectCircularImports(projectYamlPath, userFiles);
 
   if (circularImportCheck.hasCircularImport) {
+    const message = createScaffolderMessage({
+      code: 'CIRCULAR_IMPORT',
+      title: 'Circular project imports detected',
+      severity: 'error',
+      details: ['Import chain:', circularImportCheck.cycleChain],
+      suggestion:
+        'Break the cycle by removing one of the IMPORT_PROJECT directives.',
+      dismissible: false,
+    });
+    messages.push(message);
+
     return {
-      structure: [
+      structure: attachMessageFile([
         {
           type: 'file',
           name: 'circular-import-error.log',
@@ -103,9 +150,10 @@ export const buildProjectFiles = async (
             'If this persists, report the issue along with this log.',
           ].join('\n'),
         },
-      ],
+      ]),
       filesUsingUserEnv: [],
       filesFailedToFormat: [],
+      messages,
     };
   }
 
@@ -117,8 +165,19 @@ export const buildProjectFiles = async (
       detectCircularPlaceholderImports(placeholders);
 
     if (circularPlaceholderCheck.hasCircularReference) {
+      const message = createScaffolderMessage({
+        code: 'CIRCULAR_PLACEHOLDER',
+        title: 'Circular placeholder reference',
+        severity: 'error',
+        details: ['Placeholder path:', circularPlaceholderCheck.circularPath],
+        suggestion:
+          'Avoid placeholders that reference each other directly or indirectly.',
+        dismissible: false,
+      });
+      messages.push(message);
+
       return {
-        structure: [
+        structure: attachMessageFile([
           {
             type: 'file',
             name: 'circular-placeholder-error.log',
@@ -144,9 +203,10 @@ export const buildProjectFiles = async (
               'If this persists, report the issue along with this log.',
             ].join('\n'),
           },
-        ],
+        ]),
         filesUsingUserEnv: [],
         filesFailedToFormat: [],
+        messages,
       };
     }
 
@@ -242,14 +302,51 @@ export const buildProjectFiles = async (
 
     scanForUserEnv(filteredFiles);
 
+    if (filesFailedToFormat.length > 0) {
+      const message = createScaffolderMessage({
+        code: 'FORMAT_ERROR',
+        title: 'Files failed to format',
+        severity: 'error',
+        details: filesFailedToFormat.map(
+          (entry) => `${entry.filePath}: ${entry.errorMessage}`,
+        ),
+        suggestion: 'Inspect the reported files and correct formatting issues.',
+        dismissible: false,
+      });
+      messages.push(message);
+    }
+
+    if (filesUsingUserEnv.length > 0) {
+      const message = createScaffolderMessage({
+        code: 'USER_ENV_USAGE',
+        title: 'Detected USE_USER_ENV leftovers',
+        severity: 'warning',
+        details: filesUsingUserEnv,
+        suggestion:
+          'Use sanitized environment helpers or remove USE_USER_ENV directives before committing.',
+      });
+      messages.push(message);
+    }
+
     return {
-      structure: filteredFiles,
+      structure: attachMessageFile(filteredFiles),
       filesUsingUserEnv,
       filesFailedToFormat,
+      messages,
     };
   } catch (error) {
+    const message = createScaffolderMessage({
+      code: 'INVALID_YAML',
+      title: 'Unable to parse project YAML',
+      severity: 'error',
+      details: [String(error)],
+      suggestion: 'Ensure the YAML is valid before running the generator.',
+      dismissible: false,
+    });
+    messages.push(message);
+
     return {
-      structure: [
+      structure: attachMessageFile([
         {
           type: 'file',
           name: 'invalid-yaml-structure.log',
@@ -269,9 +366,10 @@ export const buildProjectFiles = async (
             'If this persists, report the issue along with this log.',
           ].join('\n'),
         },
-      ],
+      ]),
       filesUsingUserEnv: [],
       filesFailedToFormat: [],
+      messages,
     };
   }
 };

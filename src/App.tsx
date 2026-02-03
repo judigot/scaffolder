@@ -6,6 +6,7 @@ import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
 import SchemaBuilder from '@/components/SchemaBuilder.tsx';
 import { SQLErrorModal } from '@/components/SQLErrorModal.tsx';
 import { SimpleSelect } from '@/components/UI/GroupedSelect.tsx';
+import ScaffolderBanner from '@/components/UI/ScaffolderBanner.tsx';
 // import { folderStructureBuilder } from '@/frameworks/folderStructureBuilder.ts';
 import UserProfile from '@/components/UserProfile.tsx';
 import { CREATION_MODES } from '@/constants.ts';
@@ -16,6 +17,8 @@ import { useUser } from '@/hooks/useUser.ts';
 import { useUserFiles } from '@/hooks/useUserFiles.ts';
 import type { IGenerationStatus } from '@/interfaces/IGenerationStatus.ts';
 import type { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IScaffolderMessage } from '@/interfaces/scaffolderMessages.ts';
+import { useScaffolderMessagesStore } from '@/stores/useScaffolderMessagesStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
 import { useModalStore as useSQLModalStore } from '@/useModalStore.ts';
@@ -109,7 +112,22 @@ function App() {
     structure: IStructure;
     filesUsingUserEnv: string[];
     filesFailedToFormat: IFailedFormatEntry[];
-  }>({ structure: [], filesUsingUserEnv: [], filesFailedToFormat: [] });
+    messages?: IScaffolderMessage[];
+  }>({
+    structure: [],
+    filesUsingUserEnv: [],
+    filesFailedToFormat: [],
+    messages: [],
+  });
+  const {
+    setMessages,
+    messages: bannerMessages,
+    dismissMessage,
+  } = useScaffolderMessagesStore();
+
+  useEffect(() => {
+    setMessages(buildResult.messages ?? []);
+  }, [buildResult.messages, setMessages]);
 
   /**
    * Builds project files when all prerequisites are met.
@@ -144,6 +162,7 @@ function App() {
         structure: [],
         filesUsingUserEnv: [],
         filesFailedToFormat: [],
+        messages: [],
       });
     }
   }, [
@@ -906,6 +925,29 @@ function App() {
           )}
         </div>
       </nav>
+
+      {bannerMessages.length > 0 && (
+        <div className="sticky top-16 z-40 px-4 py-2 space-y-2 backdrop-blur bg-black/70 border-b border-white/10">
+          {bannerMessages.map((message) => (
+            <ScaffolderBanner
+              key={message.id}
+              severity={message.severity}
+              title={message.title}
+              details={message.details}
+              suggestion={message.suggestion}
+              file={message.file}
+              line={message.line}
+              onDismiss={
+                message.dismissible
+                  ? () => {
+                      dismissMessage(message.id);
+                    }
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+      )}
 
       <div className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
