@@ -1,0 +1,710 @@
+# Project Builder Refactoring Plan
+
+## Overview
+
+The `src/utils/project-builder/` module is the core scaffolding engine that processes YAML structure definitions and generates project files. While functional, it has accumulated technical debt that makes it difficult to maintain, extend, and debug.
+
+This document outlines architectural issues, good patterns to preserve, and a phased refactoring plan.
+
+---
+
+## Current Architecture
+
+### File Structure (57 files)
+
+```
+src/utils/project-builder/
+├── buildProjectFiles.ts              # Main entry point
+├── updateFilesInStructure.ts         # File structure utilities
+├── constants/                        # Configuration & regex patterns
+│   ├── actionFlags.ts                # 10 action flags enum
+│   ├── projectActions.ts             # 6 project-level actions
+│   ├── templateActions.ts            # Template syntax & 50+ regex patterns
+│   └── placeholderFunctions.ts       # Placeholder function definitions
+├── interfaces/
+│   └── interfaces.ts                 # IBuildContext & related types
+├── helpers/                          # 5 utility helpers
+│   ├── contextHelpers.ts             # Context creation & modification
+│   ├── formatFileContent.ts          # HTML/Auto-formatting
+│   ├── autoFormatByExtension.ts      # Code formatting
+│   ├── sanitizeFileName.ts           # Filename sanitization
+│   └── extractFileNameFromPath.ts    # Path parsing
+├── project-processors/               # 8 YAML structure processors
+│   ├── processYamlStructure.ts       # Main recursive processor (1068 lines!)
+│   ├── processMultipleFiles.ts       # FILE_LOOP handler (334 lines)
+│   ├── processDynamicFolders.ts      # FOLDER_LOOP handler
+│   ├── processLoopFolders.ts         # LOOP_FOLDERS handler
+│   ├── importProject.ts              # IMPORT_PROJECT handler
+│   ├── createBaseMethodFile.ts       # CREATE_BASE_METHOD_FILE handler
+│   ├── checkConditions.ts            # Condition evaluation
+│   └── parseConditionalFolder.ts     # Folder name parsing
+├── template-processors/              # 15+ template command handlers
+│   ├── processCommand.ts             # Main command dispatcher
+│   ├── processIterateCommand.ts      # LOOP/ITERATE logic (500+ lines!)
+│   ├── processIterateInTemplate.ts   # LOOP in template syntax
+│   ├── processIfConditions.ts        # Conditional rendering
+│   ├── getReplacementsForTable.ts    # Table placeholder mapping (225 lines)
+│   ├── getReplacementsForAuth.ts     # Auth schema replacements
+│   ├── processArrayIteration.ts      # Array iteration DSL
+│   ├── processColumnsInfoIteration.ts# Column-specific loops
+│   └── [+7 more processors]
+└── utils/                            # 27+ utility functions
+    ├── replacePlaceholders.ts        # Core replacement logic
+    ├── dataSourceUtils.ts            # Glob pattern matching
+    ├── parseCommand.ts               # Command string parsing
+    └── [+24 more utilities]
+```
+
+### Data Flow
+
+```
+buildProjectFiles()
+    ↓
+    [Validation: circular imports, placeholder references]
+    ↓
+    ├─→ loadCoreFiles()
+    ├─→ loadSchemas()
+    ├─→ processCoreFiles()
+    └─→ parseYAML + createContext()
+        ↓
+        processYamlStructure(ctx)   ← MAIN RECURSIVE PROCESSOR
+        ├─ String nodes → command detection & execution
+        ├─ Array nodes  → forEach → recurse
+        └─ Object nodes → folder structure → recurse
+            ↓
+        [Template processing pipeline]
+        1. replacePlaceholders()
+        2. processCommand()
+        3. processLoopTables()
+        4. processLoopTablesReversed()
+        5. processLoopDataSources()
+        6. processIterateInTemplate()
+        7. formatFileContent()
+            ↓
+    [Deduplicate & return structure]
+```
+
+---
+
+## Problems Identified
+
+### 1. Severe Parameter Drilling (CRITICAL)
+
+**The Problem:**
+Functions pass 10-15+ parameters through multiple layers, similar to React prop drilling.
+
+**Evidence:**
+
+```typescript
+// processCommand.ts - 11 parameters!
+export const processCommand = (
+  text: string,
+  userFiles: IStructure,
+  schemaInfoParsed: ISchemaInfoResult,
+  table?: ISchemaInfo,
+  templateFilePath?: string,
+  projectFilePath?: string,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+  dataContext?: DataContext,
+  skipLoopDataSources = false,
+  mockData?: ParsedJSONSchema,
+): string
+```
+
+```typescript
+// processIterateCommand receives even more parameters
+// and passes them all to child functions
+```
+
+**Impact:**
+- Hard to add new parameters (must update 10+ call sites)
+- Easy to pass wrong order of parameters
+- Cognitive overload when reading code
+- Type errors when optional params shift position
+
+**Metrics:**
+- Max parameters in single call: 15-20
+- Average parameters per function: 8-12
+- Functions not using IBuildContext: ~10 template processors
+- Redundant parameter passing: 5-8 functions pass same 4-5 params every call
+
+### 2. God Functions (CRITICAL)
+
+**processYamlStructure.ts - 1068 lines**
+- Handles 7 different action types
+- Handles 3 input types (string, array, object)
+- 150+ code path combinations
+- Mixed concerns: routing, processing, validation, tracking
+
+**processIterateCommand.ts - 500+ lines**
+- Handles LOOP_TABLES, LOOP_COLUMNS, LOOP_DATA_SOURCES
+- Handles condition evaluation
+- Handles file-based template processing
+- Handles HTML formatting
+- No clear separation of concerns
+
+### 3. Code Duplication
+
+**Triple-nested template processing (appears 4 times):**
+
+```typescript
+// Lines 250-274, 347-371, 877-901, 985-1009 in processYamlStructure
+processLoopDataSources(
+  processLoopTablesReversed(
+    processLoopTables(
+      templateContent,
+      schemaInfo,
+      schemaInfoParsed,
+      userFiles,
+      formData,
+      userMetadata,
+      dataSource,
+      ctx.mockData,
+    ),
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+    dataSource,
+    ctx.mockData,
+  ),
+  userFiles,
+  schemaInfoParsed,
+  formData,
+  userMetadata,
+)
+```
+
+**Path construction (20+ times):**
+```typescript
+// Duplicated in processYamlStructure, processMultipleFiles, processLoopFolders
+const buildAbsolutePath = (fileName: string, currentPath: string) => {
+  if (currentPath === '') return fileName;
+  return `${currentPath}/${fileName}`;
+};
+```
+
+**File sanitization pattern (50+ times):**
+```typescript
+let outputFileName = processedName.includes('/')
+  ? extractFileNameFromPath(processedName)
+  : processedName;
+outputFileName = sanitizeFileName(outputFileName);
+```
+
+### 4. Type Inconsistencies
+
+**Replacements type mismatch:**
+```typescript
+// Declared type
+type Replacements = Record<string, ReplacementValue>;
+type ReplacementValue = string | string[];
+
+// But code often expects Record<string, string>
+// and arrays get comma-joined unexpectedly
+```
+
+**Optional parameter confusion:**
+```typescript
+table?: ISchemaInfo         // Optional in some, required in others
+formData?: IFormStore       // Sometimes undefined, sometimes required
+userMetadata?: Record<string, unknown> | null  // Triple state!
+```
+
+**Context property optionality:**
+- ~40% of IBuildContext properties are optional
+- No validation that required properties exist before use
+- Functions assume `table` exists without null checks
+
+### 5. Mixed Architectural Patterns
+
+**Old pattern (parameter drilling):**
+```typescript
+export const processCommand = (
+  text: string,
+  userFiles: IStructure,
+  schemaInfoParsed: ISchemaInfoResult,
+  // ... 8 more params
+): string
+```
+
+**New pattern (context-based):**
+```typescript
+export const processYamlStructure = async (
+  ctx: IBuildContext,
+): Promise<IStructure>
+```
+
+About 60% of code uses old pattern, 40% uses new pattern.
+
+### 6. Unclear Function Responsibilities
+
+**replacePlaceholders() vs processCommand():**
+- Both handle template syntax
+- `replacePlaceholders()` calls `processCommand()`
+- `processCommand()` calls processors that call `replacePlaceholders()`
+- Circular dependency risk, unclear when to use which
+
+**getReplacementsForTable() doing too much (225 lines):**
+- Generates 40+ replacement keys
+- Creates Proxy objects for dynamic access
+- Handles separator parsing with regex
+- Handles auth resource detection
+- Mixed concerns: schema mapping + dynamic property access
+
+### 7. Inconsistent Error Handling
+
+- Most functions return `[]` on error silently
+- Few log errors
+- Callback-based tracking for specific events only
+- No centralized error collection
+- Hard to debug why a file wasn't generated
+
+### 8. Regex Pattern Explosion
+
+`templateActions.ts` contains 50+ regex patterns:
+- Many are compile-time constants (memory overhead)
+- Some overlap in functionality
+- Pattern construction scattered across files
+- Hard to understand which regex handles what
+
+---
+
+## Good Patterns to Preserve
+
+### 1. IBuildContext Pattern (EXCELLENT)
+
+```typescript
+interface IBuildContext {
+  readonly userFiles: IStructure;
+  readonly schemaInfo: ISchemaInfo[];
+  readonly schemaInfoParsed: ISchemaInfoResult;
+  readonly projectYamlPath: string;
+  readonly table?: ISchemaInfo;
+  readonly dataContext?: DataContext;
+  readonly currentPath?: string;
+  // ...
+}
+```
+
+**Why it's good:**
+- Single source of truth
+- Immutable by convention (readonly)
+- Pass-through without modification
+- Helper functions for context modification
+
+**Helper functions in contextHelpers.ts:**
+```typescript
+createContext()     // Initialize
+withTable()         // New context with different table
+withPath()          // New context with different path
+withDataContext()   // New context with different data
+withUpdates()       // New context with multiple changes
+```
+
+### 2. Recursive Structure Processing
+
+```typescript
+// Handles arrays, objects, and strings naturally
+const processYamlStructure = async (ctx: IBuildContext) => {
+  if (typeof node === 'string') return processStringNode(ctx);
+  if (Array.isArray(node)) return processArrayNode(ctx);
+  if (typeof node === 'object') return processObjectNode(ctx);
+};
+```
+
+**Why it's good:**
+- Natural handling of YAML nesting
+- Proper depth tracking with `currentPath`
+- Clean recursion pattern
+
+### 3. Callback-based Tracking
+
+```typescript
+interface IBuildContext {
+  onFileUsingUserEnv?: (filePath: string) => void;
+  onFileFailedToFormat?: (filePath: string, msg: string) => void;
+}
+```
+
+**Why it's good:**
+- Clean event tracking without polluting return types
+- Allows filtering concerns
+- Non-invasive to main logic
+
+### 4. Type-safe Command Options
+
+```typescript
+export const ACTION_FLAGS = {
+  CONDITIONS: 'conditions',
+  TEMPLATE: 'template',
+  INCLUDE_TABLE: 'include-table',
+  // ...
+} as const;
+```
+
+**Why it's good:**
+- Prevents typos
+- Self-documenting
+- Autocomplete support
+
+### 5. Early Validation
+
+```typescript
+// In buildProjectFiles.ts
+detectCircularImports(userFiles);
+detectCircularPlaceholderImports(userFiles);
+```
+
+**Why it's good:**
+- Fail fast with clear error messages
+- Shows cycle chain for debugging
+- Prevents infinite loops
+
+### 6. Centralized Mock Data
+
+```typescript
+// Generates consistent mock data for seed files
+// Supports multiple database types
+```
+
+**Why it's good:**
+- Single source of test data generation
+- Consistent across all generated files
+
+---
+
+## Refactoring Plan
+
+### Phase 1: Consolidate Duplicate Code (LOW RISK)
+
+**Goal:** Reduce code duplication without changing behavior
+
+#### 1.1 Extract Template Processing Pipeline
+
+Create `processTemplatePipeline.ts`:
+
+```typescript
+export const processTemplatePipeline = (
+  content: string,
+  ctx: IBuildContext,
+): string => {
+  let result = content;
+  result = processLoopTables(result, ctx);
+  result = processLoopTablesReversed(result, ctx);
+  result = processLoopDataSources(result, ctx);
+  return result;
+};
+```
+
+Replace 4 duplicate occurrences with single function call.
+
+#### 1.2 Extract Path Utilities
+
+Create `pathUtils.ts`:
+
+```typescript
+export const buildAbsolutePath = (fileName: string, basePath: string): string => {
+  if (basePath === '') return fileName;
+  return `${basePath}/${fileName}`;
+};
+
+export const sanitizeOutputFileName = (name: string): string => {
+  const fileName = name.includes('/') ? extractFileNameFromPath(name) : name;
+  return sanitizeFileName(fileName);
+};
+```
+
+#### 1.3 Extract File Processing Patterns
+
+Create shared utilities for common patterns.
+
+**Estimated effort:** 2-3 hours
+**Risk:** Low (extracting existing code)
+**Payoff:** High (reduces maintenance burden)
+
+---
+
+### Phase 2: Migrate Template Processors to Context API (MEDIUM RISK)
+
+**Goal:** Eliminate parameter drilling in template processors
+
+#### 2.1 Update Function Signatures
+
+Before:
+```typescript
+export const processCommand = (
+  text: string,
+  userFiles: IStructure,
+  schemaInfoParsed: ISchemaInfoResult,
+  table?: ISchemaInfo,
+  templateFilePath?: string,
+  projectFilePath?: string,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+  dataContext?: DataContext,
+  skipLoopDataSources?: boolean,
+  mockData?: ParsedJSONSchema,
+): string
+```
+
+After:
+```typescript
+export const processCommand = (
+  text: string,
+  ctx: IBuildContext,
+  options?: { skipLoopDataSources?: boolean },
+): string
+```
+
+#### 2.2 Files to Update
+
+Priority order (most called first):
+1. `processCommand.ts`
+2. `processIterateCommand.ts`
+3. `replacePlaceholders.ts`
+4. `processIfConditions.ts`
+5. `processColumnsInfoIteration.ts`
+6. `processArrayIteration.ts`
+7. `getReplacementsForTable.ts`
+8. `processIterateInTemplate.ts`
+
+#### 2.3 Migration Strategy
+
+1. Add context parameter alongside existing params
+2. Update function body to use `ctx.xxx` instead of params
+3. Update all call sites to pass context
+4. Remove old parameters
+5. Run tests after each file
+
+**Estimated effort:** 4-6 hours
+**Risk:** Medium (many call sites to update)
+**Payoff:** Very High (eliminates parameter drilling)
+
+---
+
+### Phase 3: Decompose God Functions (HIGH IMPACT)
+
+**Goal:** Break down large functions into focused modules
+
+#### 3.1 Split processYamlStructure.ts (1068 lines)
+
+Extract into separate handlers:
+
+```
+project-processors/
+├── processYamlStructure.ts       # Coordinator only (~200 lines)
+├── handlers/
+│   ├── handleStringNode.ts       # String command routing
+│   ├── handleArrayNode.ts        # Array iteration
+│   ├── handleObjectNode.ts       # Object/folder processing
+│   ├── handleCreateFile.ts       # CREATE_FILE action
+│   ├── handleFileLoop.ts         # FILE_LOOP action (reuse processMultipleFiles)
+│   ├── handleImportProject.ts    # IMPORT_PROJECT action
+│   └── handleLoopFolders.ts      # LOOP_FOLDERS action
+```
+
+#### 3.2 Split processIterateCommand.ts (500+ lines)
+
+Extract into strategy pattern:
+
+```
+template-processors/
+├── processIterateCommand.ts      # Coordinator only (~100 lines)
+├── loop-handlers/
+│   ├── loopTables.ts             # LOOP(tables) handler
+│   ├── loopTablesReversed.ts     # LOOP(tablesReversed) handler
+│   ├── loopColumnsInfo.ts        # LOOP(columnsInfo) handler
+│   ├── loopDataSource.ts         # LOOP_DATA_SOURCES handler
+│   └── loopFileBased.ts          # File-based loop handler
+```
+
+#### 3.3 Split getReplacementsForTable.ts (225 lines)
+
+Extract concerns:
+
+```
+template-processors/
+├── replacements/
+│   ├── tableReplacements.ts      # Core table placeholders
+│   ├── caseReplacements.ts       # Case format variants
+│   ├── columnReplacements.ts     # Column-related placeholders
+│   ├── authReplacements.ts       # Auth resource detection
+│   └── proxyReplacements.ts      # Dynamic property access
+```
+
+**Estimated effort:** 8-12 hours
+**Risk:** High (significant restructuring)
+**Payoff:** Very High (maintainability, testability)
+
+---
+
+### Phase 4: Improve Type Safety (MEDIUM RISK)
+
+**Goal:** Eliminate type assertions and improve type inference
+
+#### 4.1 Create Discriminated Unions for Nodes
+
+```typescript
+type YamlNode =
+  | { type: 'string'; value: string }
+  | { type: 'array'; items: YamlNode[] }
+  | { type: 'object'; entries: Record<string, YamlNode> };
+```
+
+#### 4.2 Create Required Context Variants
+
+```typescript
+interface ITableContext extends IBuildContext {
+  table: ISchemaInfo;  // Required, not optional
+}
+
+interface IFileContext extends ITableContext {
+  currentPath: string;  // Required
+  templateFilePath: string;  // Required
+}
+```
+
+#### 4.3 Add Runtime Validation
+
+```typescript
+const requireTable = (ctx: IBuildContext): ITableContext => {
+  if (!ctx.table) {
+    throw new Error('Table is required for this operation');
+  }
+  return ctx as ITableContext;
+};
+```
+
+**Estimated effort:** 4-6 hours
+**Risk:** Medium (type system changes)
+**Payoff:** Medium (better IDE support, fewer bugs)
+
+---
+
+### Phase 5: Improve Error Handling (LOW RISK)
+
+**Goal:** Make debugging easier
+
+#### 5.1 Create Error Collection
+
+```typescript
+interface IBuildContext {
+  errors: BuildError[];
+  warnings: BuildWarning[];
+  addError: (error: BuildError) => void;
+  addWarning: (warning: BuildWarning) => void;
+}
+
+interface BuildError {
+  type: 'template' | 'validation' | 'io';
+  message: string;
+  file?: string;
+  line?: number;
+  context?: Record<string, unknown>;
+}
+```
+
+#### 5.2 Add Structured Logging
+
+```typescript
+const log = createLogger('project-builder');
+
+// In functions
+log.debug('Processing file', { path, template });
+log.warn('Skipping table', { table, reason });
+log.error('Template error', { error, context });
+```
+
+**Estimated effort:** 3-4 hours
+**Risk:** Low (additive changes)
+**Payoff:** Medium (better debugging)
+
+---
+
+## Priority Matrix
+
+| Task | Impact | Effort | Risk | Priority |
+|------|--------|--------|------|----------|
+| Extract template pipeline | High | Low | Low | **P0** |
+| Extract path utilities | Medium | Low | Low | **P0** |
+| Migrate processCommand to context | Very High | Medium | Medium | **P1** |
+| Migrate processIterateCommand | Very High | Medium | Medium | **P1** |
+| Split processYamlStructure | Very High | High | High | **P2** |
+| Split processIterateCommand | High | Medium | Medium | **P2** |
+| Add discriminated unions | Medium | Medium | Medium | **P3** |
+| Add error collection | Medium | Low | Low | **P3** |
+
+---
+
+## Testing Strategy
+
+### Before Refactoring
+
+1. Ensure all 622 tests pass
+2. Generate golden files for comparison
+3. Document current behavior with snapshots
+
+### During Refactoring
+
+1. Refactor one function at a time
+2. Run full test suite after each change
+3. Compare generated output against golden files
+4. Use `api-test.sh` for integration testing
+
+### After Refactoring
+
+1. All existing tests must pass
+2. Add unit tests for extracted functions
+3. Add integration tests for new modules
+4. Performance benchmarks (no regression)
+
+---
+
+## Success Metrics
+
+1. **Parameter count:** Average function params < 5 (currently 8-12)
+2. **File size:** No file > 400 lines (currently 1068)
+3. **Cyclomatic complexity:** No function > 20 (currently >50)
+4. **Code duplication:** < 5% duplicated code
+5. **Test coverage:** > 80% for refactored modules
+6. **Type safety:** Zero `as` assertions in core logic
+
+---
+
+## Notes for Future Agents
+
+### Do Preserve
+
+- IBuildContext pattern - it's the foundation for eliminating prop drilling
+- contextHelpers.ts functions - they make context immutable updates clean
+- Recursive processing pattern - it naturally handles YAML structure
+- Callback-based tracking - clean separation of concerns
+- Early validation (circular dependency detection)
+- Type-safe action flags
+
+### Do Not
+
+- Add more parameters to existing functions (use context instead)
+- Create new god functions (split early)
+- Use `as` type assertions (use type guards)
+- Duplicate the template processing pipeline
+- Skip tests when refactoring
+
+### Watch Out For
+
+- The triple-nested loop pattern is load-bearing (don't remove without replacement)
+- `replacePlaceholders` and `processCommand` have circular calls (be careful)
+- Some regex patterns have subtle differences (test thoroughly)
+- Mock data generation affects seed files (test with real DB)
+
+---
+
+## References
+
+- Current test suite: `src/tests/`
+- Golden project tests: `src/tests/golden-projects/`
+- API integration test: `.apps/hono-react/api-test.sh`
+- Template syntax docs: `files/Templates/README.md` (if exists)
