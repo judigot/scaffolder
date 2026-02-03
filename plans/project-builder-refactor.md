@@ -641,36 +641,195 @@ log.error('Template error', { error, context });
 
 ## Testing Strategy
 
-### Before Refactoring
+### The Ultimate Test: hono-react GitHub Actions CI
 
-1. Ensure all 622 tests pass
-2. Generate golden files for comparison
-3. Document current behavior with snapshots
+**hono-react is the "kitchen sink" project** - it exercises nearly every feature of the project-builder:
 
-### During Refactoring
+- All table types (regular, composite PK, auth tables)
+- All column types (bigserial, text, varchar, boolean, timestamp, bigint)
+- Foreign key relationships
+- Authentication (Lucia + session management)
+- OAuth accounts
+- CRUD route generation
+- Drizzle ORM schema generation
+- Database seeding with mock data
+- API test script generation
 
-1. Refactor one function at a time
-2. Run full test suite after each change
-3. Compare generated output against golden files
-4. Use `api-test.sh` for integration testing
+**The hono-react CI workflow (`.apps/hono-react/.github/workflows/api-test.yml`) is the ultimate integration test:**
 
-### After Refactoring
+```bash
+# Run locally with act (catthehacker)
+cd /tmp/hono-react
+act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
+```
 
-1. All existing tests must pass
-2. Add unit tests for extracted functions
-3. Add integration tests for new modules
-4. Performance benchmarks (no regression)
+**What it tests:**
+1. Dependencies install correctly (`bun install`)
+2. Drizzle schema is valid (`bun drizzle-kit push`)
+3. API server starts without errors
+4. All 69 API endpoints work (CRUD for all tables)
+5. Authentication flow works (register, login, session, logout)
+6. Composite primary key routes work (`/:orderId/:productId`)
+
+**THIS MUST PASS AFTER EVERY REFACTORING CHANGE.**
+
+### Test Pyramid
+
+```
+                    ┌─────────────────────┐
+                    │  hono-react CI      │  ← Ultimate integration test
+                    │  (act + api-test.sh)│     Must pass for every PR
+                    └─────────────────────┘
+                   ┌───────────────────────┐
+                   │  Golden Project Tests │  ← Generated output validation
+                   │  (src/tests/golden-*) │     622 assertions
+                   └───────────────────────┘
+                  ┌─────────────────────────┐
+                  │  Unit Tests             │  ← Function-level tests
+                  │  (src/tests/utils/*)    │     Fast feedback
+                  └─────────────────────────┘
+```
+
+### Before ANY Refactoring
+
+1. **Run full test suite** - All 622 tests must pass
+   ```bash
+   bun test --run
+   ```
+
+2. **Run hono-react CI locally**
+   ```bash
+   bun run scripts/generate-golden-apps.ts
+   cd /tmp && rm -rf hono-react && cp -r /root/scaffolder/.apps/hono-react .
+   cd /tmp/hono-react
+   # Set up .env with valid DATABASE_URL
+   act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
+   ```
+
+3. **Save golden file snapshots** for comparison
+   ```bash
+   # Generate and save current output
+   bun run scripts/generate-golden-apps.ts
+   cp -r .apps/hono-react /tmp/golden-before
+   ```
+
+### During Refactoring (EVERY CHANGE)
+
+1. **Run unit tests after each file change**
+   ```bash
+   bun test --run
+   ```
+
+2. **Regenerate and compare output**
+   ```bash
+   bun run scripts/generate-golden-apps.ts
+   diff -r /tmp/golden-before .apps/hono-react
+   ```
+
+3. **If output differs, verify it's intentional**
+   - New features may add output (OK)
+   - Existing output should not change (NOT OK)
+
+### After Refactoring (Before PR)
+
+1. **Full test suite passes**
+   ```bash
+   bun test --run  # 622 pass, 0 fail
+   ```
+
+2. **Lint passes**
+   ```bash
+   bun lint  # No errors
+   ```
+
+3. **hono-react CI passes**
+   ```bash
+   # Full CI run with act
+   act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
+   # Expected: "All tests passed!" with 69 passing tests
+   ```
+
+4. **Manual smoke test** (optional but recommended)
+   ```bash
+   cd /tmp/hono-react
+   bun install
+   bun drizzle-kit push
+   bun run api/db/seed.ts
+   bun api/index.ts &
+   ./api-test.sh
+   ```
+
+---
+
+## Feature Preservation Checklist
+
+**Every refactoring PR must verify these features still work:**
+
+### Template DSL Features
+- [ ] `<@@>placeholder</@@>` - Basic placeholder replacement
+- [ ] `<@@LOOP@@ data="tables">` - Table iteration
+- [ ] `<@@LOOP@@ data="columnsInfo">` - Column iteration
+- [ ] `<@@LOOP@@ data="compositePrimaryKey">` - Composite key iteration
+- [ ] `<@@IF@@ condition="...">` - Conditional rendering
+- [ ] `[[COMMAND(...)]]` - Command syntax
+- [ ] `$USE_TEMPLATE(...)` - Template inclusion
+- [ ] `$USE_CORE(...)` - Core file inclusion
+- [ ] `$USE_SCHEMA(...)` - Schema inclusion
+- [ ] File-based data sources (`/path/**/*`)
+- [ ] Separator attribute (`separator=","`)
+- [ ] Filter attribute (`filter="condition"`)
+
+### Project Actions
+- [ ] `CREATE_FILE(...)` - Single file creation
+- [ ] `FILE_LOOP(...)` - Multi-file generation per table
+- [ ] `FOLDER_LOOP(...)` - Dynamic folder creation
+- [ ] `LOOP_FOLDERS(...)` - Folder iteration
+- [ ] `IMPORT_PROJECT(...)` - Project importing
+- [ ] `CREATE_BASE_METHOD_FILE(...)` - Base method generation
+
+### Table Processing
+- [ ] Regular tables with single PK
+- [ ] Composite primary key tables (pivot/junction tables)
+- [ ] Auth tables (user, session, oauth_account)
+- [ ] Tables with foreign keys
+- [ ] Tables with all column types
+
+### Generated Output Quality
+- [ ] Drizzle schema compiles without errors
+- [ ] Routes handle all CRUD operations
+- [ ] Composite PK routes use correct URL pattern (`/:pk1/:pk2`)
+- [ ] API tests pass for all endpoints
+- [ ] Seed data generates valid records
+- [ ] TypeScript types are correctly generated
+
+### Edge Cases
+- [ ] Empty tables (no columns except PK)
+- [ ] Tables with only required columns
+- [ ] Tables with only optional columns
+- [ ] Deeply nested folder structures
+- [ ] Circular import detection still works
+- [ ] Special characters in table/column names
 
 ---
 
 ## Success Metrics
 
+### Code Quality
 1. **Parameter count:** Average function params < 5 (currently 8-12)
 2. **File size:** No file > 400 lines (currently 1068)
 3. **Cyclomatic complexity:** No function > 20 (currently >50)
 4. **Code duplication:** < 5% duplicated code
-5. **Test coverage:** > 80% for refactored modules
-6. **Type safety:** Zero `as` assertions in core logic
+5. **Type safety:** Zero `as` assertions in core logic
+
+### Test Coverage
+1. **Unit tests:** > 80% coverage for refactored modules
+2. **Golden tests:** All 622 assertions pass
+3. **Integration:** hono-react CI passes (69 API tests)
+
+### Performance (No Regression)
+1. **Generation time:** hono-react generates in < 5 seconds
+2. **Memory usage:** No significant increase
+3. **CI time:** api-test.yml completes in < 3 minutes
 
 ---
 
@@ -678,20 +837,26 @@ log.error('Template error', { error, context });
 
 ### Do Preserve
 
-- IBuildContext pattern - it's the foundation for eliminating prop drilling
-- contextHelpers.ts functions - they make context immutable updates clean
-- Recursive processing pattern - it naturally handles YAML structure
-- Callback-based tracking - clean separation of concerns
-- Early validation (circular dependency detection)
-- Type-safe action flags
+- **IBuildContext pattern** - Foundation for eliminating prop drilling
+- **contextHelpers.ts functions** - Clean immutable context updates
+- **Recursive processing pattern** - Natural YAML structure handling
+- **Callback-based tracking** - Non-invasive event tracking
+- **Early validation** - Circular dependency detection
+- **Type-safe action flags** - `ACTION_FLAGS` const object
+- **Triple-nested template pipeline** - Load-bearing, extract but don't remove
+- **Composite PK handling** - Recently added, working well
+- **hono-react as kitchen sink** - Tests most features
 
 ### Do Not
 
 - Add more parameters to existing functions (use context instead)
 - Create new god functions (split early)
 - Use `as` type assertions (use type guards)
+- Use `eslint-disable-next-line` (fix the issue properly)
 - Duplicate the template processing pipeline
 - Skip tests when refactoring
+- Merge without hono-react CI passing
+- Change generated output without updating golden tests
 
 ### Watch Out For
 
@@ -699,12 +864,48 @@ log.error('Template error', { error, context });
 - `replacePlaceholders` and `processCommand` have circular calls (be careful)
 - Some regex patterns have subtle differences (test thoroughly)
 - Mock data generation affects seed files (test with real DB)
+- Composite PK tables need special handling in routes and tests
+- Auth tables have special `isAuthResource` flag
+
+### When Adding New Features
+
+1. Add to hono-react structure.yaml if it's a new template feature
+2. Add test case to golden project tests
+3. Update api-test.sh template if it affects API generation
+4. Run full CI before merging
+
+---
+
+## Quick Commands Reference
+
+```bash
+# Run all tests
+bun test --run
+
+# Run linter
+bun lint
+
+# Generate golden apps
+bun run scripts/generate-golden-apps.ts
+
+# Run hono-react CI locally
+cd /tmp/hono-react
+act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# Quick API test (after server is running)
+./api-test.sh http://localhost:3000/api
+
+# Compare generated output
+diff -r /tmp/golden-before .apps/hono-react
+```
 
 ---
 
 ## References
 
-- Current test suite: `src/tests/`
-- Golden project tests: `src/tests/golden-projects/`
-- API integration test: `.apps/hono-react/api-test.sh`
-- Template syntax docs: `files/Templates/README.md` (if exists)
+- **Test suite:** `src/tests/`
+- **Golden project tests:** `src/tests/golden-projects/`
+- **hono-react CI workflow:** `.apps/hono-react/.github/workflows/api-test.yml`
+- **API integration test:** `.apps/hono-react/api-test.sh`
+- **Kitchen sink project:** `files/Projects/hono-react/`
+- **Template examples:** `files/Templates/`
