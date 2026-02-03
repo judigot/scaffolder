@@ -641,9 +641,18 @@ log.error('Template error', { error, context });
 
 ## Testing Strategy
 
-### The Ultimate Test: hono-react GitHub Actions CI
+### Kitchen Sink Projects
 
-**hono-react is the "kitchen sink" project** - it exercises nearly every feature of the project-builder:
+There are **two kitchen sink projects** that together test the entire scaffolder:
+
+| Project | Focus | Files Generated | Key Features Tested |
+|---------|-------|-----------------|---------------------|
+| **hono-react** | Full-stack app generation | ~50 files | Routes, ORM, Auth, API tests |
+| **App Generator - Database Schema** | Schema transformation | ~166 files | Index patterns, timestamps, SQL/CSV/JSON |
+
+### Kitchen Sink #1: hono-react (Full-Stack)
+
+**hono-react is the "kitchen sink" for application generation** - it exercises nearly every feature of the project-builder:
 
 - All table types (regular, composite PK, auth tables)
 - All column types (bigserial, text, varchar, boolean, timestamp, bigint)
@@ -672,6 +681,92 @@ act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
 6. Composite primary key routes work (`/:orderId/:productId`)
 
 **THIS MUST PASS AFTER EVERY REFACTORING CHANGE.**
+
+### Kitchen Sink #2: App Generator - Database Schema (Schema Transformation)
+
+**Database Schema is the "kitchen sink" for schemaInfo transformation** - the core of the scaffolder:
+
+```
+files/Projects/App Generator - Database Schema/
+├── structure.yaml          # Tests FILE_LOOP with many naming patterns
+└── templates/
+    ├── migration.sql.txt   # Per-table migration template
+    ├── flyway-migration.sql.txt
+    ├── seed-data.*.txt     # SQL, CSV, JSON formats
+    └── table-seed.*.txt    # Per-table seed formats
+```
+
+**What it tests (166 files generated):**
+
+1. **Core schema.sql** - The source of truth for all database schemas
+   - All column types (BIGSERIAL, TEXT, VARCHAR, BOOLEAN, TIMESTAMPTZ, BIGINT)
+   - Foreign key constraints with proper naming
+   - Composite primary keys (`PRIMARY KEY ("order_id", "product_id")`)
+   - Unique constraints
+   - Default values (`DEFAULT NOW()`)
+
+2. **Index patterns** - `{{index}}` placeholder variations
+   - `{{index}}` - 0-based (0, 1, 2...)
+   - `{{index(1)}}` - 1-based (1, 2, 3...)
+   - `{{index(1, 3)}}` - Zero-padded (001, 002, 003...)
+   - `{{index(1, 4)}}` - Django-style (0001, 0002...)
+   - `{{index('001')}}` - Format string detection
+   - `{{index(1, 3, 100)}}` - With offset (101, 102, 103...)
+
+3. **Timestamp patterns** - `{{timestamp}}` placeholder variations
+   - `{{timestamp}}` - ISO 8601 default
+   - `{{timestamp('YYYY_MM_DD_HHmmss')}}` - Laravel style
+   - `{{timestamp('YYYYMMDDHHmmss')}}` - Rails style
+
+4. **Hybrid patterns** - Combined timestamp + index
+   - Laravel + index: `2024_01_15_143022_000001_create_users_table.sql`
+   - Date + index: `2024-01-15_001_user.sql`
+   - Rails + index: `20240115_001_user.sql`
+
+5. **Flyway naming** - Java/MyBatis migrations
+   - `V1__Create_users_table.sql`
+   - `V001__Create_users_table.sql`
+
+6. **Data export formats**
+   - SQL: `INSERT INTO "user" (...) VALUES (...);`
+   - CSV: Column headers + data rows
+   - JSON: Array of objects
+
+**How to test:**
+
+```bash
+# Generate the Database Schema project
+cat > /tmp/build-db-schema.ts << 'EOF'
+import { buildProjectFiles } from '/root/scaffolder/src/utils/project-builder/buildProjectFiles.ts';
+import convertLocalFilesToIStructure from '/root/scaffolder/src/utils/convertLocalFilesToIStructure.ts';
+import { createFolderStructure } from '/root/scaffolder/src/utils/createFolderStructure.ts';
+import masterSchemaJson from '/root/scaffolder/files/Schemas/Master Schema with Multiple User Types.json';
+
+const userFiles = convertLocalFilesToIStructure('/root/scaffolder/files');
+const result = await buildProjectFiles(
+  '/Projects/App Generator - Database Schema/structure.yaml',
+  userFiles,
+  masterSchemaJson,
+  { dbType: 'postgresql', framework: 'Raw SQL' },
+  null,
+);
+createFolderStructure({ structure: result.structure, targetDirectory: '/tmp/db-schema-output' });
+EOF
+
+bun /tmp/build-db-schema.ts
+
+# Verify output
+find /tmp/db-schema-output -type f | wc -l  # Should be ~166 files
+
+# Validate schema.sql is valid PostgreSQL
+docker exec scaffolder-postgresql-1 psql -U scaffolder -d test_db -f /tmp/db-schema-output/schema.sql
+```
+
+**Why this matters:**
+- `schema.sql` is the **source of truth** for all ORM schemas
+- If raw SQL is wrong, Drizzle/Prisma/TypeORM schemas will also be wrong
+- Index/timestamp patterns are used across many projects
+- Tests FILE_LOOP with complex filename templating
 
 ### Test Pyramid
 
@@ -749,7 +844,18 @@ act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
    # Expected: "All tests passed!" with 69 passing tests
    ```
 
-4. **Manual smoke test** (optional but recommended)
+4. **Database Schema project generates correctly**
+   ```bash
+   # Generate and validate schema.sql
+   bun /tmp/build-db-schema.ts
+   find /tmp/db-schema-output -type f | wc -l  # Should be ~166 files
+
+   # Optionally validate SQL syntax
+   docker exec scaffolder-postgresql-1 psql -U scaffolder -c "DROP DATABASE IF EXISTS schema_test; CREATE DATABASE schema_test;"
+   docker exec scaffolder-postgresql-1 psql -U scaffolder -d schema_test -f /tmp/db-schema-output/schema.sql
+   ```
+
+5. **Manual smoke test** (optional but recommended)
    ```bash
    cd /tmp/hono-react
    bun install
@@ -802,6 +908,36 @@ act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
 - [ ] Seed data generates valid records
 - [ ] TypeScript types are correctly generated
 
+### Index & Timestamp Patterns (Database Schema Project)
+- [ ] `{{index}}` - 0-based index (0, 1, 2...)
+- [ ] `{{index(1)}}` - 1-based index (1, 2, 3...)
+- [ ] `{{index(1, 3)}}` - Zero-padded (001, 002, 003...)
+- [ ] `{{index(1, 4)}}` - Django-style (0001, 0002...)
+- [ ] `{{index('001')}}` - Format string detection
+- [ ] `{{index(1, 3, 100)}}` - With offset (101, 102...)
+- [ ] `{{timestamp}}` - ISO 8601 format
+- [ ] `{{timestamp('YYYY_MM_DD_HHmmss')}}` - Laravel style
+- [ ] `{{timestamp('YYYYMMDDHHmmss')}}` - Rails style
+- [ ] Hybrid patterns (timestamp + index combined)
+
+### Raw SQL Schema (schema.sql)
+- [ ] DROP TABLE statements in correct order (reverse dependency)
+- [ ] CREATE TABLE with all column types
+- [ ] PRIMARY KEY constraints (single and composite)
+- [ ] FOREIGN KEY constraints with proper naming
+- [ ] UNIQUE constraints
+- [ ] DEFAULT values (NOW(), etc.)
+- [ ] NOT NULL constraints
+- [ ] VARCHAR with length (VARCHAR(255))
+- [ ] TIMESTAMPTZ with precision (TIMESTAMPTZ(6))
+
+### Data Export Formats
+- [ ] SQL INSERT statements
+- [ ] CSV with headers
+- [ ] JSON array of objects
+- [ ] Per-table exports
+- [ ] Combined exports
+
 ### Edge Cases
 - [ ] Empty tables (no columns except PK)
 - [ ] Tables with only required columns
@@ -825,6 +961,7 @@ act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
 1. **Unit tests:** > 80% coverage for refactored modules
 2. **Golden tests:** All 622 assertions pass
 3. **Integration:** hono-react CI passes (69 API tests)
+4. **Schema generation:** Database Schema project generates ~166 valid files
 
 ### Performance (No Regression)
 1. **Generation time:** hono-react generates in < 5 seconds
@@ -885,15 +1022,42 @@ bun test --run
 # Run linter
 bun lint
 
-# Generate golden apps
+# Generate golden apps (hono-react)
 bun run scripts/generate-golden-apps.ts
 
 # Run hono-react CI locally
+cd /tmp && rm -rf hono-react && cp -r /root/scaffolder/.apps/hono-react .
 cd /tmp/hono-react
+cat > .env << 'EOF'
+DATABASE_URL="postgresql://scaffolder:scaffolder123@localhost:15432/hono_react_test"
+NODE_ENV="development"
+ACCESS_TOKEN_SECRET="test-access-secret"
+REFRESH_TOKEN_SECRET="test-refresh-secret"
+EOF
 act -j api-test -P ubuntu-latest=catthehacker/ubuntu:act-latest
 
 # Quick API test (after server is running)
 ./api-test.sh http://localhost:3000/api
+
+# Generate Database Schema project
+cat > /tmp/build-db-schema.ts << 'EOF'
+import { buildProjectFiles } from '/root/scaffolder/src/utils/project-builder/buildProjectFiles.ts';
+import convertLocalFilesToIStructure from '/root/scaffolder/src/utils/convertLocalFilesToIStructure.ts';
+import { createFolderStructure } from '/root/scaffolder/src/utils/createFolderStructure.ts';
+import masterSchemaJson from '/root/scaffolder/files/Schemas/Master Schema with Multiple User Types.json';
+const userFiles = convertLocalFilesToIStructure('/root/scaffolder/files');
+const result = await buildProjectFiles(
+  '/Projects/App Generator - Database Schema/structure.yaml',
+  userFiles, masterSchemaJson, { dbType: 'postgresql', framework: 'Raw SQL' }, null
+);
+createFolderStructure({ structure: result.structure, targetDirectory: '/tmp/db-schema-output' });
+console.log('Generated to /tmp/db-schema-output');
+EOF
+bun /tmp/build-db-schema.ts
+find /tmp/db-schema-output -type f | wc -l  # Should be ~166 files
+
+# Validate schema.sql against real PostgreSQL
+docker exec scaffolder-postgresql-1 psql -U scaffolder -d hono_react_test -f /tmp/db-schema-output/schema.sql
 
 # Compare generated output
 diff -r /tmp/golden-before .apps/hono-react
@@ -907,5 +1071,8 @@ diff -r /tmp/golden-before .apps/hono-react
 - **Golden project tests:** `src/tests/golden-projects/`
 - **hono-react CI workflow:** `.apps/hono-react/.github/workflows/api-test.yml`
 - **API integration test:** `.apps/hono-react/api-test.sh`
-- **Kitchen sink project:** `files/Projects/hono-react/`
-- **Template examples:** `files/Templates/`
+- **Kitchen sink #1 (Full-stack):** `files/Projects/hono-react/`
+- **Kitchen sink #2 (Schema):** `files/Projects/App Generator - Database Schema/`
+- **Core SQL template:** `files/Templates/schema.txt`
+- **Master schema:** `files/Schemas/Master Schema with Multiple User Types.json`
+- **Type mappings:** `files/Constants/typeMappings.yaml`
