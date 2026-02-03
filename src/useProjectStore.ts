@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { IFile, IStructure } from "@/components/FileViewer.tsx";
 import type { ISchemaInfo } from "@/interfaces/interfaces.ts";
+import type { IScaffolderMessage } from "@/interfaces/scaffolderMessages.ts";
 import { useFormStore } from "@/useFormStore.ts";
 import { useMockDatabaseStore } from "@/useMockDatabaseStore.ts";
 import { useUserStore } from "@/useUserStore.ts";
@@ -16,6 +17,9 @@ interface IProjectBuildCacheEntry {
 	structure: IStructure;
 	filesUsingUserEnv: string[];
 	filesFailedToFormat: IFailedFormatEntry[];
+	messages?: IScaffolderMessage[];
+	hasErrors?: boolean;
+	hasWarnings?: boolean;
 }
 
 type IProjectBuildCache = IProjectBuildCacheEntry;
@@ -182,6 +186,9 @@ export const useProjectStore = create<IProjectStore>()(
 						structure: cached.structure,
 						filesUsingUserEnv: cached.filesUsingUserEnv,
 						filesFailedToFormat: cached.filesFailedToFormat,
+						messages: cached.messages ?? [],
+						hasErrors: cached.hasErrors,
+						hasWarnings: cached.hasWarnings,
 					};
 				}
 				// Get all user files
@@ -210,6 +217,9 @@ export const useProjectStore = create<IProjectStore>()(
 						],
 						filesUsingUserEnv: [],
 						filesFailedToFormat: [],
+						messages: [],
+						hasErrors: false,
+						hasWarnings: false,
 					};
 				}
 
@@ -245,6 +255,9 @@ export const useProjectStore = create<IProjectStore>()(
 							structure: buildResult.structure,
 							filesUsingUserEnv: buildResult.filesUsingUserEnv,
 							filesFailedToFormat: buildResult.filesFailedToFormat,
+							messages: buildResult.messages ?? [],
+							hasErrors: buildResult.hasErrors,
+							hasWarnings: buildResult.hasWarnings,
 						},
 					},
 				}));

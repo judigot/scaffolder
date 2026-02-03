@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildProjectFiles } from '../src/utils/project-builder/buildProjectFiles.ts';
+import type { IScaffolderMessage } from '../src/interfaces/scaffolderMessages.ts';
+import { groupMessagesBySeverity } from '../src/utils/project-builder/messages.ts';
 import convertLocalFilesToIStructure from '../src/utils/convertLocalFilesToIStructure.ts';
 import { createFolderStructure } from '../src/utils/createFolderStructure.ts';
 import { frameworks, type IFormStore } from '../src/useFormStore.ts';
@@ -22,6 +24,12 @@ type GoldenAppConfig = {
   dockerfile: string;
   env: Record<string, string>;
   dependsOn: string[];
+};
+
+type GenerationOutcome = {
+  projectName: string;
+  messages: IScaffolderMessage[];
+  hasErrors: boolean;
 };
 
 const projectsDir = path.resolve(process.cwd(), 'files/Projects');
@@ -132,7 +140,10 @@ function discoverGoldenApps(): GoldenAppConfig[] {
   return projects.sort((a, b) => a.projectName.localeCompare(b.projectName));
 }
 
-async function generateProject(config: GoldenAppConfig): Promise<void> {
+async function generateProject(
+  config: GoldenAppConfig,
+  jsonOutput: boolean,
+): Promise<GenerationOutcome> {
   const userFiles = convertLocalFilesToIStructure('files');
   const formData: IFormStore = {
     backendUrl: 'http://localhost:3000',
@@ -176,7 +187,24 @@ async function generateProject(config: GoldenAppConfig): Promise<void> {
 
   if (result.filesFailedToFormat.length > 0) {
     console.error('Files failed to format:', result.filesFailedToFormat);
-    process.exit(1);
+  }
+
+  const messages = result.messages ?? [];
+  const hasErrors =
+    result.hasErrors === true ||
+    messages.some((message) => message.severity === 'error');
+  if (jsonOutput && messages.length > 0) {
+    const grouped = groupMessagesBySeverity(messages);
+    console.log(
+      JSON.stringify(
+        {
+          projectName: config.projectName,
+          messages: grouped,
+        },
+        null,
+        2,
+      ),
+    );
   }
 
   const outputDir = path.join(outputBaseDir, toDirName(config.projectName));
@@ -191,6 +219,7 @@ async function generateProject(config: GoldenAppConfig): Promise<void> {
   });
   ensureDockerfile(outputDir, config);
   console.log(`Generated ${config.projectName} in ${outputDir}`);
+  return { projectName: config.projectName, messages, hasErrors };
 }
 
 function ensureDockerfile(outputDir: string, config: GoldenAppConfig): void {
@@ -347,29 +376,55 @@ function buildComposeConfig(apps: GoldenAppConfig[]): string {
 }
 
 async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const jsonOutput = args.includes('--json');
+  const filteredArgs = args.filter((arg) => arg !== '--json' && arg !== '.');
+  const filter =
+    filteredArgs.length > 0 ? filteredArgs[filteredArgs.length - 1] : null;
+
   const goldenApps = discoverGoldenApps();
   if (goldenApps.length === 0) {
     console.log('No golden apps found. Add a .golden file to a project.');
     return;
   }
 
-  for (const app of goldenApps) {
-    await generateProject(app);
+  const filteredApps =
+    filter === null
+      ? goldenApps
+      : goldenApps.filter(
+          (app) =>
+            app.projectName === filter || toDirName(app.projectName) === filter,
+        );
+
+  if (filteredApps.length === 0) {
+    console.log(`No golden apps matched: ${filter}`);
+    return;
   }
 
-  const nginxConfig = buildNginxConfig(goldenApps);
+  const outcomes: GenerationOutcome[] = [];
+
+  for (const app of filteredApps) {
+    const outcome = await generateProject(app, jsonOutput);
+    outcomes.push(outcome);
+  }
+
+  const nginxConfig = buildNginxConfig(filteredApps);
   fs.writeFileSync(
     path.resolve(process.cwd(), 'docker/nginx.golden.conf'),
     nginxConfig,
     'utf-8',
   );
 
-  const composeConfig = buildComposeConfig(goldenApps);
+  const composeConfig = buildComposeConfig(filteredApps);
   fs.writeFileSync(
     path.resolve(process.cwd(), 'docker/compose.golden.yml'),
     composeConfig,
     'utf-8',
   );
+
+  if (outcomes.some((outcome) => outcome.hasErrors)) {
+    process.exit(1);
+  }
 }
 
 main()
