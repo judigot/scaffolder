@@ -70,7 +70,9 @@ export const getReplacementsForTable = (
   // Auth resource detection
   const isAuthResource = table.isAuthResource === true;
   const ownerField = table.ownerField ?? '';
-  const ownerFieldCamelCase = ownerField ? changeCase(ownerField).camelCase : '';
+  const ownerFieldCamelCase = ownerField
+    ? changeCase(ownerField).camelCase
+    : '';
 
   const columnInfoNames = schemaInfoParsed
     .getColumnsInfo(table.tableName)
@@ -153,36 +155,10 @@ export const getReplacementsForTable = (
     'getChildTables()': childTables,
     'isPivot()': String(schemaInfoParsed.isPivot(table.tableName)),
     // Composite primary key support
+    // Use <@@LOOP@@ data="compositePrimaryKey"> in templates for flexible iteration
     'hasCompositePrimaryKey()': String(hasCompositePK),
     'getCompositePrimaryKey()': compositePrimaryKey,
     'getCompositePrimaryKeyCamelCase()': compositePrimaryKeyCamelCase,
-    // Pre-formatted for Drizzle: table.col1, table.col2
-    'getCompositePrimaryKeyDrizzle()': compositePrimaryKeyCamelCase
-      .map((col) => `table.${col}`)
-      .join(', '),
-    // Pre-formatted for SQL: "col1", "col2"
-    'getCompositePrimaryKeySQL()': compositePrimaryKey
-      .map((col) => `"${col}"`)
-      .join(', '),
-    // Pre-formatted route params: /:orderId/:productId
-    'getCompositePrimaryKeyRouteParams()': compositePrimaryKeyCamelCase
-      .map((col) => `/:${col}`)
-      .join(''),
-    // Pre-formatted param extraction for route handlers (with type conversion)
-    'getCompositePrimaryKeyParamExtraction()': compositePrimaryKey
-      .map((colName) => {
-        const col = columnsInfo.find((c) => c.column_name === colName);
-        const camelCaseName = changeCase(colName).camelCase;
-        const isNumber = col?.data_type === 'number';
-        return isNumber
-          ? `  const ${camelCaseName} = Number(c.req.param('${camelCaseName}'));`
-          : `  const ${camelCaseName} = c.req.param('${camelCaseName}');`;
-      })
-      .join('\n'),
-    // Pre-formatted where clause: and(eq(table.col1, col1), eq(table.col2, col2))
-    'getCompositePrimaryKeyWhereClause()': hasCompositePK
-      ? `and(${compositePrimaryKeyCamelCase.map((col) => `eq(${caseFormats.camelCase}.${col}, ${col})`).join(', ')})`
-      : '',
     // Auth resource template variables
     isAuthResource: String(isAuthResource),
     'isAuthResource()': String(isAuthResource),

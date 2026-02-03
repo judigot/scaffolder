@@ -30,9 +30,9 @@ app.get('/', async (c) => {
 });
 
 // GET single <@@>tableNameSingular</@@> by ID
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.get('<@@>getCompositePrimaryKeyRouteParams()</@@>', async (c) => {
-<@@>getCompositePrimaryKeyParamExtraction()</@@>
-  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(<@@>getCompositePrimaryKeyWhereClause()</@@>);
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.get('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{valueCamelCase}}</@@LOOP@@>', async (c) => {
+<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>valueCamelCase</@@> = Number(c.req.param('<@@>valueCamelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>valueCamelCase</@@> = c.req.param('<@@>valueCamelCase</@@>');</@@IF@@></@@LOOP@@>
+  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableNameCamelCase</@@>.<@@>valueCamelCase</@@>, <@@>valueCamelCase</@@>)</@@LOOP@@>));
   if (result.length === 0) {
     return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
   }
@@ -62,10 +62,10 @@ app.post('/', zValidator('json', create<@@>tableNamePascalCaseSingular</@@>Schem
 });
 
 // PUT update <@@>tableNameSingular</@@>
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.put('<@@>getCompositePrimaryKeyRouteParams()</@@>', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
-<@@>getCompositePrimaryKeyParamExtraction()</@@>
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.put('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{valueCamelCase}}</@@LOOP@@>', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
+<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>valueCamelCase</@@> = Number(c.req.param('<@@>valueCamelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>valueCamelCase</@@> = c.req.param('<@@>valueCamelCase</@@>');</@@IF@@></@@LOOP@@>
   const data = c.req.valid('json');
-  const result = await db.update(<@@>tableNameCamelCase</@@>).set(data).where(<@@>getCompositePrimaryKeyWhereClause()</@@>).returning();
+  const result = await db.update(<@@>tableNameCamelCase</@@>).set(data).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableNameCamelCase</@@>.<@@>valueCamelCase</@@>, <@@>valueCamelCase</@@>)</@@LOOP@@>)).returning();
   if (result.length === 0) {
     return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
   }
@@ -85,9 +85,9 @@ app.post('/', zValidator('json', create<@@>tableNamePascalCaseSingular</@@>Schem
 </@@IF@@>
 
 // DELETE <@@>tableNameSingular</@@>
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.delete('<@@>getCompositePrimaryKeyRouteParams()</@@>', async (c) => {
-<@@>getCompositePrimaryKeyParamExtraction()</@@>
-  const result = await db.delete(<@@>tableNameCamelCase</@@>).where(<@@>getCompositePrimaryKeyWhereClause()</@@>).returning();
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.delete('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{valueCamelCase}}</@@LOOP@@>', async (c) => {
+<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>valueCamelCase</@@> = Number(c.req.param('<@@>valueCamelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>valueCamelCase</@@> = c.req.param('<@@>valueCamelCase</@@>');</@@IF@@></@@LOOP@@>
+  const result = await db.delete(<@@>tableNameCamelCase</@@>).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableNameCamelCase</@@>.<@@>valueCamelCase</@@>, <@@>valueCamelCase</@@>)</@@LOOP@@>)).returning();
   if (result.length === 0) {
     return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
   }

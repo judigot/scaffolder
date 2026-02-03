@@ -24,6 +24,6 @@ CREATE TABLE "<@@>tableName</@@>" (
     CONSTRAINT "FK_<@@>tableName</@@>_<@@>column.name</@@>" FOREIGN KEY ("<@@>column.name</@@>") REFERENCES "<@@>column.foreign_table</@@>" ("<@@>column.foreign_column</@@>")
     </@@IF@@>
   </@@LOOP@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">,
-  PRIMARY KEY (<@@>getCompositePrimaryKeySQL()</@@>)</@@IF@@>
+  PRIMARY KEY (<@@LOOP@@ data="compositePrimaryKey" separator=", ">"<@@>value</@@>"</@@LOOP@@>)</@@IF@@>
 );
 </@@LOOP@@>

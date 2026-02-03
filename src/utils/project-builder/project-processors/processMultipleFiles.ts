@@ -14,6 +14,7 @@ import {
   processLoopTablesReversed,
   processLoopDataSources,
   processHtmlLoopColumnsInfo,
+  processHtmlLoopArray,
   evaluateCondition,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
@@ -275,6 +276,17 @@ export const processMultipleFiles = async (
         userMetadata,
         ctx.dataContext,
         ctx.mockData,
+      );
+
+      // Process generic array loops (compositePrimaryKey, etc.)
+      content = processHtmlLoopArray(
+        content,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+        ctx.dataContext,
       );
 
       content = replacePlaceholders(

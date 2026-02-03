@@ -131,7 +131,7 @@ ${BLUE}════════════════════════�
 echo -e "${BLUE}                    CRUD API TESTS                              ${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
-# Test CRUD operations for a resource
+# Test CRUD operations for a resource with single primary key
 # Args: name, endpoint, pk, create_data, update_data, use_auth
 test_crud() {
   local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
@@ -175,41 +175,112 @@ test_crud() {
   assert_status 404 "GET /api/$endpoint/$ID (should be 404)"
 }
 
+# Test CRUD operations for a resource with composite primary key
+# Args: name, endpoint, pk_fields (comma-separated), create_data, update_data, use_auth
+test_crud_composite() {
+  local name=$1 endpoint=$2 pk_fields=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
+
+  log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
+
+  # Expand $TEST_USER_ID in payloads (bash variable substitution)
+  create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+  update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+
+  # Build ID path from create_data to check/delete existing record
+  local id_path=""
+  IFS=',' read -ra PK_ARRAY <<< "$pk_fields"
+  for pk in "${PK_ARRAY[@]}"; do
+    local val=$(echo "$create_data" | jq -r ".$pk")
+    if [ -n "$id_path" ]; then
+      id_path="$id_path/$val"
+    else
+      id_path="$val"
+    fi
+  done
+
+  # Delete existing record if it exists (e.g., from seeded data)
+  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  if [ "$STATUS" = "200" ]; then
+    log_info "Deleted existing record at $id_path (was seeded)"
+  fi
+
+  # CREATE
+  api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  assert_status 201 "POST /api/$endpoint (create)"
+
+  if [ "$STATUS" != "201" ]; then
+    log_error "Skipping remaining $name tests due to create failure"
+    return
+  fi
+
+  # Re-extract ID path from response in case server modified values
+  id_path=""
+  for pk in "${PK_ARRAY[@]}"; do
+    local val=$(echo "$BODY" | jq -r ".$pk")
+    if [ -n "$id_path" ]; then
+      id_path="$id_path/$val"
+    else
+      id_path="$val"
+    fi
+  done
+  echo "  Created $name ID: $id_path"
+
+  # READ
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$id_path (read)"
+
+  # UPDATE
+  api_call PUT "$API_BASE/$endpoint/$id_path" "$update_data" "$use_auth"
+  assert_status 200 "PUT /api/$endpoint/$id_path (update)"
+
+  # READ (verify update)
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$id_path (after update)"
+
+  # DELETE
+  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "DELETE /api/$endpoint/$id_path"
+
+  # READ (verify deleted)
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 404 "GET /api/$endpoint/$id_path (should be 404)"
+}
+
 # ═══════════════════════════════════════════════════════════════
 # TABLE TESTS
 # ═══════════════════════════════════════════════════════════════
 # Test Product
-test_crud 'Product' 'product' 'id' '{"productName":"Amelia"}' '{"productName":"Amelia"}' 'false'
+test_crud 'Product' 'product' 'id' '{"productName":"Hassan"}' '{"productName":"Hassan"}' 'false'
 
 # Test Customer
-test_crud 'Customer' 'customer' 'id' '{"name":"Mathias"}' '{"name":"Mathias"}' 'false'
+test_crud 'Customer' 'customer' 'id' '{"name":"Jeanne"}' '{"name":"Jeanne"}' 'false'
 
 # Test Order
 test_crud 'Order' 'order' 'id' '{"customerId":1}' '{"customerId":1}' 'false'
 
 # Test Order Product
-test_crud 'Order Product' 'order-product' 'orderId' '{"orderId":1,"productId":1}' '{"orderId":1,"productId":1}' 'false'
+test_crud_composite 'Order Product' 'order-product' 'orderId,productId' '{"orderId":1,"productId":1}' '{"orderId":1,"productId":1}' 'false'
 
 # Test User
-test_crud 'User' 'user' 'id' '{"email":"oleta.kuhn84@example.com","username":"franz39","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":true}' '{"email":"oleta.kuhn84@example.com","username":"franz39","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":true}' 'false'
+test_crud 'User' 'user' 'id' '{"email":"cordell5@example.net","username":"geoffrey_krajcik","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":true}' '{"email":"cordell5@example.net","username":"geoffrey_krajcik","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":true}' 'false'
 
 # Test Session
-test_crud 'Session' 'session' 'id' '{"userId":"$TEST_USER_ID","expiresAt":"2025-05-16T05:20:23.833Z"}' '{"userId":"$TEST_USER_ID","expiresAt":"2025-05-16T05:20:23.833Z"}' 'true'
+test_crud 'Session' 'session' 'id' '{"userId":"$TEST_USER_ID","expiresAt":"2025-04-29T01:33:24.625Z"}' '{"userId":"$TEST_USER_ID","expiresAt":"2025-04-29T01:33:24.625Z"}' 'true'
 
 # Test Oauth Account
-test_crud 'Oauth Account' 'oauth-account' 'providerId' '{"providerId":"deputo","providerUserId":"validus","userId":"$TEST_USER_ID"}' '{"providerId":"deputo","providerUserId":"validus","userId":"$TEST_USER_ID"}' 'true'
+test_crud_composite 'Oauth Account' 'oauth-account' 'providerId,providerUserId' '{"providerId":"tamen","providerUserId":"unde","userId":"$TEST_USER_ID"}' '{"providerId":"tamen","providerUserId":"unde","userId":"$TEST_USER_ID"}' 'true'
 
 # Test Profile
-test_crud 'Profile' 'profile' 'id' '{"userId":"$TEST_USER_ID","bio":"quod"}' '{"userId":"$TEST_USER_ID","bio":"quod"}' 'true'
+test_crud 'Profile' 'profile' 'id' '{"userId":"$TEST_USER_ID","bio":"audentia"}' '{"userId":"$TEST_USER_ID","bio":"audentia"}' 'true'
 
 # Test Posts
-test_crud 'Posts' 'posts' 'id' '{"userId":"$TEST_USER_ID","title":"textilis","content":null}' '{"userId":"$TEST_USER_ID","title":"textilis","content":null}' 'true'
+test_crud 'Posts' 'posts' 'id' '{"userId":"$TEST_USER_ID","title":"aperio","content":null}' '{"userId":"$TEST_USER_ID","title":"aperio","content":null}' 'true'
 
 # Test User Type
-test_crud 'User Type' 'user-type' 'id' '{"name":"Gardner"}' '{"name":"Gardner"}' 'false'
+test_crud 'User Type' 'user-type' 'id' '{"name":"Thea"}' '{"name":"Thea"}' 'false'
 
 # Test User User Type
-test_crud 'User User Type' 'user-user-type' 'userId' '{"userId":"$TEST_USER_ID","userTypeId":1}' '{"userId":"$TEST_USER_ID","userTypeId":1}' 'false'
+test_crud_composite 'User User Type' 'user-user-type' 'userId,userTypeId' '{"userId":"$TEST_USER_ID","userTypeId":1}' '{"userId":"$TEST_USER_ID","userTypeId":1}' 'false'
 
 # ═══════════════════════════════════════════════════════════════
 # CLEANUP & SUMMARY

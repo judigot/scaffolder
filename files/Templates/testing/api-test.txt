@@ -128,7 +128,7 @@ echo -e "\n${BLUE}════════════════════�
 echo -e "${BLUE}                    CRUD API TESTS                              ${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
-# Test CRUD operations for a resource
+# Test CRUD operations for a resource with single primary key
 # Args: name, endpoint, pk, create_data, update_data, use_auth
 test_crud() {
   local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
@@ -172,12 +172,83 @@ test_crud() {
   assert_status 404 "GET /api/$endpoint/$ID (should be 404)"
 }
 
+# Test CRUD operations for a resource with composite primary key
+# Args: name, endpoint, pk_fields (comma-separated), create_data, update_data, use_auth
+test_crud_composite() {
+  local name=$1 endpoint=$2 pk_fields=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
+
+  log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
+
+  # Expand $TEST_USER_ID in payloads (bash variable substitution)
+  create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+  update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+
+  # Build ID path from create_data to check/delete existing record
+  local id_path=""
+  IFS=',' read -ra PK_ARRAY <<< "$pk_fields"
+  for pk in "${PK_ARRAY[@]}"; do
+    local val=$(echo "$create_data" | jq -r ".$pk")
+    if [ -n "$id_path" ]; then
+      id_path="$id_path/$val"
+    else
+      id_path="$val"
+    fi
+  done
+
+  # Delete existing record if it exists (e.g., from seeded data)
+  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  if [ "$STATUS" = "200" ]; then
+    log_info "Deleted existing record at $id_path (was seeded)"
+  fi
+
+  # CREATE
+  api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  assert_status 201 "POST /api/$endpoint (create)"
+
+  if [ "$STATUS" != "201" ]; then
+    log_error "Skipping remaining $name tests due to create failure"
+    return
+  fi
+
+  # Re-extract ID path from response in case server modified values
+  id_path=""
+  for pk in "${PK_ARRAY[@]}"; do
+    local val=$(echo "$BODY" | jq -r ".$pk")
+    if [ -n "$id_path" ]; then
+      id_path="$id_path/$val"
+    else
+      id_path="$val"
+    fi
+  done
+  echo "  Created $name ID: $id_path"
+
+  # READ
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$id_path (read)"
+
+  # UPDATE
+  api_call PUT "$API_BASE/$endpoint/$id_path" "$update_data" "$use_auth"
+  assert_status 200 "PUT /api/$endpoint/$id_path (update)"
+
+  # READ (verify update)
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$id_path (after update)"
+
+  # DELETE
+  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "DELETE /api/$endpoint/$id_path"
+
+  # READ (verify deleted)
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 404 "GET /api/$endpoint/$id_path (should be 404)"
+}
+
 # ═══════════════════════════════════════════════════════════════
 # TABLE TESTS
 # ═══════════════════════════════════════════════════════════════
 <@@LOOP@@ data="tables" separator="\n\n">
 # Test <@@>tableNameTitleCase</@@>
-test_crud '<@@>tableNameTitleCase</@@>' '<@@>tableNameKebabCase</@@>' '<@@>primaryKey</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">test_crud_composite '<@@>tableNameTitleCase</@@>' '<@@>tableNameKebabCase</@@>' '<@@LOOP@@ data="compositePrimaryKey" separator=","><@@>valueCamelCase</@@></@@LOOP@@>' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">test_crud '<@@>tableNameTitleCase</@@>' '<@@>tableNameKebabCase</@@>' '<@@>primaryKey</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'</@@IF@@>
 </@@LOOP@@>
 
 # ═══════════════════════════════════════════════════════════════

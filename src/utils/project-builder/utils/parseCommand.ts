@@ -100,6 +100,12 @@ export const parseCommand = (
         }
         break;
 
+      case ACTION_FLAGS.FILTER:
+        if (value) {
+          options[ACTION_FLAGS.FILTER] = parseQuotedOrRawValue(value);
+        }
+        break;
+
       default:
         break;
     }
