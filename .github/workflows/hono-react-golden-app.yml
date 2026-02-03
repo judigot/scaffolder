@@ -58,12 +58,14 @@ jobs:
         working-directory: .apps/hono-react
         run: bun drizzle-kit push
 
-      - name: Start hono-react dev server
+      - name: Start hono-react API server
         working-directory: .apps/hono-react
+        env:
+          PORT: 3000
         run: |
-          bun run dev &
+          nohup bun run dev:api > server.log 2>&1 &
           echo $! > .server.pid
-          sleep 5
+          sleep 3
 
       - name: Wait for server
         working-directory: .apps/hono-react
@@ -77,6 +79,10 @@ jobs:
             sleep 1
           done
           echo "Server failed to start"
+          echo "=== Server log ==="
+          cat server.log || echo "No server log found"
+          echo "=== Process check ==="
+          ps aux | grep -E "bun|node" || echo "No bun/node process"
           exit 1
 
       - name: Run API tests
