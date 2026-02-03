@@ -30,8 +30,13 @@ docs/.vitepress/dist
 docs/.vitepress/cache
 docs/.vitepress/temp
 
-# Apps
-.apps/laravel/**
+# Apps - track generated apps but ignore dependencies/build artifacts
+.apps/**/node_modules
+.apps/**/dist
+.apps/**/.next
+.apps/**/build
+docker/compose.golden.yml
+docker/nginx.golden.conf
 .monorepo
 
 # Dependencies
@@ -110,3 +115,4 @@ test-results/
 .vercel
 # Generated test output
 src/tests/golden-projects/output/
+*.pid

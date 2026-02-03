@@ -1,5 +1,5 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
@@ -15,6 +15,38 @@ import {
   isRecord,
   flattenData,
 } from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { useTransformationsStore } from '@/useTransformationsStore.ts';
+
+/**
+ * Format a mock value as JSON (with quotes for strings, without for numbers/booleans)
+ * Handles user foreign keys specially for API testing
+ */
+const formatMockValue = (
+  value: unknown,
+  columnName: string,
+  foreignTable?: string,
+): string => {
+  // User foreign key → bash variable placeholder for API testing
+  const isUserForeignKey =
+    foreignTable === 'user' ||
+    columnName === 'userId' ||
+    columnName === 'user_id';
+
+  if (isUserForeignKey) {
+    return '"$TEST_USER_ID"';
+  }
+
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return JSON.stringify(value);
+};
 
 /**
  * Resolves a value from nested object using a path array
@@ -276,9 +308,12 @@ export const processColumnsInfoIteration = (
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
   filterCondition?: string,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const dbType =
-    formData && typeof formData.dbType === 'string' ? formData.dbType : '';
+    formData !== undefined && typeof formData.dbType === 'string'
+      ? formData.dbType
+      : 'postgresql';
 
   const dataSourceReplacements = flattenDataSource(dataSource);
 
@@ -350,7 +385,38 @@ export const processColumnsInfoIteration = (
       'column.has_foreign_key':
         column.foreign_key !== undefined ? 'true' : 'false',
       'formData.dbType': dbType,
-      ...getReplacementsForTable(tableObj, schemaInfoParsed),
+      ...getReplacementsForTable(
+        tableObj,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      ),
+      // Mock value from generateMockData for API testing
+      mockValue: (() => {
+        const data = mockData ?? useTransformationsStore.getState().mockData;
+        if (Object.keys(data).length === 0) {
+          return '""';
+        }
+        if (!(tableObj.tableName in data)) {
+          return '""';
+        }
+        const tableData = data[tableObj.tableName];
+        if (tableData.length === 0) {
+          return '""';
+        }
+        const firstRow = tableData[0];
+        const camelKey = caseFormats.camelCase;
+        const value =
+          camelKey in firstRow
+            ? firstRow[camelKey]
+            : firstRow[column.column_name];
+        return formatMockValue(
+          value,
+          column.column_name,
+          column.foreign_key?.foreign_table_name,
+        );
+      })(),
     };
 
     // Process new JavaScript-like syntax first

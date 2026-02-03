@@ -6,6 +6,13 @@ import { hc } from 'hono/client';
 
 // Import route modules
 <@@LOOP@@ data="tables" separator="\n">import <@@>tableNameCamelCase</@@>Routes from './routes/<@@>tableNameCamelCaseSingular</@@>';</@@LOOP@@>
+import authRoutes from './routes/auth';
+import { db } from './db';
+import { session, user } from './db/schema';
+import { initializeLucia } from './auth';
+
+// Initialize Lucia authentication
+initializeLucia(db, session, user);
 
 const app = new Hono().basePath('/api');
 
@@ -19,6 +26,7 @@ app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOStri
 
 // Mount routes
 <@@LOOP@@ data="tables" separator="\n">app.route('/<@@>tableNameKebabCase</@@>', <@@>tableNameCamelCase</@@>Routes);</@@LOOP@@>
+app.route('/auth', authRoutes);
 
 // Export types for RPC client
 export type AppType = typeof app;

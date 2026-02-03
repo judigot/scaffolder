@@ -1,5 +1,5 @@
 import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IFormStore } from '@/useFormStore.ts';
@@ -32,6 +32,7 @@ import {
   loadConstantFromPath,
 } from '@/utils/project-builder/template-processors/loadConstant.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
+import { processArrayIteration } from '@/utils/project-builder/template-processors/processArrayIteration.ts';
 import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import {
   findFoldersWithWildcard,
@@ -254,6 +255,7 @@ const processBlockLoops = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Match opening [[LOOP(property)]] - but not tables or tablesReversed (those are handled separately)
   const openRegex = /\[\[\s*LOOP\(([^)]+)\)\s*\]\]/g;
@@ -324,6 +326,8 @@ const processBlockLoops = (
         formData,
         userMetadata,
         dataSource,
+        undefined,
+        mockData,
       );
     } else {
       // For other properties, use processIterateCommand with inline format
@@ -364,6 +368,7 @@ const processInnerLoops = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const result = processBlockLoops(
     content,
@@ -373,6 +378,7 @@ const processInnerLoops = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then process inline LOOPs (legacy syntax)
@@ -465,6 +471,7 @@ const processAtLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(tables\)\n?/g;
   let result = content;
@@ -520,6 +527,7 @@ const processAtLoopTables = (
       formData,
       userMetadata,
       dataSource,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -539,6 +547,7 @@ const processAtLoopTablesReversed = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(tablesReversed\)\n?/g;
   let result = content;
@@ -597,6 +606,7 @@ const processAtLoopTablesReversed = (
       formData,
       userMetadata,
       dataSource,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -749,6 +759,7 @@ const processHtmlLoop = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Validate template tags before processing
   validateHtmlTemplateTags(content, 'HTML LOOP');
@@ -825,6 +836,7 @@ const processHtmlLoop = (
           formData,
           userMetadata,
           dataSource,
+          mockData,
         );
       } else if (type === 'tablesReversed') {
         /* Filter out view tables using centralized function */
@@ -842,9 +854,20 @@ const processHtmlLoop = (
           formData,
           userMetadata,
           dataSource,
+          mockData,
         );
       } else if (type === 'columnsInfo') {
         // Skip columnsInfo at top level - it will be processed per-table in processAtLoopTablesTemplate
+        continue;
+      } else if (
+        type === 'compositePrimaryKey' ||
+        type === 'requiredColumns' ||
+        type === 'allColumns' ||
+        type === 'foreignTables' ||
+        type === 'hiddenColumns' ||
+        type === 'childTables'
+      ) {
+        // Skip per-table array types - they will be processed by processHtmlLoopArray
         continue;
       }
 
@@ -1089,6 +1112,7 @@ export const processHtmlLoopColumnsInfo = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Validate template tags before processing
   validateHtmlTemplateTags(
@@ -1168,6 +1192,126 @@ export const processHtmlLoopColumnsInfo = (
         userMetadata,
         dataSource,
         filter || undefined,
+        mockData,
+      );
+
+      result = result.slice(0, start) + processed + result.slice(end);
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Generic HTML-style loop for any array property
+ * Syntax: <@@LOOP@@ data="arrayName" separator=", ">...</@@LOOP@@>
+ *
+ * Supported arrays:
+ * - compositePrimaryKey: string[] of column names
+ * - requiredColumns: string[] of required column names
+ * - allColumns: string[] of all column names
+ * - foreignTables: string[] of foreign table names
+ * - hiddenColumns: string[] of hidden column names
+ * - childTables: string[] of child table names
+ * - Any future array property in ISchemaInfo
+ *
+ * Note: columnsInfo is handled separately by processHtmlLoopColumnsInfo
+ * for backwards compatibility with mock data and dynamic lookups
+ */
+export const processHtmlLoopArray = (
+  content: string,
+  table: ISchemaInfo,
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
+): string => {
+  // Arrays handled by this generic processor (not columnsInfo or tables)
+  const genericArrays = new Set([
+    'compositePrimaryKey',
+    'requiredColumns',
+    'allColumns',
+    'foreignTables',
+    'hiddenColumns',
+    'childTables',
+  ]);
+
+  const openRegex = /<@@LOOP@@([^>]*)>/g;
+  let result = content;
+  let iterations = 0;
+  const maxIterations = 100;
+
+  while (iterations < maxIterations) {
+    iterations++;
+    const matches: {
+      start: number;
+      end: number;
+      separator: string;
+      filter: string;
+      templateContent: string;
+      arrayName: string;
+    }[] = [];
+
+    openRegex.lastIndex = 0;
+
+    let match: RegExpExecArray | null = openRegex.exec(result);
+    while (match !== null) {
+      const attributesStr = match[1];
+      const attrs = parseHtmlTagAttributes(attributesStr);
+      const data = attrs.data || '';
+
+      // Skip non-generic arrays (handled elsewhere)
+      if (!genericArrays.has(data)) {
+        match = openRegex.exec(result);
+        continue;
+      }
+
+      const separator = attrs.separator
+        ? attrs.separator
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\"/g, '"')
+        : '';
+
+      const filter = 'filter' in attrs ? attrs.filter : '';
+
+      const openEnd = match.index + match[0].length;
+      const closeInfo = findHtmlLoopEnd(result, openEnd);
+
+      if (closeInfo) {
+        matches.push({
+          start: match.index,
+          end: closeInfo.endIndex,
+          separator,
+          filter,
+          templateContent: result.slice(openEnd, closeInfo.endIndex - 11),
+          arrayName: data,
+        });
+      }
+      match = openRegex.exec(result);
+    }
+
+    if (matches.length === 0) {
+      break;
+    }
+
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const { start, end, separator, filter, templateContent, arrayName } =
+        matches[i];
+
+      const processed = processArrayIteration(
+        arrayName,
+        table,
+        templateContent.replace(/^\n/, '').trimEnd(),
+        separator,
+        schemaInfoParsed,
+        userFiles,
+        undefined,
+        formData,
+        userMetadata,
+        dataSource,
+        filter || undefined,
       );
 
       result = result.slice(0, start) + processed + result.slice(end);
@@ -1185,6 +1329,7 @@ const processAtLoopColumnsInfo = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(columnsInfo\)\n?/g;
   let result = content;
@@ -1240,6 +1385,8 @@ const processAtLoopColumnsInfo = (
       formData,
       userMetadata,
       dataSource,
+      undefined,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -1260,14 +1407,33 @@ const processAtLoopTablesTemplate = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   return tables
     .map((table) => {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const replacements = getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      );
 
       // First process HTML-like <@@LOOP@@ data="columnsInfo">
       let processed = processHtmlLoopColumnsInfo(
         templateContent,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+        dataSource,
+        mockData,
+      );
+
+      // Process HTML-like <@@LOOP@@ data="arrayName"> for generic arrays
+      processed = processHtmlLoopArray(
+        processed,
         table,
         schemaInfoParsed,
         userFiles,
@@ -1285,7 +1451,11 @@ const processAtLoopTablesTemplate = (
         formData,
         userMetadata,
         dataSource,
+        mockData,
       );
+
+      // Process table-level <@@IF@@> conditions
+      processed = processHtmlIf(processed, replacements);
 
       // Then replace placeholders
       const ctx = {
@@ -1318,7 +1488,13 @@ const processTablesTemplate = (
 ): string => {
   return tables
     .map((table) => {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const replacements = getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      );
       const ctx = {
         userFiles,
         schemaInfo: tables,
@@ -1354,6 +1530,7 @@ export const processLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
@@ -1367,6 +1544,7 @@ export const processLoopTables = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process @LOOP(tables) experimental syntax
@@ -1378,6 +1556,7 @@ export const processLoopTables = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process inline LOOP(tables) with --template="..."
@@ -1428,6 +1607,7 @@ export const processLoopTablesReversed = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
@@ -1442,6 +1622,7 @@ export const processLoopTablesReversed = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process @LOOP(tablesReversed) experimental syntax
@@ -1453,6 +1634,7 @@ export const processLoopTablesReversed = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process inline LOOP(tablesReversed) with --template="..."
@@ -1791,7 +1973,13 @@ export const processIterateCommand = (
           );
         }
         // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          table,
+          schemaInfoParsed,
+          undefined,
+          undefined,
+          formData,
+        );
         const ignoreCtx = {
           userFiles,
           schemaInfo: [],
@@ -1944,7 +2132,13 @@ export const processIterateCommand = (
           );
         }
         // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          table,
+          schemaInfoParsed,
+          undefined,
+          undefined,
+          formData,
+        );
         const filterCtx = {
           userFiles,
           schemaInfo: [],
@@ -2023,6 +2217,7 @@ export const processIterateCommand = (
       userFiles,
       projectFilePath,
       formData,
+      userMetadata,
     );
   }
 
@@ -2231,7 +2426,13 @@ export const processIterateCommand = (
       valueKebabCaseSingular: caseFormats.kebabCaseSingular,
       valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
       // Add table replacements for other placeholders that might be in the template
-      ...getReplacementsForTable(table, schemaInfoParsed),
+      ...getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      ),
     };
 
     // Add all placeholders found in the YAML file for this value

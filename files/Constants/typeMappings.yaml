@@ -1,6 +1,11 @@
 # Comprehensive Type Mappings - Single Source of Truth
 # Database types, language primitives, ORMs, and introspection mappings
 
+# Identifier quote characters (for table and column names)
+identifierQuote:
+  mysql: '`'
+  postgresql: '"'
+
 string:
   info:
     group: 'Common Types'

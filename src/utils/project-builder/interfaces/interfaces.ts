@@ -3,6 +3,7 @@ import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
 import type { IFormStore } from '@/useFormStore.ts';
+import type { IMergedSchema } from '@/utils/project-builder/utils/loadSchemas.ts';
 
 export type ReplacementValue = string | string[];
 export type Replacements = Record<string, ReplacementValue>;
@@ -16,6 +17,7 @@ export interface IActionFlags {
   [ACTION_FLAGS.IS_RELATIVE_PATH]?: boolean;
   [ACTION_FLAGS.DATA_SOURCE]?: string;
   [ACTION_FLAGS.FORMAT]?: boolean;
+  [ACTION_FLAGS.FILTER]?: string;
   ignore?: string;
   onFileUsingUserEnv?: (filePath: string) => void;
   onFileFailedToFormat?: (filePath: string, errorMessage: string) => void;
@@ -38,6 +40,7 @@ export interface IBuildContext {
   readonly formData?: IFormStore;
   readonly userMetadata?: Record<string, unknown> | null;
   readonly mockData?: ParsedJSONSchema;
+  readonly authSchema?: IMergedSchema | null;
 
   // Contextual data (varies per scope)
   readonly table?: ISchemaInfo;

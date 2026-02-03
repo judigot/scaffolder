@@ -220,8 +220,18 @@ describe('Hono-React Project Generation', () => {
       expect(schemaFile).toBeDefined();
 
       // Should contain a pgTable export for each table in schema
+      // Composite PK tables use multi-line format: pgTable(\n  'tableName',
+      // Regular tables use single-line format: pgTable('tableName',
       for (const table of schema) {
-        expect(schemaFile?.content).toContain(`pgTable('${table.tableName}'`);
+        const hasCompositePK =
+          table.compositePrimaryKey !== undefined &&
+          table.compositePrimaryKey.length >= 2;
+        if (hasCompositePK) {
+          // Multi-line format for composite PK tables
+          expect(schemaFile?.content).toContain(`'${table.tableName}',`);
+        } else {
+          expect(schemaFile?.content).toContain(`pgTable('${table.tableName}'`);
+        }
       }
 
       // Should not contain unprocessed template syntax
@@ -260,7 +270,7 @@ describe('Hono-React Project Generation', () => {
       expect(routeFiles?.length).toBe(schema.length + 1);
     }, 30000);
 
-    it('should generate test files for each table', async () => {
+    it('should generate test files for each table (excluding composite PK tables)', async () => {
       const userFiles = loadDirectoryAsStructure(filesDir);
 
       const result = await buildProjectFiles(
@@ -283,8 +293,14 @@ describe('Hono-React Project Generation', () => {
           item.type === 'file' && item.name.endsWith('.test.ts'),
       );
 
-      // Should have a test file for each table
-      expect(testFiles?.length).toBe(schema.length);
+      // Count tables without composite primary keys (tests are skipped for composite PK tables)
+      const tablesWithoutCompositePK = schema.filter(
+        (table) =>
+          !table.compositePrimaryKey || table.compositePrimaryKey.length < 2,
+      ).length;
+
+      // Should have a test file for each non-composite-PK table
+      expect(testFiles?.length).toBe(tablesWithoutCompositePK);
     }, 30000);
 
     it('should process templates without leftover syntax', async () => {

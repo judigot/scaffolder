@@ -1,0 +1,304 @@
+#!/bin/bash
+
+# Auto-generated API Test Script
+# Tests all CRUD endpoints following C→R→U→R→D→R pattern
+#
+# Usage: ./api-test.sh [base-url]
+# Default: http://localhost:3000/api
+#
+# The script automatically:
+# 1. Registers a test user
+# 2. Uses session cookie for authenticated routes
+# 3. Cleans up test user after tests
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+API_BASE="${1:-http://localhost:3000/api}"
+COOKIE_JAR=$(mktemp)
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+# Generate unique test user credentials
+TEST_EMAIL="test-$(date +%s)@example.com"
+TEST_USERNAME="testuser$(date +%s)"
+TEST_PASSWORD="TestPassword123!"
+
+cleanup() {
+  rm -f "$COOKIE_JAR"
+}
+trap cleanup EXIT
+
+log_step() { echo -e "
+${BLUE}▶ $1${NC}"; }
+log_success() { echo -e "${GREEN}✓ $1${NC}"; TESTS_PASSED=$((TESTS_PASSED + 1)); }
+log_error() { echo -e "${RED}✗ $1${NC}"; TESTS_FAILED=$((TESTS_FAILED + 1)); }
+log_info() { echo -e "${YELLOW}ℹ $1${NC}"; }
+
+# API call with cookie support
+api_call() {
+  local method=$1 url=$2 data=$3 use_auth=${4:-false}
+  local response cookie_opts=""
+
+  # Use cookie jar for authenticated requests
+  if [ "$use_auth" = "true" ]; then
+    cookie_opts="-b $COOKIE_JAR -c $COOKIE_JAR"
+  fi
+
+  if [ -n "$data" ]; then
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+      -H "Content-Type: application/json" \
+      $cookie_opts \
+      -d "$data")
+  else
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" $cookie_opts)
+  fi
+  BODY="${response%|||*}"
+  STATUS="${response##*|||}"
+}
+
+assert_status() {
+  local expected=$1 message=$2
+  if [ "$STATUS" = "$expected" ]; then
+    log_success "$message (status: $STATUS)"
+  else
+    log_error "$message (expected: $expected, got: $STATUS)"
+    echo "  Response: $BODY"
+  fi
+}
+
+command -v curl &> /dev/null || { echo "curl not found"; exit 1; }
+command -v jq &> /dev/null || { echo "jq not found"; exit 1; }
+
+echo -e "
+${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}                    API TEST SUITE                              ${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+
+log_step "Checking API health"
+api_call GET "$API_BASE/health"
+[ "$STATUS" = "200" ] || { log_error "API not responding at $API_BASE"; exit 1; }
+log_success "API is running"
+
+# ═══════════════════════════════════════════════════════════════
+# AUTHENTICATION SETUP
+# ═══════════════════════════════════════════════════════════════
+
+log_step "Setting up authentication"
+log_info "Registering test user: $TEST_EMAIL"
+
+# Register test user
+api_call POST "$API_BASE/auth/register" "{\"email\":\"$TEST_EMAIL\",\"username\":\"$TEST_USERNAME\",\"password\":\"$TEST_PASSWORD\"}" true
+
+if [ "$STATUS" = "201" ]; then
+  log_success "Test user registered"
+  TEST_USER_ID=$(echo "$BODY" | jq -r '.user.id')
+  log_info "User ID: $TEST_USER_ID"
+elif [ "$STATUS" = "400" ]; then
+  # User might already exist, try logging in
+  log_info "User may exist, attempting login..."
+  api_call POST "$API_BASE/auth/login" "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" true
+  if [ "$STATUS" = "200" ]; then
+    log_success "Logged in with existing user"
+    TEST_USER_ID=$(echo "$BODY" | jq -r '.user.id')
+  else
+    log_error "Failed to authenticate"
+    echo "  Response: $BODY"
+    exit 1
+  fi
+else
+  log_error "Failed to register test user"
+  echo "  Response: $BODY"
+  exit 1
+fi
+
+# Verify authentication works
+api_call GET "$API_BASE/auth/me" "" true
+if [ "$STATUS" = "200" ]; then
+  log_success "Session cookie is valid"
+else
+  log_error "Session verification failed"
+  exit 1
+fi
+
+echo -e "
+${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}                    CRUD API TESTS                              ${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+
+# Test CRUD operations for a resource with single primary key
+# Args: name, endpoint, pk, create_data, update_data, use_auth
+test_crud() {
+  local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
+
+  log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
+
+  # Expand $TEST_USER_ID in payloads (bash variable substitution)
+  create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+  update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+
+  # CREATE
+  api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  assert_status 201 "POST /api/$endpoint (create)"
+
+  if [ "$STATUS" != "201" ]; then
+    log_error "Skipping remaining $name tests due to create failure"
+    return
+  fi
+
+  ID=$(echo "$BODY" | jq -r ".$pk")
+  echo "  Created $name ID: $ID"
+
+  # READ
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$ID (read)"
+
+  # UPDATE
+  api_call PUT "$API_BASE/$endpoint/$ID" "$update_data" "$use_auth"
+  assert_status 200 "PUT /api/$endpoint/$ID (update)"
+
+  # READ (verify update)
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$ID (after update)"
+
+  # DELETE
+  api_call DELETE "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  assert_status 200 "DELETE /api/$endpoint/$ID"
+
+  # READ (verify deleted)
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  assert_status 404 "GET /api/$endpoint/$ID (should be 404)"
+}
+
+# Test CRUD operations for a resource with composite primary key
+# Args: name, endpoint, pk_fields (comma-separated), create_data, update_data, use_auth
+test_crud_composite() {
+  local name=$1 endpoint=$2 pk_fields=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
+
+  log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
+
+  # Expand $TEST_USER_ID in payloads (bash variable substitution)
+  create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+  update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+
+  # Build ID path from create_data to check/delete existing record
+  local id_path=""
+  IFS=',' read -ra PK_ARRAY <<< "$pk_fields"
+  for pk in "${PK_ARRAY[@]}"; do
+    local val=$(echo "$create_data" | jq -r ".$pk")
+    if [ -n "$id_path" ]; then
+      id_path="$id_path/$val"
+    else
+      id_path="$val"
+    fi
+  done
+
+  # Delete existing record if it exists (e.g., from seeded data)
+  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  if [ "$STATUS" = "200" ]; then
+    log_info "Deleted existing record at $id_path (was seeded)"
+  fi
+
+  # CREATE
+  api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  assert_status 201 "POST /api/$endpoint (create)"
+
+  if [ "$STATUS" != "201" ]; then
+    log_error "Skipping remaining $name tests due to create failure"
+    return
+  fi
+
+  # Re-extract ID path from response in case server modified values
+  id_path=""
+  for pk in "${PK_ARRAY[@]}"; do
+    local val=$(echo "$BODY" | jq -r ".$pk")
+    if [ -n "$id_path" ]; then
+      id_path="$id_path/$val"
+    else
+      id_path="$val"
+    fi
+  done
+  echo "  Created $name ID: $id_path"
+
+  # READ
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$id_path (read)"
+
+  # UPDATE
+  api_call PUT "$API_BASE/$endpoint/$id_path" "$update_data" "$use_auth"
+  assert_status 200 "PUT /api/$endpoint/$id_path (update)"
+
+  # READ (verify update)
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "GET /api/$endpoint/$id_path (after update)"
+
+  # DELETE
+  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 200 "DELETE /api/$endpoint/$id_path"
+
+  # READ (verify deleted)
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  assert_status 404 "GET /api/$endpoint/$id_path (should be 404)"
+}
+
+# ═══════════════════════════════════════════════════════════════
+# TABLE TESTS
+# ═══════════════════════════════════════════════════════════════
+# Test Product
+test_crud 'Product' 'product' 'id' '{"productName":"Jannie"}' '{"productName":"Jannie"}' 'false'
+
+# Test Customer
+test_crud 'Customer' 'customer' 'id' '{"name":"Leilani"}' '{"name":"Leilani"}' 'false'
+
+# Test Order
+test_crud 'Order' 'order' 'id' '{"customerId":1}' '{"customerId":1}' 'false'
+
+# Test Order Product
+test_crud_composite 'Order Product' 'order-product' 'orderId,productId' '{"orderId":1,"productId":1}' '{"orderId":1,"productId":1}' 'false'
+
+# Test User
+test_crud 'User' 'user' 'id' '{"email":"hailee_schroeder@example.com","username":"deangelo_pfannerstill64","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":false}' '{"email":"hailee_schroeder@example.com","username":"deangelo_pfannerstill64","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":false}' 'false'
+
+# Test Session
+test_crud 'Session' 'session' 'id' '{"userId":"$TEST_USER_ID","expiresAt":"2025-02-08T01:18:47.733Z"}' '{"userId":"$TEST_USER_ID","expiresAt":"2025-02-08T01:18:47.733Z"}' 'true'
+
+# Test Oauth Account
+test_crud_composite 'Oauth Account' 'oauth-account' 'providerId,providerUserId' '{"providerId":"bos","providerUserId":"adduco","userId":"$TEST_USER_ID"}' '{"providerId":"bos","providerUserId":"adduco","userId":"$TEST_USER_ID"}' 'true'
+
+# Test Profile
+test_crud 'Profile' 'profile' 'id' '{"userId":"$TEST_USER_ID","bio":"totus"}' '{"userId":"$TEST_USER_ID","bio":"totus"}' 'true'
+
+# Test Posts
+test_crud 'Posts' 'posts' 'id' '{"userId":"$TEST_USER_ID","title":"creator","content":null}' '{"userId":"$TEST_USER_ID","title":"creator","content":null}' 'true'
+
+# Test User Type
+test_crud 'User Type' 'user-type' 'id' '{"name":"Isabell"}' '{"name":"Isabell"}' 'false'
+
+# Test User User Type
+test_crud_composite 'User User Type' 'user-user-type' 'userId,userTypeId' '{"userId":"$TEST_USER_ID","userTypeId":1}' '{"userId":"$TEST_USER_ID","userTypeId":1}' 'false'
+
+# ═══════════════════════════════════════════════════════════════
+# CLEANUP & SUMMARY
+# ═══════════════════════════════════════════════════════════════
+
+log_step "Cleanup"
+api_call POST "$API_BASE/auth/logout" "" true
+log_info "Logged out test user"
+
+echo -e "
+${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}                       TEST SUMMARY                             ${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "
+${GREEN}Passed: $TESTS_PASSED${NC}"
+echo -e "${RED}Failed: $TESTS_FAILED${NC}"
+
+[ $TESTS_FAILED -eq 0 ] && echo -e "
+${GREEN}All tests passed!${NC}" && exit 0
+echo -e "
+${RED}Some tests failed${NC}" && exit 1

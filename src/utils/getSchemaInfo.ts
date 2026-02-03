@@ -31,6 +31,8 @@ export interface ISchemaInfoResult {
   pivotTables: string[];
   seedData: Record<PropertyKey, unknown>;
   getPrimaryKey: (tableName: string) => string;
+  getCompositePrimaryKey: (tableName: string) => string[];
+  hasCompositePrimaryKey: (tableName: string) => boolean;
   getForeignTables: (tableName: string) => string[];
   getRequiredColumns: (tableName: string) => string[];
   getAllColumns: (tableName: string) => string[];
@@ -75,11 +77,46 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     if (!table) {
       return '';
     }
+
+    // Check for composite primary key first
+    if (table.compositePrimaryKey && table.compositePrimaryKey.length >= 2) {
+      return table.compositePrimaryKey[0];
+    }
+
+    // Fall back to single primary key column
     const primaryKeys = table.columnsInfo
       .filter((col: IColumnInfo) => col.primary_key === true)
       .map((col: IColumnInfo) => col.column_name);
 
     return primaryKeys[0] ?? '';
+  };
+
+  /**
+   * Get composite primary key columns for a table.
+   *
+   * Returns the array of column names that form the composite primary key,
+   * or an empty array if the table uses a single primary key.
+   */
+  const getCompositePrimaryKey = (tableName: string): string[] => {
+    const table = tableMap.get(tableName);
+    if (!table) {
+      return [];
+    }
+    return table.compositePrimaryKey ?? [];
+  };
+
+  /**
+   * Check if a table has a composite primary key.
+   */
+  const hasCompositePrimaryKey = (tableName: string): boolean => {
+    const table = tableMap.get(tableName);
+    if (!table) {
+      return false;
+    }
+    return (
+      table.compositePrimaryKey !== undefined &&
+      table.compositePrimaryKey.length >= 2
+    );
   };
 
   /* Get foreign tables for a table */
@@ -283,6 +320,8 @@ export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
     pivotTables,
     seedData,
     getPrimaryKey,
+    getCompositePrimaryKey,
+    hasCompositePrimaryKey,
     getForeignTables,
     getAllColumns,
     getRequiredColumns,

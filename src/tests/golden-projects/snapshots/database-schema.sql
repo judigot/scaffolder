@@ -34,11 +34,11 @@ CREATE TABLE "order" (
 );
 
 CREATE TABLE "order_product" (
-  "id" BIGSERIAL PRIMARY KEY,
   "order_id" BIGINT NOT NULL,
   "product_id" BIGINT NOT NULL,
   CONSTRAINT "FK_order_product_order_id" FOREIGN KEY ("order_id") REFERENCES "order" ("id"),
-  CONSTRAINT "FK_order_product_product_id" FOREIGN KEY ("product_id") REFERENCES "product" ("id")
+  CONSTRAINT "FK_order_product_product_id" FOREIGN KEY ("product_id") REFERENCES "product" ("id"),
+  PRIMARY KEY ("order_id", "product_id")
 );
 
 CREATE TABLE "user" (
@@ -62,11 +62,11 @@ CREATE TABLE "session" (
 );
 
 CREATE TABLE "oauth_account" (
-  "id" BIGSERIAL PRIMARY KEY,
   "provider_id" TEXT NOT NULL,
   "provider_user_id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL,
-  CONSTRAINT "FK_oauth_account_user_id" FOREIGN KEY ("user_id") REFERENCES "user" ("id")
+  CONSTRAINT "FK_oauth_account_user_id" FOREIGN KEY ("user_id") REFERENCES "user" ("id"),
+  PRIMARY KEY ("provider_id", "provider_user_id")
 );
 
 CREATE TABLE "profile" (
@@ -97,12 +97,12 @@ CREATE TABLE "user_type" (
 );
 
 CREATE TABLE "user_user_type" (
-  "id" BIGSERIAL PRIMARY KEY,
   "user_id" TEXT NOT NULL,
   "user_type_id" BIGINT NOT NULL,
   "created_at" TIMESTAMPTZ (6) DEFAULT NOW (),
   "updated_at" TIMESTAMPTZ (6) DEFAULT NOW (),
   "deleted_at" TIMESTAMPTZ (6),
   CONSTRAINT "FK_user_user_type_user_id" FOREIGN KEY ("user_id") REFERENCES "user" ("id"),
-  CONSTRAINT "FK_user_user_type_user_type_id" FOREIGN KEY ("user_type_id") REFERENCES "user_type" ("id")
+  CONSTRAINT "FK_user_user_type_user_type_id" FOREIGN KEY ("user_type_id") REFERENCES "user_type" ("id"),
+  PRIMARY KEY ("user_id", "user_type_id")
 );

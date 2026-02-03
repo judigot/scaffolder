@@ -230,16 +230,19 @@ async function getCachedBuild(
 }
 
 describe('TRUE GOLDEN TEST: Complete Projects', () => {
-  beforeAll(() => {
-    // Clean output directory
-    if (fs.existsSync(outputBaseDir)) {
-      fs.rmSync(outputBaseDir, { recursive: true });
-    }
-    fs.mkdirSync(outputBaseDir, { recursive: true });
-    // Reset caches
-    cachedUserFiles = null;
-    buildCache.clear();
-  });
+  beforeAll(
+    () => {
+      // Clean output directory
+      if (fs.existsSync(outputBaseDir)) {
+        fs.rmSync(outputBaseDir, { recursive: true });
+      }
+      fs.mkdirSync(outputBaseDir, { recursive: true });
+      // Reset caches
+      cachedUserFiles = null;
+      buildCache.clear();
+    },
+    30000, // 30 second timeout for setup
+  );
 
   it(`should discover ${String(completeProjects.length)} complete projects`, () => {
     console.log('\nDiscovered complete projects (with $USE_CORE):');

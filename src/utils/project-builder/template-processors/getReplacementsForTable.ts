@@ -3,6 +3,13 @@ import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForAuth } from '@/utils/project-builder/template-processors/getReplacementsForAuth.ts';
+import type { IFormStore } from '@/useFormStore.ts';
+
+// Database identifier quote characters
+const IDENTIFIER_QUOTES: Record<string, string> = {
+  mysql: '`',
+  postgresql: '"',
+};
 
 /**
  * Creates a helper function to support dynamic separators
@@ -56,6 +63,7 @@ export const getReplacementsForTable = (
   schemaInfoParsed: ISchemaInfoResult,
   tableIndex?: number,
   totalTables?: number,
+  formData?: IFormStore,
 ): Replacements => {
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
@@ -70,7 +78,9 @@ export const getReplacementsForTable = (
   // Auth resource detection
   const isAuthResource = table.isAuthResource === true;
   const ownerField = table.ownerField ?? '';
-  const ownerFieldCamelCase = ownerField ? changeCase(ownerField).camelCase : '';
+  const ownerFieldCamelCase = ownerField
+    ? changeCase(ownerField).camelCase
+    : '';
 
   const columnInfoNames = schemaInfoParsed
     .getColumnsInfo(table.tableName)
@@ -90,70 +100,43 @@ export const getReplacementsForTable = (
     ? changeCase(primaryKey).camelCase
     : '';
 
-  // Generate sample payloads for API testing
-  // @deprecated Use DSL operators (CONTAINS, ENDS_WITH, STARTS_WITH, --filter) instead.
-  // These functions will be removed in a future version.
-  // Example filter: <@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND NOT value ENDS_WITH '_at'">
+  // Get composite primary key info
+  const compositePrimaryKey = schemaInfoParsed.getCompositePrimaryKey(
+    table.tableName,
+  );
+  const compositePrimaryKeyCamelCase = compositePrimaryKey.map(
+    (col) => changeCase(col).camelCase,
+  );
+  const hasCompositePK = schemaInfoParsed.hasCompositePrimaryKey(
+    table.tableName,
+  );
+
+  // Get primary key data type
   const columnsInfo = schemaInfoParsed.getColumnsInfo(table.tableName);
-  const foreignTablesList = schemaInfoParsed.getForeignTables(table.tableName);
-  const generatePayload = (isUpdate: boolean): string => {
-    const payload: Record<string, unknown> = {};
-    for (const col of columnsInfo) {
-      // Skip primary key
-      if (col.column_name === primaryKey) {
-        continue;
-      }
-      // Skip auto-generated timestamp columns
-      if (
-        col.column_name.endsWith('_at') ||
-        col.column_name === 'created_at' ||
-        col.column_name === 'updated_at' ||
-        col.column_name === 'deleted_at'
-      ) {
-        continue;
-      }
-
-      const camelName = changeCase(col.column_name).camelCase;
-      const prefix = isUpdate ? 'Updated ' : 'Test ';
-
-      // Check if this is a foreign key column (ends with _id and references another table)
-      const isForeignKey =
-        col.column_name.endsWith('_id') &&
-        foreignTablesList.some(
-          (ft) =>
-            col.column_name === `${ft}_id` ||
-            col.column_name === `${changeCase(ft).snakeCase}_id`,
-        );
-
-      // Generate sample value based on type
-      if (
-        isForeignKey ||
-        col.data_type.includes('int') ||
-        col.data_type === 'serial'
-      ) {
-        payload[camelName] = 1;
-      } else if (col.data_type.includes('bool')) {
-        payload[camelName] = true;
-      } else if (
-        col.data_type.includes('numeric') ||
-        col.data_type.includes('decimal') ||
-        col.data_type.includes('float') ||
-        col.data_type.includes('double')
-      ) {
-        payload[camelName] = 9.99;
-      } else {
-        payload[camelName] = `${prefix}${camelName}`;
-      }
-    }
-    return JSON.stringify(payload);
-  };
+  const primaryKeyColumn = hasCompositePK
+    ? columnsInfo.find((col) => col.column_name === compositePrimaryKey[0])
+    : columnsInfo.find((col) => col.primary_key === true);
+  const rawPkDataType = primaryKeyColumn?.data_type ?? '';
+  // Schema uses normalized types ('string', 'number', 'Date', 'boolean')
+  const primaryKeyDataType = rawPkDataType === 'string' ? 'string' : 'number';
 
   // Get auth-related replacements (project-level)
   const authReplacements = getReplacementsForAuth(schemaInfoParsed.schema);
 
+  // Database-related replacements
+  const dbType =
+    formData !== undefined && typeof formData.dbType === 'string'
+      ? formData.dbType
+      : 'postgresql';
+  const identifierQuote = IDENTIFIER_QUOTES[dbType] ?? '"';
+
   // Create base replacements object
   const baseReplacements: Replacements = {
     ...authReplacements,
+    // Database-specific replacements
+    dbType,
+    identifierQuote,
+    'formData.dbType': dbType,
     tableNamePascalCase: caseFormats.pascalCase,
     tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
     tableNameKebabCasePlural: caseFormats.kebabCasePlural,
@@ -182,8 +165,7 @@ export const getReplacementsForTable = (
     'getPrimaryKey()': primaryKey,
     'getPrimaryKeyCamelCase()': primaryKeyCamelCase,
     primaryKey: primaryKeyCamelCase,
-    createPayload: generatePayload(false),
-    updatePayload: generatePayload(true),
+    primaryKeyDataType,
     'getRequiredColumns()': requiredColumns,
     'getAllColumns()': allColumns,
     'getForeignTables()': foreignTables,
@@ -191,6 +173,11 @@ export const getReplacementsForTable = (
     'getColumnsInfoNames()': columnInfoNames,
     'getChildTables()': childTables,
     'isPivot()': String(schemaInfoParsed.isPivot(table.tableName)),
+    // Composite primary key support
+    // Use <@@LOOP@@ data="compositePrimaryKey"> in templates for flexible iteration
+    'hasCompositePrimaryKey()': String(hasCompositePK),
+    'getCompositePrimaryKey()': compositePrimaryKey,
+    'getCompositePrimaryKeyCamelCase()': compositePrimaryKeyCamelCase,
     // Auth resource template variables
     isAuthResource: String(isAuthResource),
     'isAuthResource()': String(isAuthResource),
@@ -220,6 +207,8 @@ export const getReplacementsForTable = (
     ['hasManyRelationships', hasManyRelationships],
     ['belongsToRelationships', belongsToRelationships],
     ['belongsToManyRelationships', belongsToManyRelationships],
+    ['getCompositePrimaryKey', compositePrimaryKey],
+    ['getCompositePrimaryKeyCamelCase', compositePrimaryKeyCamelCase],
   ];
 
   // Add indexed access for all array properties
