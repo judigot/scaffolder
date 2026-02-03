@@ -1,8 +1,7 @@
 name: Quality Test Suite
 
 on:
-  push:
-    branches: [main, develop]
+  push: {}
 
 jobs:
   quality:
