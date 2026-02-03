@@ -16,11 +16,13 @@ project/
 ```
 
 **Pros:**
+
 - Visible in file viewer
 - Grep-able for CLI usage
 - Can be checked in CI pipelines
 
 **Cons:**
+
 - Easy to miss in large file trees
 - No severity levels
 - No actionable suggestions
@@ -68,11 +70,11 @@ project/
 
 ## Severity Levels
 
-| Level | Icon | Use Case | Blocks Generation? |
-|-------|------|----------|-------------------|
-| `error` | ❌ | Circular imports, missing required files | Yes |
-| `warning` | ⚠️ | Unresolved placeholders, deprecated syntax | No |
-| `info` | ℹ️ | Suggestions, optimization hints | No |
+| Level     | Icon | Use Case                                   | Blocks Generation? |
+| --------- | ---- | ------------------------------------------ | ------------------ |
+| `error`   | ❌   | Circular imports, missing required files   | Yes                |
+| `warning` | ⚠️   | Unresolved placeholders, deprecated syntax | No                 |
+| `info`    | ℹ️   | Suggestions, optimization hints            | No                 |
 
 ## Banner Component API
 
@@ -120,6 +122,7 @@ return (
 **Line:** 12
 
 Import chain:
+
 1. shared/header.template
 2. shared/footer.template
 3. shared/header.template (circular!)
@@ -136,6 +139,7 @@ Import chain:
 The placeholder `unknownField` is not defined in the current context.
 
 **Available placeholders:**
+
 - tableName
 - columnName
 - foreignTable
@@ -151,7 +155,11 @@ The placeholder `unknownField` is not defined in the current context.
       "file": "shared/header.template",
       "line": 12,
       "message": "Circular import detected",
-      "chain": ["shared/header.template", "shared/footer.template", "shared/header.template"],
+      "chain": [
+        "shared/header.template",
+        "shared/footer.template",
+        "shared/header.template"
+      ],
       "suggestion": "Remove the import of header.template from footer.template"
     }
   ],
@@ -164,15 +172,15 @@ The placeholder `unknownField` is not defined in the current context.
 
 ### Phase 1: Define Message Types
 
-- [ ] Create `IScaffolderMessage` interface
-- [ ] Define error codes enum
-- [ ] Create message factory functions
+- [x] Create `IScaffolderMessage` interface
+- [x] Define error codes enum/object
+- [x] Create message factory functions
 
 ### Phase 2: Update Build Pipeline
 
-- [ ] Collect messages during generation (not just files)
-- [ ] Return messages alongside generated files
-- [ ] Support both banner data and file output
+- [x] Collect messages during generation (not just files)
+- [x] Return messages alongside generated files
+- [x] Support both banner data and file output
 
 ```typescript
 interface IBuildResult {
@@ -185,71 +193,77 @@ interface IBuildResult {
 
 ### Phase 3: Create Banner Component
 
-- [ ] Create `ScaffolderBanner` component
-- [ ] Style for error/warning/info variants
-- [ ] Add dismiss functionality
-- [ ] Add expand/collapse for details
+- [x] Create `ScaffolderBanner` component
+- [x] Style for error/warning/info variants
+- [x] Add dismiss functionality
+- [x] Add expand/collapse for details
 
 ### Phase 4: Update File Viewer Integration
 
-- [ ] Display banners above file tree
-- [ ] Link banner to relevant file (click to navigate)
-- [ ] Highlight files with errors in tree
+- [x] Display banners above file tree
+- [x] Link banner to relevant file (click to navigate)
+- [x] Highlight files with errors in tree
 
 ### Phase 5: CLI/Package Output
 
-- [ ] Generate `_ERRORS_.md` when errors exist
-- [ ] Generate `_WARNINGS_.md` when warnings exist
-- [ ] Support `--json` flag for JSON output
-- [ ] Exit with non-zero code on errors
+- [x] Generate `_ERRORS_.md` when errors exist
+- [x] Generate `_WARNINGS_.md` when warnings exist
+- [x] Support `--json` flag for JSON output
+- [x] Exit with non-zero code on errors
 
 ## Files to Modify
 
 ### Core
+
 - `src/utils/project-builder/buildProjectFiles.ts`
 - Create `src/utils/project-builder/messages.ts`
 
 ### Components
+
 - Create `src/components/UI/ScaffolderBanner.tsx`
 - Update `src/components/FileViewer.tsx`
 
 ### Stores
+
 - Create `src/stores/useScaffolderMessagesStore.ts` or add to existing store
 
 ## Error Codes
 
-| Code | Severity | Description |
-|------|----------|-------------|
-| `CIRCULAR_IMPORT` | error | Template imports itself |
-| `CIRCULAR_PLACEHOLDER` | error | Placeholder references itself |
-| `FILE_NOT_FOUND` | error | Imported file doesn't exist |
-| `UNRESOLVED_PLACEHOLDER` | warning | Placeholder not in context |
-| `DEPRECATED_SYNTAX` | warning | Using legacy template syntax |
-| `EMPTY_LOOP` | info | Loop has no items |
-| `UNUSED_VARIABLE` | info | Context variable not used |
+| Code                     | Severity | Description                   |
+| ------------------------ | -------- | ----------------------------- |
+| `CIRCULAR_IMPORT`        | error    | Template imports itself       |
+| `CIRCULAR_PLACEHOLDER`   | error    | Placeholder references itself |
+| `FILE_NOT_FOUND`         | error    | Imported file doesn't exist   |
+| `UNRESOLVED_PLACEHOLDER` | warning  | Placeholder not in context    |
+| `DEPRECATED_SYNTAX`      | warning  | Using legacy template syntax  |
+| `EMPTY_LOOP`             | info     | Loop has no items             |
+| `UNUSED_VARIABLE`        | info     | Context variable not used     |
 
 ## UX Considerations
 
 ### Banner Placement
+
 - Above file tree, always visible
 - Sticky at top when scrolling
 - Grouped by severity (errors first)
 
 ### Dismissibility
+
 - Errors: Not dismissible (must be fixed)
 - Warnings: Dismissible, but reappear on regeneration
 - Info: Dismissible, remember preference
 
 ### Progressive Disclosure
+
 - Show title by default
 - Expand for details
 - Link to documentation for complex errors
 
 ## Success Criteria
 
-- [ ] Banners display in web UI for all message types
-- [ ] Error files generated for CLI usage
-- [ ] Messages include actionable suggestions
-- [ ] Clicking banner navigates to relevant file
-- [ ] Non-zero exit code for CLI when errors exist
-- [ ] All existing error cases covered
+- [x] Banners display in web UI for all message types
+- [x] Error files generated for CLI usage
+- [x] Messages include actionable suggestions
+- [x] Clicking banner navigates to relevant file
+- [x] Non-zero exit code for CLI when errors exist
+- [x] All existing error cases covered
