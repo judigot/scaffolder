@@ -253,7 +253,7 @@ export const processArrayIteration = (
       formData,
     );
 
-    const replacements: Record<string, string> = {
+    const replacements: Record<string, string | string[]> = {
       ...dataSourceReplacements,
       ...tableReplacements,
       ...itemReplacements,

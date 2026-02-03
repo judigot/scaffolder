@@ -224,15 +224,13 @@ describe('Hono-React Project Generation', () => {
       // Regular tables use single-line format: pgTable('tableName',
       for (const table of schema) {
         const hasCompositePK =
-          table.compositePrimaryKey &&
+          table.compositePrimaryKey !== undefined &&
           table.compositePrimaryKey.length >= 2;
         if (hasCompositePK) {
           // Multi-line format for composite PK tables
           expect(schemaFile?.content).toContain(`'${table.tableName}',`);
         } else {
-          expect(schemaFile?.content).toContain(
-            `pgTable('${table.tableName}'`,
-          );
+          expect(schemaFile?.content).toContain(`pgTable('${table.tableName}'`);
         }
       }
 
@@ -298,8 +296,7 @@ describe('Hono-React Project Generation', () => {
       // Count tables without composite primary keys (tests are skipped for composite PK tables)
       const tablesWithoutCompositePK = schema.filter(
         (table) =>
-          !table.compositePrimaryKey ||
-          table.compositePrimaryKey.length < 2,
+          !table.compositePrimaryKey || table.compositePrimaryKey.length < 2,
       ).length;
 
       // Should have a test file for each non-composite-PK table
