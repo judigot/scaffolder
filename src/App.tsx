@@ -127,12 +127,12 @@ function App() {
     setFocusedFilePath,
   } = useScaffolderMessagesStore();
 
+  const visibleBannerMessages = bannerMessages.filter(
+    (message) => message.code !== SCAFFOLDER_MESSAGE_CODES.UserEnvUsage,
+  );
+
   useEffect(() => {
-    setMessages(
-      (buildResult.messages ?? []).filter(
-        (message) => message.code !== SCAFFOLDER_MESSAGE_CODES.UserEnvUsage,
-      ),
-    );
+    setMessages(buildResult.messages ?? []);
   }, [buildResult.messages, setMessages]);
 
   /**
@@ -938,9 +938,9 @@ function App() {
         </div>
       </nav>
 
-      {bannerMessages.length > 0 && (
+      {visibleBannerMessages.length > 0 && (
         <div className="sticky top-16 z-40 px-4 py-2 space-y-2 backdrop-blur bg-black/70 border-b border-white/10">
-          {bannerMessages.map((message) => (
+          {visibleBannerMessages.map((message) => (
             <ScaffolderBanner
               key={message.id}
               severity={message.severity}
