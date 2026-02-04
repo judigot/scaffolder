@@ -8,7 +8,7 @@ const buildForeignKeyChildTableMap = (
 	for (const table of schemaInfo) {
 		for (const column of table.columnsInfo) {
 			const parentTable = column.foreign_key?.foreign_table_name;
-			if (parentTable) {
+			if (typeof parentTable === "string" && parentTable.length > 0) {
 				const existingChildren = childTableMap.get(parentTable) ?? [];
 				if (!existingChildren.includes(table.tableName)) {
 					existingChildren.push(table.tableName);
