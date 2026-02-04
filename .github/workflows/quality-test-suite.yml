@@ -38,6 +38,8 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://app:app123@localhost:5432/app
+      POSTGRES_TEST_URL: postgresql://app:app123@localhost:5432/app
+      MYSQL_TEST_URL: mysql://scaffolder:scaffolder123@localhost:13306/scaffolder
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
