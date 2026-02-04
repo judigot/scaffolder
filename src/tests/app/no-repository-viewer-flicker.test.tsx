@@ -30,7 +30,7 @@ const RepositoryViewerGuard = ({
   return shouldShowRepositoryViewer ? (
     <div>Repository Viewer</div>
   ) : (
-    <div role="status">Project UI</div>
+    <output>Project UI</output>
   );
 };
 

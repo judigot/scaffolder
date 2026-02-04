@@ -30,7 +30,7 @@
     "lint:tsc": "tsc --project tsconfig.app.json --noEmit",
     "type-check": "tsc --project tsconfig.app.json --noEmit",
     "build:vercel": "vercel build",
-    "lint:biome": "biome lint --write src",
+    "lint:biome": "biome lint --write --error-on-warnings src",
     "lint:biome:unsafe": "biome lint --write --unsafe src",
     "lint:oxlint": "oxlint --fix src",
     "lint:oxlint:unsafe": "oxlint --fix-dangerously src",
