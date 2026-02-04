@@ -37,6 +37,7 @@ import { useUIStore } from '@/useUIStore.ts';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
+import { findProjectsFolderAtRoot } from '@/utils/project-builder/utils/findProjectsFolderAtRoot.ts';
 import { getRandomIntro } from '@/utils/randomIntro.ts';
 import {
   removeHiddenSchemaFromText,
@@ -1210,18 +1211,27 @@ export function AIChatContainer({
     !isScaffolderRepo && displayFiles !== undefined && displayFiles.length > 0;
 
   // Check if remote repo doesn't have scaffolder structure but has files
-  // In this case, show raw files in view mode instead of empty edit mode
+  // Only show raw files when there's no Projects folder at all.
+  const hasProjectsFolder =
+    findProjectsFolderAtRoot(storeUserFiles) !== undefined;
   const isRemoteWithoutScaffolderStructure =
     isScaffolderRepo &&
     !useLocalScaffolderFiles &&
-    builtProjectFiles.length === 0 &&
-    storeUserFiles.length > 0;
+    storeUserFiles.length > 0 &&
+    !hasProjectsFolder;
 
   return (
     <div className="flex h-full w-full bg-bg overflow-hidden">
       {/* FileViewer panel - Scaffolder mode (edit) or Remote view-only mode */}
       {isScaffolderRepo && activeTab === 'fileViewer' && (
-        <div className="flex flex-col overflow-hidden w-full">
+        <div
+          className="flex flex-col overflow-hidden w-full"
+          data-testid={
+            isRemoteWithoutScaffolderStructure
+              ? 'scaffolder-repo-viewer'
+              : undefined
+          }
+        >
           <FileViewer
             mode={isRemoteWithoutScaffolderStructure ? 'view' : 'edit'}
             folderStructure={

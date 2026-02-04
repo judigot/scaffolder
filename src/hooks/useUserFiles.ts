@@ -1,9 +1,11 @@
 import {
+  keepPreviousData,
   type UseQueryOptions,
   type UseQueryResult,
   useQuery,
 } from '@tanstack/react-query';
-import type { IStructure } from '@/components/FileViewer.tsx';
+import type { IFile, IStructure } from '@/components/FileViewer.tsx';
+import { extractProjectsFromFiles } from '@/utils/extractProjectsFromFiles.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 interface IFetchGitHubFilesParams {
@@ -13,6 +15,16 @@ interface IFetchGitHubFilesParams {
 interface IErrorResponse {
   message?: string;
   error?: string;
+}
+
+/**
+ * Transformed data structure returned by useUserFiles.
+ * Contains both the raw files and extracted projects in a single object,
+ * eliminating the sync gap between TanStack Query and Zustand state.
+ */
+export interface IUserFilesData {
+  userFiles: IStructure;
+  projects: IFile[];
 }
 
 const isProduction = import.meta.env.PROD;
@@ -103,33 +115,44 @@ const fetchGitHubFiles = async (
 };
 
 /**
- * Hook for fetching and caching GitHub files using TanStack Query
+ * Hook for fetching and caching GitHub files using TanStack Query.
+ *
+ * Uses the `select` option to synchronously transform the raw file structure
+ * into an object containing both files and extracted projects. This eliminates
+ * the render-cycle gap that previously caused UI flicker.
+ *
+ * Best practices applied:
+ * - `placeholderData: keepPreviousData` - Shows previous data during refetch (replaces deprecated keepPreviousData option)
+ * - `select` - Synchronous transformation, no useEffect sync needed
+ * - Returns `isPending` for proper "no data yet" checks
  *
  * @param params The parameters for fetching GitHub files
  * @param behavior Optional behavior configuration for the query
- * @returns Query result containing the GitHub files data, loading state, and error state
+ * @returns Query result containing userFiles, projects, loading states, and error state
  */
-type UseUserFilesDefaultOptions = UseQueryOptions<IStructure> & {
-  keepPreviousData: true;
-};
-
 export const useUserFiles = (
   params: IFetchGitHubFilesParams,
-  behavior?: Omit<UseQueryOptions<IStructure>, 'queryKey' | 'queryFn'>,
-): UseQueryResult<IStructure> => {
-  const defaultOptions: UseUserFilesDefaultOptions = {
+  behavior?: Omit<
+    UseQueryOptions<IStructure, Error, IUserFilesData>,
+    'queryKey' | 'queryFn' | 'select'
+  >,
+): UseQueryResult<IUserFilesData> => {
+  return useQuery({
     queryKey: ['userFiles', params.publicRepoURL],
     queryFn: () => fetchGitHubFiles({ publicRepoURL: params.publicRepoURL }),
+    // Use select for synchronous transformation - projects are extracted in the same render cycle
+    select: (userFiles): IUserFilesData => ({
+      userFiles,
+      projects: extractProjectsFromFiles(userFiles),
+    }),
+    // Use placeholderData instead of deprecated keepPreviousData option
+    // This keeps showing previous data while new data is being fetched
+    placeholderData: keepPreviousData,
     refetchInterval: 30 * 1000,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: 'always',
     retry: false,
-    keepPreviousData: true,
-  };
-
-  return useQuery({
-    ...defaultOptions,
     ...behavior,
   });
 };

@@ -185,35 +185,40 @@ function App() {
   const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
 
   // Use TanStack Query to fetch GitHub files
+  // The hook now uses `select` to extract projects synchronously,
+  // eliminating the render-cycle gap that caused UI flicker.
   const {
     isFetching: isUserFilesFetching,
-    isLoading: isUserFilesLoading,
+    isPending: isUserFilesPending,
     refetch: refetchUserFiles,
-    data: userFiles,
+    data: queryData,
     error: userFilesQueryError,
   } = useUserFiles(
     {
       publicRepoURL,
     },
     {
-      refetchInterval: 5 * 60 * 1000, // 1 second
-      staleTime: 5 * 60 * 1000, // 1 second
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      refetchOnWindowFocus: false, // Refetch on window focus — but only if stale
+      refetchInterval: 5 * 60 * 1000,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
       enabled: !!publicRepoURL,
     },
   );
 
-  // Handle GitHub data changes
+  // Extract data from query result - projects are now available in the same render cycle
+  const queryUserFiles = queryData?.userFiles;
+  const queryProjects = queryData?.projects ?? [];
+
+  // Sync query data to Zustand stores for other parts of the app
+  // Note: We don't rely on Zustand state for render decisions anymore -
+  // the query's `select` gives us projects synchronously.
   useEffect(() => {
-    if (userFiles) {
-      if (userFiles.length > 0) {
-        // Just set the userFiles in the mock database store
-        // The project store will handle detecting changes
-        setUserFiles(userFiles);
-      }
+    if (queryUserFiles && queryUserFiles.length > 0) {
+      // Sync to mock database store (handles typeMappings, dbTypes, and project store notification)
+      setUserFiles(queryUserFiles);
     }
-  }, [userFiles, setUserFiles]);
+  }, [queryUserFiles, setUserFiles]);
 
   // Track schema changes
   useEffect(() => {
@@ -1023,7 +1028,8 @@ function App() {
             {inputRepoURL && isValidGitHubURL(inputRepoURL) && (
               <div>
                 {(() => {
-                  if (isUserFilesLoading) {
+                  // Use isPending - true when no data is available yet (first load)
+                  if (isUserFilesPending) {
                     return (
                       <div className="flex items-center justify-center h-40 rounded-md">
                         <div className="text-white">
@@ -1084,7 +1090,51 @@ function App() {
                     );
                   }
 
-                  if (selectedProject !== null) {
+                  // Show loading if projects exist but selectedProject hasn't been set yet.
+                  // With the new `select`-based approach, queryProjects is available synchronously
+                  // in the same render cycle as the data, so we just need to wait for
+                  // the Zustand store to pick up the selected project.
+                  const isProjectSelectionPending =
+                    queryProjects.length > 0 && selectedProject === null;
+
+                  if (isProjectSelectionPending) {
+                    return (
+                      <div className="flex items-center justify-center h-40 rounded-md">
+                        <div className="text-white">
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            aria-label="Loading"
+                          >
+                            <title>Loading spinner</title>
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Preparing project files...
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Show project UI when we have a selected project and user files are available
+                  if (
+                    selectedProject !== null &&
+                    queryUserFiles &&
+                    queryUserFiles.length > 0
+                  ) {
                     return (
                       <>
                         {/* <div className="bg-blue-500  text-white font-bold">
@@ -1179,10 +1229,16 @@ function App() {
                   }
 
                   // Fallback: If repository files are loaded but no compatible project found,
-                  // display the repository as a read-only file viewer
-                  if (userFiles && userFiles.length > 0) {
+                  // display the repository as a read-only file viewer.
+                  // Only show this when queryProjects.length === 0 - this is the definitive
+                  // check since projects are extracted synchronously via select.
+                  if (
+                    queryUserFiles &&
+                    queryUserFiles.length > 0 &&
+                    queryProjects.length === 0
+                  ) {
                     const hasProjectsFolder =
-                      findProjectsFolderAtRoot(userFiles) !== undefined;
+                      findProjectsFolderAtRoot(queryUserFiles) !== undefined;
 
                     return (
                       <>
@@ -1276,7 +1332,7 @@ function App() {
 
                         <FileViewer
                           mode="view"
-                          folderStructure={userFiles}
+                          folderStructure={queryUserFiles}
                           isFetching={isUserFilesFetching}
                         />
                       </>
