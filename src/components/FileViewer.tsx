@@ -243,33 +243,40 @@ function FileViewer({
     remoteScaffolderURL ?? '',
   );
   const [debouncedRemoteURL] = useDebouncedValue(inputRemoteURL, 1000);
+  const [isRemoteUrlEditing, setIsRemoteUrlEditing] = useState<boolean>(false);
+  const lastRemoteScaffolderURL = useRef<string | undefined>(
+    remoteScaffolderURL,
+  );
 
   // Sync local input when prop changes (e.g., from store)
   // But don't overwrite if the normalized input matches the store value
   useEffect(() => {
-    if (
-      remoteScaffolderURL !== undefined &&
-      remoteScaffolderURL !== inputRemoteURL &&
-      // Don't sync back if the input normalizes to the same URL
-      normalizeGitHubURL(inputRemoteURL) !== remoteScaffolderURL
-    ) {
+    if (remoteScaffolderURL === lastRemoteScaffolderURL.current) {
+      return;
+    }
+    if (!isRemoteUrlEditing && remoteScaffolderURL !== undefined) {
       setInputRemoteURL(remoteScaffolderURL);
     }
-  }, [
-    remoteScaffolderURL,
-    inputRemoteURL, // Don't sync back if the input normalizes to the same URL
-    normalizeGitHubURL,
-  ]);
+    lastRemoteScaffolderURL.current = remoteScaffolderURL;
+  }, [isRemoteUrlEditing, remoteScaffolderURL]);
 
   // Update store when debounced value changes and is valid
   useEffect(() => {
+    if (onRemoteScaffolderURLChange === undefined) {
+      return;
+    }
+    if (debouncedRemoteURL === '') {
+      if (remoteScaffolderURL !== '') {
+        onRemoteScaffolderURLChange('');
+      }
+      return;
+    }
     if (
-      onRemoteScaffolderURLChange !== undefined &&
       debouncedRemoteURL !== remoteScaffolderURL &&
       isValidGitHubURL(debouncedRemoteURL)
     ) {
-      // Normalize shorthand to full URL before passing to store
-      onRemoteScaffolderURLChange(normalizeGitHubURL(debouncedRemoteURL));
+      const normalized = normalizeGitHubURL(debouncedRemoteURL);
+      onRemoteScaffolderURLChange(normalized);
     }
   }, [
     debouncedRemoteURL,
@@ -310,6 +317,10 @@ function FileViewer({
 
   // Combined error state - either URL format error or stable fetch error
   const hasError = hasURLFormatError || hasStableFetchError;
+
+  const skeletonWidths = [80, 70, 60, 50, 40];
+  const shouldShowTreeSkeleton =
+    isFetching === true && initialFolderStructure.length === 0 && !hasError;
 
   // Get error message for display
   const errorMessage = useMemo(() => {
@@ -563,8 +574,11 @@ function FileViewer({
 
   // Restore the missing useEffect that syncs folderStructure with initialFolderStructure
   useEffect(() => {
+    if (initialFolderStructure.length === 0 && isFetching === true) {
+      return;
+    }
     setFolderStructure(initialFolderStructure);
-  }, [initialFolderStructure]);
+  }, [initialFolderStructure, isFetching]);
 
   const filePath =
     selectedFile?.filePath ??
@@ -2760,6 +2774,21 @@ function FileViewer({
                       onChange={(e) => {
                         setInputRemoteURL(e.target.value);
                       }}
+                      onFocus={() => {
+                        setIsRemoteUrlEditing(true);
+                      }}
+                      onBlur={() => {
+                        setIsRemoteUrlEditing(false);
+                        if (inputRemoteURL === '') {
+                          onRemoteScaffolderURLChange('');
+                          return;
+                        }
+                        if (isValidGitHubURL(inputRemoteURL)) {
+                          const normalized = normalizeGitHubURL(inputRemoteURL);
+                          setInputRemoteURL(normalized);
+                          onRemoteScaffolderURLChange(normalized);
+                        }
+                      }}
                       placeholder="judigot/repo or https://github.com/judigot/repo"
                       className={`form-input form-input-sm ${
                         !isValidGitHubURL(inputRemoteURL)
@@ -3082,10 +3111,34 @@ function FileViewer({
                   handleContextMenu(e);
                 }}
               >
-                <div className="min-w-max pb-2">
-                  <SimpleTreeView>
-                    {renderTree(folderStructure, openFile)}
-                  </SimpleTreeView>
+                <div className="relative min-w-max pb-2">
+                  <div className="relative z-0">
+                    <SimpleTreeView>
+                      {renderTree(folderStructure, openFile)}
+                    </SimpleTreeView>
+                  </div>
+                  {shouldShowTreeSkeleton && (
+                    <div className="absolute inset-0 z-10 rounded border border-white/10 bg-gradient-to-br from-gray-900/80 via-gray-900/50 to-gray-900/80 p-4">
+                      <div className="flex flex-col gap-2">
+                        {skeletonWidths.map((width) => {
+                          const widthValue = width.toString();
+                          const widthStyle = `${widthValue}%`;
+                          const skeletonKey = `skeleton-${widthValue}`;
+
+                          return (
+                            <div
+                              key={skeletonKey}
+                              style={{ width: widthStyle }}
+                              className="h-3 rounded bg-gray-600 animate-pulse"
+                            />
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-3">
+                        Loading repository files...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3121,6 +3174,22 @@ function FileViewer({
                           value={inputRemoteURL}
                           onChange={(e) => {
                             setInputRemoteURL(e.target.value);
+                          }}
+                          onFocus={() => {
+                            setIsRemoteUrlEditing(true);
+                          }}
+                          onBlur={() => {
+                            setIsRemoteUrlEditing(false);
+                            if (inputRemoteURL === '') {
+                              onRemoteScaffolderURLChange('');
+                              return;
+                            }
+                            if (isValidGitHubURL(inputRemoteURL)) {
+                              const normalized =
+                                normalizeGitHubURL(inputRemoteURL);
+                              setInputRemoteURL(normalized);
+                              onRemoteScaffolderURLChange(normalized);
+                            }
                           }}
                           placeholder="judigot/repo or https://github.com/judigot/repo"
                           className={`form-input form-input-sm ${
