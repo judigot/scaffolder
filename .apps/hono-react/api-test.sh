@@ -250,10 +250,10 @@ test_crud_composite() {
 # TABLE TESTS
 # ═══════════════════════════════════════════════════════════════
 # Test Product
-test_crud 'Product' 'product' 'id' '{"productName":"Jannie"}' '{"productName":"Jannie"}' 'false'
+test_crud 'Product' 'product' 'id' '{"productName":"Pinkie"}' '{"productName":"Pinkie"}' 'false'
 
 # Test Customer
-test_crud 'Customer' 'customer' 'id' '{"name":"Leilani"}' '{"name":"Leilani"}' 'false'
+test_crud 'Customer' 'customer' 'id' '{"name":"Uriah"}' '{"name":"Uriah"}' 'false'
 
 # Test Order
 test_crud 'Order' 'order' 'id' '{"customerId":1}' '{"customerId":1}' 'false'
@@ -262,22 +262,22 @@ test_crud 'Order' 'order' 'id' '{"customerId":1}' '{"customerId":1}' 'false'
 test_crud_composite 'Order Product' 'order-product' 'orderId,productId' '{"orderId":1,"productId":1}' '{"orderId":1,"productId":1}' 'false'
 
 # Test User
-test_crud 'User' 'user' 'id' '{"email":"hailee_schroeder@example.com","username":"deangelo_pfannerstill64","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":false}' '{"email":"hailee_schroeder@example.com","username":"deangelo_pfannerstill64","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":false}' 'false'
+test_crud 'User' 'user' 'id' '{"email":"gabrielle.krajcik@example.net","username":"casimir27","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":true}' '{"email":"gabrielle.krajcik@example.net","username":"casimir27","passwordHash":null,"firstName":null,"lastName":null,"avatarUrl":null,"emailVerified":true}' 'false'
 
 # Test Session
-test_crud 'Session' 'session' 'id' '{"userId":"$TEST_USER_ID","expiresAt":"2025-02-08T01:18:47.733Z"}' '{"userId":"$TEST_USER_ID","expiresAt":"2025-02-08T01:18:47.733Z"}' 'true'
+test_crud 'Session' 'session' 'id' '{"userId":"$TEST_USER_ID","expiresAt":"2025-10-14T06:35:31.885Z"}' '{"userId":"$TEST_USER_ID","expiresAt":"2025-10-14T06:35:31.885Z"}' 'true'
 
 # Test Oauth Account
-test_crud_composite 'Oauth Account' 'oauth-account' 'providerId,providerUserId' '{"providerId":"bos","providerUserId":"adduco","userId":"$TEST_USER_ID"}' '{"providerId":"bos","providerUserId":"adduco","userId":"$TEST_USER_ID"}' 'true'
+test_crud_composite 'Oauth Account' 'oauth-account' 'providerId,providerUserId' '{"providerId":"ulterius","providerUserId":"suscipit","userId":"$TEST_USER_ID"}' '{"providerId":"ulterius","providerUserId":"suscipit","userId":"$TEST_USER_ID"}' 'true'
 
 # Test Profile
-test_crud 'Profile' 'profile' 'id' '{"userId":"$TEST_USER_ID","bio":"totus"}' '{"userId":"$TEST_USER_ID","bio":"totus"}' 'true'
+test_crud 'Profile' 'profile' 'id' '{"userId":"$TEST_USER_ID","bio":"cohors"}' '{"userId":"$TEST_USER_ID","bio":"cohors"}' 'true'
 
 # Test Posts
-test_crud 'Posts' 'posts' 'id' '{"userId":"$TEST_USER_ID","title":"creator","content":null}' '{"userId":"$TEST_USER_ID","title":"creator","content":null}' 'true'
+test_crud 'Posts' 'posts' 'id' '{"userId":"$TEST_USER_ID","title":"cogo","content":null}' '{"userId":"$TEST_USER_ID","title":"cogo","content":null}' 'true'
 
 # Test User Type
-test_crud 'User Type' 'user-type' 'id' '{"name":"Isabell"}' '{"name":"Isabell"}' 'false'
+test_crud 'User Type' 'user-type' 'id' '{"name":"Judah"}' '{"name":"Judah"}' 'false'
 
 # Test User User Type
 test_crud_composite 'User User Type' 'user-user-type' 'userId,userTypeId' '{"userId":"$TEST_USER_ID","userTypeId":1}' '{"userId":"$TEST_USER_ID","userTypeId":1}' 'false'

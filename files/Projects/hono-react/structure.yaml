@@ -1,10 +1,10 @@
 # Hono + React Fullstack Project
 
 $SCHEMA_FILTER:
-  - "user"                        # Must have user table
-  - "session"                     # Must have session table
-  - "user.id.data_type=uuid"      # UUID primary keys
-  - "session.userId.foreign_key"  # Session references user
+  - 'user' # Must have user table
+  - 'session' # Must have session table
+  - 'user.id.data_type=uuid' # UUID primary keys
+  - 'session.userId.foreign_key' # Session references user
 
 $USE_CORE:
   - /Core/vite-react
@@ -60,3 +60,4 @@ tests:
 CREATE_FILE(README.md --template ./templates/readme.txt):
 CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):
 CREATE_FILE(Dockerfile --template ./templates/Dockerfile):
+CREATE_FILE(Dockerfile.dev --template ./templates/Dockerfile.dev):

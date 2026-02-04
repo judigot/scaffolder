@@ -1,6 +1,7 @@
 import type { User, LoginCredentials, RegisterData } from '@/types';
 
-const API_URL = '/api/auth';
+// API base URL - respects BASE_URL for subpath deployments (e.g., /hono-react)
+const API_URL = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/auth`;
 
 // Token storage
 export const tokenStorage = {

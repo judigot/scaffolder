@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite & tsc --noEmit --watch & nodemon --exec tsx api/index.ts",
+    "dev:api": "bun api/index.ts",
     "test": "vitest",
     "build": "tsc -b && vite build",
     "start": "node dist/index.js",

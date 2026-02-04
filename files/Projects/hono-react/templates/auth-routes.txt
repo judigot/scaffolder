@@ -200,6 +200,29 @@ app.get('/me', async (c) => {
   return c.json({ user: result.user, session: result.session });
 });
 
+// GET /auth/session - Check session status (for AuthContext)
+app.get('/session', async (c) => {
+  const sessionId = getCookie(c, getSessionCookieName());
+
+  if (!sessionId) {
+    return c.json({ authenticated: false, user: null });
+  }
+
+  const result = await validateSession(sessionId);
+
+  if (!result.user) {
+    deleteCookie(c, getSessionCookieName());
+    return c.json({ authenticated: false, user: null });
+  }
+
+  // Refresh cookie if needed
+  if (result.sessionCookie) {
+    setSessionCookie(c, result.sessionCookie);
+  }
+
+  return c.json({ authenticated: true, user: result.user });
+});
+
 export default app;
 </@@IF@@>
 <@@IF@@ condition="hasFullAuthSystem EQUALS 'true'">
@@ -393,6 +416,29 @@ app.get('/me', async (c) => {
   }
 
   return c.json({ user: result.user, session: result.session });
+});
+
+// GET /auth/session - Check session status (for AuthContext)
+app.get('/session', async (c) => {
+  const sessionId = getCookie(c, getSessionCookieName());
+
+  if (!sessionId) {
+    return c.json({ authenticated: false, user: null });
+  }
+
+  const result = await validateSession(sessionId);
+
+  if (!result.user) {
+    deleteCookie(c, getSessionCookieName());
+    return c.json({ authenticated: false, user: null });
+  }
+
+  // Refresh cookie if needed
+  if (result.sessionCookie) {
+    setSessionCookie(c, result.sessionCookie);
+  }
+
+  return c.json({ authenticated: true, user: result.user });
 });
 
 // GET /auth/providers - List configured OAuth providers

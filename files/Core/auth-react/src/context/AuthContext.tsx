@@ -14,8 +14,9 @@ import type {
   AuthContextValue,
 } from '../types';
 
-// API base URL - can be configured via environment variable
-const API_BASE = '/api/auth';
+// API base URL - respects BASE_URL for subpath deployments (e.g., /hono-react)
+const BASE_PATH = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
+const API_BASE = `${BASE_PATH}/api/auth`;
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 

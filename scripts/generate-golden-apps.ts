@@ -316,7 +316,7 @@ function buildNginxConfig(apps: GoldenAppConfig[]): string {
       `}`,
       ``,
       `location ${basePath}/ {`,
-      `    proxy_pass http://${app.serviceName}:${String(frontendPort)}/;`,
+      `    proxy_pass http://${app.serviceName}:${String(frontendPort)}${basePath}/;`,
       `    proxy_set_header Host $http_host;`,
       `    proxy_set_header X-Real-IP $remote_addr;`,
       `    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`,
@@ -338,6 +338,7 @@ function buildNginxConfig(apps: GoldenAppConfig[]): string {
 
 function buildComposeConfig(apps: GoldenAppConfig[]): string {
   const lines: string[] = ['services:'];
+  const volumes: string[] = [];
 
   for (const app of apps) {
     const outputDir = path.join(outputBaseDir, toDirName(app.projectName));
@@ -345,6 +346,9 @@ function buildComposeConfig(apps: GoldenAppConfig[]): string {
     const dockerPorts = readDockerfilePorts(outputDir, dockerfile);
     const frontendPort = dockerPorts[0] ?? app.port;
     const apiPort = dockerPorts[1] ?? frontendPort;
+    const dirName = toDirName(app.projectName);
+    const nodeModulesVolume = `${dirName.replace(/-/g, '_')}_node_modules`;
+
     const envEntries = { ...app.env };
     if (!Object.prototype.hasOwnProperty.call(envEntries, 'PORT')) {
       envEntries.PORT = String(apiPort);
@@ -352,8 +356,16 @@ function buildComposeConfig(apps: GoldenAppConfig[]): string {
 
     lines.push(`  ${app.serviceName}:`);
     lines.push(`    build:`);
-    lines.push(`      context: ./.apps/${toDirName(app.projectName)}`);
-    lines.push(`      dockerfile: ${dockerfile}`);
+    lines.push(`      context: ./.apps/${dirName}`);
+    lines.push(`      dockerfile: Dockerfile.dev`);
+    lines.push(`    volumes:`);
+    lines.push(`      - ./.apps/${dirName}:/app`);
+    lines.push(`      - ${nodeModulesVolume}:/app/node_modules`);
+    lines.push(`    ports:`);
+    lines.push(`      - "${String(frontendPort)}:${String(frontendPort)}"`);
+    if (apiPort !== frontendPort) {
+      lines.push(`      - "${String(apiPort)}:${String(apiPort)}"`);
+    }
     if (Object.keys(envEntries).length > 0) {
       lines.push(`    environment:`);
       for (const [key, value] of Object.entries(envEntries)) {
@@ -369,6 +381,16 @@ function buildComposeConfig(apps: GoldenAppConfig[]): string {
     }
     lines.push(`    networks:`);
     lines.push(`      - scaffolder_network`);
+    lines.push('');
+
+    volumes.push(nodeModulesVolume);
+  }
+
+  if (volumes.length > 0) {
+    lines.push('volumes:');
+    for (const vol of volumes) {
+      lines.push(`  ${vol}:`);
+    }
     lines.push('');
   }
 

@@ -40,31 +40,31 @@ services:
       start_period: 30s
       start_interval: 5s
 
-  laravel:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - ./.apps/laravel:/var/www/html
-      - laravel_vendor:/var/www/html/vendor
-      - laravel_node_modules:/var/www/html/node_modules
-    environment:
-      NGINX_PORT: ${NGINX_PORT}
-      APP_ENV: local
-      APP_DEBUG: 'true'
-      APP_URL: http://localhost:${NGINX_PORT}/laravel
-      DB_CONNECTION: pgsql
-      DB_HOST: postgresql
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-    networks:
-      - scaffolder_network
-    depends_on:
-      postgresql:
-        condition: service_healthy
-    working_dir: /var/www/html
+  # laravel:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./.apps/laravel:/var/www/html
+  #     - laravel_vendor:/var/www/html/vendor
+  #     - laravel_node_modules:/var/www/html/node_modules
+  #   environment:
+  #     NGINX_PORT: ${NGINX_PORT}
+  #     APP_ENV: local
+  #     APP_DEBUG: 'true'
+  #     APP_URL: http://localhost:${NGINX_PORT}/laravel
+  #     DB_CONNECTION: pgsql
+  #     DB_HOST: postgresql
+  #     DB_PORT: 5432
+  #     DB_DATABASE: ${DB_DATABASE}
+  #     DB_USERNAME: ${DB_USERNAME}
+  #     DB_PASSWORD: ${DB_PASSWORD}
+  #   networks:
+  #     - scaffolder_network
+  #   depends_on:
+  #     postgresql:
+  #       condition: service_healthy
+  #   working_dir: /var/www/html
 
   nginx:
     image: nginx:alpine
@@ -76,13 +76,14 @@ services:
     networks:
       - scaffolder_network
     depends_on:
-      - laravel
+      postgresql:
+        condition: service_healthy
 
 volumes:
   postgresql_data:
   mysql_data:
-  laravel_vendor:
-  laravel_node_modules:
+  # laravel_vendor:
+  # laravel_node_modules:
 
 networks:
   scaffolder_network:

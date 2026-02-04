@@ -4,17 +4,7 @@
 export * from './types';
 
 // ============================================================================
-// Client-side (browser)
-// ============================================================================
-
-// Storage utilities
-export { tokenStorage, userStorage, clearAuthStorage } from './storage';
-
-// API client
-export { authApi } from './api';
-
-// ============================================================================
-// Server-side
+// Server-side only - client auth is in src/services/auth or Core/auth-react
 // ============================================================================
 
 // Lucia (session management)
