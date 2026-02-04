@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
+import { IGNORED_TABLES_LARAVEL } from '@/constants.ts';
+import type { DBTypes } from '@/interfaces/interfaces.ts';
 import { executeMySQL } from '@/utils/executeMySQL.ts';
 import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
-import type { DBTypes } from '@/interfaces/interfaces.ts';
-import { IGNORED_TABLES_LARAVEL } from '@/constants.ts';
+import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
 
 const readSqlFile = (filename: string): string => {
   return fs.readFileSync(path.join(__dirname, `../${filename}`), 'utf8');
@@ -13,6 +13,7 @@ const readSqlFile = (filename: string): string => {
 export const introspect = async (
   dbConnection: string,
   dbType: DBTypes,
+  schema?: string,
 ): Promise<unknown> => {
   if (!dbConnection) {
     throw new Error('Database connection string is required');
@@ -20,10 +21,14 @@ export const introspect = async (
 
   const { dbName } = extractDBConnectionInfo(dbConnection);
 
-  const query = readSqlFile(`introspect_${dbType}.sql`);
+  let query = readSqlFile(`introspect_${dbType}.sql`);
   let result: unknown;
 
   if (dbType === 'postgresql') {
+    /* Replace 'public' with custom schema if explicitly provided */
+    if (schema !== undefined && schema.length > 0) {
+      query = query.replace(/'public'/g, `'${schema}'`);
+    }
     result = await executePostgreSQL(dbConnection, query);
   }
 
