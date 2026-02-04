@@ -359,8 +359,22 @@ function FileViewer({
     openFiles.find((f) => f.uniqueId === activeFileId) ?? null;
   const isFileEdited = activeFileId !== null && editedFiles.has(activeFileId);
 
+  // Compute file severity directly from props (filesUsingUserEnv, filesFailedToFormat)
+  // This makes FileViewer self-contained without relying on external store population
   const fileSeverityMap = useMemo(() => {
     const map = new Map<string, ScaffolderSeverity>();
+
+    // Files with USE_USER_ENV leftovers get warning severity
+    for (const filePath of safeFilesUsingUserEnv) {
+      map.set(filePath, 'warning');
+    }
+
+    // Files that failed to format get error severity (higher priority)
+    for (const entry of filesFailedToFormat) {
+      map.set(entry.filePath, 'error');
+    }
+
+    // Also include any messages from the global store (for backwards compatibility)
     for (const message of scaffolderMessages) {
       const candidates: string[] = [];
       if (message.file !== undefined && message.file !== '') {
@@ -383,8 +397,9 @@ function FileViewer({
         }
       }
     }
+
     return map;
-  }, [scaffolderMessages]);
+  }, [safeFilesUsingUserEnv, filesFailedToFormat, scaffolderMessages]);
 
   // Helper: open a file (add to tabs if not already open, then activate)
   const openFile = useCallback((file: IFile & { uniqueId: string }) => {
