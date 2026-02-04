@@ -18,6 +18,7 @@ import { useUserFiles } from '@/hooks/useUserFiles.ts';
 import type { IGenerationStatus } from '@/interfaces/IGenerationStatus.ts';
 import type { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
 import type { IScaffolderMessage } from '@/interfaces/scaffolderMessages.ts';
+import { SCAFFOLDER_MESSAGE_CODES } from '@/interfaces/scaffolderMessages.ts';
 import { useScaffolderMessagesStore } from '@/stores/useScaffolderMessagesStore.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
@@ -127,7 +128,11 @@ function App() {
   } = useScaffolderMessagesStore();
 
   useEffect(() => {
-    setMessages(buildResult.messages ?? []);
+    setMessages(
+      (buildResult.messages ?? []).filter(
+        (message) => message.code !== SCAFFOLDER_MESSAGE_CODES.UserEnvUsage,
+      ),
+    );
   }, [buildResult.messages, setMessages]);
 
   /**
