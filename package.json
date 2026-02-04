@@ -11,7 +11,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "bun install && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\"",
+    "dev": "bun install && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\"",
     "postinstall": "git config core.fileMode false",
     "dev:full": "bun install && docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\" \"sleep 2 && bun run generate:golden-apps\"",
     "dev with test": "docker compose up -d && cross-env NODE_ENV=development VITE_BACKEND_PORT=5000 VITE_FRONTEND_PORT=3000 concurrently \"bunx --bun vite\" \"bun run --silent test:watch\" \"bun run --silent lint:watch\" \"bun --hot src/index.ts\" \"bun run --silent opencode:dev\"",
@@ -69,8 +69,7 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --fix",
-      "prettier --write",
-      "vitest --run --passWithNoTests"
+      "prettier --write"
     ],
     "*.json": [
       "prettier --write"

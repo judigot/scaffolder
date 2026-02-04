@@ -49,7 +49,7 @@ export const createAndIntrospectDatabase = async (
 
   /* Generate SQL schema */
   const sqlSchema = generateSQLSchema(schemaInfo);
-  const fullSQL = formatSQL(sqlSchema);
+  const fullSQL = formatSQL(sqlSchema).trim();
 
   /* Create database tables */
   if (dbType === 'postgresql') {
@@ -88,10 +88,12 @@ export const createAndIntrospectDatabase = async (
       dbConnection,
       `CREATE DATABASE IF NOT EXISTS ${dbName};`,
     );
-    await executeMySQL(
-      dbConnection,
-      `USE ${dbName}; SET FOREIGN_KEY_CHECKS = 0; ${fullSQL}; SET FOREIGN_KEY_CHECKS = 1;`,
-    );
+    const mysqlStatements = [`USE ${dbName}`, 'SET FOREIGN_KEY_CHECKS = 0'];
+    if (fullSQL.length > 0) {
+      mysqlStatements.push(fullSQL);
+    }
+    mysqlStatements.push('SET FOREIGN_KEY_CHECKS = 1');
+    await executeMySQL(dbConnection, `${mysqlStatements.join('; ')};`);
 
     /* Introspect the unique database */
     const mysqlConnectionWithDb = dbConnection.replace(
