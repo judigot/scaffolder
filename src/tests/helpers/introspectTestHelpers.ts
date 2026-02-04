@@ -90,7 +90,9 @@ export const createAndIntrospectDatabase = async (
     );
     const mysqlStatements = [`USE ${dbName}`, 'SET FOREIGN_KEY_CHECKS = 0'];
     if (fullSQL.length > 0) {
-      mysqlStatements.push(fullSQL);
+      /* Remove trailing semicolon from fullSQL to avoid double semicolons when joining */
+      const cleanSQL = fullSQL.replace(/;\s*$/, '');
+      mysqlStatements.push(cleanSQL);
     }
     mysqlStatements.push('SET FOREIGN_KEY_CHECKS = 1');
     await executeMySQL(dbConnection, `${mysqlStatements.join('; ')};`);
