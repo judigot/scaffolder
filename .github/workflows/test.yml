@@ -1,12 +1,12 @@
-name: Quality Test Suite
+name: Test
 
 on:
   push: {}
   workflow_dispatch: {}
 
 jobs:
-  quality:
-    name: Quality Test Suite
+  test:
+    name: Test
     runs-on: ubuntu-latest
     services:
       postgres:
