@@ -76,7 +76,7 @@ jobs:
 
       - name: Push database migrations
         working-directory: .apps/hono-react
-        run: bun drizzle-kit push
+        run: bun drizzle-kit push --force
 
       - name: Start hono-react API server
         working-directory: .apps/hono-react
