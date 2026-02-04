@@ -16,6 +16,7 @@ import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GitHubExportModal from '@/components/GitHubExportModal.tsx';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
+import SchemaSelector from '@/components/SchemaSelector.tsx';
 import { Banner } from '@/components/UI/Banner.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
 import { SimpleSelect } from '@/components/UI/GroupedSelect.tsx';
@@ -2965,10 +2966,9 @@ function FileViewer({
                     selectedProjectProp &&
                     onProjectChange && (
                       <div className="space-y-3">
-                        <div className="border border-layout-border rounded-md bg-bg-muted/70 p-3 space-y-2">
-                          <p className="text-xs text-content-subtle uppercase tracking-[0.2em]">
-                            Select Schema
-                          </p>
+                        <SchemaSelector />
+                        <div className="flex items-center gap-2">
+                          <span className="form-label shrink-0 mb-0">Project:</span>
                           <SimpleSelect
                             value={selectedProjectProp.name}
                             onChange={onProjectChange}
@@ -2976,16 +2976,9 @@ function FileViewer({
                               value: project.name,
                               label: project.name,
                             }))}
-                            className="appearance-none w-full text-sm bg-bg-surface border border-transparent focus:border-accent focus:ring-2 focus:ring-accent focus:ring-offset-0"
+                            className="flex-1"
                             aria-label="Select project"
                           />
-                          <p className="text-xs text-content-subtle">
-                            Using{' '}
-                            <span className="font-semibold text-content">
-                              {selectedProjectProp.name}
-                            </span>
-                            .
-                          </p>
                         </div>
                         <div className="flex gap-2">
                           <button
@@ -3017,8 +3010,7 @@ function FileViewer({
                         </div>
                       </div>
                     )}
-
-                  {/* Dev: Copy buttons */}
+                  {/* Dev: Copy buttons */}                  {/* Dev: Copy buttons */}
                   {isDevMode && (
                     <div className="flex gap-2">
                       <button
