@@ -42,15 +42,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24.13.0'
-
-      - name: Align npm & pnpm versions
-        run: |
-          npm install -g npm@11.6.2 pnpm@10.28.0
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
