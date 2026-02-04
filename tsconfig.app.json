@@ -28,6 +28,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "e2e"],
   "exclude": ["files", "files.test", "apps", "src/tests/golden-projects/output"]
 }

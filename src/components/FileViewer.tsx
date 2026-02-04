@@ -16,6 +16,7 @@ import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GitHubExportModal from '@/components/GitHubExportModal.tsx';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
+import SchemaSelector from '@/components/SchemaSelector.tsx';
 import { Banner } from '@/components/UI/Banner.tsx';
 import ContextMenu from '@/components/UI/ContextMenu.tsx';
 import { SimpleSelect } from '@/components/UI/GroupedSelect.tsx';
@@ -243,33 +244,40 @@ function FileViewer({
     remoteScaffolderURL ?? '',
   );
   const [debouncedRemoteURL] = useDebouncedValue(inputRemoteURL, 1000);
+  const [isRemoteUrlEditing, setIsRemoteUrlEditing] = useState<boolean>(false);
+  const lastRemoteScaffolderURL = useRef<string | undefined>(
+    remoteScaffolderURL,
+  );
 
   // Sync local input when prop changes (e.g., from store)
   // But don't overwrite if the normalized input matches the store value
   useEffect(() => {
-    if (
-      remoteScaffolderURL !== undefined &&
-      remoteScaffolderURL !== inputRemoteURL &&
-      // Don't sync back if the input normalizes to the same URL
-      normalizeGitHubURL(inputRemoteURL) !== remoteScaffolderURL
-    ) {
+    if (remoteScaffolderURL === lastRemoteScaffolderURL.current) {
+      return;
+    }
+    if (!isRemoteUrlEditing && remoteScaffolderURL !== undefined) {
       setInputRemoteURL(remoteScaffolderURL);
     }
-  }, [
-    remoteScaffolderURL,
-    inputRemoteURL, // Don't sync back if the input normalizes to the same URL
-    normalizeGitHubURL,
-  ]);
+    lastRemoteScaffolderURL.current = remoteScaffolderURL;
+  }, [isRemoteUrlEditing, remoteScaffolderURL]);
 
   // Update store when debounced value changes and is valid
   useEffect(() => {
+    if (onRemoteScaffolderURLChange === undefined) {
+      return;
+    }
+    if (debouncedRemoteURL === '') {
+      if (remoteScaffolderURL !== '') {
+        onRemoteScaffolderURLChange('');
+      }
+      return;
+    }
     if (
-      onRemoteScaffolderURLChange !== undefined &&
       debouncedRemoteURL !== remoteScaffolderURL &&
       isValidGitHubURL(debouncedRemoteURL)
     ) {
-      // Normalize shorthand to full URL before passing to store
-      onRemoteScaffolderURLChange(normalizeGitHubURL(debouncedRemoteURL));
+      const normalized = normalizeGitHubURL(debouncedRemoteURL);
+      onRemoteScaffolderURLChange(normalized);
     }
   }, [
     debouncedRemoteURL,
@@ -311,6 +319,10 @@ function FileViewer({
   // Combined error state - either URL format error or stable fetch error
   const hasError = hasURLFormatError || hasStableFetchError;
 
+  const skeletonWidths = [80, 70, 60, 50, 40];
+  const shouldShowTreeSkeleton =
+    isFetching === true && initialFolderStructure.length === 0 && !hasError;
+
   // Get error message for display
   const errorMessage = useMemo(() => {
     if (hasURLFormatError) {
@@ -348,8 +360,22 @@ function FileViewer({
     openFiles.find((f) => f.uniqueId === activeFileId) ?? null;
   const isFileEdited = activeFileId !== null && editedFiles.has(activeFileId);
 
+  // Compute file severity directly from props (filesUsingUserEnv, filesFailedToFormat)
+  // This makes FileViewer self-contained without relying on external store population
   const fileSeverityMap = useMemo(() => {
     const map = new Map<string, ScaffolderSeverity>();
+
+    // Files with USE_USER_ENV leftovers get warning severity
+    for (const filePath of safeFilesUsingUserEnv) {
+      map.set(filePath, 'warning');
+    }
+
+    // Files that failed to format get error severity (higher priority)
+    for (const entry of filesFailedToFormat) {
+      map.set(entry.filePath, 'error');
+    }
+
+    // Also include any messages from the global store (for backwards compatibility)
     for (const message of scaffolderMessages) {
       const candidates: string[] = [];
       if (message.file !== undefined && message.file !== '') {
@@ -372,8 +398,9 @@ function FileViewer({
         }
       }
     }
+
     return map;
-  }, [scaffolderMessages]);
+  }, [safeFilesUsingUserEnv, filesFailedToFormat, scaffolderMessages]);
 
   // Helper: open a file (add to tabs if not already open, then activate)
   const openFile = useCallback((file: IFile & { uniqueId: string }) => {
@@ -563,8 +590,11 @@ function FileViewer({
 
   // Restore the missing useEffect that syncs folderStructure with initialFolderStructure
   useEffect(() => {
+    if (initialFolderStructure.length === 0 && isFetching === true) {
+      return;
+    }
     setFolderStructure(initialFolderStructure);
-  }, [initialFolderStructure]);
+  }, [initialFolderStructure, isFetching]);
 
   const filePath =
     selectedFile?.filePath ??
@@ -2735,56 +2765,6 @@ function FileViewer({
 
       {/* Main content area - flex to fill remaining space */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 text-white overflow-hidden">
-        {/* Mobile: Source Files selector - always visible at top */}
-        {isMobile && onToggleLocalScaffolderFiles !== undefined && (
-          <div className="shrink-0 bg-panel border-b border-layout-border p-3">
-            <div className="form-group mb-0">
-              <span className="form-label">Source Files:</span>
-              <SimpleSelect
-                value={useLocalScaffolderFiles === true ? 'local' : 'remote'}
-                onChange={(value) => {
-                  onToggleLocalScaffolderFiles(value === 'local');
-                }}
-                options={[
-                  { value: 'local', label: 'Stock' },
-                  { value: 'remote', label: 'Remote' },
-                ]}
-                aria-label="Source files location"
-              />
-              {useLocalScaffolderFiles !== true &&
-                onRemoteScaffolderURLChange !== undefined && (
-                  <>
-                    <input
-                      type="text"
-                      value={inputRemoteURL}
-                      onChange={(e) => {
-                        setInputRemoteURL(e.target.value);
-                      }}
-                      placeholder="judigot/repo or https://github.com/judigot/repo"
-                      className={`form-input form-input-sm ${
-                        !isValidGitHubURL(inputRemoteURL)
-                          ? 'form-input-error'
-                          : ''
-                      }`}
-                    />
-                    {inputRemoteURL === '' && (
-                      <span className="form-hint">
-                        Leave empty to use stock files
-                      </span>
-                    )}
-                    {inputRemoteURL !== '' &&
-                      !isValidGitHubURL(inputRemoteURL) && (
-                        <span className="form-error">
-                          Enter a valid format: user/repo or
-                          https://github.com/user/repo
-                        </span>
-                      )}
-                  </>
-                )}
-            </div>
-          </div>
-        )}
-
         {/* Mobile: Accordion file explorer */}
         {isMobile && !hasError && (
           <div className="flex flex-col shrink-0">
@@ -2820,6 +2800,76 @@ function FileViewer({
             <div
               className={`max-h-[66vh] bg-panel flex flex-col overflow-hidden ${isTreeOpen ? '' : 'hidden'}`}
             >
+              {/* Source Files selector - inside accordion */}
+              {onToggleLocalScaffolderFiles !== undefined && (
+                <div className="p-3 border-b border-layout-border shrink-0">
+                  <div className="form-group mb-0">
+                    <span className="form-label text-center">
+                      Source Files:
+                    </span>
+                    <SimpleSelect
+                      value={
+                        useLocalScaffolderFiles === true ? 'local' : 'remote'
+                      }
+                      onChange={(value) => {
+                        onToggleLocalScaffolderFiles(value === 'local');
+                      }}
+                      options={[
+                        { value: 'local', label: 'Stock' },
+                        { value: 'remote', label: 'Remote' },
+                      ]}
+                      aria-label="Source files location"
+                    />
+                    {useLocalScaffolderFiles !== true &&
+                      onRemoteScaffolderURLChange !== undefined && (
+                        <>
+                          <input
+                            type="text"
+                            value={inputRemoteURL}
+                            onChange={(e) => {
+                              setInputRemoteURL(e.target.value);
+                            }}
+                            onFocus={() => {
+                              setIsRemoteUrlEditing(true);
+                            }}
+                            onBlur={() => {
+                              setIsRemoteUrlEditing(false);
+                              if (inputRemoteURL === '') {
+                                onRemoteScaffolderURLChange('');
+                                return;
+                              }
+                              if (isValidGitHubURL(inputRemoteURL)) {
+                                const normalized =
+                                  normalizeGitHubURL(inputRemoteURL);
+                                setInputRemoteURL(normalized);
+                                onRemoteScaffolderURLChange(normalized);
+                              }
+                            }}
+                            placeholder="judigot/repo or https://github.com/judigot/repo"
+                            className={`form-input form-input-sm ${
+                              !isValidGitHubURL(inputRemoteURL)
+                                ? 'form-input-error'
+                                : ''
+                            }`}
+                          />
+                          {inputRemoteURL === '' && (
+                            <span className="form-hint">
+                              Leave empty to use stock files
+                            </span>
+                          )}
+                          {inputRemoteURL !== '' &&
+                            !isValidGitHubURL(inputRemoteURL) && (
+                              <span className="form-error">
+                                Enter a valid format: user/repo or
+                                https://github.com/user/repo
+                              </span>
+                            )}
+                        </>
+                      )}
+                  </div>
+                </div>
+              )}
+
               {/* View mode toolbar - just new file/folder buttons */}
               {mode === 'view' && (
                 <div className="p-3 border-b border-layout-border shrink-0">
@@ -2869,7 +2919,6 @@ function FileViewer({
                       Export Locally
                     </button>
                   )}
-
                   {/* Export button - only shown when no sensitive files */}
                   {safeFilesUsingUserEnv.length === 0 && (
                     <button
@@ -2898,7 +2947,6 @@ function FileViewer({
                             : 'Export'}
                     </button>
                   )}
-
                   {/* Download ZIP - only shown when sensitive files detected */}
                   {safeFilesUsingUserEnv.length > 0 && (
                     <button
@@ -2916,13 +2964,13 @@ function FileViewer({
                       <span>Download ZIP</span>
                     </button>
                   )}
-
-                  {/* Row 3: Project selector + New File/Folder buttons */}
-                  <div className="flex items-center gap-2">
-                    {projects.length > 0 &&
-                      selectedProjectProp &&
-                      onProjectChange && (
-                        <>
+                  {/* Schema Selector - always shown in edit mode */}
+                  <SchemaSelector />
+                  {projects.length > 0 &&
+                    selectedProjectProp &&
+                    onProjectChange && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
                           <span className="form-label shrink-0 mb-0">
                             Project:
                           </span>
@@ -2936,37 +2984,38 @@ function FileViewer({
                             className="flex-1"
                             aria-label="Select project"
                           />
-                        </>
-                      )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void (async () => {
-                          await handleOpenDialog('newFile');
-                        })();
-                      }}
-                      className="btn-secondary btn-sm btn-icon-only"
-                      title="New File"
-                      aria-label="New File"
-                    >
-                      <NoteAddIcon sx={{ fontSize: 18 }} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void (async () => {
-                          await handleOpenDialog('newFolder');
-                        })();
-                      }}
-                      className="btn-secondary btn-sm btn-icon-only"
-                      title="New Folder"
-                      aria-label="New Folder"
-                    >
-                      <CreateNewFolderIcon sx={{ fontSize: 18 }} />
-                    </button>
-                  </div>
-
-                  {/* Dev: Copy buttons */}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                await handleOpenDialog('newFile');
+                              })();
+                            }}
+                            className="btn-secondary btn-sm btn-icon-only"
+                            title="New File"
+                            aria-label="New File"
+                          >
+                            <NoteAddIcon sx={{ fontSize: 18 }} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                await handleOpenDialog('newFolder');
+                              })();
+                            }}
+                            className="btn-secondary btn-sm btn-icon-only"
+                            title="New Folder"
+                            aria-label="New Folder"
+                          >
+                            <CreateNewFolderIcon sx={{ fontSize: 18 }} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  {/* Dev: Copy buttons */} {/* Dev: Copy buttons */}
                   {isDevMode && (
                     <div className="flex gap-2">
                       <button
@@ -2989,7 +3038,6 @@ function FileViewer({
                       </button>
                     </div>
                   )}
-
                   {/* Warning banner */}
                   {safeFilesUsingUserEnv.length > 0 && (
                     <Banner variant="warning" title="Secrets Detected">
@@ -3082,10 +3130,34 @@ function FileViewer({
                   handleContextMenu(e);
                 }}
               >
-                <div className="min-w-max pb-2">
-                  <SimpleTreeView>
-                    {renderTree(folderStructure, openFile)}
-                  </SimpleTreeView>
+                <div className="relative min-w-max pb-2">
+                  <div className="relative z-0">
+                    <SimpleTreeView>
+                      {renderTree(folderStructure, openFile)}
+                    </SimpleTreeView>
+                  </div>
+                  {shouldShowTreeSkeleton && (
+                    <div className="absolute inset-0 z-10 rounded border border-white/10 bg-gradient-to-br from-gray-900/80 via-gray-900/50 to-gray-900/80 p-4">
+                      <div className="flex flex-col gap-2">
+                        {skeletonWidths.map((width) => {
+                          const widthValue = width.toString();
+                          const widthStyle = `${widthValue}%`;
+                          const skeletonKey = `skeleton-${widthValue}`;
+
+                          return (
+                            <div
+                              key={skeletonKey}
+                              style={{ width: widthStyle }}
+                              className="h-3 rounded bg-gray-600 animate-pulse"
+                            />
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-3">
+                        Loading repository files...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3099,7 +3171,7 @@ function FileViewer({
             {onToggleLocalScaffolderFiles !== undefined && (
               <div className="p-2 border-b border-layout-border shrink-0">
                 <div className="form-group mb-0">
-                  <span className="form-label">Source Files:</span>
+                  <span className="form-label text-center">Source Files:</span>
                   <SimpleSelect
                     value={
                       useLocalScaffolderFiles === true ? 'local' : 'remote'
@@ -3121,6 +3193,22 @@ function FileViewer({
                           value={inputRemoteURL}
                           onChange={(e) => {
                             setInputRemoteURL(e.target.value);
+                          }}
+                          onFocus={() => {
+                            setIsRemoteUrlEditing(true);
+                          }}
+                          onBlur={() => {
+                            setIsRemoteUrlEditing(false);
+                            if (inputRemoteURL === '') {
+                              onRemoteScaffolderURLChange('');
+                              return;
+                            }
+                            if (isValidGitHubURL(inputRemoteURL)) {
+                              const normalized =
+                                normalizeGitHubURL(inputRemoteURL);
+                              setInputRemoteURL(normalized);
+                              onRemoteScaffolderURLChange(normalized);
+                            }
                           }}
                           placeholder="judigot/repo or https://github.com/judigot/repo"
                           className={`form-input form-input-sm ${
@@ -3236,6 +3324,8 @@ function FileViewer({
                     <span>New Folder</span>
                   </button>
                 </div>
+                {/* Schema selector */}
+                <SchemaSelector />
                 {/* Project selector */}
                 {projects.length > 0 &&
                   selectedProjectProp &&
@@ -3493,7 +3583,7 @@ function FileViewer({
         {/* Right panel - Export/Download actions (Desktop only) */}
         {!isMobile && mode === 'edit' && !hasError && (
           <div className="w-56 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-l border-layout-border">
-            <div className="p-3 space-y-3">
+            <div className="p-3 space-y-3 overflow-y-auto">
               {/* Section header */}
               <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
                 Actions

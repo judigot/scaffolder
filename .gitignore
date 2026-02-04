@@ -116,3 +116,7 @@ test-results/
 # Generated test output
 src/tests/golden-projects/output/
 *.pid
+
+# Playwright
+playwright-report/
+test-results/

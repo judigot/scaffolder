@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
 import App from '@/App.tsx';
 import { AIChatContainer } from '@/components/AI/AIChatContainer.tsx';
-import { MODEL_OPTIONS, type ModelId } from '@/components/AI/modelOptions.ts';
 import ChatPanel from '@/components/AI/chat-app/ChatPanel.tsx';
 import ChatTree from '@/components/AI/chat-app/ChatTree.tsx';
 import { mockRepositories } from '@/components/AI/chat-app/mockData.ts';
@@ -19,6 +18,7 @@ import {
   filterChatsWithContent,
   filterSprintsWithContent,
 } from '@/components/AI/chat-app/utils/chatFilters.ts';
+import { MODEL_OPTIONS, type ModelId } from '@/components/AI/modelOptions.ts';
 import TabBar from '@/components/AI/TabBar.tsx';
 import {
   BUILDER_TAB_CONFIG,
@@ -401,7 +401,7 @@ export default function ChatApp() {
   // In production: reads from the remote GitHub repo (judigot/scaffolder-files)
   const {
     refetch: refetchUserFiles,
-    data: userFiles,
+    data: queryUserFiles,
     error: userFilesError,
     isError: isUserFilesError,
     isFetching: isUserFilesFetching,
@@ -423,10 +423,14 @@ export default function ChatApp() {
   // This store is for scaffolder template files (Projects, Constants, etc.)
   // Repository files should NOT go into this store
   useEffect(() => {
-    if (isScaffolderMode && userFiles && userFiles.length > 0) {
-      setUserFiles(userFiles);
+    if (
+      isScaffolderMode &&
+      queryUserFiles?.userFiles &&
+      queryUserFiles.userFiles.length > 0
+    ) {
+      setUserFiles(queryUserFiles.userFiles);
     }
-  }, [isScaffolderMode, userFiles, setUserFiles]);
+  }, [isScaffolderMode, queryUserFiles, setUserFiles]);
 
   const [debouncedRepoURL] = useDebouncedValue(inputRepoURL, 1000);
 
