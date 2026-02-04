@@ -2765,71 +2765,6 @@ function FileViewer({
 
       {/* Main content area - flex to fill remaining space */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 text-white overflow-hidden">
-        {/* Mobile: Source Files selector - always visible at top */}
-        {isMobile && onToggleLocalScaffolderFiles !== undefined && (
-          <div className="shrink-0 bg-panel border-b border-layout-border p-3">
-            <div className="form-group mb-0">
-              <span className="form-label">Source Files:</span>
-              <SimpleSelect
-                value={useLocalScaffolderFiles === true ? 'local' : 'remote'}
-                onChange={(value) => {
-                  onToggleLocalScaffolderFiles(value === 'local');
-                }}
-                options={[
-                  { value: 'local', label: 'Stock' },
-                  { value: 'remote', label: 'Remote' },
-                ]}
-                aria-label="Source files location"
-              />
-              {useLocalScaffolderFiles !== true &&
-                onRemoteScaffolderURLChange !== undefined && (
-                  <>
-                    <input
-                      type="text"
-                      value={inputRemoteURL}
-                      onChange={(e) => {
-                        setInputRemoteURL(e.target.value);
-                      }}
-                      onFocus={() => {
-                        setIsRemoteUrlEditing(true);
-                      }}
-                      onBlur={() => {
-                        setIsRemoteUrlEditing(false);
-                        if (inputRemoteURL === '') {
-                          onRemoteScaffolderURLChange('');
-                          return;
-                        }
-                        if (isValidGitHubURL(inputRemoteURL)) {
-                          const normalized = normalizeGitHubURL(inputRemoteURL);
-                          setInputRemoteURL(normalized);
-                          onRemoteScaffolderURLChange(normalized);
-                        }
-                      }}
-                      placeholder="judigot/repo or https://github.com/judigot/repo"
-                      className={`form-input form-input-sm ${
-                        !isValidGitHubURL(inputRemoteURL)
-                          ? 'form-input-error'
-                          : ''
-                      }`}
-                    />
-                    {inputRemoteURL === '' && (
-                      <span className="form-hint">
-                        Leave empty to use stock files
-                      </span>
-                    )}
-                    {inputRemoteURL !== '' &&
-                      !isValidGitHubURL(inputRemoteURL) && (
-                        <span className="form-error">
-                          Enter a valid format: user/repo or
-                          https://github.com/user/repo
-                        </span>
-                      )}
-                  </>
-                )}
-            </div>
-          </div>
-        )}
-
         {/* Mobile: Accordion file explorer */}
         {isMobile && !hasError && (
           <div className="flex flex-col shrink-0">
@@ -2865,6 +2800,76 @@ function FileViewer({
             <div
               className={`max-h-[66vh] bg-panel flex flex-col overflow-hidden ${isTreeOpen ? '' : 'hidden'}`}
             >
+              {/* Source Files selector - inside accordion */}
+              {onToggleLocalScaffolderFiles !== undefined && (
+                <div className="p-3 border-b border-layout-border shrink-0">
+                  <div className="form-group mb-0">
+                    <span className="form-label text-center">
+                      Source Files:
+                    </span>
+                    <SimpleSelect
+                      value={
+                        useLocalScaffolderFiles === true ? 'local' : 'remote'
+                      }
+                      onChange={(value) => {
+                        onToggleLocalScaffolderFiles(value === 'local');
+                      }}
+                      options={[
+                        { value: 'local', label: 'Stock' },
+                        { value: 'remote', label: 'Remote' },
+                      ]}
+                      aria-label="Source files location"
+                    />
+                    {useLocalScaffolderFiles !== true &&
+                      onRemoteScaffolderURLChange !== undefined && (
+                        <>
+                          <input
+                            type="text"
+                            value={inputRemoteURL}
+                            onChange={(e) => {
+                              setInputRemoteURL(e.target.value);
+                            }}
+                            onFocus={() => {
+                              setIsRemoteUrlEditing(true);
+                            }}
+                            onBlur={() => {
+                              setIsRemoteUrlEditing(false);
+                              if (inputRemoteURL === '') {
+                                onRemoteScaffolderURLChange('');
+                                return;
+                              }
+                              if (isValidGitHubURL(inputRemoteURL)) {
+                                const normalized =
+                                  normalizeGitHubURL(inputRemoteURL);
+                                setInputRemoteURL(normalized);
+                                onRemoteScaffolderURLChange(normalized);
+                              }
+                            }}
+                            placeholder="judigot/repo or https://github.com/judigot/repo"
+                            className={`form-input form-input-sm ${
+                              !isValidGitHubURL(inputRemoteURL)
+                                ? 'form-input-error'
+                                : ''
+                            }`}
+                          />
+                          {inputRemoteURL === '' && (
+                            <span className="form-hint">
+                              Leave empty to use stock files
+                            </span>
+                          )}
+                          {inputRemoteURL !== '' &&
+                            !isValidGitHubURL(inputRemoteURL) && (
+                              <span className="form-error">
+                                Enter a valid format: user/repo or
+                                https://github.com/user/repo
+                              </span>
+                            )}
+                        </>
+                      )}
+                  </div>
+                </div>
+              )}
+
               {/* View mode toolbar - just new file/folder buttons */}
               {mode === 'view' && (
                 <div className="p-3 border-b border-layout-border shrink-0">
@@ -2914,7 +2919,6 @@ function FileViewer({
                       Export Locally
                     </button>
                   )}
-
                   {/* Export button - only shown when no sensitive files */}
                   {safeFilesUsingUserEnv.length === 0 && (
                     <button
@@ -2943,7 +2947,6 @@ function FileViewer({
                             : 'Export'}
                     </button>
                   )}
-
                   {/* Download ZIP - only shown when sensitive files detected */}
                   {safeFilesUsingUserEnv.length > 0 && (
                     <button
@@ -2961,14 +2964,16 @@ function FileViewer({
                       <span>Download ZIP</span>
                     </button>
                   )}
-
+                  {/* Schema Selector - always shown in edit mode */}
+                  <SchemaSelector />
                   {projects.length > 0 &&
                     selectedProjectProp &&
                     onProjectChange && (
                       <div className="space-y-3">
-                        <SchemaSelector />
                         <div className="flex items-center gap-2">
-                          <span className="form-label shrink-0 mb-0">Project:</span>
+                          <span className="form-label shrink-0 mb-0">
+                            Project:
+                          </span>
                           <SimpleSelect
                             value={selectedProjectProp.name}
                             onChange={onProjectChange}
@@ -3010,7 +3015,7 @@ function FileViewer({
                         </div>
                       </div>
                     )}
-                  {/* Dev: Copy buttons */}                  {/* Dev: Copy buttons */}
+                  {/* Dev: Copy buttons */} {/* Dev: Copy buttons */}
                   {isDevMode && (
                     <div className="flex gap-2">
                       <button
@@ -3033,7 +3038,6 @@ function FileViewer({
                       </button>
                     </div>
                   )}
-
                   {/* Warning banner */}
                   {safeFilesUsingUserEnv.length > 0 && (
                     <Banner variant="warning" title="Secrets Detected">
@@ -3167,7 +3171,7 @@ function FileViewer({
             {onToggleLocalScaffolderFiles !== undefined && (
               <div className="p-2 border-b border-layout-border shrink-0">
                 <div className="form-group mb-0">
-                  <span className="form-label">Source Files:</span>
+                  <span className="form-label text-center">Source Files:</span>
                   <SimpleSelect
                     value={
                       useLocalScaffolderFiles === true ? 'local' : 'remote'
@@ -3320,6 +3324,8 @@ function FileViewer({
                     <span>New Folder</span>
                   </button>
                 </div>
+                {/* Schema selector */}
+                <SchemaSelector />
                 {/* Project selector */}
                 {projects.length > 0 &&
                   selectedProjectProp &&
@@ -3577,7 +3583,7 @@ function FileViewer({
         {/* Right panel - Export/Download actions (Desktop only) */}
         {!isMobile && mode === 'edit' && !hasError && (
           <div className="w-56 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-l border-layout-border">
-            <div className="p-3 space-y-3">
+            <div className="p-3 space-y-3 overflow-y-auto">
               {/* Section header */}
               <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
                 Actions
