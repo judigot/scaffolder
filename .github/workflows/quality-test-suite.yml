@@ -12,11 +12,11 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: app
-          POSTGRES_PASSWORD: app123
-          POSTGRES_DB: app
+          POSTGRES_USER: scaffolder
+          POSTGRES_PASSWORD: scaffolder123
+          POSTGRES_DB: scaffolder
         ports:
-          - 5432:5432
+          - 15432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -37,9 +37,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://app:app123@localhost:5432/app
-      POSTGRES_TEST_URL: postgresql://app:app123@localhost:5432/app
-      MYSQL_TEST_URL: mysql://scaffolder:scaffolder123@localhost:13306/scaffolder
+      DATABASE_URL: postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder
+      POSTGRES_TEST_URL: postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder
+      MYSQL_TEST_URL: mysql://root:scaffolder123@localhost:13306/scaffolder
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

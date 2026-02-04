@@ -80,7 +80,7 @@ export const createAndIntrospectDatabase = async (
     return convertIntrospectedStructure(introspectionResult);
   }
 
-  /* MySQL: Use unique database per test for isolation */
+  /* MySQL: Use unique database per test for isolation (requires root/privileged user) */
   const dbName = generateUniqueSchemaName();
   try {
     /* Create unique database, run schema, introspect, then drop */
@@ -135,7 +135,7 @@ export const getTestConnectionString = (dbType: DBTypes): string => {
 
   return (
     process.env.MYSQL_TEST_URL ??
-    'mysql://scaffolder:scaffolder123@localhost:13306/scaffolder'
+    'mysql://root:scaffolder123@localhost:13306/scaffolder'
   );
 };
 
