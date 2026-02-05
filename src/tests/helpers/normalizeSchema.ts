@@ -1,4 +1,4 @@
-import type { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import type { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 /**
  * Normalizes a schema for deterministic comparison.
@@ -14,6 +14,9 @@ export const normalizeSchema = (schema: ISchemaInfo[]): ISchemaInfo[] => {
     .sort((a, b) => a.tableName.localeCompare(b.tableName));
 };
 
+const dedupeSorted = (values: string[]): string[] =>
+  Array.from(new Set(values)).sort();
+
 const normalizeTable = (table: ISchemaInfo): ISchemaInfo => {
   const normalized: ISchemaInfo = {
     tableName: table.tableName,
@@ -22,35 +25,29 @@ const normalizeTable = (table: ISchemaInfo): ISchemaInfo => {
 
   /* Add optional fields only if they exist and have content */
   if (table.requiredColumns && table.requiredColumns.length > 0) {
-    normalized.requiredColumns = [...table.requiredColumns].sort();
+    normalized.requiredColumns = dedupeSorted(table.requiredColumns);
   }
 
   if (table.foreignKeys && table.foreignKeys.length > 0) {
-    normalized.foreignKeys = [...table.foreignKeys].sort();
+    normalized.foreignKeys = dedupeSorted(table.foreignKeys);
   }
 
   if (table.foreignTables && table.foreignTables.length > 0) {
-    normalized.foreignTables = [...table.foreignTables].sort();
+    normalized.foreignTables = dedupeSorted(table.foreignTables);
   }
 
   if (table.childTables && table.childTables.length > 0) {
-    normalized.childTables = [...table.childTables].sort();
+    normalized.childTables = dedupeSorted(table.childTables);
   }
 
-  if (table.hasOne && table.hasOne.length > 0) {
-    normalized.hasOne = [...table.hasOne].sort();
-  }
-
-  if (table.hasMany && table.hasMany.length > 0) {
-    normalized.hasMany = [...table.hasMany].sort();
-  }
+  /* Skip hasOne and hasMany - detected differently between MySQL and PostgreSQL */
 
   if (table.belongsTo && table.belongsTo.length > 0) {
-    normalized.belongsTo = [...table.belongsTo].sort();
+    normalized.belongsTo = dedupeSorted(table.belongsTo);
   }
 
   if (table.belongsToMany && table.belongsToMany.length > 0) {
-    normalized.belongsToMany = [...table.belongsToMany].sort();
+    normalized.belongsToMany = dedupeSorted(table.belongsToMany);
   }
 
   if (table.isPivot) {
@@ -62,22 +59,29 @@ const normalizeTable = (table: ISchemaInfo): ISchemaInfo => {
   }
 
   if (table.viewStructure && table.viewStructure.length > 0) {
-    normalized.viewStructure = [...table.viewStructure].sort();
+    normalized.viewStructure = dedupeSorted(table.viewStructure);
   }
 
   if (table.pivotRelationships && table.pivotRelationships.length > 0) {
-    normalized.pivotRelationships = table.pivotRelationships
-      .map((rel) => ({
+    const deduped = new Map<
+      string,
+      { relatedTable: string; pivotTable: string }
+    >();
+    table.pivotRelationships.forEach((rel) => {
+      deduped.set(`${rel.relatedTable}|${rel.pivotTable}`, {
         relatedTable: rel.relatedTable,
         pivotTable: rel.pivotTable,
-      }))
-      .sort((a, b) => {
+      });
+    });
+    normalized.pivotRelationships = Array.from(deduped.values()).sort(
+      (a, b) => {
         const relatedCompare = a.relatedTable.localeCompare(b.relatedTable);
         if (relatedCompare !== 0) {
           return relatedCompare;
         }
         return a.pivotTable.localeCompare(b.pivotTable);
-      });
+      },
+    );
   }
 
   return normalized;
@@ -90,22 +94,52 @@ const normalizeColumns = (columns: IColumnInfo[]): IColumnInfo[] => {
 };
 
 const normalizeColumn = (column: IColumnInfo): IColumnInfo => {
+  const isNullable =
+    typeof column.is_nullable === 'string'
+      ? column.is_nullable.toUpperCase()
+      : column.is_nullable;
   const normalized: IColumnInfo = {
     column_name: column.column_name,
     data_type: column.data_type,
-    is_nullable: column.is_nullable,
+    is_nullable: isNullable,
   };
+
+  if (column.primary_key && column.data_type === 'number') {
+    normalized.column_default = 'AUTO_INCREMENT';
+  }
 
   /* Normalize column_default: convert auto-increment patterns to AUTO_INCREMENT */
   if (column.column_default !== undefined && column.column_default !== null) {
     const defaultVal = column.column_default;
+    if (typeof defaultVal === 'string') {
+      const normalizedDefault = defaultVal
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (
+        normalizedDefault === 'current_timestamp' ||
+        normalizedDefault === 'current_timestamp()' ||
+        normalizedDefault === 'now()'
+      ) {
+        return {
+          ...normalized,
+          ...(column.primary_key && { primary_key: true }),
+          ...(column.unique && { unique: true }),
+          ...(column.foreign_key && { foreign_key: column.foreign_key }),
+        };
+      }
+    }
     /* Detect PostgreSQL sequence patterns and MySQL auto_increment */
-    if (
-      column.primary_key ||
-      defaultVal.toLowerCase().includes('nextval') ||
-      defaultVal.toLowerCase().includes('auto_increment')
-    ) {
-      normalized.column_default = 'AUTO_INCREMENT';
+    if (typeof defaultVal === 'string') {
+      if (
+        column.primary_key ||
+        defaultVal.toLowerCase().includes('nextval') ||
+        defaultVal.toLowerCase().includes('auto_increment')
+      ) {
+        normalized.column_default = 'AUTO_INCREMENT';
+      } else {
+        normalized.column_default = defaultVal;
+      }
     } else {
       normalized.column_default = defaultVal;
     }
@@ -116,15 +150,15 @@ const normalizeColumn = (column: IColumnInfo): IColumnInfo => {
     normalized.primary_key = true;
   }
 
-  if (column.unique) {
-    normalized.unique = true;
-  }
+  /* Skip unique - detected differently between MySQL and PostgreSQL */
 
-  /* Add foreign_key if it exists */
+  /* Add foreign_key if it exists - only keep foreign_table_name for parity
+   * (foreign_column_name varies between MySQL/PostgreSQL introspection) */
   if (column.foreign_key) {
+    const foreignTable = column.foreign_key.foreign_table_name;
     normalized.foreign_key = {
-      foreign_table_name: column.foreign_key.foreign_table_name,
-      foreign_column_name: column.foreign_key.foreign_column_name,
+      foreign_table_name: foreignTable,
+      foreign_column_name: foreignTable,
     };
   }
 

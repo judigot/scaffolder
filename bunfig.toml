@@ -8,7 +8,8 @@ timeout = 30000
 # Only scan src directory for tests (excludes e2e/, .vercel/, .worktrees/)
 root = "./src"
 
-# All tests live under src/ with *.test.{ts,tsx}
+# Note: Tests using Vitest-specific features (module mocking with hoisting)
+# use the .vitest.tsx extension and are automatically excluded from Bun
 
 # Coverage configuration
 coverageSkipTestFiles = true
