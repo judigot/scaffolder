@@ -161,6 +161,8 @@ function InfraWorkspaceCard({
   onOpenProfile,
   onDelete,
 }: IInfraWorkspaceCardProps) {
+  const workspaceValue = workspace.trim();
+  const workspaceLabel = workspaceValue !== '' ? workspaceValue : 'Workspace';
   const [enableEc2, setEnableEc2] = useState<boolean>(false);
   const [runStatus, setRunStatus] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
@@ -179,13 +181,13 @@ function InfraWorkspaceCard({
   const [editDiskSize, setEditDiskSize] = useState<number>(10);
   const [editRegion, setEditRegion] = useState<string>(DEFAULT_AWS_REGION);
   const [editCustomAmi, setEditCustomAmi] = useState<string>('');
+  const [editWorkspaceName, setEditWorkspaceName] =
+    useState<string>(workspaceValue);
   const [currentRegion, setCurrentRegion] = useState<string | null>(null);
   const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
   const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
   const previousValueRef = useRef<boolean>(false);
-
-  const workspaceValue = workspace.trim();
-  const workspaceLabel = workspaceValue !== '' ? workspaceValue : 'Workspace';
+  const queryClient = useQueryClient();
 
   const { getWorkspaceStatus, setWorkspaceStatus } = useInfraStore();
   const cachedStatus = getWorkspaceStatus(workspaceValue);
@@ -196,6 +198,12 @@ function InfraWorkspaceCard({
       setOutputs(cachedStatus.outputs);
     }
   }, [cachedStatus]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditWorkspaceName(workspaceValue);
+    }
+  }, [workspaceValue, isEditing]);
 
   const statusQuery = useQuery({
     queryKey: [
@@ -540,6 +548,7 @@ function InfraWorkspaceCard({
       setEditRegion(region ?? DEFAULT_AWS_REGION);
       setCurrentRegion(region ?? null);
 
+      setEditWorkspaceName(workspaceValue);
       setIsEditing(true);
     } catch (err) {
       setError(
@@ -563,6 +572,29 @@ function InfraWorkspaceCard({
     setError(null);
 
     try {
+      const trimmedWorkspaceName = editWorkspaceName.trim();
+      const renameTo =
+        trimmedWorkspaceName !== '' && trimmedWorkspaceName !== workspaceValue
+          ? trimmedWorkspaceName
+          : undefined;
+
+      const payload: Record<string, unknown> = {
+        tfcToken: infraCredentials.tfcToken,
+        tfcOrg: infraCredentials.tfcOrg,
+        ec2InstanceType: editEc2Type,
+        diskSize: editDiskSize,
+        enableRds: editEnableRds,
+        rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
+        dbEngine: editEnableRds ? editRdsEngine : undefined,
+        customAmi: editCustomAmi,
+        awsRegion: editRegion,
+        enableEc2,
+      };
+
+      if (renameTo !== undefined) {
+        payload.renameTo = renameTo;
+      }
+
       const response = await fetch(
         `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/config`,
         {
@@ -571,18 +603,7 @@ function InfraWorkspaceCard({
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            tfcToken: infraCredentials.tfcToken,
-            tfcOrg: infraCredentials.tfcOrg,
-            ec2InstanceType: editEc2Type,
-            diskSize: editDiskSize,
-            enableRds: editEnableRds,
-            rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
-            dbEngine: editEnableRds ? editRdsEngine : undefined,
-            customAmi: editCustomAmi,
-            awsRegion: editRegion,
-            enableEc2,
-          }),
+          body: JSON.stringify(payload),
         },
       );
 
@@ -606,6 +627,14 @@ function InfraWorkspaceCard({
         setRunId(createResult.data.run.id);
         setIsLoading(true);
       }
+
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'terraform-workspaces',
+          infraCredentials.tfcToken,
+          infraCredentials.tfcOrg,
+        ],
+      });
 
       setIsEditing(false);
     } catch (err) {
@@ -849,6 +878,29 @@ function InfraWorkspaceCard({
               >
                 Cancel
               </button>
+            </div>
+            <div>
+              <label
+                htmlFor={`edit-workspace-${workspaceValue}`}
+                className="block text-[11px] text-fg-subtle mb-1"
+              >
+                Workspace Name
+              </label>
+              <input
+                id={`edit-workspace-${workspaceValue}`}
+                type="text"
+                value={editWorkspaceName}
+                onChange={(event) => {
+                  setEditWorkspaceName(event.target.value);
+                }}
+                placeholder={workspaceValue || 'workspace-name'}
+                className="w-full px-3 py-2 bg-bg-base border border-border rounded text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                aria-label="Workspace name"
+              />
+              <p className="text-[10px] text-fg-subtle mt-1">
+                Rename the workspace when you update configuration. Leave blank
+                to keep the existing name.
+              </p>
             </div>
             <div>
               <label

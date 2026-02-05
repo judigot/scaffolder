@@ -36,6 +36,7 @@ import {
   upsertTerraformVariables,
   validateTerraformConfig,
   waitForConfigurationReady,
+  renameTerraformWorkspace,
 } from '@/app/services/terraformCloudService.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
@@ -564,6 +565,7 @@ interface IUpdateWorkspaceConfigPayload {
   enableRds?: unknown;
   rdsInstanceClass?: unknown;
   customAmi?: unknown;
+  renameTo?: unknown;
   dbEngine?: unknown;
   awsRegion?: unknown;
   enableEc2?: unknown;
@@ -600,13 +602,25 @@ router.post('/workspace/:workspaceName/config', async (c) => {
     );
   }
 
-  const config = createTerraformConfigFromCredentials({
+  let config = createTerraformConfigFromCredentials({
     tfcToken: body.tfcToken,
     tfcOrg: body.tfcOrg,
     tfcWorkspace: workspaceName,
   });
+  const renameTo =
+    typeof body.renameTo === 'string' ? body.renameTo.trim() : '';
+  const wantsRename = renameTo !== '' && renameTo !== workspaceName;
 
   try {
+    if (wantsRename) {
+      await renameTerraformWorkspace(config, renameTo);
+      config = createTerraformConfigFromCredentials({
+        tfcToken: body.tfcToken,
+        tfcOrg: body.tfcOrg,
+        tfcWorkspace: renameTo,
+      });
+    }
+
     validateTerraformConfig(config);
     await getTerraformWorkspaceId(config);
 
@@ -689,12 +703,12 @@ router.post('/workspace/:workspaceName/config', async (c) => {
       });
     }
 
-    if (variables.length === 0) {
+    if (variables.length === 0 && !wantsRename) {
       return c.json(
         {
           error: 'No configuration changes provided',
           message:
-            'Provide at least one of: awsRegion, ec2InstanceType, diskSize, enableRds, dbEngine, customAmi, rdsInstanceClass',
+            'Provide at least one of: awsRegion, ec2InstanceType, diskSize, enableRds, dbEngine, customAmi, renameTo, rdsInstanceClass',
         },
         400,
       );
