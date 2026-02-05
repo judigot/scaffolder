@@ -7,6 +7,7 @@ import { AIChatContainer } from '@/components/AI/AIChatContainer.tsx';
 import ChatPanel from '@/components/AI/chat-app/ChatPanel.tsx';
 import ChatTree from '@/components/AI/chat-app/ChatTree.tsx';
 import { mockRepositories } from '@/components/AI/chat-app/mockData.ts';
+import OpenCodeWebView from '@/components/AI/chat-app/OpenCodeWebView.tsx';
 import RepoTabs from '@/components/AI/chat-app/RepoTabs.tsx';
 import TopNav from '@/components/AI/chat-app/TopNav.tsx';
 import type { IMessage, IRepository } from '@/components/AI/chat-app/types.ts';
@@ -204,6 +205,7 @@ export default function ChatApp() {
   // Determine if we're in scaffolder mode (used for file loading and UI decisions)
   const isScaffolderMode = topLevelTab === 'scaffolder';
   const isMasterMode = topLevelTab === 'master';
+  const isOpencodeWebMode = topLevelTab === 'opencode-web';
 
   // ===== Multi-repo chat state =====
   // Get persisted repos from Auth0
@@ -1604,6 +1606,20 @@ export default function ChatApp() {
         {/* Master View content - legacy App */}
         <div className="flex-1 overflow-auto">
           <App />
+        </div>
+      </div>
+    );
+  }
+
+  if (isOpencodeWebMode) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-bg overflow-hidden text-fg">
+        <TopNav
+          isUserLoading={isUserLoading}
+          serverConfigStatus={serverConfigStatus}
+        />
+        <div className="flex-1 overflow-hidden">
+          <OpenCodeWebView />
         </div>
       </div>
     );
