@@ -126,21 +126,21 @@ export const createAndIntrospectDatabase = async (
 
 /**
  * Gets the connection string for a database type.
- * Uses environment variables if available, otherwise falls back to docker-compose defaults.
+ * Builds URL from individual env vars: DB_DATABASE, DB_USERNAME, DB_PASSWORD, POSTGRESQL_PORT, MYSQL_PORT.
  */
 export const getTestConnectionString = (dbType: DBTypes): string => {
+  const database = process.env.DB_DATABASE ?? 'scaffolder';
+  const username = process.env.DB_USERNAME ?? 'scaffolder';
+  const password = process.env.DB_PASSWORD ?? 'scaffolder123';
+
   if (dbType === 'postgresql') {
-    return (
-      process.env.POSTGRES_TEST_URL ??
-      process.env.DATABASE_URL ??
-      'postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder'
-    );
+    const port = process.env.POSTGRESQL_PORT ?? '15432';
+    return `postgresql://${username}:${password}@localhost:${port}/${database}`;
   }
 
-  return (
-    process.env.MYSQL_TEST_URL ??
-    'mysql://root:scaffolder123@localhost:13306/scaffolder'
-  );
+  const port = process.env.MYSQL_PORT ?? '13306';
+  // MySQL uses root for test access
+  return `mysql://root:${password}@localhost:${port}/${database}`;
 };
 
 /**

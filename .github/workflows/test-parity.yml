@@ -39,9 +39,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder
-      POSTGRES_TEST_URL: postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder
-      MYSQL_TEST_URL: mysql://root:scaffolder123@localhost:13306/scaffolder
+      DB_DATABASE: scaffolder
+      DB_USERNAME: scaffolder
+      DB_PASSWORD: scaffolder123
+      POSTGRESQL_PORT: 15432
+      MYSQL_PORT: 13306
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

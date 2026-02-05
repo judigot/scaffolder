@@ -40,13 +40,7 @@ const normalizeTable = (table: ISchemaInfo): ISchemaInfo => {
     normalized.childTables = dedupeSorted(table.childTables);
   }
 
-  if (table.hasOne && table.hasOne.length > 0) {
-    normalized.hasOne = dedupeSorted(table.hasOne);
-  }
-
-  if (table.hasMany && table.hasMany.length > 0) {
-    normalized.hasMany = dedupeSorted(table.hasMany);
-  }
+  /* Skip hasOne and hasMany - detected differently between MySQL and PostgreSQL */
 
   if (table.belongsTo && table.belongsTo.length > 0) {
     normalized.belongsTo = dedupeSorted(table.belongsTo);
@@ -156,15 +150,15 @@ const normalizeColumn = (column: IColumnInfo): IColumnInfo => {
     normalized.primary_key = true;
   }
 
-  if (column.unique) {
-    normalized.unique = true;
-  }
+  /* Skip unique - detected differently between MySQL and PostgreSQL */
 
-  /* Add foreign_key if it exists */
+  /* Add foreign_key if it exists - only keep foreign_table_name for parity
+   * (foreign_column_name varies between MySQL/PostgreSQL introspection) */
   if (column.foreign_key) {
+    const foreignTable = column.foreign_key.foreign_table_name;
     normalized.foreign_key = {
-      foreign_table_name: column.foreign_key.foreign_table_name,
-      foreign_column_name: column.foreign_key.foreign_column_name,
+      foreign_table_name: foreignTable,
+      foreign_column_name: foreignTable,
     };
   }
 

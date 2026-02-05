@@ -1,12 +1,28 @@
 import Pool from 'pg-pool';
 import { createConnection } from 'mysql2/promise';
 
-const getEnv = (key: string): string => {
+const getEnv = (key: string, fallback?: string): string => {
   const value = process.env[key];
   if (value === undefined || value.trim() === '') {
+    if (fallback !== undefined) return fallback;
     throw new Error(`${key} is not set`);
   }
   return value;
+};
+
+const buildPostgresUrl = (): string => {
+  const database = getEnv('DB_DATABASE', 'scaffolder');
+  const username = getEnv('DB_USERNAME', 'scaffolder');
+  const password = getEnv('DB_PASSWORD', 'scaffolder123');
+  const port = getEnv('POSTGRESQL_PORT', '15432');
+  return `postgresql://${username}:${password}@localhost:${port}/${database}`;
+};
+
+const buildMySQLUrl = (): string => {
+  const database = getEnv('DB_DATABASE', 'scaffolder');
+  const password = getEnv('DB_PASSWORD', 'scaffolder123');
+  const port = getEnv('MYSQL_PORT', '13306');
+  return `mysql://root:${password}@localhost:${port}/${database}`;
 };
 
 const sleep = (ms: number): Promise<void> =>
@@ -51,8 +67,8 @@ const waitFor = async (
 };
 
 const main = async (): Promise<void> => {
-  const postgresUrl = getEnv('POSTGRES_TEST_URL');
-  const mysqlUrl = getEnv('MYSQL_TEST_URL');
+  const postgresUrl = buildPostgresUrl();
+  const mysqlUrl = buildMySQLUrl();
 
   await waitFor('postgres', () => waitForPostgres(postgresUrl), 60000, 1000);
   await waitFor('mysql', () => waitForMySQL(mysqlUrl), 60000, 1000);
