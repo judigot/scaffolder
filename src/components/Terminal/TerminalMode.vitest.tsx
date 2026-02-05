@@ -1,9 +1,11 @@
 /// <reference types="vitest/globals" />
 
 /**
- * Terminal Mode Component Tests
+ * Terminal Mode Component Tests (Vitest-only)
  * Tests for the Terminal Mode UI rendering and functionality
  *
+ * This test uses Vitest-specific module mocking (hoisting) that doesn't work with Bun.
+ * The .vitest.tsx extension ensures it's only run by Vitest, not Bun.
  */
 
 import { screen, waitFor } from '@testing-library/react';

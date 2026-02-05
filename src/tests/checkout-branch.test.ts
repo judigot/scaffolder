@@ -6,10 +6,29 @@
 import { afterAll, beforeAll, describe, expect, it as test } from 'vitest';
 
 const API_BASE = 'http://localhost:3000';
-const TEST_REPO_PATH = '/home/ubuntu/scaffolder-workspaces/judigot/ide';
+const TEST_REPO_PATH = process.env.TEST_REPO_PATH ?? process.cwd();
 
-// Get auth token from environment or skip auth tests
+// Get auth token from environment
 const AUTH_TOKEN = process.env.TEST_AUTH_TOKEN;
+
+const checkRepoExists = async (repoPath: string): Promise<boolean> => {
+  try {
+    const { execSync } = await import('node:child_process');
+    execSync(`cd ${repoPath} && git status`, { encoding: 'utf-8' });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const requireAuthToken = (): string => {
+  if (AUTH_TOKEN === undefined || AUTH_TOKEN === '') {
+    throw new Error(
+      'TEST_AUTH_TOKEN must be provided to run authenticated checkout tests',
+    );
+  }
+  return AUTH_TOKEN;
+};
 
 /**
  * Check if the backend server is reachable.
@@ -32,180 +51,172 @@ const checkServerAvailable = async (): Promise<boolean> => {
 };
 
 const isServerAvailable = await checkServerAvailable();
+const isRepoAvailable = await checkRepoExists(TEST_REPO_PATH);
 
-describe.skipIf(!isServerAvailable)(
-  'Chat Branch Checkout - Server Tests',
-  () => {
-    // Setup: ensure we're on main and clean
-    beforeAll(async () => {
-      const { execSync } = await import('node:child_process');
-      try {
-        execSync(`cd ${TEST_REPO_PATH} && git checkout main && git clean -fd`, {
-          encoding: 'utf-8',
-        });
-      } catch (e) {
-        console.warn('Setup warning:', e);
-      }
+describe('Chat Branch Checkout - Server Tests', () => {
+  // Setup: ensure server is available and we're on main and clean
+  beforeAll(async () => {
+    if (!isServerAvailable) {
+      throw new Error(
+        'OpenCode proxy is not reachable at http://localhost:3000',
+      );
+    }
+    const { execSync } = await import('node:child_process');
+    try {
+      execSync(`cd ${TEST_REPO_PATH} && git checkout main && git clean -fd`, {
+        encoding: 'utf-8',
+      });
+    } catch (e) {
+      console.warn('Setup warning:', e);
+    }
+  });
+
+  // Cleanup: return to main
+  afterAll(async () => {
+    const { execSync } = await import('node:child_process');
+    try {
+      execSync(`cd ${TEST_REPO_PATH} && git checkout main`, {
+        encoding: 'utf-8',
+      });
+    } catch (e) {
+      console.warn('Cleanup warning:', e);
+    }
+  });
+
+  describe('OpenCode Health', () => {
+    test('OpenCode proxy is reachable', async () => {
+      const res = await fetch(`${API_BASE}/api/opencode/health`);
+      expect(res.ok).toBe(true);
+
+      const data: unknown = await res.json();
+      expect(
+        typeof data === 'object' &&
+          data !== null &&
+          'connected' in data &&
+          data.connected,
+      ).toBe(true);
+    });
+  });
+
+  describe('Checkout API', () => {
+    test('returns error without auth token', async () => {
+      const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repoPath: TEST_REPO_PATH,
+          branch: 'main',
+        }),
+      });
+
+      expect(res.status).toBe(401);
+      const data: unknown = await res.json();
+      expect(
+        typeof data === 'object' &&
+          data !== null &&
+          'error' in data &&
+          typeof data.error === 'string' &&
+          data.error.includes('authorization'),
+      ).toBe(true);
     });
 
-    // Cleanup: return to main
-    afterAll(async () => {
-      const { execSync } = await import('node:child_process');
-      try {
-        execSync(`cd ${TEST_REPO_PATH} && git checkout main`, {
-          encoding: 'utf-8',
-        });
-      } catch (e) {
-        console.warn('Cleanup warning:', e);
-      }
+    test('returns error without repoPath', async () => {
+      const token = requireAuthToken();
+
+      const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          branch: 'main',
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      const data: unknown = await res.json();
+      expect(
+        typeof data === 'object' &&
+          data !== null &&
+          'error' in data &&
+          typeof data.error === 'string' &&
+          data.error.includes('path'),
+      ).toBe(true);
     });
 
-    describe('OpenCode Health', () => {
-      test('OpenCode proxy is reachable', async () => {
-        const res = await fetch(`${API_BASE}/api/opencode/health`);
-        expect(res.ok).toBe(true);
+    test('returns error without branch', async () => {
+      const token = requireAuthToken();
 
-        const data: unknown = await res.json();
-        expect(
-          typeof data === 'object' &&
-            data !== null &&
-            'connected' in data &&
-            data.connected,
-        ).toBe(true);
+      const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          repoPath: TEST_REPO_PATH,
+        }),
       });
+
+      expect(res.status).toBe(400);
+      const data: unknown = await res.json();
+      expect(
+        typeof data === 'object' &&
+          data !== null &&
+          'error' in data &&
+          typeof data.error === 'string' &&
+          data.error.includes('branch'),
+      ).toBe(true);
     });
 
-    describe('Checkout API', () => {
-      test('returns error without auth token', async () => {
-        const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            repoPath: TEST_REPO_PATH,
-            branch: 'main',
-          }),
-        });
+    test('successfully checks out existing branch', async () => {
+      const token = requireAuthToken();
 
-        expect(res.status).toBe(401);
-        const data: unknown = await res.json();
-        expect(
-          typeof data === 'object' &&
-            data !== null &&
-            'error' in data &&
-            typeof data.error === 'string' &&
-            data.error.includes('authorization'),
-        ).toBe(true);
+      const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          repoPath: TEST_REPO_PATH,
+          branch: 'main',
+        }),
       });
 
-      test('returns error without repoPath', async () => {
-        if (AUTH_TOKEN === undefined || AUTH_TOKEN === '') {
-          console.log('Skipping: TEST_AUTH_TOKEN not set');
-          return;
-        }
-
-        const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${AUTH_TOKEN}`,
-          },
-          body: JSON.stringify({
-            branch: 'main',
-          }),
-        });
-
-        expect(res.status).toBe(400);
-        const data: unknown = await res.json();
-        expect(
-          typeof data === 'object' &&
-            data !== null &&
-            'error' in data &&
-            typeof data.error === 'string' &&
-            data.error.includes('path'),
-        ).toBe(true);
-      });
-
-      test('returns error without branch', async () => {
-        if (AUTH_TOKEN === undefined || AUTH_TOKEN === '') {
-          console.log('Skipping: TEST_AUTH_TOKEN not set');
-          return;
-        }
-
-        const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${AUTH_TOKEN}`,
-          },
-          body: JSON.stringify({
-            repoPath: TEST_REPO_PATH,
-          }),
-        });
-
-        expect(res.status).toBe(400);
-        const data: unknown = await res.json();
-        expect(
-          typeof data === 'object' &&
-            data !== null &&
-            'error' in data &&
-            typeof data.error === 'string' &&
-            data.error.includes('branch'),
-        ).toBe(true);
-      });
-
-      test('successfully checks out existing branch', async () => {
-        if (AUTH_TOKEN === undefined || AUTH_TOKEN === '') {
-          console.log('Skipping: TEST_AUTH_TOKEN not set');
-          return;
-        }
-
-        const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${AUTH_TOKEN}`,
-          },
-          body: JSON.stringify({
-            repoPath: TEST_REPO_PATH,
-            branch: 'main',
-          }),
-        });
-
-        expect(res.ok).toBe(true);
-        const data: unknown = await res.json();
-        expect(
-          typeof data === 'object' && data !== null && 'ok' in data && data.ok,
-        ).toBe(true);
-      });
-
-      test('returns error for non-existent branch', async () => {
-        if (AUTH_TOKEN === undefined || AUTH_TOKEN === '') {
-          return;
-        }
-
-        const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${AUTH_TOKEN}`,
-          },
-          body: JSON.stringify({
-            repoPath: TEST_REPO_PATH,
-            branch: 'non-existent-branch-xyz',
-          }),
-        });
-
-        const data: unknown = await res.json();
-        expect(
-          typeof data === 'object' &&
-            data !== null &&
-            'ok' in data &&
-            data.ok === false,
-        ).toBe(true);
-      });
+      expect(res.ok).toBe(true);
+      const data: unknown = await res.json();
+      expect(
+        typeof data === 'object' && data !== null && 'ok' in data && data.ok,
+      ).toBe(true);
     });
-  },
-);
+
+    test('returns error for non-existent branch', async () => {
+      const token = requireAuthToken();
+
+      const res = await fetch(`${API_BASE}/api/local-repo/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          repoPath: TEST_REPO_PATH,
+          branch: 'non-existent-branch-xyz',
+        }),
+      });
+
+      const data: unknown = await res.json();
+      expect(
+        typeof data === 'object' &&
+          data !== null &&
+          'ok' in data &&
+          data.ok === false,
+      ).toBe(true);
+    });
+  });
+});
 
 describe('Chat Branch Checkout - Unit Tests', () => {
   describe('Branch Extraction Regex', () => {
@@ -270,23 +281,13 @@ describe('Chat Branch Checkout - Unit Tests', () => {
   });
 });
 
-/**
- * Check if the test repo path exists.
- * Returns true if the repo exists, false otherwise.
- */
-const checkRepoExists = async (): Promise<boolean> => {
-  try {
-    const { execSync } = await import('node:child_process');
-    execSync(`cd ${TEST_REPO_PATH} && git status`, { encoding: 'utf-8' });
-    return true;
-  } catch {
-    return false;
-  }
-};
+describe('Git Operations', () => {
+  beforeAll(() => {
+    if (!isRepoAvailable) {
+      throw new Error(`Test repo not found at ${TEST_REPO_PATH}`);
+    }
+  });
 
-const isRepoAvailable = await checkRepoExists();
-
-describe.skipIf(!isRepoAvailable)('Git Operations', () => {
   test('can get current branch', async () => {
     const { execSync } = await import('node:child_process');
     const branch = execSync(

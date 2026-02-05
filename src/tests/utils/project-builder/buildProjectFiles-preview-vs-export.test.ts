@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
+import { describe, expect, it } from 'vitest';
 import type { IStructure } from '@/components/FileViewer.tsx';
+import { CREATION_MODES } from '@/constants.ts';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import masterJSONSchema from '@/json-schemas/masterJSONSchema.ts';
+import masterSchema from '@/schema-infos/masterSchema.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import { frameworks } from '@/useFormStore.ts';
-import { CREATION_MODES } from '@/constants.ts';
-import masterSchema from '@/schema-infos/masterSchema.ts';
-import masterJSONSchema from '@/json-schemas/masterJSONSchema.ts';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 
 describe('Preview vs Export Structure Consistency', () => {
   const createSchema = (): ISchemaInfo[] => masterSchema;
@@ -460,7 +460,7 @@ describe('Preview vs Export Structure Consistency', () => {
     );
   });
 
-  it.skip('should handle complex nested structures with USE_USER_ENV', async () => {
+  it('should handle complex nested structures with USE_USER_ENV', async () => {
     const schemaInfo = createSchema();
     const complexUserFiles: IStructure = [
       {
