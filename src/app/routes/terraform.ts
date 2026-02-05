@@ -49,6 +49,7 @@ interface ITerraformRunPayload {
   tfcToken?: unknown;
   tfcOrg?: unknown;
   tfcWorkspace?: unknown;
+  customAmi?: unknown;
 }
 
 interface ITerraformStatusPayload {
@@ -451,6 +452,18 @@ router.post('/run', async (c) => {
         sensitive: false,
       },
     ];
+
+    if (typeof body.customAmi === 'string') {
+      const trimmedAmi = body.customAmi.trim();
+      if (trimmedAmi !== '') {
+        variables.push({
+          key: 'TF_VAR_custom_ami',
+          value: trimmedAmi,
+          category: 'env' as const,
+          sensitive: false,
+        });
+      }
+    }
 
     variables.push({
       key: 'AWS_SESSION_TOKEN',

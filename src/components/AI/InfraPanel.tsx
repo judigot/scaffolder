@@ -391,6 +391,7 @@ function InfraWorkspaceCard({
           tfcToken: infraCredentials.tfcToken,
           tfcOrg: infraCredentials.tfcOrg,
           tfcWorkspace: workspaceValue,
+          customAmi: editCustomAmi,
         }),
       });
       if (!response.ok) {
