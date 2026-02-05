@@ -1,4 +1,4 @@
-import { Client } from 'pg';
+import Pool from 'pg-pool';
 import { createConnection } from 'mysql2/promise';
 
 const getEnv = (key: string): string => {
@@ -15,9 +15,10 @@ const sleep = (ms: number): Promise<void> =>
   });
 
 const waitForPostgres = async (connectionString: string): Promise<void> => {
-  const client = new Client({ connectionString });
-  await client.connect();
-  await client.end();
+  const pool = new Pool({ connectionString });
+  const client = await pool.connect();
+  client.release();
+  await pool.end();
 };
 
 const waitForMySQL = async (connectionString: string): Promise<void> => {
