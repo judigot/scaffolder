@@ -220,6 +220,32 @@ export const executeSQLFileAndIntrospect = async (
     '',
   );
 
+  const stripBlockComments = (input: string): string => {
+    let output = '';
+    let index = 0;
+
+    while (index < input.length) {
+      const current = input[index];
+      const next = input[index + 1];
+
+      if (current === '/' && next === '*') {
+        const endIndex = input.indexOf('*/', index + 2);
+        if (endIndex === -1) {
+          break;
+        }
+        index = endIndex + 2;
+        continue;
+      }
+
+      output += current;
+      index += 1;
+    }
+
+    return output;
+  };
+
+  sqlContent = stripBlockComments(sqlContent);
+
   /* Execute SQL to create database */
   if (dbType === 'postgresql') {
     try {

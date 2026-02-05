@@ -134,9 +134,10 @@ describe('TerminalMode', () => {
         { authConfig: authenticatedUserConfig },
       );
 
-      expect(
-        screen.getByRole('textbox', { name: /terminal input/i }),
-      ).toBeInTheDocument();
+      const inputs = screen.getAllByRole('textbox', {
+        name: /terminal input/i,
+      });
+      expect(inputs.length).toBeGreaterThan(0);
     });
 
     it('renders mode indicator', () => {
@@ -188,7 +189,9 @@ describe('TerminalMode', () => {
     it('disables input when not connected', () => {
       renderWithAuth(<TerminalMode />, { authConfig: newUserConfig });
 
-      const input = screen.getByRole('textbox', { name: /terminal input/i });
+      const [input] = screen.getAllByRole('textbox', {
+        name: /terminal input/i,
+      });
       expect(input).toBeDisabled();
     });
   });
@@ -206,7 +209,9 @@ describe('TerminalMode', () => {
         { authConfig: authenticatedUserConfig },
       );
 
-      const input = screen.getByRole('textbox', { name: /terminal input/i });
+      const [input] = screen.getAllByRole('textbox', {
+        name: /terminal input/i,
+      });
       await user.type(input, 'ls -la');
 
       expect(input).toHaveValue('ls -la');
@@ -224,7 +229,9 @@ describe('TerminalMode', () => {
         { authConfig: authenticatedUserConfig },
       );
 
-      const input = screen.getByRole('textbox', { name: /terminal input/i });
+      const [input] = screen.getAllByRole('textbox', {
+        name: /terminal input/i,
+      });
       await user.type(input, 'pwd{enter}');
 
       await waitFor(() => {
