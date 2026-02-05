@@ -23,6 +23,7 @@ interface ITerraformVariable {
 interface ITerraformRunResult {
   id: string;
   status: string;
+  errorMessage?: string | null;
 }
 
 export interface ITerraformWorkspace {
@@ -431,13 +432,124 @@ export const getTerraformRun = async (
       typeof payload.data.attributes.status === 'string'
         ? payload.data.attributes.status
         : 'unknown';
+    const relationships =
+      'relationships' in payload.data &&
+      typeof payload.data.relationships === 'object' &&
+      payload.data.relationships !== null
+        ? payload.data.relationships
+        : null;
+    const applyId =
+      relationships &&
+      'apply' in relationships &&
+      typeof relationships.apply === 'object' &&
+      relationships.apply !== null &&
+      'data' in relationships.apply &&
+      typeof relationships.apply.data === 'object' &&
+      relationships.apply.data !== null &&
+      'id' in relationships.apply.data &&
+      typeof relationships.apply.data.id === 'string'
+        ? relationships.apply.data.id
+        : null;
+    const planId =
+      relationships &&
+      'plan' in relationships &&
+      typeof relationships.plan === 'object' &&
+      relationships.plan !== null &&
+      'data' in relationships.plan &&
+      typeof relationships.plan.data === 'object' &&
+      relationships.plan.data !== null &&
+      'id' in relationships.plan.data &&
+      typeof relationships.plan.data.id === 'string'
+        ? relationships.plan.data.id
+        : null;
+    const errorMessage = await getTerraformRunErrorMessage(
+      config,
+      status,
+      applyId,
+      planId,
+    );
     return {
       id: payload.data.id,
       status,
+      errorMessage,
     };
   }
 
   throw new Error('Terraform run response missing ID');
+};
+
+const getTerraformRunErrorMessage = async (
+  config: ITerraformConfig,
+  status: string,
+  applyId: string | null,
+  planId: string | null,
+): Promise<string | null> => {
+  if (status !== 'errored' && status !== 'canceled' && status !== 'failed') {
+    return null;
+  }
+
+  const applyLogUrl =
+    applyId !== null ? await getLogReadUrl(config, 'applies', applyId) : null;
+  const planLogUrl =
+    planId !== null ? await getLogReadUrl(config, 'plans', planId) : null;
+  const logUrl = applyLogUrl ?? planLogUrl;
+
+  if (logUrl === null) {
+    return null;
+  }
+
+  const logText = await fetchLogText(logUrl);
+  if (logText === null) {
+    return null;
+  }
+
+  return extractTerraformError(logText);
+};
+
+const getLogReadUrl = async (
+  config: ITerraformConfig,
+  kind: 'applies' | 'plans',
+  id: string,
+): Promise<string | null> => {
+  const response = await terraformFetch(config, `/${kind}/${id}`);
+  if (!response.ok) {
+    return null;
+  }
+  const payload: unknown = await response.json();
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'data' in payload &&
+    typeof payload.data === 'object' &&
+    payload.data !== null &&
+    'attributes' in payload.data &&
+    typeof payload.data.attributes === 'object' &&
+    payload.data.attributes !== null &&
+    'log-read-url' in payload.data.attributes &&
+    typeof payload.data.attributes['log-read-url'] === 'string'
+  ) {
+    return payload.data.attributes['log-read-url'];
+  }
+  return null;
+};
+
+const fetchLogText = async (logUrl: string): Promise<string | null> => {
+  const response = await fetch(logUrl);
+  if (!response.ok) {
+    return null;
+  }
+  return response.text();
+};
+
+const extractTerraformError = (logText: string): string | null => {
+  const lines = logText.split('\n').filter((line) => line.trim() !== '');
+  if (lines.length === 0) {
+    return null;
+  }
+  const errorLines = lines.filter((line) => /\bError:\b/.test(line));
+  const candidateLines = errorLines.length > 0 ? errorLines : lines.slice(-10);
+  const lastLine = candidateLines[candidateLines.length - 1].trim();
+  return lastLine;
 };
 
 export const getTerraformOutputs = async (

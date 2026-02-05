@@ -22,6 +22,7 @@ export const WorkspacesResponseSchema = z.object({
 export const TerraformRunSchema = z.object({
   id: z.string(),
   status: z.string(),
+  errorMessage: z.string().nullable().optional(),
 });
 
 export const TerraformRunResponseSchema = z.object({
