@@ -1,4 +1,4 @@
-import type { ISchemaInfo, IColumnInfo } from '@/interfaces/interfaces.ts';
+import type { IColumnInfo, ISchemaInfo } from '@/interfaces/interfaces.ts';
 
 /**
  * Normalizes a schema for deterministic comparison.
@@ -90,22 +90,48 @@ const normalizeColumns = (columns: IColumnInfo[]): IColumnInfo[] => {
 };
 
 const normalizeColumn = (column: IColumnInfo): IColumnInfo => {
+  const isNullable =
+    typeof column.is_nullable === 'string'
+      ? column.is_nullable.toUpperCase()
+      : column.is_nullable;
   const normalized: IColumnInfo = {
     column_name: column.column_name,
     data_type: column.data_type,
-    is_nullable: column.is_nullable,
+    is_nullable: isNullable,
   };
 
   /* Normalize column_default: convert auto-increment patterns to AUTO_INCREMENT */
   if (column.column_default !== undefined && column.column_default !== null) {
     const defaultVal = column.column_default;
+    if (typeof defaultVal === 'string') {
+      const normalizedDefault = defaultVal
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (
+        normalizedDefault === 'current_timestamp' ||
+        normalizedDefault === 'current_timestamp()' ||
+        normalizedDefault === 'now()'
+      ) {
+        return {
+          ...normalized,
+          ...(column.primary_key && { primary_key: true }),
+          ...(column.unique && { unique: true }),
+          ...(column.foreign_key && { foreign_key: column.foreign_key }),
+        };
+      }
+    }
     /* Detect PostgreSQL sequence patterns and MySQL auto_increment */
-    if (
-      column.primary_key ||
-      defaultVal.toLowerCase().includes('nextval') ||
-      defaultVal.toLowerCase().includes('auto_increment')
-    ) {
-      normalized.column_default = 'AUTO_INCREMENT';
+    if (typeof defaultVal === 'string') {
+      if (
+        column.primary_key ||
+        defaultVal.toLowerCase().includes('nextval') ||
+        defaultVal.toLowerCase().includes('auto_increment')
+      ) {
+        normalized.column_default = 'AUTO_INCREMENT';
+      } else {
+        normalized.column_default = defaultVal;
+      }
     } else {
       normalized.column_default = defaultVal;
     }
