@@ -358,6 +358,13 @@ function InfraWorkspaceCard({
           }, 4000);
           return;
         }
+        if (
+          result.run.errorMessage !== null &&
+          result.run.errorMessage !== undefined &&
+          result.run.errorMessage.trim() !== ''
+        ) {
+          setError(result.run.errorMessage);
+        }
         setIsLoading(false);
         await refetchStatus();
       } catch (pollError: unknown) {
