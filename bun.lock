@@ -40,6 +40,7 @@
         "jwks-rsa": "^3.2.0",
         "mysql2": "^3.15.3",
         "p-limit": "^7.2.0",
+        "pg": "^8.16.3",
         "pg-pool": "^3.10.1",
         "pluralize": "^8.0.0",
         "prettier-plugin-java": "^2.7.7",
