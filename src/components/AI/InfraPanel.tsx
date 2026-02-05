@@ -178,6 +178,7 @@ function InfraWorkspaceCard({
   const [editRdsEngine, setEditRdsEngine] = useState<DbEngine>('postgresql');
   const [editDiskSize, setEditDiskSize] = useState<number>(10);
   const [editRegion, setEditRegion] = useState<string>(DEFAULT_AWS_REGION);
+  const [editCustomAmi, setEditCustomAmi] = useState<string>('');
   const [currentRegion, setCurrentRegion] = useState<string | null>(null);
   const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
   const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
@@ -520,6 +521,7 @@ function InfraWorkspaceCard({
       const rdsClass =
         stateData?.rdsInstanceClass ?? getVar('TF_VAR_db_instance_class');
       const rdsEngine = normalizeDbEngine(getVar('TF_VAR_db_engine'));
+      const customAmi = getVar('TF_VAR_custom_ami') ?? '';
       const diskSize = stateData?.diskSize ?? getVar('TF_VAR_disk_size');
       const region = stateData?.region ?? getVar('TF_VAR_aws_region');
 
@@ -527,6 +529,7 @@ function InfraWorkspaceCard({
       setEditEnableRds(enableRds);
       setEditRdsClass(rdsClass ?? DEFAULT_RDS_INSTANCE_TYPE);
       setEditRdsEngine(rdsEngine);
+      setEditCustomAmi(customAmi);
       setEditDiskSize(
         typeof diskSize === 'number'
           ? diskSize
@@ -576,6 +579,7 @@ function InfraWorkspaceCard({
             enableRds: editEnableRds,
             rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
             dbEngine: editEnableRds ? editRdsEngine : undefined,
+            customAmi: editCustomAmi,
             awsRegion: editRegion,
             enableEc2,
           }),
@@ -973,6 +977,28 @@ function InfraWorkspaceCard({
               </div>
               <p className="text-[10px] text-fg-subtle mt-1">
                 Min: 10 GB, Max: 500 GB (can only increase)
+              </p>
+            </div>
+            <div className="mt-3">
+              <label
+                htmlFor={`edit-custom-ami-${workspaceValue}`}
+                className="block text-[11px] text-fg-subtle mb-1"
+              >
+                Custom AMI ID
+              </label>
+              <input
+                id={`edit-custom-ami-${workspaceValue}`}
+                type="text"
+                value={editCustomAmi}
+                onChange={(event) => {
+                  setEditCustomAmi(event.target.value.trim());
+                }}
+                placeholder="ami-0123456789abcdef0"
+                className="w-full px-3 py-2 bg-bg-base border border-border rounded text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                aria-label="Custom AMI ID"
+              />
+              <p className="text-[10px] text-fg-subtle mt-1">
+                Leave blank to use the default Ubuntu/Windows image.
               </p>
             </div>
             <div className="flex items-center justify-between py-1">
