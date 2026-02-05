@@ -65,8 +65,6 @@ test.describe('Scaffolder Code tab', () => {
         subtree: true,
       });
     }, repoUrl);
-
-    await page.goto('/');
   });
 
   test('does not render repository fallback while projects parse', async ({
@@ -83,9 +81,12 @@ test.describe('Scaffolder Code tab', () => {
       });
     });
 
-    const userFilesResponse = page.waitForResponse(
-      '**/api/getUserFilesFromPublicRepo',
-    );
+    const userFilesResponse = page.waitForResponse((response) => {
+      return (
+        response.url().includes('/api/getUserFilesFromPublicRepo') &&
+        response.status() === 200
+      );
+    });
 
     await page.goto('/');
 
@@ -113,7 +114,16 @@ test.describe('Scaffolder Code tab', () => {
       });
     });
 
+    const userFilesResponse = page.waitForResponse((response) => {
+      return (
+        response.url().includes('/api/getUserFilesFromPublicRepo') &&
+        response.status() === 200
+      );
+    });
+
     await page.goto('/');
+
+    await userFilesResponse;
 
     await expect(page.getByTestId('scaffolder-repo-viewer')).toBeVisible();
   });
