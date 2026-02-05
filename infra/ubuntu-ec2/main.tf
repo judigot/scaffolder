@@ -73,16 +73,19 @@ resource "aws_security_group" "ec2" {
 
 resource "aws_instance" "main" {
   count                       = var.enable_ec2 ? 1 : 0
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = var.custom_ami != "" ? var.custom_ami : data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   subnet_id                   = local.subnet_id
   associate_public_ip_address = var.associate_public_ip
   vpc_security_group_ids      = [aws_security_group.ec2[0].id]
   key_name                    = var.ssh_public_key != "" ? aws_key_pair.main[0].key_name : null
 
-  root_block_device {
-    volume_size = var.disk_size
-    volume_type = var.volume_type
+  dynamic "root_block_device" {
+    for_each = var.custom_ami != "" ? [] : [1]
+    content {
+      volume_size = var.disk_size
+      volume_type = var.volume_type
+    }
   }
 
   user_data = <<-EOF

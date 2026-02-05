@@ -49,6 +49,7 @@ interface ITerraformRunPayload {
   tfcToken?: unknown;
   tfcOrg?: unknown;
   tfcWorkspace?: unknown;
+  customAmi?: unknown;
 }
 
 interface ITerraformStatusPayload {
@@ -226,12 +227,16 @@ router.post('/status', async (c) => {
     const enableVar = variables.find(
       (item) => item.category === 'env' && item.key === 'TF_VAR_enable_ec2',
     );
+    const customAmiVar = variables.find(
+      (item) => item.category === 'env' && item.key === 'TF_VAR_custom_ami',
+    );
     const outputs = await getTerraformOutputs(config);
     const enableEc2 = enableVar?.value === 'true';
     return c.json(
       {
         success: true,
         enableEc2,
+        customAmi: customAmiVar?.value ?? null,
         outputs,
       },
       200,
@@ -451,6 +456,18 @@ router.post('/run', async (c) => {
         sensitive: false,
       },
     ];
+
+    if (typeof body.customAmi === 'string') {
+      const trimmedAmi = body.customAmi.trim();
+      if (trimmedAmi !== '') {
+        variables.push({
+          key: 'TF_VAR_custom_ami',
+          value: trimmedAmi,
+          category: 'env' as const,
+          sensitive: false,
+        });
+      }
+    }
 
     variables.push({
       key: 'AWS_SESSION_TOKEN',
