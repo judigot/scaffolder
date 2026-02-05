@@ -208,6 +208,18 @@ describe('Preview vs Export Structure Consistency', () => {
   };
 
   /**
+   * Normalizes content for comparison by removing timestamps
+   * This handles error logs that contain timestamps which differ between runs
+   */
+  const normalizeForComparison = (content: string): string => {
+    // Remove ISO timestamps (e.g., 2026-02-05T06:27:08.095Z)
+    return content.replace(
+      /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g,
+      '[TIMESTAMP]',
+    );
+  };
+
+  /**
    * Compares two structures and returns differences
    */
   const compareStructures = (
@@ -239,7 +251,10 @@ describe('Preview vs Export Structure Consistency', () => {
       const exportContent = exportFiles.get(filePath);
       if (exportContent === undefined) {
         missingInExport.push(filePath);
-      } else if (previewContent !== exportContent) {
+      } else if (
+        normalizeForComparison(previewContent) !==
+        normalizeForComparison(exportContent)
+      ) {
         differences.push({
           filePath,
           previewContent,
