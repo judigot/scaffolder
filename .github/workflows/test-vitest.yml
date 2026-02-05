@@ -1,12 +1,12 @@
-name: Test
+name: Test (Vitest)
 
 on:
   push: {}
   workflow_dispatch: {}
 
 jobs:
-  test:
-    name: Test
+  test-vitest:
+    name: Test (Vitest)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -53,4 +53,4 @@ jobs:
         run: bun install
 
       - name: Run test suite
-        run: bun test
+        run: bun vitest
