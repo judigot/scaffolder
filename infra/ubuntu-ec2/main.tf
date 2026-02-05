@@ -73,7 +73,7 @@ resource "aws_security_group" "ec2" {
 
 resource "aws_instance" "main" {
   count                       = var.enable_ec2 ? 1 : 0
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = var.custom_ami != "" ? var.custom_ami : data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   subnet_id                   = local.subnet_id
   associate_public_ip_address = var.associate_public_ip

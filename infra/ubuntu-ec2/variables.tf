@@ -40,6 +40,17 @@ variable "instance_type" {
   default     = "t3.small"
 }
 
+variable "custom_ami" {
+  description = "Custom AMI ID to use instead of the default Ubuntu image"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.custom_ami == "" || can(regex("^ami-[0-9a-fA-F]+$", var.custom_ami))
+    error_message = "custom_ami must be a valid AMI ID (ami-...) or blank."
+  }
+}
+
 variable "ssh_public_key" {
   description = "SSH public key for EC2 access"
   type        = string

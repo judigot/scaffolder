@@ -227,12 +227,16 @@ router.post('/status', async (c) => {
     const enableVar = variables.find(
       (item) => item.category === 'env' && item.key === 'TF_VAR_enable_ec2',
     );
+    const customAmiVar = variables.find(
+      (item) => item.category === 'env' && item.key === 'TF_VAR_custom_ami',
+    );
     const outputs = await getTerraformOutputs(config);
     const enableEc2 = enableVar?.value === 'true';
     return c.json(
       {
         success: true,
         enableEc2,
+        customAmi: customAmiVar?.value ?? null,
         outputs,
       },
       200,

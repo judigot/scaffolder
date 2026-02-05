@@ -261,12 +261,24 @@ function InfraWorkspaceCard({
       const newOutputs = statusQuery.data.outputs;
       setEnableEc2(newEnableEc2);
       setOutputs(newOutputs);
+      if (!isEditing) {
+        const nextCustomAmi = statusQuery.data.customAmi ?? '';
+        if (nextCustomAmi !== editCustomAmi) {
+          setEditCustomAmi(nextCustomAmi);
+        }
+      }
       setWorkspaceStatus(workspaceValue, {
         enableEc2: newEnableEc2,
         outputs: newOutputs,
       });
     }
-  }, [statusQuery.data, workspaceValue, setWorkspaceStatus]);
+  }, [
+    statusQuery.data,
+    workspaceValue,
+    setWorkspaceStatus,
+    isEditing,
+    editCustomAmi,
+  ]);
 
   useEffect(() => {
     if (statusQuery.error instanceof Error) {

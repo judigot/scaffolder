@@ -30,6 +30,7 @@ export const TerraformRunResponseSchema = z.object({
 
 export const TerraformStatusResponseSchema = z.object({
   enableEc2: z.boolean(),
+  customAmi: z.string().nullable().optional(),
   outputs: z.record(z.string(), z.unknown()),
 });
 
