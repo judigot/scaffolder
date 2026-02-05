@@ -14,7 +14,7 @@ const isLiveServer =
   !backendHost.includes('127.0.0.1');
 
 export default defineConfig({
-  // base: './',
+  base: isLiveServer ? '/scaffolder/' : '/',
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
@@ -25,6 +25,14 @@ export default defineConfig({
     proxy: {
       '/api': `${backendHost}:${String(process.env.VITE_BACKEND_PORT)}`,
     },
+    hmr: isLiveServer
+      ? {
+          protocol: 'wss',
+          host: 'judigot.com',
+          clientPort: 443,
+          path: '/scaffolder/__vite_hmr',
+        }
+      : undefined,
   },
   plugins: [tailwindcss(), react(), tsconfigPaths()],
 });
