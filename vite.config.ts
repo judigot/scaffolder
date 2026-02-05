@@ -7,7 +7,7 @@ import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
-const backendHost = String(process.env.VITE_BACKEND_HOST ?? 'http://localhost');
+const backendHost = String(process.env.VITE_BACKEND_HOST || 'http://localhost');
 const isLiveServer =
   isDevelopment &&
   !backendHost.includes('localhost') &&
