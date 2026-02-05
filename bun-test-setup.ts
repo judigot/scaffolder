@@ -2,13 +2,16 @@
  * Bun test setup file
  * Registers happy-dom globals and configures the test environment
  *
- * Note: Tests using vi.mock() are named *.vitest-only.tsx and excluded from bun test
+ * Provides shared setup for bun test
  */
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { afterAll, afterEach, beforeAll, mock } from 'bun:test';
 import { cleanup } from '@testing-library/react';
 import { resetMockApiState, server } from './src/test/mocks/server.ts';
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
 
 // Register happy-dom globals (document, window, etc.)
 GlobalRegistrator.register();
@@ -40,8 +43,10 @@ class MockResizeObserver {
     // Stub
   }
 }
-globalThis.ResizeObserver =
-  MockResizeObserver as unknown as typeof ResizeObserver;
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  value: MockResizeObserver,
+  writable: true,
+});
 
 // Mock matchMedia (not fully implemented in happy-dom)
 const mockMatchMedia = mock((query: string) => ({
@@ -55,7 +60,10 @@ const mockMatchMedia = mock((query: string) => ({
   dispatchEvent: mock(() => false),
 }));
 
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: mockMatchMedia,
-});
+const maybeWindow = Reflect.get(globalThis, 'window');
+if (isObject(maybeWindow)) {
+  Object.defineProperty(maybeWindow, 'matchMedia', {
+    writable: true,
+    value: mockMatchMedia,
+  });
+}

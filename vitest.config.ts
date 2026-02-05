@@ -3,10 +3,11 @@ import { resolve } from 'node:path';
 
 export default defineConfig({
   test: {
+    root: './src',
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    include: ['**/*.test.{ts,tsx}', '**/*.vitest-only.{ts,tsx}'],
+    setupFiles: ['../vitest.setup.ts'],
+    include: ['**/*.test.{ts,tsx}'],
     exclude: [
       '**/node_modules/**',
       '.worktrees/**',

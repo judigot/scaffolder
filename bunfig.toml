@@ -8,7 +8,7 @@ timeout = 30000
 # Only scan src directory for tests (excludes e2e/, .vercel/, .worktrees/)
 root = "./src"
 
-# Note: Tests using vi.mock() are named *.vitest-only.tsx and skipped by bun
+# All tests live under src/ with *.test.{ts,tsx}
 
 # Coverage configuration
 coverageSkipTestFiles = true

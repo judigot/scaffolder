@@ -1,67 +1,67 @@
+/// <reference types="vitest/globals" />
+
 /**
  * Terminal Mode Component Tests
  * Tests for the Terminal Mode UI rendering and functionality
  *
- * NOTE: This test uses vi.mock() which is vitest-specific.
- * Run with: npx vitest run src/components/Terminal/TerminalMode.test.tsx
  */
 
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   authenticatedUserConfig,
   newUserConfig,
 } from '../../test/fixtures/users.ts';
+import { clearAllMocks, mockFn, mockModule } from '../../test/utils/mock.ts';
 import { renderWithAuth } from '../../test/utils/renderWithAuth.tsx';
 import TerminalMode from './TerminalMode.tsx';
 
 // Mock ResizeObserver
 class MockResizeObserver {
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
+  observe = mockFn();
+  unobserve = mockFn();
+  disconnect = mockFn();
 }
-/* eslint-disable no-type-assertion/no-type-assertion -- Test mock requires type assertion for global override */
-globalThis.ResizeObserver =
-  MockResizeObserver as unknown as typeof ResizeObserver;
-/* eslint-enable no-type-assertion/no-type-assertion */
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  value: MockResizeObserver,
+  writable: true,
+});
 
 // Mock xterm.js - it requires browser APIs
-vi.mock('@xterm/xterm', () => {
-  const MockTerminal = vi.fn(function (this: Record<string, unknown>) {
-    this.open = vi.fn();
-    this.write = vi.fn();
-    this.writeln = vi.fn();
-    this.clear = vi.fn();
-    this.focus = vi.fn();
-    this.blur = vi.fn();
-    this.scrollToBottom = vi.fn();
-    this.dispose = vi.fn();
-    this.onData = vi.fn();
-    this.onResize = vi.fn();
-    this.loadAddon = vi.fn();
+mockModule('@xterm/xterm', () => {
+  const MockTerminal = mockFn(function (this: Record<string, unknown>) {
+    this.open = mockFn();
+    this.write = mockFn();
+    this.writeln = mockFn();
+    this.clear = mockFn();
+    this.focus = mockFn();
+    this.blur = mockFn();
+    this.scrollToBottom = mockFn();
+    this.dispose = mockFn();
+    this.onData = mockFn();
+    this.onResize = mockFn();
+    this.loadAddon = mockFn();
     this.unicode = { activeVersion: '11' };
   });
   return { Terminal: MockTerminal };
 });
 
-vi.mock('@xterm/addon-fit', () => {
-  const MockFitAddon = vi.fn(function (this: Record<string, unknown>) {
-    this.fit = vi.fn();
+mockModule('@xterm/addon-fit', () => {
+  const MockFitAddon = mockFn(function (this: Record<string, unknown>) {
+    this.fit = mockFn();
   });
   return { FitAddon: MockFitAddon };
 });
 
-vi.mock('@xterm/addon-web-links', () => {
-  const MockWebLinksAddon = vi.fn(function (this: Record<string, unknown>) {
+mockModule('@xterm/addon-web-links', () => {
+  const MockWebLinksAddon = mockFn(function (this: Record<string, unknown>) {
     // Empty addon
   });
   return { WebLinksAddon: MockWebLinksAddon };
 });
 
-vi.mock('@xterm/addon-unicode11', () => {
-  const MockUnicode11Addon = vi.fn(function (this: Record<string, unknown>) {
+mockModule('@xterm/addon-unicode11', () => {
+  const MockUnicode11Addon = mockFn(function (this: Record<string, unknown>) {
     // Empty addon
   });
   return { Unicode11Addon: MockUnicode11Addon };
@@ -69,7 +69,7 @@ vi.mock('@xterm/addon-unicode11', () => {
 
 describe('TerminalMode', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    clearAllMocks();
   });
 
   describe('Rendering', () => {
