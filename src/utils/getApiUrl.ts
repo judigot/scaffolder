@@ -1,16 +1,12 @@
 /**
  * Builds the API URL from environment variables
- * In development and production, everything runs on the same port
- * - VITE_BACKEND_HOST (optional, e.g., "http://localhost")
- * - VITE_BACKEND_PORT (e.g., "3000")
- * - VITE_API_URL (e.g., "api")
+ * - Local dev: Returns "/api" (relative path)
+ * - Remote dev: Returns "{BASE_URL}api" (e.g., "/scaffolder/api")
  *
- * Returns: "/api" (relative path since same port) or full URL if backendHost is set
+ * Uses BASE_URL from Vite config to ensure API calls go through nginx proxy
  */
 export const getApiUrl = (): string => {
-  const backendHost = String(import.meta.env.VITE_BACKEND_HOST ?? '');
-  const port = String(import.meta.env.VITE_BACKEND_PORT ?? '3000');
-  const apiPath = String(import.meta.env.VITE_API_URL ?? 'api');
-  const backendUrl = backendHost ? `${backendHost}:${port}` : '';
-  return backendUrl ? `${backendUrl}/${apiPath}` : `/${apiPath}`;
+  const baseUrl: unknown = import.meta.env.BASE_URL;
+  const apiPath: unknown = import.meta.env.VITE_API_URL;
+  return `${typeof baseUrl === 'string' ? baseUrl : '/'}${typeof apiPath === 'string' ? apiPath : 'api'}`;
 };

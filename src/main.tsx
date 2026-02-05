@@ -70,7 +70,11 @@ if (rootElement) {
         domain={String(import.meta.env.VITE_AUTH0_DOMAIN)}
         clientId={String(import.meta.env.VITE_AUTH0_CLIENT_ID)}
         authorizationParams={{
-          redirect_uri: window.location.origin,
+          redirect_uri:
+            `${window.location.origin}${import.meta.env.BASE_URL}`.replace(
+              /\/$/,
+              '',
+            ),
           audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
           scope: 'openid profile email offline_access',
         }}

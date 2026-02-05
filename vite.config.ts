@@ -7,14 +7,14 @@ import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
-const backendHost = String(process.env.VITE_BACKEND_HOST ?? 'http://localhost');
+const backendHost = String(process.env.VITE_BACKEND_HOST || 'http://localhost');
 const isLiveServer =
   isDevelopment &&
   !backendHost.includes('localhost') &&
   !backendHost.includes('127.0.0.1');
 
 export default defineConfig({
-  // base: './',
+  base: isLiveServer ? '/scaffolder/' : '/',
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
@@ -25,6 +25,14 @@ export default defineConfig({
     proxy: {
       '/api': `${backendHost}:${String(process.env.VITE_BACKEND_PORT)}`,
     },
+    hmr: isLiveServer
+      ? {
+          protocol: 'wss',
+          host: 'judigot.com',
+          clientPort: 443,
+          path: '/scaffolder/__vite_hmr',
+        }
+      : undefined,
   },
   plugins: [tailwindcss(), react(), tsconfigPaths()],
 });
