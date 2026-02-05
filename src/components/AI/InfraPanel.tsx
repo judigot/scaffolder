@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
 import { WorkspaceVariablesPanel } from '@/components/AI/WorkspaceVariablesPanel.tsx';
 import CustomModal from '@/components/Modal/base/CustomModal.tsx';
@@ -46,6 +46,23 @@ const WORKSPACE_MODE_OPTIONS = [
     description: 'Link to a GitHub repository',
   },
 ];
+
+type DbEngine = 'postgresql' | 'mysql';
+
+const DB_ENGINE_OPTIONS = [
+  {
+    value: 'postgresql',
+    label: 'PostgreSQL',
+  },
+  {
+    value: 'mysql',
+    label: 'MySQL',
+  },
+];
+
+const normalizeDbEngine = (value: string | null): DbEngine => {
+  return value === 'mysql' ? 'mysql' : 'postgresql';
+};
 
 interface IInfraCredentials {
   sshPublicKey: string;
@@ -150,7 +167,6 @@ function InfraWorkspaceCard({
   const [outputs, setOutputs] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [showVariables, setShowVariables] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editEc2Type, setEditEc2Type] = useState<string>(
     DEFAULT_EC2_INSTANCE_TYPE,
@@ -159,6 +175,7 @@ function InfraWorkspaceCard({
   const [editRdsClass, setEditRdsClass] = useState<string>(
     DEFAULT_RDS_INSTANCE_TYPE,
   );
+  const [editRdsEngine, setEditRdsEngine] = useState<DbEngine>('postgresql');
   const [editDiskSize, setEditDiskSize] = useState<number>(10);
   const [editRegion, setEditRegion] = useState<string>(DEFAULT_AWS_REGION);
   const [currentRegion, setCurrentRegion] = useState<string | null>(null);
@@ -168,10 +185,6 @@ function InfraWorkspaceCard({
 
   const workspaceValue = workspace.trim();
   const workspaceLabel = workspaceValue !== '' ? workspaceValue : 'Workspace';
-
-  const toggleVariables = useCallback(() => {
-    setShowVariables((prev) => !prev);
-  }, []);
 
   const { getWorkspaceStatus, setWorkspaceStatus } = useInfraStore();
   const cachedStatus = getWorkspaceStatus(workspaceValue);
@@ -506,12 +519,14 @@ function InfraWorkspaceCard({
         stateData?.rdsEnabled ?? getVar('TF_VAR_enable_rds') === 'true';
       const rdsClass =
         stateData?.rdsInstanceClass ?? getVar('TF_VAR_db_instance_class');
+      const rdsEngine = normalizeDbEngine(getVar('TF_VAR_db_engine'));
       const diskSize = stateData?.diskSize ?? getVar('TF_VAR_disk_size');
       const region = stateData?.region ?? getVar('TF_VAR_aws_region');
 
       setEditEc2Type(instanceType ?? DEFAULT_EC2_INSTANCE_TYPE);
       setEditEnableRds(enableRds);
       setEditRdsClass(rdsClass ?? DEFAULT_RDS_INSTANCE_TYPE);
+      setEditRdsEngine(rdsEngine);
       setEditDiskSize(
         typeof diskSize === 'number'
           ? diskSize
@@ -560,6 +575,7 @@ function InfraWorkspaceCard({
             diskSize: editDiskSize,
             enableRds: editEnableRds,
             rdsInstanceClass: editEnableRds ? editRdsClass : undefined,
+            dbEngine: editEnableRds ? editRdsEngine : undefined,
             awsRegion: editRegion,
             enableEc2,
           }),
@@ -814,8 +830,6 @@ function InfraWorkspaceCard({
             accessToken={accessToken}
             tfcToken={infraCredentials.tfcToken}
             tfcOrg={infraCredentials.tfcOrg}
-            isExpanded={showVariables}
-            onToggle={toggleVariables}
           />
           <div className="pt-3 border-t border-border space-y-3">
             <div className="flex items-center justify-between">
@@ -974,8 +988,25 @@ function InfraWorkspaceCard({
             {editEnableRds && (
               <div>
                 <label
-                  htmlFor={`edit-rds-${workspaceValue}`}
+                  htmlFor={`edit-rds-engine-${workspaceValue}`}
                   className="block text-[11px] text-fg-subtle mb-1"
+                >
+                  RDS Engine
+                </label>
+                <SimpleSelect
+                  id={`edit-rds-engine-${workspaceValue}`}
+                  value={editRdsEngine}
+                  onChange={(value) => {
+                    if (value === 'postgresql' || value === 'mysql') {
+                      setEditRdsEngine(value);
+                    }
+                  }}
+                  options={DB_ENGINE_OPTIONS}
+                  aria-label="RDS engine"
+                />
+                <label
+                  htmlFor={`edit-rds-${workspaceValue}`}
+                  className="block text-[11px] text-fg-subtle mt-3 mb-1"
                 >
                   RDS Instance Class
                 </label>
@@ -1000,17 +1031,6 @@ function InfraWorkspaceCard({
             </button>
           </div>
         </>
-      )}
-
-      {!shouldShowSkeleton && !isEditing && infraReady && (
-        <WorkspaceVariablesPanel
-          workspace={workspaceValue}
-          accessToken={accessToken}
-          tfcToken={infraCredentials.tfcToken}
-          tfcOrg={infraCredentials.tfcOrg}
-          isExpanded={showVariables}
-          onToggle={toggleVariables}
-        />
       )}
 
       {!shouldShowSkeleton && (
@@ -1124,6 +1144,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
   const [rdsInstanceClass, setRdsInstanceClass] = useState<string>(
     DEFAULT_RDS_INSTANCE_TYPE,
   );
+  const [rdsEngine, setRdsEngine] = useState<DbEngine>('postgresql');
   const [enableRds, setEnableRds] = useState<boolean>(false);
   const [githubOrg, setGithubOrg] = useState<string>('');
   const [useGithubUsername, setUseGithubUsername] = useState<boolean>(true);
@@ -1282,6 +1303,10 @@ export default function InfraPanel(_props: IInfraPanelProps) {
             workspaceMode === WORKSPACE_MODES.API && enableRds
               ? rdsInstanceClass
               : undefined,
+          dbEngine:
+            workspaceMode === WORKSPACE_MODES.API && enableRds
+              ? rdsEngine
+              : undefined,
           githubOrg:
             workspaceMode === WORKSPACE_MODES.VCS
               ? useGithubUsername
@@ -1313,6 +1338,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
       setWorkspaceMode(WORKSPACE_MODES.API);
       setEc2InstanceType(DEFAULT_EC2_INSTANCE_TYPE);
       setRdsInstanceClass(DEFAULT_RDS_INSTANCE_TYPE);
+      setRdsEngine('postgresql');
       setEnableRds(false);
       setGithubOrg('');
       setUseGithubUsername(true);
@@ -1565,7 +1591,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
                         Include RDS Database
                       </p>
                       <p className="text-[11px] text-fg-subtle mt-0.5">
-                        Add a managed PostgreSQL database
+                        Add a managed PostgreSQL or MySQL database
                       </p>
                     </div>
                     <ToggleSwitch
@@ -1581,8 +1607,26 @@ export default function InfraPanel(_props: IInfraPanelProps) {
                   {enableRds && (
                     <div>
                       <label
-                        htmlFor="rds-instance-class"
+                        htmlFor="rds-engine"
                         className="block text-xs font-medium text-fg-muted mb-1.5"
+                      >
+                        RDS Engine
+                      </label>
+                      <SimpleSelect
+                        id="rds-engine"
+                        value={rdsEngine}
+                        onChange={(value) => {
+                          if (value === 'postgresql' || value === 'mysql') {
+                            setRdsEngine(value);
+                          }
+                        }}
+                        options={DB_ENGINE_OPTIONS}
+                        disabled={!canAddWorkspace}
+                        aria-label="RDS engine"
+                      />
+                      <label
+                        htmlFor="rds-instance-class"
+                        className="block text-xs font-medium text-fg-muted mt-3 mb-1.5"
                       >
                         RDS Instance Class
                       </label>

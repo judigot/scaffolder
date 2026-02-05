@@ -74,6 +74,7 @@ interface ICreateWorkspacePayload {
   mode?: unknown;
   ec2InstanceType?: unknown;
   rdsInstanceClass?: unknown;
+  dbEngine?: unknown;
   githubOrg?: unknown;
 }
 
@@ -562,6 +563,7 @@ interface IUpdateWorkspaceConfigPayload {
   diskSize?: unknown;
   enableRds?: unknown;
   rdsInstanceClass?: unknown;
+  dbEngine?: unknown;
   awsRegion?: unknown;
   enableEc2?: unknown;
 }
@@ -644,6 +646,18 @@ router.post('/workspace/:workspaceName/config', async (c) => {
       });
     }
 
+    if (typeof body.dbEngine === 'string') {
+      const dbEngine = body.dbEngine.trim();
+      if (dbEngine === 'postgresql' || dbEngine === 'mysql') {
+        variables.push({
+          key: 'TF_VAR_db_engine',
+          value: dbEngine,
+          category: 'env',
+          sensitive: false,
+        });
+      }
+    }
+
     if (
       typeof body.rdsInstanceClass === 'string' &&
       body.rdsInstanceClass !== ''
@@ -670,7 +684,7 @@ router.post('/workspace/:workspaceName/config', async (c) => {
         {
           error: 'No configuration changes provided',
           message:
-            'Provide at least one of: awsRegion, ec2InstanceType, diskSize, enableRds, rdsInstanceClass',
+            'Provide at least one of: awsRegion, ec2InstanceType, diskSize, enableRds, dbEngine, rdsInstanceClass',
         },
         400,
       );
