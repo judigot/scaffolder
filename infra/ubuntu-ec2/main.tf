@@ -80,9 +80,12 @@ resource "aws_instance" "main" {
   vpc_security_group_ids      = [aws_security_group.ec2[0].id]
   key_name                    = var.ssh_public_key != "" ? aws_key_pair.main[0].key_name : null
 
-  root_block_device {
-    volume_size = var.disk_size
-    volume_type = var.volume_type
+  dynamic "root_block_device" {
+    for_each = var.custom_ami != "" ? [] : [1]
+    content {
+      volume_size = var.disk_size
+      volume_type = var.volume_type
+    }
   }
 
   user_data = <<-EOF
