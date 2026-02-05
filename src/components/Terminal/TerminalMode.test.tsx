@@ -14,7 +14,9 @@ import {
 } from '../../test/fixtures/users.ts';
 import { clearAllMocks, mockFn, mockModule } from '../../test/utils/mock.ts';
 import { renderWithAuth } from '../../test/utils/renderWithAuth.tsx';
-import TerminalMode from './TerminalMode.tsx';
+
+let TerminalModeComponent: typeof import('./TerminalMode.tsx').default | null =
+  null;
 
 // Mock ResizeObserver
 class MockResizeObserver {
@@ -68,19 +70,52 @@ mockModule('@xterm/addon-unicode11', () => {
 });
 
 describe('TerminalMode', () => {
+  beforeAll(async () => {
+    const module = await import('./TerminalMode.tsx');
+    TerminalModeComponent = module.default;
+  });
+
   beforeEach(() => {
     clearAllMocks();
   });
 
+  const getTerminalMode = () => {
+    if (TerminalModeComponent === null) {
+      throw new Error('TerminalMode component not loaded');
+    }
+    return TerminalModeComponent;
+  };
+
+  type TerminalModeProps = Partial<{
+    host: string;
+    sshPrivateKey: string;
+    accessToken: string;
+  }>;
+
+  const renderTerminalMode = (
+    props: TerminalModeProps,
+    authConfig: typeof authenticatedUserConfig,
+  ) => {
+    const Component = getTerminalMode();
+    return renderWithAuth(
+      <Component
+        host={props.host}
+        sshPrivateKey={props.sshPrivateKey}
+        accessToken={props.accessToken}
+      />,
+      { authConfig },
+    );
+  };
+
   describe('Rendering', () => {
     it('renders the terminal top bar', () => {
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       // Check for TERMINAL title
@@ -88,13 +123,13 @@ describe('TerminalMode', () => {
     });
 
     it('renders secondary tabs', () => {
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       expect(
@@ -106,13 +141,13 @@ describe('TerminalMode', () => {
     });
 
     it('renders action buttons', () => {
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       // Action buttons should be present
@@ -125,29 +160,28 @@ describe('TerminalMode', () => {
     });
 
     it('renders the terminal composer input', () => {
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
-      const inputs = screen.getAllByRole('textbox', {
-        name: /terminal input/i,
-      });
-      expect(inputs.length).toBeGreaterThan(0);
+      expect(
+        screen.getByPlaceholderText(/send to terminal/i),
+      ).toBeInTheDocument();
     });
 
     it('renders mode indicator', () => {
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       // Mode indicators should have buttons for Terminal, Agent, Ask
@@ -165,13 +199,13 @@ describe('TerminalMode', () => {
 
   describe('Connection Status', () => {
     it('shows connected status when credentials are provided', () => {
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       // Should show "Connected to [host]" in top bar
@@ -181,17 +215,15 @@ describe('TerminalMode', () => {
     });
 
     it('shows disconnected status when no credentials', () => {
-      renderWithAuth(<TerminalMode />, { authConfig: newUserConfig });
+      renderTerminalMode({}, newUserConfig);
 
       expect(screen.getByText(/disconnected/i)).toBeInTheDocument();
     });
 
     it('disables input when not connected', () => {
-      renderWithAuth(<TerminalMode />, { authConfig: newUserConfig });
+      renderTerminalMode({}, newUserConfig);
 
-      const [input] = screen.getAllByRole('textbox', {
-        name: /terminal input/i,
-      });
+      const input = screen.getByPlaceholderText(/not connected to server/i);
       expect(input).toBeDisabled();
     });
   });
@@ -200,18 +232,16 @@ describe('TerminalMode', () => {
     it('allows typing in the composer when connected', async () => {
       const user = userEvent.setup();
 
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
-      const [input] = screen.getAllByRole('textbox', {
-        name: /terminal input/i,
-      });
+      const input = screen.getByPlaceholderText(/send to terminal/i);
       await user.type(input, 'ls -la');
 
       expect(input).toHaveValue('ls -la');
@@ -220,18 +250,16 @@ describe('TerminalMode', () => {
     it('clears input after submitting command', async () => {
       const user = userEvent.setup();
 
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
-      const [input] = screen.getAllByRole('textbox', {
-        name: /terminal input/i,
-      });
+      const input = screen.getByPlaceholderText(/send to terminal/i);
       await user.type(input, 'pwd{enter}');
 
       await waitFor(() => {
@@ -244,13 +272,13 @@ describe('TerminalMode', () => {
     it('switches to Files tab when clicked', async () => {
       const user = userEvent.setup();
 
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       const filesTab = screen.getByRole('tab', { name: /files/i });
@@ -262,13 +290,13 @@ describe('TerminalMode', () => {
     it('switches to Preview tab when clicked', async () => {
       const user = userEvent.setup();
 
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       const previewTab = screen.getByRole('tab', { name: /preview/i });
@@ -280,13 +308,13 @@ describe('TerminalMode', () => {
     it('switches to Logs tab when clicked', async () => {
       const user = userEvent.setup();
 
-      renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       const logsTab = screen.getByRole('tab', { name: /logs/i });
@@ -298,13 +326,13 @@ describe('TerminalMode', () => {
 
   describe('Container Styling', () => {
     it('has correct background color variable', () => {
-      const { container } = renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      const { container } = renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       const terminalContainer = container.firstChild;
@@ -317,13 +345,13 @@ describe('TerminalMode', () => {
     });
 
     it('takes full height and width', () => {
-      const { container } = renderWithAuth(
-        <TerminalMode
-          host="54.123.45.67"
-          sshPrivateKey="test-key"
-          accessToken="test-token"
-        />,
-        { authConfig: authenticatedUserConfig },
+      const { container } = renderTerminalMode(
+        {
+          host: '54.123.45.67',
+          sshPrivateKey: 'test-key',
+          accessToken: 'test-token',
+        },
+        authenticatedUserConfig,
       );
 
       const terminalContainer = container.firstChild;

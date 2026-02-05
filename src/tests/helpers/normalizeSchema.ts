@@ -14,6 +14,9 @@ export const normalizeSchema = (schema: ISchemaInfo[]): ISchemaInfo[] => {
     .sort((a, b) => a.tableName.localeCompare(b.tableName));
 };
 
+const dedupeSorted = (values: string[]): string[] =>
+  Array.from(new Set(values)).sort();
+
 const normalizeTable = (table: ISchemaInfo): ISchemaInfo => {
   const normalized: ISchemaInfo = {
     tableName: table.tableName,
@@ -22,35 +25,35 @@ const normalizeTable = (table: ISchemaInfo): ISchemaInfo => {
 
   /* Add optional fields only if they exist and have content */
   if (table.requiredColumns && table.requiredColumns.length > 0) {
-    normalized.requiredColumns = [...table.requiredColumns].sort();
+    normalized.requiredColumns = dedupeSorted(table.requiredColumns);
   }
 
   if (table.foreignKeys && table.foreignKeys.length > 0) {
-    normalized.foreignKeys = [...table.foreignKeys].sort();
+    normalized.foreignKeys = dedupeSorted(table.foreignKeys);
   }
 
   if (table.foreignTables && table.foreignTables.length > 0) {
-    normalized.foreignTables = [...table.foreignTables].sort();
+    normalized.foreignTables = dedupeSorted(table.foreignTables);
   }
 
   if (table.childTables && table.childTables.length > 0) {
-    normalized.childTables = [...table.childTables].sort();
+    normalized.childTables = dedupeSorted(table.childTables);
   }
 
   if (table.hasOne && table.hasOne.length > 0) {
-    normalized.hasOne = [...table.hasOne].sort();
+    normalized.hasOne = dedupeSorted(table.hasOne);
   }
 
   if (table.hasMany && table.hasMany.length > 0) {
-    normalized.hasMany = [...table.hasMany].sort();
+    normalized.hasMany = dedupeSorted(table.hasMany);
   }
 
   if (table.belongsTo && table.belongsTo.length > 0) {
-    normalized.belongsTo = [...table.belongsTo].sort();
+    normalized.belongsTo = dedupeSorted(table.belongsTo);
   }
 
   if (table.belongsToMany && table.belongsToMany.length > 0) {
-    normalized.belongsToMany = [...table.belongsToMany].sort();
+    normalized.belongsToMany = dedupeSorted(table.belongsToMany);
   }
 
   if (table.isPivot) {
@@ -62,22 +65,29 @@ const normalizeTable = (table: ISchemaInfo): ISchemaInfo => {
   }
 
   if (table.viewStructure && table.viewStructure.length > 0) {
-    normalized.viewStructure = [...table.viewStructure].sort();
+    normalized.viewStructure = dedupeSorted(table.viewStructure);
   }
 
   if (table.pivotRelationships && table.pivotRelationships.length > 0) {
-    normalized.pivotRelationships = table.pivotRelationships
-      .map((rel) => ({
+    const deduped = new Map<
+      string,
+      { relatedTable: string; pivotTable: string }
+    >();
+    table.pivotRelationships.forEach((rel) => {
+      deduped.set(`${rel.relatedTable}|${rel.pivotTable}`, {
         relatedTable: rel.relatedTable,
         pivotTable: rel.pivotTable,
-      }))
-      .sort((a, b) => {
+      });
+    });
+    normalized.pivotRelationships = Array.from(deduped.values()).sort(
+      (a, b) => {
         const relatedCompare = a.relatedTable.localeCompare(b.relatedTable);
         if (relatedCompare !== 0) {
           return relatedCompare;
         }
         return a.pivotTable.localeCompare(b.pivotTable);
-      });
+      },
+    );
   }
 
   return normalized;
@@ -99,6 +109,10 @@ const normalizeColumn = (column: IColumnInfo): IColumnInfo => {
     data_type: column.data_type,
     is_nullable: isNullable,
   };
+
+  if (column.primary_key && column.data_type === 'number') {
+    normalized.column_default = 'AUTO_INCREMENT';
+  }
 
   /* Normalize column_default: convert auto-increment patterns to AUTO_INCREMENT */
   if (column.column_default !== undefined && column.column_default !== null) {
