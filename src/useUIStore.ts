@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import type { ModelId } from "@/components/AI/modelOptions.ts";
-import type { TabType } from "@/components/AI/TabBar.tsx";
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import type { ModelId } from '@/components/AI/modelOptions.ts';
+import type { TabType } from '@/components/AI/TabBar.tsx';
 
 /**
  * Global UI Store
@@ -24,37 +24,41 @@ export const isDevEnvironment = import.meta.env.DEV;
 
 /** Check if user is the master developer/owner of the app (judigot) */
 export const isMasterDeveloper = (nickname: string | undefined): boolean =>
-	nickname === "judigot";
+  nickname === 'judigot';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /** Top-level navigation: scaffolder mode vs repository browser vs master view */
-export type TopLevelTab = "scaffolder" | "repositories" | "master";
+export type TopLevelTab =
+  | 'scaffolder'
+  | 'repositories'
+  | 'master'
+  | 'opencode-web';
 
 // ============================================================================
 // Store Interface
 // ============================================================================
 
 interface IUIStore {
-	// --- Navigation (persisted) ---
-	// These determine what the user sees and should survive page refresh
+  // --- Navigation (persisted) ---
+  // These determine what the user sees and should survive page refresh
 
-	/** Which top-level mode the user is in */
-	topLevelTab: TopLevelTab;
-	setTopLevelTab: (tab: TopLevelTab) => void;
+  /** Which top-level mode the user is in */
+  topLevelTab: TopLevelTab;
+  setTopLevelTab: (tab: TopLevelTab) => void;
 
-	/** Which content tab is active (chat, code viewer, infra) */
-	activeTab: TabType;
-	setActiveTab: (tab: TabType) => void;
+  /** Which content tab is active (chat, code viewer, infra) */
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
 
-	// --- Chat Preferences (persisted) ---
-	// Chat settings that should persist across sessions
+  // --- Chat Preferences (persisted) ---
+  // Chat settings that should persist across sessions
 
-	/** Selected AI model for chat */
-	selectedModel: ModelId;
-	setSelectedModel: (model: ModelId) => void;
+  /** Selected AI model for chat */
+  selectedModel: ModelId;
+  setSelectedModel: (model: ModelId) => void;
 }
 
 // ============================================================================
@@ -62,28 +66,28 @@ interface IUIStore {
 // ============================================================================
 
 export const useUIStore = create<IUIStore>()(
-	persist(
-		(set) => ({
-			// Navigation
-			topLevelTab: "scaffolder",
-			setTopLevelTab: (topLevelTab) => set({ topLevelTab }),
+  persist(
+    (set) => ({
+      // Navigation
+      topLevelTab: 'scaffolder',
+      setTopLevelTab: (topLevelTab) => set({ topLevelTab }),
 
-			activeTab: "chat",
-			setActiveTab: (activeTab) => set({ activeTab }),
+      activeTab: 'chat',
+      setActiveTab: (activeTab) => set({ activeTab }),
 
-			// Chat Preferences
-			selectedModel: "gpt-5-nano",
-			setSelectedModel: (selectedModel) => set({ selectedModel }),
-		}),
-		{
-			name: "ui-preferences",
-			storage: createJSONStorage(() => localStorage),
-			// Persist user's navigation and chat preferences so they return where they left off
-			partialize: (state) => ({
-				topLevelTab: state.topLevelTab,
-				activeTab: state.activeTab,
-				selectedModel: state.selectedModel,
-			}),
-		},
-	),
+      // Chat Preferences
+      selectedModel: 'gpt-5-nano',
+      setSelectedModel: (selectedModel) => set({ selectedModel }),
+    }),
+    {
+      name: 'ui-preferences',
+      storage: createJSONStorage(() => localStorage),
+      // Persist user's navigation and chat preferences so they return where they left off
+      partialize: (state) => ({
+        topLevelTab: state.topLevelTab,
+        activeTab: state.activeTab,
+        selectedModel: state.selectedModel,
+      }),
+    },
+  ),
 );
