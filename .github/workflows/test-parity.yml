@@ -1,12 +1,14 @@
-name: Test (Playwright)
+name: Test Parity
 
 on:
-  push: {}
   workflow_dispatch: {}
+  push:
+    paths:
+      - 'src/tests/introspectParity.test.ts'
 
 jobs:
-  test-playwright:
-    name: Test (Playwright)
+  parity:
+    name: Introspection Parity
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -42,7 +44,7 @@ jobs:
       MYSQL_TEST_URL: mysql://root:scaffolder123@localhost:13306/scaffolder
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -52,8 +54,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Wait for Postgres & MySQL
+      - name: Wait for databases
         run: bun ./scripts/wait-for-databases.ts
 
-      - name: Run Playwright tests
-        run: bun playwright test
+      - name: Run parity test
+        run: bun test src/tests/introspectParity.test.ts --bail

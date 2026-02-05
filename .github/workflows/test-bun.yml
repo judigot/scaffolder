@@ -53,16 +53,7 @@ jobs:
         run: bun install
 
       - name: Wait for Postgres & MySQL
-        run: |
-          export PGPASSWORD=scaffolder123
-          until pg_isready -h localhost -p 15432 -U scaffolder >/dev/null 2>&1; do
-            echo "Waiting for postgres..."
-            sleep 1
-          done
-          until mysqladmin ping -h 127.0.0.1 -P 13306 -uroot -pscaffolder123 >/dev/null 2>&1; do
-            echo "Waiting for mysql..."
-            sleep 1
-          done
+        run: bun ./scripts/wait-for-databases.ts
 
       - name: Run test suite
         run: bun test
