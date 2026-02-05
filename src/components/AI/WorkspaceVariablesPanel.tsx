@@ -45,6 +45,7 @@ const SYSTEM_VARIABLES = new Set([
   'TF_VAR_db_engine',
   'TF_VAR_db_engine_version',
   'TF_VAR_create_database',
+  'TF_VAR_custom_ami',
 ]);
 
 export function WorkspaceVariablesPanel({

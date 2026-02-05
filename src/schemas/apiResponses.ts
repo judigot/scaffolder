@@ -37,7 +37,7 @@ export const TerraformVariablesResponseSchema = z.object({
   variables: z.array(
     z.object({
       key: z.string(),
-      value: z.string().optional(),
+      value: z.string().nullable().optional(),
       sensitive: z.boolean().optional(),
       category: z.string().optional(),
     }),
