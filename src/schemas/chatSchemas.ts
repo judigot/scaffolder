@@ -42,6 +42,7 @@ export type IUserMetadataEnv = z.infer<typeof UserMetadataEnvSchema>;
 export const ModelIdSchema = z.enum([
   'gpt-5-nano',
   'gpt-5-mini',
+  'gpt-5.3-codex',
   'gpt-5.2-codex',
   'claude-haiku-3.5',
   'claude-sonnet-4.5',

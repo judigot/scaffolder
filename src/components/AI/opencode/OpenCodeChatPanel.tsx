@@ -30,6 +30,7 @@ interface IOpenCodeModel {
 }
 
 const OPENCODE_MODELS: IOpenCodeModel[] = [
+  { id: 'openai/gpt-5.3-codex', name: 'GPT-5.3 Codex', provider: 'openai' },
   { id: 'openai/gpt-5.2-codex', name: 'GPT-5.2 Codex', provider: 'openai' },
   { id: 'openai/gpt-5.1-codex', name: 'GPT-5.1 Codex', provider: 'openai' },
   {
@@ -59,7 +60,7 @@ const OPENCODE_MODELS: IOpenCodeModel[] = [
   },
 ];
 
-const DEFAULT_MODEL = 'openai/gpt-5.2-codex';
+const DEFAULT_MODEL = 'openai/gpt-5.3-codex';
 
 interface IOpenCodeChatPanelProps {
   repoName?: string;

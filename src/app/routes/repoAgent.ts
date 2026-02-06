@@ -25,6 +25,7 @@ function isToolCall(obj: unknown): obj is { toolName: string } {
 const MODEL_CONFIGS = {
   'gpt-5-nano': { provider: 'openai', modelId: 'gpt-4.1-nano' },
   'gpt-5-mini': { provider: 'openai', modelId: 'gpt-4.1-mini' },
+  'gpt-5.3-codex': { provider: 'openai', modelId: 'o3' },
   'gpt-5.2-codex': { provider: 'openai', modelId: 'o3' },
   'claude-sonnet-4.5': {
     provider: 'anthropic',
@@ -330,7 +331,7 @@ app.post('/chat', async (c) => {
     };
 
     // Create options with conditional temperature - reasoning models don't support it
-    if (modelId !== 'gpt-5.2-codex') {
+    if (modelId !== 'gpt-5.2-codex' && modelId !== 'gpt-5.3-codex') {
       const optionsWithTemp = {
         ...baseOptions,
         temperature: 0.7,

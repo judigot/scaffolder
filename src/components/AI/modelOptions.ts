@@ -2,6 +2,7 @@
 export type ModelId =
   | 'gpt-5-nano'
   | 'gpt-5-mini'
+  | 'gpt-5.3-codex'
   | 'gpt-5.2-codex'
   | 'claude-haiku-3.5'
   | 'claude-sonnet-4.5'
@@ -20,6 +21,12 @@ export interface IModelOption {
 export const MODEL_OPTIONS: IModelOption[] = [
   { id: 'gpt-5-nano', name: 'GPT-5 Nano', provider: 'openai', tier: 'free' },
   { id: 'gpt-5-mini', name: 'GPT-5 Mini', provider: 'openai', tier: 'premium' },
+  {
+    id: 'gpt-5.3-codex',
+    name: 'GPT-5.3 Codex',
+    provider: 'openai',
+    tier: 'premium',
+  },
   {
     id: 'gpt-5.2-codex',
     name: 'GPT-5.2 Codex',

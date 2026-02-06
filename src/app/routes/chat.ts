@@ -42,6 +42,13 @@ const MODEL_CONFIGS: Record<ModelId, IModelConfig> = {
     modelString: 'gpt-5-mini',
     tier: 'premium',
   },
+  'gpt-5.3-codex': {
+    id: 'gpt-5.3-codex',
+    name: 'GPT-5.3 Codex',
+    provider: 'openai',
+    modelString: 'gpt-5.3-codex',
+    tier: 'premium',
+  },
   'gpt-5.2-codex': {
     id: 'gpt-5.2-codex',
     name: 'GPT-5.2 Codex',
@@ -184,7 +191,7 @@ app.post('/', async (c) => {
 
     const convertedMessages = await convertToModelMessages(messages);
 
-    // Build streamText options - reasoning models like gpt-5.2-codex don't support temperature
+    // Build streamText options - reasoning models like gpt-5.x-codex don't support temperature
     const baseOptions = {
       model: getModel(modelId, userKeys),
       system: SCHEMA_BUILDER_SYSTEM_PROMPT,
@@ -192,7 +199,7 @@ app.post('/', async (c) => {
     };
 
     // Only add temperature for non-reasoning models
-    if (modelId !== 'gpt-5.2-codex') {
+    if (modelId !== 'gpt-5.2-codex' && modelId !== 'gpt-5.3-codex') {
       const optionsWithTemp = {
         ...baseOptions,
         temperature: 0.7,
