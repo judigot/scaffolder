@@ -2,7 +2,7 @@
 
 ## Document Metadata
 
-- **Status**: Proposed (future implementation)
+- **Status**: Done
 - **Owner**: Scaffolder Platform
 - **Last Updated**: 2026-02-06
 - **Related Repos**:
@@ -628,13 +628,13 @@ For lower-risk execution by non-frontier agents:
 
 ## 17) Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Static default credentials accidentally reused | High | Generate per-instance credentials by default; disallow empty password in prod |
-| DNS/cert delay causes bootstrap failures | Medium | Retry with backoff; mark step-specific failure |
-| Cost growth from per-user instances | Medium | Auto-stop policies, idle shutdown, cost dashboard |
-| Drift between `workspace` repo changes and bootstrap assumptions | Medium | Pin bootstrap revision/tag, add compatibility check |
-| Secret leakage in logs | High | Redact env/secrets, avoid echoing credentials |
+| Risk                                                             | Impact | Mitigation                                                                    |
+| ---------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------- |
+| Static default credentials accidentally reused                   | High   | Generate per-instance credentials by default; disallow empty password in prod |
+| DNS/cert delay causes bootstrap failures                         | Medium | Retry with backoff; mark step-specific failure                                |
+| Cost growth from per-user instances                              | Medium | Auto-stop policies, idle shutdown, cost dashboard                             |
+| Drift between `workspace` repo changes and bootstrap assumptions | Medium | Pin bootstrap revision/tag, add compatibility check                           |
+| Secret leakage in logs                                           | High   | Redact env/secrets, avoid echoing credentials                                 |
 
 ---
 
