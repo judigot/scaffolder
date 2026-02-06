@@ -75,6 +75,7 @@ interface ICreateWorkspacePayload {
   workspaceName?: unknown;
   mode?: unknown;
   ec2InstanceType?: unknown;
+  enableRds?: unknown;
   rdsInstanceClass?: unknown;
   dbEngine?: unknown;
   githubOrg?: unknown;
@@ -877,6 +878,68 @@ router.post('/workspace', async (c) => {
         body.workspaceName.trim(),
         { autoApply: true },
       );
+
+      const workspaceConfig = createTerraformConfigFromCredentials({
+        tfcToken: body.tfcToken,
+        tfcOrg: body.tfcOrg,
+        tfcWorkspace: workspace.name,
+      });
+
+      const initialVariables: {
+        key: string;
+        value: string;
+        category: 'env' | 'terraform';
+        sensitive: boolean;
+      }[] = [];
+
+      if (
+        typeof body.ec2InstanceType === 'string' &&
+        body.ec2InstanceType.trim() !== ''
+      ) {
+        initialVariables.push({
+          key: 'TF_VAR_instance_type',
+          value: body.ec2InstanceType.trim(),
+          category: 'env',
+          sensitive: false,
+        });
+      }
+
+      if (typeof body.enableRds === 'boolean') {
+        initialVariables.push({
+          key: 'TF_VAR_enable_rds',
+          value: body.enableRds ? 'true' : 'false',
+          category: 'env',
+          sensitive: false,
+        });
+      }
+
+      if (
+        typeof body.rdsInstanceClass === 'string' &&
+        body.rdsInstanceClass.trim() !== ''
+      ) {
+        initialVariables.push({
+          key: 'TF_VAR_db_instance_class',
+          value: body.rdsInstanceClass.trim(),
+          category: 'env',
+          sensitive: false,
+        });
+      }
+
+      if (typeof body.dbEngine === 'string') {
+        const dbEngine = body.dbEngine.trim();
+        if (dbEngine === 'postgresql' || dbEngine === 'mysql') {
+          initialVariables.push({
+            key: 'TF_VAR_db_engine',
+            value: dbEngine,
+            category: 'env',
+            sensitive: false,
+          });
+        }
+      }
+
+      if (initialVariables.length > 0) {
+        await upsertTerraformVariables(workspaceConfig, initialVariables);
+      }
 
       const templatePath = getTemplatePath('ubuntu-ec2');
       const tarGzBuffer = bundleTerraformTemplate(templatePath);

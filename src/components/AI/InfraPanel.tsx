@@ -1397,6 +1397,8 @@ export default function InfraPanel(_props: IInfraPanelProps) {
           mode: workspaceMode,
           ec2InstanceType:
             workspaceMode === WORKSPACE_MODES.API ? ec2InstanceType : undefined,
+          enableRds:
+            workspaceMode === WORKSPACE_MODES.API ? enableRds : undefined,
           rdsInstanceClass:
             workspaceMode === WORKSPACE_MODES.API && enableRds
               ? rdsInstanceClass
