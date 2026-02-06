@@ -15,6 +15,7 @@ interface IVariableInput {
 function isVariableInput(v: unknown): v is IVariableInput {
   return typeof v === 'object' && v !== null && 'key' in v && 'value' in v;
 }
+
 import {
   createConfigurationVersion,
   createTerraformBaseConfig,
@@ -32,11 +33,11 @@ import {
   getTerraformWorkspaceVariables,
   type ITerraformConfig,
   listTerraformWorkspaces,
+  renameTerraformWorkspace,
   uploadConfigurationTar,
   upsertTerraformVariables,
   validateTerraformConfig,
   waitForConfigurationReady,
-  renameTerraformWorkspace,
 } from '@/app/services/terraformCloudService.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
@@ -74,7 +75,10 @@ interface ICreateWorkspacePayload {
   tfcOrg?: unknown;
   workspaceName?: unknown;
   mode?: unknown;
+  awsRegion?: unknown;
+  diskSize?: unknown;
   ec2InstanceType?: unknown;
+  customAmi?: unknown;
   enableRds?: unknown;
   rdsInstanceClass?: unknown;
   dbEngine?: unknown;
@@ -837,6 +841,35 @@ router.post('/workspace', async (c) => {
     );
   }
 
+  if (
+    mode === 'api' &&
+    (typeof body.awsRegion !== 'string' || body.awsRegion.trim() === '')
+  ) {
+    return c.json(
+      {
+        error: 'Invalid payload',
+        message: 'awsRegion is required for API mode workspaces.',
+      },
+      400,
+    );
+  }
+
+  if (
+    mode === 'api' &&
+    (typeof body.diskSize !== 'number' ||
+      !Number.isFinite(body.diskSize) ||
+      body.diskSize < 10 ||
+      body.diskSize > 500)
+  ) {
+    return c.json(
+      {
+        error: 'Invalid payload',
+        message: 'diskSize must be a number between 10 and 500 for API mode.',
+      },
+      400,
+    );
+  }
+
   try {
     const baseConfig = createTerraformBaseConfig({
       tfcToken: body.tfcToken,
@@ -904,6 +937,29 @@ router.post('/workspace', async (c) => {
         });
       }
 
+      if (typeof body.awsRegion === 'string' && body.awsRegion.trim() !== '') {
+        initialVariables.push({
+          key: 'TF_VAR_aws_region',
+          value: body.awsRegion.trim(),
+          category: 'env',
+          sensitive: false,
+        });
+      }
+
+      if (
+        typeof body.diskSize === 'number' &&
+        Number.isFinite(body.diskSize) &&
+        body.diskSize >= 10 &&
+        body.diskSize <= 500
+      ) {
+        initialVariables.push({
+          key: 'TF_VAR_disk_size',
+          value: String(body.diskSize),
+          category: 'env',
+          sensitive: false,
+        });
+      }
+
       if (typeof body.enableRds === 'boolean') {
         initialVariables.push({
           key: 'TF_VAR_enable_rds',
@@ -935,6 +991,15 @@ router.post('/workspace', async (c) => {
             sensitive: false,
           });
         }
+      }
+
+      if (typeof body.customAmi === 'string' && body.customAmi.trim() !== '') {
+        initialVariables.push({
+          key: 'TF_VAR_custom_ami',
+          value: body.customAmi.trim(),
+          category: 'env',
+          sensitive: false,
+        });
       }
 
       if (initialVariables.length > 0) {

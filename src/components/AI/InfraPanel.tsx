@@ -20,12 +20,12 @@ import {
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
 import { useUser } from '@/hooks/useUser.ts';
 import {
+  getErrorMessage,
   TerraformCreateRunResponseSchema,
   TerraformRunResponseSchema,
   TerraformStatusResponseSchema,
   TerraformVariablesResponseSchema,
   WorkspacesResponseSchema,
-  getErrorMessage,
 } from '@/schemas/apiResponses.ts';
 import { useInfraStore } from '@/useInfraStore.ts';
 import { isMasterDeveloper } from '@/useUIStore.ts';
@@ -1239,6 +1239,9 @@ export default function InfraPanel(_props: IInfraPanelProps) {
   const [ec2InstanceType, setEc2InstanceType] = useState<string>(
     DEFAULT_EC2_INSTANCE_TYPE,
   );
+  const [awsRegion, setAwsRegion] = useState<string>(DEFAULT_AWS_REGION);
+  const [diskSize, setDiskSize] = useState<number>(10);
+  const [customAmi, setCustomAmi] = useState<string>('');
   const [rdsInstanceClass, setRdsInstanceClass] = useState<string>(
     DEFAULT_RDS_INSTANCE_TYPE,
   );
@@ -1381,6 +1384,18 @@ export default function InfraPanel(_props: IInfraPanelProps) {
       }
     }
 
+    if (workspaceMode === WORKSPACE_MODES.API) {
+      if (awsRegion.trim() === '') {
+        setWorkspaceError('Select an AWS region.');
+        return;
+      }
+
+      if (!Number.isFinite(diskSize) || diskSize < 10 || diskSize > 500) {
+        setWorkspaceError('Disk size must be between 10 GB and 500 GB.');
+        return;
+      }
+    }
+
     setIsWorkspaceSaving(true);
 
     try {
@@ -1397,6 +1412,14 @@ export default function InfraPanel(_props: IInfraPanelProps) {
           mode: workspaceMode,
           ec2InstanceType:
             workspaceMode === WORKSPACE_MODES.API ? ec2InstanceType : undefined,
+          awsRegion:
+            workspaceMode === WORKSPACE_MODES.API ? awsRegion : undefined,
+          diskSize:
+            workspaceMode === WORKSPACE_MODES.API ? diskSize : undefined,
+          customAmi:
+            workspaceMode === WORKSPACE_MODES.API && customAmi.trim() !== ''
+              ? customAmi.trim()
+              : undefined,
           enableRds:
             workspaceMode === WORKSPACE_MODES.API ? enableRds : undefined,
           rdsInstanceClass:
@@ -1437,6 +1460,9 @@ export default function InfraPanel(_props: IInfraPanelProps) {
       setNewWorkspace('');
       setWorkspaceMode(WORKSPACE_MODES.API);
       setEc2InstanceType(DEFAULT_EC2_INSTANCE_TYPE);
+      setAwsRegion(DEFAULT_AWS_REGION);
+      setDiskSize(10);
+      setCustomAmi('');
       setRdsInstanceClass(DEFAULT_RDS_INSTANCE_TYPE);
       setRdsEngine('postgresql');
       setEnableRds(false);
@@ -1670,6 +1696,23 @@ export default function InfraPanel(_props: IInfraPanelProps) {
                 <>
                   <div>
                     <label
+                      htmlFor="create-aws-region"
+                      className="block text-xs font-medium text-fg-muted mb-1.5"
+                    >
+                      AWS Region
+                    </label>
+                    <GroupedSelect
+                      id="create-aws-region"
+                      value={awsRegion}
+                      onChange={setAwsRegion}
+                      groups={AWS_REGION_GROUPS}
+                      disabled={!canAddWorkspace}
+                      aria-label="AWS region"
+                    />
+                  </div>
+
+                  <div>
+                    <label
                       htmlFor="ec2-instance-type"
                       className="block text-xs font-medium text-fg-muted mb-1.5"
                     >
@@ -1682,6 +1725,105 @@ export default function InfraPanel(_props: IInfraPanelProps) {
                       groups={EC2_INSTANCE_GROUPS}
                       disabled={!canAddWorkspace}
                       aria-label="EC2 instance type"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="create-disk-size"
+                      className="block text-xs font-medium text-fg-muted mb-1.5"
+                    >
+                      Disk Size (GB)
+                    </label>
+                    <div className="flex items-stretch">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDiskSize(Math.max(10, diskSize - 10));
+                        }}
+                        disabled={!canAddWorkspace || diskSize <= 10}
+                        className="px-4 bg-bg-muted border border-border border-r-0 rounded-l-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
+                        aria-label="Decrease create disk size"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <title>Decrease</title>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M20 12H4"
+                          />
+                        </svg>
+                      </button>
+                      <input
+                        id="create-disk-size"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={diskSize}
+                        onChange={(event) => {
+                          const parsed = parseInt(event.target.value, 10);
+                          if (!Number.isNaN(parsed)) {
+                            setDiskSize(Math.max(10, Math.min(500, parsed)));
+                          } else if (event.target.value === '') {
+                            setDiskSize(10);
+                          }
+                        }}
+                        className="flex-1 min-w-0 px-3 py-2 bg-bg-muted border-y border-border text-fg text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        disabled={!canAddWorkspace}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDiskSize(Math.min(500, diskSize + 10));
+                        }}
+                        disabled={!canAddWorkspace || diskSize >= 500}
+                        className="px-4 bg-bg-muted border border-border border-l-0 rounded-r-md text-fg-muted hover:text-fg transition-colors disabled:cursor-not-allowed flex items-center justify-center"
+                        aria-label="Increase create disk size"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <title>Increase</title>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-fg-subtle mt-1">
+                      Required. Min 10 GB, max 500 GB.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="create-custom-ami"
+                      className="block text-xs font-medium text-fg-muted mb-1.5"
+                    >
+                      Custom AMI ID (optional)
+                    </label>
+                    <input
+                      id="create-custom-ami"
+                      type="text"
+                      value={customAmi}
+                      onChange={(event) => {
+                        setCustomAmi(event.target.value);
+                      }}
+                      placeholder="ami-0123456789abcdef0"
+                      className="form-input text-sm"
+                      disabled={!canAddWorkspace}
                     />
                   </div>
 
