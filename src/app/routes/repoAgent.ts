@@ -34,6 +34,10 @@ const MODEL_CONFIGS = {
     provider: 'anthropic',
     modelId: 'claude-opus-4-20250514',
   },
+  'claude-opus-4.6': {
+    provider: 'anthropic',
+    modelId: 'claude-opus-4-6',
+  },
 } as const;
 
 type ModelId = keyof typeof MODEL_CONFIGS;

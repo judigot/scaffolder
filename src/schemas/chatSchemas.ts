@@ -46,6 +46,7 @@ export const ModelIdSchema = z.enum([
   'claude-haiku-3.5',
   'claude-sonnet-4.5',
   'claude-opus-4.5',
+  'claude-opus-4.6',
 ]);
 
 export type ModelId = z.infer<typeof ModelIdSchema>;

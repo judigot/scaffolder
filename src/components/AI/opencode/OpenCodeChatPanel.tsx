@@ -33,6 +33,11 @@ const OPENCODE_MODELS: IOpenCodeModel[] = [
   { id: 'openai/gpt-5.2-codex', name: 'GPT-5.2 Codex', provider: 'openai' },
   { id: 'openai/gpt-5.1-codex', name: 'GPT-5.1 Codex', provider: 'openai' },
   {
+    id: 'anthropic/claude-opus-4-6',
+    name: 'Claude Opus 4.6',
+    provider: 'anthropic',
+  },
+  {
     id: 'anthropic/claude-sonnet-4-5',
     name: 'Claude Sonnet 4.5',
     provider: 'anthropic',

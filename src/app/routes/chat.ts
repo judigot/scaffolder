@@ -8,8 +8,8 @@ import { SCHEMA_BUILDER_SYSTEM_PROMPT } from '@/prompts/index.ts';
 import {
   extractAIKeysFromMetadata,
   isValidModelId,
-  validateChatRequest,
   type ModelId,
+  validateChatRequest,
 } from '@/schemas/chatSchemas.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
@@ -68,6 +68,13 @@ const MODEL_CONFIGS: Record<ModelId, IModelConfig> = {
     name: 'Claude Opus 4.5',
     provider: 'anthropic',
     modelString: 'claude-opus-4-5-20251101',
+    tier: 'premium',
+  },
+  'claude-opus-4.6': {
+    id: 'claude-opus-4.6',
+    name: 'Claude Opus 4.6',
+    provider: 'anthropic',
+    modelString: 'claude-opus-4-6',
     tier: 'premium',
   },
 };

@@ -5,7 +5,8 @@ export type ModelId =
   | 'gpt-5.2-codex'
   | 'claude-haiku-3.5'
   | 'claude-sonnet-4.5'
-  | 'claude-opus-4.5';
+  | 'claude-opus-4.5'
+  | 'claude-opus-4.6';
 
 export type ModelTier = 'free' | 'premium';
 
@@ -40,6 +41,12 @@ export const MODEL_OPTIONS: IModelOption[] = [
   {
     id: 'claude-opus-4.5',
     name: 'Claude Opus 4.5',
+    provider: 'anthropic',
+    tier: 'premium',
+  },
+  {
+    id: 'claude-opus-4.6',
+    name: 'Claude Opus 4.6',
     provider: 'anthropic',
     tier: 'premium',
   },
