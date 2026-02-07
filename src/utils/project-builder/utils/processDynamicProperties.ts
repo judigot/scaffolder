@@ -4,6 +4,7 @@ import {
   processIndexFunction,
   processTimestampFunction,
 } from '@/utils/project-builder/utils/placeholderFunctions.ts';
+import { resolvePlaceholderValue } from '@/utils/project-builder/utils/placeholderTransforms.ts';
 
 /**
  * Extracts a separator value from a dynamic property string
@@ -35,9 +36,9 @@ const processSinglePlaceholder = (
   replacements: Replacements,
   originalPlaceholder: string,
 ): string => {
-  // Direct key access
-  if (key in replacements) {
-    const value = replacements[key];
+  const resolvedPlaceholder = resolvePlaceholderValue(key, replacements);
+  if (resolvedPlaceholder !== undefined) {
+    const { value } = resolvedPlaceholder;
     return Array.isArray(value) ? value.join(',') : value;
   }
 

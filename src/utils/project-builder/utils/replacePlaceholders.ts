@@ -6,6 +6,7 @@ import type {
   BuildContext,
 } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
+import { resolvePlaceholderValue } from '@/utils/project-builder/utils/placeholderTransforms.ts';
 
 /**
  * Replace a single placeholder with its value from replacements
@@ -16,13 +17,14 @@ const replaceSingleCommandPlaceholder = (
   originalPlaceholder: string,
 ): string => {
   const trimmedKey = key.trim();
-  if (trimmedKey in replacements) {
-    const value = replacements[trimmedKey];
+  const resolvedPlaceholder = resolvePlaceholderValue(trimmedKey, replacements);
+  if (resolvedPlaceholder !== undefined) {
+    const { value } = resolvedPlaceholder;
     if (typeof value === 'string') {
       return value;
     }
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
+    if (Array.isArray(value)) {
+      return value.join(', ');
     }
   }
   return originalPlaceholder;
