@@ -4,7 +4,7 @@ This document describes the built-in placeholder functions `index()` and `timest
 
 ## Overview
 
-Placeholder functions provide dynamic values for filenames and content in project templates. They support both **property-style** access (`{{index}}`) and **function-style** calls (`{{index(1, 3)}}`).
+Placeholder functions provide dynamic values for filenames and content in project templates. They support both **property-style** access (`<@@>index</@@>`) and **function-style** calls (`{{index(1, 3)}}`).
 
 ### Available Functions
 
@@ -19,10 +19,10 @@ The `index()` function generates sequential numbers, useful for creating ordered
 
 ```yaml
 # Property-style (uses defaults)
-{{index}}
+<@@>index</@@>
 
 # Function-style with parameters
-{{index(base, width, offset)}}
+<@@>index(base, width, offset)</@@>
 ```
 
 ### Parameters
@@ -38,7 +38,7 @@ The `index()` function generates sequential numbers, useful for creating ordered
 #### Basic Usage (0-based, no padding)
 
 ```yaml
-FILE_LOOP({{index}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+FILE_LOOP(<@@>index</@@>_{{tableName}}.sql --template ./templates/migration.sql.txt):
 ```
 
 **Output:**
@@ -112,7 +112,7 @@ Generate ordered migration files for database schema changes:
 
 ```yaml
 migrations:
-  FILE_LOOP({{index(1, 4)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt):
+  FILE_LOOP(<@@>index(1, 4)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt):
 ```
 
 **Output:**
@@ -137,10 +137,10 @@ The `timestamp()` function generates formatted date/time strings, useful for cre
 
 ```yaml
 # Property-style (uses ISO 8601 default)
-{{timestamp}}
+<@@>timestamp</@@>
 
 # Function-style with format string
-{{timestamp('YYYY-MM-DD')}}
+<@@>timestamp('YYYY-MM-DD')</@@>
 ```
 
 ### Parameters
@@ -170,7 +170,7 @@ The format string uses JavaScript-style date formatting tokens:
 #### Default ISO 8601 Format
 
 ```yaml
-FILE_LOOP({{timestamp}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+FILE_LOOP(<@@>timestamp</@@>_{{tableName}}.sql --template ./templates/migration.sql.txt):
 ```
 
 **Output:**
@@ -200,7 +200,7 @@ FILE_LOOP({{timestamp('YYYYMMDDHHmmss')}}_create_{{tableName}}.sql --template ./
 #### Date Only
 
 ```yaml
-FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+FILE_LOOP(<@@>timestamp('YYYY-MM-DD')</@@>_{{tableName}}.sql --template ./templates/migration.sql.txt):
 ```
 
 **Output:**
@@ -274,7 +274,7 @@ FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{index(1, 6)}}_create_{{tableName}
 ### Date + Index
 
 ```yaml
-FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+FILE_LOOP(<@@>timestamp('YYYY-MM-DD')</@@>_{{index(1, 3)}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
 ```
 
 **Output:**
@@ -317,7 +317,7 @@ Case-insensitive matching ensures protection regardless of capitalization.
 When using the default ISO 8601 timestamp format:
 
 ```yaml
-FILE_LOOP({{timestamp}}_{{tableName}}.sql --template ./templates/migration.sql.txt):
+FILE_LOOP(<@@>timestamp</@@>_{{tableName}}.sql --template ./templates/migration.sql.txt):
 ```
 
 **Generated filename (before sanitization):**
@@ -391,13 +391,13 @@ The placeholder functions work seamlessly with the `FILE_LOOP` action to generat
 ```yaml
 migrations:
   indexed:
-    FILE_LOOP({{index(1, 4)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+    FILE_LOOP(<@@>index(1, 4)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
   
   timestamped:
     FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
   
   hybrid:
-    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+    FILE_LOOP(<@@>timestamp('YYYY-MM-DD')</@@>_{{index(1, 3)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
 ```
 
 ## Available Properties
@@ -406,16 +406,16 @@ In addition to function calls, you can access these properties directly:
 
 ### Index Properties
 
-- `{{index}}` - Current table index (0-based, no padding)
-- `{{tableIndex}}` - Same as `{{index}}`
-- `{{tableIndexZeroPadded}}` - Zero-padded index (auto-width)
-- `{{tableIndexOneBased}}` - 1-based index
-- `{{tableIndexOneBasedZeroPadded}}` - 1-based, zero-padded (auto-width)
-- `{{totalTables}}` - Total number of tables
+- `<@@>index</@@>` - Current table index (0-based, no padding)
+- `<@@>tableIndex</@@>` - Same as `<@@>index</@@>`
+- `<@@>tableIndexZeroPadded</@@>` - Zero-padded index (auto-width)
+- `<@@>tableIndexOneBased</@@>` - 1-based index
+- `<@@>tableIndexOneBasedZeroPadded</@@>` - 1-based, zero-padded (auto-width)
+- `<@@>totalTables</@@>` - Total number of tables
 
 ### Timestamp Properties
 
-- `{{timestamp}}` - ISO 8601 formatted timestamp
+- `<@@>timestamp</@@>` - ISO 8601 formatted timestamp
 
 ## Common Format Presets
 
