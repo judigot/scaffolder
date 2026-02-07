@@ -3,7 +3,10 @@ import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import type { IFormStore } from '@/useFormStore.ts';
-import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type {
+  BuildContext,
+  DataContext,
+} from '@/utils/project-builder/interfaces/interfaces.ts';
 import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
 import {
   LOOP_COMMAND_REGEX,
@@ -196,6 +199,39 @@ export const evaluateCondition = (
   // If no pattern matched, return false
   return false;
 };
+
+const isBuildContext = (value: unknown): value is BuildContext => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userFiles' in value &&
+    'schemaInfoParsed' in value &&
+    'projectYamlPath' in value
+  );
+};
+
+const createBuildContext = (
+  userFiles: IStructure,
+  schemaInfoParsed: ISchemaInfoResult,
+  options?: {
+    projectYamlPath?: string;
+    table?: ISchemaInfo;
+    formData?: IFormStore;
+    userMetadata?: Record<string, unknown> | null;
+    dataContext?: DataContext;
+    mockData?: ParsedJSONSchema;
+  },
+): BuildContext => ({
+  userFiles,
+  schemaInfo: schemaInfoParsed.schema,
+  schemaInfoParsed,
+  projectYamlPath: options?.projectYamlPath ?? '',
+  table: options?.table,
+  formData: options?.formData,
+  userMetadata: options?.userMetadata,
+  dataContext: options?.dataContext,
+  mockData: options?.mockData,
+});
 
 /**
  * Find a folder in the file structure given a path
@@ -1491,7 +1527,54 @@ const processTablesTemplate = (
     .join(separator);
 };
 
-export const processLoopTables = (
+interface IResolvedLoopTablesArgs {
+  schemaInfo: ISchemaInfo[];
+  schemaInfoParsed: ISchemaInfoResult;
+  userFiles: IStructure;
+  formData?: IFormStore;
+  userMetadata?: Record<string, unknown> | null;
+  dataSource?: DataContext;
+  mockData?: ParsedJSONSchema;
+}
+
+const resolveLoopTablesArgs = (
+  ctxOrSchemaInfo: BuildContext | ISchemaInfo[],
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataSourceArg?: DataContext,
+  mockDataArg?: ParsedJSONSchema,
+): IResolvedLoopTablesArgs => {
+  if (isBuildContext(ctxOrSchemaInfo)) {
+    return {
+      schemaInfo: ctxOrSchemaInfo.schemaInfo,
+      schemaInfoParsed: ctxOrSchemaInfo.schemaInfoParsed,
+      userFiles: ctxOrSchemaInfo.userFiles,
+      formData: ctxOrSchemaInfo.formData,
+      userMetadata: ctxOrSchemaInfo.userMetadata,
+      dataSource: ctxOrSchemaInfo.dataContext,
+      mockData: ctxOrSchemaInfo.mockData,
+    };
+  }
+
+  if (schemaInfoParsedArg === undefined || userFilesArg === undefined) {
+    throw new Error('schemaInfoParsed and userFiles are required');
+  }
+
+  return {
+    schemaInfo: ctxOrSchemaInfo,
+    schemaInfoParsed: schemaInfoParsedArg,
+    userFiles: userFilesArg,
+    formData: formDataArg,
+    userMetadata: userMetadataArg,
+    dataSource: dataSourceArg,
+    mockData: mockDataArg,
+  };
+};
+
+export function processLoopTables(content: string, ctx: BuildContext): string;
+export function processLoopTables(
   content: string,
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
@@ -1500,7 +1583,35 @@ export const processLoopTables = (
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
   mockData?: ParsedJSONSchema,
-): string => {
+): string;
+export function processLoopTables(
+  content: string,
+  ctxOrSchemaInfo: BuildContext | ISchemaInfo[],
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataSourceArg?: DataContext,
+  mockDataArg?: ParsedJSONSchema,
+): string {
+  const {
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+    dataSource,
+    mockData,
+  } = resolveLoopTablesArgs(
+    ctxOrSchemaInfo,
+    schemaInfoParsedArg,
+    userFilesArg,
+    formDataArg,
+    userMetadataArg,
+    dataSourceArg,
+    mockDataArg,
+  );
+
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
 
@@ -1566,9 +1677,13 @@ export const processLoopTables = (
   );
 
   return result;
-};
+}
 
-export const processLoopTablesReversed = (
+export function processLoopTablesReversed(
+  content: string,
+  ctx: BuildContext,
+): string;
+export function processLoopTablesReversed(
   content: string,
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
@@ -1577,7 +1692,35 @@ export const processLoopTablesReversed = (
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
   mockData?: ParsedJSONSchema,
-): string => {
+): string;
+export function processLoopTablesReversed(
+  content: string,
+  ctxOrSchemaInfo: BuildContext | ISchemaInfo[],
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataSourceArg?: DataContext,
+  mockDataArg?: ParsedJSONSchema,
+): string {
+  const {
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+    dataSource,
+    mockData,
+  } = resolveLoopTablesArgs(
+    ctxOrSchemaInfo,
+    schemaInfoParsedArg,
+    userFilesArg,
+    formDataArg,
+    userMetadataArg,
+    dataSourceArg,
+    mockDataArg,
+  );
+
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
   const reversedSchema = [...filteredSchemaInfo].reverse();
@@ -1644,7 +1787,7 @@ export const processLoopTablesReversed = (
   );
 
   return result;
-};
+}
 
 const findMatchingCloseBrackets = (
   content: string,
@@ -1761,13 +1904,52 @@ const parseLoopDataSourcesCommand = (
   return { dataSourcePattern, templateContent, separator };
 };
 
-export const processLoopDataSources = (
+const resolveLoopDataSourcesContext = (
+  ctxOrUserFiles: BuildContext | IStructure,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): BuildContext => {
+  if (isBuildContext(ctxOrUserFiles)) {
+    return ctxOrUserFiles;
+  }
+
+  if (schemaInfoParsedArg === undefined) {
+    throw new Error('schemaInfoParsed is required when passing userFiles');
+  }
+
+  return createBuildContext(ctxOrUserFiles, schemaInfoParsedArg, {
+    formData: formDataArg,
+    userMetadata: userMetadataArg,
+  });
+};
+
+export function processLoopDataSources(
+  content: string,
+  ctx: BuildContext,
+): string;
+export function processLoopDataSources(
   content: string,
   userFiles: IStructure,
   schemaInfoParsed: ISchemaInfoResult,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
-): string => {
+): string;
+export function processLoopDataSources(
+  content: string,
+  ctxOrUserFiles: BuildContext | IStructure,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): string {
+  const ctx = resolveLoopDataSourcesContext(
+    ctxOrUserFiles,
+    schemaInfoParsedArg,
+    formDataArg,
+    userMetadataArg,
+  );
+  const { userFiles } = ctx;
+
   let result = content;
 
   LOOP_DATA_SOURCES_START_REGEX.lastIndex = 0;
@@ -1812,20 +1994,16 @@ export const processLoopDataSources = (
           dataMatch.folderPath,
         );
 
-        const ctx = {
-          userFiles,
+        const replacementCtx: BuildContext = {
+          ...ctx,
           schemaInfo: [],
-          schemaInfoParsed,
-          projectYamlPath: '',
-          formData,
-          userMetadata,
           dataContext: augmentedData,
         };
 
         return replacePlaceholders(
           templateContent.trim(),
           replacements,
-          ctx,
+          replacementCtx,
           undefined,
           true, // Skip LOOP_DATA_SOURCES to prevent infinite recursion
         );
@@ -1843,9 +2021,41 @@ export const processLoopDataSources = (
   }
 
   return result;
+}
+
+const resolveIterateCommandContext = (
+  ctxOrTable: BuildContext | ISchemaInfo | undefined,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  projectFilePathArg?: string,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): BuildContext => {
+  if (isBuildContext(ctxOrTable)) {
+    return ctxOrTable;
+  }
+
+  if (
+    ctxOrTable === undefined ||
+    schemaInfoParsedArg === undefined ||
+    userFilesArg === undefined
+  ) {
+    throw new Error('table, schemaInfoParsed, and userFiles are required');
+  }
+
+  return createBuildContext(userFilesArg, schemaInfoParsedArg, {
+    projectYamlPath: projectFilePathArg,
+    table: ctxOrTable,
+    formData: formDataArg,
+    userMetadata: userMetadataArg,
+  });
 };
 
-export const processIterateCommand = (
+export function processIterateCommand(
+  command: string,
+  ctx: BuildContext,
+): string;
+export function processIterateCommand(
   command: string,
   table: ISchemaInfo | undefined,
   schemaInfoParsed: ISchemaInfoResult,
@@ -1853,7 +2063,33 @@ export const processIterateCommand = (
   projectFilePath?: string,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
-): string => {
+): string;
+export function processIterateCommand(
+  command: string,
+  ctxOrTable: BuildContext | ISchemaInfo | undefined,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  projectFilePathArg?: string,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): string {
+  const ctx = resolveIterateCommandContext(
+    ctxOrTable,
+    schemaInfoParsedArg,
+    userFilesArg,
+    projectFilePathArg,
+    formDataArg,
+    userMetadataArg,
+  );
+  const {
+    table,
+    schemaInfoParsed,
+    userFiles,
+    projectYamlPath,
+    formData,
+    userMetadata,
+  } = ctx;
+
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
   const match = LOOP_COMMAND_REGEX.exec(command);
@@ -1924,7 +2160,7 @@ export const processIterateCommand = (
               userFiles,
               schemaInfoParsed,
               table,
-              projectFilePath,
+              projectYamlPath,
               formData,
               userMetadata,
             );
@@ -1936,7 +2172,7 @@ export const processIterateCommand = (
             userFiles,
             schemaInfoParsed,
             table,
-            projectFilePath,
+            projectYamlPath,
             formData,
             userMetadata,
           );
@@ -1953,7 +2189,7 @@ export const processIterateCommand = (
           userFiles,
           schemaInfo: [],
           schemaInfoParsed,
-          projectYamlPath: projectFilePath ?? '',
+          projectYamlPath,
           table,
           formData,
           userMetadata,
@@ -2035,7 +2271,7 @@ export const processIterateCommand = (
           includedFiles,
           excludedFiles,
           separator,
-          projectFilePath,
+          projectYamlPath,
           formData,
           userMetadata,
         );
@@ -2079,7 +2315,7 @@ export const processIterateCommand = (
         includedFiles,
         excludedFiles,
         separator,
-        projectFilePath,
+        projectYamlPath,
         formData,
         userMetadata,
       );
@@ -2184,7 +2420,7 @@ export const processIterateCommand = (
       separator,
       schemaInfoParsed,
       userFiles,
-      projectFilePath,
+      projectYamlPath,
       formData,
       userMetadata,
     );
@@ -2416,7 +2652,7 @@ export const processIterateCommand = (
       userFiles,
       schemaInfo: [],
       schemaInfoParsed,
-      projectYamlPath: projectFilePath ?? '',
+      projectYamlPath,
       table,
       formData,
       userMetadata,
@@ -2426,7 +2662,7 @@ export const processIterateCommand = (
   });
 
   return joinWithSeparator(lines);
-};
+}
 
 /**
  * Helper function to process all files in a folder

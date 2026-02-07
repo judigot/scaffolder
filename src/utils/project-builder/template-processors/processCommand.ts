@@ -15,7 +15,10 @@ import {
 } from '@/utils/project-builder/constants/templateActions.ts';
 import { processUseTemplate } from '@/utils/project-builder/template-processors/useTemplate.ts';
 import type { IFormStore } from '@/useFormStore.ts';
-import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type {
+  BuildContext,
+  DataContext,
+} from '@/utils/project-builder/interfaces/interfaces.ts';
 import { isRecord } from '@/utils/typeGuards.ts';
 import {
   formatRowsData,
@@ -38,7 +41,89 @@ const hasOnlyLoopTags = (line: string): boolean => {
   return !/\S/.test(withoutLoopTags);
 };
 
-export const processCommand = (
+interface IProcessCommandOptions {
+  templateFilePath?: string;
+  skipLoopDataSources?: boolean;
+}
+
+const isSchemaInfoResult = (value: unknown): value is ISchemaInfoResult => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'schema' in value &&
+    'getRequiredColumns' in value
+  );
+};
+
+const isBuildContext = (value: unknown): value is BuildContext => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userFiles' in value &&
+    'schemaInfoParsed' in value &&
+    'projectYamlPath' in value
+  );
+};
+
+interface IResolvedProcessCommandArgs {
+  ctx: BuildContext;
+  templateFilePath?: string;
+  skipLoopDataSources: boolean;
+}
+
+const resolveProcessCommandArgs = (
+  ctxOrUserFiles: BuildContext | IStructure,
+  schemaInfoParsedArg?: ISchemaInfoResult | IProcessCommandOptions,
+  tableArg?: ISchemaInfo,
+  templateFilePathArg?: string,
+  projectFilePathArg?: string,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataContextArg?: DataContext,
+  skipLoopDataSourcesArg = false,
+  mockDataArg?: ParsedJSONSchema,
+): IResolvedProcessCommandArgs => {
+  if (isBuildContext(ctxOrUserFiles)) {
+    const options =
+      schemaInfoParsedArg !== undefined &&
+      !isSchemaInfoResult(schemaInfoParsedArg)
+        ? schemaInfoParsedArg
+        : undefined;
+
+    return {
+      ctx: ctxOrUserFiles,
+      templateFilePath: options?.templateFilePath,
+      skipLoopDataSources: options?.skipLoopDataSources ?? false,
+    };
+  }
+
+  if (!isSchemaInfoResult(schemaInfoParsedArg)) {
+    throw new Error('schemaInfoParsed is required when passing userFiles');
+  }
+
+  return {
+    ctx: {
+      userFiles: ctxOrUserFiles,
+      schemaInfo: schemaInfoParsedArg.schema,
+      schemaInfoParsed: schemaInfoParsedArg,
+      projectYamlPath: projectFilePathArg ?? '',
+      formData: formDataArg,
+      userMetadata: userMetadataArg,
+      mockData: mockDataArg,
+      table: tableArg,
+      dataContext: dataContextArg,
+    },
+    templateFilePath: templateFilePathArg,
+    skipLoopDataSources: skipLoopDataSourcesArg,
+  };
+};
+
+export function processCommand(
+  text: string,
+  ctx: BuildContext,
+  options?: IProcessCommandOptions,
+): string;
+export function processCommand(
   text: string,
   userFiles: IStructure,
   schemaInfoParsed: ISchemaInfoResult,
@@ -48,9 +133,47 @@ export const processCommand = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataContext?: DataContext,
-  skipLoopDataSources = false,
+  skipLoopDataSources?: boolean,
   mockData?: ParsedJSONSchema,
-): string => {
+): string;
+
+export function processCommand(
+  text: string,
+  ctxOrUserFiles: BuildContext | IStructure,
+  schemaInfoParsedArg?: ISchemaInfoResult | IProcessCommandOptions,
+  tableArg?: ISchemaInfo,
+  templateFilePathArg?: string,
+  projectFilePathArg?: string,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataContextArg?: DataContext,
+  skipLoopDataSourcesArg = false,
+  mockDataArg?: ParsedJSONSchema,
+): string {
+  const { ctx, templateFilePath, skipLoopDataSources } =
+    resolveProcessCommandArgs(
+      ctxOrUserFiles,
+      schemaInfoParsedArg,
+      tableArg,
+      templateFilePathArg,
+      projectFilePathArg,
+      formDataArg,
+      userMetadataArg,
+      dataContextArg,
+      skipLoopDataSourcesArg,
+      mockDataArg,
+    );
+  const {
+    userFiles,
+    schemaInfoParsed,
+    table,
+    projectYamlPath,
+    formData,
+    userMetadata,
+    dataContext,
+    mockData,
+  } = ctx;
+
   // Process all commands in order of specificity
   let result = text;
 
@@ -72,7 +195,7 @@ export const processCommand = (
         userFiles,
         schemaInfoParsed,
         table,
-        projectFilePath,
+        projectYamlPath,
         formData,
       ).join(',');
     },
@@ -151,13 +274,7 @@ export const processCommand = (
   // This expands LOOP_DATA_SOURCES first, then USE_DATA commands inside the expanded content can be processed
   // Skip if we're already inside a LOOP_DATA_SOURCES processing context to prevent infinite recursion
   if (!skipLoopDataSources) {
-    result = processLoopDataSources(
-      result,
-      userFiles,
-      schemaInfoParsed,
-      formData,
-      userMetadata,
-    );
+    result = processLoopDataSources(result, ctx);
   }
 
   // Process USE_DATA commands
@@ -256,7 +373,7 @@ export const processCommand = (
     userFiles,
     schemaInfoParsed,
     templateFilePath,
-    projectFilePath,
+    projectYamlPath,
     table,
     formData,
     userMetadata,
@@ -298,12 +415,10 @@ export const processCommand = (
           const options = group2;
           const cmdResult = processIterateCommand(
             `${TEMPLATE_ACTIONS.LOOP}(${propertyPaths})${options}`,
-            table,
-            schemaInfoParsed,
-            userFiles,
-            projectFilePath,
-            formData,
-            userMetadata,
+            {
+              ...ctx,
+              table,
+            },
           );
 
           // Only add whitespace if cmdResult has content
@@ -346,12 +461,10 @@ export const processCommand = (
       const options = group2;
       const cmdResult = processIterateCommand(
         `${TEMPLATE_ACTIONS.LOOP}(${propertyPaths})${options}`,
-        table,
-        schemaInfoParsed,
-        userFiles,
-        projectFilePath,
-        formData,
-        userMetadata,
+        {
+          ...ctx,
+          table,
+        },
       );
 
       // Only add whitespace if cmdResult has content
@@ -368,4 +481,4 @@ export const processCommand = (
   result = result.replace(/\n{3,}/g, '\n\n');
 
   return result;
-};
+}

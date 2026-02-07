@@ -4,6 +4,7 @@ import type { IFormStore } from '@/useFormStore.ts';
 import { processCommand } from '@/utils/project-builder/template-processors/processCommand.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import type { BuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 /**
  * Recursively processes core files to handle template commands like USE_USER_ENV.
@@ -28,6 +29,14 @@ export function processCoreFiles(
   onFileUsingUserEnv?: (filePath: string) => void,
 ): IStructure {
   const schemaInfoParsed = getSchemaInfo(schemaInfo);
+  const baseContext: BuildContext = {
+    userFiles,
+    schemaInfo,
+    schemaInfoParsed,
+    projectYamlPath: projectFilePath,
+    formData,
+    userMetadata,
+  };
 
   const processItem = (
     item: IFile | IFolder,
@@ -42,18 +51,7 @@ export function processCoreFiles(
       }
 
       // Process file content with template commands
-      const processedContent = processCommand(
-        item.content,
-        userFiles,
-        schemaInfoParsed,
-        undefined, // No table context for core files
-        undefined, // No template file path
-        projectFilePath,
-        formData,
-        userMetadata,
-        undefined, // No data context
-        false, // Don't skip loop data sources
-      );
+      const processedContent = processCommand(item.content, baseContext);
 
       return {
         ...item,

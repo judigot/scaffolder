@@ -86,19 +86,10 @@ export const replacePlaceholders = (
   );
 
   // Process all commands
-  const processedText = processCommand(
-    textWithResolvedCommandParams,
-    ctx.userFiles,
-    ctx.schemaInfoParsed,
-    ctx.table,
+  const processedText = processCommand(textWithResolvedCommandParams, ctx, {
     templateFilePath,
-    ctx.projectYamlPath,
-    ctx.formData,
-    ctx.userMetadata,
-    ctx.dataContext,
     skipLoopDataSources,
-    ctx.mockData,
-  );
+  });
 
   // Process IF conditions
   const processedConditions = processIfConditions(processedText, replacements);

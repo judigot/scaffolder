@@ -8,8 +8,23 @@ import {
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import type { IFormStore } from '@/useFormStore.ts';
+import type { BuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 
-export const processIterateInTemplate = (
+const isBuildContext = (value: unknown): value is BuildContext => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userFiles' in value &&
+    'schemaInfoParsed' in value &&
+    'projectYamlPath' in value
+  );
+};
+
+export function processIterateInTemplate(
+  content: string,
+  ctx: BuildContext,
+): string;
+export function processIterateInTemplate(
   content: string,
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
@@ -17,7 +32,38 @@ export const processIterateInTemplate = (
   table?: ISchemaInfo,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
-): string => {
+): string;
+
+export function processIterateInTemplate(
+  content: string,
+  ctxOrSchemaInfo: BuildContext | ISchemaInfo[],
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  tableArg?: ISchemaInfo,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): string {
+  let ctx: BuildContext;
+  if (isBuildContext(ctxOrSchemaInfo)) {
+    ctx = ctxOrSchemaInfo;
+  } else {
+    if (schemaInfoParsedArg === undefined || userFilesArg === undefined) {
+      throw new Error('schemaInfoParsed and userFiles are required');
+    }
+
+    ctx = {
+      userFiles: userFilesArg,
+      schemaInfo: ctxOrSchemaInfo,
+      schemaInfoParsed: schemaInfoParsedArg,
+      projectYamlPath: '',
+      table: tableArg,
+      formData: formDataArg,
+      userMetadata: userMetadataArg,
+    };
+  }
+
+  const { schemaInfo, schemaInfoParsed, table, formData, userMetadata } = ctx;
+
   // If no table context is provided, try to use the first schema
   let effectiveTable = table;
   if (!effectiveTable && schemaInfo.length > 0) {
@@ -27,7 +73,10 @@ export const processIterateInTemplate = (
   // Process <@@IF@@> conditions first
   let result = content;
   if (effectiveTable) {
-    const replacements = getReplacementsForTable(effectiveTable, schemaInfoParsed);
+    const replacements = getReplacementsForTable(
+      effectiveTable,
+      schemaInfoParsed,
+    );
     result = processHtmlIf(result, replacements);
   }
 
@@ -44,12 +93,12 @@ export const processIterateInTemplate = (
         const whitespace = /^\s*/.exec(fullMatch)?.[0] ?? '';
         const cmdResult = processIterateCommand(
           `${TEMPLATE_ACTIONS.LOOP}(${propertyPathsStr})${options}`,
-          effectiveTable,
-          schemaInfoParsed,
-          userFiles,
-          undefined,
-          formData,
-          userMetadata,
+          {
+            ...ctx,
+            table: effectiveTable,
+            formData,
+            userMetadata,
+          },
         );
         return cmdResult ? whitespace + cmdResult : '';
       }
@@ -58,4 +107,4 @@ export const processIterateInTemplate = (
       return fullMatch;
     },
   );
-};
+}
