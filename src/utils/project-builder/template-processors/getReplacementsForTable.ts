@@ -1,7 +1,10 @@
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type {
+  BuildContext,
+  Replacements,
+} from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForAuth } from '@/utils/project-builder/template-processors/getReplacementsForAuth.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 
@@ -58,13 +61,83 @@ const addIndexedAccess = (
   }
 };
 
-export const getReplacementsForTable = (
+interface ITableReplacementOptions {
+  tableIndex?: number;
+  totalTables?: number;
+}
+
+const isBuildContext = (value: unknown): value is BuildContext => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userFiles' in value &&
+    'schemaInfoParsed' in value &&
+    'projectYamlPath' in value
+  );
+};
+
+interface IResolvedReplacementArgs {
+  schemaInfoParsed: ISchemaInfoResult;
+  tableIndex?: number;
+  totalTables?: number;
+  formData?: IFormStore;
+}
+
+const resolveReplacementArgs = (
+  ctxOrSchemaInfoParsed: BuildContext | ISchemaInfoResult,
+  tableIndexOrOptions?: number | ITableReplacementOptions,
+  totalTablesArg?: number,
+  formDataArg?: IFormStore,
+): IResolvedReplacementArgs => {
+  if (isBuildContext(ctxOrSchemaInfoParsed)) {
+    const options =
+      typeof tableIndexOrOptions === 'object' ? tableIndexOrOptions : undefined;
+
+    return {
+      schemaInfoParsed: ctxOrSchemaInfoParsed.schemaInfoParsed,
+      tableIndex: options?.tableIndex,
+      totalTables: options?.totalTables,
+      formData: ctxOrSchemaInfoParsed.formData,
+    };
+  }
+
+  return {
+    schemaInfoParsed: ctxOrSchemaInfoParsed,
+    tableIndex:
+      typeof tableIndexOrOptions === 'number' ? tableIndexOrOptions : undefined,
+    totalTables: totalTablesArg,
+    formData: formDataArg,
+  };
+};
+
+export function getReplacementsForTable(
+  table: ISchemaInfo,
+  ctx: BuildContext,
+  options?: ITableReplacementOptions,
+): Replacements;
+export function getReplacementsForTable(
   table: ISchemaInfo,
   schemaInfoParsed: ISchemaInfoResult,
   tableIndex?: number,
   totalTables?: number,
   formData?: IFormStore,
-): Replacements => {
+): Replacements;
+
+export function getReplacementsForTable(
+  table: ISchemaInfo,
+  ctxOrSchemaInfoParsed: BuildContext | ISchemaInfoResult,
+  tableIndexOrOptions?: number | ITableReplacementOptions,
+  totalTablesArg?: number,
+  formDataArg?: IFormStore,
+): Replacements {
+  const { schemaInfoParsed, tableIndex, totalTables, formData } =
+    resolveReplacementArgs(
+      ctxOrSchemaInfoParsed,
+      tableIndexOrOptions,
+      totalTablesArg,
+      formDataArg,
+    );
+
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
 
@@ -241,4 +314,4 @@ export const getReplacementsForTable = (
   });
 
   return replacementsProxy;
-};
+}
