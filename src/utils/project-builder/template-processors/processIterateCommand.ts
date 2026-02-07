@@ -58,6 +58,22 @@ export const evaluateCondition = (
   condition: string,
   replacements: Record<string, string | string[]>,
 ): boolean => {
+  const getResolvedValue = (token: string): string => {
+    const directValue = replacements[token];
+    if (typeof directValue === 'string') {
+      return directValue;
+    }
+    if (Array.isArray(directValue)) {
+      return directValue.join(',');
+    }
+    return token;
+  };
+
+  const parseNumber = (value: string): number | undefined => {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  };
+
   const trimmedCondition = condition.trim();
 
   // Handle compound AND conditions (split and evaluate each)
@@ -166,6 +182,53 @@ export const evaluateCondition = (
     return actualValue.includes(substring);
   }
 
+  // IN condition: varName IN 'a,b,c' or varName IN values (comma-separated)
+  const inMatch = /^(\S+)\s+IN\s+(?:['"]([^'"]*)['"]\s*|(\S.*)\s*)$/.exec(
+    trimmedCondition,
+  );
+  if (inMatch) {
+    const [, varName, quotedValues, unquotedValues] = inMatch;
+    const expectedValues = (quotedValues || unquotedValues)
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value !== '')
+      .map((value) => getResolvedValue(value));
+
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return expectedValues.includes(actualValue);
+  }
+
+  // Numeric comparisons: >, <, >=, <=
+  const comparisonMatch =
+    /^(\S+)\s*(>=|<=|>|<)\s*(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (comparisonMatch) {
+    const [, varName, operator, quotedValue, unquotedValue] = comparisonMatch;
+    const leftValue = parseNumber(getResolvedValue(varName));
+    const rightValue = parseNumber(
+      getResolvedValue(quotedValue || unquotedValue),
+    );
+
+    if (leftValue === undefined || rightValue === undefined) {
+      return false;
+    }
+
+    switch (operator) {
+      case '>':
+        return leftValue > rightValue;
+      case '<':
+        return leftValue < rightValue;
+      case '>=':
+        return leftValue >= rightValue;
+      case '<=':
+        return leftValue <= rightValue;
+      default:
+        return false;
+    }
+  }
+
   // STARTS_WITH condition: varName STARTS_WITH 'prefix' or unquoted
   const startsWithMatch =
     /^(\S+)\s+STARTS_WITH\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
@@ -198,6 +261,120 @@ export const evaluateCondition = (
 
   // If no pattern matched, return false
   return false;
+};
+
+const findHtmlSwitchEnd = (
+  content: string,
+  startIndex: number,
+): { endIndex: number } | null => {
+  let depth = 1;
+  let i = startIndex;
+
+  while (i < content.length && depth > 0) {
+    if (content.slice(i, i + 11) === '<@@SWITCH@@') {
+      const closeTag = content.indexOf('>', i + 11);
+      if (closeTag !== -1) {
+        depth++;
+        i = closeTag + 1;
+      } else {
+        i++;
+      }
+    } else if (content.slice(i, i + 13) === '</@@SWITCH@@>') {
+      depth--;
+      if (depth === 0) {
+        return { endIndex: i + 13 };
+      }
+      i += 13;
+    } else {
+      i++;
+    }
+  }
+
+  return null;
+};
+
+export const processHtmlSwitch = (
+  content: string,
+  replacements: Record<string, string | string[]>,
+): string => {
+  const openRegex = /<@@SWITCH@@([^>]*)>/g;
+  let result = content;
+  let iterations = 0;
+  const maxIterations = 100;
+
+  let match: RegExpExecArray | null = openRegex.exec(result);
+  while (match !== null && iterations < maxIterations) {
+    iterations++;
+    const attributesStr = match[1];
+    const attrs = parseHtmlTagAttributes(attributesStr);
+    const onKey = attrs.on || '';
+
+    const openEnd = match.index + match[0].length;
+    const closeInfo = findHtmlSwitchEnd(result, openEnd);
+    if (!closeInfo) {
+      throw new Error(
+        `Unbalanced <@@SWITCH@@> tag: could not find matching </@@SWITCH@@> for "${onKey}"`,
+      );
+    }
+
+    const switchContent = result.slice(openEnd, closeInfo.endIndex - 13);
+    const switchValue =
+      typeof replacements[onKey] === 'string' ? replacements[onKey] : onKey;
+
+    let selectedContent = '';
+    let index = 0;
+    while (index < switchContent.length) {
+      if (switchContent.slice(index, index + 9) === '<@@CASE@@') {
+        const caseStart = index;
+        const caseClose = switchContent.indexOf('>', caseStart + 9);
+        if (caseClose === -1) {
+          break;
+        }
+
+        const caseAttrs = parseHtmlTagAttributes(
+          switchContent.slice(caseStart + 9, caseClose),
+        );
+        const caseEnd = switchContent.indexOf('</@@CASE@@>', caseClose + 1);
+        if (caseEnd === -1) {
+          break;
+        }
+
+        const caseValue = caseAttrs.value || '';
+        const caseBody = switchContent.slice(caseClose + 1, caseEnd);
+        if (selectedContent === '' && switchValue === caseValue) {
+          selectedContent = caseBody;
+        }
+
+        index = caseEnd + 11;
+        continue;
+      }
+
+      if (switchContent.slice(index, index + 13) === '<@@DEFAULT@@>') {
+        const defaultEnd = switchContent.indexOf('</@@DEFAULT@@>', index + 13);
+        if (defaultEnd === -1) {
+          break;
+        }
+
+        if (selectedContent === '') {
+          selectedContent = switchContent.slice(index + 13, defaultEnd);
+        }
+        index = defaultEnd + 14;
+        continue;
+      }
+
+      index++;
+    }
+
+    result =
+      result.slice(0, match.index) +
+      selectedContent +
+      result.slice(closeInfo.endIndex);
+
+    openRegex.lastIndex = 0;
+    match = openRegex.exec(result);
+  }
+
+  return result;
 };
 
 const isBuildContext = (value: unknown): value is BuildContext => {
@@ -1459,7 +1636,8 @@ const processAtLoopTablesTemplate = (
         mockData,
       );
 
-      // Process table-level <@@IF@@> conditions
+      // Process table-level <@@SWITCH@@> and <@@IF@@> conditions
+      processed = processHtmlSwitch(processed, replacements);
       processed = processHtmlIf(processed, replacements);
 
       // Then replace placeholders
@@ -1514,6 +1692,7 @@ const processTablesTemplate = (
         replacements,
         ctx,
       );
+      processed = processHtmlSwitch(processed, replacements);
       processed = processInnerLoops(
         processed,
         table,
