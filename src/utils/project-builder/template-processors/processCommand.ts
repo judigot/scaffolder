@@ -25,6 +25,7 @@ import {
   parseRowsParams,
 } from '@/utils/project-builder/utils/formatRowsData.ts';
 import { useTransformationsStore } from '@/useTransformationsStore.ts';
+import { emitLegacyDslWarnings } from '@/utils/project-builder/template-processors/dslCompatibility.ts';
 
 /**
  * Helper function to check if a string has content
@@ -176,6 +177,8 @@ export function processCommand(
 
   // Process all commands in order of specificity
   let result = text;
+
+  emitLegacyDslWarnings(result, templateFilePath);
 
   // First, process USE_CONSTANT commands
   const useConstantRegex = new RegExp(

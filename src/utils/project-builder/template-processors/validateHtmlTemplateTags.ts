@@ -37,7 +37,7 @@ export const validateHtmlTemplateTags = (
     const hasContext = context !== undefined && context !== '';
     const contextInfo = hasContext ? ` in "${context}"` : '';
     throw new Error(
-      `Unbalanced template tags${contextInfo}:\n  ${errors.join('\n  ')}`,
+      `Unbalanced template tags${contextInfo}:\n  ${errors.join('\n  ')}\nUse balanced <@@IF@@>...</@@IF@@> and <@@LOOP@@>...</@@LOOP@@> blocks.`,
     );
   }
 };
