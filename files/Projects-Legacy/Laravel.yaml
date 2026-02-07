@@ -4,21 +4,21 @@ app:
             - IMPORT_PROJECT(Projects/Next.js.yaml)
             - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
             - CREATE_FILE(AuthController.php --conditions hasUsers=true --template /Templates/backend/laravel/AuthController.txt)
-            - FILE_LOOP({{tableNamePascalCaseSingular}}Controller.php --template /Templates/backend/laravel/Controller.txt)
+            - FILE_LOOP({{tableName.singular.pascalCase}}Controller.php --template /Templates/backend/laravel/Controller.txt)
         Resources:
-            - FILE_LOOP({{tableNamePascalCaseSingular}}Resource.php --template /Templates/backend/laravel/Resource.txt)
+            - FILE_LOOP({{tableName.singular.pascalCase}}Resource.php --template /Templates/backend/laravel/Resource.txt)
     Repositories:
         - CREATE_FILE(BaseRepository.php --template /Templates/backend/laravel/BaseRepository.txt)
         - CREATE_FILE(BaseInterface.php --template /Templates/backend/laravel/BaseInterface.txt)
-        - FILE_LOOP({{tableNamePascalCaseSingular}}Repository.php --template /Templates/backend/laravel/Repository.txt)
+        - FILE_LOOP({{tableName.singular.pascalCase}}Repository.php --template /Templates/backend/laravel/Repository.txt)
     Services:
         - CREATE_FILE(BaseService.php --template /Templates/backend/laravel/BaseService.txt)
-        - FILE_LOOP({{tableNamePascalCaseSingular}}Service.php --template /Templates/backend/laravel/Service.txt)
+        - FILE_LOOP({{tableName.singular.pascalCase}}Service.php --template /Templates/backend/laravel/Service.txt)
     Models:
-        - FILE_LOOP({{tableNamePascalCaseSingular}}.php --template /Templates/backend/laravel/Model.txt)
+        - FILE_LOOP({{tableName.singular.pascalCase}}.php --template /Templates/backend/laravel/Model.txt)
     Providers:
         - CREATE_FILE(AppServiceProvider.php --template /Templates/backend/laravel/AppServiceProvider.txt)
 routes:
     - CREATE_FILE(api.php --template /Templates/backend/laravel/api.txt)
-    - FILE_LOOP({{tableNameKebabCasePlural}}.php --template /Templates/backend/laravel/Route.txt)
+    - FILE_LOOP({{tableName.plural.kebabCase}}.php --template /Templates/backend/laravel/Route.txt)
 IMPORT_PROJECT(Projects/Next.js.yaml):

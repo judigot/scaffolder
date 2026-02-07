@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'withoutTrashed',
-  route: `Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.without-trashed');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/without-trashed', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.without-trashed');`,
   description: 'Retrieve records excluding soft-deleted ones',
   repositoryMethod: `{{methodName}}(): Collection`,
   repositoryContent: `return $this->model->withoutTrashed()->get();`,

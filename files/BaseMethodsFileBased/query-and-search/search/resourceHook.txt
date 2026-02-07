@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { searchResources } from '@/hooks/shared/useSearch.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface ISearchParams {
   query: string;
@@ -9,18 +9,18 @@ interface ISearchParams {
   limit?: number;
 }
 
-export const useSearch{{tableNamePascalCasePlural}} = (
+export const useSearch{{tableName.plural.pascalCase}} = (
   params: ISearchParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'search', params.query, params.columns, params.filters, params.limit],
+    queryKey: ['{{tableName.plural.camelCase}}', 'search', params.query, params.columns, params.filters, params.limit],
     queryFn: () =>
-      searchResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/search',
+      searchResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/search',
         params.query,
         params.columns,
         params.filters,

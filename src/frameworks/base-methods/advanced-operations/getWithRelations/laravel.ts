@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'getWithRelations',
-  route: `Route::get('{{tableNameKebabCasePlural}}/with-relations', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-relations');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/with-relations', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.with-relations');`,
   description: 'Retrieve related models',
   repositoryMethod: `{{methodName}}(array $relations): Collection`,
   repositoryContent: `return $this->model->with($relations)->get();`,

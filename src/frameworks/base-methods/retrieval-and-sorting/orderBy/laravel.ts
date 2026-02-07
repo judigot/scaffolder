@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'orderBy',
-  route: `Route::get('{{tableNameKebabCasePlural}}/order-by', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.order-by');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/order-by', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.order-by');`,
   description: 'Order records by a specific column and direction',
   repositoryMethod: `{{methodName}}(string $column, string $direction = 'asc'): Collection`,
   repositoryContent: `return $this->model->orderBy($column, $direction)->get();`,

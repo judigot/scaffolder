@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class {{tableNamePascalCaseSingular}}Resource extends JsonResource
+class {{tableName.singular.pascalCase}}Resource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,10 +16,10 @@ class {{tableNamePascalCaseSingular}}Resource extends JsonResource
     {
         return [
 [[ LOOP({{getAllColumns()}}) --ignore="[[ USE_CONSTANT(hiddenColumns) ]]" --template="            '{{value}}' => $this->{{value}}," --separator="\n" ]]
-[[ LOOP(hasOne) --template="            '{{valueSingular}}' => {{valuePascalCaseSingular}}Resource::make($this->whenLoaded('{{valueSingular}}'))," --separator="\n" ]]
-[[ LOOP(hasMany) --template="            '{{valuePlural}}' => {{valuePascalCaseSingular}}Resource::collection($this->whenLoaded('{{valuePlural}}'))," --separator="\n" ]]
-[[ LOOP(belongsTo) --template="            '{{valueSingular}}' => {{valuePascalCaseSingular}}Resource::make($this->whenLoaded('{{valueSingular}}'))," --separator="\n" ]]
-[[ LOOP(belongsToMany) --template="            '{{valuePlural}}' => {{valuePascalCaseSingular}}Resource::collection($this->whenLoaded('{{valuePlural}}'))," --separator="\n" ]]
+[[ LOOP(hasOne) --template="            '{{value.singular}}' => {{value.singular.pascalCase}}Resource::make($this->whenLoaded('{{value.singular}}'))," --separator="\n" ]]
+[[ LOOP(hasMany) --template="            '{{value.plural}}' => {{value.singular.pascalCase}}Resource::collection($this->whenLoaded('{{value.plural}}'))," --separator="\n" ]]
+[[ LOOP(belongsTo) --template="            '{{value.singular}}' => {{value.singular.pascalCase}}Resource::make($this->whenLoaded('{{value.singular}}'))," --separator="\n" ]]
+[[ LOOP(belongsToMany) --template="            '{{value.plural}}' => {{value.singular.pascalCase}}Resource::collection($this->whenLoaded('{{value.plural}}'))," --separator="\n" ]]
         ];
     }
 }

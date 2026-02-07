@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{url}} - Finds a {{tableNamePascalCaseSingular}} record or returns a new instance if not found
-Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.first-or-new');
+// http://127.0.0.1:8000/api/{{url}} - Finds a {{tableName.singular.pascalCase}} record or returns a new instance if not found
+Route::post('{{url}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.first-or-new');

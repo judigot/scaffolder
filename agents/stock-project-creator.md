@@ -97,10 +97,10 @@ api:
 **FILE_LOOP** - One file per table:
 ```yaml
 routes:
-  FILE_LOOP({{tableNameCamelCaseSingular}}.ts --template ./templates/route.txt):
+  FILE_LOOP({{tableName.singular.camelCase}}.ts --template ./templates/route.txt):
 
 tests:
-  FILE_LOOP({{tableNameCamelCase}}.test.ts --template ./templates/test-crud.txt):
+  FILE_LOOP({{tableName.camelCase}}.test.ts --template ./templates/test-crud.txt):
 ```
 
 ### Important: YAML Syntax
@@ -112,16 +112,16 @@ tests:
 ### Placeholders (Always Work)
 ```
 {{tableName}}                    → users
-{{tableNameCamelCase}}           → users
-{{tableNamePascalCase}}          → Users
-{{tableNameCamelCaseSingular}}   → user
-{{tableNamePascalCaseSingular}}  → User
-{{tableNameKebabCase}}           → users
-{{tableNameSnakeCase}}           → users
+{{tableName.camelCase}}           → users
+{{tableName.pascalCase}}          → Users
+{{tableName.singular.camelCase}}   → user
+{{tableName.singular.pascalCase}}  → User
+{{tableName.kebabCase}}           → users
+{{tableName.snakeCase}}           → users
 
 {{value}}                        → column_name (raw)
-{{valueCamelCase}}               → columnName
-{{valuePascalCase}}              → ColumnName
+{{value.camelCase}}               → columnName
+{{value.pascalCase}}              → ColumnName
 
 {{getPrimaryKey()}}              → id (primary key column name, snake_case)
 {{getPrimaryKeyCamelCase()}}     → id (primary key column name, camelCase)
@@ -134,16 +134,16 @@ tests:
 
 **Inline LOOP (for simple content):**
 ```
-[[ LOOP(tables) --template="import {{tableNameCamelCase}}Routes from './routes/{{tableNameCamelCaseSingular}}';" --separator="\n" ]]
+[[ LOOP(tables) --template="import {{tableName.camelCase}}Routes from './routes/{{tableName.singular.camelCase}}';" --separator="\n" ]]
 
-[[ LOOP(columnsInfo) --template="{{valueCamelCase}}: z.string()" --separator=",\n" ]]
+[[ LOOP(columnsInfo) --template="{{value.camelCase}}: z.string()" --separator=",\n" ]]
 ```
 
 **Block LOOP for tables (use @LOOP, NOT [[LOOP]]):**
 ```
 @LOOP(tables)
-// {{tableNamePascalCaseSingular}} table
-export const {{tableNameCamelCase}} = pgTable('{{tableName}}', { ... });
+// {{tableName.singular.pascalCase}} table
+export const {{tableName.camelCase}} = pgTable('{{tableName}}', { ... });
 @/LOOP --separator="\n"
 ```
 
@@ -208,11 +208,11 @@ api:
     CREATE_FILE(index.ts --template ./templates/db-index.txt):
     CREATE_FILE(schema.ts --template ./templates/db-schema.txt):
   routes:
-    FILE_LOOP({{tableNameCamelCaseSingular}}.ts --template ./templates/route.txt):
+    FILE_LOOP({{tableName.singular.camelCase}}.ts --template ./templates/route.txt):
 
 tests:
   CREATE_FILE(setup.ts --template ./templates/test-setup.txt):
-  FILE_LOOP({{tableNameCamelCase}}.test.ts --template ./templates/test-crud.txt):
+  FILE_LOOP({{tableName.camelCase}}.test.ts --template ./templates/test-crud.txt):
 ```
 
 ### templates/api-index.txt
@@ -220,13 +220,13 @@ tests:
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
-[[ LOOP(tables) --template="import {{tableNameCamelCase}}Routes from './routes/{{tableNameCamelCaseSingular}}';" --separator="\n" ]]
+[[ LOOP(tables) --template="import {{tableName.camelCase}}Routes from './routes/{{tableName.singular.camelCase}}';" --separator="\n" ]]
 
 const app = new Hono().basePath('/api');
 
 app.use('*', cors());
 
-[[ LOOP(tables) --template="app.route('/{{tableNameKebabCase}}', {{tableNameCamelCase}}Routes);" --separator="\n" ]]
+[[ LOOP(tables) --template="app.route('/{{tableName.kebabCase}}', {{tableName.camelCase}}Routes);" --separator="\n" ]]
 
 export type AppType = typeof app;
 export default { port: 3000, fetch: app.fetch };
@@ -237,12 +237,12 @@ export default { port: 3000, fetch: app.fetch };
 import { pgTable, serial, integer, boolean, timestamp, text } from 'drizzle-orm/pg-core';
 
 @LOOP(tables)
-export const {{tableNameCamelCase}} = pgTable('{{tableName}}', {
-<@@LOOP@@ data="columnsInfo" separator=",\n">  {{valueCamelCase}}: <@@IF@@ condition="is_primary_key EQUALS 'true'">serial('{{value}}').primaryKey()<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">integer('{{value}}')</@@IF@@><@@IF@@ condition="data_type EQUALS 'string'">text('{{value}}')</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean('{{value}}')</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">timestamp('{{value}}')</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'">.notNull()</@@IF@@></@@ELSE@@></@@IF@@></@@LOOP@@>
+export const {{tableName.camelCase}} = pgTable('{{tableName}}', {
+<@@LOOP@@ data="columnsInfo" separator=",\n">  {{value.camelCase}}: <@@IF@@ condition="is_primary_key EQUALS 'true'">serial('{{value}}').primaryKey()<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">integer('{{value}}')</@@IF@@><@@IF@@ condition="data_type EQUALS 'string'">text('{{value}}')</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean('{{value}}')</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">timestamp('{{value}}')</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'">.notNull()</@@IF@@></@@ELSE@@></@@IF@@></@@LOOP@@>
 });
 
-export type {{tableNamePascalCaseSingular}} = typeof {{tableNameCamelCase}}.$inferSelect;
-export type New{{tableNamePascalCaseSingular}} = typeof {{tableNameCamelCase}}.$inferInsert;
+export type {{tableName.singular.pascalCase}} = typeof {{tableName.camelCase}}.$inferSelect;
+export type New{{tableName.singular.pascalCase}} = typeof {{tableName.camelCase}}.$inferInsert;
 @/LOOP --separator="\n"
 ```
 
@@ -252,44 +252,44 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../db';
-import { {{tableNameCamelCase}} } from '../db/schema';
+import { {{tableName.camelCase}} } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 const app = new Hono();
 
-const create{{tableNamePascalCaseSingular}}Schema = z.object({
-[[ LOOP(columnsInfo) --template="{% IF is_primary_key NOT EQUAL 'true' %}  {{valueCamelCase}}: z.{% IF data_type EQUALS 'string' %}string{% ENDIF %}{% IF data_type EQUALS 'number' %}number{% ENDIF %}{% IF data_type EQUALS 'boolean' %}boolean{% ENDIF %}{% IF data_type EQUALS 'Date' %}string{% ENDIF %}(){% IF is_nullable EQUALS 'YES' %}.optional(){% ENDIF %}{% ENDIF %}" --separator=",\n" ]]
+const create{{tableName.singular.pascalCase}}Schema = z.object({
+[[ LOOP(columnsInfo) --template="{% IF is_primary_key NOT EQUAL 'true' %}  {{value.camelCase}}: z.{% IF data_type EQUALS 'string' %}string{% ENDIF %}{% IF data_type EQUALS 'number' %}number{% ENDIF %}{% IF data_type EQUALS 'boolean' %}boolean{% ENDIF %}{% IF data_type EQUALS 'Date' %}string{% ENDIF %}(){% IF is_nullable EQUALS 'YES' %}.optional(){% ENDIF %}{% ENDIF %}" --separator=",\n" ]]
 });
 
 app.get('/', async (c) => {
-  const result = await db.select().from({{tableNameCamelCase}});
+  const result = await db.select().from({{tableName.camelCase}});
   return c.json(result);
 });
 
 app.get('/:id', async (c) => {
   const id = Number(c.req.param('id'));
-  const result = await db.select().from({{tableNameCamelCase}}).where(eq({{tableNameCamelCase}}.{{getPrimaryKey()}}, id));
+  const result = await db.select().from({{tableName.camelCase}}).where(eq({{tableName.camelCase}}.{{getPrimaryKey()}}, id));
   if (result.length === 0) return c.json({ error: 'Not found' }, 404);
   return c.json(result[0]);
 });
 
-app.post('/', zValidator('json', create{{tableNamePascalCaseSingular}}Schema), async (c) => {
+app.post('/', zValidator('json', create{{tableName.singular.pascalCase}}Schema), async (c) => {
   const data = c.req.valid('json');
-  const result = await db.insert({{tableNameCamelCase}}).values(data).returning();
+  const result = await db.insert({{tableName.camelCase}}).values(data).returning();
   return c.json(result[0], 201);
 });
 
-app.put('/:id', zValidator('json', create{{tableNamePascalCaseSingular}}Schema.partial()), async (c) => {
+app.put('/:id', zValidator('json', create{{tableName.singular.pascalCase}}Schema.partial()), async (c) => {
   const id = Number(c.req.param('id'));
   const data = c.req.valid('json');
-  const result = await db.update({{tableNameCamelCase}}).set(data).where(eq({{tableNameCamelCase}}.{{getPrimaryKey()}}, id)).returning();
+  const result = await db.update({{tableName.camelCase}}).set(data).where(eq({{tableName.camelCase}}.{{getPrimaryKey()}}, id)).returning();
   if (result.length === 0) return c.json({ error: 'Not found' }, 404);
   return c.json(result[0]);
 });
 
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'));
-  const result = await db.delete({{tableNameCamelCase}}).where(eq({{tableNameCamelCase}}.{{getPrimaryKey()}}, id)).returning();
+  const result = await db.delete({{tableName.camelCase}}).where(eq({{tableName.camelCase}}.{{getPrimaryKey()}}, id)).returning();
   if (result.length === 0) return c.json({ error: 'Not found' }, 404);
   return c.json({ success: true });
 });

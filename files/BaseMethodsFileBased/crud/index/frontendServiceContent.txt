@@ -1,2 +1,2 @@
-const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}`, { params });
+const response = await axiosInstance.get(`{{tableName.plural.kebabCase}}`, { params });
 return response.data; 

@@ -4,12 +4,12 @@ namespace App\Repositories;
 
 {{modelImports}}
 use Illuminate\Support\Collection;
-use App\Models\{{tableNamePascalCase}};
+use App\Models\{{tableName.pascalCase}};
 use App\Repositories\BaseRepository;
 
-class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tableNamePascalCase}}Interface
+class {{tableName.pascalCase}}Repository extends BaseRepository implements {{tableName.pascalCase}}Interface
 {
-    public function __construct({{tableNamePascalCase}} $model)
+    public function __construct({{tableName.pascalCase}} $model)
     {
         parent::__construct($model);
     }

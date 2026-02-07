@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'exists',
-  route: `Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.exists');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/exists', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.exists');`,
   description: 'Check if a record exists',
   repositoryMethod: `{{methodName}}(array $criteria): bool`,
   repositoryContent: `return $this->model->where($criteria)->exists();`,

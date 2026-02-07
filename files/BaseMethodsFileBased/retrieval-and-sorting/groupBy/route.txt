@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{url}} - Groups {{tableNamePascalCaseSingular}} resources by a specified column
-Route::get('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.group-by');
+// http://127.0.0.1:8000/api/{{url}} - Groups {{tableName.singular.pascalCase}} resources by a specified column
+Route::get('{{url}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.group-by');

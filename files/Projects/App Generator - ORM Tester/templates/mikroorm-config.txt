@@ -1,5 +1,5 @@
 import { defineConfig } from '@mikro-orm/postgresql';
-<@@LOOP@@ data="tables" separator="\n">import { <@@>tableNamePascalCaseSingular</@@> } from './entities/<@@>tableNamePascalCaseSingular</@@>.ts';</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">import { <@@>tableName.singular.pascalCase</@@> } from './entities/<@@>tableName.singular.pascalCase</@@>.ts';</@@LOOP@@>
 
 export default defineConfig({
   host: process.env.DB_HOST ?? 'localhost',
@@ -8,7 +8,7 @@ export default defineConfig({
   password: process.env.DB_PASSWORD ?? 'postgres',
   dbName: process.env.DB_NAME ?? 'orm_tester',
   entities: [
-<@@LOOP@@ data="tables" separator=",\n">    <@@>tableNamePascalCaseSingular</@@></@@LOOP@@>
+<@@LOOP@@ data="tables" separator=",\n">    <@@>tableName.singular.pascalCase</@@></@@LOOP@@>
   ],
   debug: false,
 });

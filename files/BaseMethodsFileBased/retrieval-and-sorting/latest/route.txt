@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodNameKebabCase}} - Retrieves the latest {{tableNamePascalCaseSingular}} resource based on a timestamp column
-Route::get('{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');
+// http://127.0.0.1:8000/api/{{tableName.plural.kebabCase}}/{{methodNameKebabCase}} - Retrieves the latest {{tableName.singular.pascalCase}} resource based on a timestamp column
+Route::get('{{tableName.plural.kebabCase}}/{{methodNameKebabCase}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.{{methodNameKebabCase}}');

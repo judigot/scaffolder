@@ -2,14 +2,14 @@
 
 import React from 'react';
 import { QueryClient, HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { {{tableNameCamelCaseSingular}}Keys } from '@/hooks/{{tableNameKebabCaseSingular}}/use{{tableNamePascalCaseSingular}}.ts';
-import {{tableNamePascalCaseSingular}}Component from './{{tableNamePascalCaseSingular}}Component.tsx';
-import { api } from '@/hooks/{{tableNameKebabCaseSingular}}/api.ts';
+import { {{tableName.singular.camelCase}}Keys } from '@/hooks/{{tableName.singular.kebabCase}}/use{{tableName.singular.pascalCase}}.ts';
+import {{tableName.singular.pascalCase}}Component from './{{tableName.singular.pascalCase}}Component.tsx';
+import { api } from '@/hooks/{{tableName.singular.kebabCase}}/api.ts';
 
-export async function generate{{tableNamePascalCaseSingular}}StaticProps() {
+export async function generate{{tableName.singular.pascalCase}}StaticProps() {
   const queryClient = new QueryClient();
   await queryClient.prefetchQuery({
-    queryKey: {{tableNameCamelCaseSingular}}Keys.lists(),
+    queryKey: {{tableName.singular.camelCase}}Keys.lists(),
     queryFn: api.getAll
   });
 
@@ -18,18 +18,18 @@ export async function generate{{tableNamePascalCaseSingular}}StaticProps() {
   };
 }
 
-interface I{{tableNamePascalCaseSingular}}PageProps {
+interface I{{tableName.singular.pascalCase}}PageProps {
   dehydratedState: unknown;
 }
 
-export default function {{tableNamePascalCaseSingular}}Page({
+export default function {{tableName.singular.pascalCase}}Page({
   dehydratedState,
-}: I{{tableNamePascalCaseSingular}}PageProps) {
+}: I{{tableName.singular.pascalCase}}PageProps) {
   return (
     <HydrationBoundary state={dehydratedState}>
       <div className="container mx-auto py-8">
-        <h1 className="text-4xl font-bold mb-8">{{tableNamePascalCaseSingular}} Management</h1>
-        <{{tableNamePascalCaseSingular}}Component />
+        <h1 className="text-4xl font-bold mb-8">{{tableName.singular.pascalCase}} Management</h1>
+        <{{tableName.singular.pascalCase}}Component />
       </div>
     </HydrationBoundary>
   );

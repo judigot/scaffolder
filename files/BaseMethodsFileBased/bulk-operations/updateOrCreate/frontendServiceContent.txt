@@ -1,4 +1,4 @@
-const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/update-or-create`, {
+const response = await axiosInstance.post(`{{tableName.plural.kebabCase}}/update-or-create`, {
   records
 });
 return response.data; 

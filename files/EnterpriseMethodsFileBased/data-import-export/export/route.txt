@@ -1,2 +1,2 @@
 // http://127.0.0.1:8000/api/{{url}}/export - Exports data in various formats with permission checks
-Route::post('{{url}}/export', [{{tableNamePascalCaseSingular}}Controller::class, 'export'])->name('{{tableNameKebabCasePlural}}.export'); 
+Route::post('{{url}}/export', [{{tableName.singular.pascalCase}}Controller::class, 'export'])->name('{{tableName.plural.kebabCase}}.export'); 

@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{url}} - Updates multiple {{tableNamePascalCaseSingular}} records in a single request
-Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.batch-update');
+// http://127.0.0.1:8000/api/{{url}} - Updates multiple {{tableName.singular.pascalCase}} records in a single request
+Route::post('{{url}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.batch-update');

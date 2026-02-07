@@ -1,1 +1,1 @@
-{{tableNameKebabCasePlural}}/validate 
+{{tableName.plural.kebabCase}}/validate 

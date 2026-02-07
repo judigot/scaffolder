@@ -783,7 +783,7 @@ updated_at:
                 type: 'file',
                 name: 'structure.yaml',
                 content:
-                  'FILE_LOOP({{tableNamePascalCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):',
+                  'FILE_LOOP({{tableName.singular.pascalCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):',
               },
               {
                 type: 'folder',
@@ -1089,11 +1089,11 @@ updated_at:
 
 migrations:
   simple-index:
-    FILE_LOOP({{index}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP({{index}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   indexed:
-    FILE_LOOP({{index(1)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP({{index(1)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   zero-padded-3:
-    FILE_LOOP({{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+    FILE_LOOP({{index(1, 3)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
         structureFile.content = actualStructure;
       }
 
@@ -1214,11 +1214,11 @@ migrations:
 
 timestamp-migrations:
   iso-default:
-    FILE_LOOP({{timestamp}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP({{timestamp}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   laravel:
-    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   date-only:
-    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
         structureFile.content = actualStructure;
       }
 
@@ -1330,9 +1330,9 @@ timestamp-migrations:
 
 hybrid:
   timestamp-and-index:
-    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{index(1, 6)}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{index(1, 6)}}_create_{{tableName.plural.snakeCase}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   date-and-index:
-    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
         structureFile.content = actualStructure;
       }
 

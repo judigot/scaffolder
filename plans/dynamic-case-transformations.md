@@ -142,7 +142,7 @@ function applyTransform(value: string, transform: string): string {
 
 ### Phase 3: Migrate Templates
 
-- [ ] Update all `{{tableNamePascalCase}}` → `{{tableName.pascalCase}}`
+- [ ] Update all `{{tableName.pascalCase}}` → `{{tableName.pascalCase}}`
 - [ ] Update all `{{columnNameCamelCase}}` → `{{columnName.camelCase}}`
 - [ ] Verify all templates work with new syntax
 
@@ -196,7 +196,7 @@ function applyTransform(value: string, transform: string): string {
 During transition, support both syntaxes:
 
 ```html
-{{tableNamePascalCase}}    <!-- Legacy: still works -->
+{{tableName.pascalCase}}    <!-- Legacy: still works -->
 {{tableName.pascalCase}}   <!-- New: preferred -->
 ```
 

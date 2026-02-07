@@ -2,6 +2,7 @@ import type {
   Replacements,
   ReplacementValue,
 } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { resolvePlaceholderValue } from '@/utils/project-builder/utils/placeholderTransforms.ts';
 
 /**
  * Recursively processes placeholders in a template by replacing them with values
@@ -64,24 +65,23 @@ const replaceSinglePlaceholder = (
     return originalPlaceholder;
   }
 
-  // Check if this key exists in the replacements
-  if (!(key in replacements)) {
+  const resolvedPlaceholder = resolvePlaceholderValue(key, replacements);
+  if (resolvedPlaceholder === undefined) {
     return originalPlaceholder;
   }
 
+  const { sourceKey, value } = resolvedPlaceholder;
+
   // Prevent circular references
-  const newPath = path ? `${path} -> ${key}` : key;
-  if (processedKeys.has(key)) {
+  const newPath = path ? `${path} -> ${sourceKey}` : sourceKey;
+  if (processedKeys.has(sourceKey)) {
     throw new Error(
       `Circular reference detected in template placeholders: ${newPath}\nTo fix this issue, make sure properties don't reference each other in a circular way.`,
     );
   }
 
   // Mark this key as processed for this recursion path
-  processedKeys.add(key);
-
-  // Get the replacement value
-  const value = replacements[key];
+  processedKeys.add(sourceKey);
 
   // Process the replacement value recursively if it's a string or array
   let processedValue: ReplacementValue;
@@ -106,7 +106,7 @@ const replaceSinglePlaceholder = (
   }
 
   // Remove this key from processed keys as we're done with this path
-  processedKeys.delete(key);
+  processedKeys.delete(sourceKey);
 
   // Convert array to string if needed
   return Array.isArray(processedValue)

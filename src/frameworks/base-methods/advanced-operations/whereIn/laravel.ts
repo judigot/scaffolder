@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'whereIn',
-  route: `Route::post('{{tableNameKebabCasePlural}}/where-in', [{{tableNamePascalCase}}Controller::class, 'whereIn'])->name('{{tableNameKebabCasePlural}}.where-in');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/where-in', [{{tableName.pascalCase}}Controller::class, 'whereIn'])->name('{{tableName.plural.kebabCase}}.where-in');`,
   description: 'Filter records based on a set of values',
   repositoryMethod: `whereIn(string $column, array $values): Collection`,
   repositoryContent: `return $this->model->whereIn($column, $values)->get();`,

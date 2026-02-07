@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{url}} with request body: { "{{getAllColumns()[0]}}": "new value", "{{getAllColumns()[1]}}": "new value" } - Updates a specific {{tableNamePascalCaseSingular}} resource
-Route::put('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');
+// http://127.0.0.1:8000/api/{{url}} with request body: { "{{getAllColumns()[0]}}": "new value", "{{getAllColumns()[1]}}": "new value" } - Updates a specific {{tableName.singular.pascalCase}} resource
+Route::put('{{url}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.{{methodNameKebabCase}}');

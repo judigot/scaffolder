@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}';
 
 // Mock database - in a real app, this would be replaced with actual database calls
-let mockDb: I{{tableNamePascalCaseSingular}}[] = [];
+let mockDb: I{{tableName.singular.pascalCase}}[] = [];
 let nextId = 1;
 
 type ResponseData = {
-  data?: I{{tableNamePascalCaseSingular}} | I{{tableNamePascalCaseSingular}}[];
+  data?: I{{tableName.singular.pascalCase}} | I{{tableName.singular.pascalCase}}[];
   message?: string;
   error?: string;
 };
@@ -21,41 +21,41 @@ export default async function handler(
 
     switch (method) {
       case 'GET':
-        // Get all {{tableNamePascalCasePlural}} or a specific one by ID
+        // Get all {{tableName.plural.pascalCase}} or a specific one by ID
         if (id) {
           const item = mockDb.find(item => String(item.id) === id);
           if (!item) {
             return res.status(404).json({ 
-              error: '{{tableNamePascalCaseSingular}} not found' 
+              error: '{{tableName.singular.pascalCase}} not found' 
             });
           }
           return res.status(200).json({ 
             data: item,
-            message: '{{tableNamePascalCaseSingular}} retrieved successfully' 
+            message: '{{tableName.singular.pascalCase}} retrieved successfully' 
           });
         } else {
           return res.status(200).json({ 
             data: mockDb,
-            message: '{{tableNamePascalCasePlural}} retrieved successfully' 
+            message: '{{tableName.plural.pascalCase}} retrieved successfully' 
           });
         }
 
       case 'POST':
-        // Create new {{tableNamePascalCaseSingular}}
-        const newItem: I{{tableNamePascalCaseSingular}} = {
+        // Create new {{tableName.singular.pascalCase}}
+        const newItem: I{{tableName.singular.pascalCase}} = {
           id: nextId++,
-          ...(req.body as Omit<I{{tableNamePascalCaseSingular}}, 'id'>),
+          ...(req.body as Omit<I{{tableName.singular.pascalCase}}, 'id'>),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         mockDb.push(newItem);
         return res.status(201).json({ 
           data: newItem,
-          message: '{{tableNamePascalCaseSingular}} created successfully' 
+          message: '{{tableName.singular.pascalCase}} created successfully' 
         });
 
       case 'PUT':
-        // Update {{tableNamePascalCaseSingular}}
+        // Update {{tableName.singular.pascalCase}}
         if (!id) {
           return res.status(400).json({ 
             error: 'ID is required for update' 
@@ -65,11 +65,11 @@ export default async function handler(
         const existingIndex = mockDb.findIndex(item => String(item.id) === id);
         if (existingIndex === -1) {
           return res.status(404).json({ 
-            error: '{{tableNamePascalCaseSingular}} not found' 
+            error: '{{tableName.singular.pascalCase}} not found' 
           });
         }
         
-        const updatedItem: I{{tableNamePascalCaseSingular}} = {
+        const updatedItem: I{{tableName.singular.pascalCase}} = {
           ...mockDb[existingIndex],
           ...req.body,
           updatedAt: new Date().toISOString()
@@ -79,11 +79,11 @@ export default async function handler(
         
         return res.status(200).json({ 
           data: updatedItem,
-          message: '{{tableNamePascalCaseSingular}} updated successfully' 
+          message: '{{tableName.singular.pascalCase}} updated successfully' 
         });
 
       case 'DELETE':
-        // Delete {{tableNamePascalCaseSingular}}
+        // Delete {{tableName.singular.pascalCase}}
         if (!id) {
           return res.status(400).json({ 
             error: 'ID is required for deletion' 
@@ -95,12 +95,12 @@ export default async function handler(
         
         if (mockDb.length === initialLength) {
           return res.status(404).json({ 
-            error: '{{tableNamePascalCaseSingular}} not found' 
+            error: '{{tableName.singular.pascalCase}} not found' 
           });
         }
         
         return res.status(200).json({ 
-          message: '{{tableNamePascalCaseSingular}} deleted successfully' 
+          message: '{{tableName.singular.pascalCase}} deleted successfully' 
         });
 
       default:

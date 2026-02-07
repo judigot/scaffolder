@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'chunk',
-  route: `Route::post('{{tableNameKebabCasePlural}}/chunk', [{{tableNamePascalCase}}Controller::class, 'chunk'])->name('{{tableNameKebabCasePlural}}.chunk');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/chunk', [{{tableName.pascalCase}}Controller::class, 'chunk'])->name('{{tableName.plural.kebabCase}}.chunk');`,
   description: 'Chunk records for processing',
   repositoryMethod: `chunk(int $size, callable $callback): bool`,
   repositoryContent: `return $this->model->chunk($size, $callback);`,

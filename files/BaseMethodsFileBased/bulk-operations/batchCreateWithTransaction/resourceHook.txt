@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 import { {{methodNameCamelCase}} } from '@/hooks/shared/use{{methodNameCamelCase}}.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IBatchCreateData {
-  dataArray: Omit<I{{tableNamePascalCaseSingular}}, 'id'>[];
+  dataArray: Omit<I{{tableName.singular.pascalCase}}, 'id'>[];
   options?: {
     batchSize?: number;
     rollbackOnError?: boolean;
@@ -11,11 +11,11 @@ interface IBatchCreateData {
   };
 }
 
-export const use{{methodNameCamelCase}}{{tableNamePascalCaseSingular}} = (
+export const use{{methodNameCamelCase}}{{tableName.singular.pascalCase}} = (
   options?: Omit<
     UseMutationOptions<{
-      success: I{{tableNamePascalCaseSingular}}[];
-      failed: { data: Omit<I{{tableNamePascalCaseSingular}}, 'id'>; error: string; index: number }[];
+      success: I{{tableName.singular.pascalCase}}[];
+      failed: { data: Omit<I{{tableName.singular.pascalCase}}, 'id'>; error: string; index: number }[];
       transactionId?: string;
     }, Error, IBatchCreateData>,
     'mutationFn'
@@ -25,13 +25,13 @@ export const use{{methodNameCamelCase}}{{tableNamePascalCaseSingular}} = (
 
   return useMutation({
     mutationFn: ({ dataArray, options: batchOptions }: IBatchCreateData) =>
-      {{methodNameCamelCase}}<I{{tableNamePascalCaseSingular}}, Omit<I{{tableNamePascalCaseSingular}}, 'id'>>(
-        '/{{tableNameCamelCasePlural}}',
+      {{methodNameCamelCase}}<I{{tableName.singular.pascalCase}}, Omit<I{{tableName.singular.pascalCase}}, 'id'>>(
+        '/{{tableName.plural.camelCase}}',
         dataArray,
         batchOptions
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+      queryClient.invalidateQueries({ queryKey: ['{{tableName.plural.camelCase}}'] });
     },
     ...options,
   });

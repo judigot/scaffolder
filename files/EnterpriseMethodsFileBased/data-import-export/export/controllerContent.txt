@@ -6,7 +6,7 @@
         ]);
 
         // Check permissions
-        if (!auth()->user()->can('export', {{tableNamePascalCaseSingular}}::class)) {
+        if (!auth()->user()->can('export', {{tableName.singular.pascalCase}}::class)) {
             return response()->json(['error' => 'Unauthorized to export data'], 403);
         }
 

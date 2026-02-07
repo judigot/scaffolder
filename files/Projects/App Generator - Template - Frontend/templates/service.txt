@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/vendor/axiosInstance.ts';
-import { {{tableNamePascalCase}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { {{tableName.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 <@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">
 /**

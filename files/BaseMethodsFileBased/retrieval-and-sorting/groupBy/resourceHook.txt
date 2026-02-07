@@ -17,7 +17,7 @@ interface IGroupByResult {
   max?: unknown;
 }
 
-export const useGroupBy{{tableNamePascalCasePlural}} = (
+export const useGroupBy{{tableName.plural.pascalCase}} = (
   params: IGroupByParams,
   options?: Omit<
     UseQueryOptions<IGroupByResult[]>,
@@ -25,10 +25,10 @@ export const useGroupBy{{tableNamePascalCasePlural}} = (
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'groupBy', params.column, params.aggregateFunction, params.aggregateColumn, params.filters],
+    queryKey: ['{{tableName.plural.camelCase}}', 'groupBy', params.column, params.aggregateFunction, params.aggregateColumn, params.filters],
     queryFn: () =>
       groupByResources(
-        '/{{tableNameCamelCasePlural}}/group-by',
+        '/{{tableName.plural.camelCase}}/group-by',
         params.column,
         params.aggregateFunction,
         params.aggregateColumn,

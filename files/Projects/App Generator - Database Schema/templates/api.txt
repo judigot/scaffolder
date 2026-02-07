@@ -5,6 +5,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('api')->group(function () {
 <@@LOOP@@ data="tables" separator="\n">
-    require __DIR__ . '/<@@>tableNamePlural</@@>.php';
+    require __DIR__ . '/<@@>tableName.plural</@@>.php';
 </@@LOOP@@>
 });

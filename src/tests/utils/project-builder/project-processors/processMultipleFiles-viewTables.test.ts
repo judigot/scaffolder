@@ -63,13 +63,13 @@ describe('processMultipleFiles - View Table Exclusion', () => {
                 {
                   type: 'file',
                   name: 'migration.sql.txt',
-                  content: 'CREATE TABLE {{tableNameSnakeCase}} (id INT);',
+                  content: 'CREATE TABLE {{tableName.snakeCase}} (id INT);',
                 },
                 {
                   type: 'file',
                   name: 'controller.txt',
                   content:
-                    'export class {{tableNamePascalCaseSingular}}Controller {}',
+                    'export class {{tableName.singular.pascalCase}}Controller {}',
                 },
               ],
             },
@@ -98,7 +98,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}.sql',
+        command: '{{tableName.snakeCase}}.sql',
         options: {
           template: './templates/migration.sql.txt',
         },
@@ -137,7 +137,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}Controller.ts',
+        command: '{{tableName.snakeCase}}Controller.ts',
         options: {
           template: './templates/controller.txt',
         },
@@ -167,7 +167,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}.sql',
+        command: '{{tableName.snakeCase}}.sql',
         options: {
           template: './templates/migration.sql.txt',
         },
@@ -202,7 +202,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}.sql',
+        command: '{{tableName.snakeCase}}.sql',
         options: {
           template: './templates/migration.sql.txt',
         },
@@ -262,7 +262,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}.sql',
+        command: '{{tableName.snakeCase}}.sql',
         options: {
           template: './templates/migration.sql.txt',
         },
@@ -317,7 +317,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}.sql',
+        command: '{{tableName.snakeCase}}.sql',
         options: {
           template: './templates/migration.sql.txt',
         },
@@ -353,7 +353,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}.sql',
+        command: '{{tableName.snakeCase}}.sql',
         options: {
           template: './templates/migration.sql.txt',
           ignore: 'users,comments',
@@ -392,7 +392,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNameSnakeCase}}.sql',
+        command: '{{tableName.snakeCase}}.sql',
         options: {
           template: './templates/migration.sql.txt',
           'include-table': '{{tableName}}',
@@ -444,7 +444,7 @@ describe('processMultipleFiles - View Table Exclusion', () => {
       const userFiles = createMockUserFiles();
 
       const result = await processMultipleFiles({
-        command: '{{tableNamePascalCaseSingular}}Controller.ts',
+        command: '{{tableName.singular.pascalCase}}Controller.ts',
         options: {
           template: './templates/controller.txt',
         },

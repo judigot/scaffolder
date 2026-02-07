@@ -1,8 +1,8 @@
-export interface I<@@>tableNamePascalCase</@@> {
+export interface I<@@>tableName.pascalCase</@@> {
 <@@LOOP@@ data="columnsInfo" separator="\n">  <@@>value</@@><@@IF@@ condition="is_nullable EQUALS 'YES'">?</@@IF@@>: <@@IF@@ condition="data_type EQUALS 'string'">string</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">number</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">Date</@@IF@@>;</@@LOOP@@>
 }
 
-export function isI<@@>tableNamePascalCase</@@>(data: unknown): data is I<@@>tableNamePascalCase</@@> {
+export function isI<@@>tableName.pascalCase</@@>(data: unknown): data is I<@@>tableName.pascalCase</@@> {
   return (
     data !== null &&
     typeof data === 'object' &&
@@ -11,6 +11,6 @@ export function isI<@@>tableNamePascalCase</@@>(data: unknown): data is I<@@>tab
   );
 }
 
-export function isI<@@>tableNamePascalCase</@@>Array(data: unknown): data is I<@@>tableNamePascalCase</@@>[] {
-  return Array.isArray(data) && data.every(isI<@@>tableNamePascalCase</@@>);
+export function isI<@@>tableName.pascalCase</@@>Array(data: unknown): data is I<@@>tableName.pascalCase</@@>[] {
+  return Array.isArray(data) && data.every(isI<@@>tableName.pascalCase</@@>);
 }

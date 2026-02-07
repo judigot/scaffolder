@@ -1,4 +1,4 @@
-const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/find-by-attributes`, {
+const response = await axiosInstance.post(`{{tableName.plural.kebabCase}}/find-by-attributes`, {
   attributes
 });
 return response.data; 

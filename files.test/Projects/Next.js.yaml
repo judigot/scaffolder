@@ -1,10 +1,10 @@
 src:
   app:
-    - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
+    - FILE_LOOP(I{{tableName.singular.pascalCase}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
   hooks:
-      FOLDER_LOOP({{tableNameKebabCaseSingular}}):
-        - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/React-Hook.txt)
+      FOLDER_LOOP({{tableName.singular.kebabCase}}):
+        - CREATE_FILE(use{{tableName.singular.pascalCase}}.ts --scoped --template /Templates/frontend/React-Hook.txt)
         - CREATE_FILE(api.ts --template /Templates/backend/laravel/api.txt)
-        - FILE_LOOP(use{{tableNamePascalCaseSingular}}.tsx --template /Templates/frontend/React-Hook.txt)
+        - FILE_LOOP(use{{tableName.singular.pascalCase}}.tsx --template /Templates/frontend/React-Hook.txt)
       interfaces:
-        - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
+        - FILE_LOOP(I{{tableName.singular.pascalCase}}.ts --template /Templates/frontend/TypeScript-Interface.txt)

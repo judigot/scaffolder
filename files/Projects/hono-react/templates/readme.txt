@@ -46,16 +46,16 @@ bun test:watch
 
 ## API Endpoints
 
-<@@LOOP@@ data="tables" separator="\n">### <@@>tableNamePascalCaseSingular</@@>
-- `GET /api/<@@>tableNameKebabCase</@@>` - List all <@@>tableName</@@>
-- `GET /api/<@@>tableNameKebabCase</@@>/:id` - Get single <@@>tableNameSingular</@@>
-- `POST /api/<@@>tableNameKebabCase</@@>` - Create <@@>tableNameSingular</@@>
-- `PUT /api/<@@>tableNameKebabCase</@@>/:id` - Update <@@>tableNameSingular</@@>
-- `DELETE /api/<@@>tableNameKebabCase</@@>/:id` - Delete <@@>tableNameSingular</@@></@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">### <@@>tableName.singular.pascalCase</@@>
+- `GET /api/<@@>tableName.kebabCase</@@>` - List all <@@>tableName</@@>
+- `GET /api/<@@>tableName.kebabCase</@@>/:id` - Get single <@@>tableName.singular</@@>
+- `POST /api/<@@>tableName.kebabCase</@@>` - Create <@@>tableName.singular</@@>
+- `PUT /api/<@@>tableName.kebabCase</@@>/:id` - Update <@@>tableName.singular</@@>
+- `DELETE /api/<@@>tableName.kebabCase</@@>/:id` - Delete <@@>tableName.singular</@@></@@LOOP@@>
 
 ## Database Schema
 
-<@@LOOP@@ data="tables" separator="\n\n">### <@@>tableNamePascalCaseSingular</@@>
+<@@LOOP@@ data="tables" separator="\n\n">### <@@>tableName.singular.pascalCase</@@>
 
 | Column | Type | Nullable |
 |--------|------|----------|

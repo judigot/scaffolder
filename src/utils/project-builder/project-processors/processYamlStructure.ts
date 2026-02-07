@@ -9,11 +9,7 @@ import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
 import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
 import { processDynamicFolders } from '@/utils/project-builder/project-processors/processDynamicFolders.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
-import {
-  processLoopTables,
-  processLoopTablesReversed,
-  processLoopDataSources,
-} from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import { processTemplatePipeline } from '@/utils/project-builder/template-processors/processTemplatePipeline.ts';
 import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
 import { processLoopFolders } from '@/utils/project-builder/project-processors/processLoopFolders.ts';
 import { importProject } from '@/utils/project-builder/project-processors/importProject.ts';
@@ -247,31 +243,10 @@ export const processYamlStructure = async (
 
         let content = '';
         content = replacePlaceholders(
-          processLoopDataSources(
-            processLoopTablesReversed(
-              processLoopTables(
-                templateContent,
-                schemaInfo,
-                schemaInfoParsed,
-                userFiles,
-                formData,
-                userMetadata,
-                dataSource ?? undefined,
-                ctx.mockData,
-              ),
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              formData,
-              userMetadata,
-              dataSource ?? undefined,
-              ctx.mockData,
-            ),
-            userFiles,
-            schemaInfoParsed,
-            formData,
-            userMetadata,
-          ),
+          processTemplatePipeline(templateContent, {
+            ...ctx,
+            dataContext: dataSource ?? undefined,
+          }),
           replacements,
           { ...ctx, table },
           typeof templatePath === 'string' && templatePath.length > 0
@@ -279,15 +254,11 @@ export const processYamlStructure = async (
             : command,
         );
 
-        content = processIterateInTemplate(
-          content,
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
+        content = processIterateInTemplate(content, {
+          ...ctx,
           table,
-          formData,
-          userMetadata,
-        );
+          dataContext: dataSource ?? undefined,
+        });
 
         const formatResult = await formatFileContent(
           content,
@@ -344,45 +315,20 @@ export const processYamlStructure = async (
       // If ctx.table is undefined (not in a FILE_LOOP), [[USE_ROWS()]] will use "all tables" mode.
       // If ctx.table is set (inside a FILE_LOOP), [[USE_ROWS()]] will use that specific table.
       let processedContent = replacePlaceholders(
-        processLoopDataSources(
-          processLoopTablesReversed(
-            processLoopTables(
-              templateContent,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              formData,
-              userMetadata,
-              dataSource ?? undefined,
-              ctx.mockData,
-            ),
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            formData,
-            userMetadata,
-            dataSource ?? undefined,
-            ctx.mockData,
-          ),
-          userFiles,
-          schemaInfoParsed,
-          formData,
-          userMetadata,
-        ),
+        processTemplatePipeline(templateContent, {
+          ...ctx,
+          dataContext: dataSource ?? undefined,
+        }),
         replacements,
         ctx,
         typeof node === 'string' ? node : undefined,
       );
 
-      processedContent = processIterateInTemplate(
-        processedContent,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
-        schemaInfoProcessed,
-        formData,
-        userMetadata,
-      );
+      processedContent = processIterateInTemplate(processedContent, {
+        ...ctx,
+        table: schemaInfoProcessed,
+        dataContext: dataSource ?? undefined,
+      });
 
       const formatResult = await formatFileContent(
         processedContent,
@@ -489,44 +435,19 @@ export const processYamlStructure = async (
       );
 
       let processedContent = replacePlaceholders(
-        processLoopDataSources(
-          processLoopTablesReversed(
-            processLoopTables(
-              templateContent,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              formData,
-              userMetadata,
-              undefined,
-              ctx.mockData,
-            ),
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            formData,
-            userMetadata,
-            undefined,
-            ctx.mockData,
-          ),
-          userFiles,
-          schemaInfoParsed,
-          formData,
-          userMetadata,
-        ),
+        processTemplatePipeline(templateContent, {
+          ...ctx,
+          dataContext: undefined,
+        }),
         replacements,
         { ...ctx, table: schemaInfoProcessed },
       );
 
-      processedContent = processIterateInTemplate(
-        processedContent,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
+      processedContent = processIterateInTemplate(processedContent, {
+        ...ctx,
         table,
-        formData,
-        userMetadata,
-      );
+        dataContext: undefined,
+      });
 
       const formatResult = await formatFileContent(
         processedContent,
@@ -874,31 +795,10 @@ export const processYamlStructure = async (
             }
 
             let processedContent = replacePlaceholders(
-              processLoopDataSources(
-                processLoopTablesReversed(
-                  processLoopTables(
-                    templateContent,
-                    schemaInfo,
-                    schemaInfoParsed,
-                    userFiles,
-                    formData,
-                    userMetadata,
-                    dataContext,
-                    ctx.mockData,
-                  ),
-                  schemaInfo,
-                  schemaInfoParsed,
-                  userFiles,
-                  formData,
-                  userMetadata,
-                  dataContext,
-                  ctx.mockData,
-                ),
-                userFiles,
-                schemaInfoParsed,
-                formData,
-                userMetadata,
-              ),
+              processTemplatePipeline(templateContent, {
+                ...ctx,
+                dataContext,
+              }),
               replacements,
               { ...ctx, table: schemaInfoProcessed, dataContext },
               typeof templatePath === 'string' && templatePath.length > 0
@@ -906,15 +806,11 @@ export const processYamlStructure = async (
                 : createCommand,
             );
 
-            processedContent = processIterateInTemplate(
-              processedContent,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
-              schemaInfoProcessed,
-              formData,
-              userMetadata,
-            );
+            processedContent = processIterateInTemplate(processedContent, {
+              ...ctx,
+              table: schemaInfoProcessed,
+              dataContext,
+            });
 
             const shouldFormat = createOptions[ACTION_FLAGS.FORMAT] !== false;
             const formatResult = await formatFileContent(
@@ -982,44 +878,19 @@ export const processYamlStructure = async (
             );
 
             let processedContent = replacePlaceholders(
-              processLoopDataSources(
-                processLoopTablesReversed(
-                  processLoopTables(
-                    templateContent,
-                    schemaInfo,
-                    schemaInfoParsed,
-                    userFiles,
-                    formData,
-                    userMetadata,
-                    undefined,
-                    ctx.mockData,
-                  ),
-                  schemaInfo,
-                  schemaInfoParsed,
-                  userFiles,
-                  formData,
-                  userMetadata,
-                  undefined,
-                  ctx.mockData,
-                ),
-                userFiles,
-                schemaInfoParsed,
-                formData,
-                userMetadata,
-              ),
+              processTemplatePipeline(templateContent, {
+                ...ctx,
+                dataContext: undefined,
+              }),
               replacements,
               { ...ctx, table: schemaInfoProcessed },
             );
 
-            processedContent = processIterateInTemplate(
-              processedContent,
-              schemaInfo,
-              schemaInfoParsed,
-              userFiles,
+            processedContent = processIterateInTemplate(processedContent, {
+              ...ctx,
               table,
-              formData,
-              userMetadata,
-            );
+              dataContext: undefined,
+            });
 
             const formatResult = await formatFileContent(
               processedContent,

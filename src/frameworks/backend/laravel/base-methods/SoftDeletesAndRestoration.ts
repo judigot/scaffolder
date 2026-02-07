@@ -5,7 +5,7 @@ export default {
   methods: [
     {
       methodName: 'softDelete',
-      route: `Route::delete('{{tableNameKebabCasePlural}}/{id}/soft-delete', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.soft-delete');`,
+      route: `Route::delete('{{tableName.plural.kebabCase}}/{id}/soft-delete', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.soft-delete');`,
       description: 'Soft delete a specific record by ID',
       repositoryMethod: '{{methodName}}(int $id): bool',
       repositoryContent: `
@@ -26,7 +26,7 @@ export default {
     },
     {
       methodName: 'restore',
-      route: `Route::put('{{tableNameKebabCasePlural}}/{id}/restore', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.restore');`,
+      route: `Route::put('{{tableName.plural.kebabCase}}/{id}/restore', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.restore');`,
       description: 'Restore a soft-deleted record by ID',
       repositoryMethod: '{{methodName}}(int $id): bool',
       repositoryContent: `
@@ -47,7 +47,7 @@ export default {
     },
     {
       methodName: 'withTrashed',
-      route: `Route::get('{{tableNameKebabCasePlural}}/with-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.with-trashed');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/with-trashed', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.with-trashed');`,
       description: 'Retrieve all records including soft-deleted ones',
       repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->withTrashed()->get();',
@@ -63,7 +63,7 @@ export default {
     },
     {
       methodName: 'onlyTrashed',
-      route: `Route::get('{{tableNameKebabCasePlural}}/only-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.only-trashed');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/only-trashed', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.only-trashed');`,
       description: 'Retrieve only soft-deleted records',
       repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->onlyTrashed()->get();',
@@ -79,7 +79,7 @@ export default {
     },
     {
       methodName: 'withoutTrashed',
-      route: `Route::get('{{tableNameKebabCasePlural}}/without-trashed', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.without-trashed');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/without-trashed', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.without-trashed');`,
       description: 'Retrieve records excluding soft-deleted ones',
       repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->withoutTrashed()->get();',

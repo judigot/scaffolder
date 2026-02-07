@@ -1,11 +1,11 @@
--- SQL Schema for {{tableNamePascalCase}} table
-CREATE TABLE {{tableNameSnakeCase}} (
+-- SQL Schema for {{tableName.pascalCase}} table
+CREATE TABLE {{tableName.snakeCase}} (
   [[ LOOP(columnsInfo) --template="
-  {{valueSnakeCase}} <@@IF@@ condition="data_type EQUALS string">VARCHAR(255)</@@IF@@><@@IF@@ condition="data_type EQUALS number">INTEGER</@@IF@@><@@IF@@ condition="data_type EQUALS boolean">BOOLEAN</@@IF@@><@@IF@@ condition="data_type EQUALS Date">TIMESTAMP</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'"> NOT NULL</@@IF@@><@@IF@@ condition="column_default IS NOT NULL"> DEFAULT {{column_default}}</@@IF@@><@@IF@@ condition="primary_key IS TRUE"> PRIMARY KEY</@@IF@@><@@IF@@ condition="unique IS TRUE"> UNIQUE</@@IF@@>," --separator="\n  " ]]
+  {{value.snakeCase}} <@@IF@@ condition="data_type EQUALS string">VARCHAR(255)</@@IF@@><@@IF@@ condition="data_type EQUALS number">INTEGER</@@IF@@><@@IF@@ condition="data_type EQUALS boolean">BOOLEAN</@@IF@@><@@IF@@ condition="data_type EQUALS Date">TIMESTAMP</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'"> NOT NULL</@@IF@@><@@IF@@ condition="column_default IS NOT NULL"> DEFAULT {{column_default}}</@@IF@@><@@IF@@ condition="primary_key IS TRUE"> PRIMARY KEY</@@IF@@><@@IF@@ condition="unique IS TRUE"> UNIQUE</@@IF@@>," --separator="\n  " ]]
 
   -- Foreign key constraints
   [[ LOOP(columnsInfo) --template="
-  <@@IF@@ condition="foreign_key EXISTS">FOREIGN KEY ({{valueSnakeCase}}) REFERENCES {{foreign_table}}({{foreign_column}}),</@@IF@@>" --separator="\n  " ]]
+  <@@IF@@ condition="foreign_key EXISTS">FOREIGN KEY ({{value.snakeCase}}) REFERENCES {{foreign_table}}({{foreign_column}}),</@@IF@@>" --separator="\n  " ]]
 
   -- Timestamp columns
   [[ LOOP(columnsInfo) --template="
@@ -14,17 +14,17 @@ CREATE TABLE {{tableNameSnakeCase}} (
 
   -- Add any special indexes
   [[ LOOP(columnsInfo) --template="
-  <@@IF@@ condition="column_name EQUALS 'email'">INDEX idx_{{tableNameSnakeCase}}_email ({{valueSnakeCase}}),</@@IF@@>
-  <@@IF@@ condition="column_name CONTAINS 'name'">INDEX idx_{{tableNameSnakeCase}}_{{valueSnakeCase}} ({{valueSnakeCase}}),</@@IF@@>" --separator="\n  " ]]
+  <@@IF@@ condition="column_name EQUALS 'email'">INDEX idx_{{tableName.snakeCase}}_email ({{value.snakeCase}}),</@@IF@@>
+  <@@IF@@ condition="column_name CONTAINS 'name'">INDEX idx_{{tableName.snakeCase}}_{{value.snakeCase}} ({{value.snakeCase}}),</@@IF@@>" --separator="\n  " ]]
 
   -- Remove trailing comma (this is just a placeholder, you'd need special handling for this)
   placeholder_to_remove_trailing_comma
 );
 
 -- Table comment
-COMMENT ON TABLE {{tableNameSnakeCase}} IS '{{tableNameSentenceCase}}';
+COMMENT ON TABLE {{tableName.snakeCase}} IS '{{tableName.sentenceCase}}';
 
 -- Column comments
 [[ LOOP(columnsInfo) --template="
-COMMENT ON COLUMN {{tableNameSnakeCase}}.{{valueSnakeCase}} IS '<@@IF@@ condition="primary_key IS TRUE">Primary key for </@@IF@@><@@IF@@ condition="foreign_key EXISTS">Foreign key to {{foreign_table}} </@@IF@@><@@IF@@ condition="column_name EQUALS 'password'">Hashed password - never expose! </@@IF@@>{{valueSentenceCase}}';
+COMMENT ON COLUMN {{tableName.snakeCase}}.{{value.snakeCase}} IS '<@@IF@@ condition="primary_key IS TRUE">Primary key for </@@IF@@><@@IF@@ condition="foreign_key EXISTS">Foreign key to {{foreign_table}} </@@IF@@><@@IF@@ condition="column_name EQUALS 'password'">Hashed password - never expose! </@@IF@@>{{value.sentenceCase}}';
 " --separator="\n" ]]

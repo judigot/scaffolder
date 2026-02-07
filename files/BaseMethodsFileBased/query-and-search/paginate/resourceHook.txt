@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { paginateResources } from '@/hooks/shared/usePaginate.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IPaginateParams {
   page?: number;
@@ -20,20 +20,20 @@ interface IPaginatedResponse<T> {
   hasPreviousPage: boolean;
 }
 
-export const usePaginate{{tableNamePascalCasePlural}} = (
+export const usePaginate{{tableName.plural.pascalCase}} = (
   params: IPaginateParams = {},
   options?: Omit<
-    UseQueryOptions<IPaginatedResponse<I{{tableNamePascalCaseSingular}}>, Error>,
+    UseQueryOptions<IPaginatedResponse<I{{tableName.singular.pascalCase}}>, Error>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   const { page = 1, perPage = 15, filters, sortBy, sortDirection = 'asc' } = params;
 
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'paginate', page, perPage, filters, sortBy, sortDirection],
+    queryKey: ['{{tableName.plural.camelCase}}', 'paginate', page, perPage, filters, sortBy, sortDirection],
     queryFn: () =>
-      paginateResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/paginate',
+      paginateResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/paginate',
         page,
         perPage,
         filters,

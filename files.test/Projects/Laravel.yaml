@@ -3,28 +3,28 @@ app:
     Controllers:
       - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
       - CREATE_FILE(AuthController.php --conditions hasUsers=true --template /Templates/backend/laravel/AuthController.txt)
-      - FILE_LOOP({{tableNamePascalCaseSingular}}Controller.php --template /Templates/backend/laravel/Controller.txt)
+      - FILE_LOOP({{tableName.singular.pascalCase}}Controller.php --template /Templates/backend/laravel/Controller.txt)
     Resources:
-      - FILE_LOOP({{tableNamePascalCaseSingular}}Resource.php --template /Templates/backend/laravel/Resource.txt)
+      - FILE_LOOP({{tableName.singular.pascalCase}}Resource.php --template /Templates/backend/laravel/Resource.txt)
   Repositories:
     - CREATE_FILE(BaseRepository.php --template /Templates/backend/laravel/BaseRepository.txt)
     - CREATE_FILE(BaseInterface.php --template /Templates/backend/laravel/BaseInterface.txt)
-    - FILE_LOOP({{tableNamePascalCaseSingular}}Repository.php --template /Templates/backend/laravel/Repository.txt)
+    - FILE_LOOP({{tableName.singular.pascalCase}}Repository.php --template /Templates/backend/laravel/Repository.txt)
   Services:
     - CREATE_FILE(BaseService.php --template /Templates/backend/laravel/BaseService.txt)
-    - FILE_LOOP({{tableNamePascalCaseSingular}}Service.php --template /Templates/backend/laravel/Service.txt)
+    - FILE_LOOP({{tableName.singular.pascalCase}}Service.php --template /Templates/backend/laravel/Service.txt)
   Models:
-    - FILE_LOOP({{tableNamePascalCaseSingular}}.php --template /Templates/backend/laravel/Model.txt)
+    - FILE_LOOP({{tableName.singular.pascalCase}}.php --template /Templates/backend/laravel/Model.txt)
   Providers:
     - CREATE_FILE(AppServiceProvider.php --template /Templates/backend/laravel/AppServiceProvider.txt)
 routes:
   - CREATE_FILE(api.php --template /Templates/backend/laravel/api.txt)
-  - FILE_LOOP({{tableNameKebabCasePlural}}.php --template /Templates/backend/laravel/Route.txt)
+  - FILE_LOOP({{tableName.plural.kebabCase}}.php --template /Templates/backend/laravel/Route.txt)
 frontend:
   src:
     hooks:
-      FOLDER_LOOP({{tableNameKebabCaseSingular}}):
-        - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --scoped --template /Templates/frontend/React-Hook.txt)
-        - FILE_LOOP(use{{tableNamePascalCaseSingular}}.tsx --template /Templates/frontend/React-Hook.txt)
+      FOLDER_LOOP({{tableName.singular.kebabCase}}):
+        - CREATE_FILE(use{{tableName.singular.pascalCase}}.ts --scoped --template /Templates/frontend/React-Hook.txt)
+        - FILE_LOOP(use{{tableName.singular.pascalCase}}.tsx --template /Templates/frontend/React-Hook.txt)
     interfaces:
-      - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
+      - FILE_LOOP(I{{tableName.singular.pascalCase}}.ts --template /Templates/frontend/TypeScript-Interface.txt)

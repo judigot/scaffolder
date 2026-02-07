@@ -1,4 +1,4 @@
-const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/random`, {
+const response = await axiosInstance.get(`{{tableName.plural.kebabCase}}/random`, {
   params: { limit }
 });
 return response.data; 

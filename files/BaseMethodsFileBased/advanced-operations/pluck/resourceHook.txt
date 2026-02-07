@@ -6,7 +6,7 @@ interface IPluckParams {
   key?: string;
 }
 
-export const usePluck{{tableNamePascalCasePlural}} = (
+export const usePluck{{tableName.plural.pascalCase}} = (
   params: IPluckParams,
   options?: Omit<
     UseQueryOptions<(string | number)[]>,
@@ -14,10 +14,10 @@ export const usePluck{{tableNamePascalCasePlural}} = (
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'pluck', params.column, params.key],
+    queryKey: ['{{tableName.plural.camelCase}}', 'pluck', params.column, params.key],
     queryFn: () =>
       pluckResources(
-        '/{{tableNameCamelCasePlural}}/pluck',
+        '/{{tableName.plural.camelCase}}/pluck',
         params.column,
         params.key
       ),

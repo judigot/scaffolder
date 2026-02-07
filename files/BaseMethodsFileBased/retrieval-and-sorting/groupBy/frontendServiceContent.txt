@@ -1,4 +1,4 @@
-const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/group-by`, {
+const response = await axiosInstance.get(`{{tableName.plural.kebabCase}}/group-by`, {
   params: { column }
 });
 return response.data; 

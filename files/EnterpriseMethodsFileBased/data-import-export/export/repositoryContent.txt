@@ -1,4 +1,4 @@
-        $query = {{tableNamePascalCaseSingular}}::query();
+        $query = {{tableName.singular.pascalCase}}::query();
         
         if ($filters) {
             foreach ($filters as $field => $value) {

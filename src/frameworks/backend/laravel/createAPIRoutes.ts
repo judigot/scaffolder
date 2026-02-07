@@ -61,9 +61,9 @@ const createAPIRoutes = (schemaInfo: ISchemaInfo[]): IFile[] => {
     const routeFileContent = `<?php
 
 use Illuminate\\Support\\Facades\\Route;
-use App\\Http\\Controllers\\{{tableNamePascalCase}}Controller;
+use App\\Http\\Controllers\\{{tableName.pascalCase}}Controller;
 
-// Custom routes for {{tableNamePascalCase}}
+// Custom routes for {{tableName.pascalCase}}
 
 {{modelSpecificRoutes}}
 
@@ -71,8 +71,8 @@ use App\\Http\\Controllers\\{{tableNamePascalCase}}Controller;
 
 {{baseRoutesForController}}
 
-// Resource routes for {{tableNamePascalCase}}
-Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);
+// Resource routes for {{tableName.pascalCase}}
+Route::apiResource('{{tableName.plural.kebabCase}}', {{tableName.pascalCase}}Controller::class);
 `;
 
     const modelSpecificRoutes = generateDomainCode({

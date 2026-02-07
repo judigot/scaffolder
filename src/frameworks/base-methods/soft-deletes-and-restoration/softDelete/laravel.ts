@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'softDelete',
-  route: `Route::delete('{{tableNameKebabCasePlural}}/{id}/soft-delete', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.soft-delete');`,
+  route: `Route::delete('{{tableName.plural.kebabCase}}/{id}/soft-delete', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.soft-delete');`,
   description: 'Soft delete a specific record by ID',
   repositoryMethod: `{{methodName}}(int $id): bool`,
   repositoryContent: `
