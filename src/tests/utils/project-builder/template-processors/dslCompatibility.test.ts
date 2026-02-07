@@ -10,7 +10,7 @@ describe('dslCompatibility warnings', () => {
     vi.restoreAllMocks();
   });
 
-  it('warns once per legacy syntax and file', () => {
+  it('warns once per legacy syntax', () => {
     const warnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => undefined);
@@ -27,7 +27,7 @@ describe('dslCompatibility warnings', () => {
     expect(warnSpy).toHaveBeenCalledTimes(3);
   });
 
-  it('warns again for same syntax in another file', () => {
+  it('deduplicates same syntax across files', () => {
     const warnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => undefined);
@@ -35,6 +35,6 @@ describe('dslCompatibility warnings', () => {
     emitLegacyDslWarnings('{{tableName}}', 'a.txt');
     emitLegacyDslWarnings('{{tableName}}', 'b.txt');
 
-    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 });
