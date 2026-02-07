@@ -10,13 +10,11 @@ import type {
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
 import {
-  processLoopTables,
-  processLoopTablesReversed,
-  processLoopDataSources,
   processHtmlLoopColumnsInfo,
   processHtmlLoopArray,
   evaluateCondition,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import { processTemplatePipeline } from '@/utils/project-builder/template-processors/processTemplatePipeline.ts';
 import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import {
@@ -240,31 +238,10 @@ export const processMultipleFiles = async (
         onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
       }
 
-      let content = processLoopDataSources(
-        processLoopTablesReversed(
-          processLoopTables(
-            templateContent,
-            schemaInfo,
-            schemaInfoParsed,
-            userFiles,
-            formData,
-            userMetadata,
-            ctx.dataContext,
-            ctx.mockData,
-          ),
-          schemaInfo,
-          schemaInfoParsed,
-          userFiles,
-          formData,
-          userMetadata,
-          ctx.dataContext,
-          ctx.mockData,
-        ),
-        userFiles,
-        schemaInfoParsed,
-        formData,
-        userMetadata,
-      );
+      let content = processTemplatePipeline(templateContent, {
+        ...ctx,
+        table,
+      });
 
       // Process columnsInfo loops for FILE_LOOP (scoped context)
       content = processHtmlLoopColumnsInfo(
@@ -297,15 +274,10 @@ export const processMultipleFiles = async (
           ? templateOption
           : fileName,
       );
-      content = processIterateInTemplate(
-        content,
-        schemaInfo,
-        schemaInfoParsed,
-        userFiles,
+      content = processIterateInTemplate(content, {
+        ...ctx,
         table,
-        formData,
-        userMetadata,
-      );
+      });
 
       const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
       const formatResult = await formatFileContent(
