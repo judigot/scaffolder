@@ -1,10 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   __clearLegacyDslWarningsForTests,
   emitLegacyDslWarnings,
 } from '@/utils/project-builder/template-processors/dslCompatibility.ts';
 
 describe('dslCompatibility warnings', () => {
+  beforeEach(() => {
+    __clearLegacyDslWarningsForTests();
+  });
+
   afterEach(() => {
     __clearLegacyDslWarningsForTests();
     vi.restoreAllMocks();
