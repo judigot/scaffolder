@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{url}} - Retrieves multiple {{tableNamePascalCaseSingular}} resources by their IDs
-Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.find-many');
+// http://127.0.0.1:8000/api/{{url}} - Retrieves multiple {{tableName.singular.pascalCase}} resources by their IDs
+Route::post('{{url}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.find-many');

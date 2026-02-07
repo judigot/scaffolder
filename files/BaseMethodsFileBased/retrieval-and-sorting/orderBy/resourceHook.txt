@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { orderByResources } from '@/hooks/shared/useOrderBy.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IOrderByParams {
   column: string;
@@ -9,18 +9,18 @@ interface IOrderByParams {
   filters?: Record<string, unknown>;
 }
 
-export const useOrderBy{{tableNamePascalCasePlural}} = (
+export const useOrderBy{{tableName.plural.pascalCase}} = (
   params: IOrderByParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'orderBy', params.column, params.direction, params.limit, params.filters],
+    queryKey: ['{{tableName.plural.camelCase}}', 'orderBy', params.column, params.direction, params.limit, params.filters],
     queryFn: () =>
-      orderByResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/order-by',
+      orderByResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/order-by',
         params.column,
         params.direction,
         params.limit,

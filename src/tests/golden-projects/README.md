@@ -150,8 +150,8 @@ The template uses these placeholders:
 
 | Placeholder | Description | Example |
 |-------------|-------------|---------|
-| `{{tableNameTitleCase}}` | Human-readable name | `Order Product` |
-| `{{tableNameKebabCase}}` | API endpoint path | `order-product` |
+| `{{tableName.titleCase}}` | Human-readable name | `Order Product` |
+| `{{tableName.kebabCase}}` | API endpoint path | `order-product` |
 | `{{primaryKey}}` | Primary key field name | `orderProductId` |
 | `{{createPayload}}` | JSON for POST request | `{"orderId":1,"productId":1}` |
 | `{{updatePayload}}` | JSON for PUT request | `{"orderId":1,"productId":1}` |

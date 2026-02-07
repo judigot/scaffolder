@@ -1,12 +1,12 @@
 import { useQueryInstance } from '@/vendor/useQueryInstance';
 import { useResource } from '@/hooks/shared/useResource.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}';
 
-export const use{{tableNamePascalCaseSingular}} = (
-  options?: Parameters<typeof useQueryInstance<I{{tableNamePascalCaseSingular}}[]>>[2],
+export const use{{tableName.singular.pascalCase}} = (
+  options?: Parameters<typeof useQueryInstance<I{{tableName.singular.pascalCase}}[]>>[2],
 ) =>
-  useQueryInstance<I{{tableNamePascalCaseSingular}}[]>(
-    '{{tableNameCamelCasePlural}}',
+  useQueryInstance<I{{tableName.singular.pascalCase}}[]>(
+    '{{tableName.plural.camelCase}}',
     useResource,
     options,
   );

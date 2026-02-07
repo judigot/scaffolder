@@ -1,1 +1,1 @@
-{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}
+{{tableName.plural.kebabCase}}/{{methodNameKebabCase}}

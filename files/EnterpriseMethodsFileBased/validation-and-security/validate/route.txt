@@ -1,2 +1,2 @@
 // http://127.0.0.1:8000/api/{{url}}/validate - Validates and sanitizes data with security checks
-Route::post('{{url}}/validate', [{{tableNamePascalCaseSingular}}Controller::class, 'validate'])->name('{{tableNameKebabCasePlural}}.validate'); 
+Route::post('{{url}}/validate', [{{tableName.singular.pascalCase}}Controller::class, 'validate'])->name('{{tableName.plural.kebabCase}}.validate'); 

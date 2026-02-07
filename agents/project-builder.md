@@ -122,7 +122,7 @@ FILE_LOOP(filename --template=path --ignore=value --data-source=path)
 
 ```yaml
 db:
-  FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql
+  FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql
     --ignore USE_CONSTANT(./constants/ignoredTables.yaml)
     --template ./templates/migration.sql.txt
     --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
@@ -194,9 +194,9 @@ Placeholders use double curly braces: `{{placeholderName}}`
 **Common Placeholders:**
 
 - `{{tableName}}`: Table name in original case
-- `{{tableNameSnakeCase}}`: Table name in snake_case
-- `{{tableNameSnakeCasePlural}}`: Plural table name in snake_case
-- `{{tableNameCamelCase}}`: Table name in camelCase
+- `{{tableName.snakeCase}}`: Table name in snake_case
+- `{{tableName.plural.snakeCase}}`: Plural table name in snake_case
+- `{{tableName.camelCase}}`: Table name in camelCase
 - `{{columnName}}`: Column name
 - `{{index(1, 3)}}`: Sequential index (1-based, padded to 3 digits)
 - `{{timestamp('YYYY_MM_DD')}}`: Formatted timestamp (automatically unique when generating multiple files)

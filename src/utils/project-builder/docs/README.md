@@ -73,7 +73,7 @@ Use `FILE_LOOP` to generate multiple files from database schema tables:
 
 ```yaml
 migrations:
-  FILE_LOOP({{index(1, 4)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+  FILE_LOOP({{index(1, 4)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
 ```
 
 This generates ordered migration files like:

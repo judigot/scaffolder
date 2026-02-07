@@ -1,1 +1,1 @@
-Route::get('{{tableNamePlural}}/{id}/{{valueKebabCasePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCasePlural}}'])->name('{{tableNamePlural}}.{{valueKebabCasePlural}}');
+Route::get('{{tableName.plural}}/{id}/{{value.plural.kebabCase}}', [{{tableName.singular.pascalCase}}Controller::class, 'get{{value.plural.pascalCase}}'])->name('{{tableName.plural}}.{{value.plural.kebabCase}}');

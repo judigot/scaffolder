@@ -1,4 +1,4 @@
-return axiosInstance.post('/{{tableNameKebabCasePlural}}/export', {
+return axiosInstance.post('/{{tableName.plural.kebabCase}}/export', {
   format,
   filters,
   columns,

@@ -1,4 +1,4 @@
-return axiosInstance.post('/{{tableNameKebabCasePlural}}/batch-create', {
+return axiosInstance.post('/{{tableName.plural.kebabCase}}/batch-create', {
   dataArray: data,
   options: options
 }); 

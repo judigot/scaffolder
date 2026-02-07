@@ -1,17 +1,17 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 import { deleteResource } from '@/hooks/shared/useDestroy.ts';
 
-export const useDelete{{tableNamePascalCaseSingular}} = (
+export const useDelete{{tableName.singular.pascalCase}} = (
   options?: Omit<UseMutationOptions<void, Error, number | string>, 'mutationFn'>,
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: number | string) =>
-      deleteResource('/{{tableNameCamelCasePlural}}', id),
+      deleteResource('/{{tableName.plural.camelCase}}', id),
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
-      queryClient.removeQueries({ queryKey: ['{{tableNameCamelCaseSingular}}', id] });
+      queryClient.invalidateQueries({ queryKey: ['{{tableName.plural.camelCase}}'] });
+      queryClient.removeQueries({ queryKey: ['{{tableName.singular.camelCase}}', id] });
     },
     ...options,
   });

@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'random',
-  route: `Route::get('{{tableNameKebabCasePlural}}/random', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.random');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/random', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.random');`,
   description: 'Retrieve random records',
   repositoryMethod: `{{methodName}}(int $count = 1): Collection`,
   repositoryContent: `return $this->model->inRandomOrder()->limit($count)->get();`,

@@ -1,16 +1,16 @@
 import type { Generated, ColumnType, Selectable, Insertable, Updateable } from 'kysely';
 
-<@@LOOP@@ data="tables" separator="\n\n">// <@@>tableNamePascalCaseSingular</@@> table interface
-export interface <@@>tableNamePascalCaseSingular</@@>Table {
-<@@LOOP@@ data="columnsInfo" separator="\n">  <@@>valueCamelCase</@@>: <@@IF@@ condition="is_primary_key EQUALS 'true'">Generated<number><@@ELSE@@><@@IF@@ condition="value EQUALS 'created_at'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="value EQUALS 'updated_at'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="value EQUALS 'deleted_at'">ColumnType<Date | null, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">number<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'string'">string<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'Date'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@>string</@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@>;<@@IF@@ condition="is_nullable EQUALS 'YES'"> // nullable</@@IF@@></@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n\n">// <@@>tableName.singular.pascalCase</@@> table interface
+export interface <@@>tableName.singular.pascalCase</@@>Table {
+<@@LOOP@@ data="columnsInfo" separator="\n">  <@@>value.camelCase</@@>: <@@IF@@ condition="is_primary_key EQUALS 'true'">Generated<number><@@ELSE@@><@@IF@@ condition="value EQUALS 'created_at'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="value EQUALS 'updated_at'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="value EQUALS 'deleted_at'">ColumnType<Date | null, Date | undefined, Date | undefined><@@ELSE@@><@@IF@@ condition="data_type EQUALS 'number'">number<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'string'">string<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'Date'">ColumnType<Date, Date | undefined, Date | undefined><@@ELSE@@>string</@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@></@@IF@@>;<@@IF@@ condition="is_nullable EQUALS 'YES'"> // nullable</@@IF@@></@@LOOP@@>
 }</@@LOOP@@>
 
 // Database interface combining all tables
 export interface Database {
-<@@LOOP@@ data="tables" separator="\n">  <@@>tableNameSnakeCaseSingular</@@>: <@@>tableNamePascalCaseSingular</@@>Table;</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">  <@@>tableName.singular.snakeCase</@@>: <@@>tableName.singular.pascalCase</@@>Table;</@@LOOP@@>
 }
 
 // Export types for select/insert operations
-<@@LOOP@@ data="tables" separator="\n">export type <@@>tableNamePascalCaseSingular</@@> = Selectable<<@@>tableNamePascalCaseSingular</@@>Table>;
-export type New<@@>tableNamePascalCaseSingular</@@> = Insertable<<@@>tableNamePascalCaseSingular</@@>Table>;
-export type <@@>tableNamePascalCaseSingular</@@>Update = Updateable<<@@>tableNamePascalCaseSingular</@@>Table>;</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">export type <@@>tableName.singular.pascalCase</@@> = Selectable<<@@>tableName.singular.pascalCase</@@>Table>;
+export type New<@@>tableName.singular.pascalCase</@@> = Insertable<<@@>tableName.singular.pascalCase</@@>Table>;
+export type <@@>tableName.singular.pascalCase</@@>Update = Updateable<<@@>tableName.singular.pascalCase</@@>Table>;</@@LOOP@@>

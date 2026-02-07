@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'findOrFail',
-  route: `Route::get('{{tableNameKebabCasePlural}}/{id}/find-or-fail', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.find-or-fail');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/{id}/find-or-fail', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.find-or-fail');`,
   description: 'Find a record or throw an exception if not found',
   repositoryMethod: `{{methodName}}(int $id): Model`,
   repositoryContent: `return $this->model->findOrFail($id);`,

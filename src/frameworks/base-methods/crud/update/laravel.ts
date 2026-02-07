@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'update',
-  route: `Route::put('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
+  route: `Route::put('{{tableName.plural.kebabCase}}/{id}', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.{{methodName}}');`,
   description: 'Update a specific record by ID',
   repositoryMethod: `{{methodName}}(int $id, array $data): bool`,
   repositoryContent: `

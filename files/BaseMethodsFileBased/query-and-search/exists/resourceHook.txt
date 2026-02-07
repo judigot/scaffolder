@@ -5,7 +5,7 @@ interface IExistsParams {
   criteria: Record<string, unknown>;
 }
 
-export const useExists{{tableNamePascalCaseSingular}} = (
+export const useExists{{tableName.singular.pascalCase}} = (
   params: IExistsParams,
   options?: Omit<
     UseQueryOptions<boolean, Error>,
@@ -13,10 +13,10 @@ export const useExists{{tableNamePascalCaseSingular}} = (
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'exists', params.criteria],
+    queryKey: ['{{tableName.plural.camelCase}}', 'exists', params.criteria],
     queryFn: () =>
       existsResource(
-        '/{{tableNameCamelCasePlural}}/exists',
+        '/{{tableName.plural.camelCase}}/exists',
         params.criteria
       ),
     enabled: Boolean(params.criteria && Object.keys(params.criteria).length > 0),

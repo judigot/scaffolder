@@ -1,24 +1,24 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { getLatestResources } from '@/hooks/shared/useLatest.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface ILatestParams {
   limit?: number;
   filters?: Record<string, unknown>;
 }
 
-export const useLatest{{tableNamePascalCasePlural}} = (
+export const useLatest{{tableName.plural.pascalCase}} = (
   params: ILatestParams = {},
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'latest', params.limit, params.filters],
+    queryKey: ['{{tableName.plural.camelCase}}', 'latest', params.limit, params.filters],
     queryFn: () =>
-      getLatestResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/latest',
+      getLatestResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/latest',
         params.limit,
         params.filters
       ),

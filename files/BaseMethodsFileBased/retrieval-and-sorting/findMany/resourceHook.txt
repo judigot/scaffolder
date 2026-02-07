@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { findManyResources } from '@/hooks/shared/useFindMany.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IFindManyParams {
   ids: (string | number)[];
@@ -8,18 +8,18 @@ interface IFindManyParams {
   orderDirection?: 'asc' | 'desc';
 }
 
-export const useFindMany{{tableNamePascalCasePlural}} = (
+export const useFindMany{{tableName.plural.pascalCase}} = (
   params: IFindManyParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'findMany', params.ids, params.orderBy, params.orderDirection],
+    queryKey: ['{{tableName.plural.camelCase}}', 'findMany', params.ids, params.orderBy, params.orderDirection],
     queryFn: () =>
-      findManyResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/find-many',
+      findManyResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/find-many',
         params.ids,
         params.orderBy,
         params.orderDirection

@@ -84,10 +84,10 @@ Templates use placeholder syntax to inject dynamic content:
 ### Common Placeholders
 
 - `{{tableName}}` - Table name (e.g., `users`)
-- `{{tableNamePlural}}` - Plural table name (e.g., `users`)
-- `{{tableNameSingular}}` - Singular table name (e.g., `user`)
-- `{{tableNamePascalCase}}` - PascalCase table name (e.g., `User`)
-- `{{tableNameKebabCase}}` - Kebab-case table name (e.g., `user-profile`)
+- `{{tableName.plural}}` - Plural table name (e.g., `users`)
+- `{{tableName.singular}}` - Singular table name (e.g., `user`)
+- `{{tableName.pascalCase}}` - PascalCase table name (e.g., `User`)
+- `{{tableName.kebabCase}}` - Kebab-case table name (e.g., `user-profile`)
 - `{{entityName}}` - Entity name derived from table
 - `{{fields}}` - All fields from schema
 - `{{primaryKey}}` - Primary key field
@@ -96,7 +96,7 @@ Templates use placeholder syntax to inject dynamic content:
 ### Example Template
 
 ```txt
-export class {{tableNamePascalCase}}Controller {
+export class {{tableName.pascalCase}}Controller {
   public function index() {
     return $this->service->findAll();
   }
@@ -133,7 +133,7 @@ Templates are referenced in project `structure.yaml` files:
 src:
   - app/
       - Controllers/
-          - {{tableNamePascalCase}}Controller.php: IMPORT_TEMPLATE(Templates/backend/laravel/Controller.txt)
+          - {{tableName.pascalCase}}Controller.php: IMPORT_TEMPLATE(Templates/backend/laravel/Controller.txt)
 ```
 
 ## Best Practices

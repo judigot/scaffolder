@@ -1,15 +1,15 @@
-[[ LOOP(hasOne) --template="    public function {{valueSingular}}() {
-        return $this->hasOne({{valuePascalCaseSingular}}::class);
+[[ LOOP(hasOne) --template="    public function {{value.singular}}() {
+        return $this->hasOne({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]
 
-[[ LOOP(hasMany) --template="    public function {{valuePlural}}() {
-        return $this->hasMany({{valuePascalCaseSingular}}::class);
+[[ LOOP(hasMany) --template="    public function {{value.plural}}() {
+        return $this->hasMany({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]
 
-[[ LOOP(pivotRelationships.relatedTable) --template="    public function {{valuePlural}}() {
-        return $this->belongsToMany({{valuePascalCaseSingular}}::class);
+[[ LOOP(pivotRelationships.relatedTable) --template="    public function {{value.plural}}() {
+        return $this->belongsToMany({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]
 
-[[ LOOP(belongsTo) --template="    public function {{valueSingular}}() {
-        return $this->belongsTo({{valuePascalCaseSingular}}::class);
+[[ LOOP(belongsTo) --template="    public function {{value.singular}}() {
+        return $this->belongsTo({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]

@@ -1,1 +1,1 @@
-Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');
+Route::post('{{tableName.plural.kebabCase}}', [{{tableName.singular.pascalCase}}Controller::class, 'store'])->name('{{tableName.plural.kebabCase}}.store');

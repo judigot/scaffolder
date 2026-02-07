@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'whereBetween',
-  route: `Route::post('{{tableNameKebabCasePlural}}/where-between', [{{tableNamePascalCase}}Controller::class, 'whereBetween'])->name('{{tableNameKebabCasePlural}}.where-between');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/where-between', [{{tableName.pascalCase}}Controller::class, 'whereBetween'])->name('{{tableName.plural.kebabCase}}.where-between');`,
   description: 'Filter records between two values',
   repositoryMethod: `whereBetween(string $column, array $range): Collection`,
   repositoryContent: `return $this->model->whereBetween($column, $range)->get();`,

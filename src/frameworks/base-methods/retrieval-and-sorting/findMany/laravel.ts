@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'findMany',
-  route: `Route::post('{{tableNameKebabCasePlural}}/find-many', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.find-many');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/find-many', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.find-many');`,
   description: 'Find multiple records by their IDs',
   repositoryMethod: `{{methodName}}(array $ids): Collection`,
   repositoryContent: `return $this->model->findMany($ids);`,

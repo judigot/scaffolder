@@ -11,11 +11,11 @@ const template = `
 namespace App\\Repositories;
 
 {{modelImports}}
-use App\\Models\\{{tableNamePascalCase}};
+use App\\Models\\{{tableName.pascalCase}};
 use Illuminate\\Support\\Collection;
 use App\\Repositories\\BaseInterface;
 
-interface {{tableNamePascalCase}}Interface extends BaseInterface
+interface {{tableName.pascalCase}}Interface extends BaseInterface
 {
 {{modelSpecificMethods}}
 }

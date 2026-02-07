@@ -112,7 +112,7 @@ Generate ordered migration files for database schema changes:
 
 ```yaml
 migrations:
-  FILE_LOOP({{index(1, 4)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt):
+  FILE_LOOP({{index(1, 4)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt):
 ```
 
 **Output:**
@@ -244,7 +244,7 @@ This ensures that when processing multiple files in a single operation, each fil
 
 **Laravel:**
 ```yaml
-FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNamePlural}}_table.php --template ./templates/migration.php.txt):
+FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural}}_table.php --template ./templates/migration.php.txt):
 ```
 
 **Rails:**
@@ -391,13 +391,13 @@ The placeholder functions work seamlessly with the `FILE_LOOP` action to generat
 ```yaml
 migrations:
   indexed:
-    FILE_LOOP({{index(1, 4)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+    FILE_LOOP({{index(1, 4)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
   
   timestamped:
-    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
   
   hybrid:
-    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableName.singular.snakeCase}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
 ```
 
 ## Available Properties

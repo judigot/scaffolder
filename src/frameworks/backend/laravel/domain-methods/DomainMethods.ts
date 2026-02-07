@@ -23,13 +23,13 @@ export default {
           suffix = '{{relatedTableNameKebabCase}}';
         }
 
-        return `Route::get('{{tableNameKebabCasePlural}}/{id}/${suffix}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.${suffix}');`;
+        return `Route::get('{{tableName.plural.kebabCase}}/{id}/${suffix}', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.${suffix}');`;
       },
       description: ({ hasOne, belongsTo }) => {
         if (belongsTo) {
-          return 'Find {{tableNamePascalCase}} by {{relatedTableName}}_id.';
+          return 'Find {{tableName.pascalCase}} by {{relatedTableName}}_id.';
         }
-        return `Get the related ${hasOne ? '{{relatedTableNamePascal}}' : '{{relatedTableNamePascalPlural}}'} related to the given {{tableNamePascalCase}}.`;
+        return `Get the related ${hasOne ? '{{relatedTableNamePascal}}' : '{{relatedTableNamePascalPlural}}'} related to the given {{tableName.pascalCase}}.`;
       },
       modelMethod: ({ hasOne, hasMany, pivotRelationships, belongsTo }) => {
         if (hasOne || belongsTo) {
@@ -79,12 +79,12 @@ export default {
         if (belongsTo) {
           return `
       /**
-       * Find {{tableNamePascalCase}} by {{relatedTableName}}_id.
+       * Find {{tableName.pascalCase}} by {{relatedTableName}}_id.
        *
        * @param int \${{relatedTableName}}_id
-       * @return ?{{tableNamePascalCase}}
+       * @return ?{{tableName.pascalCase}}
        */
-      public function {{methodName}}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ?{{tableNamePascalCase}}`;
+      public function {{methodName}}(int \${{primaryKey}}, ?string $column = null, string $direction = 'asc'): ?{{tableName.pascalCase}}`;
         }
 
         return `
@@ -167,9 +167,9 @@ export default {
           return `
       {{controllerMethod}}
       {
-          // Find \${{tableNameSingular}} by \${{relatedTableName}}_id
-          \${{tableNameSingular}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
-          return response()->json(\${{tableNameSingular}});
+          // Find \${{tableName.singular}} by \${{relatedTableName}}_id
+          \${{tableName.singular}} = $this->repository->{{methodName}}($id, $request->query('column'), $request->query('direction', 'asc'));
+          return response()->json(\${{tableName.singular}});
       }`;
         }
         return '';
@@ -184,13 +184,13 @@ export default {
       },
       route: ({ hasMany, pivotRelationships }) => {
         if (hasMany || pivotRelationships) {
-          return `Route::get('{{tableNameKebabCasePlural}}/get-all-with-related-{{relatedTableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.get-all-with-related-{{relatedTableNameKebabCasePlural}}');`;
+          return `Route::get('{{tableName.plural.kebabCase}}/get-all-with-related-{{relatedTableNameKebabCasePlural}}', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.get-all-with-related-{{relatedTableNameKebabCasePlural}}');`;
         }
         return '';
       },
       description: ({ hasMany, pivotRelationships }) => {
         if (hasMany || pivotRelationships) {
-          return 'Get all {{tableNamePascalCase}} records with optional related {{relatedTableNamePascalPlural}}.';
+          return 'Get all {{tableName.pascalCase}} records with optional related {{relatedTableNamePascalPlural}}.';
         }
         return '';
       },
