@@ -1,19 +1,19 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { findOrFailResource } from '@/hooks/shared/useFindOrFail.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
-export const useFindOrFail{{tableNamePascalCaseSingular}} = (
+export const useFindOrFail{{tableName.singular.pascalCase}} = (
   id: string | number,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}, Error>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}, Error>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'findOrFail', id],
+    queryKey: ['{{tableName.plural.camelCase}}', 'findOrFail', id],
     queryFn: () =>
-      findOrFailResource<I{{tableNamePascalCaseSingular}}>(
-        `/{{tableNameCamelCasePlural}}/${String(id)}/find-or-fail`
+      findOrFailResource<I{{tableName.singular.pascalCase}}>(
+        `/{{tableName.plural.camelCase}}/${String(id)}/find-or-fail`
       ),
     enabled: Boolean(id),
     ...options,

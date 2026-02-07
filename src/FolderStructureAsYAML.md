@@ -35,7 +35,7 @@
     Route::middleware('api')->group(function () {
     @
     LOOP_TABLES(){
-        require __DIR__ . '/{{tableNamePlural}}.php';
+        require __DIR__ . '/{{tableName.plural}}.php';
     }
     @
     });

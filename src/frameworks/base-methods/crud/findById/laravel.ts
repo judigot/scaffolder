@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'findById',
-  route: `Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'show'])->name('{{tableNameKebabCasePlural}}.show');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/{id}', [{{tableName.pascalCase}}Controller::class, 'show'])->name('{{tableName.plural.kebabCase}}.show');`,
   description: 'Find a specific record by ID',
   repositoryMethod: `{{methodName}}(int $id): ?Model`,
   repositoryContent: `return $this->model->find($id);`,

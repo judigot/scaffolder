@@ -1,4 +1,4 @@
-return axiosInstance.post('/{{tableNameKebabCasePlural}}/validate', {
+return axiosInstance.post('/{{tableName.plural.kebabCase}}/validate', {
   data,
   rules
 }); 

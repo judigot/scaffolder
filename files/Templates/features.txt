@@ -1,2 +1,2 @@
-{{tableNamePascalCase}} Columns:
+{{tableName.pascalCase}} Columns:
 <@@LOOP@@ data="columnsInfo" separator="\n">{{value}}<@@IF@@ condition="is_nullable EQUALS 'YES'">?</@@IF@@>: <@@IF@@ condition="data_type EQUALS string">string</@@IF@@><@@IF@@ condition="data_type EQUALS number">number</@@IF@@><@@IF@@ condition="data_type EQUALS boolean">boolean</@@IF@@><@@IF@@ condition="data_type EQUALS Date">Date</@@IF@@>;</@@LOOP@@>

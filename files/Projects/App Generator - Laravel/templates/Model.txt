@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{valuePascalCaseSingular}};" --separator="\n" ]]
+[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{value.singular.pascalCase}};" --separator="\n" ]]
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class {{tableNamePascalCaseSingular}} extends Model
+class {{tableName.singular.pascalCase}} extends Model
 {
     use HasFactory;
 

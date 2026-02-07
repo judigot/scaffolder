@@ -1,19 +1,19 @@
-[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(Request $request, int $id)
+[[ LOOP(hasOne) --template="    public function get{{value.singular.pascalCase}}(Request $request, int $id)
     {
-        ${{valueSingular}} = $this->repository->get{{valuePascalCaseSingular}}($id, $request->query('column'), $request->query('direction', 'asc'));
-        return response()->json(${{valueSingular}});
+        ${{value.singular}} = $this->repository->get{{value.singular.pascalCase}}($id, $request->query('column'), $request->query('direction', 'asc'));
+        return response()->json(${{value.singular}});
     }" --separator="\n\n" ]]
 
-[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="    public function get{{valuePascalCasePlural}}(Request $request, int $id)
+[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="    public function get{{value.plural.pascalCase}}(Request $request, int $id)
     {
-        ${{valuePlural}} = $this->repository->get{{valuePascalCasePlural}}($id, $request->query('column'), $request->query('direction', 'asc'));
-        return response()->json(${{valuePlural}});
+        ${{value.plural}} = $this->repository->get{{value.plural.pascalCase}}($id, $request->query('column'), $request->query('direction', 'asc'));
+        return response()->json(${{value.plural}});
     }
 
-    public function getAllWithRelated{{valuePascalCasePlural}}(Request $request)
+    public function getAllWithRelated{{value.plural.pascalCase}}(Request $request)
     {
-        $includeRelated = filter_var($request->query('include{{valuePascalCasePlural}}', false), FILTER_VALIDATE_BOOLEAN);
-        $records = $this->repository->getAllWithRelated{{valuePascalCasePlural}}(
+        $includeRelated = filter_var($request->query('include{{value.plural.pascalCase}}', false), FILTER_VALIDATE_BOOLEAN);
+        $records = $this->repository->getAllWithRelated{{value.plural.pascalCase}}(
             $includeRelated,
             $request->query('column'),
             $request->query('direction', 'asc')
@@ -21,8 +21,8 @@
         return response()->json($records);
     }" --separator="\n\n" ]]
 
-[[ LOOP(belongsTo) --template="    public function get{{valuePascalCaseSingular}}(Request $request, int $id)
+[[ LOOP(belongsTo) --template="    public function get{{value.singular.pascalCase}}(Request $request, int $id)
     {
-        ${{valueSingular}} = $this->repository->get{{valuePascalCaseSingular}}($id, $request->query('column'), $request->query('direction', 'asc'));
-        return response()->json(${{valueSingular}});
+        ${{value.singular}} = $this->repository->get{{value.singular.pascalCase}}($id, $request->query('column'), $request->query('direction', 'asc'));
+        return response()->json(${{value.singular}});
     }" --separator="\n\n" ]]

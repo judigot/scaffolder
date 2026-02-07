@@ -3,8 +3,8 @@ app:
         Controllers:
             - CREATE_FILE(BaseController.php --template /Templates/backend/laravel/BaseController.txt)
     Models:
-        - FILE_LOOP({{tableNamePascalCaseSingular}}.php --template /Templates/backend/laravel/Model.txt)
+        - FILE_LOOP({{tableName.singular.pascalCase}}.php --template /Templates/backend/laravel/Model.txt)
 routes:
     - CREATE_FILE(api.php --template /Templates/backend/laravel/api.txt)
-    - FILE_LOOP({{tableNameKebabCasePlural}}.php --template /Templates/backend/laravel/Route.txt)
+    - FILE_LOOP({{tableName.plural.kebabCase}}.php --template /Templates/backend/laravel/Route.txt)
 IMPORT_PROJECT(Projects/CircularB.yaml): 

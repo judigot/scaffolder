@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'whereNotIn',
-  route: `Route::post('{{tableNameKebabCasePlural}}/where-not-in', [{{tableNamePascalCase}}Controller::class, 'whereNotIn'])->name('{{tableNameKebabCasePlural}}.where-not-in');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/where-not-in', [{{tableName.pascalCase}}Controller::class, 'whereNotIn'])->name('{{tableName.plural.kebabCase}}.where-not-in');`,
   description: 'Filter records excluding a set of values',
   repositoryMethod: `whereNotIn(string $column, array $values): Collection`,
   repositoryContent: `return $this->model->whereNotIn($column, $values)->get();`,

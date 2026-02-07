@@ -13,21 +13,21 @@ const BASE_URL = process.env.TEST_API_URL || 'http://localhost:3000';
  * 5. DELETE - Remove the record
  * 6. READ   - Verify deletion (404)
  */
-describe('<@@>tableNamePascalCase</@@> API - CRUD Testing (C→R→U→R→D→R)', () => {
+describe('<@@>tableName.pascalCase</@@> API - CRUD Testing (C→R→U→R→D→R)', () => {
   let createdId: number;
 
   // Test data - using mock values for each column
   const testData = {
-<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>valueCamelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'test-<@@>valueCamelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">1</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">true</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-01-01T00:00:00Z')</@@IF@@></@@IF@@></@@LOOP@@>
+<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'test-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">1</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">true</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-01-01T00:00:00Z')</@@IF@@></@@IF@@></@@LOOP@@>
   };
 
   const updateData = {
-<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>valueCamelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'updated-<@@>valueCamelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">2</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">false</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-12-31T00:00:00Z')</@@IF@@></@@IF@@></@@LOOP@@>
+<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'updated-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">2</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">false</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-12-31T00:00:00Z')</@@IF@@></@@IF@@></@@LOOP@@>
   };
 
   // 1. CREATE - Create new record
-  it('should CREATE a new <@@>tableNameSingular</@@>', async () => {
-    const res = await fetch(`${BASE_URL}/api/<@@>tableNameKebabCase</@@>`, {
+  it('should CREATE a new <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${BASE_URL}/api/<@@>tableName.kebabCase</@@>`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(testData),
@@ -39,16 +39,16 @@ describe('<@@>tableNamePascalCase</@@> API - CRUD Testing (C→R→U→R→D→R
   });
 
   // 2. READ - Read after create
-  it('should READ the created <@@>tableNameSingular</@@>', async () => {
-    const res = await fetch(`${BASE_URL}/api/<@@>tableNameKebabCase</@@>/${createdId}`);
+  it('should READ the created <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${BASE_URL}/api/<@@>tableName.kebabCase</@@>/${createdId}`);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.<@@>getPrimaryKeyCamelCase()</@@>).toBe(createdId);
   });
 
   // 3. UPDATE - Update the record
-  it('should UPDATE the <@@>tableNameSingular</@@>', async () => {
-    const res = await fetch(`${BASE_URL}/api/<@@>tableNameKebabCase</@@>/${createdId}`, {
+  it('should UPDATE the <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${BASE_URL}/api/<@@>tableName.kebabCase</@@>/${createdId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updateData),
@@ -57,14 +57,14 @@ describe('<@@>tableNamePascalCase</@@> API - CRUD Testing (C→R→U→R→D→R
   });
 
   // 4. READ - Read after update
-  it('should READ the updated <@@>tableNameSingular</@@>', async () => {
-    const res = await fetch(`${BASE_URL}/api/<@@>tableNameKebabCase</@@>/${createdId}`);
+  it('should READ the updated <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${BASE_URL}/api/<@@>tableName.kebabCase</@@>/${createdId}`);
     expect(res.status).toBe(200);
   });
 
   // 5. DELETE - Delete the record
-  it('should DELETE the <@@>tableNameSingular</@@>', async () => {
-    const res = await fetch(`${BASE_URL}/api/<@@>tableNameKebabCase</@@>/${createdId}`, {
+  it('should DELETE the <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${BASE_URL}/api/<@@>tableName.kebabCase</@@>/${createdId}`, {
       method: 'DELETE',
     });
     expect(res.status).toBe(200);
@@ -72,7 +72,7 @@ describe('<@@>tableNamePascalCase</@@> API - CRUD Testing (C→R→U→R→D→R
 
   // 6. READ - Read after delete (should 404)
   it('should return 404 after DELETE', async () => {
-    const res = await fetch(`${BASE_URL}/api/<@@>tableNameKebabCase</@@>/${createdId}`);
+    const res = await fetch(`${BASE_URL}/api/<@@>tableName.kebabCase</@@>/${createdId}`);
     expect(res.status).toBe(404);
   });
 });

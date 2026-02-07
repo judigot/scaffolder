@@ -1,4 +1,4 @@
-const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/count`, {
+const response = await axiosInstance.get(`{{tableName.plural.kebabCase}}/count`, {
   params: { criteria: data }
 });
 return response.data; 

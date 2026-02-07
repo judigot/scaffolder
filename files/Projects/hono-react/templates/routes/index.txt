@@ -16,7 +16,7 @@ function HomeComponent() {
           <div className="data-links">
             <h2>Your Data</h2>
             <ul>
-<@@LOOP@@ data="tables" separator="\n">              <li><Link to="/<@@>tableNameKebabCaseSingular</@@>"><@@>tableNameTitleCase</@@></Link></li></@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">              <li><Link to="/<@@>tableName.singular.kebabCase</@@>"><@@>tableName.titleCase</@@></Link></li></@@LOOP@@>
             </ul>
           </div>
         </div>

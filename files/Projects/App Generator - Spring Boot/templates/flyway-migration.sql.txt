@@ -1,4 +1,4 @@
--- Flyway migration: V<@@>index(1)</@@>__Create_<@@>tableNameSnakeCasePlural</@@>_table.sql
+-- Flyway migration: V<@@>index(1)</@@>__Create_<@@>tableName.plural.snakeCase</@@>_table.sql
 -- MyBatis + Flyway migration for <@@>tableName</@@>
 
 DROP TABLE IF EXISTS "<@@>tableName</@@>";

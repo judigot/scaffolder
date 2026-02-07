@@ -1,4 +1,4 @@
-const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/oldest`, {
+const response = await axiosInstance.get(`{{tableName.plural.kebabCase}}/oldest`, {
   params: { column, limit }
 });
 return response.data; 

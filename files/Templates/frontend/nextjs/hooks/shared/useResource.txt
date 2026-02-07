@@ -1,21 +1,21 @@
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}';
 import { axiosInstance } from '@/vendor/axiosInstance.ts';
 
 /**
- * Fetches all {{tableNamePascalCasePlural}} from the API
- * @returns Promise resolving to an array of {{tableNamePascalCaseSingular}} objects
+ * Fetches all {{tableName.plural.pascalCase}} from the API
+ * @returns Promise resolving to an array of {{tableName.singular.pascalCase}} objects
  */
-export const useResource = async (): Promise<I{{tableNamePascalCaseSingular}}[]> => {
+export const useResource = async (): Promise<I{{tableName.singular.pascalCase}}[]> => {
   try {
-    const response = await axiosInstance.get('/{{tableNameKebabCasePlural}}');
+    const response = await axiosInstance.get('/{{tableName.plural.kebabCase}}');
 
     return response.data.data || [];
   } catch (error: unknown) {
     if (typeof error === 'string') {
-      throw new Error(`Failed to fetch {{tableNameCamelCasePlural}}: ${error}`);
+      throw new Error(`Failed to fetch {{tableName.plural.camelCase}}: ${error}`);
     }
     if (error instanceof Error) {
-      throw new Error(`Failed to fetch {{tableNameCamelCasePlural}}: ${String(error.message)}`);
+      throw new Error(`Failed to fetch {{tableName.plural.camelCase}}: ${String(error.message)}`);
     }
     throw new Error('An unknown error occurred');
   }

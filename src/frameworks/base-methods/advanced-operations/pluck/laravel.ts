@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'pluck',
-  route: `Route::get('{{tableNameKebabCasePlural}}/pluck', [{{tableNamePascalCase}}Controller::class, 'pluck'])->name('{{tableNameKebabCasePlural}}.pluck');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/pluck', [{{tableName.pascalCase}}Controller::class, 'pluck'])->name('{{tableName.plural.kebabCase}}.pluck');`,
   description: 'Retrieve a list of specific column values',
   repositoryMethod: `pluck(string $column, string $key = null): Collection`,
   repositoryContent: `return $this->model->pluck($column, $key);`,

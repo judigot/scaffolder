@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'search',
-  route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.search');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/search', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.search');`,
   description: 'Search records',
   repositoryMethod: `{{methodName}}(string $query, array $fields, int $perPage = 15)`,
   repositoryContent: `

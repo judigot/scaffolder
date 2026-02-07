@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'oldest',
-  route: `Route::get('{{tableNameKebabCasePlural}}/oldest', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.oldest');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/oldest', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.oldest');`,
   description: 'Retrieve the oldest record based on a column',
   repositoryMethod: `{{methodName}}(string $column = 'created_at'): ?Model`,
   repositoryContent: `return $this->model->oldest($column)->first();`,

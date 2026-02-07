@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { createSchemaFactory } from 'drizzle-zod';
 import { db } from '../db';
-import { <@@>tableNameCamelCase</@@> } from '../db/schema';
+import { <@@>tableName.camelCase</@@> } from '../db/schema';
 import { eq<@@IF@@ condition="isAuthResource EQUALS 'true' OR hasCompositePrimaryKey() EQUALS 'true'">, and</@@IF@@> } from 'drizzle-orm';
 <@@IF@@ condition="isAuthResource EQUALS 'true'">import { authMiddleware, getUser } from '../middleware/auth';</@@IF@@>
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">import { generateIdFromEntropySize } from 'lucia';</@@IF@@>
@@ -16,90 +16,90 @@ app.use('*', authMiddleware);
 const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
 
 // Validation schemas - auto-generated from Drizzle schema
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">const create<@@>tableNamePascalCaseSingular</@@>Schema = createInsertSchema(<@@>tableNameCamelCase</@@>);
-</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">const create<@@>tableNamePascalCaseSingular</@@>Schema = createInsertSchema(<@@>tableNameCamelCase</@@>).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true });
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">const create<@@>tableName.singular.pascalCase</@@>Schema = createInsertSchema(<@@>tableName.camelCase</@@>);
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">const create<@@>tableName.singular.pascalCase</@@>Schema = createInsertSchema(<@@>tableName.camelCase</@@>).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true });
 </@@IF@@>
-const update<@@>tableNamePascalCaseSingular</@@>Schema = create<@@>tableNamePascalCaseSingular</@@>Schema.partial();
+const update<@@>tableName.singular.pascalCase</@@>Schema = create<@@>tableName.singular.pascalCase</@@>Schema.partial();
 
 // GET all <@@>tableName</@@>
 app.get('/', async (c) => {
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
-  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id));
-</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.select().from(<@@>tableNameCamelCase</@@>);
+  const result = await db.select().from(<@@>tableName.camelCase</@@>).where(eq(<@@>tableName.camelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id));
+</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.select().from(<@@>tableName.camelCase</@@>);
 </@@IF@@>  return c.json(result);
 });
 
-// GET single <@@>tableNameSingular</@@> by ID
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.get('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{valueCamelCase}}</@@LOOP@@>', async (c) => {
-<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>valueCamelCase</@@> = Number(c.req.param('<@@>valueCamelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>valueCamelCase</@@> = c.req.param('<@@>valueCamelCase</@@>');</@@IF@@></@@LOOP@@>
-  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableNameCamelCase</@@>.<@@>valueCamelCase</@@>, <@@>valueCamelCase</@@>)</@@LOOP@@>));
+// GET single <@@>tableName.singular</@@> by ID
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.get('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{value.camelCase}}</@@LOOP@@>', async (c) => {
+<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>value.camelCase</@@> = Number(c.req.param('<@@>value.camelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>value.camelCase</@@> = c.req.param('<@@>value.camelCase</@@>');</@@IF@@></@@LOOP@@>
+  const result = await db.select().from(<@@>tableName.camelCase</@@>).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableName.camelCase</@@>.<@@>value.camelCase</@@>, <@@>value.camelCase</@@>)</@@LOOP@@>));
   if (result.length === 0) {
-    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
   }
   return c.json(result[0]);
 });
 </@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.get('/:id', async (c) => {
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
-  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id)));
-</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.select().from(<@@>tableNameCamelCase</@@>).where(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id));
+  const result = await db.select().from(<@@>tableName.camelCase</@@>).where(and(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableName.camelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id)));
+</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.select().from(<@@>tableName.camelCase</@@>).where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id));
 </@@IF@@>  if (result.length === 0) {
-    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
   }
   return c.json(result[0]);
 });
 </@@IF@@>
 
-// POST create new <@@>tableNameSingular</@@>
-app.post('/', zValidator('json', create<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
+// POST create new <@@>tableName.singular</@@>
+app.post('/', zValidator('json', create<@@>tableName.singular.pascalCase</@@>Schema), async (c) => {
   const data = c.req.valid('json');
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values(data).returning();
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values(data).returning();
 </@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = generateIdFromEntropySize(10);</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
-<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, id, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@>
-</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values({ ...data, id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableNameCamelCase</@@>).values(data).returning();</@@IF@@>
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, id, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@>
+</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values(data).returning();</@@IF@@>
 </@@IF@@></@@IF@@>  return c.json(result[0], 201);
 });
 
-// PUT update <@@>tableNameSingular</@@>
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.put('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{valueCamelCase}}</@@LOOP@@>', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
-<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>valueCamelCase</@@> = Number(c.req.param('<@@>valueCamelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>valueCamelCase</@@> = c.req.param('<@@>valueCamelCase</@@>');</@@IF@@></@@LOOP@@>
+// PUT update <@@>tableName.singular</@@>
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.put('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{value.camelCase}}</@@LOOP@@>', zValidator('json', update<@@>tableName.singular.pascalCase</@@>Schema), async (c) => {
+<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>value.camelCase</@@> = Number(c.req.param('<@@>value.camelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>value.camelCase</@@> = c.req.param('<@@>value.camelCase</@@>');</@@IF@@></@@LOOP@@>
   const data = c.req.valid('json');
-  const result = await db.update(<@@>tableNameCamelCase</@@>).set(data).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableNameCamelCase</@@>.<@@>valueCamelCase</@@>, <@@>valueCamelCase</@@>)</@@LOOP@@>)).returning();
+  const result = await db.update(<@@>tableName.camelCase</@@>).set(data).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableName.camelCase</@@>.<@@>value.camelCase</@@>, <@@>value.camelCase</@@>)</@@LOOP@@>)).returning();
   if (result.length === 0) {
-    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
   }
   return c.json(result[0]);
 });
-</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.put('/:id', zValidator('json', update<@@>tableNamePascalCaseSingular</@@>Schema), async (c) => {
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.put('/:id', zValidator('json', update<@@>tableName.singular.pascalCase</@@>Schema), async (c) => {
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
   const data = c.req.valid('json');
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
-  const result = await db.update(<@@>tableNameCamelCase</@@>).set(data).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
-</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.update(<@@>tableNameCamelCase</@@>).set(data).where(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id)).returning();
+  const result = await db.update(<@@>tableName.camelCase</@@>).set(data).where(and(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableName.camelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
+</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.update(<@@>tableName.camelCase</@@>).set(data).where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id)).returning();
 </@@IF@@>  if (result.length === 0) {
-    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
   }
   return c.json(result[0]);
 });
 </@@IF@@>
 
-// DELETE <@@>tableNameSingular</@@>
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.delete('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{valueCamelCase}}</@@LOOP@@>', async (c) => {
-<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>valueCamelCase</@@> = Number(c.req.param('<@@>valueCamelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>valueCamelCase</@@> = c.req.param('<@@>valueCamelCase</@@>');</@@IF@@></@@LOOP@@>
-  const result = await db.delete(<@@>tableNameCamelCase</@@>).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableNameCamelCase</@@>.<@@>valueCamelCase</@@>, <@@>valueCamelCase</@@>)</@@LOOP@@>)).returning();
+// DELETE <@@>tableName.singular</@@>
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">app.delete('<@@LOOP@@ data="compositePrimaryKey" separator="">/:{{value.camelCase}}</@@LOOP@@>', async (c) => {
+<@@LOOP@@ data="compositePrimaryKey" separator="\n"><@@IF@@ condition="isNumber EQUALS 'true'">  const <@@>value.camelCase</@@> = Number(c.req.param('<@@>value.camelCase</@@>'));</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">  const <@@>value.camelCase</@@> = c.req.param('<@@>value.camelCase</@@>');</@@IF@@></@@LOOP@@>
+  const result = await db.delete(<@@>tableName.camelCase</@@>).where(and(<@@LOOP@@ data="compositePrimaryKey" separator=", ">eq(<@@>tableName.camelCase</@@>.<@@>value.camelCase</@@>, <@@>value.camelCase</@@>)</@@LOOP@@>)).returning();
   if (result.length === 0) {
-    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
   }
   return c.json({ success: true });
 });
 </@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.delete('/:id', async (c) => {
 <@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
-  const result = await db.delete(<@@>tableNameCamelCase</@@>).where(and(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableNameCamelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
-</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.delete(<@@>tableNameCamelCase</@@>).where(eq(<@@>tableNameCamelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id)).returning();
+  const result = await db.delete(<@@>tableName.camelCase</@@>).where(and(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableName.camelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
+</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.delete(<@@>tableName.camelCase</@@>).where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id)).returning();
 </@@IF@@>  if (result.length === 0) {
-    return c.json({ error: '<@@>tableNamePascalCaseSingular</@@> not found' }, 404);
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
   }
   return c.json({ success: true });
 });

@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'each',
-  route: `Route::post('{{tableNameKebabCasePlural}}/each', [{{tableNamePascalCase}}Controller::class, 'each'])->name('{{tableNameKebabCasePlural}}.each');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/each', [{{tableName.pascalCase}}Controller::class, 'each'])->name('{{tableName.plural.kebabCase}}.each');`,
   description: 'Process each record individually',
   repositoryMethod: `each(callable $callback): bool`,
   repositoryContent: `return $this->model->each($callback);`,

@@ -61,7 +61,7 @@ describe('processDynamicFolders - View Table Exclusion', () => {
       const userFiles: IStructure = [];
 
       const result = await processDynamicFolders({
-        folderName: '{{tableNameKebabCasePlural}}',
+        folderName: '{{tableName.plural.kebabCase}}',
         children: [],
         schemaInfo,
         schemaInfoParsed,
@@ -119,7 +119,7 @@ describe('processDynamicFolders - View Table Exclusion', () => {
       const userFiles: IStructure = [];
 
       const result = await processDynamicFolders({
-        folderName: '{{tableNameKebabCasePlural}}',
+        folderName: '{{tableName.plural.kebabCase}}',
         children: [],
         schemaInfo,
         schemaInfoParsed,
@@ -154,7 +154,7 @@ describe('processDynamicFolders - View Table Exclusion', () => {
       const userFiles: IStructure = [];
 
       const result = await processDynamicFolders({
-        folderName: '{{tableNameKebabCasePlural}}',
+        folderName: '{{tableName.plural.kebabCase}}',
         children: [],
         schemaInfo,
         schemaInfoParsed,
@@ -214,7 +214,7 @@ describe('processDynamicFolders - View Table Exclusion', () => {
       const userFiles: IStructure = [];
 
       const result = await processDynamicFolders({
-        folderName: '{{tableNameKebabCasePlural}}',
+        folderName: '{{tableName.plural.kebabCase}}',
         children: [],
         schemaInfo,
         schemaInfoParsed,
@@ -282,7 +282,7 @@ describe('processDynamicFolders - View Table Exclusion', () => {
       const userFiles: IStructure = [];
 
       const result = await processDynamicFolders({
-        folderName: '{{tableNameKebabCasePlural}}',
+        folderName: '{{tableName.plural.kebabCase}}',
         children: [],
         schemaInfo,
         schemaInfoParsed,

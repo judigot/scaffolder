@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 import { exportData } from '@/hooks/shared/useExport.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IExportData {
   format: 'csv' | 'excel' | 'json' | 'pdf';
@@ -9,7 +9,7 @@ interface IExportData {
   filename?: string;
 }
 
-export const useExport{{tableNamePascalCaseSingular}} = (
+export const useExport{{tableName.singular.pascalCase}} = (
   options?: Omit<
     UseMutationOptions<{ url: string; filename: string }, Error, IExportData>,
     'mutationFn'
@@ -19,8 +19,8 @@ export const useExport{{tableNamePascalCaseSingular}} = (
 
   return useMutation({
     mutationFn: ({ format, filters, columns, filename }: IExportData) =>
-      exportData<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}',
+      exportData<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}',
         format,
         filters,
         columns,

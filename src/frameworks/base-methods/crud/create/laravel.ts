@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'create',
-  route: `Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}', [{{tableName.pascalCase}}Controller::class, 'store'])->name('{{tableName.plural.kebabCase}}.store');`,
   description: 'Create a new record',
   repositoryMethod: `{{methodName}}(array $data): Model`,
   repositoryContent: `return $this->model->{{methodName}}($data);`,

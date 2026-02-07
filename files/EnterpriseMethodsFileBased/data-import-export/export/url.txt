@@ -1,1 +1,1 @@
-{{tableNameKebabCasePlural}}/export 
+{{tableName.plural.kebabCase}}/export 

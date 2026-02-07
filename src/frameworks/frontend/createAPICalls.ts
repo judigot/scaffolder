@@ -13,7 +13,7 @@ type IBody = Omit<I{{className}}, '{{primaryKey}}' | 'created_at' | 'updated_at'
 export const create{{className}} = async (
   formData: IBody,
 ): Promise<IBody | undefined> => {
-  const result: IBody | undefined = await axiosInstance.post<IBody>('/{{tableNamePlural}}', formData);
+  const result: IBody | undefined = await axiosInstance.post<IBody>('/{{tableName.plural}}', formData);
   return result;
 };
 `;
@@ -23,7 +23,7 @@ import axiosInstance from '../axiosInstance';
 import { I{{className}} } from '@/interfaces/interfaces.ts';
 
 export const read{{className}} = async (): Promise<I{{className}}[]> => {
-  const response = await axiosInstance.get<I{{className}}[]>('/{{tableNamePlural}}');
+  const response = await axiosInstance.get<I{{className}}[]>('/{{tableName.plural}}');
   return response.data;
 };
 `;
@@ -35,7 +35,7 @@ import { I{{className}} } from '@/interfaces/interfaces.ts';
 type IBody = I{{className}};
 
 export const update{{className}} = async (formData: IBody): Promise<IBody> => {
-  const result: IBody = await axiosInstance.patch<IBody>('/{{tableNamePlural}}', formData);
+  const result: IBody = await axiosInstance.patch<IBody>('/{{tableName.plural}}', formData);
   return result;
 };
 `;
@@ -44,7 +44,7 @@ const DELETE_TEMPLATE = `
 import axiosInstance from '../axiosInstance';
 
 export const delete{{className}} = async (id: number): Promise<void> => {
-  await axiosInstance.delete(\`/{{tableNamePlural}}/\${String(id)}\`);
+  await axiosInstance.delete(\`/{{tableName.plural}}/\${String(id)}\`);
 };
 `;
 

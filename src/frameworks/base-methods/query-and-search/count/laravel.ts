@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'count',
-  route: `Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.count');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/count', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.count');`,
   description: 'Count records by criteria',
   repositoryMethod: `{{methodName}}(array $criteria = []): int`,
   repositoryContent: `return $this->model->where($criteria)->count();`,

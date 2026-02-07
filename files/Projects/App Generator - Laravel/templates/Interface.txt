@@ -2,12 +2,12 @@
 
 namespace App\Repositories;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{valuePascalCaseSingular}};" --separator="\n" ]]
-use App\Models\{{tableNamePascalCaseSingular}};
+[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{value.singular.pascalCase}};" --separator="\n" ]]
+use App\Models\{{tableName.singular.pascalCase}};
 use Illuminate\Support\Collection;
 use App\Repositories\BaseInterface;
 
-interface {{tableNamePascalCaseSingular}}Interface extends BaseInterface
+interface {{tableName.singular.pascalCase}}Interface extends BaseInterface
 {
 [[USE_TEMPLATE(/DomainMethods/laravel/interface.txt)]]
 }

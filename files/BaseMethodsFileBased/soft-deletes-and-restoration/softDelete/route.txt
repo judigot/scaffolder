@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{url}}/soft-delete - Marks a {{tableNamePascalCaseSingular}} resource as deleted without removing it from the database
-Route::delete('{{url}}/soft-delete', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.soft-delete');
+// http://127.0.0.1:8000/api/{{url}}/soft-delete - Marks a {{tableName.singular.pascalCase}} resource as deleted without removing it from the database
+Route::delete('{{url}}/soft-delete', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.soft-delete');

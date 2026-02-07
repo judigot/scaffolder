@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { getOnlyTrashedResources } from '@/hooks/shared/useOnlyTrashed.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IOnlyTrashedParams {
   filters?: Record<string, unknown>;
@@ -9,18 +9,18 @@ interface IOnlyTrashedParams {
   orderDirection?: 'asc' | 'desc';
 }
 
-export const useOnlyTrashed{{tableNamePascalCasePlural}} = (
+export const useOnlyTrashed{{tableName.plural.pascalCase}} = (
   params: IOnlyTrashedParams = {},
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'onlyTrashed', params.filters, params.limit, params.orderBy, params.orderDirection],
+    queryKey: ['{{tableName.plural.camelCase}}', 'onlyTrashed', params.filters, params.limit, params.orderBy, params.orderDirection],
     queryFn: () =>
-      getOnlyTrashedResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/only-trashed',
+      getOnlyTrashedResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/only-trashed',
         params.filters,
         params.limit,
         params.orderBy,

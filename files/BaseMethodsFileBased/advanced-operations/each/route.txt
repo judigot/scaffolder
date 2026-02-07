@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{tableNameKebabCasePlural}}/{{methodNameKebabCase}} - Process each {{tableNamePascalCaseSingular}} record individually
-Route::post('{{tableNameKebabCasePlural}}/{{methodNameKebabCase}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.{{methodNameKebabCase}}');
+// http://127.0.0.1:8000/api/{{tableName.plural.kebabCase}}/{{methodNameKebabCase}} - Process each {{tableName.singular.pascalCase}} record individually
+Route::post('{{tableName.plural.kebabCase}}/{{methodNameKebabCase}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.{{methodNameKebabCase}}');

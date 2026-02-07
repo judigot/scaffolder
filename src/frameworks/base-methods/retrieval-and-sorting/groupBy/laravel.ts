@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'groupBy',
-  route: `Route::get('{{tableNameKebabCasePlural}}/group-by', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.group-by');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/group-by', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.group-by');`,
   description: 'Group records by a specific column',
   repositoryMethod: `{{methodName}}(string $column): Collection`,
   repositoryContent: `return $this->model->groupBy($column)->get();`,

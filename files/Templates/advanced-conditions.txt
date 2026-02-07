@@ -1,7 +1,7 @@
-{{tableNamePascalCase}} Column Analysis:
+{{tableName.pascalCase}} Column Analysis:
   [[ LOOP(columnsInfo) --template="
-/* Column Information: {{valueCamelCase}} */
-Base Name: {{valueCamelCase}}
+/* Column Information: {{value.camelCase}} */
+Base Name: {{value.camelCase}}
 Data Type: {{data_type}}
 Nullable: {{is_nullable}}
 Default Value: {{column_default}}

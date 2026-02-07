@@ -1,11 +1,11 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
 
 @Entity({ tableName: '<@@>tableName</@@>' })
-export class <@@>tableNamePascalCaseSingular</@@> {
+export class <@@>tableName.singular.pascalCase</@@> {
 <@@LOOP@@ data="columnsInfo" separator="\n\n">
   <@@IF@@ condition="is_primary_key EQUALS 'true'">
   @PrimaryKey({ type: 'bigint', autoincrement: true })
-  <@@>valueCamelCase</@@>!: number;
+  <@@>value.camelCase</@@>!: number;
   </@@IF@@>
   <@@IF@@ condition="is_primary_key EQUALS 'false'">
   @Property({
@@ -16,7 +16,7 @@ export class <@@>tableNamePascalCaseSingular</@@> {
     nullable: true</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'">,
     unique: true</@@IF@@>
   })
-  <@@>valueCamelCase</@@><@@IF@@ condition="is_nullable EQUALS 'NO'">!</@@IF@@>: <@@IF@@ condition="data_type EQUALS 'number'">number<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'Date'">Date<@@ELSE@@>string</@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@>;
+  <@@>value.camelCase</@@><@@IF@@ condition="is_nullable EQUALS 'NO'">!</@@IF@@>: <@@IF@@ condition="data_type EQUALS 'number'">number<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'boolean'">boolean<@@ELSE@@><@@IF@@ condition="data_type EQUALS 'Date'">Date<@@ELSE@@>string</@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@></@@ELSE@@></@@IF@@>;
   </@@IF@@>
 </@@LOOP@@>
 }

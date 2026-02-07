@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'paginate',
-  route: `Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.paginate');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}/paginate', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.paginate');`,
   description: 'Paginate records',
   repositoryMethod: `{{methodName}}(int $perPage = 15)`,
   repositoryContent: `return $this->model->paginate($perPage);`,

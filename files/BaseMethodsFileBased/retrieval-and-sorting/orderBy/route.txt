@@ -1,2 +1,2 @@
-// http://127.0.0.1:8000/api/{{url}} - Retrieves {{tableNamePascalCaseSingular}} resources ordered by a specified column and direction
-Route::get('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.order-by');
+// http://127.0.0.1:8000/api/{{url}} - Retrieves {{tableName.singular.pascalCase}} resources ordered by a specified column and direction
+Route::get('{{url}}', [{{tableName.singular.pascalCase}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableName.plural.kebabCase}}.order-by');

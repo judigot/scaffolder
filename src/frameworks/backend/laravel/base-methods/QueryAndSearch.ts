@@ -5,7 +5,7 @@ export default {
   methods: [
     {
       methodName: 'findByAttributes',
-      route: `Route::get('{{tableNameKebabCasePlural}}/find-by-attributes', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/find-by-attributes', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.find-by-attributes');`,
       description: 'Find a record by specific attributes',
       repositoryMethod: '{{methodName}}(array $attributes): ?Model',
       repositoryContent: 'return $this->model->where($attributes)->first();',
@@ -22,7 +22,7 @@ export default {
     },
     {
       methodName: 'paginate',
-      route: `Route::get('{{tableNameKebabCasePlural}}/paginate', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.paginate');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/paginate', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.paginate');`,
       description: 'Paginate records',
       repositoryMethod: '{{methodName}}(int $perPage = 15)',
       repositoryContent: 'return $this->model->paginate($perPage);',
@@ -39,7 +39,7 @@ export default {
     },
     {
       methodName: 'search',
-      route: `Route::get('{{tableNameKebabCasePlural}}/search', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.search');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/search', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.search');`,
       description: 'Search records',
       repositoryMethod:
         '{{methodName}}(string $query, array $fields, int $perPage = 15)',
@@ -66,7 +66,7 @@ export default {
     },
     {
       methodName: 'count',
-      route: `Route::get('{{tableNameKebabCasePlural}}/count', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.count');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/count', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.count');`,
       description: 'Count records by criteria',
       repositoryMethod: '{{methodName}}(array $criteria = []): int',
       repositoryContent: 'return $this->model->where($criteria)->count();',
@@ -83,7 +83,7 @@ export default {
     },
     {
       methodName: 'exists',
-      route: `Route::get('{{tableNameKebabCasePlural}}/exists', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.exists');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/exists', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.exists');`,
       description: 'Check if a record exists',
       repositoryMethod: '{{methodName}}(array $criteria): bool',
       repositoryContent: 'return $this->model->where($criteria)->exists();',

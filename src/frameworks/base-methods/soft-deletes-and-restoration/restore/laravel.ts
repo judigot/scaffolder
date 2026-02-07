@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'restore',
-  route: `Route::put('{{tableNameKebabCasePlural}}/{id}/restore', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.restore');`,
+  route: `Route::put('{{tableName.plural.kebabCase}}/{id}/restore', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.restore');`,
   description: 'Restore a soft-deleted record by ID',
   repositoryMethod: `{{methodName}}(int $id): bool`,
   repositoryContent: `

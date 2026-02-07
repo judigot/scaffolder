@@ -24,7 +24,7 @@ function RootComponent() {
           <div className="nav-links">
             {auth.isAuthenticated ? (
               <>
-<@@LOOP@@ data="tables" separator="\n">                <Link to="/<@@>tableNameKebabCaseSingular</@@>"><@@>tableNameTitleCase</@@></Link></@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">                <Link to="/<@@>tableName.singular.kebabCase</@@>"><@@>tableName.titleCase</@@></Link></@@LOOP@@>
                 <LogoutButton />
               </>
             ) : (
