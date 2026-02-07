@@ -1,15 +1,13 @@
 const warnedLegacySyntax = new Set<string>();
 
-const buildWarningKey = (syntax: string, templateFilePath?: string): string => {
-  return `${templateFilePath ?? '<inline>'}:${syntax}`;
-};
+const buildWarningKey = (syntax: string): string => syntax;
 
 const warnOnce = (
   syntax: string,
   recommendation: string,
   templateFilePath?: string,
 ): void => {
-  const key = buildWarningKey(syntax, templateFilePath);
+  const key = buildWarningKey(syntax);
   if (warnedLegacySyntax.has(key)) {
     return;
   }
