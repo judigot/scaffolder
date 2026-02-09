@@ -5,7 +5,9 @@ use App\Http\Controllers\<@@>tableName.singular.pascalCase</@@>Controller;
 
 // Custom routes for <@@>tableName.singular.pascalCase</@@>
 <@@LOOP@@ data="hasOne" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]</@@LOOP@@>
-<@@LOOP@@ data="hasMany, pivotRelationships.relatedTable" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasMany/laravel/route.txt)]]
+<@@LOOP@@ data="hasMany" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasMany/laravel/route.txt)]]
+[[USE_TEMPLATE(/DomainMethods/getAllWithRelated/laravel/route.txt)]]</@@LOOP@@>
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasMany/laravel/route.txt)]]
 [[USE_TEMPLATE(/DomainMethods/getAllWithRelated/laravel/route.txt)]]</@@LOOP@@>
 <@@LOOP@@ data="belongsTo" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]</@@LOOP@@>
 

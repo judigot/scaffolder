@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { createSchemaFactory } from 'drizzle-zod';
+import { z } from 'zod';
 import { db } from '../db';
 import { <@@>tableName.camelCase</@@> } from '../db/schema';
 import { eq<@@IF@@ condition="isAuthResource EQUALS 'true' OR hasCompositePrimaryKey() EQUALS 'true'">, and</@@IF@@> } from 'drizzle-orm';
@@ -20,6 +21,111 @@ const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
 </@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">const create<@@>tableName.singular.pascalCase</@@>Schema = createInsertSchema(<@@>tableName.camelCase</@@>).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true });
 </@@IF@@>
 const update<@@>tableName.singular.pascalCase</@@>Schema = create<@@>tableName.singular.pascalCase</@@>Schema.partial();
+const update<@@>tableName.singular.pascalCase</@@>SchemaNonEmpty = update<@@>tableName.singular.pascalCase</@@>Schema.refine((data) => Object.keys(data).length > 0, {
+  message: 'At least one field must be provided',
+});
+
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">const idParamSchema = z.object({ id: z.coerce.number().int().positive() });</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">const idParamSchema = z.object({ id: z.string().min(1) });</@@IF@@>
+</@@IF@@>
+
+// Repository pattern (table-specific data access)
+const repository = {
+  async existsById(id: number | string) {
+    const result = await db
+      .select()
+      .from(<@@>tableName.camelCase</@@>)
+      .where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id as never));
+    return result.length > 0;
+  },
+
+<@@LOOP@@ data="hasOne" separator="\n\n">  async get<@@>value.singular.pascalCase</@@>(id: number | string) {
+    const exists = await this.existsById(id);
+    if (!exists) {
+      return null;
+    }
+    return null;
+  },</@@LOOP@@>
+
+<@@LOOP@@ data="hasMany" separator="\n\n">  async get<@@>value.plural.pascalCase</@@>(id: number | string) {
+    const exists = await this.existsById(id);
+    if (!exists) {
+      return null;
+    }
+    return [];
+  },
+
+  async getAllWithRelated<@@>value.plural.pascalCase</@@>() {
+    return db.select().from(<@@>tableName.camelCase</@@>);
+  },</@@LOOP@@>
+
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">  async get<@@>value.plural.pascalCase</@@>(id: number | string) {
+    const exists = await this.existsById(id);
+    if (!exists) {
+      return null;
+    }
+    return [];
+  },
+
+  async getAllWithRelated<@@>value.plural.pascalCase</@@>() {
+    return db.select().from(<@@>tableName.camelCase</@@>);
+  },</@@LOOP@@>
+
+<@@LOOP@@ data="belongsTo" separator="\n\n">  async get<@@>value.singular.pascalCase</@@>(id: number | string) {
+    const exists = await this.existsById(id);
+    if (!exists) {
+      return null;
+    }
+    return null;
+  },</@@LOOP@@>
+};
+
+// Relationship/base-method endpoints
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@LOOP@@ data="hasOne" separator="\n">app.get('/:id/<@@>value.singular.kebabCase</@@>', zValidator('param', idParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await repository.get<@@>value.singular.pascalCase</@@>(id);
+  if (!result) {
+    return c.json({ error: '<@@>value.singular.pascalCase</@@> not found' }, 404);
+  }
+  return c.json(result);
+});</@@LOOP@@>
+
+<@@LOOP@@ data="hasMany" separator="\n">app.get('/:id/<@@>value.plural.kebabCase</@@>', zValidator('param', idParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await repository.get<@@>value.plural.pascalCase</@@>(id);
+  if (!result) {
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
+  }
+  return c.json(result);
+});
+
+app.get('/get-all-with-related-<@@>value.plural.kebabCase</@@>', async (c) => {
+  const result = await repository.getAllWithRelated<@@>value.plural.pascalCase</@@>();
+  return c.json(result);
+});</@@LOOP@@>
+
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">app.get('/:id/<@@>value.plural.kebabCase</@@>', zValidator('param', idParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await repository.get<@@>value.plural.pascalCase</@@>(id);
+  if (!result) {
+    return c.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, 404);
+  }
+  return c.json(result);
+});
+
+app.get('/get-all-with-related-<@@>value.plural.kebabCase</@@>', async (c) => {
+  const result = await repository.getAllWithRelated<@@>value.plural.pascalCase</@@>();
+  return c.json(result);
+});</@@LOOP@@>
+
+<@@LOOP@@ data="belongsTo" separator="\n">app.get('/:id/<@@>value.singular.kebabCase</@@>', zValidator('param', idParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await repository.get<@@>value.singular.pascalCase</@@>(id);
+  if (!result) {
+    return c.json({ error: '<@@>value.singular.pascalCase</@@> not found' }, 404);
+  }
+  return c.json(result);
+});</@@LOOP@@>
+</@@IF@@>
 
 // GET all <@@>tableName</@@>
 app.get('/', async (c) => {
@@ -38,8 +144,8 @@ app.get('/', async (c) => {
   }
   return c.json(result[0]);
 });
-</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.get('/:id', async (c) => {
-<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.get('/:id', zValidator('param', idParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.select().from(<@@>tableName.camelCase</@@>).where(and(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableName.camelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id)));
 </@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.select().from(<@@>tableName.camelCase</@@>).where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id));
@@ -71,8 +177,8 @@ app.post('/', zValidator('json', create<@@>tableName.singular.pascalCase</@@>Sch
   }
   return c.json(result[0]);
 });
-</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.put('/:id', zValidator('json', update<@@>tableName.singular.pascalCase</@@>Schema), async (c) => {
-<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.put('/:id', zValidator('param', idParamSchema), zValidator('json', update<@@>tableName.singular.pascalCase</@@>SchemaNonEmpty), async (c) => {
+  const { id } = c.req.valid('param');
   const data = c.req.valid('json');
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.update(<@@>tableName.camelCase</@@>).set(data).where(and(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableName.camelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
@@ -93,8 +199,8 @@ app.post('/', zValidator('json', create<@@>tableName.singular.pascalCase</@@>Sch
   }
   return c.json({ success: true });
 });
-</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.delete('/:id', async (c) => {
-<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = c.req.param('id');</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const id = Number(c.req.param('id'));</@@IF@@>
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">app.delete('/:id', zValidator('param', idParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
   const result = await db.delete(<@@>tableName.camelCase</@@>).where(and(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id), eq(<@@>tableName.camelCase</@@>.<@@>ownerFieldCamelCase</@@>, user.id))).returning();
 </@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'">  const result = await db.delete(<@@>tableName.camelCase</@@>).where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id)).returning();

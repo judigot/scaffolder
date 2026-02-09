@@ -1,27 +1,34 @@
+$USE_CORE:
+  - /Core/laravel
+
 app:
-    Http:
-        Controllers:
-            - IMPORT_PROJECT(Projects/App Generator - Next.js.yaml)
-            - CREATE_FILE(BaseController.php --template ./templates/BaseController.txt)
-            - CREATE_FILE(AuthController.php --conditions hasUsers=true --template ./templates/AuthController.txt)
-            - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Controller.php --template ./templates/Controller.txt)
-        Resources:
-            - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Resource.php --template ./templates/Resource.txt)
-    Models:
-        - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>.php --template ./templates/Model.txt)
-    Providers:
-        - CREATE_FILE(AppServiceProvider.php --template ./templates/AppServiceProvider.txt)
-    Repositories:
-        - CREATE_FILE(BaseInterface.php --template ./templates/BaseInterface.txt)
-        - CREATE_FILE(BaseRepository.php --template ./templates/BaseRepository.txt)
-        - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Repository.php --template ./templates/Repository.txt)
-        - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Interface.php --template ./templates/Interface.txt)
-    Services:
-        - CREATE_FILE(BaseService.php --template ./templates/BaseService.txt)
-        - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Service.php --template ./templates/Service.txt)
+  Http:
+    Controllers:
+      - IMPORT_PROJECT(Projects/App Generator - Next.js.yaml)
+      - CREATE_FILE(BaseController.php --template ./templates/BaseController.txt)
+      - CREATE_FILE(AuthController.php --conditions hasUsers=true --template ./templates/AuthController.txt)
+      - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Controller.php --template ./templates/Controller.txt)
+    Resources:
+      - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Resource.php --template ./templates/Resource.txt)
+  Models:
+    - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>.php --template ./templates/Model.txt)
+  Providers:
+    - CREATE_FILE(AppServiceProvider.php --template ./templates/AppServiceProvider.txt)
+  Repositories:
+    - CREATE_FILE(BaseInterface.php --template ./templates/BaseInterface.txt)
+    - CREATE_FILE(BaseRepository.php --template ./templates/BaseRepository.txt)
+    - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Repository.php --template ./templates/Repository.txt)
+    - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Interface.php --template ./templates/Interface.txt)
+  Services:
+    - CREATE_FILE(BaseService.php --template ./templates/BaseService.txt)
+    - FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Service.php --template ./templates/Service.txt)
 routes:
-    - CREATE_FILE(api.php --template ./templates/api.txt)
-    - FILE_LOOP(<@@>tableName.plural.kebabCase</@@>.php --template ./templates/Route.txt)
+  - CREATE_FILE(api.php --template ./templates/api.txt)
+  - FILE_LOOP(<@@>tableName.plural.kebabCase</@@>.php --template ./templates/Route.txt)
+
+database:
+  migrations:
+    - FILE_LOOP(<@@>index(1, 4, 1000)</@@>_create_<@@>tableName.plural.snakeCase</@@>_table.php --template ./templates/Migration.txt)
 
 # API test script
 CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):

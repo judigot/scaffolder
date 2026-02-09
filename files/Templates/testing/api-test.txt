@@ -243,12 +243,41 @@ test_crud_composite() {
   assert_status 404 "GET /api/$endpoint/$id_path (should be 404)"
 }
 
+# Test relationship/base-method endpoints (allow 404 when no related rows exist)
+# Args: name, endpoint, use_auth
+test_endpoint_smoke() {
+  local name=$1 endpoint=$2 use_auth=${3:-false}
+
+  log_step "Testing $name endpoint$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
+  api_call GET "$API_BASE/$endpoint" "" "$use_auth"
+
+  if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ]; then
+    log_success "GET /api/$endpoint (status: $STATUS)"
+  else
+    log_error "GET /api/$endpoint (expected: 200 or 404, got: $STATUS)"
+    echo "  Response: $BODY"
+  fi
+}
+
 # ═══════════════════════════════════════════════════════════════
 # TABLE TESTS
 # ═══════════════════════════════════════════════════════════════
 <@@LOOP@@ data="tables" separator="\n\n">
 # Test <@@>tableName.titleCase</@@>
 <@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">test_crud_composite '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@LOOP@@ data="compositePrimaryKey" separator=","><@@>value.camelCase</@@></@@LOOP@@>' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">test_crud '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>primaryKey</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'</@@IF@@>
+</@@LOOP@@>
+
+# ═══════════════════════════════════════════════════════════════
+# BASE METHOD ENDPOINT TESTS (Relationships)
+# ═══════════════════════════════════════════════════════════════
+
+<@@LOOP@@ data="tables" separator="\n">
+<@@LOOP@@ data="hasOne" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.singular.kebabCase</@@>' 'false'</@@LOOP@@>
+<@@LOOP@@ data="hasMany" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.plural.kebabCase</@@>' 'false'
+test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'false'</@@LOOP@@>
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.plural.kebabCase</@@>' 'false'
+test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'false'</@@LOOP@@>
+<@@LOOP@@ data="belongsTo" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.singular.kebabCase</@@>' 'false'</@@LOOP@@>
 </@@LOOP@@>
 
 # ═══════════════════════════════════════════════════════════════

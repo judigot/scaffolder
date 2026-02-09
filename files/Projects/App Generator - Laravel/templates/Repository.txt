@@ -14,5 +14,53 @@ class <@@>tableName.singular.pascalCase</@@>Repository extends BaseRepository im
         parent::__construct($<@@>tableName.singular</@@>);
     }
 
-[[USE_TEMPLATE(/DomainMethods/laravel/repository.txt)]]
+<@@LOOP@@ data="hasOne" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(int $id): ?<@@>value.singular.pascalCase</@@>
+    {
+        return $this->model->findOrFail($id)-><@@>value.singular</@@>;
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="hasMany" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->model->findOrFail($id)-><@@>value.plural</@@>();
+        $column ??= $query->getModel()->getKeyName();
+        return $query->orderBy($column, $direction)->get();
+    }
+
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->getSortedQuery($column, $direction);
+        if ($includeRelated) {
+            $query->with('<@@>value.plural</@@>');
+        }
+        return $query->get();
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->model->findOrFail($id)-><@@>value.plural</@@>();
+        $column ??= $query->getModel()->getKeyName();
+        return $query->orderBy($column, $direction)->get();
+    }
+
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->getSortedQuery($column, $direction);
+        if ($includeRelated) {
+            $query->with('<@@>value.plural</@@>');
+        }
+        return $query->get();
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="belongsTo" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(int $id): ?Model
+    {
+        return $this->model->findOrFail($id)-><@@>value.singular</@@>;
+    }
+</@@LOOP@@>
 }

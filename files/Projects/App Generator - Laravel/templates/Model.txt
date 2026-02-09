@@ -27,5 +27,27 @@ class <@@>tableName.singular.pascalCase</@@> extends Model
         return $this->primaryKey;
     }
 
-[[USE_TEMPLATE(/DomainMethods/laravel/model.txt)]]
+<@@LOOP@@ data="hasOne" separator="\n\n">
+    public function <@@>value.singular</@@>() {
+        return $this->hasOne(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="hasMany" separator="\n\n">
+    public function <@@>value.plural</@@>() {
+        return $this->hasMany(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
+    public function <@@>value.plural</@@>() {
+        return $this->belongsToMany(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="belongsTo" separator="\n\n">
+    public function <@@>value.singular</@@>() {
+        return $this->belongsTo(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>
 }
