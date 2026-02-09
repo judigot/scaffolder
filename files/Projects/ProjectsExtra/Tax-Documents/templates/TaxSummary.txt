@@ -160,17 +160,17 @@
       </table>
     </div>
 
-    {{#if refund-or-owed.type == "Refund"}}
+    <@@>#if refund-or-owed.type == "Refund"</@@>
     <div class="refund-box">
       <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">REFUND DUE</div>
       <div class="amount-large" style="color: #4caf50;">$[[USE_DATA(refund-or-owed.amount)]]</div>
     </div>
-    {{else}}
+    <@@>else</@@>
     <div class="owed-box">
       <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">AMOUNT OWED</div>
       <div class="amount-large" style="color: #f44336;">$[[USE_DATA(refund-or-owed.amount)]]</div>
     </div>
-    {{/if}}
+    <@@>/if</@@>
 
     <div class="footer">
       <p><strong>Prepared By:</strong> [[USE_DATA(prepared-by.name)]]</p>

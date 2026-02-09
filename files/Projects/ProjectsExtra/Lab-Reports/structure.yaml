@@ -1,2 +1,2 @@
-LOOP_FOLDERS({{experiment.id}}-{{experiment.title}}-Report.html --data-source=/DataSources/Experiments/**/info.yaml --template=./templates/LabReport.txt)
+LOOP_FOLDERS(<@@>experiment.id</@@>-<@@>experiment.title</@@>-Report.html --data-source=/DataSources/Experiments/**/info.yaml --template=./templates/LabReport.txt)
 

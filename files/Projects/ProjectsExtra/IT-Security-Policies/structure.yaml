@@ -1,2 +1,2 @@
-- LOOP_FOLDERS({{network.name}}-SecurityPolicy.md --data-source=/DataSources/IT-Networks/**/info.yaml --template=./templates/SecurityPolicy.txt)
+- LOOP_FOLDERS(<@@>network.name</@@>-SecurityPolicy.md --data-source=/DataSources/IT-Networks/**/info.yaml --template=./templates/SecurityPolicy.txt)
 

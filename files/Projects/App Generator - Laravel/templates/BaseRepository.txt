@@ -28,8 +28,8 @@ abstract class BaseRepository implements BaseInterface
     }
 
     // Base Methods
-<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">    public function {{repositoryMethod}}
+<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">    public function <@@>repositoryMethod</@@>
     {
-        {{repositoryContent}}
+        <@@>repositoryContent</@@>
     }</@@LOOP@@>
 }

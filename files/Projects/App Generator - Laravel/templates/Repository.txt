@@ -2,16 +2,16 @@
 
 namespace App\Repositories;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{value.singular.pascalCase}};" --separator="\n" ]]
-use App\Models\{{tableName.singular.pascalCase}};
+[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\<@@>value.singular.pascalCase</@@>;" --separator="\n" ]]
+use App\Models\<@@>tableName.singular.pascalCase</@@>;
 use Illuminate\Support\Collection;
 use App\Repositories\BaseRepository;
 
-class {{tableName.singular.pascalCase}}Repository extends BaseRepository implements {{tableName.singular.pascalCase}}Interface
+class <@@>tableName.singular.pascalCase</@@>Repository extends BaseRepository implements <@@>tableName.singular.pascalCase</@@>Interface
 {
-    public function __construct({{tableName.singular.pascalCase}} ${{tableName.singular}})
+    public function __construct(<@@>tableName.singular.pascalCase</@@> $<@@>tableName.singular</@@>)
     {
-        parent::__construct(${{tableName.singular}});
+        parent::__construct($<@@>tableName.singular</@@>);
     }
 
 [[USE_TEMPLATE(/DomainMethods/laravel/repository.txt)]]

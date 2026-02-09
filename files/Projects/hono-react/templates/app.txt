@@ -4,7 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 function InnerApp() {
   const auth = useAuth();
-  return <RouterProvider router={router} context={{ auth }} />;
+  const contextValue = { auth };
+  return <RouterProvider router={router} context={contextValue} />;
 }
 
 function App() {

@@ -1,6 +1,6 @@
 ## [[USE_DATA(title)]]
 
-[[USE_TEMPLATE(/DataSources/Creative-Book-Manuscripts/{{folderName}}/sections/{{sectionPath}})]]
+[[USE_TEMPLATE(/DataSources/Creative-Book-Manuscripts/<@@>folderName</@@>/sections/<@@>sectionPath</@@>)]]
 
 **Word Count:** [[USE_DATA(word-count)]]  
 **POV:** [[USE_DATA(pov)]]  

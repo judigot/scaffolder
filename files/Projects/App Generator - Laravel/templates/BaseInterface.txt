@@ -8,5 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 interface BaseInterface
 {
     public function getSortedQuery(?string $column = null, string $direction = 'asc'): \Illuminate\Database\Eloquent\Builder;
-<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n">    public function {{repositoryMethod}};</@@LOOP@@>
+<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n">    public function <@@>repositoryMethod</@@>;</@@LOOP@@>
 }

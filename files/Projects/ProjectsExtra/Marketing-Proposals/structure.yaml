@@ -1,1 +1,1 @@
-LOOP_FOLDERS(Proposal-{{client.company-name}}-{{proposal.date}}.html --data-source=//DataSources/People/**/info.yaml --template=./templates/Proposal.txt)
+LOOP_FOLDERS(Proposal-<@@>client.company-name</@@>-<@@>proposal.date</@@>.html --data-source=//DataSources/People/**/info.yaml --template=./templates/Proposal.txt)

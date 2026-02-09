@@ -1,5 +1,5 @@
 ! [[USE_DATA(network.name)]] Switch Configuration
-! Generated: {{current-date}}
+! Generated: <@@>current-date</@@>
 ! Location: [[USE_DATA(network.location)]]
 
 hostname [[USE_DATA(devices[1].name)]]

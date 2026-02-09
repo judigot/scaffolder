@@ -4,8 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-<@@LOOP@@ data="tables" separator="\n">use App\Repositories\{{tableName.singular.pascalCase}}Repository;
-use App\Repositories\{{tableName.singular.pascalCase}}Interface;</@@LOOP@@>
+<@@LOOP@@ data="tables" separator="\n">use App\Repositories\<@@>tableName.singular.pascalCase</@@>Repository;
+use App\Repositories\<@@>tableName.singular.pascalCase</@@>Interface;</@@LOOP@@>
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        <@@LOOP@@ data="tables" separator="\n        ">$this->app->bind({{tableName.singular.pascalCase}}Interface::class, {{tableName.singular.pascalCase}}Repository::class);</@@LOOP@@>
+        <@@LOOP@@ data="tables" separator="\n        ">$this->app->bind(<@@>tableName.singular.pascalCase</@@>Interface::class, <@@>tableName.singular.pascalCase</@@>Repository::class);</@@LOOP@@>
     }
 
     /**

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatatypeParser from '@/utils/DataTypeParser.ts';
 import { prisma } from '@/prisma/DatabaseClient';
-import { {{tableName}} } from '@prisma/client';
-import { {{tableName.pascalCase}} } from '@/Controllers/{{tableName.pascalCase}}Controller.ts';
+import { <@@>tableName</@@> } from '@prisma/client';
+import { <@@>tableName.pascalCase</@@> } from '@/Controllers/<@@>tableName.pascalCase</@@>Controller.ts';
 
-type Response = {{tableName}};
+type Response = <@@>tableName</@@>;
 
 const GetHandler = async (_req: NextRequest) => {
   try {
-    const result: Response[] = await {{tableName.pascalCase}}.index();
+    const result: Response[] = await <@@>tableName.pascalCase</@@>.index();
     return NextResponse.json(DatatypeParser(result));
   } catch (error) {
     console.error(error);

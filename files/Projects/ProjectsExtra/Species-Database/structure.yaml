@@ -1,2 +1,2 @@
-LOOP_FOLDERS({{species.scientific-name}}-FactSheet.html --data-source=/DataSources/Species/**/info.yaml --template=./templates/SpeciesFactSheet.txt)
+LOOP_FOLDERS(<@@>species.scientific-name</@@>-FactSheet.html --data-source=/DataSources/Species/**/info.yaml --template=./templates/SpeciesFactSheet.txt)
 

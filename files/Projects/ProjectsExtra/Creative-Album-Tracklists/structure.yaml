@@ -1,2 +1,2 @@
-- LOOP_FOLDERS({{song.album}}-Tracklist.md --data-source=/DataSources/Creative-Songs/**/info.yaml --template=./templates/AlbumTracklist.txt)
+- LOOP_FOLDERS(<@@>song.album</@@>-Tracklist.md --data-source=/DataSources/Creative-Songs/**/info.yaml --template=./templates/AlbumTracklist.txt)
 

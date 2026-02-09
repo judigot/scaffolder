@@ -1,1 +1,1 @@
-Route::get('{{tableName.plural}}/get-all-with-related-{{value.plural.kebabCase}}', [{{tableName.singular.pascalCase}}Controller::class, 'getAllWithRelated{{value.plural.pascalCase}}'])->name('{{tableName.plural}}.get-all-with-related-{{value.plural.kebabCase}}');
+Route::get('<@@>tableName.plural</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>', [<@@>tableName.singular.pascalCase</@@>Controller::class, 'getAllWithRelated<@@>value.plural.pascalCase</@@>'])->name('<@@>tableName.plural</@@>.get-all-with-related-<@@>value.plural.kebabCase</@@>');

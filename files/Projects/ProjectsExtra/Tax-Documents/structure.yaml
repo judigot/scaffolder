@@ -1,2 +1,2 @@
-LOOP_FOLDERS({{tax-document.taxpayer-name}}-{{tax-document.tax-year}}-TaxSummary.html --data-source=/DataSources/Tax-Documents/**/info.yaml --template=./templates/TaxSummary.txt)
+LOOP_FOLDERS(<@@>tax-document.taxpayer-name</@@>-<@@>tax-document.tax-year</@@>-TaxSummary.html --data-source=/DataSources/Tax-Documents/**/info.yaml --template=./templates/TaxSummary.txt)
 

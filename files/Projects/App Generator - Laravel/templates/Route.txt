@@ -1,17 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{{tableName.singular.pascalCase}}Controller;
+use App\Http\Controllers\<@@>tableName.singular.pascalCase</@@>Controller;
 
-// Custom routes for {{tableName.singular.pascalCase}}
+// Custom routes for <@@>tableName.singular.pascalCase</@@>
 <@@LOOP@@ data="hasOne" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]</@@LOOP@@>
 <@@LOOP@@ data="hasMany, pivotRelationships.relatedTable" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasMany/laravel/route.txt)]]
 [[USE_TEMPLATE(/DomainMethods/getAllWithRelated/laravel/route.txt)]]</@@LOOP@@>
 <@@LOOP@@ data="belongsTo" separator="\n">[[USE_TEMPLATE(/DomainMethods/hasOne/laravel/route.txt)]]</@@LOOP@@>
 
 // Base routes
-<@@LOOP@@ data="/BaseMethodsFileBased/**/**" ignore="/BaseMethodsFileBased/crud/**" separator="\n">// {{description}}
-{{route}}</@@LOOP@@>
+<@@LOOP@@ data="/BaseMethodsFileBased/**/**" ignore="/BaseMethodsFileBased/crud/**" separator="\n">// <@@>description</@@>
+<@@>route</@@></@@LOOP@@>
 
-// Resource routes for {{tableName.singular.pascalCase}}
-Route::apiResource('{{tableName.plural.kebabCase}}', {{tableName.singular.pascalCase}}Controller::class);
+// Resource routes for <@@>tableName.singular.pascalCase</@@>
+Route::apiResource('<@@>tableName.plural.kebabCase</@@>', <@@>tableName.singular.pascalCase</@@>Controller::class);

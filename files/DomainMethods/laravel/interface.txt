@@ -1,6 +1,12 @@
-[[ LOOP(hasOne) --template="    public function get{{value.singular.pascalCase}}(int $id): ?{{value.singular.pascalCase}};" --separator="\n" ]]
+<@@LOOP@@ data="hasOne" separator="\n">
+    public function get<@@>value.singular.pascalCase</@@>(int $id): ?<@@>value.singular.pascalCase</@@>;
+</@@LOOP@@>
 
-[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="    public function get{{value.plural.pascalCase}}(int $id, ?string $column = null, string $direction = 'asc'): Collection;
-    public function getAllWithRelated{{value.plural.pascalCase}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection;" --separator="\n" ]]
+<@@LOOP@@ data="hasMany, pivotRelationships.relatedTable" separator="\n">
+    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection;
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection;
+</@@LOOP@@>
 
-[[ LOOP(belongsTo) --template="    public function get{{value.singular.pascalCase}}(int $id): ?Model;" --separator="\n" ]]
+<@@LOOP@@ data="belongsTo" separator="\n">
+    public function get<@@>value.singular.pascalCase</@@>(int $id): ?Model;
+</@@LOOP@@>

@@ -4,5 +4,5 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('api')->group(function () {
-    <@@LOOP@@ data="tables">require __DIR__ . '/{{tableName.plural.kebabCase}}.php';</@@LOOP@@>
+    <@@LOOP@@ data="tables">require __DIR__ . '/<@@>tableName.plural.kebabCase</@@>.php';</@@LOOP@@>
 });

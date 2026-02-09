@@ -1,3 +1,3 @@
-- LOOP_FOLDERS({{book.title}}-Manuscript.md --data-source=/DataSources/Creative-Book-Manuscripts/**/info.yaml --template=./templates/CompleteManuscript.txt)
-- LOOP_FOLDERS({{book.title}}-Outline.md --data-source=/DataSources/Creative-Book-Manuscripts/**/info.yaml --template=./templates/BookOutline.txt)
-- LOOP_FOLDERS({{book.title}}-Progress.md --data-source=/DataSources/Creative-Book-Manuscripts/**/info.yaml --template=./templates/BookProgress.txt)
+- LOOP_FOLDERS(<@@>book.title</@@>-Manuscript.md --data-source=/DataSources/Creative-Book-Manuscripts/**/info.yaml --template=./templates/CompleteManuscript.txt)
+- LOOP_FOLDERS(<@@>book.title</@@>-Outline.md --data-source=/DataSources/Creative-Book-Manuscripts/**/info.yaml --template=./templates/BookOutline.txt)
+- LOOP_FOLDERS(<@@>book.title</@@>-Progress.md --data-source=/DataSources/Creative-Book-Manuscripts/**/info.yaml --template=./templates/BookProgress.txt)

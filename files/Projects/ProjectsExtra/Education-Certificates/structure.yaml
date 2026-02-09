@@ -1,1 +1,1 @@
-LOOP_FOLDERS({{student.name}}-{{course.name}}-Certificate.html --data-source=//DataSources/People/**/info.yaml --template=./templates/Certificate.txt)
+LOOP_FOLDERS(<@@>student.name</@@>-<@@>course.name</@@>-Certificate.html --data-source=//DataSources/People/**/info.yaml --template=./templates/Certificate.txt)

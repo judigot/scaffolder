@@ -9,8 +9,8 @@
 
 - **Current:** [[USE_DATA(book.current-word-count)]]
 - **Target:** [[USE_DATA(book.target-word-count)]]
-- **Remaining:** {{remaining-words}}
-- **Progress:** {{percentage}}%
+- **Remaining:** <@@>remaining-words</@@>
+- **Progress:** <@@>percentage</@@>%
 
 ## Structure Progress
 
