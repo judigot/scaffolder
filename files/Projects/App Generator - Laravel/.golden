@@ -3,3 +3,4 @@ url=laravel
 service=laravel
 depends=postgresql
 port=1214
+dockerfile=Dockerfile.dev
