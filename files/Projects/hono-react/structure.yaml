@@ -27,7 +27,7 @@ api:
   middleware:
     CREATE_FILE(auth.ts --template ./templates/auth-middleware.txt):
   routes:
-    FILE_LOOP({{tableName.singular.camelCase}}.ts --template ./templates/route.txt --data-source=/Constants/typeMappings.yaml):
+    FILE_LOOP(<@@>tableName.singular.camelCase</@@>.ts --template ./templates/route.txt --data-source=/Constants/typeMappings.yaml):
     CREATE_FILE(auth.ts --template ./templates/auth-routes.txt):
 
 # Frontend source - imports reusable hooks, interfaces, services
@@ -47,14 +47,14 @@ src:
     CREATE_FILE(login.tsx --template ./templates/routes/login.txt):
     CREATE_FILE(register.tsx --template ./templates/routes/register.txt):
     CREATE_FILE(_authenticated.tsx --template ./templates/routes/_authenticated.txt):
-    FILE_LOOP(_authenticated.{{tableName.singular.kebabCase}}.tsx --template ./templates/routes/table-route.txt):
+    FILE_LOOP(_authenticated.<@@>tableName.singular.kebabCase</@@>.tsx --template ./templates/routes/table-route.txt):
   styles:
     CREATE_FILE(main.scss --template ./templates/styles.txt):
 
 # Tests - one file per table following C→R→U→R→D→R pattern
 tests:
   CREATE_FILE(setup.ts --template ./templates/test-setup.txt):
-  FILE_LOOP({{tableName.camelCase}}.test.ts --template ./templates/test-crud.txt --filter="hasCompositePrimaryKey() NOT EQUAL 'true'"):
+  FILE_LOOP(<@@>tableName.camelCase</@@>.test.ts --template ./templates/test-crud.txt --filter="hasCompositePrimaryKey() NOT EQUAL 'true'"):
 
 # Root config files
 CREATE_FILE(README.md --template ./templates/readme.txt):

@@ -1,3 +1,3 @@
-- LOOP_FOLDERS({{service.name}}-prometheus.yml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/PrometheusConfig.txt)
-- LOOP_FOLDERS({{service.name}}-grafana-dashboard.json --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/GrafanaDashboard.txt)
+- LOOP_FOLDERS(<@@>service.name</@@>-prometheus.yml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/PrometheusConfig.txt)
+- LOOP_FOLDERS(<@@>service.name</@@>-grafana-dashboard.json --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/GrafanaDashboard.txt)
 

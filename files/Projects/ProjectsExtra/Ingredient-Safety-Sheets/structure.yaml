@@ -1,2 +1,2 @@
-LOOP_FOLDERS({{ingredient.name}}-SafetySheet.html --data-source=/DataSources/Ingredients/**/info.yaml --template=./templates/SafetySheet.txt)
+LOOP_FOLDERS(<@@>ingredient.name</@@>-SafetySheet.html --data-source=/DataSources/Ingredients/**/info.yaml --template=./templates/SafetySheet.txt)
 

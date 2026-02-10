@@ -35,6 +35,36 @@ import {
 
 const app = new Hono();
 
+const AUTH_RATE_LIMIT_WINDOW_MS = 60_000;
+const AUTH_RATE_LIMIT_MAX = 20;
+const authRateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function getAuthRateLimitKey(c: any, routeKey: string): string {
+  const forwardedFor = c.req.header('x-forwarded-for') || '';
+  const realIp = c.req.header('x-real-ip') || '';
+  const ip = forwardedFor.split(',')[0].trim() || realIp || 'unknown';
+  return `${ip}:${routeKey}`;
+}
+
+function checkAuthRateLimit(c: any, routeKey: string) {
+  const now = Date.now();
+  const key = getAuthRateLimitKey(c, routeKey);
+  const current = authRateLimitStore.get(key);
+
+  if (!current || current.resetAt <= now) {
+    authRateLimitStore.set(key, { count: 1, resetAt: now + AUTH_RATE_LIMIT_WINDOW_MS });
+    return null;
+  }
+
+  current.count += 1;
+  authRateLimitStore.set(key, current);
+  if (current.count > AUTH_RATE_LIMIT_MAX) {
+    return c.json({ error: 'Too many requests' }, 429);
+  }
+
+  return null;
+}
+
 // Validation schemas
 const loginSchema = z.object({
   <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
@@ -63,6 +93,11 @@ function setSessionCookie(c: any, sessionCookie: string) {
 
 // POST /auth/register - Create new account
 app.post('/register', zValidator('json', registerSchema), async (c) => {
+  const limited = checkAuthRateLimit(c, 'register');
+  if (limited) {
+    return limited;
+  }
+
   const data = c.req.valid('json');
 
   // Validate password strength
@@ -129,6 +164,11 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
 
 // POST /auth/login - Login with email/password
 app.post('/login', zValidator('json', loginSchema), async (c) => {
+  const limited = checkAuthRateLimit(c, 'login');
+  if (limited) {
+    return limited;
+  }
+
   const { <@@>userEmailColumnCamelCase</@@>, password } = c.req.valid('json');
 
   // Find user by email
@@ -253,6 +293,36 @@ import type { OAuthProvider } from '../auth';
 
 const app = new Hono();
 
+const AUTH_RATE_LIMIT_WINDOW_MS = 60_000;
+const AUTH_RATE_LIMIT_MAX = 20;
+const authRateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function getAuthRateLimitKey(c: any, routeKey: string): string {
+  const forwardedFor = c.req.header('x-forwarded-for') || '';
+  const realIp = c.req.header('x-real-ip') || '';
+  const ip = forwardedFor.split(',')[0].trim() || realIp || 'unknown';
+  return `${ip}:${routeKey}`;
+}
+
+function checkAuthRateLimit(c: any, routeKey: string) {
+  const now = Date.now();
+  const key = getAuthRateLimitKey(c, routeKey);
+  const current = authRateLimitStore.get(key);
+
+  if (!current || current.resetAt <= now) {
+    authRateLimitStore.set(key, { count: 1, resetAt: now + AUTH_RATE_LIMIT_WINDOW_MS });
+    return null;
+  }
+
+  current.count += 1;
+  authRateLimitStore.set(key, current);
+  if (current.count > AUTH_RATE_LIMIT_MAX) {
+    return c.json({ error: 'Too many requests' }, 429);
+  }
+
+  return null;
+}
+
 // Validation schemas
 const loginSchema = z.object({
   <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
@@ -281,6 +351,11 @@ function setSessionCookie(c: any, sessionCookie: string) {
 
 // POST /auth/register - Create new account
 app.post('/register', zValidator('json', registerSchema), async (c) => {
+  const limited = checkAuthRateLimit(c, 'register');
+  if (limited) {
+    return limited;
+  }
+
   const data = c.req.valid('json');
 
   // Validate password strength
@@ -347,6 +422,11 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
 
 // POST /auth/login - Login with email/password
 app.post('/login', zValidator('json', loginSchema), async (c) => {
+  const limited = checkAuthRateLimit(c, 'login');
+  if (limited) {
+    return limited;
+  }
+
   const { <@@>userEmailColumnCamelCase</@@>, password } = c.req.valid('json');
 
   // Find user by email

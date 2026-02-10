@@ -1,17 +1,17 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
+import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
-import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import {
+  evaluateCondition,
   processAtIf,
   processHtmlIf,
-  evaluateCondition,
 } from '@/utils/project-builder/template-processors/processIterateCommand.ts';
-import type { IFormStore } from '@/useFormStore.ts';
-import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { flattenData } from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
 /**
  * Type guard for plain objects (not arrays)
@@ -80,6 +80,18 @@ const getArrayFromTable = (
       return schemaInfoParsed.getHiddenColumns(tableObj.tableName);
     case 'childTables':
       return schemaInfoParsed.getChildTables(tableObj.tableName);
+    case 'hasOne':
+      return tableObj.hasOne ?? [];
+    case 'hasMany':
+      return tableObj.hasMany ?? [];
+    case 'belongsTo':
+      return tableObj.belongsTo ?? [];
+    case 'belongsToMany':
+      return tableObj.belongsToMany ?? [];
+    case 'pivotRelationships.relatedTable':
+      return tableObj.pivotRelationships?.map((rel) => rel.relatedTable) ?? [];
+    case 'pivotRelationships.pivotTable':
+      return tableObj.pivotRelationships?.map((rel) => rel.pivotTable) ?? [];
     default:
       // Unknown array names return empty array
       // Add new cases above for additional array support

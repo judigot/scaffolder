@@ -20,7 +20,7 @@
 ## Progress Tracking
 
 - **Total Word Count:** [[USE_DATA(book.current-word-count)]] / [[USE_DATA(book.target-word-count)]]
-- **Completion:** {{percentage}}%
+- **Completion:** <@@>percentage</@@>%
 - **Status:** [[USE_DATA(metadata.status)]]
 - **Last Updated:** [[USE_DATA(metadata.last-updated)]]
 

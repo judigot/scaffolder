@@ -9,4 +9,4 @@
 
 # Entity files - one entity per table
 entities:
-  FILE_LOOP({{tableName.singular.pascalCase}}.ts --template ./templates/entity.txt --data-source=/Constants/typeMappings.yaml):
+  FILE_LOOP(<@@>tableName.singular.pascalCase</@@>.ts --template ./templates/entity.txt --data-source=/Constants/typeMappings.yaml):

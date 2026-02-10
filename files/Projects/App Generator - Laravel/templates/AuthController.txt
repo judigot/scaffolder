@@ -4,136 +4,138 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
-use App\Http\Controllers\BaseController;
+use Illuminate\Support\Str;
 
-class AuthController extends BaseController
+class AuthController extends Controller
 {
-    /**
-     * Register a new user.
-     */
-    public function register(Request $request)
+    private function tokenCacheKey(string $token): string
     {
-        $validatedData = $request->validate([
-            'first_name' => 'required|string|max:50',
-            'last_name' => 'required|string|max:50',
-            'email' => 'required|string|email|max:100|unique:user', // Make sure to match your table name here
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        // Create the user and hash the password
-        $user = User::create([
-            'first_name' => $validatedData['first_name'],
-            'last_name' => $validatedData['last_name'],
-            'email' => $validatedData['email'],
-            'password_hash' => Hash::make($validatedData['password']), // Hash the password correctly
-            'phone_number' => $request->phone_number,
-        ]);
-
-        // Load the user types
-        $user->load('userTypes');
-
-        // Generate the API token using Passport
-        $token = $user->createToken('Personal Access Token')->accessToken;
-
-        return response()->json(['token' => $token, 'user' => $user], 201);
+        return 'auth_token:' . hash('sha256', $token);
     }
 
-    /**
-     * Login user and return the token.
-     */
+    private function issueAuthToken(string $userId): string
+    {
+        $token = Str::random(64);
+        Cache::put($this->tokenCacheKey($token), $userId, now()->addHours(24));
+        return $token;
+    }
+
+    private function authenticatedUserId(Request $request): ?string
+    {
+        $bearer = $request->bearerToken();
+        if (!is_string($bearer) || $bearer === '') {
+            return null;
+        }
+
+        $userId = Cache::get($this->tokenCacheKey($bearer));
+        if (!is_string($userId) || $userId === '') {
+            return null;
+        }
+
+        $exists = DB::table('user')->where('id', $userId)->exists();
+        if (!$exists) {
+            Cache::forget($this->tokenCacheKey($bearer));
+            return null;
+        }
+
+        return $userId;
+    }
+
+    private function sanitizeUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'email' => $user->email,
+            'username' => $user->username,
+            'email_verified' => $user->email_verified,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ];
+    }
+
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|max:255|unique:user,email',
+            'username' => 'required|string|max:255|unique:user,username',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $id = (string) Str::uuid();
+        DB::table('user')->insert([
+            'id' => $id,
+            'email' => $validated['email'],
+            'username' => $validated['username'],
+            'password_hash' => Hash::make($validated['password']),
+            'email_verified' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::where('id', $id)->firstOrFail();
+        $token = $this->issueAuthToken((string) $user->id);
+
+        return response()->json([
+            'user' => $this->sanitizeUser($user),
+            'token' => $token,
+        ], 201);
+    }
+
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
 
-        // Attempt authentication
-        if (!Auth::attempt($credentials)) {
-            $user = User::where('email', $credentials['email'])->first();
-            // User does not exist
-            if (!$user) {
-                return response()->json([
-                    'status' => 404,
-                    'message' => 'User not found',
-                    'error_code' => 'USER_NOT_FOUND'
-                ], 404);
-            }
-
-            // Invalid password or credentials
+        $user = User::where('email', $validated['email'])->first();
+        if (!$user || !Hash::check($validated['password'], (string) $user->password_hash)) {
             return response()->json([
-                'status' => 401,
                 'message' => 'Invalid credentials',
-                'error_code' => 'INVALID_CREDENTIALS'
             ], 401);
         }
 
-        $user = Auth::user();
-        $user->load('userTypes');
+        $token = $this->issueAuthToken((string) $user->id);
 
-        $token = $user->createToken('Personal Access Token')->accessToken;
         return response()->json([
-            'user' => $user,
-            'accessToken' => $token,
-        ], 200);
+            'user' => $this->sanitizeUser($user),
+            'token' => $token,
+        ]);
     }
 
+    public function me(Request $request)
+    {
+        $userId = $this->authenticatedUserId($request);
+        if (!is_string($userId) || $userId === '') {
+            return response()->json([
+                'message' => 'Unauthorized',
+            ], 401);
+        }
 
-    /**
-     * Logout user (revoke the token).
-     */
+        $user = User::where('id', $userId)->first();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        return response()->json([
+            'user' => $this->sanitizeUser($user),
+        ]);
+    }
+
     public function logout(Request $request)
     {
-        // Revoke the user's token
-        $request->user()->token()->revoke();
+        $bearer = $request->bearerToken();
+        if (is_string($bearer) && $bearer !== '') {
+            Cache::forget($this->tokenCacheKey($bearer));
+        }
 
-        return response()->json(['message' => 'Successfully logged out'], 200);
-    }
-
-    /**
-     * Get the authenticated user's details.
-     */
-    public function authorize(Request $request)
-    {
-        $user = $request->user();
-        $user->load('userTypes'); // Eager load user types
-
-        // Return the authenticated user's information
-        return response()->json($user);
-    }
-
-    /**
-     * Get the authenticated user's details.
-     */
-    public function user(Request $request)
-    {
-        $user = $request->user();
-        $user->load('userTypes'); // Eager load user types
-
-        // Return the authenticated user's information
-        return response()->json($user);
-    }
-
-    /**
-     * Super-Admin-specific access.
-     */
-    public function superadmin()
-    {
-        return response()->json(['message' => 'Super Admin Access']);
-    }
-
-    /**
-     * Admin-specific access.
-     */
-    public function admin()
-    {
-        return response()->json(['message' => 'Admin Access']);
-    }
-
-    /**
-     * User-specific access
-     */
-    public function user()
-    {
-        return response()->json(['message' => 'User Access']);
+        return response()->json([
+            'message' => 'Successfully logged out',
+        ]);
     }
 }

@@ -1,29 +1,37 @@
-[[ LOOP(hasOne) --template="    public function get{{value.singular.pascalCase}}(int $id): ?Model
+<@@LOOP@@ data="hasOne" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(int $id): ?Model
     {
-        return $this->repository->get{{value.singular.pascalCase}}($id);
-    }" --separator="\n\n" ]]
+        return $this->repository->get<@@>value.singular.pascalCase</@@>($id);
+    }
+</@@LOOP@@>
 
-[[ LOOP(pivotRelationships.pivotTable) --template="    public function get{{value.plural.pascalCase}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
+<@@LOOP@@ data="pivotRelationships.pivotTable" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection
     {
-        return $this->repository->get{{value.plural.pascalCase}}($id, $column, $direction);
+        return $this->repository->get<@@>value.plural.pascalCase</@@>($id, $column, $direction);
     }
 
-    public function getAllWithRelated{{value.plural.pascalCase}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
     {
-        return $this->repository->getAllWithRelated{{value.plural.pascalCase}}($includeRelated, $column, $direction);
-    }" --separator="\n\n" ]]
+        return $this->repository->getAllWithRelated<@@>value.plural.pascalCase</@@>($includeRelated, $column, $direction);
+    }
+</@@LOOP@@>
 
-[[ LOOP(pivotRelationships.relatedTable) --template="    public function get{{value.plural.pascalCase}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection
     {
-        return $this->repository->get{{value.plural.pascalCase}}($id, $column, $direction);
+        return $this->repository->get<@@>value.plural.pascalCase</@@>($id, $column, $direction);
     }
 
-    public function getAllWithRelated{{value.plural.pascalCase}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
     {
-        return $this->repository->getAllWithRelated{{value.plural.pascalCase}}($includeRelated, $column, $direction);
-    }" --separator="\n\n" ]]
+        return $this->repository->getAllWithRelated<@@>value.plural.pascalCase</@@>($includeRelated, $column, $direction);
+    }
+</@@LOOP@@>
 
-[[ LOOP(belongsTo) --template="    public function get{{value.singular.pascalCase}}(int $id): ?Model
+<@@LOOP@@ data="belongsTo" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(int $id): ?Model
     {
-        return $this->repository->get{{value.singular.pascalCase}}($id);
-    }" --separator="\n\n" ]]
+        return $this->repository->get<@@>value.singular.pascalCase</@@>($id);
+    }
+</@@LOOP@@>

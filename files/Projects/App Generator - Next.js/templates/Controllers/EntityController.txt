@@ -1,57 +1,57 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/prisma/DatabaseClient.ts';
-import { {{tableName}} } from '@prisma/client';
+import { <@@>tableName</@@> } from '@prisma/client';
 
-export const {{tableName.pascalCase}} = {
+export const <@@>tableName.pascalCase</@@> = {
   /**
-   * Get all {{tableName.phraseCase}}s (READ).
+   * Get all <@@>tableName.phraseCase</@@>s (READ).
    */
   async index() {
-    return prisma.{{tableName}}.findMany();
+    return prisma.<@@>tableName</@@>.findMany();
   },
 
   /**
-   * Get a single {{tableName.phraseCase}} by ID (READ).
+   * Get a single <@@>tableName.phraseCase</@@> by ID (READ).
    */
-  async show({{getPrimaryKey()}}: number) {
-    return prisma.{{tableName}}.findUnique({
-      where: { {{getPrimaryKey()}} },
+  async show(<@@>getPrimaryKey()</@@>: number) {
+    return prisma.<@@>tableName</@@>.findUnique({
+      where: { <@@>getPrimaryKey()</@@> },
     });
   },
 
   /**
-   * Create a new {{tableName.phraseCase}} (CREATE).
+   * Create a new <@@>tableName.phraseCase</@@> (CREATE).
    */
-  async store(data: Prisma.{{tableName}}CreateInput) {
-    return prisma.{{tableName}}.create({
+  async store(data: Prisma.<@@>tableName</@@>CreateInput) {
+    return prisma.<@@>tableName</@@>.create({
       data,
     });
   },
 
   /**
-   * Update a {{tableName.phraseCase}} by ID (UPDATE).
+   * Update a <@@>tableName.phraseCase</@@> by ID (UPDATE).
    */
-  async update({{getPrimaryKey()}}: number, data: Partial<{{tableName}}>) {
-    return prisma.{{tableName}}.update({
-      where: { {{getPrimaryKey()}} },
+  async update(<@@>getPrimaryKey()</@@>: number, data: Partial<<@@>tableName</@@>>) {
+    return prisma.<@@>tableName</@@>.update({
+      where: { <@@>getPrimaryKey()</@@> },
       data,
     });
   },
 
   /**
-   * Delete a {{tableName.phraseCase}} by ID (DELETE).
+   * Delete a <@@>tableName.phraseCase</@@> by ID (DELETE).
    */
-  async destroy({{getPrimaryKey()}}: number) {
-    return prisma.{{tableName}}.delete({
-      where: { {{getPrimaryKey()}} },
+  async destroy(<@@>getPrimaryKey()</@@>: number) {
+    return prisma.<@@>tableName</@@>.delete({
+      where: { <@@>getPrimaryKey()</@@> },
     });
   },
 
   /**
    * Find by attributes.
    */
-  async findByAttributes(attributes: Partial<{{tableName}}>) {
-    return prisma.{{tableName}}.findFirst({
+  async findByAttributes(attributes: Partial<<@@>tableName</@@>>) {
+    return prisma.<@@>tableName</@@>.findFirst({
       where: attributes,
     });
   },
@@ -61,23 +61,23 @@ export const {{tableName.pascalCase}} = {
    */
   async paginate(page: number, perPage: number) {
     const skip = (page - 1) * perPage;
-    return prisma.{{tableName}}.findMany({
+    return prisma.<@@>tableName</@@>.findMany({
       skip,
       take: perPage,
     });
   },
 
   /**
-   * Search {{tableName.phraseCase}}s by query.
+   * Search <@@>tableName.phraseCase</@@>s by query.
    */
   async search(
     query: string,
-    fields: (keyof {{tableName}})[],
+    fields: (keyof <@@>tableName</@@>)[],
     perPage: number,
     page: number,
   ) {
     const skip = (page - 1) * perPage;
-    return prisma.{{tableName}}.findMany({
+    return prisma.<@@>tableName</@@>.findMany({
       where: {
         OR: fields.map((field) => ({
           [field]: {
@@ -92,19 +92,19 @@ export const {{tableName.pascalCase}} = {
   },
 
   /**
-   * Count {{tableName.phraseCase}}s based on criteria.
+   * Count <@@>tableName.phraseCase</@@>s based on criteria.
    */
-  async count(criteria: Partial<{{tableName}}>) {
-    return prisma.{{tableName}}.count({
+  async count(criteria: Partial<<@@>tableName</@@>>) {
+    return prisma.<@@>tableName</@@>.count({
       where: criteria,
     });
   },
 
   /**
-   * Get {{tableName.phraseCase}}s with relations.
+   * Get <@@>tableName.phraseCase</@@>s with relations.
    */
   async getWithRelations(relations: string[]) {
-    return prisma.{{tableName}}.findMany({
+    return prisma.<@@>tableName</@@>.findMany({
       include: Object.fromEntries(
         relations.map((relation) => [relation, true]),
       ),
@@ -112,19 +112,19 @@ export const {{tableName.pascalCase}} = {
   },
 
   /**
-   * Find a {{tableName.phraseCase}} or fail.
+   * Find a <@@>tableName.phraseCase</@@> or fail.
    */
-  async findOrFail({{getPrimaryKey()}}: number) {
-    return prisma.{{tableName}}.findUniqueOrThrow({
-      where: { {{getPrimaryKey()}} },
+  async findOrFail(<@@>getPrimaryKey()</@@>: number) {
+    return prisma.<@@>tableName</@@>.findUniqueOrThrow({
+      where: { <@@>getPrimaryKey()</@@> },
     });
   },
 
   /**
-   * Update or create a {{tableName.phraseCase}}.
+   * Update or create a <@@>tableName.phraseCase</@@>.
    */
-  async updateOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
-    return prisma.{{tableName}}.upsert({
+  async updateOrCreate(attributes: Partial<<@@>tableName</@@>>, values: Partial<<@@>tableName</@@>>) {
+    return prisma.<@@>tableName</@@>.upsert({
       where: attributes,
       update: values,
       create: values,
@@ -132,40 +132,40 @@ export const {{tableName.pascalCase}} = {
   },
 
   /**
-   * Batch update {{tableName.phraseCase}}s.
+   * Batch update <@@>tableName.phraseCase</@@>s.
    */
-  async batchUpdate(criteria: Partial<{{tableName}}>, data: Partial<{{tableName}}>) {
-    return prisma.{{tableName}}.updateMany({
+  async batchUpdate(criteria: Partial<<@@>tableName</@@>>, data: Partial<<@@>tableName</@@>>) {
+    return prisma.<@@>tableName</@@>.updateMany({
       where: criteria,
       data,
     });
   },
 
   /**
-   * Check if a {{tableName.phraseCase}} exists based on criteria.
+   * Check if a <@@>tableName.phraseCase</@@> exists based on criteria.
    */
-  async exists(criteria: Partial<{{tableName}}>) {
-    const count = await prisma.{{tableName}}.count({
+  async exists(criteria: Partial<<@@>tableName</@@>>) {
+    const count = await prisma.<@@>tableName</@@>.count({
       where: criteria,
     });
     return count > 0;
   },
 
   /**
-   * Pluck specific columns from {{tableName.phraseCase}}s.
+   * Pluck specific columns from <@@>tableName.phraseCase</@@>s.
    */
-  async pluck(column: keyof {{tableName}}, key?: keyof {{tableName}}) {
-    const results = await prisma.{{tableName}}.findMany({
+  async pluck(column: keyof <@@>tableName</@@>, key?: keyof <@@>tableName</@@>) {
+    const results = await prisma.<@@>tableName</@@>.findMany({
       select: { [column]: true, ...(key && { [key]: true }) },
     });
     return results.map((row) => row[column]);
   },
 
   /**
-   * First or create a {{tableName.phraseCase}}.
+   * First or create a <@@>tableName.phraseCase</@@>.
    */
-  async firstOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
-    return prisma.{{tableName}}.upsert({
+  async firstOrCreate(attributes: Partial<<@@>tableName</@@>>, values: Partial<<@@>tableName</@@>>) {
+    return prisma.<@@>tableName</@@>.upsert({
       where: attributes,
       update: {},
       create: values,
@@ -173,96 +173,96 @@ export const {{tableName.pascalCase}} = {
   },
 
   /**
-   * First or return a new instance of a {{tableName.phraseCase}}.
+   * First or return a new instance of a <@@>tableName.phraseCase</@@>.
    */
-  async firstOrNew(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
-    const existing = await prisma.{{tableName}}.findFirst({
+  async firstOrNew(attributes: Partial<<@@>tableName</@@>>, values: Partial<<@@>tableName</@@>>) {
+    const existing = await prisma.<@@>tableName</@@>.findFirst({
       where: attributes,
     });
     return existing ?? { ...attributes, ...values };
   },
 
   /**
-   * Get a random {{tableName.phraseCase}}.
+   * Get a random <@@>tableName.phraseCase</@@>.
    */
   async random(count: number) {
-    return prisma.{{tableName}}.findMany({
+    return prisma.<@@>tableName</@@>.findMany({
       take: count,
-      orderBy: { {{getPrimaryKey()}}: 'asc' },
+      orderBy: { <@@>getPrimaryKey()</@@>: 'asc' },
     });
   },
 
   /**
-   * Get the latest {{tableName.phraseCase}}.
+   * Get the latest <@@>tableName.phraseCase</@@>.
    */
   async latest(column = 'createdAt') {
-    return prisma.{{tableName}}.findFirst({
+    return prisma.<@@>tableName</@@>.findFirst({
       orderBy: { [column]: 'desc' },
     });
   },
 
   /**
-   * Get the oldest {{tableName.phraseCase}}.
+   * Get the oldest <@@>tableName.phraseCase</@@>.
    */
   async oldest(column = 'createdAt') {
-    return prisma.{{tableName}}.findFirst({
+    return prisma.<@@>tableName</@@>.findFirst({
       orderBy: { [column]: 'asc' },
     });
   },
 
   /**
-   * Find Many {{tableName.phraseCase}}s by IDs.
+   * Find Many <@@>tableName.phraseCase</@@>s by IDs.
    */
   async findMany(ids: number[]) {
-    return prisma.{{tableName}}.findMany({
-      where: { {{getPrimaryKey()}}: { in: ids } },
+    return prisma.<@@>tableName</@@>.findMany({
+      where: { <@@>getPrimaryKey()</@@>: { in: ids } },
     });
   },
 
   /**
-   * Filter {{tableName.phraseCase}}s using \`whereIn\`.
+   * Filter <@@>tableName.phraseCase</@@>s using \`whereIn\`.
    */
-  async whereIn(column: keyof {{tableName}}, values: unknown[]) {
-    return prisma.{{tableName}}.findMany({
+  async whereIn(column: keyof <@@>tableName</@@>, values: unknown[]) {
+    return prisma.<@@>tableName</@@>.findMany({
       where: { [column]: { in: values } },
     });
   },
 
   /**
-   * Filter {{tableName.phraseCase}}s using \`whereNotIn\`.
+   * Filter <@@>tableName.phraseCase</@@>s using \`whereNotIn\`.
    */
-  async whereNotIn(column: keyof {{tableName}}, values: unknown[]) {
-    return prisma.{{tableName}}.findMany({
+  async whereNotIn(column: keyof <@@>tableName</@@>, values: unknown[]) {
+    return prisma.<@@>tableName</@@>.findMany({
       where: { [column]: { notIn: values } },
     });
   },
 
   /**
-   * Filter {{tableName.phraseCase}}s using \`whereBetween\`.
+   * Filter <@@>tableName.phraseCase</@@>s using \`whereBetween\`.
    */
-  async whereBetween(column: keyof {{tableName}}, range: [unknown, unknown]) {
-    return prisma.{{tableName}}.findMany({
+  async whereBetween(column: keyof <@@>tableName</@@>, range: [unknown, unknown]) {
+    return prisma.<@@>tableName</@@>.findMany({
       where: { [column]: { gte: range[0], lte: range[1] } },
     });
   },
 
   /**
-   * Order {{tableName.phraseCase}}s by a column.
+   * Order <@@>tableName.phraseCase</@@>s by a column.
    */
-  async orderBy(column: keyof {{tableName}}, direction: 'asc' | 'desc' = 'asc') {
-    return prisma.{{tableName}}.findMany({
+  async orderBy(column: keyof <@@>tableName</@@>, direction: 'asc' | 'desc' = 'asc') {
+    return prisma.<@@>tableName</@@>.findMany({
       orderBy: { [column]: direction },
     });
   },
 
   /**
-   * Group {{tableName.phraseCase}}s by a column.
+   * Group <@@>tableName.phraseCase</@@>s by a column.
    */
-  async groupBy(column: keyof {{tableName}}) {
-    return prisma.{{tableName}}.groupBy({
+  async groupBy(column: keyof <@@>tableName</@@>) {
+    return prisma.<@@>tableName</@@>.groupBy({
       by: [column],
     });
   },
   
-  // {{softDeleteFunctions}}
+  // <@@>softDeleteFunctions</@@>
 };

@@ -1,4 +1,4 @@
-- LOOP_FOLDERS({{service.name}}-deployment.yaml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/K8sDeployment.txt)
-- LOOP_FOLDERS({{service.name}}-service.yaml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/K8sService.txt)
-- LOOP_FOLDERS({{service.name}}-hpa.yaml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/K8sHPA.txt)
+- LOOP_FOLDERS(<@@>service.name</@@>-deployment.yaml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/K8sDeployment.txt)
+- LOOP_FOLDERS(<@@>service.name</@@>-service.yaml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/K8sService.txt)
+- LOOP_FOLDERS(<@@>service.name</@@>-hpa.yaml --data-source=/DataSources/IT-Services/**/info.yaml --template=./templates/K8sHPA.txt)
 

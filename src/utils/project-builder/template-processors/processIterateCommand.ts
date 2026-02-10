@@ -1,49 +1,49 @@
+import { parse } from 'yaml';
 import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import type { IFormStore } from '@/useFormStore.ts';
+import {
+  EXCLUDE_FILES_MATCH_REGEX,
+  FILTER_MATCH_REGEX,
+  FOLDER_PATH_REGEX,
+  IGNORE_MATCH_REGEX,
+  INCLUDE_FILES_MATCH_REGEX,
+  LOOP_COMMAND_REGEX,
+  LOOP_DATA_SOURCES_START_REGEX,
+  LOOP_TABLES_REGEX,
+  LOOP_TABLES_REVERSED_REGEX,
+  RECURSIVE_WILDCARD_REGEX,
+  REMOVE_DUPLICATES_REGEX,
+  SEPARATOR_MATCH_REGEX,
+  TEMPLATE_ACTIONS,
+  TEMPLATE_MATCH_REGEX,
+  USE_CONSTANT_REGEX,
+} from '@/utils/project-builder/constants/templateActions.ts';
 import type {
   BuildContext,
   DataContext,
 } from '@/utils/project-builder/interfaces/interfaces.ts';
-import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
-import {
-  LOOP_COMMAND_REGEX,
-  LOOP_TABLES_REGEX,
-  LOOP_TABLES_REVERSED_REGEX,
-  LOOP_DATA_SOURCES_START_REGEX,
-  TEMPLATE_MATCH_REGEX,
-  SEPARATOR_MATCH_REGEX,
-  FILTER_MATCH_REGEX,
-  IGNORE_MATCH_REGEX,
-  INCLUDE_FILES_MATCH_REGEX,
-  EXCLUDE_FILES_MATCH_REGEX,
-  REMOVE_DUPLICATES_REGEX,
-  USE_CONSTANT_REGEX,
-  FOLDER_PATH_REGEX,
-  RECURSIVE_WILDCARD_REGEX,
-  TEMPLATE_ACTIONS,
-} from '@/utils/project-builder/constants/templateActions.ts';
-import {
-  findFilesMatchingGlob,
-  createDataContextReplacements,
-} from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import {
   loadConstant,
   loadConstantFromPath,
 } from '@/utils/project-builder/template-processors/loadConstant.ts';
-import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
 import { processArrayIteration } from '@/utils/project-builder/template-processors/processArrayIteration.ts';
-import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
+import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
 import {
-  findFoldersWithWildcard,
   buildFolderPath,
+  findFoldersWithWildcard,
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
-import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 import { validateHtmlTemplateTags } from '@/utils/project-builder/template-processors/validateHtmlTemplateTags.ts';
-import { parse } from 'yaml';
+import {
+  createDataContextReplacements,
+  findFilesMatchingGlob,
+} from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
+import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
 
 /**
  * Evaluate a condition expression against replacements.
@@ -1047,7 +1047,13 @@ const processHtmlLoop = (
         type === 'allColumns' ||
         type === 'foreignTables' ||
         type === 'hiddenColumns' ||
-        type === 'childTables'
+        type === 'childTables' ||
+        type === 'hasOne' ||
+        type === 'hasMany' ||
+        type === 'belongsTo' ||
+        type === 'belongsToMany' ||
+        type === 'pivotRelationships.relatedTable' ||
+        type === 'pivotRelationships.pivotTable'
       ) {
         // Skip per-table array types - they will be processed by processHtmlLoopArray
         continue;
@@ -1417,6 +1423,12 @@ export const processHtmlLoopArray = (
     'foreignTables',
     'hiddenColumns',
     'childTables',
+    'hasOne',
+    'hasMany',
+    'belongsTo',
+    'belongsToMany',
+    'pivotRelationships.relatedTable',
+    'pivotRelationships.pivotTable',
   ]);
 
   const openRegex = /<@@LOOP@@([^>]*)>/g;

@@ -1,5 +1,5 @@
 ! [[USE_DATA(network.name)]] Firewall Configuration
-! Generated: {{current-date}}
+! Generated: <@@>current-date</@@>
 ! Location: [[USE_DATA(network.location)]]
 
 config system global

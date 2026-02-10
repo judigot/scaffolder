@@ -1,15 +1,23 @@
-[[ LOOP(hasOne) --template="    public function {{value.singular}}() {
-        return $this->hasOne({{value.singular.pascalCase}}::class);
-    }" --separator="\n\n" ]]
+<@@LOOP@@ data="hasOne" separator="\n\n">
+    public function <@@>value.singular</@@>() {
+        return $this->hasOne(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>
 
-[[ LOOP(hasMany) --template="    public function {{value.plural}}() {
-        return $this->hasMany({{value.singular.pascalCase}}::class);
-    }" --separator="\n\n" ]]
+<@@LOOP@@ data="hasMany" separator="\n\n">
+    public function <@@>value.plural</@@>() {
+        return $this->hasMany(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>
 
-[[ LOOP(pivotRelationships.relatedTable) --template="    public function {{value.plural}}() {
-        return $this->belongsToMany({{value.singular.pascalCase}}::class);
-    }" --separator="\n\n" ]]
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
+    public function <@@>value.plural</@@>() {
+        return $this->belongsToMany(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>
 
-[[ LOOP(belongsTo) --template="    public function {{value.singular}}() {
-        return $this->belongsTo({{value.singular.pascalCase}}::class);
-    }" --separator="\n\n" ]]
+<@@LOOP@@ data="belongsTo" separator="\n\n">
+    public function <@@>value.singular</@@>() {
+        return $this->belongsTo(<@@>value.singular.pascalCase</@@>::class);
+    }
+</@@LOOP@@>

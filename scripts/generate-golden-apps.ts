@@ -255,6 +255,12 @@ function getDockerfileTemplate(framework: Framework): string | null {
       'docker/golden-templates/hono.Dockerfile',
     );
   }
+  if (framework === frameworks.LARAVEL) {
+    return path.resolve(
+      process.cwd(),
+      'docker/golden-templates/laravel.Dockerfile.dev',
+    );
+  }
   return null;
 }
 
