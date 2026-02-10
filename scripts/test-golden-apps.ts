@@ -41,6 +41,14 @@ function resolveDatabaseUrl(): string {
 }
 
 const databaseUrl = resolveDatabaseUrl();
+const isCi = process.env.CI === 'true';
+
+const COMMAND_TIMEOUTS_MS = {
+  install: 10 * 60 * 1000,
+  drizzlePush: 3 * 60 * 1000,
+  apiTest: 12 * 60 * 1000,
+  serverReady: 60 * 1000,
+} as const;
 
 function toDirName(projectName: string): string {
   return projectName
@@ -117,10 +125,15 @@ function buildDatabaseName(dirName: string): string {
 }
 
 function runCommand(
+  label: string,
   command: string,
   cwd: string,
   env: Record<string, string>,
+  timeoutMs?: number,
 ): void {
+  const startedAt = Date.now();
+  console.log(`→ ${label}: ${command}`);
+
   const result = spawnSync(command, {
     cwd,
     env: {
@@ -129,11 +142,26 @@ function runCommand(
     },
     shell: true,
     stdio: 'inherit',
+    timeout: timeoutMs,
   });
 
-  if (result.status !== 0) {
-    throw new Error(`Command failed: ${command}`);
+  if (result.error) {
+    if ((result.error as NodeJS.ErrnoException).code === 'ETIMEDOUT') {
+      throw new Error(
+        `${label} timed out after ${Math.ceil((timeoutMs ?? 0) / 1000)}s: ${command}`,
+      );
+    }
+    throw new Error(`${label} failed to start: ${result.error.message}`);
   }
+
+  if (result.status !== 0) {
+    throw new Error(
+      `${label} failed (${result.status ?? 'unknown'}): ${command}`,
+    );
+  }
+
+  const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+  console.log(`✓ ${label} finished in ${elapsedSeconds}s`);
 }
 
 function stripAnsi(input: string): string {
@@ -162,15 +190,38 @@ function parseApiTestSummary(output: string, appName: string): ApiTestSummary {
   };
 }
 
-async function waitForServer(url: string, maxAttempts = 30): Promise<void> {
+async function waitForServer(
+  url: string,
+  maxAttempts = 30,
+  isServerAlive?: () => boolean,
+): Promise<void> {
+  console.log(`→ Waiting for server health: ${url}`);
+
   for (let i = 0; i < maxAttempts; i += 1) {
+    if (isServerAlive && !isServerAlive()) {
+      throw new Error(
+        `Server process exited before readiness check passed: ${url}`,
+      );
+    }
+
     try {
       const res = await fetch(url);
       if (res.ok) {
+        console.log(`✓ Server health check passed: ${url}`);
         return;
+      }
+      if (i === 0 || (i + 1) % 5 === 0) {
+        console.log(
+          `  health check attempt ${String(i + 1)}/${String(maxAttempts)} returned ${String(res.status)}`,
+        );
       }
     } catch {
       // ignore
+      if (i === 0 || (i + 1) % 5 === 0) {
+        console.log(
+          `  health check attempt ${String(i + 1)}/${String(maxAttempts)} connection not ready yet`,
+        );
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
@@ -223,8 +274,24 @@ async function runGoldenAppTests(
   let serverProcess: ReturnType<typeof spawn> | null = null;
 
   try {
-    runCommand('bun install', outputDir, env);
-    runCommand('bun drizzle-kit push --force', outputDir, env);
+    runCommand(
+      `${app.projectName} install dependencies`,
+      'bun install',
+      outputDir,
+      env,
+      COMMAND_TIMEOUTS_MS.install,
+    );
+    runCommand(
+      `${app.projectName} apply schema`,
+      'bun drizzle-kit push --force',
+      outputDir,
+      env,
+      COMMAND_TIMEOUTS_MS.drizzlePush,
+    );
+
+    console.log(
+      `→ ${app.projectName} starting API server on port ${String(app.port)}`,
+    );
 
     serverProcess = spawn('bun', ['run', 'dev:api'], {
       cwd: outputDir,
@@ -234,10 +301,26 @@ async function runGoldenAppTests(
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+
+    if (isCi) {
+      serverProcess.stdout?.on('data', (chunk) => {
+        process.stdout.write(`[${app.dirName}:stdout] ${String(chunk)}`);
+      });
+      serverProcess.stderr?.on('data', (chunk) => {
+        process.stdout.write(`[${app.dirName}:stderr] ${String(chunk)}`);
+      });
+    }
+
     serverProcess.stdout?.pipe(serverLog);
     serverProcess.stderr?.pipe(serverLog);
 
-    await waitForServer(`http://localhost:${String(app.port)}/api/health`);
+    await waitForServer(
+      `http://localhost:${String(app.port)}/api/health`,
+      COMMAND_TIMEOUTS_MS.serverReady / 1000,
+      () => serverProcess?.exitCode === null,
+    );
+
+    console.log(`→ ${app.projectName} running api-test.sh`);
 
     const apiTestResult = spawnSync(
       `bash api-test.sh http://localhost:${String(app.port)}/api`,
@@ -249,8 +332,20 @@ async function runGoldenAppTests(
         },
         shell: true,
         encoding: 'utf-8',
+        timeout: COMMAND_TIMEOUTS_MS.apiTest,
       },
     );
+
+    if (apiTestResult.error) {
+      if ((apiTestResult.error as NodeJS.ErrnoException).code === 'ETIMEDOUT') {
+        throw new Error(
+          `api-test.sh timed out for ${app.projectName} after ${String(COMMAND_TIMEOUTS_MS.apiTest / 1000)}s`,
+        );
+      }
+      throw new Error(
+        `api-test.sh failed to execute for ${app.projectName}: ${apiTestResult.error.message}`,
+      );
+    }
 
     const combinedOutput = `${apiTestResult.stdout ?? ''}${apiTestResult.stderr ?? ''}`;
     process.stdout.write(combinedOutput);
@@ -292,9 +387,15 @@ async function main(): Promise<void> {
   }
 
   console.log('Generating golden apps...');
-  runCommand('bun run scripts/generate-golden-apps.ts --json', process.cwd(), {
-    DATABASE_URL: databaseUrl,
-  });
+  runCommand(
+    'Generate golden apps',
+    'bun run scripts/generate-golden-apps.ts --json',
+    process.cwd(),
+    {
+      DATABASE_URL: databaseUrl,
+    },
+    COMMAND_TIMEOUTS_MS.install,
+  );
 
   const usedPorts = new Set<number>();
   let fallbackPort = 3100;

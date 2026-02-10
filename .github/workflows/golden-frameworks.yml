@@ -4,10 +4,15 @@ on:
   push: {}
   workflow_dispatch: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   golden-frameworks:
     name: Golden Frameworks
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16
@@ -44,6 +49,7 @@ jobs:
         run: bun install
 
       - name: Run golden frameworks API tests
+        timeout-minutes: 35
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 15432
