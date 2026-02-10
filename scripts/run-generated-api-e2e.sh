@@ -119,9 +119,19 @@ set -e
 cleanup_server "$HONO_PID"
 
 info "summary"
+LARAVEL_PASSED=$(grep -E '^Passed: ' "$LOG_DIR/laravel_api_test.log" | tail -n 1 | awk '{print $2}')
+HONO_PASSED=$(grep -E '^Passed: ' "$LOG_DIR/hono_api_test.log" | tail -n 1 | awk '{print $2}')
+
 printf "Laravel api-test exit code: %s\n" "$LARAVEL_TEST_EXIT" | tee "$LOG_DIR/summary.log"
 printf "Hono api-test exit code: %s\n" "$HONO_TEST_EXIT" | tee -a "$LOG_DIR/summary.log"
+printf "Laravel api-test passed assertions: %s\n" "${LARAVEL_PASSED:-unknown}" | tee -a "$LOG_DIR/summary.log"
+printf "Hono api-test passed assertions: %s\n" "${HONO_PASSED:-unknown}" | tee -a "$LOG_DIR/summary.log"
 printf "Logs directory: %s\n" "$LOG_DIR" | tee -a "$LOG_DIR/summary.log"
+
+if [[ -n "${LARAVEL_PASSED:-}" && -n "${HONO_PASSED:-}" && "$LARAVEL_PASSED" != "$HONO_PASSED" ]]; then
+  fail "Framework parity mismatch: Laravel passed $LARAVEL_PASSED vs Hono passed $HONO_PASSED"
+  exit 1
+fi
 
 if [[ "$LARAVEL_TEST_EXIT" -eq 0 && "$HONO_TEST_EXIT" -eq 0 ]]; then
   ok "All generated API tests passed"

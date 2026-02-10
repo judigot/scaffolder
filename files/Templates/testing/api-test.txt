@@ -337,13 +337,6 @@ test_crud() {
   set_resource_id "$endpoint" "$ID"
   echo "  Created $name ID: $ID"
 
-  local id_field_count
-  id_field_count=$(echo "$create_data" | jq '[keys[] | select(test("Id$"))] | length')
-  if [ "$id_field_count" -gt 1 ]; then
-    log_info "Composite-style payload detected; skipping single-ID R/U/D checks for $name"
-    return
-  fi
-
   # READ
   api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
   assert_status 200 "GET /api/$endpoint/$ID (read)"
@@ -428,6 +421,7 @@ test_crud_composite() {
       id_path="$val"
     fi
   done
+  set_resource_id "$endpoint" "${id_path%%/*}"
   echo "  Created $name ID: $id_path"
 
   # READ
@@ -472,7 +466,7 @@ test_endpoint_smoke() {
 # ═══════════════════════════════════════════════════════════════
 <@@LOOP@@ data="tables" separator="\n\n">
 # Test <@@>tableName.titleCase</@@>
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">test_crud '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>getPrimaryKey()</@@>' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>' '<@@>tableName.plural.kebabCase</@@>'</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">test_crud '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>getPrimaryKey()</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>' '<@@>tableName.plural.kebabCase</@@>'</@@IF@@>
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">test_crud_composite '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>getPrimaryKey()</@@>' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>' '<@@>tableName.plural.kebabCase</@@>'</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">test_crud '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>getPrimaryKey()</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>' '<@@>tableName.plural.kebabCase</@@>'</@@IF@@>
 </@@LOOP@@>
 
 # ═══════════════════════════════════════════════════════════════
