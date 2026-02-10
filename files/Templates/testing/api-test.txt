@@ -273,7 +273,7 @@ normalize_payload_foreign_ids() {
 # API call with cookie and bearer-token support
 api_call() {
   local method=$1 url=$2 data=$3 use_auth=${4:-false}
-  local response cookie_opts=""
+  local response curl_status cookie_opts=""
 
   # Use cookie jar and optional bearer token for authenticated requests
   if [ "$use_auth" = "true" ]; then
@@ -282,26 +282,45 @@ api_call() {
 
   if [ -n "$data" ]; then
     if [ "$use_auth" = "true" ] && [ -n "$AUTH_TOKEN" ]; then
+      set +e
       response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $AUTH_TOKEN" \
         $cookie_opts \
         -d "$data")
+      curl_status=$?
+      set -e
     else
+      set +e
       response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
         -H "Content-Type: application/json" \
         $cookie_opts \
         -d "$data")
+      curl_status=$?
+      set -e
     fi
   else
     if [ "$use_auth" = "true" ] && [ -n "$AUTH_TOKEN" ]; then
+      set +e
       response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
         -H "Authorization: Bearer $AUTH_TOKEN" \
         $cookie_opts)
+      curl_status=$?
+      set -e
     else
+      set +e
       response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" $cookie_opts)
+      curl_status=$?
+      set -e
     fi
   fi
+
+  if [ "$curl_status" -ne 0 ]; then
+    BODY="$response"
+    STATUS="000"
+    return
+  fi
+
   BODY="${response%|||*}"
   STATUS="${response##*|||}"
 }
@@ -309,8 +328,18 @@ api_call() {
 api_call_raw() {
   local method=$1 url=$2
   shift 2
-  local response
+  local response curl_status
+  set +e
   response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" "$@")
+  curl_status=$?
+  set -e
+
+  if [ "$curl_status" -ne 0 ]; then
+    BODY="$response"
+    STATUS="000"
+    return
+  fi
+
   BODY="${response%|||*}"
   STATUS="${response##*|||}"
 }
@@ -331,16 +360,28 @@ api_call_bearer_only() {
 
 api_call_with_bearer_no_cookie() {
   local method=$1 url=$2 data=$3 bearer=$4
-  local response
+  local response curl_status
 
   if [ -n "$data" ]; then
+    set +e
     response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $bearer" \
       -d "$data")
+    curl_status=$?
+    set -e
   else
+    set +e
     response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
       -H "Authorization: Bearer $bearer")
+    curl_status=$?
+    set -e
+  fi
+
+  if [ "$curl_status" -ne 0 ]; then
+    BODY="$response"
+    STATUS="000"
+    return
   fi
 
   BODY="${response%|||*}"
