@@ -43,6 +43,8 @@ TEST_USER_ID_A=""
 TEST_USER_ID_B=""
 FIRST_PROTECTED_ENDPOINT=""
 FIRST_PROTECTED_ID=""
+CURL_CONNECT_TIMEOUT="3"
+CURL_MAX_TIME="20"
 
 cleanup() {
   rm -f "$COOKIE_JAR"
@@ -280,24 +282,24 @@ api_call() {
 
   if [ -n "$data" ]; then
     if [ "$use_auth" = "true" ] && [ -n "$AUTH_TOKEN" ]; then
-      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+      response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $AUTH_TOKEN" \
         $cookie_opts \
         -d "$data")
     else
-      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+      response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
         -H "Content-Type: application/json" \
         $cookie_opts \
         -d "$data")
     fi
   else
     if [ "$use_auth" = "true" ] && [ -n "$AUTH_TOKEN" ]; then
-      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+      response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
         -H "Authorization: Bearer $AUTH_TOKEN" \
         $cookie_opts)
     else
-      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" $cookie_opts)
+      response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" $cookie_opts)
     fi
   fi
   BODY="${response%|||*}"
@@ -308,7 +310,7 @@ api_call_raw() {
   local method=$1 url=$2
   shift 2
   local response
-  response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" "$@")
+  response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" "$@")
   BODY="${response%|||*}"
   STATUS="${response##*|||}"
 }
@@ -332,12 +334,12 @@ api_call_with_bearer_no_cookie() {
   local response
 
   if [ -n "$data" ]; then
-    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+    response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $bearer" \
       -d "$data")
   else
-    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+    response=$(curl -s --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" -w "|||%{http_code}" -X "$method" "$url" \
       -H "Authorization: Bearer $bearer")
   fi
 
