@@ -1,10 +1,7 @@
 name: Golden Frameworks
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  push: {}
   workflow_dispatch: {}
 
 jobs:
