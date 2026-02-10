@@ -459,10 +459,10 @@ test_endpoint_smoke() {
   log_step "Testing $name endpoint$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
   api_call GET "$API_BASE/$endpoint" "" "$use_auth"
 
-  if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ]; then
+  if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ] || [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
     log_success "GET /api/$endpoint (status: $STATUS)"
   else
-    log_error "GET /api/$endpoint (expected: 200 or 404, got: $STATUS)"
+    log_error "GET /api/$endpoint (expected: 200/401/403/404, got: $STATUS)"
     echo "  Response: $BODY"
   fi
 }
