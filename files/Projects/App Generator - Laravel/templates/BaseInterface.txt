@@ -8,5 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 interface BaseInterface
 {
     public function getSortedQuery(?string $column = null, string $direction = 'asc'): \Illuminate\Database\Eloquent\Builder;
-<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n">    public function <@@>repositoryMethod</@@>;</@@LOOP@@>
+    public function create(array $data): Model;
+    public function index(?string $column = null, string $direction = 'asc'): Collection;
+    public function findById(string $id): ?Model;
+    public function update(string $id, array $data): bool;
+    public function destroy(string $id): bool;
 }

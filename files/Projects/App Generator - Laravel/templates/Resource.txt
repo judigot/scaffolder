@@ -15,11 +15,11 @@ class <@@>tableName.singular.pascalCase</@@>Resource extends JsonResource
     public function toArray($request)
     {
         return [
-[[ LOOP(<@@>getAllColumns()</@@>) --ignore="[[ USE_CONSTANT(hiddenColumns) ]]" --template="            '<@@>value</@@>' => $this-><@@>value</@@>," --separator="\n" ]]
-[[ LOOP(hasOne) --template="            '<@@>value.singular</@@>' => <@@>value.singular.pascalCase</@@>Resource::make($this->whenLoaded('<@@>value.singular</@@>'))," --separator="\n" ]]
-[[ LOOP(hasMany) --template="            '<@@>value.plural</@@>' => <@@>value.singular.pascalCase</@@>Resource::collection($this->whenLoaded('<@@>value.plural</@@>'))," --separator="\n" ]]
-[[ LOOP(belongsTo) --template="            '<@@>value.singular</@@>' => <@@>value.singular.pascalCase</@@>Resource::make($this->whenLoaded('<@@>value.singular</@@>'))," --separator="\n" ]]
-[[ LOOP(belongsToMany) --template="            '<@@>value.plural</@@>' => <@@>value.singular.pascalCase</@@>Resource::collection($this->whenLoaded('<@@>value.plural</@@>'))," --separator="\n" ]]
+<@@LOOP@@ data="columnsInfo" filter="NOT value IN hiddenColumns" separator="\n">            '<@@>value</@@>' => $this-><@@>value</@@>,</@@LOOP@@>
+<@@LOOP@@ data="hasOne" separator="\n">            '<@@>value.singular</@@>' => <@@>value.singular.pascalCase</@@>Resource::make($this->whenLoaded('<@@>value.singular</@@>')),</@@LOOP@@>
+<@@LOOP@@ data="hasMany" separator="\n">            '<@@>value.plural</@@>' => <@@>value.singular.pascalCase</@@>Resource::collection($this->whenLoaded('<@@>value.plural</@@>')),</@@LOOP@@>
+<@@LOOP@@ data="belongsTo" separator="\n">            '<@@>value.singular</@@>' => <@@>value.singular.pascalCase</@@>Resource::make($this->whenLoaded('<@@>value.singular</@@>')),</@@LOOP@@>
+<@@LOOP@@ data="belongsToMany" separator="\n">            '<@@>value.plural</@@>' => <@@>value.singular.pascalCase</@@>Resource::collection($this->whenLoaded('<@@>value.plural</@@>')),</@@LOOP@@>
         ];
     }
 }

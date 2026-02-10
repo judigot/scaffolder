@@ -1,5 +1,5 @@
 <?php
-//{{ownerComment}}
+//<@@>ownerComment</@@>
 
 namespace App\Repositories;
 

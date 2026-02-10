@@ -2,9 +2,9 @@
 
 namespace App\Repositories;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\<@@>value.singular.pascalCase</@@>;" --separator="\n" ]]
 use App\Models\<@@>tableName.singular.pascalCase</@@>;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
 use App\Repositories\BaseRepository;
 
 class <@@>tableName.singular.pascalCase</@@>Repository extends BaseRepository implements <@@>tableName.singular.pascalCase</@@>Interface
@@ -15,14 +15,14 @@ class <@@>tableName.singular.pascalCase</@@>Repository extends BaseRepository im
     }
 
 <@@LOOP@@ data="hasOne" separator="\n\n">
-    public function get<@@>value.singular.pascalCase</@@>(int $id): ?<@@>value.singular.pascalCase</@@>
+    public function get<@@>value.singular.pascalCase</@@>(string $id): ?Model
     {
         return $this->model->findOrFail($id)-><@@>value.singular</@@>;
     }
 </@@LOOP@@>
 
 <@@LOOP@@ data="hasMany" separator="\n\n">
-    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection
+    public function get<@@>value.plural.pascalCase</@@>(string $id, ?string $column = null, string $direction = 'asc'): Collection
     {
         $query = $this->model->findOrFail($id)-><@@>value.plural</@@>();
         $column ??= $query->getModel()->getKeyName();
@@ -40,7 +40,7 @@ class <@@>tableName.singular.pascalCase</@@>Repository extends BaseRepository im
 </@@LOOP@@>
 
 <@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
-    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection
+    public function get<@@>value.plural.pascalCase</@@>(string $id, ?string $column = null, string $direction = 'asc'): Collection
     {
         $query = $this->model->findOrFail($id)-><@@>value.plural</@@>();
         $column ??= $query->getModel()->getKeyName();
@@ -58,7 +58,7 @@ class <@@>tableName.singular.pascalCase</@@>Repository extends BaseRepository im
 </@@LOOP@@>
 
 <@@LOOP@@ data="belongsTo" separator="\n\n">
-    public function get<@@>value.singular.pascalCase</@@>(int $id): ?Model
+    public function get<@@>value.singular.pascalCase</@@>(string $id): ?Model
     {
         return $this->model->findOrFail($id)-><@@>value.singular</@@>;
     }

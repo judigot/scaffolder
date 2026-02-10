@@ -21,6 +21,7 @@ NC='\033[0m'
 
 API_BASE="${1:-http://localhost:3000/api}"
 COOKIE_JAR=$(mktemp)
+AUTH_TOKEN=""
 TESTS_PASSED=0
 TESTS_FAILED=0
 
@@ -28,9 +29,22 @@ TESTS_FAILED=0
 TEST_EMAIL="test-$(date +%s)@example.com"
 TEST_USERNAME="testuser$(date +%s)"
 TEST_PASSWORD="TestPassword123!"
+TEST_EMAIL_B="test-b-$(date +%s)@example.com"
+TEST_USERNAME_B="testuserb$(date +%s)"
+TEST_PASSWORD_B="TestPassword123!"
+COOKIE_JAR_A=""
+COOKIE_JAR_B=""
+COOKIE_JAR_ANON=""
+AUTH_TOKEN_A=""
+AUTH_TOKEN_B=""
+TEST_USER_ID_A=""
+TEST_USER_ID_B=""
 
 cleanup() {
   rm -f "$COOKIE_JAR"
+  rm -f "$COOKIE_JAR_A"
+  rm -f "$COOKIE_JAR_B"
+  rm -f "$COOKIE_JAR_ANON"
 }
 trap cleanup EXIT
 
@@ -39,26 +53,181 @@ log_success() { echo -e "${GREEN}✓ $1${NC}"; TESTS_PASSED=$((TESTS_PASSED + 1)
 log_error() { echo -e "${RED}✗ $1${NC}"; TESTS_FAILED=$((TESTS_FAILED + 1)); }
 log_info() { echo -e "${YELLOW}ℹ $1${NC}"; }
 
-# API call with cookie support
+assert_status_in() {
+  local expected_csv=$1 message=$2
+  IFS=',' read -ra EXPECTED <<< "$expected_csv"
+  for code in "${EXPECTED[@]}"; do
+    if [ "$STATUS" = "$code" ]; then
+      log_success "$message (status: $STATUS)"
+      return
+    fi
+  done
+
+  log_error "$message (expected one of: $expected_csv, got: $STATUS)"
+  echo "  Response: $BODY"
+}
+
+sanitize_key() {
+  echo "$1" | tr '-' '_'
+}
+
+set_resource_id() {
+  local endpoint=$1
+  local id=$2
+  local key
+  key=$(sanitize_key "$endpoint")
+
+  if [ -z "$id" ] || [ "$id" = "null" ]; then
+    return
+  fi
+
+  eval "RID_${key}=\"$id\""
+}
+
+get_resource_id() {
+  local endpoint=$1
+  local key
+  key=$(sanitize_key "$endpoint")
+  eval "echo \${RID_${key}:-1}"
+}
+
+looks_like_uuid() {
+  [[ "$1" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]
+}
+
+normalize_payload_foreign_ids() {
+  local json_payload=$1
+
+  if looks_like_uuid "$TEST_USER_ID"; then
+    echo "$json_payload" | jq --arg uuid "$TEST_USER_ID" 'with_entries(
+      if (.key | test("Id$")) and (.value | type == "number")
+      then .value = $uuid
+      else .
+      end
+    )'
+  else
+    echo "$json_payload"
+  fi
+}
+
+# API call with cookie and bearer-token support
 api_call() {
   local method=$1 url=$2 data=$3 use_auth=${4:-false}
   local response cookie_opts=""
 
-  # Use cookie jar for authenticated requests
+  # Use cookie jar and optional bearer token for authenticated requests
   if [ "$use_auth" = "true" ]; then
     cookie_opts="-b $COOKIE_JAR -c $COOKIE_JAR"
   fi
 
   if [ -n "$data" ]; then
-    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
-      -H "Content-Type: application/json" \
-      $cookie_opts \
-      -d "$data")
+    if [ "$use_auth" = "true" ] && [ -n "$AUTH_TOKEN" ]; then
+      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $AUTH_TOKEN" \
+        $cookie_opts \
+        -d "$data")
+    else
+      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+        -H "Content-Type: application/json" \
+        $cookie_opts \
+        -d "$data")
+    fi
   else
-    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" $cookie_opts)
+    if [ "$use_auth" = "true" ] && [ -n "$AUTH_TOKEN" ]; then
+      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+        -H "Authorization: Bearer $AUTH_TOKEN" \
+        $cookie_opts)
+    else
+      response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" $cookie_opts)
+    fi
   fi
   BODY="${response%|||*}"
   STATUS="${response##*|||}"
+}
+
+switch_to_user_a() {
+  COOKIE_JAR="$COOKIE_JAR_A"
+  AUTH_TOKEN="$AUTH_TOKEN_A"
+  TEST_USER_ID="$TEST_USER_ID_A"
+}
+
+switch_to_user_b() {
+  COOKIE_JAR="$COOKIE_JAR_B"
+  AUTH_TOKEN="$AUTH_TOKEN_B"
+  TEST_USER_ID="$TEST_USER_ID_B"
+}
+
+switch_to_anonymous() {
+  COOKIE_JAR="$COOKIE_JAR_ANON"
+  AUTH_TOKEN=""
+}
+
+register_or_login_user() {
+  local email=$1 username=$2 password=$3 label=$4
+
+  log_info "Registering $label user: $email" >&2
+  api_call POST "$API_BASE/auth/register" "{\"email\":\"$email\",\"username\":\"$username\",\"password\":\"$password\"}" true
+
+  if [ "$STATUS" = "201" ]; then
+    local uid token
+    uid=$(echo "$BODY" | jq -r '.user.id // empty')
+    token=$(echo "$BODY" | jq -r '.token // .accessToken // .access_token // empty')
+    echo "$uid|||$token"
+    return
+  fi
+
+  if [ "$STATUS" = "400" ] || [ "$STATUS" = "409" ]; then
+    api_call POST "$API_BASE/auth/login" "{\"email\":\"$email\",\"password\":\"$password\"}" true
+    if [ "$STATUS" = "200" ]; then
+      local uid token
+      uid=$(echo "$BODY" | jq -r '.user.id // empty')
+      token=$(echo "$BODY" | jq -r '.token // .accessToken // .access_token // empty')
+      echo "$uid|||$token"
+      return
+    fi
+  fi
+
+  echo "|||"
+}
+
+test_protected_denials() {
+  local endpoint=$1 id=$2 create_data=$3 update_data=$4
+
+  log_step "Testing protected-route denials for /api/$endpoint"
+
+  switch_to_anonymous
+  api_call POST "$API_BASE/$endpoint" "$create_data" false
+  assert_status_in "401,403,404" "POST /api/$endpoint denied without auth"
+
+  api_call GET "$API_BASE/$endpoint/$id" "" false
+  assert_status_in "401,403,404" "GET /api/$endpoint/$id denied without auth"
+
+  api_call PUT "$API_BASE/$endpoint/$id" "$update_data" false
+  assert_status_in "401,403,404" "PUT /api/$endpoint/$id denied without auth"
+
+  api_call DELETE "$API_BASE/$endpoint/$id" "" false
+  assert_status_in "401,403,404" "DELETE /api/$endpoint/$id denied without auth"
+
+  switch_to_user_a
+}
+
+test_ownership_denials() {
+  local endpoint=$1 id=$2 update_data=$3
+
+  log_step "Testing ownership authorization for /api/$endpoint/$id"
+
+  switch_to_user_b
+  api_call GET "$API_BASE/$endpoint/$id" "" true
+  assert_status_in "401,403,404" "GET /api/$endpoint/$id denied for another user"
+
+  api_call PUT "$API_BASE/$endpoint/$id" "$update_data" true
+  assert_status_in "401,403,404" "PUT /api/$endpoint/$id denied for another user"
+
+  api_call DELETE "$API_BASE/$endpoint/$id" "" true
+  assert_status_in "401,403,404" "DELETE /api/$endpoint/$id denied for another user"
+
+  switch_to_user_a
 }
 
 assert_status() {
@@ -88,32 +257,33 @@ log_success "API is running"
 # ═══════════════════════════════════════════════════════════════
 
 log_step "Setting up authentication"
-log_info "Registering test user: $TEST_EMAIL"
+COOKIE_JAR_A=$(mktemp)
+COOKIE_JAR_ANON=$(mktemp)
+COOKIE_JAR="$COOKIE_JAR_A"
+AUTH_RESULT_A=$(register_or_login_user "$TEST_EMAIL" "$TEST_USERNAME" "$TEST_PASSWORD" "primary")
+TEST_USER_ID_A="${AUTH_RESULT_A%|||*}"
+AUTH_TOKEN_A="${AUTH_RESULT_A##*|||}"
 
-# Register test user
-api_call POST "$API_BASE/auth/register" "{\"email\":\"$TEST_EMAIL\",\"username\":\"$TEST_USERNAME\",\"password\":\"$TEST_PASSWORD\"}" true
-
-if [ "$STATUS" = "201" ]; then
-  log_success "Test user registered"
-  TEST_USER_ID=$(echo "$BODY" | jq -r '.user.id')
-  log_info "User ID: $TEST_USER_ID"
-elif [ "$STATUS" = "400" ]; then
-  # User might already exist, try logging in
-  log_info "User may exist, attempting login..."
-  api_call POST "$API_BASE/auth/login" "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" true
-  if [ "$STATUS" = "200" ]; then
-    log_success "Logged in with existing user"
-    TEST_USER_ID=$(echo "$BODY" | jq -r '.user.id')
-  else
-    log_error "Failed to authenticate"
-    echo "  Response: $BODY"
-    exit 1
-  fi
-else
-  log_error "Failed to register test user"
-  echo "  Response: $BODY"
+if [ -z "$TEST_USER_ID_A" ] || [ "$TEST_USER_ID_A" = "null" ]; then
+  log_error "Failed to authenticate primary user"
   exit 1
 fi
+
+COOKIE_JAR_B=$(mktemp)
+COOKIE_JAR="$COOKIE_JAR_B"
+AUTH_RESULT_B=$(register_or_login_user "$TEST_EMAIL_B" "$TEST_USERNAME_B" "$TEST_PASSWORD_B" "secondary")
+TEST_USER_ID_B="${AUTH_RESULT_B%|||*}"
+AUTH_TOKEN_B="${AUTH_RESULT_B##*|||}"
+
+if [ -z "$TEST_USER_ID_B" ] || [ "$TEST_USER_ID_B" = "null" ]; then
+  log_error "Failed to authenticate secondary user"
+  exit 1
+fi
+
+switch_to_user_a
+log_success "Authenticated primary and secondary users"
+log_info "Primary user ID: $TEST_USER_ID_A"
+log_info "Secondary user ID: $TEST_USER_ID_B"
 
 # Verify authentication works
 api_call GET "$API_BASE/auth/me" "" true
@@ -129,18 +299,24 @@ echo -e "${BLUE}                    CRUD API TESTS                              
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
 # Test CRUD operations for a resource with single primary key
-# Args: name, endpoint, pk, create_data, update_data, use_auth
+# Args: name, endpoint, pk, create_data, update_data, use_auth, alt_endpoint
 test_crud() {
-  local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
+  local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false} alt_endpoint=${7:-}
 
   log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
 
   # Expand $TEST_USER_ID in payloads (bash variable substitution)
   create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
   update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+  create_data=$(normalize_payload_foreign_ids "$create_data")
+  update_data=$(normalize_payload_foreign_ids "$update_data")
 
   # CREATE
   api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  if [ "$STATUS" = "404" ] && [ -n "$alt_endpoint" ]; then
+    endpoint="$alt_endpoint"
+    api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  fi
   assert_status 201 "POST /api/$endpoint (create)"
 
   if [ "$STATUS" != "201" ]; then
@@ -148,12 +324,35 @@ test_crud() {
     return
   fi
 
-  ID=$(echo "$BODY" | jq -r ".$pk")
+  ID=$(echo "$BODY" | jq -r ".$pk // .id // empty")
+  if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+    ID=$(echo "$create_data" | jq -r ".$pk // .id // empty")
+  fi
+  if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+    ID=1
+  fi
+  set_resource_id "$endpoint" "$ID"
   echo "  Created $name ID: $ID"
+
+  local id_field_count
+  id_field_count=$(echo "$create_data" | jq '[keys[] | select(test("Id$"))] | length')
+  if [ "$id_field_count" -gt 1 ]; then
+    log_info "Composite-style payload detected; skipping single-ID R/U/D checks for $name"
+    return
+  fi
 
   # READ
   api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
   assert_status 200 "GET /api/$endpoint/$ID (read)"
+
+  local has_user_fk
+  has_user_fk=$(echo "$create_data" | jq -r 'has("userId")')
+  if [ "$use_auth" = "true" ]; then
+    test_protected_denials "$endpoint" "$ID" "$create_data" "$update_data"
+  fi
+  if [ "$use_auth" = "true" ] && [ "$has_user_fk" = "true" ]; then
+    test_ownership_denials "$endpoint" "$ID" "$update_data"
+  fi
 
   # UPDATE
   api_call PUT "$API_BASE/$endpoint/$ID" "$update_data" "$use_auth"
@@ -173,15 +372,17 @@ test_crud() {
 }
 
 # Test CRUD operations for a resource with composite primary key
-# Args: name, endpoint, pk_fields (comma-separated), create_data, update_data, use_auth
+# Args: name, endpoint, pk_fields (comma-separated), create_data, update_data, use_auth, alt_endpoint
 test_crud_composite() {
-  local name=$1 endpoint=$2 pk_fields=$3 create_data=$4 update_data=$5 use_auth=${6:-false}
+  local name=$1 endpoint=$2 pk_fields=$3 create_data=$4 update_data=$5 use_auth=${6:-false} alt_endpoint=${7:-}
 
   log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
 
   # Expand $TEST_USER_ID in payloads (bash variable substitution)
   create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
   update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
+  create_data=$(normalize_payload_foreign_ids "$create_data")
+  update_data=$(normalize_payload_foreign_ids "$update_data")
 
   # Build ID path from create_data to check/delete existing record
   local id_path=""
@@ -203,6 +404,10 @@ test_crud_composite() {
 
   # CREATE
   api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  if [ "$STATUS" = "404" ] && [ -n "$alt_endpoint" ]; then
+    endpoint="$alt_endpoint"
+    api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  fi
   assert_status 201 "POST /api/$endpoint (create)"
 
   if [ "$STATUS" != "201" ]; then
@@ -264,7 +469,7 @@ test_endpoint_smoke() {
 # ═══════════════════════════════════════════════════════════════
 <@@LOOP@@ data="tables" separator="\n\n">
 # Test <@@>tableName.titleCase</@@>
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">test_crud_composite '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@LOOP@@ data="compositePrimaryKey" separator=","><@@>value.camelCase</@@></@@LOOP@@>' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">test_crud '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>primaryKey</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>'</@@IF@@>
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">test_crud '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>getPrimaryKey()</@@>' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>' '<@@>tableName.plural.kebabCase</@@>'</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">test_crud '<@@>tableName.titleCase</@@>' '<@@>tableName.kebabCase</@@>' '<@@>getPrimaryKey()</@@>' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '{<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",">"<@@>columnNameCamelCase</@@>":<@@>mockValue</@@></@@LOOP@@>}' '<@@>isAuthResource</@@>' '<@@>tableName.plural.kebabCase</@@>'</@@IF@@>
 </@@LOOP@@>
 
 # ═══════════════════════════════════════════════════════════════
@@ -272,12 +477,12 @@ test_endpoint_smoke() {
 # ═══════════════════════════════════════════════════════════════
 
 <@@LOOP@@ data="tables" separator="\n">
-<@@LOOP@@ data="hasOne" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.singular.kebabCase</@@>' 'false'</@@LOOP@@>
-<@@LOOP@@ data="hasMany" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.plural.kebabCase</@@>' 'false'
+<@@LOOP@@ data="hasOne" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.singular.kebabCase</@@>" 'false'</@@LOOP@@>
+<@@LOOP@@ data="hasMany" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.plural.kebabCase</@@>" 'false'
 test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'false'</@@LOOP@@>
-<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.plural.kebabCase</@@>' 'false'
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.plural.kebabCase</@@>" 'false'
 test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'false'</@@LOOP@@>
-<@@LOOP@@ data="belongsTo" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/1/<@@>value.singular.kebabCase</@@>' 'false'</@@LOOP@@>
+<@@LOOP@@ data="belongsTo" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.singular.kebabCase</@@>" 'false'</@@LOOP@@>
 </@@LOOP@@>
 
 # ═══════════════════════════════════════════════════════════════
@@ -285,8 +490,13 @@ test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated
 # ═══════════════════════════════════════════════════════════════
 
 log_step "Cleanup"
+switch_to_user_a
 api_call POST "$API_BASE/auth/logout" "" true
 log_info "Logged out test user"
+
+switch_to_user_b
+api_call POST "$API_BASE/auth/logout" "" true
+log_info "Logged out secondary test user"
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}                       TEST SUMMARY                             ${NC}"

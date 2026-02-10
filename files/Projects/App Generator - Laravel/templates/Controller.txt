@@ -19,15 +19,15 @@ class <@@>tableName.singular.pascalCase</@@>Controller extends BaseController
     }
 
 <@@LOOP@@ data="hasOne" separator="\n\n">
-    public function get<@@>value.singular.pascalCase</@@>(Request $request, int $id)
+    public function get<@@>value.singular.pascalCase</@@>(Request $request, string $id)
     {
-        $<@@>value.singular</@@> = $this->repository->get<@@>value.singular.pascalCase</@@>($id, $request->query('column'), $request->query('direction', 'asc'));
+        $<@@>value.singular</@@> = $this->repository->get<@@>value.singular.pascalCase</@@>($id);
         return response()->json($<@@>value.singular</@@>);
     }
 </@@LOOP@@>
 
 <@@LOOP@@ data="hasMany" separator="\n\n">
-    public function get<@@>value.plural.pascalCase</@@>(Request $request, int $id)
+    public function get<@@>value.plural.pascalCase</@@>(Request $request, string $id)
     {
         $<@@>value.plural</@@> = $this->repository->get<@@>value.plural.pascalCase</@@>($id, $request->query('column'), $request->query('direction', 'asc'));
         return response()->json($<@@>value.plural</@@>);
@@ -46,7 +46,7 @@ class <@@>tableName.singular.pascalCase</@@>Controller extends BaseController
 </@@LOOP@@>
 
 <@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
-    public function get<@@>value.plural.pascalCase</@@>(Request $request, int $id)
+    public function get<@@>value.plural.pascalCase</@@>(Request $request, string $id)
     {
         $<@@>value.plural</@@> = $this->repository->get<@@>value.plural.pascalCase</@@>($id, $request->query('column'), $request->query('direction', 'asc'));
         return response()->json($<@@>value.plural</@@>);
@@ -65,9 +65,9 @@ class <@@>tableName.singular.pascalCase</@@>Controller extends BaseController
 </@@LOOP@@>
 
 <@@LOOP@@ data="belongsTo" separator="\n\n">
-    public function get<@@>value.singular.pascalCase</@@>(Request $request, int $id)
+    public function get<@@>value.singular.pascalCase</@@>(Request $request, string $id)
     {
-        $<@@>value.singular</@@> = $this->repository->get<@@>value.singular.pascalCase</@@>($id, $request->query('column'), $request->query('direction', 'asc'));
+        $<@@>value.singular</@@> = $this->repository->get<@@>value.singular.pascalCase</@@>($id);
         return response()->json($<@@>value.singular</@@>);
     }
 </@@LOOP@@>

@@ -28,7 +28,7 @@ routes:
 
 database:
   migrations:
-    - FILE_LOOP(<@@>index(1, 4, 1000)</@@>_create_<@@>tableName.plural.snakeCase</@@>_table.php --template ./templates/Migration.txt)
+    FILE_LOOP(<@@>timestamp('YYYY_MM_DD_HHmmss')</@@>_create_<@@>tableName.plural.snakeCase</@@>_table.php --template /Projects/App Generator - Laravel/templates/Migration.txt):
 
 # API test script
 CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):

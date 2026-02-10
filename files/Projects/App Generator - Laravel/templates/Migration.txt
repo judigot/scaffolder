@@ -10,12 +10,11 @@ return new class extends Migration
     {
         Schema::create('<@@>tableName</@@>', function (Blueprint $table) {
 <@@LOOP@@ data="columnsInfo" separator="\n">
-<@@IF@@ condition="is_primary_key EQUALS 'true' AND hasCompositePrimaryKey() EQUALS 'false' AND data_type EQUALS 'number'">            $table->id('<@@>column.name</@@>');</@@IF@@>
-<@@IF@@ condition="is_primary_key EQUALS 'true' AND hasCompositePrimaryKey() EQUALS 'true' AND data_type EQUALS 'number'">            $table->unsignedBigInteger('<@@>column.name</@@>');</@@IF@@>
-<@@IF@@ condition="is_primary_key EQUALS 'true' AND hasCompositePrimaryKey() EQUALS 'true' AND data_type EQUALS 'string'">            $table->string('<@@>column.name</@@>');</@@IF@@>
-<@@IF@@ condition="is_primary_key EQUALS 'true' AND hasCompositePrimaryKey() EQUALS 'false' AND data_type EQUALS 'string'">            $table->string('<@@>column.name</@@>')->primary();</@@IF@@>
-<@@IF@@ condition="is_primary_key EQUALS 'false' AND data_type EQUALS 'number'">            $table->integer('<@@>column.name</@@>')<@@IF@@ condition="is_nullable EQUALS 'YES'">->nullable()</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'">->unique()</@@IF@@>;</@@IF@@>
-<@@IF@@ condition="is_primary_key EQUALS 'false' AND data_type EQUALS 'string'">            $table->string('<@@>column.name</@@>')<@@IF@@ condition="is_nullable EQUALS 'YES'">->nullable()</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'">->unique()</@@IF@@>;</@@IF@@>
+<@@IF@@ condition="is_primary_key EQUALS 'true' AND hasCompositePrimaryKey() EQUALS 'false'">            $table->uuid('<@@>column.name</@@>')->primary();</@@IF@@>
+<@@IF@@ condition="is_primary_key EQUALS 'true' AND hasCompositePrimaryKey() EQUALS 'true'">            $table->string('<@@>column.name</@@>');</@@IF@@>
+<@@IF@@ condition="is_primary_key EQUALS 'false' AND has_foreign_key EQUALS 'true'">            $table->uuid('<@@>column.name</@@>')<@@IF@@ condition="is_nullable EQUALS 'YES'">->nullable()</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'">->unique()</@@IF@@>;</@@IF@@>
+<@@IF@@ condition="is_primary_key EQUALS 'false' AND data_type EQUALS 'string' AND has_foreign_key EQUALS 'false'">            $table->string('<@@>column.name</@@>')<@@IF@@ condition="is_nullable EQUALS 'YES'">->nullable()</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'">->unique()</@@IF@@>;</@@IF@@>
+<@@IF@@ condition="is_primary_key EQUALS 'false' AND data_type EQUALS 'number' AND has_foreign_key EQUALS 'false'">            $table->integer('<@@>column.name</@@>')<@@IF@@ condition="is_nullable EQUALS 'YES'">->nullable()</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'">->unique()</@@IF@@>;</@@IF@@>
 <@@IF@@ condition="is_primary_key EQUALS 'false' AND data_type EQUALS 'boolean'">            $table->boolean('<@@>column.name</@@>')<@@IF@@ condition="is_nullable EQUALS 'YES'">->nullable()</@@IF@@>;</@@IF@@>
 <@@IF@@ condition="is_primary_key EQUALS 'false' AND data_type EQUALS 'Date'">            $table->dateTime('<@@>column.name</@@>')<@@IF@@ condition="is_nullable EQUALS 'YES'">->nullable()</@@IF@@>;</@@IF@@>
 </@@LOOP@@>

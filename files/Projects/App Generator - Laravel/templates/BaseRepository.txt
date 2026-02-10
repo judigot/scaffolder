@@ -27,9 +27,50 @@ abstract class BaseRepository implements BaseInterface
         return $query->orderBy($column, $direction);
     }
 
-    // Base Methods
-<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">    public function <@@>repositoryMethod</@@>
+    public function create(array $data): Model
     {
-        <@@>repositoryContent</@@>
-    }</@@LOOP@@>
+        $normalizedData = collect($data)
+            ->mapWithKeys(fn ($value, $key) => [Str::snake((string) $key) => $value])
+            ->all();
+
+        if (!$this->model->getIncrementing()) {
+            $keyName = $this->model->getKeyName();
+            if (!array_key_exists($keyName, $normalizedData)) {
+                $normalizedData[$keyName] = (string) Str::uuid();
+            }
+        }
+
+        return $this->model->create($normalizedData);
+    }
+
+    public function index(?string $column = null, string $direction = 'asc'): Collection
+    {
+        return $this->getSortedQuery($column, $direction)->get();
+    }
+
+    public function findById(string $id): ?Model
+    {
+        return $this->model->find($id);
+    }
+
+    public function update(string $id, array $data): bool
+    {
+        $record = $this->model->find($id);
+
+        if (!$record) {
+            return false;
+        }
+
+        $normalizedData = collect($data)
+            ->mapWithKeys(fn ($value, $key) => [Str::snake((string) $key) => $value])
+            ->all();
+
+        return $record->update($normalizedData);
+    }
+
+    public function destroy(string $id): bool
+    {
+        $record = $this->model->find($id);
+        return $record ? (bool) $record->delete() : false;
+    }
 }

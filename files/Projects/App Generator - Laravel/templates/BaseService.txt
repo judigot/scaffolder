@@ -20,9 +20,28 @@ abstract class BaseService
         return $this->repository->getSortedQuery ($column, $direction); 
     }
 
-    // Base Service Methods
-<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">    public function <@@>repositoryMethod</@@>
+    public function create(array $data): Model
     {
-        <@@>serviceContent</@@>
-    }</@@LOOP@@>
+        return $this->repository->create($data);
+    }
+
+    public function index(?string $column = null, string $direction = 'asc'): Collection
+    {
+        return $this->repository->index($column, $direction);
+    }
+
+    public function findById(string $id): ?Model
+    {
+        return $this->repository->findById($id);
+    }
+
+    public function update(string $id, array $data): bool
+    {
+        return $this->repository->update($id, $data);
+    }
+
+    public function destroy(string $id): bool
+    {
+        return $this->repository->destroy($id);
+    }
 }

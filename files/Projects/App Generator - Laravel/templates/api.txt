@@ -2,6 +2,19 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toISOString(),
+    ]);
+});
+
+Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/login', [AuthController::class, 'login']);
+Route::get('/auth/me', [AuthController::class, 'me']);
+Route::post('/auth/logout', [AuthController::class, 'logout']);
 
 Route::middleware('api')->group(function () {
     <@@LOOP@@ data="tables">require __DIR__ . '/<@@>tableName.plural.kebabCase</@@>.php';</@@LOOP@@>

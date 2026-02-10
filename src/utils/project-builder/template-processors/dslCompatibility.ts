@@ -49,7 +49,7 @@ export const emitLegacyDslWarnings = (
     );
   }
 
-  if (/\{\{[^}]+\}\}/.test(content)) {
+  if (/\{\{\s*[a-zA-Z_][a-zA-Z0-9_.]*\s*\}\}/.test(content)) {
     warnOnce(
       '{{placeholder}}',
       'Use <@@>placeholder</@@> placeholders instead.',

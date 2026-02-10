@@ -2,28 +2,28 @@
 
 namespace App\Repositories;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\<@@>value.singular.pascalCase</@@>;" --separator="\n" ]]
 use App\Models\<@@>tableName.singular.pascalCase</@@>;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
 use App\Repositories\BaseInterface;
 
 interface <@@>tableName.singular.pascalCase</@@>Interface extends BaseInterface
 {
 <@@LOOP@@ data="hasOne" separator="\n">
-    public function get<@@>value.singular.pascalCase</@@>(int $id): ?<@@>value.singular.pascalCase</@@>;
+    public function get<@@>value.singular.pascalCase</@@>(string $id): ?Model;
 </@@LOOP@@>
 
 <@@LOOP@@ data="hasMany" separator="\n">
-    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection;
+    public function get<@@>value.plural.pascalCase</@@>(string $id, ?string $column = null, string $direction = 'asc'): Collection;
     public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection;
 </@@LOOP@@>
 
 <@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">
-    public function get<@@>value.plural.pascalCase</@@>(int $id, ?string $column = null, string $direction = 'asc'): Collection;
+    public function get<@@>value.plural.pascalCase</@@>(string $id, ?string $column = null, string $direction = 'asc'): Collection;
     public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection;
 </@@LOOP@@>
 
 <@@LOOP@@ data="belongsTo" separator="\n">
-    public function get<@@>value.singular.pascalCase</@@>(int $id): ?Model;
+    public function get<@@>value.singular.pascalCase</@@>(string $id): ?Model;
 </@@LOOP@@>
 }

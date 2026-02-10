@@ -14,8 +14,53 @@ abstract class BaseController extends Controller
         $this->service = $service;
     }
 
-<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">    public function <@@>controllerMethod</@@>
+    public function index(Request $request)
     {
-<@@>controllerContent</@@>
-    }</@@LOOP@@>
+        $items = $this->service->index(
+            $request->query('column'),
+            $request->query('direction', 'asc')
+        );
+
+        return response()->json($items);
+    }
+
+    public function store(Request $request)
+    {
+        $item = $this->service->create($request->all());
+        return response()->json($item, 201);
+    }
+
+    public function show(string $id)
+    {
+        $item = $this->service->findById($id);
+
+        if (!$item) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        return response()->json($item);
+    }
+
+    public function update(Request $request, string $id)
+    {
+        $updated = $this->service->update($id, $request->all());
+
+        if (!$updated) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        $item = $this->service->findById($id);
+        return response()->json($item);
+    }
+
+    public function destroy(string $id)
+    {
+        $deleted = $this->service->destroy($id);
+
+        if (!$deleted) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        return response()->json(['message' => 'Resource deleted']);
+    }
 }

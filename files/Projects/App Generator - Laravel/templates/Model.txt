@@ -2,52 +2,51 @@
 
 namespace App\Models;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\<@@>value.singular.pascalCase</@@>;" --separator="\n" ]]
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class <@@>tableName.singular.pascalCase</@@> extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
+    public $timestamps = false;
 
     protected $table = '<@@>tableName</@@>';
 
     protected $primaryKey = '<@@>getPrimaryKey()</@@>';
 
     protected $hidden = [
-        [[ LOOP(<@@>getAllColumns()</@@>) --template="'<@@>value</@@>'" --separator=",\n        " --filter="[[ USE_CONSTANT(hiddenColumns) ]]" ]]
+        <@@LOOP@@ data="columnsInfo" filter="value IN hiddenColumns" separator=",\n        ">'<@@>value</@@>'</@@LOOP@@>
     ];
 
-    protected $fillable = [
-        [[ LOOP(requiredColumns) --template="'<@@>value</@@>'" --separator=",\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
-    ];
-
-    public function getForeignKey()
-    {
-        return $this->primaryKey;
-    }
+    protected $guarded = [];
 
 <@@LOOP@@ data="hasOne" separator="\n\n">
     public function <@@>value.singular</@@>() {
-        return $this->hasOne(<@@>value.singular.pascalCase</@@>::class);
+        return $this->hasOne(\App\Models\<@@>value.singular.pascalCase</@@>::class);
     }
 </@@LOOP@@>
 
 <@@LOOP@@ data="hasMany" separator="\n\n">
     public function <@@>value.plural</@@>() {
-        return $this->hasMany(<@@>value.singular.pascalCase</@@>::class);
+        return $this->hasMany(\App\Models\<@@>value.singular.pascalCase</@@>::class);
     }
 </@@LOOP@@>
 
 <@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
     public function <@@>value.plural</@@>() {
-        return $this->belongsToMany(<@@>value.singular.pascalCase</@@>::class);
+        return $this->belongsToMany(\App\Models\<@@>value.singular.pascalCase</@@>::class);
     }
 </@@LOOP@@>
 
 <@@LOOP@@ data="belongsTo" separator="\n\n">
     public function <@@>value.singular</@@>() {
-        return $this->belongsTo(<@@>value.singular.pascalCase</@@>::class);
+        return $this->belongsTo(\App\Models\<@@>value.singular.pascalCase</@@>::class);
     }
 </@@LOOP@@>
 }
