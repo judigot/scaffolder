@@ -24,6 +24,7 @@ COOKIE_JAR=$(mktemp)
 AUTH_TOKEN=""
 TESTS_PASSED=0
 TESTS_FAILED=0
+FAILED_TESTS=()
 
 # Generate unique test user credentials
 TEST_EMAIL="test-$(date +%s)@example.com"
@@ -50,7 +51,11 @@ trap cleanup EXIT
 
 log_step() { echo -e "\n${BLUE}▶ $1${NC}"; }
 log_success() { echo -e "${GREEN}✓ $1${NC}"; TESTS_PASSED=$((TESTS_PASSED + 1)); }
-log_error() { echo -e "${RED}✗ $1${NC}"; TESTS_FAILED=$((TESTS_FAILED + 1)); }
+log_error() {
+  echo -e "${RED}✗ $1${NC}"
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  FAILED_TESTS+=("$1")
+}
 log_info() { echo -e "${YELLOW}ℹ $1${NC}"; }
 
 assert_status_in() {
@@ -328,13 +333,41 @@ test_crud() {
   fi
 
   ID=$(echo "$BODY" | jq -r ".$pk // .id // empty")
+  if [[ "$pk" == *,* ]]; then
+    ID=""
+    IFS=',' read -ra PK_PARTS <<< "$pk"
+    for pk_part in "${PK_PARTS[@]}"; do
+      local part_val
+      part_val=$(echo "$BODY" | jq -r ".$pk_part // empty")
+      if [ -z "$part_val" ] || [ "$part_val" = "null" ]; then
+        part_val=$(echo "$create_data" | jq -r ".$pk_part // empty")
+      fi
+      if [ -n "$part_val" ] && [ "$part_val" != "null" ]; then
+        if [ -n "$ID" ]; then
+          ID="$ID/$part_val"
+        else
+          ID="$part_val"
+        fi
+      fi
+    done
+  fi
   if [ -z "$ID" ] || [ "$ID" = "null" ]; then
     ID=$(echo "$create_data" | jq -r ".$pk // .id // empty")
   fi
+
+  local id_field_count
+  id_field_count=$(echo "$create_data" | jq '[keys[] | select(test("(Id|_id)$"))] | length')
+  if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+    ID=$(echo "$BODY" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
+    if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+      ID=$(echo "$create_data" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
+    fi
+  fi
+
   if [ -z "$ID" ] || [ "$ID" = "null" ]; then
     ID=1
   fi
-  set_resource_id "$endpoint" "$ID"
+  set_resource_id "$endpoint" "${ID%%/*}"
   echo "  Created $name ID: $ID"
 
   # READ
@@ -500,6 +533,13 @@ echo -e "${BLUE}                       TEST SUMMARY                             
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "\n${GREEN}Passed: $TESTS_PASSED${NC}"
 echo -e "${RED}Failed: $TESTS_FAILED${NC}"
+
+if [ "$TESTS_FAILED" -gt 0 ]; then
+  echo -e "\n${RED}Failed Tests:${NC}"
+  for failed_test in "${FAILED_TESTS[@]}"; do
+    echo "- $failed_test"
+  done
+fi
 
 [ $TESTS_FAILED -eq 0 ] && echo -e "\n${GREEN}All tests passed!${NC}" && exit 0
 echo -e "\n${RED}Some tests failed${NC}" && exit 1
