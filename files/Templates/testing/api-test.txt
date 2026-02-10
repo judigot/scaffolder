@@ -41,6 +41,8 @@ AUTH_TOKEN_A=""
 AUTH_TOKEN_B=""
 TEST_USER_ID_A=""
 TEST_USER_ID_B=""
+FIRST_PROTECTED_ENDPOINT=""
+FIRST_PROTECTED_ID=""
 
 cleanup() {
   rm -f "$COOKIE_JAR"
@@ -86,6 +88,48 @@ assert_json_body() {
   else
     log_error "$message (response is not valid JSON)"
     echo "  Response: $BODY"
+  fi
+}
+
+assert_no_sensitive_fields() {
+  local message=$1
+  if ! echo "$BODY" | jq -e '.. | objects | has("password") or has("password_hash")' >/dev/null 2>&1; then
+    log_success "$message"
+  else
+    log_error "$message (sensitive fields found in response body)"
+    echo "  Response: $BODY"
+  fi
+}
+
+assert_no_error_leak() {
+  local message=$1
+  if printf '%s' "$BODY" | grep -Eqi '(SQLSTATE|stack trace|Exception|Fatal error|Undefined variable)'; then
+    log_error "$message (error details leaked in response)"
+    echo "  Response: $BODY"
+  else
+    log_success "$message"
+  fi
+}
+
+assert_no_sensitive_error_leak() {
+  local message=$1
+  local leak_pattern='(sqlstate|syntax error|stack trace|traceback|\\bexception\\b|uncaught|pdoexception|queryexception|select[[:space:]].*from|insert[[:space:]]+into|update[[:space:]].*set|delete[[:space:]]+from)'
+
+  if printf '%s' "$BODY" | grep -Eiq "$leak_pattern"; then
+    log_error "$message (found sensitive error details)"
+    echo "  Response: $BODY"
+  else
+    log_success "$message"
+  fi
+}
+
+assert_auth_user_sanitized() {
+  local message=$1
+  if echo "$BODY" | jq -e '(.user // .) as $u | ($u | type == "object") and (($u | has("password")) or ($u | has("password_hash")) or ($u | has("passwordHash")))' >/dev/null 2>&1; then
+    log_error "$message (auth response exposes password fields)"
+    echo "  Response: $BODY"
+  else
+    log_success "$message"
   fi
 }
 
@@ -260,6 +304,47 @@ api_call() {
   STATUS="${response##*|||}"
 }
 
+api_call_raw() {
+  local method=$1 url=$2
+  shift 2
+  local response
+  response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" "$@")
+  BODY="${response%|||*}"
+  STATUS="${response##*|||}"
+}
+
+api_call_bearer_only() {
+  local method=$1 url=$2 data=${3:-} token=${4:-invalid-token}
+
+  if [ -n "$data" ]; then
+    api_call_raw "$method" "$url" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $token" \
+      --data "$data"
+  else
+    api_call_raw "$method" "$url" \
+      -H "Authorization: Bearer $token"
+  fi
+}
+
+api_call_with_bearer_no_cookie() {
+  local method=$1 url=$2 data=$3 bearer=$4
+  local response
+
+  if [ -n "$data" ]; then
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $bearer" \
+      -d "$data")
+  else
+    response=$(curl -s -w "|||%{http_code}" -X "$method" "$url" \
+      -H "Authorization: Bearer $bearer")
+  fi
+
+  BODY="${response%|||*}"
+  STATUS="${response##*|||}"
+}
+
 switch_to_user_a() {
   COOKIE_JAR="$COOKIE_JAR_A"
   AUTH_TOKEN="$AUTH_TOKEN_A"
@@ -306,42 +391,111 @@ register_or_login_user() {
 }
 
 test_protected_denials() {
-  local endpoint=$1 id=$2 create_data=$3 update_data=$4
+  local endpoint=$1 id=$2 create_data=$3 update_data=$4 has_item_route=${5:-true}
 
   log_step "Testing protected-route denials for /api/$endpoint"
 
   switch_to_anonymous
   api_call POST "$API_BASE/$endpoint" "$create_data" false
-  assert_status_in "401,403,404" "POST /api/$endpoint denied without auth"
+  assert_status 401 "POST /api/$endpoint denied without auth"
+  assert_no_sensitive_error_leak "POST /api/$endpoint denial hides sensitive errors"
 
-  api_call GET "$API_BASE/$endpoint/$id" "" false
-  assert_status_in "401,403,404" "GET /api/$endpoint/$id denied without auth"
+  if [ "$has_item_route" = "true" ]; then
+    api_call GET "$API_BASE/$endpoint/$id" "" false
+    assert_status 401 "GET /api/$endpoint/$id denied without auth"
+    assert_no_sensitive_error_leak "GET /api/$endpoint/$id denial hides sensitive errors"
 
-  api_call PUT "$API_BASE/$endpoint/$id" "$update_data" false
-  assert_status_in "401,403,404" "PUT /api/$endpoint/$id denied without auth"
+    api_call PUT "$API_BASE/$endpoint/$id" "$update_data" false
+    assert_status 401 "PUT /api/$endpoint/$id denied without auth"
+    assert_no_sensitive_error_leak "PUT /api/$endpoint/$id denial hides sensitive errors"
 
-  api_call DELETE "$API_BASE/$endpoint/$id" "" false
-  assert_status_in "401,403,404" "DELETE /api/$endpoint/$id denied without auth"
+    api_call DELETE "$API_BASE/$endpoint/$id" "" false
+    assert_status 401 "DELETE /api/$endpoint/$id denied without auth"
+    assert_no_sensitive_error_leak "DELETE /api/$endpoint/$id denial hides sensitive errors"
+  else
+    log_info "Skipping item-route unauth denial checks for /api/$endpoint/$id (item route not available)"
+  fi
 
   switch_to_user_a
 }
 
 test_ownership_denials() {
-  local endpoint=$1 id=$2 update_data=$3
+  local endpoint=$1 id=$2 update_data=$3 has_item_route=${4:-true}
 
   log_step "Testing ownership authorization for /api/$endpoint/$id"
 
   switch_to_user_b
-  api_call GET "$API_BASE/$endpoint/$id" "" true
-  assert_status_in "401,403,404" "GET /api/$endpoint/$id denied for another user"
+  if [ "$has_item_route" = "true" ]; then
+    api_call GET "$API_BASE/$endpoint/$id" "" true
+    assert_status 404 "GET /api/$endpoint/$id denied for another user"
+    assert_no_sensitive_error_leak "GET /api/$endpoint/$id ownership denial hides sensitive errors"
 
-  api_call PUT "$API_BASE/$endpoint/$id" "$update_data" true
-  assert_status_in "401,403,404" "PUT /api/$endpoint/$id denied for another user"
+    api_call PUT "$API_BASE/$endpoint/$id" "$update_data" true
+    assert_status 404 "PUT /api/$endpoint/$id denied for another user"
+    assert_no_sensitive_error_leak "PUT /api/$endpoint/$id ownership denial hides sensitive errors"
 
-  api_call DELETE "$API_BASE/$endpoint/$id" "" true
-  assert_status_in "401,403,404" "DELETE /api/$endpoint/$id denied for another user"
+    api_call DELETE "$API_BASE/$endpoint/$id" "" true
+    assert_status 404 "DELETE /api/$endpoint/$id denied for another user"
+    assert_no_sensitive_error_leak "DELETE /api/$endpoint/$id ownership denial hides sensitive errors"
+  else
+    log_info "Skipping ownership item checks for /api/$endpoint/$id (item route not available)"
+  fi
 
   switch_to_user_a
+}
+
+test_invalid_bearer_denials() {
+  local endpoint=$1 id=$2 create_data=$3 update_data=$4 has_item_route=${5:-true}
+  local tampered_token="tampered-${AUTH_TOKEN_A:-token}"
+
+  log_step "Testing invalid bearer token denials for /api/$endpoint"
+
+  api_call_with_bearer_no_cookie POST "$API_BASE/$endpoint" "$create_data" "$tampered_token"
+  assert_status 401 "POST /api/$endpoint denied with tampered bearer"
+  assert_no_sensitive_error_leak "POST /api/$endpoint tampered token hides sensitive errors"
+
+  if [ "$has_item_route" = "true" ]; then
+    api_call_with_bearer_no_cookie GET "$API_BASE/$endpoint/$id" "" "$tampered_token"
+    assert_status 401 "GET /api/$endpoint/$id denied with tampered bearer"
+    assert_no_sensitive_error_leak "GET /api/$endpoint/$id tampered token hides sensitive errors"
+
+    api_call_with_bearer_no_cookie PUT "$API_BASE/$endpoint/$id" "$update_data" "$tampered_token"
+    assert_status 401 "PUT /api/$endpoint/$id denied with tampered bearer"
+    assert_no_sensitive_error_leak "PUT /api/$endpoint/$id tampered token hides sensitive errors"
+
+    api_call_with_bearer_no_cookie DELETE "$API_BASE/$endpoint/$id" "" "$tampered_token"
+    assert_status 401 "DELETE /api/$endpoint/$id denied with tampered bearer"
+    assert_no_sensitive_error_leak "DELETE /api/$endpoint/$id tampered token hides sensitive errors"
+  else
+    log_info "Skipping tampered bearer item checks for /api/$endpoint/$id (item route not available)"
+  fi
+}
+
+test_malformed_json_denials() {
+  local endpoint=$1 id=$2 use_auth=${3:-false}
+  local malformed='{"malformed":'
+
+  log_step "Testing malformed JSON handling for /api/$endpoint"
+
+  api_call POST "$API_BASE/$endpoint" "$malformed" "$use_auth"
+  assert_status_in "400,422" "POST /api/$endpoint rejects malformed JSON"
+  assert_no_sensitive_error_leak "POST /api/$endpoint malformed JSON hides sensitive errors"
+
+  api_call PUT "$API_BASE/$endpoint/$id" "$malformed" "$use_auth"
+  assert_status_in "400,404,422" "PUT /api/$endpoint/$id rejects malformed JSON"
+  assert_no_sensitive_error_leak "PUT /api/$endpoint/$id malformed JSON hides sensitive errors"
+}
+
+test_unsupported_methods() {
+  local endpoint=$1 id=$2 use_auth=${3:-false}
+
+  log_step "Testing unsupported methods for /api/$endpoint"
+
+  api_call PATCH "$API_BASE/$endpoint" "{}" "$use_auth"
+  assert_status_in "404,405" "PATCH /api/$endpoint rejected"
+
+  api_call POST "$API_BASE/$endpoint/$id" "{}" "$use_auth"
+  assert_status_in "404,405" "POST /api/$endpoint/$id rejected"
 }
 
 assert_status() {
@@ -403,10 +557,17 @@ log_info "Secondary user ID: $TEST_USER_ID_B"
 api_call GET "$API_BASE/auth/me" "" true
 if [ "$STATUS" = "200" ]; then
   log_success "Session cookie is valid"
+  assert_auth_user_sanitized "GET /api/auth/me hides password fields"
 else
   log_error "Session verification failed"
   exit 1
 fi
+
+switch_to_anonymous
+api_call POST "$API_BASE/auth/login" "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" false
+assert_status 200 "POST /api/auth/login succeeds with valid credentials"
+assert_auth_user_sanitized "POST /api/auth/login hides password fields"
+switch_to_user_a
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}                    CRUD API TESTS                              ${NC}"
@@ -506,6 +667,10 @@ test_crud() {
   if [ -n "$alt_endpoint" ]; then
     set_resource_id "$alt_endpoint" "${ID%%/*}"
   fi
+  if [ "$effective_auth" = "true" ] && [ -z "$FIRST_PROTECTED_ENDPOINT" ]; then
+    FIRST_PROTECTED_ENDPOINT="$endpoint"
+    FIRST_PROTECTED_ID="$ID"
+  fi
   echo "  Created $name ID: $ID"
 
   # READ
@@ -514,11 +679,15 @@ test_crud() {
   assert_json_body "GET /api/$endpoint/$ID returns JSON"
 
   if [ "$effective_auth" = "true" ]; then
-    test_protected_denials "$endpoint" "$ID" "$create_data" "$update_data"
+    test_protected_denials "$endpoint" "$ID" "$create_data" "$update_data" "true"
+    test_invalid_bearer_denials "$endpoint" "$ID" "$create_data" "$update_data" "true"
   fi
   if [ "$effective_auth" = "true" ] && [ "$has_user_fk" = "true" ]; then
-    test_ownership_denials "$endpoint" "$ID" "$update_data"
+    test_ownership_denials "$endpoint" "$ID" "$update_data" "true"
   fi
+
+  test_malformed_json_denials "$endpoint" "$ID" "$effective_auth"
+  test_unsupported_methods "$endpoint" "$ID" "$effective_auth"
 
   # UPDATE
   api_call PUT "$API_BASE/$endpoint/$ID" "$update_data" "$effective_auth"
@@ -637,23 +806,33 @@ test_crud_composite() {
   if [ -n "$alt_endpoint" ]; then
     set_resource_id "$alt_endpoint" "${id_path%%/*}"
   fi
+  if [ "$effective_auth" = "true" ] && [ -z "$FIRST_PROTECTED_ENDPOINT" ]; then
+    FIRST_PROTECTED_ENDPOINT="$endpoint"
+    FIRST_PROTECTED_ID="$id_path"
+  fi
   echo "  Created $name ID: $id_path"
 
   # READ
   api_call GET "$API_BASE/$endpoint/$id_path" "" "$effective_auth"
   assert_status_in "200,404" "GET /api/$endpoint/$id_path (composite read)"
+  local has_item_route="false"
   if [ "$STATUS" = "200" ]; then
+    has_item_route="true"
     assert_json_body "GET /api/$endpoint/$id_path returns JSON"
   else
     log_success "GET /api/$endpoint/$id_path accepted as 404 fallback"
   fi
 
   if [ "$effective_auth" = "true" ]; then
-    test_protected_denials "$endpoint" "$id_path" "$create_data" "$update_data"
+    test_protected_denials "$endpoint" "$id_path" "$create_data" "$update_data" "$has_item_route"
+    test_invalid_bearer_denials "$endpoint" "$id_path" "$create_data" "$update_data" "$has_item_route"
   fi
   if [ "$effective_auth" = "true" ] && [ "$has_user_fk" = "true" ]; then
-    test_ownership_denials "$endpoint" "$id_path" "$update_data"
+    test_ownership_denials "$endpoint" "$id_path" "$update_data" "$has_item_route"
   fi
+
+  test_malformed_json_denials "$endpoint" "$id_path" "$effective_auth"
+  test_unsupported_methods "$endpoint" "$id_path" "$effective_auth"
 
   log_info "Composite canonical coverage is create+read; skipping update/delete checks for $name"
   return
@@ -674,6 +853,56 @@ test_endpoint_smoke() {
     echo "  Response: $BODY"
   fi
 }
+
+test_auth_rate_limit() {
+  local attempts=30
+  local rate_limited=0
+
+  log_step "Testing auth abuse throttling on /api/auth/login"
+
+  switch_to_anonymous
+  for i in $(seq 1 "$attempts"); do
+    api_call POST "$API_BASE/auth/login" "{\"email\":\"$TEST_EMAIL\",\"password\":\"WrongPassword${i}!\"}" false
+    if [ "$STATUS" = "429" ]; then
+      rate_limited=$((rate_limited + 1))
+    fi
+  done
+
+  if [ "$rate_limited" -gt 0 ]; then
+    log_success "Auth throttling triggered (429 seen $rate_limited/$attempts attempts)"
+  else
+    log_error "Auth throttling did not trigger (expected at least one 429)"
+    echo "  Last response: $BODY"
+  fi
+
+  switch_to_user_a
+}
+
+test_post_logout_denials() {
+  log_step "Testing logout invalidation and post-logout denials"
+
+  switch_to_user_a
+  api_call POST "$API_BASE/auth/logout" "" true
+  assert_status_in "200,204" "POST /api/auth/logout succeeds"
+
+  api_call GET "$API_BASE/auth/me" "" true
+  assert_status 401 "GET /api/auth/me denied after logout"
+  assert_no_sensitive_error_leak "GET /api/auth/me after logout hides sensitive errors"
+
+  if [ -n "$FIRST_PROTECTED_ENDPOINT" ]; then
+    api_call GET "$API_BASE/$FIRST_PROTECTED_ENDPOINT" "" true
+    assert_status 401 "GET /api/$FIRST_PROTECTED_ENDPOINT denied after logout"
+    assert_no_sensitive_error_leak "GET /api/$FIRST_PROTECTED_ENDPOINT after logout hides sensitive errors"
+
+    if [ -n "$FIRST_PROTECTED_ID" ]; then
+      api_call GET "$API_BASE/$FIRST_PROTECTED_ENDPOINT/$FIRST_PROTECTED_ID" "" true
+      assert_status 401 "GET /api/$FIRST_PROTECTED_ENDPOINT/$FIRST_PROTECTED_ID denied after logout"
+      assert_no_sensitive_error_leak "GET /api/$FIRST_PROTECTED_ENDPOINT/$FIRST_PROTECTED_ID after logout hides sensitive errors"
+    fi
+  fi
+}
+
+test_auth_rate_limit
 
 # ═══════════════════════════════════════════════════════════════
 # TABLE TESTS
@@ -701,13 +930,11 @@ test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated
 # ═══════════════════════════════════════════════════════════════
 
 log_step "Cleanup"
-switch_to_user_a
-api_call POST "$API_BASE/auth/logout" "" true
-log_info "Logged out test user"
+test_post_logout_denials
 
 switch_to_user_b
 api_call POST "$API_BASE/auth/logout" "" true
-log_info "Logged out secondary test user"
+assert_status_in "200,204" "POST /api/auth/logout succeeds for secondary user"
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}                       TEST SUMMARY                             ${NC}"

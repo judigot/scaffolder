@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 abstract class BaseController extends Controller
@@ -17,6 +18,11 @@ abstract class BaseController extends Controller
         $this->service = $service;
     }
 
+    protected function tokenCacheKey(string $token): string
+    {
+        return 'auth_token:' . hash('sha256', $token);
+    }
+
     protected function authenticatedUserId(Request $request): ?string
     {
         $bearer = $request->bearerToken();
@@ -24,17 +30,18 @@ abstract class BaseController extends Controller
             return null;
         }
 
-        $decoded = base64_decode($bearer, true);
-        if (!is_string($decoded) || $decoded === '') {
+        $userId = Cache::get($this->tokenCacheKey($bearer));
+        if (!is_string($userId) || $userId === '') {
             return null;
         }
 
-        $exists = DB::table('user')->where('id', $decoded)->exists();
+        $exists = DB::table('user')->where('id', $userId)->exists();
         if (!$exists) {
+            Cache::forget($this->tokenCacheKey($bearer));
             return null;
         }
 
-        return $decoded;
+        return $userId;
     }
 
     protected function ownerScoped(): bool
@@ -51,6 +58,26 @@ abstract class BaseController extends Controller
         $ownerField = (string) $this->ownerField;
         $ownerValue = data_get($item, $ownerField);
         return is_string($ownerValue) && $ownerValue === $userId;
+    }
+
+    protected function malformedJsonResponse(Request $request)
+    {
+        $contentType = strtolower((string) $request->header('Content-Type', ''));
+        if (strpos($contentType, 'application/json') === false) {
+            return null;
+        }
+
+        $raw = trim((string) $request->getContent());
+        if ($raw === '') {
+            return null;
+        }
+
+        json_decode($raw, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json(['message' => 'Malformed JSON payload'], 400);
+        }
+
+        return null;
     }
 
     public function index(Request $request)
@@ -78,6 +105,11 @@ abstract class BaseController extends Controller
 
     public function store(Request $request)
     {
+        $malformed = $this->malformedJsonResponse($request);
+        if ($malformed) {
+            return $malformed;
+        }
+
         $userId = null;
         if ($this->requiresAuth) {
             $userId = $this->authenticatedUserId($request);
@@ -121,6 +153,11 @@ abstract class BaseController extends Controller
 
     public function update(Request $request, string $id)
     {
+        $malformed = $this->malformedJsonResponse($request);
+        if ($malformed) {
+            return $malformed;
+        }
+
         $userId = null;
         if ($this->requiresAuth) {
             $userId = $this->authenticatedUserId($request);
