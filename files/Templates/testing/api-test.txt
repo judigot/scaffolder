@@ -475,7 +475,23 @@ test_crud_composite() {
 
   # Build ID path from create_data to check/delete existing record
   local id_path=""
-  IFS=',' read -ra PK_ARRAY <<< "$pk_fields"
+  local resolved_pk_fields="$pk_fields"
+  local pk_field_count
+  pk_field_count=$(echo "$resolved_pk_fields" | awk -F',' '{print NF}')
+  local detected_id_fields
+  detected_id_fields=$(echo "$create_data" | jq -r '[keys[] | select(test("(Id|_id)$"))] | join(",")')
+  local detected_id_count
+  if [ -n "$detected_id_fields" ]; then
+    detected_id_count=$(echo "$detected_id_fields" | awk -F',' '{print NF}')
+  else
+    detected_id_count=0
+  fi
+  if [ "$pk_field_count" -le 1 ] && [ "$detected_id_count" -gt 1 ]; then
+    resolved_pk_fields="$detected_id_fields"
+    debug_log "$name composite pk override: original='$pk_fields' resolved='$resolved_pk_fields'"
+  fi
+
+  IFS=',' read -ra PK_ARRAY <<< "$resolved_pk_fields"
   for pk in "${PK_ARRAY[@]}"; do
     local val
     val=$(json_field_value "$create_data" "$pk")
