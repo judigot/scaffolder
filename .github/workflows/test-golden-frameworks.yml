@@ -55,4 +55,4 @@ jobs:
           DB_PORT: 15432
           DB_USER: scaffolder
           DB_PASS: scaffolder123
-        run: ./scripts/test-golden-frameworks.sh
+        run: ./scripts/test-golden-frameworks
