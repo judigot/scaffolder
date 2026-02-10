@@ -322,40 +322,60 @@ async function runGoldenAppTests(
 
     console.log(`→ ${app.projectName} running api-test.sh`);
 
-    const apiTestResult = spawnSync(
-      `bash api-test.sh http://localhost:${String(app.port)}/api`,
+    const apiTestProcess = spawn(
+      'bash',
+      ['api-test.sh', `http://localhost:${String(app.port)}/api`],
       {
         cwd: outputDir,
         env: {
           ...process.env,
           ...env,
         },
-        shell: true,
-        encoding: 'utf-8',
-        timeout: COMMAND_TIMEOUTS_MS.apiTest,
+        stdio: ['ignore', 'pipe', 'pipe'],
       },
     );
 
-    if (apiTestResult.error) {
-      if ((apiTestResult.error as NodeJS.ErrnoException).code === 'ETIMEDOUT') {
-        throw new Error(
-          `api-test.sh timed out for ${app.projectName} after ${String(COMMAND_TIMEOUTS_MS.apiTest / 1000)}s`,
-        );
-      }
+    let combinedOutput = '';
+    let timedOut = false;
+    const apiTestTimer = setTimeout(() => {
+      timedOut = true;
+      apiTestProcess.kill('SIGTERM');
+    }, COMMAND_TIMEOUTS_MS.apiTest);
+
+    apiTestProcess.stdout?.on('data', (chunk) => {
+      const text = String(chunk);
+      combinedOutput += text;
+      process.stdout.write(text);
+    });
+
+    apiTestProcess.stderr?.on('data', (chunk) => {
+      const text = String(chunk);
+      combinedOutput += text;
+      process.stderr.write(text);
+    });
+
+    const apiTestExitCode = await new Promise<number>((resolve, reject) => {
+      apiTestProcess.on('error', reject);
+      apiTestProcess.on('close', (code) => {
+        resolve(code ?? 1);
+      });
+    });
+
+    clearTimeout(apiTestTimer);
+
+    if (timedOut) {
       throw new Error(
-        `api-test.sh failed to execute for ${app.projectName}: ${apiTestResult.error.message}`,
+        `api-test.sh timed out for ${app.projectName} after ${String(COMMAND_TIMEOUTS_MS.apiTest / 1000)}s`,
       );
     }
 
-    const combinedOutput = `${apiTestResult.stdout ?? ''}${apiTestResult.stderr ?? ''}`;
-    process.stdout.write(combinedOutput);
     await fs.writeFile(
       path.join(outputDir, 'api-test.log'),
       combinedOutput,
       'utf-8',
     );
 
-    if (apiTestResult.status !== 0) {
+    if (apiTestExitCode !== 0) {
       throw new Error(
         `api-test.sh failed for ${app.projectName}. See ${path.join(outputDir, 'api-test.log')}`,
       );
