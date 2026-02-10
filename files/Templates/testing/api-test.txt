@@ -113,7 +113,7 @@ assert_no_error_leak() {
 
 assert_no_sensitive_error_leak() {
   local message=$1
-  local leak_pattern='(sqlstate|syntax error|stack trace|traceback|\\bexception\\b|uncaught|pdoexception|queryexception|select[[:space:]].*from|insert[[:space:]]+into|update[[:space:]].*set|delete[[:space:]]+from)'
+  local leak_pattern='(sqlstate|syntax error|stack trace|traceback|\\bexception\\b|uncaught|pdoexception|queryexception|select .*from|insert +into|update .*set|delete +from)'
 
   if printf '%s' "$BODY" | grep -Eiq "$leak_pattern"; then
     log_error "$message (found sensitive error details)"
