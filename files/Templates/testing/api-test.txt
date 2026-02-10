@@ -96,6 +96,17 @@ get_resource_id() {
   eval "echo \${RID_${key}:-1}"
 }
 
+is_invalid_id() {
+  local candidate=$1
+  if [ -z "$candidate" ] || [ "$candidate" = "null" ]; then
+    return 0
+  fi
+  if printf '%s' "$candidate" | grep -Eq '(^|/)null($|/)'; then
+    return 0
+  fi
+  return 1
+}
+
 looks_like_uuid() {
   if printf '%s' "$1" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'; then
     return 0
@@ -353,25 +364,30 @@ test_crud() {
       done
       ;;
   esac
-  if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+  if is_invalid_id "$ID"; then
     ID=$(echo "$create_data" | jq -r ".$pk // .id // empty")
   fi
 
   local id_field_count
   id_field_count=$(echo "$create_data" | jq '[keys[] | select(test("(Id|_id)$"))] | length')
-  if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+  if is_invalid_id "$ID"; then
     ID=$(echo "$BODY" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
-    if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+    if is_invalid_id "$ID"; then
       ID=$(echo "$create_data" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
     fi
   fi
 
-  if { [ -z "$ID" ] || [ "$ID" = "null" ]; } && [ "$id_field_count" -gt 1 ]; then
+  if is_invalid_id "$ID" && [ "$id_field_count" -gt 1 ]; then
     log_info "Composite-style payload without addressable ID; skipping single-ID R/U/D checks for $name"
     return
   fi
 
-  if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+  if is_invalid_id "$ID" && [ "$id_field_count" -gt 0 ] && [ "$pk" != "id" ]; then
+    log_info "Foreign-key addressed payload without canonical ID; skipping single-ID R/U/D checks for $name"
+    return
+  fi
+
+  if is_invalid_id "$ID"; then
     ID=1
   fi
   set_resource_id "$endpoint" "${ID%%/*}"
