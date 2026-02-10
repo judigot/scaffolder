@@ -1,0 +1,5 @@
+framework=Laravel
+url=laravel
+service=laravel
+depends=postgresql
+port=1214

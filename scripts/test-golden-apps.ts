@@ -8,6 +8,7 @@ type GoldenAppConfig = {
   projectName: string;
   dirName: string;
   port: number;
+  framework: string;
 };
 
 type ApiTestSummary = {
@@ -82,6 +83,7 @@ function parseGoldenAppConfig(
 
   const dirName = toDirName(projectName);
   const port = config.port ? Number.parseInt(config.port, 10) : 3000;
+  const framework = config.framework ?? 'hono';
   if (!Number.isFinite(port)) {
     throw new Error(
       `Invalid port for golden app: ${projectName}. Provide port=<number> in the .golden file.`,
@@ -92,6 +94,7 @@ function parseGoldenAppConfig(
     projectName,
     dirName,
     port,
+    framework,
   };
 }
 
@@ -268,39 +271,104 @@ async function runGoldenAppTests(
     PORT: String(app.port),
   };
 
+  const parsedDbUrl = new URL(testDbUrl);
+  const dbHost = parsedDbUrl.hostname;
+  const dbPort = parsedDbUrl.port || '5432';
+  const dbUser = decodeURIComponent(parsedDbUrl.username);
+  const dbPass = decodeURIComponent(parsedDbUrl.password);
+  const dbDatabase = parsedDbUrl.pathname.replace(/^\//, '');
+
   console.log(`\n=== ${app.projectName} (${app.dirName}) ===`);
   const serverLogPath = path.join(outputDir, 'server.log');
   const serverLog = createWriteStream(serverLogPath, { flags: 'w' });
   let serverProcess: ReturnType<typeof spawn> | null = null;
 
   try {
-    runCommand(
-      `${app.projectName} install dependencies`,
-      'bun install',
-      outputDir,
-      env,
-      COMMAND_TIMEOUTS_MS.install,
-    );
-    runCommand(
-      `${app.projectName} apply schema`,
-      'bun drizzle-kit push --force',
-      outputDir,
-      env,
-      COMMAND_TIMEOUTS_MS.drizzlePush,
-    );
+    const isLaravel = app.framework.toLowerCase() === 'laravel';
 
-    console.log(
-      `→ ${app.projectName} starting API server on port ${String(app.port)}`,
-    );
-
-    serverProcess = spawn('bun', ['run', 'dev:api'], {
-      cwd: outputDir,
-      env: {
-        ...process.env,
+    if (isLaravel) {
+      const laravelEnv = {
         ...env,
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+        DB_CONNECTION: 'pgsql',
+        DB_HOST: dbHost,
+        DB_PORT: dbPort,
+        DB_DATABASE: dbDatabase,
+        DB_USERNAME: dbUser,
+        DB_PASSWORD: dbPass,
+      };
+
+      runCommand(
+        `${app.projectName} install dependencies`,
+        'composer install --no-interaction --prefer-dist',
+        outputDir,
+        laravelEnv,
+        COMMAND_TIMEOUTS_MS.install,
+      );
+      runCommand(
+        `${app.projectName} prepare env`,
+        'bash -lc "cp .env.example .env && cat >> .env <<\'EOF\'\nDB_CONNECTION=$DB_CONNECTION\nDB_HOST=$DB_HOST\nDB_PORT=$DB_PORT\nDB_DATABASE=$DB_DATABASE\nDB_USERNAME=$DB_USERNAME\nDB_PASSWORD=$DB_PASSWORD\nEOF"',
+        outputDir,
+        laravelEnv,
+      );
+      runCommand(
+        `${app.projectName} key generate`,
+        'php artisan key:generate --force',
+        outputDir,
+        laravelEnv,
+      );
+      runCommand(
+        `${app.projectName} migrate fresh`,
+        'php artisan migrate:fresh --force',
+        outputDir,
+        laravelEnv,
+        COMMAND_TIMEOUTS_MS.drizzlePush,
+      );
+
+      console.log(
+        `→ ${app.projectName} starting API server on port ${String(app.port)}`,
+      );
+
+      serverProcess = spawn(
+        'php',
+        ['artisan', 'serve', '--host=127.0.0.1', `--port=${String(app.port)}`],
+        {
+          cwd: outputDir,
+          env: {
+            ...process.env,
+            ...laravelEnv,
+          },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      );
+    } else {
+      runCommand(
+        `${app.projectName} install dependencies`,
+        'bun install',
+        outputDir,
+        env,
+        COMMAND_TIMEOUTS_MS.install,
+      );
+      runCommand(
+        `${app.projectName} apply schema`,
+        'bun drizzle-kit push --force',
+        outputDir,
+        env,
+        COMMAND_TIMEOUTS_MS.drizzlePush,
+      );
+
+      console.log(
+        `→ ${app.projectName} starting API server on port ${String(app.port)}`,
+      );
+
+      serverProcess = spawn('bun', ['run', 'dev:api'], {
+        cwd: outputDir,
+        env: {
+          ...process.env,
+          ...env,
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    }
 
     if (isCi) {
       serverProcess.stdout?.on('data', (chunk) => {
@@ -324,7 +392,7 @@ async function runGoldenAppTests(
 
     const apiTestProcess = spawn(
       'bash',
-      ['api-test.sh', `http://localhost:${String(app.port)}/api`],
+      ['api-test.sh', `http://127.0.0.1:${String(app.port)}/api`],
       {
         cwd: outputDir,
         env: {
