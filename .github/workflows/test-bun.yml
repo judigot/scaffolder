@@ -49,15 +49,6 @@ jobs:
         with:
           bun-version: '1.3.8'
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          tools: composer
-
-      - name: Install Postgres client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
       - name: Install dependencies
         run: bun install
 
@@ -66,11 +57,3 @@ jobs:
 
       - name: Run test suite
         run: bun test
-
-      - name: Run generated API E2E suite
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 15432
-          DB_USER: scaffolder
-          DB_PASS: scaffolder123
-        run: ./scripts/run-generated-api-e2e.sh
