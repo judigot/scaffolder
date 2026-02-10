@@ -145,7 +145,7 @@ normalize_payload_foreign_ids() {
 
   if looks_like_uuid "$TEST_USER_ID"; then
     echo "$json_payload" | jq --arg uuid "$TEST_USER_ID" 'with_entries(
-      if (.key | test("Id$")) and (.value | type == "number")
+      if (.key | test("(^userId$|^user_id$)")) and (.value | type == "number")
       then .value = $uuid
       else .
       end
