@@ -119,8 +119,8 @@ set -e
 cleanup_server "$HONO_PID"
 
 info "summary"
-LARAVEL_PASSED=$(grep -E '^Passed: ' "$LOG_DIR/laravel_api_test.log" | tail -n 1 | awk '{print $2}')
-HONO_PASSED=$(grep -E '^Passed: ' "$LOG_DIR/hono_api_test.log" | tail -n 1 | awk '{print $2}')
+LARAVEL_PASSED=$(sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "$LOG_DIR/laravel_api_test.log" | grep -E '^Passed: ' | tail -n 1 | awk '{print $2}' || true)
+HONO_PASSED=$(sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "$LOG_DIR/hono_api_test.log" | grep -E '^Passed: ' | tail -n 1 | awk '{print $2}' || true)
 
 printf "Laravel api-test exit code: %s\n" "$LARAVEL_TEST_EXIT" | tee "$LOG_DIR/summary.log"
 printf "Hono api-test exit code: %s\n" "$HONO_TEST_EXIT" | tee -a "$LOG_DIR/summary.log"
