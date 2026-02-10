@@ -6,6 +6,7 @@ import { SCAFFOLDER_MESSAGE_CODES } from '@/interfaces/scaffolderMessages.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import generateMockData from '@/utils/generateMockData.ts';
 import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
+import { identifyAuthResources } from '@/utils/identifyAuthResources.ts';
 import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
 import { createContext } from '@/utils/project-builder/helpers/contextHelpers.ts';
 import {
@@ -115,7 +116,8 @@ export const buildProjectFiles = async (
       filesFailedToFormat.push({ filePath, errorMessage });
     }
   };
-  const schemaInfoParsed = getSchemaInfo(schemaInfo);
+  const schemaInfoWithAuth = identifyAuthResources(schemaInfo);
+  const schemaInfoParsed = getSchemaInfo(schemaInfoWithAuth);
   const file = findFileInStructure(projectYamlPath, userFiles);
 
   if (!file) {
@@ -282,7 +284,7 @@ export const buildProjectFiles = async (
     const coreFiles = processCoreFiles(
       rawCoreFiles,
       userFiles,
-      schemaInfo,
+      schemaInfoWithAuth,
       formData,
       userMetadata,
       projectYamlPath,
@@ -309,14 +311,14 @@ export const buildProjectFiles = async (
     // Generate mock data for seed files (camelCase for ORM compatibility)
     const mockData = generateMockData({
       mockDataRows: 10,
-      schemaInfo,
+      schemaInfo: schemaInfoWithAuth,
       dbType: formData.dbType ?? 'postgresql',
       useCamelCase: true,
     });
 
     const ctx = createContext(
       userFiles,
-      schemaInfo,
+      schemaInfoWithAuth,
       schemaInfoParsed,
       projectYamlPath,
       formData,

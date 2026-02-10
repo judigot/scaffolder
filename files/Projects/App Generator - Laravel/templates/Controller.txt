@@ -11,6 +11,10 @@ use App\Http\Controllers\BaseController;
 class <@@>tableName.singular.pascalCase</@@>Controller extends BaseController
 {
     protected $repository;
+<@@IF@@ condition="isAuthResource EQUALS 'true'">
+    protected bool $requiresAuth = true;
+    protected ?string $ownerField = '<@@>ownerField</@@>';
+</@@IF@@>
 
     public function __construct(<@@>tableName.singular.pascalCase</@@>Interface $<@@>tableName.singular</@@>Repository, <@@>tableName.singular.pascalCase</@@>Service $<@@>tableName.singular</@@>Service)
     {

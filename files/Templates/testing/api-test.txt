@@ -79,6 +79,36 @@ assert_status_in() {
   echo "  Response: $BODY"
 }
 
+assert_json_body() {
+  local message=$1
+  if echo "$BODY" | jq -e . >/dev/null 2>&1; then
+    log_success "$message"
+  else
+    log_error "$message (response is not valid JSON)"
+    echo "  Response: $BODY"
+  fi
+}
+
+resource_has_user_fk() {
+  local payload=$1
+  if echo "$payload" | jq -e 'has("userId") or has("user_id")' >/dev/null 2>&1; then
+    echo "true"
+    return
+  fi
+  echo "false"
+}
+
+resource_requires_auth() {
+  local use_auth=$1
+
+  if [ "$use_auth" = "true" ]; then
+    echo "true"
+    return
+  fi
+
+  echo "false"
+}
+
 sanitize_key() {
   echo "$1" | tr '-' '_'
 }
@@ -148,20 +178,22 @@ normalize_payload_foreign_ids() {
   local json_payload=$1
   local normalized="$json_payload"
 
-  # Keep user ownership payloads aligned to authenticated user.
-  if looks_like_uuid "$TEST_USER_ID"; then
-    normalized=$(echo "$normalized" | jq --arg uuid "$TEST_USER_ID" 'with_entries(
-      if (.key | test("(^userId$|^user_id$)")) and (.value | type == "number")
-      then .value = $uuid
-      else .
-      end
-    )')
+  # Keep user ownership payloads aligned to the authenticated user.
+  if [ -n "$TEST_USER_ID" ] && [ "$TEST_USER_ID" != "null" ]; then
+    normalized=$(echo "$normalized" | jq --arg uid "$TEST_USER_ID" '
+      if has("userId") then .userId = $uid else . end
+      | if has("user_id") then .user_id = $uid else . end
+    ')
   fi
 
   while IFS= read -r key; do
     [ -z "$key" ] && continue
 
     if ! printf '%s' "$key" | grep -Eq '(Id|_id)$'; then
+      continue
+    fi
+
+    if [ "$key" = "userId" ] || [ "$key" = "user_id" ]; then
       continue
     fi
 
@@ -385,19 +417,23 @@ echo -e "${BLUE}═════════════════════�
 test_crud() {
   local name=$1 endpoint=$2 pk=$3 create_data=$4 update_data=$5 use_auth=${6:-false} alt_endpoint=${7:-}
 
-  log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
-
   # Expand $TEST_USER_ID in payloads (bash variable substitution)
   create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
   update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
   create_data=$(normalize_payload_foreign_ids "$create_data")
   update_data=$(normalize_payload_foreign_ids "$update_data")
 
+  local has_user_fk effective_auth
+  has_user_fk=$(resource_has_user_fk "$create_data")
+  effective_auth=$(resource_requires_auth "$use_auth")
+
+  log_step "Testing $name API (C→R→U→R→D→R)$([ "$effective_auth" = "true" ] && echo ' [AUTH]')"
+
   # CREATE
-  api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  api_call POST "$API_BASE/$endpoint" "$create_data" "$effective_auth"
   if [ "$STATUS" = "404" ] && [ -n "$alt_endpoint" ]; then
     endpoint="$alt_endpoint"
-    api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+    api_call POST "$API_BASE/$endpoint" "$create_data" "$effective_auth"
   fi
   assert_status 201 "POST /api/$endpoint (create)"
 
@@ -405,6 +441,8 @@ test_crud() {
     log_error "Skipping remaining $name tests due to create failure"
     return
   fi
+
+  assert_json_body "POST /api/$endpoint returns JSON"
 
   ID=$(echo "$BODY" | jq -r ".$pk // .id // empty")
   case "$pk" in
@@ -444,7 +482,7 @@ test_crud() {
     debug_log "$name composite skip: pk=$pk id_field_count=$id_field_count resolved_id=$ID"
     debug_log "$name create_data=$create_data"
     debug_log "$name response_body=$BODY"
-    log_info "Composite-style payload without addressable ID; skipping single-ID R/U/D checks for $name"
+    log_error "Composite-style payload without addressable ID for $name"
     return
   fi
 
@@ -452,7 +490,7 @@ test_crud() {
     debug_log "$name fk-id skip: pk=$pk id_field_count=$id_field_count resolved_id=$ID"
     debug_log "$name create_data=$create_data"
     debug_log "$name response_body=$BODY"
-    log_info "Foreign-key addressed payload without canonical ID; skipping single-ID R/U/D checks for $name"
+    log_error "Foreign-key addressed payload without canonical ID for $name"
     return
   fi
 
@@ -460,7 +498,7 @@ test_crud() {
     debug_log "$name invalid id skip: pk=$pk id_field_count=$id_field_count resolved_id=$ID"
     debug_log "$name create_data=$create_data"
     debug_log "$name response_body=$BODY"
-    log_info "No addressable ID resolved; skipping single-ID R/U/D checks for $name"
+    log_error "No addressable ID resolved for $name"
     return
   fi
 
@@ -471,32 +509,33 @@ test_crud() {
   echo "  Created $name ID: $ID"
 
   # READ
-  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$effective_auth"
   assert_status 200 "GET /api/$endpoint/$ID (read)"
+  assert_json_body "GET /api/$endpoint/$ID returns JSON"
 
-  local has_user_fk
-  has_user_fk=$(echo "$create_data" | jq -r 'has("userId")')
-  if [ "$use_auth" = "true" ]; then
+  if [ "$effective_auth" = "true" ]; then
     test_protected_denials "$endpoint" "$ID" "$create_data" "$update_data"
   fi
-  if [ "$use_auth" = "true" ] && [ "$has_user_fk" = "true" ]; then
+  if [ "$effective_auth" = "true" ] && [ "$has_user_fk" = "true" ]; then
     test_ownership_denials "$endpoint" "$ID" "$update_data"
   fi
 
   # UPDATE
-  api_call PUT "$API_BASE/$endpoint/$ID" "$update_data" "$use_auth"
+  api_call PUT "$API_BASE/$endpoint/$ID" "$update_data" "$effective_auth"
   assert_status 200 "PUT /api/$endpoint/$ID (update)"
+  assert_json_body "PUT /api/$endpoint/$ID returns JSON"
 
   # READ (verify update)
-  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$effective_auth"
   assert_status 200 "GET /api/$endpoint/$ID (after update)"
+  assert_json_body "GET /api/$endpoint/$ID after update returns JSON"
 
   # DELETE
-  api_call DELETE "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  api_call DELETE "$API_BASE/$endpoint/$ID" "" "$effective_auth"
   assert_status 200 "DELETE /api/$endpoint/$ID"
 
   # READ (verify deleted)
-  api_call GET "$API_BASE/$endpoint/$ID" "" "$use_auth"
+  api_call GET "$API_BASE/$endpoint/$ID" "" "$effective_auth"
   assert_status 404 "GET /api/$endpoint/$ID (should be 404)"
 }
 
@@ -505,13 +544,17 @@ test_crud() {
 test_crud_composite() {
   local name=$1 endpoint=$2 pk_fields=$3 create_data=$4 update_data=$5 use_auth=${6:-false} alt_endpoint=${7:-}
 
-  log_step "Testing $name API (C→R→U→R→D→R)$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
-
   # Expand $TEST_USER_ID in payloads (bash variable substitution)
   create_data=$(echo "$create_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
   update_data=$(echo "$update_data" | sed "s/\\\$TEST_USER_ID/$TEST_USER_ID/g")
   create_data=$(normalize_payload_foreign_ids "$create_data")
   update_data=$(normalize_payload_foreign_ids "$update_data")
+
+  local has_user_fk effective_auth
+  has_user_fk=$(resource_has_user_fk "$create_data")
+  effective_auth=$(resource_requires_auth "$use_auth")
+
+  log_step "Testing $name API (C→R→U→R→D→R)$([ "$effective_auth" = "true" ] && echo ' [AUTH]')"
 
   # Build ID path from create_data to check/delete existing record
   local id_path=""
@@ -547,21 +590,21 @@ test_crud_composite() {
   fi
 
   if is_invalid_id "$id_path"; then
-    log_info "Composite resource is not addressable by canonical ID path; skipping R/U/D checks for $name"
+    log_error "Composite resource is not addressable by canonical ID path for $name"
     return
   fi
 
   # Delete existing record if it exists (e.g., from seeded data)
-  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$effective_auth"
   if [ "$STATUS" = "200" ]; then
     log_info "Deleted existing record at $id_path (was seeded)"
   fi
 
   # CREATE
-  api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+  api_call POST "$API_BASE/$endpoint" "$create_data" "$effective_auth"
   if [ "$STATUS" = "404" ] && [ -n "$alt_endpoint" ]; then
     endpoint="$alt_endpoint"
-    api_call POST "$API_BASE/$endpoint" "$create_data" "$use_auth"
+    api_call POST "$API_BASE/$endpoint" "$create_data" "$effective_auth"
   fi
   assert_status 201 "POST /api/$endpoint (create)"
 
@@ -569,6 +612,8 @@ test_crud_composite() {
     log_error "Skipping remaining $name tests due to create failure"
     return
   fi
+
+  assert_json_body "POST /api/$endpoint returns JSON"
 
   # Re-extract ID path from response in case server modified values
   id_path=""
@@ -585,7 +630,7 @@ test_crud_composite() {
     id_path=$(echo "$BODY" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
   fi
   if is_invalid_id "$id_path"; then
-    log_info "Composite resource create response has no canonical addressable ID; skipping R/U/D checks for $name"
+    log_error "Composite resource create response has no canonical addressable ID for $name"
     return
   fi
   set_resource_id "$endpoint" "${id_path%%/*}"
@@ -595,8 +640,20 @@ test_crud_composite() {
   echo "  Created $name ID: $id_path"
 
   # READ
-  api_call GET "$API_BASE/$endpoint/$id_path" "" "$use_auth"
+  api_call GET "$API_BASE/$endpoint/$id_path" "" "$effective_auth"
   assert_status_in "200,404" "GET /api/$endpoint/$id_path (composite read)"
+  if [ "$STATUS" = "200" ]; then
+    assert_json_body "GET /api/$endpoint/$id_path returns JSON"
+  else
+    log_success "GET /api/$endpoint/$id_path accepted as 404 fallback"
+  fi
+
+  if [ "$effective_auth" = "true" ]; then
+    test_protected_denials "$endpoint" "$id_path" "$create_data" "$update_data"
+  fi
+  if [ "$effective_auth" = "true" ] && [ "$has_user_fk" = "true" ]; then
+    test_ownership_denials "$endpoint" "$id_path" "$update_data"
+  fi
 
   log_info "Composite canonical coverage is create+read; skipping update/delete checks for $name"
   return
@@ -610,10 +667,10 @@ test_endpoint_smoke() {
   log_step "Testing $name endpoint$([ "$use_auth" = "true" ] && echo ' [AUTH]')"
   api_call GET "$API_BASE/$endpoint" "" "$use_auth"
 
-  if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ] || [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
+  if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ]; then
     log_success "GET /api/$endpoint (status: $STATUS)"
   else
-    log_error "GET /api/$endpoint (expected: 200/401/403/404, got: $STATUS)"
+    log_error "GET /api/$endpoint (expected: 200/404, got: $STATUS)"
     echo "  Response: $BODY"
   fi
 }
@@ -631,12 +688,12 @@ test_endpoint_smoke() {
 # ═══════════════════════════════════════════════════════════════
 
 <@@LOOP@@ data="tables" separator="\n">
-<@@LOOP@@ data="hasOne" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.singular.kebabCase</@@>" 'false'</@@LOOP@@>
-<@@LOOP@@ data="hasMany" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.plural.kebabCase</@@>" 'false'
-test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'false'</@@LOOP@@>
-<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.plural.kebabCase</@@>" 'false'
-test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'false'</@@LOOP@@>
-<@@LOOP@@ data="belongsTo" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.singular.kebabCase</@@>" 'false'</@@LOOP@@>
+<@@LOOP@@ data="hasOne" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.singular.kebabCase</@@>" 'true'</@@LOOP@@>
+<@@LOOP@@ data="hasMany" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.plural.kebabCase</@@>" 'true'
+test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'true'</@@LOOP@@>
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.plural.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.plural.kebabCase</@@>" 'true'
+test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> getAllWithRelated<@@>value.plural.pascalCase</@@>' '<@@>tableName.plural.kebabCase</@@>/get-all-with-related-<@@>value.plural.kebabCase</@@>' 'true'</@@LOOP@@>
+<@@LOOP@@ data="belongsTo" separator="\n">test_endpoint_smoke '<@@>tableName.singular.pascalCase</@@> -> <@@>value.singular.pascalCase</@@>' "<@@>tableName.plural.kebabCase</@@>/$(get_resource_id '<@@>tableName.plural.kebabCase</@@>')/<@@>value.singular.kebabCase</@@>" 'true'</@@LOOP@@>
 </@@LOOP@@>
 
 # ═══════════════════════════════════════════════════════════════

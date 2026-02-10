@@ -10,6 +10,12 @@ type GoldenAppConfig = {
   port: number;
 };
 
+type ApiTestSummary = {
+  appName: string;
+  passed: number;
+  failed: number;
+};
+
 const projectsDir = path.resolve(process.cwd(), 'files/Projects');
 const outputBaseDir = path.resolve(process.cwd(), '.apps');
 const defaultDbUrl =
@@ -130,6 +136,32 @@ function runCommand(
   }
 }
 
+function stripAnsi(input: string): string {
+  const esc = String.fromCharCode(27);
+  return input
+    .split(esc)
+    .join('')
+    .replace(/\[[0-9;]*[A-Za-z]/g, '');
+}
+
+function parseApiTestSummary(output: string, appName: string): ApiTestSummary {
+  const sanitized = stripAnsi(output);
+  const passedMatch = sanitized.match(/(^|\n)Passed:\s*(\d+)\s*($|\n)/m);
+  const failedMatch = sanitized.match(/(^|\n)Failed:\s*(\d+)\s*($|\n)/m);
+
+  if (!passedMatch || !failedMatch) {
+    throw new Error(
+      `Could not parse api-test summary for ${appName}. Expected 'Passed:' and 'Failed:' lines.`,
+    );
+  }
+
+  return {
+    appName,
+    passed: Number.parseInt(passedMatch[2], 10),
+    failed: Number.parseInt(failedMatch[2], 10),
+  };
+}
+
 async function waitForServer(url: string, maxAttempts = 30): Promise<void> {
   for (let i = 0; i < maxAttempts; i += 1) {
     try {
@@ -145,7 +177,9 @@ async function waitForServer(url: string, maxAttempts = 30): Promise<void> {
   throw new Error(`Server did not become ready: ${url}`);
 }
 
-async function runGoldenAppTests(app: GoldenAppConfig): Promise<void> {
+async function runGoldenAppTests(
+  app: GoldenAppConfig,
+): Promise<ApiTestSummary | null> {
   const outputDir = path.join(outputBaseDir, app.dirName);
   if (!existsSync(outputDir)) {
     throw new Error(
@@ -156,7 +190,7 @@ async function runGoldenAppTests(app: GoldenAppConfig): Promise<void> {
   const apiTestPath = path.join(outputDir, 'api-test.sh');
   if (!existsSync(apiTestPath)) {
     console.log(`Skipping ${app.projectName}: api-test.sh not found.`);
-    return;
+    return null;
   }
 
   const dbName = buildDatabaseName(app.dirName);
@@ -204,11 +238,35 @@ async function runGoldenAppTests(app: GoldenAppConfig): Promise<void> {
     serverProcess.stderr?.pipe(serverLog);
 
     await waitForServer(`http://localhost:${String(app.port)}/api/health`);
-    runCommand(
+
+    const apiTestResult = spawnSync(
       `bash api-test.sh http://localhost:${String(app.port)}/api`,
-      outputDir,
-      env,
+      {
+        cwd: outputDir,
+        env: {
+          ...process.env,
+          ...env,
+        },
+        shell: true,
+        encoding: 'utf-8',
+      },
     );
+
+    const combinedOutput = `${apiTestResult.stdout ?? ''}${apiTestResult.stderr ?? ''}`;
+    process.stdout.write(combinedOutput);
+    await fs.writeFile(
+      path.join(outputDir, 'api-test.log'),
+      combinedOutput,
+      'utf-8',
+    );
+
+    if (apiTestResult.status !== 0) {
+      throw new Error(
+        `api-test.sh failed for ${app.projectName}. See ${path.join(outputDir, 'api-test.log')}`,
+      );
+    }
+
+    return parseApiTestSummary(combinedOutput, app.projectName);
   } finally {
     if (serverProcess) {
       serverProcess.kill('SIGTERM');
@@ -241,6 +299,7 @@ async function main(): Promise<void> {
   const usedPorts = new Set<number>();
   let fallbackPort = 3100;
 
+  const summaries: ApiTestSummary[] = [];
   for (const app of apps) {
     let port = app.port;
     if (usedPorts.has(port)) {
@@ -254,7 +313,43 @@ async function main(): Promise<void> {
       );
     }
     usedPorts.add(port);
-    await runGoldenAppTests({ ...app, port });
+    const summary = await runGoldenAppTests({ ...app, port });
+    if (summary) {
+      summaries.push(summary);
+    }
+  }
+
+  if (summaries.length < 2) {
+    console.log(
+      'Parity check skipped: fewer than two frameworks with api-test.sh present.',
+    );
+    return;
+  }
+
+  const baseline = summaries[0];
+  const mismatches = summaries.filter(
+    (summary) =>
+      summary.passed !== baseline.passed || summary.failed !== baseline.failed,
+  );
+
+  console.log('\nAPI test parity summary:');
+  for (const summary of summaries) {
+    console.log(
+      `- ${summary.appName}: passed=${String(summary.passed)} failed=${String(summary.failed)}`,
+    );
+  }
+
+  if (mismatches.length > 0) {
+    throw new Error(
+      [
+        'Framework parity mismatch detected.',
+        `Baseline: ${baseline.appName} (passed=${String(baseline.passed)} failed=${String(baseline.failed)})`,
+        ...mismatches.map(
+          (summary) =>
+            `Mismatch: ${summary.appName} (passed=${String(summary.passed)} failed=${String(summary.failed)})`,
+        ),
+      ].join('\n'),
+    );
   }
 }
 
