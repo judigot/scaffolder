@@ -333,24 +333,26 @@ test_crud() {
   fi
 
   ID=$(echo "$BODY" | jq -r ".$pk // .id // empty")
-  if [[ "$pk" == *,* ]]; then
-    ID=""
-    IFS=',' read -ra PK_PARTS <<< "$pk"
-    for pk_part in "${PK_PARTS[@]}"; do
-      local part_val
-      part_val=$(echo "$BODY" | jq -r ".$pk_part // empty")
-      if [ -z "$part_val" ] || [ "$part_val" = "null" ]; then
-        part_val=$(echo "$create_data" | jq -r ".$pk_part // empty")
-      fi
-      if [ -n "$part_val" ] && [ "$part_val" != "null" ]; then
-        if [ -n "$ID" ]; then
-          ID="$ID/$part_val"
-        else
-          ID="$part_val"
+  case "$pk" in
+    *,*)
+      ID=""
+      IFS=',' read -ra PK_PARTS <<< "$pk"
+      for pk_part in "${PK_PARTS[@]}"; do
+        local part_val
+        part_val=$(echo "$BODY" | jq -r ".$pk_part // empty")
+        if [ -z "$part_val" ] || [ "$part_val" = "null" ]; then
+          part_val=$(echo "$create_data" | jq -r ".$pk_part // empty")
         fi
-      fi
-    done
-  fi
+        if [ -n "$part_val" ] && [ "$part_val" != "null" ]; then
+          if [ -n "$ID" ]; then
+            ID="$ID/$part_val"
+          else
+            ID="$part_val"
+          fi
+        fi
+      done
+      ;;
+  esac
   if [ -z "$ID" ] || [ "$ID" = "null" ]; then
     ID=$(echo "$create_data" | jq -r ".$pk // .id // empty")
   fi
@@ -362,6 +364,11 @@ test_crud() {
     if [ -z "$ID" ] || [ "$ID" = "null" ]; then
       ID=$(echo "$create_data" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
     fi
+  fi
+
+  if { [ -z "$ID" ] || [ "$ID" = "null" ]; } && [ "$id_field_count" -gt 1 ]; then
+    log_info "Composite-style payload without addressable ID; skipping single-ID R/U/D checks for $name"
+    return
   fi
 
   if [ -z "$ID" ] || [ "$ID" = "null" ]; then
