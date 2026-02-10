@@ -25,6 +25,7 @@ AUTH_TOKEN=""
 TESTS_PASSED=0
 TESTS_FAILED=0
 FAILED_TESTS=()
+DEBUG_API_TEST=${DEBUG_API_TEST:-0}
 
 # Generate unique test user credentials
 TEST_EMAIL="test-$(date +%s)@example.com"
@@ -57,6 +58,12 @@ log_error() {
   FAILED_TESTS+=("$1")
 }
 log_info() { echo -e "${YELLOW}ℹ $1${NC}"; }
+
+debug_log() {
+  if [ "$DEBUG_API_TEST" = "1" ]; then
+    echo -e "${YELLOW}[debug] $1${NC}"
+  fi
+}
 
 assert_status_in() {
   local expected_csv=$1 message=$2
@@ -378,18 +385,29 @@ test_crud() {
   fi
 
   if is_invalid_id "$ID" && [ "$id_field_count" -gt 1 ]; then
+    debug_log "$name composite skip: pk=$pk id_field_count=$id_field_count resolved_id=$ID"
+    debug_log "$name create_data=$create_data"
+    debug_log "$name response_body=$BODY"
     log_info "Composite-style payload without addressable ID; skipping single-ID R/U/D checks for $name"
     return
   fi
 
   if is_invalid_id "$ID" && [ "$id_field_count" -gt 0 ] && [ "$pk" != "id" ]; then
+    debug_log "$name fk-id skip: pk=$pk id_field_count=$id_field_count resolved_id=$ID"
+    debug_log "$name create_data=$create_data"
+    debug_log "$name response_body=$BODY"
     log_info "Foreign-key addressed payload without canonical ID; skipping single-ID R/U/D checks for $name"
     return
   fi
 
   if is_invalid_id "$ID"; then
-    ID=1
+    debug_log "$name invalid id skip: pk=$pk id_field_count=$id_field_count resolved_id=$ID"
+    debug_log "$name create_data=$create_data"
+    debug_log "$name response_body=$BODY"
+    log_info "No addressable ID resolved; skipping single-ID R/U/D checks for $name"
+    return
   fi
+
   set_resource_id "$endpoint" "${ID%%/*}"
   echo "  Created $name ID: $ID"
 
