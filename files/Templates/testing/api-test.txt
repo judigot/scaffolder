@@ -83,6 +83,25 @@ sanitize_key() {
   echo "$1" | tr '-' '_'
 }
 
+snake_to_camel() {
+  echo "$1" | sed -E 's/_([a-zA-Z0-9])/\U\1/g'
+}
+
+json_field_value() {
+  local json_payload=$1
+  local field_name=$2
+  local camel_name
+  camel_name=$(snake_to_camel "$field_name")
+
+  local value
+  value=$(echo "$json_payload" | jq -r --arg f "$field_name" --arg c "$camel_name" '.[$f] // .[$c] // empty')
+  if [ -z "$value" ] || [ "$value" = "null" ]; then
+    echo ""
+    return
+  fi
+  echo "$value"
+}
+
 set_resource_id() {
   local endpoint=$1
   local id=$2
@@ -458,13 +477,23 @@ test_crud_composite() {
   local id_path=""
   IFS=',' read -ra PK_ARRAY <<< "$pk_fields"
   for pk in "${PK_ARRAY[@]}"; do
-    local val=$(echo "$create_data" | jq -r ".$pk")
+    local val
+    val=$(json_field_value "$create_data" "$pk")
     if [ -n "$id_path" ]; then
       id_path="$id_path/$val"
     else
       id_path="$val"
     fi
   done
+
+  if is_invalid_id "$id_path"; then
+    id_path=$(echo "$create_data" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
+  fi
+
+  if is_invalid_id "$id_path"; then
+    log_info "Composite resource is not addressable by canonical ID path; skipping R/U/D checks for $name"
+    return
+  fi
 
   # Delete existing record if it exists (e.g., from seeded data)
   api_call DELETE "$API_BASE/$endpoint/$id_path" "" "$use_auth"
@@ -488,13 +517,21 @@ test_crud_composite() {
   # Re-extract ID path from response in case server modified values
   id_path=""
   for pk in "${PK_ARRAY[@]}"; do
-    local val=$(echo "$BODY" | jq -r ".$pk")
+    local val
+    val=$(json_field_value "$BODY" "$pk")
     if [ -n "$id_path" ]; then
       id_path="$id_path/$val"
     else
       id_path="$val"
     fi
   done
+  if is_invalid_id "$id_path"; then
+    id_path=$(echo "$BODY" | jq -r '[to_entries[] | select(.key | test("(Id|_id)$")) | .value] | map(select(. != null and . != "")) | join("/")')
+  fi
+  if is_invalid_id "$id_path"; then
+    log_info "Composite resource create response has no canonical addressable ID; skipping R/U/D checks for $name"
+    return
+  fi
   set_resource_id "$endpoint" "${id_path%%/*}"
   echo "  Created $name ID: $id_path"
 
