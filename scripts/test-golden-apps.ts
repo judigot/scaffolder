@@ -15,6 +15,14 @@ type ApiTestSummary = {
   appName: string;
   passed: number;
   failed: number;
+  exitCode: number;
+  apiTestLogPath: string;
+  serverLogPath: string;
+};
+
+type AppRunFailure = {
+  appName: string;
+  error: string;
 };
 
 const projectsDir = path.resolve(process.cwd(), 'files/Projects');
@@ -190,6 +198,9 @@ function parseApiTestSummary(output: string, appName: string): ApiTestSummary {
     appName,
     passed: Number.parseInt(passedMatch[2], 10),
     failed: Number.parseInt(failedMatch[2], 10),
+    exitCode: 0,
+    apiTestLogPath: '',
+    serverLogPath: '',
   };
 }
 
@@ -233,6 +244,7 @@ async function waitForServer(
 
 async function runGoldenAppTests(
   app: GoldenAppConfig,
+  runLogDir: string,
 ): Promise<ApiTestSummary | null> {
   const outputDir = path.join(outputBaseDir, app.dirName);
   if (!existsSync(outputDir)) {
@@ -280,6 +292,7 @@ async function runGoldenAppTests(
 
   console.log(`\n=== ${app.projectName} (${app.dirName}) ===`);
   const serverLogPath = path.join(outputDir, 'server.log');
+  const apiTestLogPath = path.join(outputDir, 'api-test.log');
   const serverLog = createWriteStream(serverLogPath, { flags: 'w' });
   let serverProcess: ReturnType<typeof spawn> | null = null;
 
@@ -437,19 +450,30 @@ async function runGoldenAppTests(
       );
     }
 
-    await fs.writeFile(
-      path.join(outputDir, 'api-test.log'),
-      combinedOutput,
-      'utf-8',
-    );
+    await fs.writeFile(apiTestLogPath, combinedOutput, 'utf-8');
 
     if (apiTestExitCode !== 0) {
       throw new Error(
-        `api-test.sh failed for ${app.projectName}. See ${path.join(outputDir, 'api-test.log')}`,
+        `api-test.sh failed for ${app.projectName}. See ${apiTestLogPath}`,
       );
     }
 
-    return parseApiTestSummary(combinedOutput, app.projectName);
+    const parsedSummary = parseApiTestSummary(combinedOutput, app.projectName);
+    parsedSummary.exitCode = apiTestExitCode;
+    parsedSummary.apiTestLogPath = apiTestLogPath;
+    parsedSummary.serverLogPath = serverLogPath;
+
+    const safeDirName = app.dirName.replace(/[^a-z0-9_-]+/gi, '_');
+    await fs.copyFile(
+      apiTestLogPath,
+      path.join(runLogDir, `${safeDirName}_api_test.log`),
+    );
+    await fs.copyFile(
+      serverLogPath,
+      path.join(runLogDir, `${safeDirName}_server.log`),
+    );
+
+    return parsedSummary;
   } finally {
     if (serverProcess) {
       serverProcess.kill('SIGTERM');
@@ -487,8 +511,17 @@ async function main(): Promise<void> {
 
   const usedPorts = new Set<number>();
   let fallbackPort = 3100;
+  const runLogDir = path.join(
+    '/tmp/scaffolder-e2e-logs',
+    new Date()
+      .toISOString()
+      .replace(/[-:TZ.]/g, '')
+      .slice(0, 14),
+  );
+  await fs.mkdir(runLogDir, { recursive: true });
 
   const summaries: ApiTestSummary[] = [];
+  const failures: AppRunFailure[] = [];
   for (const app of apps) {
     let port = app.port;
     if (usedPorts.has(port)) {
@@ -502,16 +535,48 @@ async function main(): Promise<void> {
       );
     }
     usedPorts.add(port);
-    const summary = await runGoldenAppTests({ ...app, port });
-    if (summary) {
-      summaries.push(summary);
+    try {
+      const summary = await runGoldenAppTests({ ...app, port }, runLogDir);
+      if (summary) {
+        summaries.push(summary);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push({ appName: app.projectName, error: message });
+      console.error(`✗ ${app.projectName} failed: ${message}`);
     }
   }
+
+  const summaryLines: string[] = [];
+  for (const summary of summaries) {
+    summaryLines.push(
+      `${summary.appName}: exit=${String(summary.exitCode)} passed=${String(summary.passed)} failed=${String(summary.failed)}`,
+    );
+  }
+  for (const failure of failures) {
+    summaryLines.push(`${failure.appName}: exit=1 error=${failure.error}`);
+  }
+  summaryLines.push(`Logs directory: ${runLogDir}`);
+  await fs.writeFile(
+    path.join(runLogDir, 'summary.log'),
+    `${summaryLines.join('\n')}\n`,
+    'utf-8',
+  );
 
   if (summaries.length < 2) {
     console.log(
       'Parity check skipped: fewer than two frameworks with api-test.sh present.',
     );
+    console.log(`Logs directory: ${runLogDir}`);
+    if (failures.length > 0) {
+      throw new Error(
+        [
+          'One or more framework api-test runs failed.',
+          ...failures.map((failure) => `${failure.appName}: ${failure.error}`),
+          `Logs directory: ${runLogDir}`,
+        ].join('\n'),
+      );
+    }
     return;
   }
 
@@ -528,6 +593,18 @@ async function main(): Promise<void> {
     );
   }
 
+  console.log(`Logs directory: ${runLogDir}`);
+
+  if (failures.length > 0) {
+    throw new Error(
+      [
+        'One or more framework api-test runs failed.',
+        ...failures.map((failure) => `${failure.appName}: ${failure.error}`),
+        `Logs directory: ${runLogDir}`,
+      ].join('\n'),
+    );
+  }
+
   if (mismatches.length > 0) {
     throw new Error(
       [
@@ -537,6 +614,7 @@ async function main(): Promise<void> {
           (summary) =>
             `Mismatch: ${summary.appName} (passed=${String(summary.passed)} failed=${String(summary.failed)})`,
         ),
+        `Logs directory: ${runLogDir}`,
       ].join('\n'),
     );
   }

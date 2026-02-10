@@ -18,5 +18,7 @@ echo "[Golden Frameworks] Running golden app integrity suite against $DATABASE_U
 cd "$ROOT_DIR"
 bun run scripts/test-golden-apps.ts
 
-echo "[Golden Frameworks] Running generated framework API suites"
-"$SCRIPT_DIR/run-generated-api-e2e.sh"
+if [[ "${RUN_LEGACY_E2E:-0}" == "1" ]]; then
+  echo "[Golden Frameworks] Running legacy generated framework API suites"
+  "$SCRIPT_DIR/run-generated-api-e2e.sh"
+fi
