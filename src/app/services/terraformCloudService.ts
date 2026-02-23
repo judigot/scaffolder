@@ -26,6 +26,11 @@ interface ITerraformRunResult {
   errorMessage?: string | null;
 }
 
+interface ITerraformRunOptions {
+  autoApply?: boolean;
+  refreshOnly?: boolean;
+}
+
 export interface ITerraformWorkspace {
   id: string;
   name: string;
@@ -329,17 +334,24 @@ export const upsertTerraformVariables = async (
 export const createTerraformRun = async (
   config: ITerraformConfig,
   message: string,
+  options?: ITerraformRunOptions,
 ): Promise<ITerraformRunResult> => {
   const workspaceId = await getTerraformWorkspaceId(config);
+  const attributes: Record<string, string | boolean> = {
+    message,
+    'auto-apply': options?.autoApply ?? true,
+  };
+
+  if (options?.refreshOnly === true) {
+    attributes['refresh-only'] = true;
+  }
+
   const response = await terraformFetch(config, '/runs', {
     method: 'POST',
     body: JSON.stringify({
       data: {
         type: 'runs',
-        attributes: {
-          message,
-          'auto-apply': true,
-        },
+        attributes,
         relationships: {
           workspace: {
             data: {
