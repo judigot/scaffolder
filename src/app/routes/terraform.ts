@@ -104,6 +104,125 @@ const extractTfcConfig = (body: {
   });
 };
 
+const TERMINAL_RUN_STATUSES = new Set([
+  'applied',
+  'planned_and_finished',
+  'errored',
+  'canceled',
+  'discarded',
+  'failed',
+]);
+
+const AUTO_REFRESH_MIN_INTERVAL_MS = 2 * 60 * 1000;
+const AUTO_REFRESH_TIMEOUT_MS = 90 * 1000;
+const AUTO_REFRESH_POLL_MS = 4 * 1000;
+
+interface IWorkspaceAutoRefreshState {
+  lastCompletedAt: number;
+  inFlight: Promise<void> | null;
+}
+
+const workspaceAutoRefreshState = new Map<string, IWorkspaceAutoRefreshState>();
+
+const getWorkspaceRefreshKey = (config: ITerraformConfig): string => {
+  return `${config.organization}/${config.workspace}`;
+};
+
+const sleep = async (durationMs: number): Promise<void> => {
+  await new Promise((resolve) => {
+    setTimeout(resolve, durationMs);
+  });
+};
+
+const waitForTerraformRunCompletion = async (
+  config: ITerraformConfig,
+  runId: string,
+  timeoutMs: number,
+): Promise<void> => {
+  const timeoutAt = Date.now() + timeoutMs;
+
+  while (Date.now() < timeoutAt) {
+    const run = await getTerraformRun(config, runId);
+    if (TERMINAL_RUN_STATUSES.has(run.status)) {
+      if (run.status === 'applied' || run.status === 'planned_and_finished') {
+        return;
+      }
+      throw new Error(
+        run.errorMessage ??
+          `Terraform refresh run ended with status "${run.status}".`,
+      );
+    }
+    await sleep(AUTO_REFRESH_POLL_MS);
+  }
+
+  throw new Error('Timed out waiting for Terraform refresh run to complete.');
+};
+
+const autoRefreshWorkspaceState = async (
+  config: ITerraformConfig,
+): Promise<void> => {
+  const key = getWorkspaceRefreshKey(config);
+  const current = workspaceAutoRefreshState.get(key) ?? {
+    lastCompletedAt: 0,
+    inFlight: null,
+  };
+
+  if (Date.now() - current.lastCompletedAt < AUTO_REFRESH_MIN_INTERVAL_MS) {
+    return;
+  }
+
+  if (current.inFlight !== null) {
+    await current.inFlight;
+    return;
+  }
+
+  const refreshPromise = (async () => {
+    try {
+      const run = await createTerraformRun(
+        config,
+        'Automatic state refresh for latest outputs',
+        {
+          autoApply: true,
+          refreshOnly: true,
+        },
+      );
+      await waitForTerraformRunCompletion(
+        config,
+        run.id,
+        AUTO_REFRESH_TIMEOUT_MS,
+      );
+      const next = workspaceAutoRefreshState.get(key) ?? {
+        lastCompletedAt: 0,
+        inFlight: null,
+      };
+      next.lastCompletedAt = Date.now();
+      workspaceAutoRefreshState.set(key, next);
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        error.message.includes('A run is already in progress')
+      ) {
+        return;
+      }
+      throw error;
+    } finally {
+      const next = workspaceAutoRefreshState.get(key) ?? {
+        lastCompletedAt: 0,
+        inFlight: null,
+      };
+      next.inFlight = null;
+      workspaceAutoRefreshState.set(key, next);
+    }
+  })();
+
+  workspaceAutoRefreshState.set(key, {
+    ...current,
+    inFlight: refreshPromise,
+  });
+
+  await refreshPromise;
+};
+
 const router = new Hono();
 
 router.post('/status', async (c) => {
@@ -235,14 +354,23 @@ router.post('/status', async (c) => {
     const customAmiVar = variables.find(
       (item) => item.category === 'env' && item.key === 'TF_VAR_custom_ami',
     );
-    const outputs = await getTerraformOutputs(config);
     const enableEc2 = enableVar?.value === 'true';
+
+    if (enableEc2) {
+      void autoRefreshWorkspaceState(config).catch(() => {
+        // Best-effort refresh runs in background to keep status response fast.
+      });
+    }
+
+    const outputs = await getTerraformOutputs(config);
+
     return c.json(
       {
         success: true,
         enableEc2,
         customAmi: customAmiVar?.value ?? null,
         outputs,
+        autoRefreshError: null,
       },
       200,
     );

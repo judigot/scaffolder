@@ -220,6 +220,7 @@ function InfraWorkspaceCard({
       accessToken !== '' &&
       !isLoading,
     staleTime: 30_000,
+    refetchInterval: 60_000,
     queryFn: async () => {
       if (accessToken === null || accessToken === '') {
         throw new Error('Missing access token');
