@@ -355,17 +355,11 @@ router.post('/status', async (c) => {
       (item) => item.category === 'env' && item.key === 'TF_VAR_custom_ami',
     );
     const enableEc2 = enableVar?.value === 'true';
-    let autoRefreshError: string | null = null;
 
     if (enableEc2) {
-      try {
-        await autoRefreshWorkspaceState(config);
-      } catch (error: unknown) {
-        autoRefreshError =
-          error instanceof Error
-            ? error.message
-            : 'Automatic Terraform refresh failed';
-      }
+      void autoRefreshWorkspaceState(config).catch(() => {
+        // Best-effort refresh runs in background to keep status response fast.
+      });
     }
 
     const outputs = await getTerraformOutputs(config);
@@ -376,7 +370,7 @@ router.post('/status', async (c) => {
         enableEc2,
         customAmi: customAmiVar?.value ?? null,
         outputs,
-        autoRefreshError,
+        autoRefreshError: null,
       },
       200,
     );
