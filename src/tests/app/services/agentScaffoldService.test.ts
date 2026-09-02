@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { scaffoldToPullRequest } from '@/app/services/agentScaffoldService.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
+import {
+  honoReactAgentSchemaInfo,
+  honoReactCompactSchema,
+  honoReactSchemaFilter,
+} from '@/tests/helpers/honoReactAgentSchema.ts';
 
 const validSchemaInfo = [
   {
@@ -109,6 +114,72 @@ describe('scaffoldToPullRequest', () => {
 
     expect(buildProject).not.toHaveBeenCalled();
     expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('accepts a hono-react schema with uuid ids and session.userId', async () => {
+    const publish = vi.fn(() =>
+      Promise.resolve({
+        prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+        prNumber: 7,
+        branch: 'scaffolder/hono-react-ab12',
+        commitSha: 'commit-sha',
+        filesCreated: 1,
+        baseBranch: 'main',
+      }),
+    );
+
+    const result = await scaffoldToPullRequest(
+      {
+        schemaInfo: honoReactAgentSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+      },
+      {
+        loadUserFiles: () => createUserFiles(honoReactSchemaFilter),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish,
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(result.tables).toEqual(['user', 'session']);
+    expect(publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts a compact hono-react schema with :u and camelCase userId', async () => {
+    const result = await scaffoldToPullRequest(
+      {
+        schemaInfo: honoReactCompactSchema,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+      },
+      {
+        loadUserFiles: () => createUserFiles(honoReactSchemaFilter),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish: () =>
+          Promise.resolve({
+            prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+            prNumber: 7,
+            branch: 'scaffolder/hono-react-ab12',
+            commitSha: 'commit-sha',
+            filesCreated: 1,
+            baseBranch: 'main',
+          }),
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(result.tables).toEqual(['user', 'session']);
   });
 
   it('rejects a schema that fails the project filter', async () => {

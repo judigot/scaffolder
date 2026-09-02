@@ -5,6 +5,7 @@ import {
 	extractSchemaInfoFromResponse,
 	validateSchemaInfoFromResponse,
 } from "@/utils/schemaInfoValidator.ts";
+import { honoReactAgentSchemaInfo } from "@/tests/helpers/honoReactAgentSchema.ts";
 
 describe("schemaInfoValidator", () => {
 	describe("validateSchemaInfo", () => {
@@ -193,12 +194,27 @@ describe("schemaInfoValidator", () => {
 							{ column_name: "bool_field", data_type: "boolean", is_nullable: "YES" },
 							{ column_name: "date_field", data_type: "Date", is_nullable: "YES" },
 							{ column_name: "json_field", data_type: "object", is_nullable: "YES" },
+							{ column_name: "uuid_field", data_type: "uuid", is_nullable: "YES" },
 						],
 					},
 				];
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(true);
+			});
+
+			it("should validate a hono-react auth schema with uuid and camelCase columns", () => {
+				const result = validateSchemaInfo(honoReactAgentSchemaInfo);
+				expect(result.success).toBe(true);
+				expect(result.data).toHaveLength(2);
+				expect(
+					result.data?.[0]?.columnsInfo.find((col) => col.column_name === "id")
+						?.data_type,
+				).toBe("uuid");
+				expect(
+					result.data?.[1]?.columnsInfo.find((col) => col.column_name === "userId")
+						?.foreign_key?.foreign_table_name,
+				).toBe("user");
 			});
 
 			it("should validate schema with view tables", () => {
@@ -342,7 +358,36 @@ describe("schemaInfoValidator", () => {
 				}
 			});
 
-			it("should reject invalid column name (camelCase)", () => {
+			it("should accept camelCase column names", () => {
+				const schema = [
+					{
+						tableName: "session",
+						columnsInfo: [
+							{
+								column_name: "id",
+								data_type: "string",
+								is_nullable: "NO",
+								primary_key: true,
+							},
+							{
+								column_name: "userId",
+								data_type: "uuid",
+								is_nullable: "NO",
+							},
+							{
+								column_name: "createdAt",
+								data_type: "Date",
+								is_nullable: "NO",
+							},
+						],
+					},
+				];
+
+				const result = validateSchemaInfo(schema);
+				expect(result.success).toBe(true);
+			});
+
+			it("should reject column names that are not identifiers", () => {
 				const schema = [
 					{
 						tableName: "users",
@@ -354,7 +399,7 @@ describe("schemaInfoValidator", () => {
 								primary_key: true,
 							},
 							{
-								column_name: "firstName", // should be first_name
+								column_name: "first-name",
 								data_type: "string",
 								is_nullable: "YES",
 							},
@@ -364,9 +409,6 @@ describe("schemaInfoValidator", () => {
 
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
-				if (result.errors?.[0]) {
-					expect(result.errors[0].message).toContain("snake_case");
-				}
 			});
 
 			it("should reject invalid data type", () => {
@@ -393,7 +435,9 @@ describe("schemaInfoValidator", () => {
 				expect(result.success).toBe(false);
 				// Zod 4 error message format
 				if (result.errors?.[0]) {
-					expect(result.errors[0].message).toMatch(/string|number|boolean|Date|object|Invalid/i);
+					expect(result.errors[0].message).toMatch(
+						/string|number|boolean|Date|object|uuid|Invalid/i,
+					);
 				}
 			});
 

@@ -5,6 +5,7 @@ import {
 	validateSchemaInfoFromResponse,
 	removeHiddenSchemaFromText,
 } from "@/utils/schemaInfoValidator.ts";
+import { honoReactCompactSchema } from "@/tests/helpers/honoReactAgentSchema.ts";
 
 describe("Compact Schema Parser", () => {
 	describe("hasCompactSchema", () => {
@@ -88,7 +89,7 @@ More text`;
 
 		it("should parse all data types correctly", () => {
 			const text = `<@@SCHEMA@@>
-@test:id:n#pk,str_col:s,num_col:n,bool_col:b,date_col:D,obj_col:o,created_at:D,updated_at:D
+@test:id:n#pk,str_col:s,num_col:n,bool_col:b,date_col:D,obj_col:o,uuid_col:u,created_at:D,updated_at:D
 <@@/SCHEMA@@>`;
 			const result = parseCompactSchema(text);
 			const columns = result?.[0]?.columnsInfo;
@@ -98,6 +99,36 @@ More text`;
 			expect(columns?.find((c) => c.column_name === "bool_col")?.data_type).toBe("boolean");
 			expect(columns?.find((c) => c.column_name === "date_col")?.data_type).toBe("Date");
 			expect(columns?.find((c) => c.column_name === "obj_col")?.data_type).toBe("object");
+			expect(columns?.find((c) => c.column_name === "uuid_col")?.data_type).toBe("uuid");
+		});
+
+		it("should parse :uuid as an explicit compact uuid type", () => {
+			const text = `<@@SCHEMA@@>
+@user:id:uuid#pk,email:s!u,created_at:D,updated_at:D
+<@@/SCHEMA@@>`;
+			const result = parseCompactSchema(text);
+			const idColumn = result?.[0]?.columnsInfo.find((c) => c.column_name === "id");
+
+			expect(idColumn?.data_type).toBe("uuid");
+			expect(idColumn?.primary_key).toBe(true);
+		});
+
+		it("should parse camelCase column names including uuid foreign keys", () => {
+			const text = `<@@SCHEMA@@>
+@user:id:u#pk,email:s!u,createdAt:D,updatedAt:D
+@session:id:s#pk,userId:u>user,expiresAt:D
+<@@/SCHEMA@@>`;
+			const result = parseCompactSchema(text);
+			const userIdColumn = result?.[1]?.columnsInfo.find((c) => c.column_name === "userId");
+
+			expect(result?.[0]?.columnsInfo.find((c) => c.column_name === "createdAt")?.data_type).toBe(
+				"Date",
+			);
+			expect(userIdColumn?.data_type).toBe("uuid");
+			expect(userIdColumn?.foreign_key).toEqual({
+				foreign_table_name: "user",
+				foreign_column_name: "id",
+			});
 		});
 	});
 
@@ -282,6 +313,19 @@ users:id:n#pk,name:s
 <@@/SCHEMA@@>`;
 			const result = parseCompactSchema(text);
 			expect(result).toBeNull();
+		});
+
+		it("should parse a hono-react compact auth schema", () => {
+			const result = parseCompactSchema(honoReactCompactSchema);
+
+			expect(result).not.toBeNull();
+			expect(result).toHaveLength(2);
+			expect(result?.[0]?.tableName).toBe("user");
+			expect(result?.[0]?.columnsInfo.find((c) => c.column_name === "id")?.data_type).toBe("uuid");
+			expect(result?.[1]?.columnsInfo.find((c) => c.column_name === "userId")?.foreign_key).toEqual({
+				foreign_table_name: "user",
+				foreign_column_name: "id",
+			});
 		});
 
 		it("should return null for invalid data type", () => {

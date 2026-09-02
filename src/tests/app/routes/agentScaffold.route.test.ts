@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { createAgentScaffoldRouter } from '@/app/routes/agentScaffold.ts';
+import { scaffoldToPullRequest } from '@/app/services/agentScaffoldService.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import {
+  honoReactAgentSchemaInfo,
+  honoReactSchemaFilter,
+} from '@/tests/helpers/honoReactAgentSchema.ts';
 
 const successSchema = z.object({
   ok: z.literal(true),
@@ -156,5 +162,80 @@ describe('agent scaffold API', () => {
     const payload: unknown = await response.json();
     expect(response.status).toBe(201);
     expect(successSchema.safeParse(payload).success).toBe(true);
+  });
+
+  it('POST / accepts a hono-react uuid schema at the validator and filter layer', async () => {
+    const successWithTablesSchema = successSchema.extend({
+      tables: z.array(z.string()),
+    });
+
+    const createUserFiles = (schemaFilter: string[]): IStructure => [
+      {
+        type: 'folder',
+        name: 'Projects',
+        children: [
+          {
+            type: 'folder',
+            name: 'hono-react',
+            children: [
+              {
+                type: 'file',
+                name: 'structure.yaml',
+                content: `$SCHEMA_FILTER:\n${schemaFilter.map((filter) => `  - '${filter}'`).join('\n')}\nreadme:\n  CREATE_FILE(README.md):\n`,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const app = createAgentScaffoldRouter({
+      agentApiKey: 'agent-secret',
+      scaffold: (request) =>
+        scaffoldToPullRequest(request, {
+          loadUserFiles: () => createUserFiles(honoReactSchemaFilter),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+          publish: () =>
+            Promise.resolve({
+              prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+              prNumber: 7,
+              branch: 'scaffolder/hono-react-ab12',
+              commitSha: 'commit-sha',
+              filesCreated: 1,
+              baseBranch: 'main',
+            }),
+          randomId: () => 'ab12',
+        }),
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer agent-secret',
+      },
+      body: JSON.stringify({
+        schemaInfo: honoReactAgentSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+      }),
+    });
+
+    const payload: unknown = await response.json();
+    expect(response.status).toBe(201);
+    expect(successWithTablesSchema.safeParse(payload).success).toBe(true);
+    if (
+      typeof payload === 'object' &&
+      payload !== null &&
+      'tables' in payload &&
+      Array.isArray(payload.tables)
+    ) {
+      expect(payload.tables).toEqual(['user', 'session']);
+    }
   });
 });
