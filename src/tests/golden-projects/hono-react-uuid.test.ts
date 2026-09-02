@@ -238,8 +238,9 @@ describe('Hono-React uuid schema generation', () => {
         /email:\s*varchar\('email'[\s\S]*?\)\.notNull\(\)\.unique\(\)/,
       );
       expect(schemaContent).toMatch(
-        /hashedPassword:\s*char\('hashed_password'[\s\S]*?\)\.notNull\(\)/,
+        /hashedPassword:\s*text\('hashed_password'\)\.notNull\(\)/,
       );
+      expect(schemaContent).not.toMatch(/char\('hashed_password'/);
       expect(schemaContent).toMatch(
         /createdAt:\s*timestamp\('createdAt'[\s\S]*?\)\.notNull\(\)/,
       );
