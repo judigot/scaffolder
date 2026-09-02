@@ -14,6 +14,53 @@ const errorSchema = z.object({
 });
 
 describe('agent scaffold API', () => {
+  it('POST / accepts an agent API key without Auth0', async () => {
+    const app = createAgentScaffoldRouter({
+      agentApiKey: 'agent-secret',
+      scaffold: () =>
+        Promise.resolve({
+          prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+          prNumber: 7,
+          branch: 'scaffolder/hono-react-ab12',
+          commitSha: 'commit-sha',
+          filesCreated: 1,
+          baseBranch: 'main',
+          projectName: 'hono-react',
+          targetRepo: 'judigot/bookingwars',
+          tables: ['users'],
+        }),
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer agent-secret',
+      },
+      body: JSON.stringify({
+        schemaInfo: [
+          {
+            tableName: 'users',
+            columnsInfo: [
+              {
+                column_name: 'id',
+                data_type: 'number',
+                is_nullable: 'NO',
+                primary_key: true,
+              },
+            ],
+          },
+        ],
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+      }),
+    });
+
+    const payload: unknown = await response.json();
+    expect(response.status).toBe(201);
+    expect(successSchema.safeParse(payload).success).toBe(true);
+  });
+
   it('POST / requires auth', async () => {
     const app = createAgentScaffoldRouter({
       verifyAuthToken: () =>

@@ -6,30 +6,18 @@ import {
   scaffoldToPullRequest,
   type IAgentScaffoldResult,
 } from '@/app/services/agentScaffoldService.ts';
-import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
-
-interface IAuthVerifyFailure {
-  ok: false;
-  status: 401 | 500;
-  body: unknown;
-  auth0UserId?: undefined;
-}
-
-interface IAuthVerifySuccess {
-  ok: true;
-  status: 200;
-  body?: undefined;
-  auth0UserId: string;
-}
-
-type IAuthVerifyResult = IAuthVerifyFailure | IAuthVerifySuccess;
+import {
+  verifyAgentScaffoldAuth,
+  type IAgentScaffoldAuthResult,
+} from '@/utils/verifyAgentScaffoldAuth.ts';
 
 type IAuthVerifier = (
   authorizationHeader: string | undefined,
-) => Promise<IAuthVerifyResult>;
+) => Promise<IAgentScaffoldAuthResult>;
 
 interface ICreateAgentScaffoldRouterDependencies {
   verifyAuthToken?: IAuthVerifier;
+  agentApiKey?: string | null;
   scaffold?: (
     request: ReturnType<typeof AgentScaffoldRequestSchema.parse>,
   ) => Promise<IAgentScaffoldResult>;
@@ -39,7 +27,11 @@ export function createAgentScaffoldRouter(
   dependencies: ICreateAgentScaffoldRouterDependencies = {},
 ): Hono {
   const verifyAuthToken =
-    dependencies.verifyAuthToken ?? verifyAuth0TokenFromAuthHeader;
+    dependencies.verifyAuthToken ??
+    ((authorizationHeader: string | undefined) =>
+      verifyAgentScaffoldAuth(authorizationHeader, {
+        agentApiKey: dependencies.agentApiKey,
+      }));
   const scaffold = dependencies.scaffold ?? scaffoldToPullRequest;
 
   const app = new Hono();
