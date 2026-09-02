@@ -73,11 +73,11 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
-  <@@>userUsernameColumnCamelCase</@@>: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  <@@>userFirstNameColumnCamelCase</@@>: z.string().optional(),
-  <@@>userLastNameColumnCamelCase</@@>: z.string().optional(),
-});
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">  <@@>userUsernameColumnCamelCase</@@>: z.string().min(3, 'Username must be at least 3 characters'),
+</@@IF@@>  password: z.string().min(8, 'Password must be at least 8 characters'),
+<@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">  <@@>userFirstNameColumnCamelCase</@@>: z.string().optional(),
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">  <@@>userLastNameColumnCamelCase</@@>: z.string().optional(),
+</@@IF@@>});
 
 // Helper to set session cookie
 function setSessionCookie(c: any, sessionCookie: string) {
@@ -117,7 +117,7 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
     return c.json({ error: 'Email already registered' }, 400);
   }
 
-  // Check if username already exists
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">  // Check if username already exists
   const existingUsername = await db
     .select()
     .from(<@@>userTableCamelCase</@@>)
@@ -128,19 +128,21 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
     return c.json({ error: 'Username already taken' }, 400);
   }
 
-  // Create user
-  const userId = generateIdFromEntropySize(10);
+</@@IF@@>  // Create user
+<@@IF@@ condition="userPrimaryKeyDataType EQUALS 'uuid'">  const userId = crypto.randomUUID();
+</@@IF@@><@@IF@@ condition="userPrimaryKeyDataType NOT EQUAL 'uuid'">  const userId = generateIdFromEntropySize(10);
+</@@IF@@>
   const passwordHash = await hashPassword(data.password);
 
   await db.insert(<@@>userTableCamelCase</@@>).values({
     <@@>userPrimaryKeyCamelCase</@@>: userId,
     <@@>userEmailColumnCamelCase</@@>: data.<@@>userEmailColumnCamelCase</@@>,
-    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
-    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
-    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
-    <@@>userLastNameColumnCamelCase</@@>: data.<@@>userLastNameColumnCamelCase</@@> || null,
-    <@@>userEmailVerifiedColumnCamelCase</@@>: false,
-  });
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@>    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
+<@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">    <@@>userLastNameColumnCamelCase</@@>: data.<@@>userLastNameColumnCamelCase</@@> || null,
+</@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">    <@@>userEmailVerifiedColumnCamelCase</@@>: false,
+</@@IF@@>  });
 
   // Create session
   const { session: newSession, sessionCookie } = await createSession(userId);
@@ -153,11 +155,11 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: createdUser.<@@>userPrimaryKeyCamelCase</@@>,
       <@@>userEmailColumnCamelCase</@@>: createdUser.<@@>userEmailColumnCamelCase</@@>,
-      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
-      <@@>userFirstNameColumnCamelCase</@@>: createdUser.<@@>userFirstNameColumnCamelCase</@@>,
-      <@@>userLastNameColumnCamelCase</@@>: createdUser.<@@>userLastNameColumnCamelCase</@@>,
-      <@@>userEmailVerifiedColumnCamelCase</@@>: createdUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
-    },
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: createdUser.<@@>userFirstNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: createdUser.<@@>userLastNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: createdUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
+</@@IF@@>    },
     session: newSession,
   }, 201);
 });
@@ -196,11 +198,11 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: existingUser.<@@>userPrimaryKeyCamelCase</@@>,
       <@@>userEmailColumnCamelCase</@@>: existingUser.<@@>userEmailColumnCamelCase</@@>,
-      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
-      <@@>userFirstNameColumnCamelCase</@@>: existingUser.<@@>userFirstNameColumnCamelCase</@@>,
-      <@@>userLastNameColumnCamelCase</@@>: existingUser.<@@>userLastNameColumnCamelCase</@@>,
-      <@@>userEmailVerifiedColumnCamelCase</@@>: existingUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
-    },
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: existingUser.<@@>userFirstNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: existingUser.<@@>userLastNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: existingUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
+</@@IF@@>    },
     session: newSession,
   });
 });
@@ -331,11 +333,11 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
-  <@@>userUsernameColumnCamelCase</@@>: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  <@@>userFirstNameColumnCamelCase</@@>: z.string().optional(),
-  <@@>userLastNameColumnCamelCase</@@>: z.string().optional(),
-});
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">  <@@>userUsernameColumnCamelCase</@@>: z.string().min(3, 'Username must be at least 3 characters'),
+</@@IF@@>  password: z.string().min(8, 'Password must be at least 8 characters'),
+<@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">  <@@>userFirstNameColumnCamelCase</@@>: z.string().optional(),
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">  <@@>userLastNameColumnCamelCase</@@>: z.string().optional(),
+</@@IF@@>});
 
 // Helper to set session cookie
 function setSessionCookie(c: any, sessionCookie: string) {
@@ -375,7 +377,7 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
     return c.json({ error: 'Email already registered' }, 400);
   }
 
-  // Check if username already exists
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">  // Check if username already exists
   const existingUsername = await db
     .select()
     .from(<@@>userTableCamelCase</@@>)
@@ -386,19 +388,21 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
     return c.json({ error: 'Username already taken' }, 400);
   }
 
-  // Create user
-  const userId = generateIdFromEntropySize(10);
+</@@IF@@>  // Create user
+<@@IF@@ condition="userPrimaryKeyDataType EQUALS 'uuid'">  const userId = crypto.randomUUID();
+</@@IF@@><@@IF@@ condition="userPrimaryKeyDataType NOT EQUAL 'uuid'">  const userId = generateIdFromEntropySize(10);
+</@@IF@@>
   const passwordHash = await hashPassword(data.password);
 
   await db.insert(<@@>userTableCamelCase</@@>).values({
     <@@>userPrimaryKeyCamelCase</@@>: userId,
     <@@>userEmailColumnCamelCase</@@>: data.<@@>userEmailColumnCamelCase</@@>,
-    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
-    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
-    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
-    <@@>userLastNameColumnCamelCase</@@>: data.<@@>userLastNameColumnCamelCase</@@> || null,
-    <@@>userEmailVerifiedColumnCamelCase</@@>: false,
-  });
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@>    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
+<@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">    <@@>userLastNameColumnCamelCase</@@>: data.<@@>userLastNameColumnCamelCase</@@> || null,
+</@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">    <@@>userEmailVerifiedColumnCamelCase</@@>: false,
+</@@IF@@>  });
 
   // Create session
   const { session: newSession, sessionCookie } = await createSession(userId);
@@ -411,11 +415,11 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: createdUser.<@@>userPrimaryKeyCamelCase</@@>,
       <@@>userEmailColumnCamelCase</@@>: createdUser.<@@>userEmailColumnCamelCase</@@>,
-      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
-      <@@>userFirstNameColumnCamelCase</@@>: createdUser.<@@>userFirstNameColumnCamelCase</@@>,
-      <@@>userLastNameColumnCamelCase</@@>: createdUser.<@@>userLastNameColumnCamelCase</@@>,
-      <@@>userEmailVerifiedColumnCamelCase</@@>: createdUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
-    },
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: createdUser.<@@>userFirstNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: createdUser.<@@>userLastNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: createdUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
+</@@IF@@>    },
     session: newSession,
   }, 201);
 });
@@ -454,11 +458,11 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: existingUser.<@@>userPrimaryKeyCamelCase</@@>,
       <@@>userEmailColumnCamelCase</@@>: existingUser.<@@>userEmailColumnCamelCase</@@>,
-      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
-      <@@>userFirstNameColumnCamelCase</@@>: existingUser.<@@>userFirstNameColumnCamelCase</@@>,
-      <@@>userLastNameColumnCamelCase</@@>: existingUser.<@@>userLastNameColumnCamelCase</@@>,
-      <@@>userEmailVerifiedColumnCamelCase</@@>: existingUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
-    },
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: existingUser.<@@>userFirstNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: existingUser.<@@>userLastNameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: existingUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
+</@@IF@@>    },
     session: newSession,
   });
 });
@@ -629,18 +633,19 @@ app.get('/oauth/:provider/callback', async (c) => {
           <@@>oauthUserColumnCamelCase</@@>: userId,
         });
       } else {
-        userId = generateIdFromEntropySize(10);
-        const username = generateUsername(oauthUserInfo.name || oauthUserInfo.email);
-
+<@@IF@@ condition="userPrimaryKeyDataType EQUALS 'uuid'">        userId = crypto.randomUUID();
+</@@IF@@><@@IF@@ condition="userPrimaryKeyDataType NOT EQUAL 'uuid'">        userId = generateIdFromEntropySize(10);
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">        const username = generateUsername(oauthUserInfo.name || oauthUserInfo.email);
+</@@IF@@>
         await db.insert(<@@>userTableCamelCase</@@>).values({
           <@@>userPrimaryKeyCamelCase</@@>: userId,
           <@@>userEmailColumnCamelCase</@@>: oauthUserInfo.email,
-          <@@>userUsernameColumnCamelCase</@@>: username,
-          <@@>userFirstNameColumnCamelCase</@@>: oauthUserInfo.name?.split(' ')[0] || null,
-          <@@>userLastNameColumnCamelCase</@@>: oauthUserInfo.name?.split(' ').slice(1).join(' ') || null,
-          <@@>userAvatarColumnCamelCase</@@>: oauthUserInfo.avatarUrl || null,
-          <@@>userEmailVerifiedColumnCamelCase</@@>: true,
-        });
+<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">          <@@>userUsernameColumnCamelCase</@@>: username,
+</@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">          <@@>userFirstNameColumnCamelCase</@@>: oauthUserInfo.name?.split(' ')[0] || null,
+</@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">          <@@>userLastNameColumnCamelCase</@@>: oauthUserInfo.name?.split(' ').slice(1).join(' ') || null,
+</@@IF@@><@@IF@@ condition="hasAvatarColumn EQUALS 'true'">          <@@>userAvatarColumnCamelCase</@@>: oauthUserInfo.avatarUrl || null,
+</@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">          <@@>userEmailVerifiedColumnCamelCase</@@>: true,
+</@@IF@@>        });
 
         await db.insert(<@@>oauthTableCamelCase</@@>).values({
           <@@>oauthProviderIdColumnCamelCase</@@>: providerName,

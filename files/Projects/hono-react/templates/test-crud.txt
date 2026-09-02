@@ -18,11 +18,11 @@ describe('<@@>tableName.pascalCase</@@> API - CRUD Testing (C→R→U→R→D→
 
   // Test data - using mock values for each column
   const testData = {
-<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'test-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">1</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">true</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-01-01T00:00:00Z')</@@IF@@></@@IF@@></@@LOOP@@>
+<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'test-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">1</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">true</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-01-01T00:00:00Z')</@@IF@@><@@IF@@ condition="data_type EQUALS 'uuid'">'00000000-0000-4000-8000-000000000001'</@@IF@@></@@IF@@></@@LOOP@@>
   };
 
   const updateData = {
-<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'updated-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">2</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">false</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-12-31T00:00:00Z')</@@IF@@></@@IF@@></@@LOOP@@>
+<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'updated-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">2</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">false</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">new Date('2024-12-31T00:00:00Z')</@@IF@@><@@IF@@ condition="data_type EQUALS 'uuid'">'00000000-0000-4000-8000-000000000002'</@@IF@@></@@IF@@></@@LOOP@@>
   };
 
   // 1. CREATE - Create new record
