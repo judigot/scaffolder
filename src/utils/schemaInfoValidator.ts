@@ -36,6 +36,19 @@ const foreignKeySchema = z.union([
   foreignKeyStringSchema,
 ]);
 
+const COLUMN_IDENTIFIER_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
+const TABLE_NAME_PATTERN = /^[a-z][a-z0-9_]*$/;
+const COLUMN_DATA_TYPES = [
+  'string',
+  'number',
+  'boolean',
+  'Date',
+  'object',
+  'uuid',
+] as const;
+
+type IColumnDataType = (typeof COLUMN_DATA_TYPES)[number];
+
 /**
  * Zod schema for validating column information
  */
@@ -43,9 +56,13 @@ const columnInfoSchema = z.object({
   column_name: z
     .string()
     .min(1, 'Column name is required')
-    .regex(/^[a-z][a-z0-9_]*$/, 'Column name must be snake_case'),
-  data_type: z.enum(['string', 'number', 'boolean', 'Date', 'object'], {
-    message: 'Data type must be: string, number, boolean, Date, or object',
+    .regex(
+      COLUMN_IDENTIFIER_PATTERN,
+      'Column name must start with a letter and contain only letters, numbers, and underscores',
+    ),
+  data_type: z.enum(COLUMN_DATA_TYPES, {
+    message:
+      'Data type must be: string, number, boolean, Date, object, or uuid',
   }),
   is_nullable: z.enum(['YES', 'NO'], {
     message: "is_nullable must be 'YES' or 'NO'",
@@ -72,7 +89,7 @@ const schemaInfoSchema = z
     tableName: z
       .string()
       .min(1, 'Table name is required')
-      .regex(/^[a-z][a-z0-9_]*$/, 'Table name must be snake_case'),
+      .regex(TABLE_NAME_PATTERN, 'Table name must be snake_case'),
     columnsInfo: z
       .array(columnInfoSchema)
       .min(1, 'At least one column is required'),
@@ -307,20 +324,20 @@ export function removeHiddenSchemaFromText(text: string): string {
 /**
  * Type mapping for compact format
  */
-const COMPACT_TYPE_MAP: Partial<
-  Record<string, 'string' | 'number' | 'boolean' | 'Date' | 'object'>
-> = {
+const COMPACT_TYPE_MAP: Partial<Record<string, IColumnDataType>> = {
   s: 'string',
   n: 'number',
   b: 'boolean',
   D: 'Date',
   o: 'object',
+  u: 'uuid',
+  uuid: 'uuid',
 };
 
 /**
  * Parse a single column definition from compact format
  * Format: name:type?!u#pk>fk_table
- * - :s = string, :n = number, :b = boolean, :D = Date, :o = object
+ * - :s = string, :n = number, :b = boolean, :D = Date, :o = object, :u/:uuid = uuid
  * - ? = nullable
  * - !u = unique
  * - #pk = primary key
@@ -329,7 +346,7 @@ const COMPACT_TYPE_MAP: Partial<
 function parseCompactColumn(colDef: string): ColumnInfo | null {
   // Match: column_name:type[?][!u][#pk][>fk_table]
   const colRegex =
-    /^([a-z][a-z0-9_]*):([snbDo])(\?)?(!u)?(#pk)?(>[a-z][a-z0-9_]*)?$/;
+    /^([A-Za-z][A-Za-z0-9_]*):(uuid|[snbDou])(\?)?(!u)?(#pk)?(>[a-z][a-z0-9_]*)?$/;
   const match = colRegex.exec(colDef);
 
   if (match === null) {
