@@ -169,6 +169,7 @@ export const getReplacementsForAuth = (
         replacements,
         generateCaseReplacements('userPrimaryKey', userPrimaryKey.column_name),
       );
+      replacements.userPrimaryKeyDataType = userPrimaryKey.data_type;
     }
 
     // Boolean flags for optional columns
@@ -195,7 +196,9 @@ export const getReplacementsForAuth = (
     const userFk = sessionTable.columnsInfo.find(
       (c) =>
         c.foreign_key?.foreign_table_name === userTable?.tableName ||
-        ['user_id', 'account_id'].includes(c.column_name),
+        ['user_id', 'userid', 'account_id', 'accountid'].includes(
+          c.column_name.toLowerCase(),
+        ),
     );
     if (userFk) {
       Object.assign(
@@ -213,7 +216,10 @@ export const getReplacementsForAuth = (
     if (expiresCol) {
       Object.assign(
         replacements,
-        generateCaseReplacements('sessionExpiresColumn', expiresCol.column_name),
+        generateCaseReplacements(
+          'sessionExpiresColumn',
+          expiresCol.column_name,
+        ),
       );
     }
   }
@@ -265,7 +271,9 @@ export const getReplacementsForAuth = (
     const oauthUserFk = oauthTable.columnsInfo.find(
       (c) =>
         c.foreign_key?.foreign_table_name === userTable?.tableName ||
-        ['user_id', 'account_id'].includes(c.column_name),
+        ['user_id', 'userid', 'account_id', 'accountid'].includes(
+          c.column_name.toLowerCase(),
+        ),
     );
     if (oauthUserFk) {
       Object.assign(

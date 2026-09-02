@@ -280,4 +280,55 @@ export function isIOrderProductArray(data: unknown): data is IOrderProduct[] {
       normalizeWhitespace(Object.values(tsInterfaces).join('')),
     ).toStrictEqual(normalizeWhitespace(expectedOutput));
   });
+
+  it('emits string properties for uuid primary keys and camelCase uuid foreign keys', () => {
+    const tsInterfaces = generateTypescriptInterfaces({
+      schemaInfo: [
+        {
+          tableName: 'user',
+          columnsInfo: [
+            {
+              column_name: 'id',
+              data_type: 'uuid',
+              is_nullable: 'NO',
+              primary_key: true,
+            },
+            {
+              column_name: 'email',
+              data_type: 'string',
+              is_nullable: 'NO',
+              unique: true,
+            },
+          ],
+        },
+        {
+          tableName: 'session',
+          columnsInfo: [
+            {
+              column_name: 'id',
+              data_type: 'string',
+              is_nullable: 'NO',
+              primary_key: true,
+            },
+            {
+              column_name: 'userId',
+              data_type: 'uuid',
+              is_nullable: 'NO',
+              foreign_key: {
+                foreign_table_name: 'user',
+                foreign_column_name: 'id',
+              },
+            },
+          ],
+        },
+      ],
+      includeTypeGuards: true,
+    });
+
+    expect(tsInterfaces.IUser).toContain('id: string;');
+    expect(tsInterfaces.IUser).not.toContain('id: ;');
+    expect(tsInterfaces.ISession).toContain('userId: string;');
+    expect(tsInterfaces.ISession).not.toContain('userId: ;');
+    expect(tsInterfaces.ISession).toContain("typeof data.userId === 'string'");
+  });
 });

@@ -25,7 +25,7 @@ const update<@@>tableName.singular.pascalCase</@@>SchemaNonEmpty = update<@@>tab
   message: 'At least one field must be provided',
 });
 
-<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">const idParamSchema = z.object({ id: z.coerce.number().int().positive() });</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">const idParamSchema = z.object({ id: z.string().min(1) });</@@IF@@>
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">const idParamSchema = z.object({ id: z.coerce.number().int().positive() });</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">const idParamSchema = z.object({ id: z.string().min(1) });</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'uuid'">const idParamSchema = z.object({ id: z.string().uuid() });</@@IF@@>
 </@@IF@@>
 
 // Repository pattern (table-specific data access)
@@ -160,10 +160,10 @@ app.get('/', async (c) => {
 app.post('/', zValidator('json', create<@@>tableName.singular.pascalCase</@@>Schema), async (c) => {
   const data = c.req.valid('json');
 <@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values(data).returning();
-</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = generateIdFromEntropySize(10);</@@IF@@>
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'uuid'">  const id = crypto.randomUUID();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const id = generateIdFromEntropySize(10);</@@IF@@>
 <@@IF@@ condition="isAuthResource EQUALS 'true'">  const user = getUser(c);
-<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, id, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@>
-</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values(data).returning();</@@IF@@>
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string' OR primaryKeyDataType EQUALS 'uuid'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, id, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, <@@>ownerFieldCamelCase</@@>: user.id }).returning();</@@IF@@>
+</@@IF@@><@@IF@@ condition="isAuthResource NOT EQUAL 'true'"><@@IF@@ condition="primaryKeyDataType EQUALS 'string' OR primaryKeyDataType EQUALS 'uuid'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values({ ...data, id }).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const result = await db.insert(<@@>tableName.camelCase</@@>).values(data).returning();</@@IF@@>
 </@@IF@@></@@IF@@>  return c.json(result[0], 201);
 });
 

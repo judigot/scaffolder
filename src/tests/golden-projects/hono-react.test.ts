@@ -238,6 +238,7 @@ describe('Hono-React Project Generation', () => {
       expect(schemaFile?.content).not.toContain('@LOOP(tables)');
       expect(schemaFile?.content).not.toContain('@/LOOP');
       expect(schemaFile?.content).not.toContain('{{tableName}}');
+      expect(schemaFile?.content).not.toContain('.references(');
     }, 30000);
 
     it('should generate route files for each table', async () => {
