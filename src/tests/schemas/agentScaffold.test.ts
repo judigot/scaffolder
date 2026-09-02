@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { AgentScaffoldRequestSchema } from '@/schemas/agentScaffold.ts';
+import {
+  honoReactAgentSchemaInfo,
+  honoReactCompactSchema,
+} from '@/tests/helpers/honoReactAgentSchema.ts';
 
 describe('AgentScaffoldRequestSchema', () => {
   it('accepts the agent project-creation payload', () => {
@@ -28,6 +32,26 @@ describe('AgentScaffoldRequestSchema', () => {
   it('accepts compact schemaInfo as a string', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: '<@@SCHEMA@@>\n@users:id:n#pk,email:s\n<@@/SCHEMA@@>',
+      project: 'hono-react',
+      target_repo: 'judigot/bookingwars',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a hono-react uuid schemaInfo payload', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactAgentSchemaInfo,
+      project: 'hono-react',
+      target_repo: 'judigot/bookingwars',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts compact hono-react schemaInfo with uuid and camelCase columns', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
       project: 'hono-react',
       target_repo: 'judigot/bookingwars',
     });
