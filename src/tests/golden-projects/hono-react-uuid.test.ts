@@ -250,7 +250,7 @@ describe('Hono-React uuid schema generation', () => {
         /expiresAt:\s*timestamp\('expiresAt'[\s\S]*?\)\.notNull\(\)/,
       );
       expect(schemaContent).toMatch(
-        /userId:\s*uuid\('userId'\)\.notNull\(\)\.references\(\(\)\s*=>\s*user\.id\)/,
+        /userId:\s*uuid\('userId'\)\s*\.notNull\(\)\s*\.references\(\(\)\s*=>\s*user\.id\)/,
       );
       expect(schemaContent).not.toMatch(/\buserid\s*:/);
 

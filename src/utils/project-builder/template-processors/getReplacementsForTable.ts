@@ -190,10 +190,10 @@ export function getReplacementsForTable(
     ? columnsInfo.find((col) => col.column_name === compositePrimaryKey[0])
     : columnsInfo.find((col) => col.primary_key === true);
   const rawPkDataType = primaryKeyColumn?.data_type ?? '';
-  // Schema uses normalized types ('string', 'number', 'Date', 'boolean', 'uuid')
+  // Keep uuid distinct from lucia string ids so templates can emit crypto.randomUUID()
   const primaryKeyDataType =
     rawPkDataType === 'string' || rawPkDataType === 'uuid'
-      ? 'string'
+      ? rawPkDataType
       : 'number';
 
   // Get auth-related replacements (project-level)

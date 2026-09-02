@@ -14,7 +14,7 @@ const BASE_URL = process.env.TEST_API_URL || 'http://localhost:3000';
  * 6. READ   - Verify deletion (404)
  */
 describe('<@@>tableName.pascalCase</@@> API - CRUD Testing (C→R→U→R→D→R)', () => {
-  let createdId: number;
+<@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  let createdId: number;</@@IF@@><@@IF@@ condition="primaryKeyDataType NOT EQUAL 'number'">  let createdId: string;</@@IF@@>
 
   // Test data - using mock values for each column
   const testData = {
