@@ -190,8 +190,11 @@ export function getReplacementsForTable(
     ? columnsInfo.find((col) => col.column_name === compositePrimaryKey[0])
     : columnsInfo.find((col) => col.primary_key === true);
   const rawPkDataType = primaryKeyColumn?.data_type ?? '';
-  // Schema uses normalized types ('string', 'number', 'Date', 'boolean')
-  const primaryKeyDataType = rawPkDataType === 'string' ? 'string' : 'number';
+  // Schema uses normalized types ('string', 'number', 'Date', 'boolean', 'uuid')
+  const primaryKeyDataType =
+    rawPkDataType === 'string' || rawPkDataType === 'uuid'
+      ? 'string'
+      : 'number';
 
   // Get auth-related replacements (project-level)
   const authReplacements = getReplacementsForAuth(schemaInfoParsed.schema);

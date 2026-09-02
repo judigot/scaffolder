@@ -169,6 +169,7 @@ export const getReplacementsForAuth = (
         replacements,
         generateCaseReplacements('userPrimaryKey', userPrimaryKey.column_name),
       );
+      replacements.userPrimaryKeyDataType = userPrimaryKey.data_type;
     }
 
     // Boolean flags for optional columns
