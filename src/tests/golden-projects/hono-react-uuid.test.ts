@@ -128,7 +128,7 @@ describe('Hono-React uuid schema generation', () => {
       path.join(filesDir, 'Projects/hono-react/structure.yaml'),
       'utf-8',
     );
-    expect(structureYaml).toContain("$SCHEMA_FILTER:");
+    expect(structureYaml).toContain('$SCHEMA_FILTER:');
     for (const filter of honoReactSchemaFilter) {
       expect(structureYaml).toContain(`- '${filter}'`);
     }
@@ -166,8 +166,8 @@ describe('Hono-React uuid schema generation', () => {
       expect(schemaContent).toMatch(/id:\s*uuid\('id'\)\.primaryKey\(\)/);
       expect(schemaContent).toMatch(/userId:\s*uuid\('userId'\)/);
       expect(schemaContent).not.toMatch(/:\s*\.notNull\(\)/);
-      expect(schemaContent).not.toContain('bigserial(\'id\'');
-      expect(schemaContent).toContain('from \'drizzle-orm/pg-core\'');
+      expect(schemaContent).not.toContain("bigserial('id'");
+      expect(schemaContent).toContain("from 'drizzle-orm/pg-core'");
       expect(schemaContent).toMatch(/\buuid\b/);
 
       const userInterface = findFileByPath(result.structure, [
@@ -205,6 +205,79 @@ describe('Hono-React uuid schema generation', () => {
           file.content.includes('<@@>') || file.content.includes('</@@>'),
       );
       expect(leftoverPlaceholder.map((file) => file.name)).toEqual([]);
+    },
+  );
+
+  it(
+    'emits enterprise uuid auth columns: unique email, hashed_password, Date, and session.userId FK',
+    { timeout: 60000 },
+    async () => {
+      expect(parsedSchema).not.toBeNull();
+      if (!isISchemaInfoArray(parsedSchema)) {
+        throw new Error('Live compact uuid schema is not ISchemaInfo[]');
+      }
+
+      const result = await buildProjectFiles(
+        '/Projects/hono-react/structure.yaml',
+        loadDirectoryAsStructure(filesDir),
+        parsedSchema,
+        mockFormData,
+        null,
+      );
+
+      expect(result.filesFailedToFormat).toEqual([]);
+
+      const schemaFile = findFileByPath(result.structure, [
+        'api',
+        'db',
+        'schema.ts',
+      ]);
+      const schemaContent = schemaFile?.content ?? '';
+
+      expect(schemaContent).toMatch(
+        /email:\s*varchar\('email'[\s\S]*?\)\.notNull\(\)\.unique\(\)/,
+      );
+      expect(schemaContent).toMatch(
+        /hashedPassword:\s*char\('hashed_password'[\s\S]*?\)\.notNull\(\)/,
+      );
+      expect(schemaContent).toMatch(
+        /createdAt:\s*timestamp\('createdAt'[\s\S]*?\)\.notNull\(\)/,
+      );
+      expect(schemaContent).toMatch(
+        /updatedAt:\s*timestamp\('updatedAt'[\s\S]*?\)\.notNull\(\)/,
+      );
+      expect(schemaContent).toMatch(
+        /expiresAt:\s*timestamp\('expiresAt'[\s\S]*?\)\.notNull\(\)/,
+      );
+      expect(schemaContent).toMatch(
+        /userId:\s*uuid\('userId'\)\.notNull\(\)\.references\(\(\)\s*=>\s*user\.id\)/,
+      );
+      expect(schemaContent).not.toMatch(/\buserid\s*:/);
+
+      const userInterface = findFileByPath(result.structure, [
+        'src',
+        'interfaces',
+        'IUser.ts',
+      ]);
+      expect(userInterface?.content).toMatch(/hashed_password:\s*string;/);
+      expect(userInterface?.content).toMatch(/createdAt:\s*Date;/);
+      expect(userInterface?.content).toMatch(/email:\s*string;/);
+
+      const userRoute = findFileByPath(result.structure, [
+        'api',
+        'routes',
+        'user.ts',
+      ]);
+      expect(userRoute?.content).toContain('crypto.randomUUID()');
+      expect(userRoute?.content).toContain('id: z.string().uuid()');
+      expect(userRoute?.content).not.toContain('generateIdFromEntropySize');
+
+      const userCrudTest = findFileByPath(result.structure, [
+        'tests',
+        'user.test.ts',
+      ]);
+      expect(userCrudTest?.content).toMatch(/let createdId:\s*string;/);
+      expect(userCrudTest?.content).not.toMatch(/let createdId:\s*number;/);
     },
   );
 });
