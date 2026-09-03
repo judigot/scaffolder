@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  createGitBlobsWithRetry,
-  GitBlobUploadError,
-} from '@/utils/githubCreateBlobs.ts';
+import { createGitBlobsWithRetry } from '@/utils/githubCreateBlobs.ts';
 import type { IGitBlobApi } from '@/utils/githubCreateBlobs.ts';
 
 function createFiles(count: number): { path: string; content: string }[] {
@@ -113,8 +110,6 @@ describe('createGitBlobsWithRetry', () => {
   });
 });
 
-function apiFrom(
-  createBlob: IGitBlobApi['createBlob'],
-): IGitBlobApi {
+function apiFrom(createBlob: IGitBlobApi['createBlob']): IGitBlobApi {
   return { createBlob };
 }
