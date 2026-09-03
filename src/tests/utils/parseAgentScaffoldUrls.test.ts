@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ensureScaffolderBranchName,
   isProtectedBranchName,
   parseProjectReference,
+  parsePullRequestUrl,
   parseTargetRepo,
+  toScaffolderBranchName,
 } from '@/utils/parseAgentScaffoldUrls.ts';
 
 describe('parseProjectReference', () => {
@@ -80,5 +83,52 @@ describe('isProtectedBranchName', () => {
     expect(isProtectedBranchName('scaffolder/hono-react-ab12', 'main')).toBe(
       false,
     );
+  });
+});
+
+describe('parsePullRequestUrl', () => {
+  it('parses a GitHub pull request URL', () => {
+    expect(
+      parsePullRequestUrl('https://github.com/judigot/bookingwars/pull/2'),
+    ).toEqual({
+      owner: 'judigot',
+      repo: 'bookingwars',
+      prNumber: 2,
+    });
+  });
+
+  it('parses a PR URL with a files tab suffix and .git', () => {
+    expect(
+      parsePullRequestUrl(
+        'https://github.com/judigot/bookingwars.git/pull/12/files',
+      ),
+    ).toEqual({
+      owner: 'judigot',
+      repo: 'bookingwars',
+      prNumber: 12,
+    });
+  });
+
+  it('rejects a non-PR GitHub URL', () => {
+    expect(() => {
+      parsePullRequestUrl('https://github.com/judigot/bookingwars');
+    }).toThrow('pull request');
+  });
+});
+
+describe('scaffolder branch naming', () => {
+  it('slugs spaces in auto-generated project branch names', () => {
+    expect(toScaffolderBranchName('ORM Schema - Knex', 'ab12')).toBe(
+      'scaffolder/ORM-Schema-Knex-ab12',
+    );
+  });
+
+  it('slugs spaces in explicit branch names so they are valid git refs', () => {
+    expect(ensureScaffolderBranchName('ORM Schema - Knex-ab12')).toBe(
+      'scaffolder/ORM-Schema-Knex-ab12',
+    );
+    expect(
+      ensureScaffolderBranchName('scaffolder/ORM Schema - Knex-ab12'),
+    ).toBe('scaffolder/ORM-Schema-Knex-ab12');
   });
 });
