@@ -1,13 +1,7 @@
 name: Golden Frameworks
 
-# TEMPORARY — restore after same-PR update feature lands.
-# GitHub Actions CI is paused on push to main as well.
-# Vercel production deploys stay enabled via vercel.json (`main: true`).
-# Restore `on.push` and drop `if: false` when CI is turned back on.
 on:
-  # push:
-  #   branches:
-  #     - main
+  push: {}
   workflow_dispatch: {}
 
 concurrency:
@@ -17,7 +11,6 @@ concurrency:
 jobs:
   golden-frameworks:
     name: Golden Frameworks
-    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
