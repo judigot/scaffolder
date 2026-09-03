@@ -1,11 +1,11 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
 import { Octokit } from '@octokit/rest';
-import pLimit from 'p-limit';
 import {
   getGitHubAppConfig,
   getGitHubAppOctokit,
 } from '@/app/services/githubAppService.ts';
 import { getGitHubToken } from '@/app/services/auth0Service.ts';
+import { createGitBlobsWithRetry } from '@/utils/githubCreateBlobs.ts';
 
 interface ICreateGitHubFolderStructureRequest {
   structure: IStructure;
@@ -28,10 +28,6 @@ interface IFileEntry {
   type: 'blob';
   isBinary?: boolean;
 }
-
-const GITHUB_BLOB_CONCURRENCY = 10;
-const GITHUB_BLOB_MAX_RETRIES = 5;
-const GITHUB_BLOB_RETRY_BASE_DELAY_MS = 1000;
 
 function collectFiles(
   structure: IStructure,
@@ -62,73 +58,6 @@ function collectFiles(
   }
 
   return files;
-}
-
-async function createBlobs(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  files: IFileEntry[],
-): Promise<Map<string, string>> {
-  const limit = pLimit(GITHUB_BLOB_CONCURRENCY);
-
-  const delay = (ms: number): Promise<void> =>
-    new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
-
-  const createBlobWithRetry = async (
-    file: IFileEntry,
-    attempt = 0,
-  ): Promise<{ path: string; sha: string }> => {
-    try {
-      const base64Content =
-        file.isBinary === true
-          ? file.content
-          : Buffer.from(file.content, 'utf-8').toString('base64');
-      const response = await octokit.git.createBlob({
-        owner,
-        repo,
-        content: base64Content,
-        encoding: 'base64',
-      });
-      return { path: file.path, sha: response.data.sha };
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        const message = error.message.toLowerCase();
-        const isRateLimit =
-          message.includes('rate limit') ||
-          message.includes('secondary rate limit') ||
-          message.includes('abuse detection');
-        if (isRateLimit && attempt < GITHUB_BLOB_MAX_RETRIES) {
-          const backoffMs =
-            GITHUB_BLOB_RETRY_BASE_DELAY_MS * 2 ** attempt +
-            Math.floor(Math.random() * 250);
-          await delay(backoffMs);
-          return createBlobWithRetry(file, attempt + 1);
-        }
-        throw new Error(
-          `Failed to create blob for ${file.path}: ${error.message}`,
-        );
-      }
-      throw new Error(`Failed to create blob for ${file.path}: Unknown error`);
-    }
-  };
-
-  const tasks = files.map((file) =>
-    limit(async () => {
-      return await createBlobWithRetry(file);
-    }),
-  );
-
-  const blobResults = await Promise.all(tasks);
-  const blobMap = new Map<string, string>();
-
-  for (const result of blobResults) {
-    blobMap.set(result.path, result.sha);
-  }
-
-  return blobMap;
 }
 
 function buildTree(
@@ -339,7 +268,12 @@ This project contains all the scaffolded files generated from your database sche
       }
     }
 
-    const blobMap = await createBlobs(octokit, owner, repo, files);
+    const blobMap = await createGitBlobsWithRetry(
+      octokit.git,
+      owner,
+      repo,
+      files,
+    );
     const tree = buildTree(files, blobMap);
 
     const treeResponse = await octokit.git.createTree({

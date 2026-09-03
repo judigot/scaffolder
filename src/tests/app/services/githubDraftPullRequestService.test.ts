@@ -184,6 +184,29 @@ describe('publishDraftPullRequest', () => {
     });
   });
 
+  it('creates a blob for every generated file', async () => {
+    const createBlob = vi.fn(() => Promise.resolve({ data: { sha: 'blob-sha' } }));
+    const client = createGitClient();
+    client.git.createBlob = createBlob;
+
+    const result = await publishDraftPullRequest(
+      {
+        ...createParams,
+        structure: [
+          { type: 'file', name: 'README.md', content: 'hello' },
+          { type: 'file', name: 'index.ts', content: 'export {};' },
+          { type: 'file', name: 'schema.ts', content: 'export const t = 1;' },
+        ],
+      },
+      {
+        getOctokit: () => Promise.resolve(client),
+      },
+    );
+
+    expect(createBlob).toHaveBeenCalledTimes(3);
+    expect(result.filesCreated).toBe(3);
+  });
+
   it('returns a typed error when no files were generated', async () => {
     await expect(
       publishDraftPullRequest(
