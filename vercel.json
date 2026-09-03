@@ -6,5 +6,10 @@
       "*": false,
       "main": true
     }
+  },
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "files/**"
+    }
   }
 }

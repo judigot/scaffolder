@@ -1,13 +1,23 @@
 {
-	"extends": "./tsconfig.app.json",
-	"compilerOptions": {
-		"paths": {
-			"@/*": ["./src/*"]
-		}
-	},
-	"references": [
-		{ "path": "./tsconfig.app.json" },
-		{ "path": "./tsconfig.node.json" },
-		{ "path": "./packages/shared-utils" }
-	]
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" },
+    { "path": "./packages/shared-utils" }
+  ],
+  // TEMPORARY — restore after agent-scaffold is solid.
+  // Same template/worktree skip as tsconfig.app.json for bare `tsc`.
+  "exclude": [
+    "files",
+    "files.test",
+    "apps",
+    ".apps",
+    ".worktrees",
+    "src/tests/golden-projects/output"
+  ]
 }

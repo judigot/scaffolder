@@ -13,6 +13,15 @@ const isLiveServer =
   !backendHost.includes('localhost') &&
   !backendHost.includes('127.0.0.1');
 
+/* TEMPORARY — restore after agent-scaffold is solid.
+ * Template/worktree trees are not part of the Vite app graph. */
+const ignoredTemplateTrees = [
+  '**/files/**',
+  '**/files.test/**',
+  '**/.apps/**',
+  '**/.worktrees/**',
+];
+
 export default defineConfig({
   base: isLiveServer ? '/scaffolder/' : '/',
   resolve: {
@@ -33,6 +42,12 @@ export default defineConfig({
           path: '/scaffolder/__vite_hmr',
         }
       : undefined,
+    watch: {
+      ignored: ignoredTemplateTrees,
+    },
+    fs: {
+      deny: ['.env', '.env.*', '*.{crt,pem}', ...ignoredTemplateTrees],
+    },
   },
   plugins: [tailwindcss(), react(), tsconfigPaths()],
 });

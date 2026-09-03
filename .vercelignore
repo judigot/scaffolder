@@ -1,0 +1,9 @@
+# TEMPORARY — restore after agent-scaffold is solid.
+# Skip uploading generated apps, git worktrees, and template test fixtures.
+# Do NOT ignore files/: production getUserFiles and agent-scaffold read that
+# tree at request time via convertLocalFilesToIStructure('files').
+# Do not ignore src/, api/, or dist inputs the app build needs.
+
+.apps
+.worktrees
+files.test
