@@ -415,6 +415,29 @@ describe('publishDraftPullRequest', () => {
     });
   });
 
+  it('rejects a missing pull request number on the target repo', async () => {
+    await expect(
+      publishDraftPullRequest(
+        {
+          ...createParams,
+          updateExisting: true,
+          prNumber: 99,
+        },
+        {
+          getOctokit: () =>
+            Promise.resolve(
+              createGitClient({
+                pullByNumber: {},
+              }),
+            ),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'PR_NOT_FOUND',
+      status: 400,
+    });
+  });
+
   it('rejects a pull request that belongs to another repository', async () => {
     const foreignPull: IGitHubPullRequest = {
       ...existingPull,
