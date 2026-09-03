@@ -18,6 +18,10 @@ import {
   buildProjectFiles,
   type IBuildProjectFilesResult,
 } from '@/utils/project-builder/buildProjectFiles.ts';
+import {
+  SCAFFOLDER_MESSAGE_CODES,
+  type IScaffolderMessage,
+} from '@/interfaces/scaffolderMessages.ts';
 import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
 import {
   resolveProjectIdentifier,
@@ -204,6 +208,17 @@ function createAgentFormData(
   };
 }
 
+function findLeftoverPlaceholderMessage(
+  messages: IScaffolderMessage[] | undefined,
+): IScaffolderMessage | undefined {
+  if (messages === undefined) {
+    return undefined;
+  }
+  return messages.find(
+    (message) => message.code === SCAFFOLDER_MESSAGE_CODES.LeftoverPlaceholder,
+  );
+}
+
 function resolveSchemaInfo(schemaInfo: unknown): SchemaInfoArray {
   if (typeof schemaInfo === 'string') {
     const compact = parseCompactSchema(schemaInfo);
@@ -345,6 +360,14 @@ export async function scaffoldToPullRequest(
   );
 
   if (buildResult.hasErrors === true) {
+    const leftoverMessage = findLeftoverPlaceholderMessage(buildResult.messages);
+    if (leftoverMessage !== undefined) {
+      throw new AgentScaffoldError(leftoverMessage.title, {
+        status: 400,
+        code: 'LEFTOVER_PLACEHOLDER',
+        details: buildResult.messages,
+      });
+    }
     throw new AgentScaffoldError('Project generation failed', {
       status: 400,
       code: 'BUILD_FAILED',

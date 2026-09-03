@@ -263,6 +263,7 @@ export const <@@>tableName.pascalCase</@@> = {
       by: [column],
     });
   },
-  
-  // <@@>softDeleteFunctions</@@>
+
+<@@IF@@ condition="softDeleteFunctions EXISTS">  <@@>softDeleteFunctions</@@>
+</@@IF@@>
 };

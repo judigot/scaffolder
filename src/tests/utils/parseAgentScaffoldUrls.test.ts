@@ -109,14 +109,17 @@ describe('parseProjectReference', () => {
 });
 
 describe('shouldFetchRemoteScaffolderFiles', () => {
-  it('fetches any files-repo URL, including the example judigot repo', () => {
+  it('uses bundled files for the official files repo URL', () => {
     expect(
       shouldFetchRemoteScaffolderFiles(
         parseProjectReference(
           'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM Schema - Knex',
         ),
       ),
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it('fetches a developer-owned files-repo URL', () => {
     expect(
       shouldFetchRemoteScaffolderFiles(
         parseProjectReference(

@@ -5,6 +5,10 @@ import {
   getInstallationUrl,
 } from '@/app/services/githubAppService.ts';
 import { isProtectedBranchName } from '@/utils/parseAgentScaffoldUrls.ts';
+import {
+  createGitBlobsWithRetry,
+  GitBlobUploadError,
+} from '@/utils/githubCreateBlobs.ts';
 
 interface IFileEntry {
   path: string;
@@ -263,19 +267,17 @@ async function createGeneratedTree(
   baseTreeSha: string,
   files: IFileEntry[],
 ): Promise<string> {
-  const blobMap = new Map<string, string>();
-  for (const file of files) {
-    const base64Content =
-      file.isBinary === true
-        ? file.content
-        : Buffer.from(file.content, 'utf-8').toString('base64');
-    const blob = await octokit.git.createBlob({
-      owner,
-      repo,
-      content: base64Content,
-      encoding: 'base64',
-    });
-    blobMap.set(file.path, blob.data.sha);
+  let blobMap: Map<string, string>;
+  try {
+    blobMap = await createGitBlobsWithRetry(octokit.git, owner, repo, files);
+  } catch (error: unknown) {
+    if (error instanceof GitBlobUploadError) {
+      throw new GitHubDraftPullRequestError(error.message, {
+        status: 500,
+        code: error.code,
+      });
+    }
+    throw error;
   }
 
   const tree = files.map((file) => {

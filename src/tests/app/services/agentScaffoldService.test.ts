@@ -210,6 +210,51 @@ describe('scaffoldToPullRequest', () => {
     ).rejects.toMatchObject({ code: 'SCHEMA_FILTER_FAILED', status: 400 });
   });
 
+  it('returns LEFTOVER_PLACEHOLDER instead of FORMAT_ERROR when markers remain', async () => {
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          target_repo: 'judigot/bookingwars',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                {
+                  type: 'file',
+                  name: 'auth.ts',
+                  content: 'col: <@@>userPasswordColumnCamelCase</@@>',
+                },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+              hasErrors: true,
+              messages: [
+                {
+                  id: 'leftover-1',
+                  code: 'LEFTOVER_PLACEHOLDER',
+                  title: 'Generated files still contain template markers',
+                  severity: 'error',
+                  details: ['auth.ts: <@@>userPasswordColumnCamelCase</@@>'],
+                  timestamp: '2026-09-03T00:00:00.000Z',
+                  dismissible: false,
+                },
+              ],
+            }),
+          publish: () => {
+            throw new Error('should not publish leftover output');
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'LEFTOVER_PLACEHOLDER',
+      status: 400,
+    });
+  });
+
   it('targets an existing branch for update instead of failing', async () => {
     const publish = vi.fn(() =>
       Promise.resolve({
@@ -348,9 +393,12 @@ describe('scaffoldToPullRequest', () => {
     expect(publish).not.toHaveBeenCalled();
   });
 
-  it('fetches files from project_url even for the example judigot repo', async () => {
+  it('uses bundled files for the official scaffolder-files URL', async () => {
     const loadRemoteUserFiles = vi.fn(() =>
       Promise.resolve(createUserFiles([], 'ORM Schema - Knex')),
+    );
+    const loadUserFiles = vi.fn(() =>
+      createUserFiles([], 'ORM Schema - Knex'),
     );
     const publish = vi.fn(() =>
       Promise.resolve({
@@ -374,6 +422,7 @@ describe('scaffoldToPullRequest', () => {
         schemaInfo: validSchemaInfo,
       },
       {
+        loadUserFiles,
         loadRemoteUserFiles,
         buildProject: (_projectYamlPath, _userFiles, _schemaInfo, formData) => {
           expect(formData.projectName).toBe('ORM Schema - Knex');
@@ -391,11 +440,8 @@ describe('scaffoldToPullRequest', () => {
       },
     );
 
-    expect(loadRemoteUserFiles).toHaveBeenCalledWith({
-      owner: 'judigot',
-      repo: 'scaffolder-files',
-      ref: 'main',
-    });
+    expect(loadRemoteUserFiles).not.toHaveBeenCalled();
+    expect(loadUserFiles).toHaveBeenCalled();
     expect(publish).toHaveBeenCalledWith(
       expect.objectContaining({
         prNumber: 2,

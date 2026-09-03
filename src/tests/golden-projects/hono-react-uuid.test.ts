@@ -12,7 +12,10 @@ import type { IStructure, IFile, IFolder } from '@/components/FileViewer.tsx';
 import type { IFormStore } from '@/useFormStore.ts';
 import { isISchemaInfoArray } from '@/interfaces/interfaces.ts';
 import { parseCompactSchema } from '@/utils/schemaInfoValidator.ts';
-import { honoReactSchemaFilter } from '@/tests/helpers/honoReactAgentSchema.ts';
+import {
+  honoReactCompactSchema,
+  honoReactSchemaFilter,
+} from '@/tests/helpers/honoReactAgentSchema.ts';
 
 const LIVE_HONO_REACT_UUID_SCHEMA = `<@@SCHEMA@@>
 @user:id:u#pk,email:s!u,hashed_password:s,createdAt:D,updatedAt:D|>session
@@ -279,6 +282,51 @@ describe('Hono-React uuid schema generation', () => {
       ]);
       expect(userCrudTest?.content).toMatch(/let createdId:\s*string;/);
       expect(userCrudTest?.content).not.toMatch(/let createdId:\s*number;/);
+    },
+  );
+
+  it(
+    'generates a password-less uuid schema without leftover markers or format errors',
+    { timeout: 60000 },
+    async () => {
+      const passwordLessSchema = parseCompactSchema(honoReactCompactSchema);
+      expect(passwordLessSchema).not.toBeNull();
+      if (!isISchemaInfoArray(passwordLessSchema)) {
+        throw new Error('Password-less compact uuid schema is not ISchemaInfo[]');
+      }
+
+      const result = await buildProjectFiles(
+        '/Projects/hono-react/structure.yaml',
+        loadDirectoryAsStructure(filesDir),
+        passwordLessSchema,
+        mockFormData,
+        null,
+      );
+
+      expect(result.hasErrors).toBeFalsy();
+      expect(result.filesFailedToFormat).toEqual([]);
+      expect(
+        result.messages?.some(
+          (message) => message.code === 'LEFTOVER_PLACEHOLDER',
+        ),
+      ).toBeFalsy();
+
+      const leftoverPlaceholder = collectFileContents(result.structure).filter(
+        (file) =>
+          file.content.includes('<@@>') ||
+          file.content.includes('</@@>') ||
+          file.content.includes('<@@IF@@'),
+      );
+      expect(leftoverPlaceholder.map((file) => file.name)).toEqual([]);
+
+      const authFile = findFileByPath(result.structure, [
+        'api',
+        'routes',
+        'auth.ts',
+      ]);
+      expect(authFile).toBeDefined();
+      expect(authFile?.content).not.toContain('userPasswordColumnCamelCase');
+      expect(authFile?.content).not.toContain('hashedPassword');
     },
   );
 });

@@ -59,10 +59,32 @@ export function toScaffolderFilesRepoUrl(owner: string, repo: string): string {
   return `https://github.com/${owner}/${repo}`;
 }
 
+export function usesBundledScaffolderFiles(
+  projectReference: IParsedProjectReference,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (projectReference.owner === null || projectReference.repo === null) {
+    return true;
+  }
+  const bundledOwner = (
+    env.SCAFFOLDER_BUNDLED_FILES_OWNER ?? 'judigot'
+  ).toLowerCase();
+  const bundledRepo = (
+    env.SCAFFOLDER_BUNDLED_FILES_REPO ?? 'scaffolder-files'
+  ).toLowerCase();
+  return (
+    projectReference.owner.toLowerCase() === bundledOwner &&
+    projectReference.repo.toLowerCase() === bundledRepo
+  );
+}
+
 export function shouldFetchRemoteScaffolderFiles(
   projectReference: IParsedProjectReference,
 ): boolean {
-  return projectReference.owner !== null && projectReference.repo !== null;
+  if (projectReference.owner === null || projectReference.repo === null) {
+    return false;
+  }
+  return !usesBundledScaffolderFiles(projectReference);
 }
 
 function createProjectReference(params: {

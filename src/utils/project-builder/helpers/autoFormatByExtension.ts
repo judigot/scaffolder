@@ -27,7 +27,7 @@ const EXTENSION_TO_PARSER: Record<string, string | null> = {
   sql: 'sql',
   java: 'java',
   nginx: 'nginx',
-  prisma: 'prisma',
+  prisma: 'prisma-parse',
   svelte: 'svelte',
 };
 
@@ -89,7 +89,7 @@ export const autoFormatByExtension = async (
     sql: sqlPlugin,
     java: javaPlugin,
     nginx: nginxPlugin,
-    prisma: prismaPlugin,
+    'prisma-parse': prismaPlugin,
     svelte: sveltePlugin,
   };
 

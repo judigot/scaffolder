@@ -6,6 +6,7 @@ export const SCAFFOLDER_MESSAGE_CODES = {
 	FileNotFound: "FILE_NOT_FOUND",
 	FormatError: "FORMAT_ERROR",
 	InvalidYaml: "INVALID_YAML",
+	LeftoverPlaceholder: "LEFTOVER_PLACEHOLDER",
 	UserEnvUsage: "USER_ENV_USAGE",
 } satisfies Record<string, string>;
 
