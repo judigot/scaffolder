@@ -1,7 +1,12 @@
 name: Test (Playwright)
 
+# TEMPORARY — restore after same-PR update feature lands.
+# Do not run Playwright on feature-branch / pull-request pushes.
+# Still gates production via push to main and workflow_dispatch.
 on:
-  push: {}
+  push:
+    branches:
+      - main
   workflow_dispatch: {}
 
 jobs:

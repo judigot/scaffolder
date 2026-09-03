@@ -1,8 +1,16 @@
 name: Lint
 
+# TEMPORARY — restore after same-PR update feature lands.
+# Fast pull-request / feature-branch gate. Heavy jobs (Golden Frameworks,
+# Playwright, extra Bun tests) stay on main only until that feature merges.
+# Root vercel.json also skips preview deploys (`*` false, `main` true).
 on:
   push: {}
   workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
