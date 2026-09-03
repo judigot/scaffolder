@@ -29,5 +29,15 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "e2e"],
-  "exclude": ["files", "files.test", "apps", "src/tests/golden-projects/output"]
+  // TEMPORARY — restore after agent-scaffold is solid.
+  // Keep template/worktree trees out of app `tsc` so Vercel does not type-check
+  // files/Core/auth-services and similar non-app sources.
+  "exclude": [
+    "files",
+    "files.test",
+    "apps",
+    ".apps",
+    ".worktrees",
+    "src/tests/golden-projects/output"
+  ]
 }
