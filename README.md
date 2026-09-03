@@ -487,6 +487,6 @@ Production `tsc` / Vite no longer typechecks `*.vitest.*` / `*.test.*` / `*.spec
 
 | Speed-up | What changed | How to restore |
 | --- | --- | --- |
-| App `tsc` | `tsconfig.app.json` and `tsconfig.json` exclude `**/*.{vitest,test,spec}.*` and `src/test`. Vite does not typecheck those files (no checker plugin); production still runs `bun run type-check` before `vite build`. | Remove those exclude entries (and the matching `TEMPORARY` comments) so app `tsc` typechecks tests again. |
+| App `tsc` | `tsconfig.app.json` and `tsconfig.json` exclude `*.vitest.*` / `*.test.*` / `*.spec.*`, plus `src/test` and `src/tests`. Vite does not typecheck those files (no checker plugin); production still runs `bun run type-check` before `vite build`. | Remove those exclude entries (and the matching `TEMPORARY` comments) so app `tsc` typechecks tests again. |
 
 Look for `TEMPORARY — production tsc no longer typechecks test files` in `tsconfig.app.json` and `tsconfig.json`.
