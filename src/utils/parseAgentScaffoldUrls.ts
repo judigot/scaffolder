@@ -11,6 +11,12 @@ export interface IParsedTargetRepo {
   repo: string;
 }
 
+export interface IParsedPullRequestUrl {
+  owner: string;
+  repo: string;
+  prNumber: number;
+}
+
 const PROTECTED_BRANCH_NAMES = new Set(['main', 'master', 'head']);
 
 function trimSlashes(value: string): string {
@@ -98,6 +104,59 @@ export function parseTargetRepo(targetRepo: string): IParsedTargetRepo {
   );
 }
 
+export function isSameTargetRepo(
+  left: IParsedTargetRepo,
+  right: IParsedTargetRepo,
+): boolean {
+  return (
+    left.owner.toLowerCase() === right.owner.toLowerCase() &&
+    left.repo.toLowerCase() === right.repo.toLowerCase()
+  );
+}
+
+export function parsePullRequestUrl(prUrl: string): IParsedPullRequestUrl {
+  const trimmed = prUrl.trim();
+  if (trimmed === '') {
+    throw new Error('prUrl must be a GitHub pull request URL');
+  }
+
+  const match =
+    /github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/pull\/(\d+)(?:\/|$|\?)/.exec(
+      trimmed,
+    );
+  if (match === null) {
+    throw new Error(
+      'prUrl must be a GitHub pull request URL (for example https://github.com/owner/repo/pull/2)',
+    );
+  }
+
+  const [, owner = '', rawRepo = '', prNumberRaw = ''] = match;
+  if (owner === '' || rawRepo === '' || prNumberRaw === '') {
+    throw new Error(
+      'prUrl must be a GitHub pull request URL (for example https://github.com/owner/repo/pull/2)',
+    );
+  }
+
+  const prNumber = Number.parseInt(prNumberRaw, 10);
+  if (!Number.isInteger(prNumber) || prNumber < 1) {
+    throw new Error('prUrl must include a positive pull request number');
+  }
+
+  return {
+    owner,
+    repo: rawRepo.replace(/\/$/, ''),
+    prNumber,
+  };
+}
+
+export function slugifyGitRefSegment(value: string): string {
+  return value
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export function isProtectedBranchName(
   branch: string,
   defaultBranch: string,
@@ -116,13 +175,15 @@ export function toScaffolderBranchName(
   projectName: string,
   randomId: string,
 ): string {
-  return `scaffolder/${projectName}-${randomId}`;
+  const sluggedProject = slugifyGitRefSegment(projectName);
+  const sluggedId = slugifyGitRefSegment(randomId);
+  return `scaffolder/${sluggedProject}-${sluggedId}`;
 }
 
 export function ensureScaffolderBranchName(branch: string): string {
   const trimmed = branch.trim();
-  if (trimmed.startsWith('scaffolder/')) {
-    return trimmed;
-  }
-  return `scaffolder/${trimmed}`;
+  const withoutPrefix = trimmed.startsWith('scaffolder/')
+    ? trimmed.slice('scaffolder/'.length)
+    : trimmed;
+  return `scaffolder/${slugifyGitRefSegment(withoutPrefix)}`;
 }

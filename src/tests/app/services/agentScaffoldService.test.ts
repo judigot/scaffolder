@@ -87,6 +87,7 @@ describe('scaffoldToPullRequest', () => {
         repo: 'bookingwars',
         branch: 'scaffolder/hono-react-ab12',
         draft: true,
+        updateExisting: false,
       }),
     );
     expect(result.prUrl).toBe('https://github.com/judigot/bookingwars/pull/7');
@@ -204,6 +205,144 @@ describe('scaffoldToPullRequest', () => {
         },
       ),
     ).rejects.toMatchObject({ code: 'SCHEMA_FILTER_FAILED', status: 400 });
+  });
+
+  it('targets an existing branch for update instead of failing', async () => {
+    const publish = vi.fn(() =>
+      Promise.resolve({
+        prUrl: 'https://github.com/judigot/bookingwars/pull/2',
+        prNumber: 2,
+        branch: 'scaffolder/hono-react-ab12',
+        commitSha: 'second-commit',
+        filesCreated: 1,
+        baseBranch: 'main',
+        updated: true,
+      }),
+    );
+
+    const result = await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+        branch: 'scaffolder/hono-react-ab12',
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish,
+      },
+    );
+
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branch: 'scaffolder/hono-react-ab12',
+        updateExisting: true,
+      }),
+    );
+    expect(result.prNumber).toBe(2);
+    expect(result.updated).toBe(true);
+  });
+
+  it('forwards prNumber and prUrl to the same target repo', async () => {
+    const publish = vi.fn(() =>
+      Promise.resolve({
+        prUrl: 'https://github.com/judigot/bookingwars/pull/2',
+        prNumber: 2,
+        branch: 'scaffolder/hono-react-ab12',
+        commitSha: 'second-commit',
+        filesCreated: 1,
+        baseBranch: 'main',
+        updated: true,
+      }),
+    );
+
+    await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+        prUrl: 'https://github.com/judigot/bookingwars/pull/2',
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish,
+      },
+    );
+
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prNumber: 2,
+        updateExisting: true,
+      }),
+    );
+  });
+
+  it('rejects a prUrl that is not on target_repo', async () => {
+    const publish = vi.fn();
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          target_repo: 'judigot/bookingwars',
+          prUrl: 'https://github.com/other/repo/pull/2',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'README.md', content: '# app' },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+          publish,
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'PR_REPO_MISMATCH', status: 400 });
+
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('rejects empty schemaInfo even when targeting an existing PR', async () => {
+    const publish = vi.fn();
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: [],
+          project: 'hono-react',
+          target_repo: 'judigot/bookingwars',
+          prNumber: 2,
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+          publish,
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_SCHEMA', status: 400 });
+
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it('refuses an explicit main branch', async () => {

@@ -67,6 +67,44 @@ describe('agent scaffold API', () => {
     expect(successSchema.safeParse(payload).success).toBe(true);
   });
 
+  it('POST / requires auth when targeting an existing pull request', async () => {
+    const app = createAgentScaffoldRouter({
+      verifyAuthToken: () =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          body: { error: 'Unauthorized' },
+        }),
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        schemaInfo: [
+          {
+            tableName: 'users',
+            columnsInfo: [
+              {
+                column_name: 'id',
+                data_type: 'number',
+                is_nullable: 'NO',
+                primary_key: true,
+              },
+            ],
+          },
+        ],
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+        prNumber: 2,
+      }),
+    });
+
+    const payload: unknown = await response.json();
+    expect(response.status).toBe(401);
+    expect(errorSchema.safeParse(payload).success).toBe(true);
+  });
+
   it('POST / requires auth', async () => {
     const app = createAgentScaffoldRouter({
       verifyAuthToken: () =>
@@ -164,6 +202,97 @@ describe('agent scaffold API', () => {
     expect(successSchema.safeParse(payload).success).toBe(true);
   });
 
+  it('POST / rejects empty schemaInfo with INVALID_SCHEMA', async () => {
+    const app = createAgentScaffoldRouter({
+      agentApiKey: 'agent-secret',
+      scaffold: (request) =>
+        scaffoldToPullRequest(request, {
+          loadUserFiles: () => [],
+          buildProject: () => {
+            throw new Error('should not build');
+          },
+          publish: () => {
+            throw new Error('should not publish');
+          },
+        }),
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer agent-secret',
+      },
+      body: JSON.stringify({
+        schemaInfo: [],
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+        prNumber: 2,
+      }),
+    });
+
+    const payload: unknown = await response.json();
+    expect(response.status).toBe(400);
+    expect(payload).toMatchObject({
+      ok: false,
+      code: 'INVALID_SCHEMA',
+    });
+  });
+
+  it('POST / returns 200 when an existing pull request is updated', async () => {
+    const app = createAgentScaffoldRouter({
+      agentApiKey: 'agent-secret',
+      scaffold: () =>
+        Promise.resolve({
+          prUrl: 'https://github.com/judigot/bookingwars/pull/2',
+          prNumber: 2,
+          branch: 'scaffolder/hono-react-ab12',
+          commitSha: 'second-commit',
+          filesCreated: 1,
+          baseBranch: 'main',
+          projectName: 'hono-react',
+          targetRepo: 'judigot/bookingwars',
+          tables: ['users'],
+          updated: true,
+        }),
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer agent-secret',
+      },
+      body: JSON.stringify({
+        schemaInfo: [
+          {
+            tableName: 'users',
+            columnsInfo: [
+              {
+                column_name: 'id',
+                data_type: 'number',
+                is_nullable: 'NO',
+                primary_key: true,
+              },
+            ],
+          },
+        ],
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+        prNumber: 2,
+      }),
+    });
+
+    const payload: unknown = await response.json();
+    expect(response.status).toBe(200);
+    expect(successSchema.safeParse(payload).success).toBe(true);
+    expect(payload).toMatchObject({
+      ok: true,
+      prNumber: 2,
+      updated: true,
+    });
+  });
+
   it('POST / accepts a hono-react uuid schema at the validator and filter layer', async () => {
     const successWithTablesSchema = successSchema.extend({
       tables: z.array(z.string()),
@@ -196,7 +325,9 @@ describe('agent scaffold API', () => {
           loadUserFiles: () => createUserFiles(honoReactSchemaFilter),
           buildProject: () =>
             Promise.resolve({
-              structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+              structure: [
+                { type: 'file', name: 'README.md', content: '# app' },
+              ],
               filesUsingUserEnv: [],
               filesFailedToFormat: [],
             }),

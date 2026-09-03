@@ -23,7 +23,9 @@ import type { IAgentScaffoldRequest } from '@/schemas/agentScaffold.ts';
 import {
   ensureScaffolderBranchName,
   isProtectedBranchName,
+  isSameTargetRepo,
   parseProjectReference,
+  parsePullRequestUrl,
   parseTargetRepo,
   toScaffolderBranchName,
   type IParsedProjectReference,
@@ -159,6 +161,34 @@ function resolveSchemaInfo(schemaInfo: unknown): SchemaInfoArray {
   return result.data;
 }
 
+function resolveTargetedPullNumber(
+  request: IAgentScaffoldRequest,
+  targetRepo: IParsedTargetRepo,
+): number | undefined {
+  if (request.prUrl === undefined) {
+    return request.prNumber;
+  }
+
+  const parsed = parsePullRequestUrl(request.prUrl);
+  if (
+    !isSameTargetRepo({ owner: parsed.owner, repo: parsed.repo }, targetRepo)
+  ) {
+    throw new AgentScaffoldError(
+      `prUrl must target ${targetRepo.owner}/${targetRepo.repo}`,
+      { status: 400, code: 'PR_REPO_MISMATCH' },
+    );
+  }
+
+  if (request.prNumber !== undefined && request.prNumber !== parsed.prNumber) {
+    throw new AgentScaffoldError('prNumber must match prUrl', {
+      status: 400,
+      code: 'BRANCH_PR_MISMATCH',
+    });
+  }
+
+  return parsed.prNumber;
+}
+
 export async function scaffoldToPullRequest(
   request: IAgentScaffoldRequest,
   dependencies: IAgentScaffoldServiceDependencies = {},
@@ -212,20 +242,27 @@ export async function scaffoldToPullRequest(
   const randomId =
     dependencies.randomId ??
     (() => crypto.randomUUID().replace(/-/g, '').slice(0, 8));
+  const prNumber = resolveTargetedPullNumber(request, targetRepo);
+  const hasExplicitTarget =
+    request.branch !== undefined || prNumber !== undefined;
   const requestedBranch =
     request.branch === undefined
-      ? toScaffolderBranchName(project.name, randomId())
+      ? hasExplicitTarget
+        ? undefined
+        : toScaffolderBranchName(project.name, randomId())
       : ensureScaffolderBranchName(request.branch);
-  const branchWithoutPrefix = requestedBranch.replace(/^scaffolder\//, '');
 
-  if (
-    isProtectedBranchName(requestedBranch, 'main') ||
-    isProtectedBranchName(branchWithoutPrefix, 'main')
-  ) {
-    throw new AgentScaffoldError(
-      `Refusing to write to protected branch "${request.branch ?? requestedBranch}"`,
-      { status: 400, code: 'PROTECTED_BRANCH' },
-    );
+  if (requestedBranch !== undefined) {
+    const branchWithoutPrefix = requestedBranch.replace(/^scaffolder\//, '');
+    if (
+      isProtectedBranchName(requestedBranch, 'main') ||
+      isProtectedBranchName(branchWithoutPrefix, 'main')
+    ) {
+      throw new AgentScaffoldError(
+        `Refusing to write to protected branch "${request.branch ?? requestedBranch}"`,
+        { status: 400, code: 'PROTECTED_BRANCH' },
+      );
+    }
   }
 
   const buildProject = dependencies.buildProject ?? buildProjectFiles;
@@ -281,6 +318,8 @@ export async function scaffoldToPullRequest(
       prTitle,
       prBody,
       draft,
+      prNumber,
+      updateExisting: hasExplicitTarget,
     });
 
     return {
