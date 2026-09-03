@@ -10,7 +10,7 @@
   "functions": {
     "api/index.js": {
       "includeFiles": "files/**",
-      "maxDuration": 300
+      "maxDuration": 60
     }
   }
 }
