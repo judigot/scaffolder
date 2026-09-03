@@ -57,7 +57,8 @@ describe('agent scaffold API', () => {
             ],
           },
         ],
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'judigot/bookingwars',
       }),
     });
@@ -94,7 +95,8 @@ describe('agent scaffold API', () => {
             ],
           },
         ],
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'judigot/bookingwars',
         prNumber: 2,
       }),
@@ -120,7 +122,8 @@ describe('agent scaffold API', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         schemaInfo: [],
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'judigot/bookingwars',
       }),
     });
@@ -144,7 +147,8 @@ describe('agent scaffold API', () => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
       }),
     });
 
@@ -192,7 +196,8 @@ describe('agent scaffold API', () => {
             ],
           },
         ],
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'judigot/bookingwars',
       }),
     });
@@ -225,7 +230,8 @@ describe('agent scaffold API', () => {
       },
       body: JSON.stringify({
         schemaInfo: [],
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'judigot/bookingwars',
         prNumber: 2,
       }),
@@ -277,7 +283,8 @@ describe('agent scaffold API', () => {
             ],
           },
         ],
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'judigot/bookingwars',
         prNumber: 2,
       }),
@@ -352,7 +359,8 @@ describe('agent scaffold API', () => {
       },
       body: JSON.stringify({
         schemaInfo: honoReactAgentSchemaInfo,
-        project: 'hono-react',
+        project_url:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'judigot/bookingwars',
       }),
     });

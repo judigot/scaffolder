@@ -10,10 +10,22 @@ function isGitHubPullRequestUrl(value: string): boolean {
   }
 }
 
+function hasProjectIdentifier(data: {
+  project_url?: string;
+  project?: string;
+}): boolean {
+  const hasUrl = data.project_url !== undefined && data.project_url !== '';
+  const hasLegacyName = data.project !== undefined && data.project !== '';
+  return hasUrl || hasLegacyName;
+}
+
 export const AgentScaffoldRequestSchema = z
   .strictObject({
     schemaInfo: z.union([z.array(z.unknown()), z.string().trim().min(1)]),
-    project: z.string().trim().min(1, { message: 'project is required' }),
+    // GitHub URL to Projects/<name> in the caller's scaffolder-files repo.
+    project_url: z.string().trim().min(1).optional(),
+    // Legacy catalog folder name. Prefer project_url.
+    project: z.string().trim().min(1).optional(),
     target_repo: z
       .string()
       .trim()
@@ -33,6 +45,10 @@ export const AgentScaffoldRequestSchema = z
       })
       .optional(),
   })
+  .refine(hasProjectIdentifier, {
+    path: ['project_url'],
+    message: 'project_url is required',
+  })
   .refine(
     (data) => {
       if (data.prUrl === undefined || data.prNumber === undefined) {
@@ -47,3 +63,15 @@ export const AgentScaffoldRequestSchema = z
   );
 
 export type IAgentScaffoldRequest = z.infer<typeof AgentScaffoldRequestSchema>;
+
+export function resolveProjectIdentifier(
+  request: IAgentScaffoldRequest,
+): string {
+  if (request.project_url !== undefined && request.project_url !== '') {
+    return request.project_url;
+  }
+  if (request.project !== undefined && request.project !== '') {
+    return request.project;
+  }
+  throw new Error('project_url is required');
+}
