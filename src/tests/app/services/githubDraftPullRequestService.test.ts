@@ -310,6 +310,49 @@ describe('publishDraftPullRequest', () => {
     });
   });
 
+  it('resolves the head branch from prNumber when branch is omitted', async () => {
+    const updateRef = vi.fn(() =>
+      Promise.resolve({ data: { object: { sha: 'second-commit' } } }),
+    );
+    const client = createGitClient({
+      existingBranches: {
+        'scaffolder/hono-react-ab12': {
+          sha: 'existing-head',
+          treeSha: 'existing-tree',
+        },
+      },
+      createTreeSha: 'updated-tree',
+      createCommitSha: 'second-commit',
+      updateRef,
+      pullByNumber: { 2: existingPull },
+      openPulls: [existingPull],
+    });
+
+    const result = await publishDraftPullRequest(
+      {
+        ...createParams,
+        branch: undefined,
+        updateExisting: true,
+        prNumber: 2,
+      },
+      {
+        getOctokit: () => Promise.resolve(client),
+      },
+    );
+
+    expect(updateRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: 'heads/scaffolder/hono-react-ab12',
+        force: false,
+      }),
+    );
+    expect(result).toMatchObject({
+      prNumber: 2,
+      branch: 'scaffolder/hono-react-ab12',
+      updated: true,
+    });
+  });
+
   it('rejects a closed or merged pull request', async () => {
     const closedPull: IGitHubPullRequest = {
       ...existingPull,
@@ -405,6 +448,30 @@ describe('publishDraftPullRequest', () => {
       ),
     ).rejects.toMatchObject({
       code: 'PR_REPO_MISMATCH',
+      status: 400,
+    });
+  });
+
+  it('rejects branch and prNumber that point at different heads', async () => {
+    await expect(
+      publishDraftPullRequest(
+        {
+          ...createParams,
+          branch: 'scaffolder/other-head',
+          updateExisting: true,
+          prNumber: 2,
+        },
+        {
+          getOctokit: () =>
+            Promise.resolve(
+              createGitClient({
+                pullByNumber: { 2: existingPull },
+              }),
+            ),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'BRANCH_PR_MISMATCH',
       status: 400,
     });
   });
