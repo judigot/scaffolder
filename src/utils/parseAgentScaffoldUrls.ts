@@ -104,6 +104,16 @@ export function parseTargetRepo(targetRepo: string): IParsedTargetRepo {
   );
 }
 
+export function isSameTargetRepo(
+  left: IParsedTargetRepo,
+  right: IParsedTargetRepo,
+): boolean {
+  return (
+    left.owner.toLowerCase() === right.owner.toLowerCase() &&
+    left.repo.toLowerCase() === right.repo.toLowerCase()
+  );
+}
+
 export function parsePullRequestUrl(prUrl: string): IParsedPullRequestUrl {
   const trimmed = prUrl.trim();
   if (trimmed === '') {

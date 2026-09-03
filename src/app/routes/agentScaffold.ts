@@ -66,7 +66,8 @@ export function createAgentScaffoldRouter(
 
     try {
       const result = await scaffold(parsed.data);
-      return c.json({ ok: true, ...result }, 201);
+      const status = result.updated === true ? 200 : 201;
+      return c.json({ ok: true, ...result }, status);
     } catch (error: unknown) {
       if (error instanceof AgentScaffoldError) {
         return c.json(

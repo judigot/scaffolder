@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ensureScaffolderBranchName,
   isProtectedBranchName,
+  isSameTargetRepo,
   parseProjectReference,
   parsePullRequestUrl,
   parseTargetRepo,
@@ -83,6 +84,23 @@ describe('isProtectedBranchName', () => {
     expect(isProtectedBranchName('scaffolder/hono-react-ab12', 'main')).toBe(
       false,
     );
+  });
+});
+
+describe('isSameTargetRepo', () => {
+  it('compares owner and repo case-insensitively', () => {
+    expect(
+      isSameTargetRepo(
+        { owner: 'Judigot', repo: 'BookingWars' },
+        { owner: 'judigot', repo: 'bookingwars' },
+      ),
+    ).toBe(true);
+    expect(
+      isSameTargetRepo(
+        { owner: 'judigot', repo: 'bookingwars' },
+        { owner: 'other', repo: 'repo' },
+      ),
+    ).toBe(false);
   });
 });
 
