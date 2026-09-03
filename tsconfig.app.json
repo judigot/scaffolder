@@ -32,12 +32,16 @@
   // TEMPORARY — restore after agent-scaffold is solid.
   // Keep template/worktree trees out of app `tsc` so Vercel does not type-check
   // files/Core/auth-services and similar non-app sources.
+  // TEMPORARY — production tsc no longer typechecks test files. Restore when CI
+  // is back and you want tests in the app compile. Do not split API vs frontend.
   "exclude": [
     "files",
     "files.test",
     "apps",
     ".apps",
     ".worktrees",
-    "src/tests/golden-projects/output"
+    "src/tests/golden-projects/output",
+    "**/*.{vitest,test,spec}.*",
+    "src/test"
   ]
 }
