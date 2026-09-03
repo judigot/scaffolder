@@ -281,10 +281,7 @@ export function getReplacementsForTable(
       formData !== undefined && typeof formData.dbHost === 'string'
         ? formData.dbHost
         : '',
-    dbPort:
-      formData !== undefined && formData.dbPort !== undefined
-        ? String(formData.dbPort)
-        : '',
+    dbPort: formData === undefined ? '' : String(formData.dbPort),
     dbName:
       formData !== undefined && typeof formData.dbName === 'string'
         ? formData.dbName

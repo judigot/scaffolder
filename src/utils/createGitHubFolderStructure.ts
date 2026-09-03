@@ -269,7 +269,17 @@ This project contains all the scaffolded files generated from your database sche
     }
 
     const blobMap = await createGitBlobsWithRetry(
-      octokit.git,
+      {
+        createBlob: async (params) => {
+          const response = await octokit.git.createBlob({
+            owner: params.owner,
+            repo: params.repo,
+            content: params.content,
+            encoding: 'base64',
+          });
+          return { data: { sha: response.data.sha } };
+        },
+      },
       owner,
       repo,
       files,
