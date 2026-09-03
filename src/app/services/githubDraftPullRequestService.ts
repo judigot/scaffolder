@@ -58,9 +58,9 @@ export interface IGitHubPullBase {
 export interface IGitHubPullRequest {
   html_url: string;
   number: number;
-  state: 'open' | 'closed';
-  draft: boolean;
-  merged: boolean;
+  state: string;
+  draft?: boolean;
+  merged?: boolean;
   head: IGitHubPullHead;
   base: IGitHubPullBase;
 }
@@ -373,7 +373,7 @@ function assertPullRequestWritable(
     );
   }
 
-  if (pull.state !== 'open' || pull.merged) {
+  if (pull.state !== 'open' || pull.merged === true) {
     throw new GitHubDraftPullRequestError(
       `Pull request #${String(pull.number)} is not open`,
       { status: 400, code: 'PR_NOT_OPEN' },
