@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   ensureScaffolderBranchName,
-  isBundledScaffolderFilesRepo,
   isProtectedBranchName,
   isSameTargetRepo,
   parseProjectReference,
@@ -105,28 +104,19 @@ describe('parseProjectReference', () => {
   it('rejects an empty project', () => {
     expect(() => {
       parseProjectReference('   ');
-    }).toThrow('project is required');
+    }).toThrow('project_url is required');
   });
 });
 
 describe('shouldFetchRemoteScaffolderFiles', () => {
-  it('uses bundled files for the official scaffolder-files repo and legacy names', () => {
-    expect(isBundledScaffolderFilesRepo('Judigot', 'Scaffolder-Files')).toBe(
-      true,
-    );
+  it('fetches any files-repo URL, including the example judigot repo', () => {
     expect(
       shouldFetchRemoteScaffolderFiles(
         parseProjectReference(
           'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM Schema - Knex',
         ),
       ),
-    ).toBe(false);
-    expect(
-      shouldFetchRemoteScaffolderFiles(parseProjectReference('hono-react')),
-    ).toBe(false);
-  });
-
-  it('fetches a developer-owned scaffolder-files repository', () => {
+    ).toBe(true);
     expect(
       shouldFetchRemoteScaffolderFiles(
         parseProjectReference(
@@ -134,6 +124,12 @@ describe('shouldFetchRemoteScaffolderFiles', () => {
         ),
       ),
     ).toBe(true);
+  });
+
+  it('does not fetch remote files for a legacy folder name', () => {
+    expect(
+      shouldFetchRemoteScaffolderFiles(parseProjectReference('hono-react')),
+    ).toBe(false);
   });
 });
 

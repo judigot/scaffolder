@@ -19,7 +19,10 @@ import {
   type IBuildProjectFilesResult,
 } from '@/utils/project-builder/buildProjectFiles.ts';
 import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
-import type { IAgentScaffoldRequest } from '@/schemas/agentScaffold.ts';
+import {
+  resolveProjectIdentifier,
+  type IAgentScaffoldRequest,
+} from '@/schemas/agentScaffold.ts';
 import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFilesToIStructure.ts';
 import { fetchRepositoryFiles } from '@/utils/downloadPublicRepoFiles.ts';
 import {
@@ -94,8 +97,6 @@ export interface IAgentScaffoldServiceDependencies {
   randomId?: () => string;
 }
 
-const DEFAULT_FILES_REPO_URL = 'https://github.com/judigot/scaffolder-files';
-
 async function defaultLoadRemoteUserFiles(
   request: IRemoteScaffolderFilesRequest,
 ): Promise<IStructure> {
@@ -166,7 +167,7 @@ function createAgentFormData(
     outputOnSingleFile: false,
     dbType: 'postgresql',
     quote: '"',
-    publicRepoURL: filesRepoUrl ?? DEFAULT_FILES_REPO_URL,
+    publicRepoURL: filesRepoUrl ?? '',
     clientID: '',
     clientSecret: '',
     creationMode: CREATION_MODES.SCHEMA_BUILDER,
@@ -266,7 +267,9 @@ export async function scaffoldToPullRequest(
   let projectReference: IParsedProjectReference;
   let targetRepo: IParsedTargetRepo;
   try {
-    projectReference = parseProjectReference(request.project);
+    projectReference = parseProjectReference(
+      resolveProjectIdentifier(request),
+    );
     targetRepo = parseTargetRepo(request.target_repo);
   } catch (error: unknown) {
     const message =

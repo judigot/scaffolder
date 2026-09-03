@@ -67,7 +67,7 @@ describe('scaffoldToPullRequest', () => {
     const result = await scaffoldToPullRequest(
       {
         schemaInfo: validSchemaInfo,
-        project:
+        project_url:
           'https://github.com/judigot/scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'https://github.com/judigot/bookingwars',
       },
@@ -348,7 +348,7 @@ describe('scaffoldToPullRequest', () => {
     expect(publish).not.toHaveBeenCalled();
   });
 
-  it('resolves an official scaffolder-files project URL without a remote fetch', async () => {
+  it('fetches files from project_url even for the example judigot repo', async () => {
     const loadRemoteUserFiles = vi.fn(() =>
       Promise.resolve(createUserFiles([], 'ORM Schema - Knex')),
     );
@@ -369,7 +369,7 @@ describe('scaffoldToPullRequest', () => {
         target_repo: 'https://github.com/judigot/bookingwars',
         draft: true,
         prNumber: 2,
-        project:
+        project_url:
           'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM%20Schema%20-%20Knex',
         schemaInfo: validSchemaInfo,
       },
@@ -391,7 +391,11 @@ describe('scaffoldToPullRequest', () => {
       },
     );
 
-    expect(loadRemoteUserFiles).not.toHaveBeenCalled();
+    expect(loadRemoteUserFiles).toHaveBeenCalledWith({
+      owner: 'judigot',
+      repo: 'scaffolder-files',
+      ref: 'main',
+    });
     expect(publish).toHaveBeenCalledWith(
       expect.objectContaining({
         prNumber: 2,
@@ -419,7 +423,7 @@ describe('scaffoldToPullRequest', () => {
 
     await scaffoldToPullRequest(
       {
-        project:
+        project_url:
           'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
         target_repo: 'https://github.com/judigot/bookingwars',
         schemaInfo: validSchemaInfo,
@@ -492,7 +496,7 @@ describe('scaffoldToPullRequest', () => {
     await expect(
       scaffoldToPullRequest(
         {
-          project:
+          project_url:
             'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
           target_repo: 'judigot/bookingwars',
           schemaInfo: validSchemaInfo,

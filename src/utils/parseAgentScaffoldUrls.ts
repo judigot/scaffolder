@@ -18,15 +18,10 @@ export interface IParsedPullRequestUrl {
   prNumber: number;
 }
 
-export const BUNDLED_SCAFFOLDER_FILES_REPO = {
-  owner: 'judigot',
-  repo: 'scaffolder-files',
-} as const;
-
 const PROTECTED_BRANCH_NAMES = new Set(['main', 'master', 'head']);
 
 const PROJECT_URL_HINT =
-  'project must be a GitHub URL to Projects/<name> in a scaffolder-files repo (for example https://github.com/owner/scaffolder-files/tree/main/Projects/ORM Schema - Knex). A legacy folder name is still accepted.';
+  'project_url must be a GitHub URL to Projects/<name> in a scaffolder-files repo (for example https://github.com/owner/scaffolder-files/tree/main/Projects/ORM Schema - Knex). Legacy project folder names are still accepted.';
 
 function trimSlashes(value: string): string {
   return value.replace(/^\/+|\/+$/g, '');
@@ -64,26 +59,10 @@ export function toScaffolderFilesRepoUrl(owner: string, repo: string): string {
   return `https://github.com/${owner}/${repo}`;
 }
 
-export function isBundledScaffolderFilesRepo(
-  owner: string,
-  repo: string,
-): boolean {
-  return (
-    owner.toLowerCase() === BUNDLED_SCAFFOLDER_FILES_REPO.owner &&
-    repo.toLowerCase() === BUNDLED_SCAFFOLDER_FILES_REPO.repo
-  );
-}
-
 export function shouldFetchRemoteScaffolderFiles(
   projectReference: IParsedProjectReference,
 ): boolean {
-  if (projectReference.owner === null || projectReference.repo === null) {
-    return false;
-  }
-  return !isBundledScaffolderFilesRepo(
-    projectReference.owner,
-    projectReference.repo,
-  );
+  return projectReference.owner !== null && projectReference.repo !== null;
 }
 
 function createProjectReference(params: {
@@ -111,7 +90,7 @@ export function parseProjectReference(
 ): IParsedProjectReference {
   const trimmed = project.trim();
   if (trimmed === '') {
-    throw new Error('project is required');
+    throw new Error('project_url is required');
   }
 
   const normalizedUrl = stripUrlSuffix(trimmed);

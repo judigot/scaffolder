@@ -5,13 +5,15 @@ import {
   honoReactCompactSchema,
 } from '@/tests/helpers/honoReactAgentSchema.ts';
 
+const knexProjectUrl =
+  'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM%20Schema%20-%20Knex';
+
 describe('AgentScaffoldRequestSchema', () => {
-  it('accepts a scaffolder-files project URL with encoded spaces', () => {
+  it('accepts a scaffolder-files project_url with encoded spaces', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       target_repo: 'https://github.com/judigot/bookingwars',
       draft: true,
-      project:
-        'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM%20Schema%20-%20Knex',
+      project_url: knexProjectUrl,
       schemaInfo: '<@@SCHEMA@@>\n@users:id:n#pk,email:s\n<@@/SCHEMA@@>',
     });
 
@@ -33,7 +35,7 @@ describe('AgentScaffoldRequestSchema', () => {
           ],
         },
       ],
-      project:
+      project_url:
         'https://github.com/judigot/scaffolder-files/tree/main/Projects/hono-react',
       target_repo: 'https://github.com/judigot/bookingwars',
     });
@@ -44,7 +46,8 @@ describe('AgentScaffoldRequestSchema', () => {
   it('accepts compact schemaInfo as a string', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: '<@@SCHEMA@@>\n@users:id:n#pk,email:s\n<@@/SCHEMA@@>',
-      project: 'hono-react',
+      project_url:
+        'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
       target_repo: 'judigot/bookingwars',
     });
 
@@ -54,7 +57,8 @@ describe('AgentScaffoldRequestSchema', () => {
   it('accepts a hono-react uuid schemaInfo payload', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactAgentSchemaInfo,
-      project: 'hono-react',
+      project_url:
+        'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
       target_repo: 'judigot/bookingwars',
     });
 
@@ -64,6 +68,17 @@ describe('AgentScaffoldRequestSchema', () => {
   it('accepts compact hono-react schemaInfo with uuid and camelCase columns', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
+      project_url:
+        'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
+      target_repo: 'judigot/bookingwars',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a legacy project folder name', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
       project: 'hono-react',
       target_repo: 'judigot/bookingwars',
     });
@@ -71,10 +86,19 @@ describe('AgentScaffoldRequestSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('rejects a missing project_url and project', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
+      target_repo: 'judigot/bookingwars',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects a missing target_repo', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: [],
-      project: 'hono-react',
+      project_url: knexProjectUrl,
     });
 
     expect(result.success).toBe(false);
@@ -83,7 +107,7 @@ describe('AgentScaffoldRequestSchema', () => {
   it('rejects unknown keys', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: [],
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       extra: true,
     });
@@ -94,19 +118,19 @@ describe('AgentScaffoldRequestSchema', () => {
   it('accepts optional prNumber and prUrl targeting fields', () => {
     const byNumber = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       prNumber: 2,
     });
     const byUrl = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       prUrl: 'https://github.com/judigot/bookingwars/pull/2',
     });
     const byBranch = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       branch: 'scaffolder/hono-react-ab12',
     });
@@ -119,7 +143,7 @@ describe('AgentScaffoldRequestSchema', () => {
   it('accepts branch and prNumber together for later head matching', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       branch: 'scaffolder/hono-react-ab12',
       prNumber: 2,
@@ -131,13 +155,13 @@ describe('AgentScaffoldRequestSchema', () => {
   it('rejects a non-positive prNumber', () => {
     const zero = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       prNumber: 0,
     });
     const negative = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       prNumber: -1,
     });
@@ -149,7 +173,7 @@ describe('AgentScaffoldRequestSchema', () => {
   it('rejects a prUrl that is not a GitHub pull request URL', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       prUrl: 'https://github.com/judigot/bookingwars',
     });
@@ -160,7 +184,7 @@ describe('AgentScaffoldRequestSchema', () => {
   it('rejects prNumber that does not match prUrl', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
-      project: 'hono-react',
+      project_url: knexProjectUrl,
       target_repo: 'judigot/bookingwars',
       prNumber: 1,
       prUrl: 'https://github.com/judigot/bookingwars/pull/2',
