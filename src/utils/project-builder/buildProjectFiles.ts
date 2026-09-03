@@ -18,6 +18,7 @@ import {
 import { processYamlStructure } from '@/utils/project-builder/project-processors/processYamlStructure.ts';
 import { detectCircularImports } from '@/utils/project-builder/utils/detectCircularImports.ts';
 import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/detectCircularPlaceholderImports.ts';
+import { detectLeftoverTemplateMarkers } from '@/utils/project-builder/utils/detectLeftoverTemplateMarkers.ts';
 import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
@@ -366,6 +367,25 @@ export const buildProjectFiles = async (
     };
 
     scanForUserEnv(filteredFiles);
+
+    const leftoverTemplateMarkers = detectLeftoverTemplateMarkers(filteredFiles);
+    if (leftoverTemplateMarkers.length > 0) {
+      const firstLeftoverFile = leftoverTemplateMarkers[0]?.filePath;
+      const message = createScaffolderMessage({
+        code: SCAFFOLDER_MESSAGE_CODES.LeftoverPlaceholder,
+        title: 'Generated files still contain template markers',
+        severity: 'error',
+        details: leftoverTemplateMarkers.map(
+          (location) =>
+            `${location.filePath}: ${location.markers.join(', ')}`,
+        ),
+        suggestion:
+          'Wrap optional schema fields in <@@IF@@> conditions so a valid schema never leaves <@@> or <@@IF@@> tags. Leftover markers are reported before prettier so the missing replacement is visible.',
+        dismissible: false,
+        file: firstLeftoverFile,
+      });
+      messages.push(message);
+    }
 
     if (filesFailedToFormat.length > 0) {
       const firstFailedFile = filesFailedToFormat[0]?.filePath;
