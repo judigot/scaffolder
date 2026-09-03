@@ -13,6 +13,8 @@ function isGitHubPullRequestUrl(value: string): boolean {
 export const AgentScaffoldRequestSchema = z
   .strictObject({
     schemaInfo: z.union([z.array(z.unknown()), z.string().trim().min(1)]),
+    // GitHub URL to Projects/<name> in the caller's scaffolder-files repo.
+    // Legacy catalog folder names (for example "ORM Schema - Knex") still work.
     project: z.string().trim().min(1, { message: 'project is required' }),
     target_repo: z
       .string()

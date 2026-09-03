@@ -6,6 +6,18 @@ import {
 } from '@/tests/helpers/honoReactAgentSchema.ts';
 
 describe('AgentScaffoldRequestSchema', () => {
+  it('accepts a scaffolder-files project URL with encoded spaces', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      target_repo: 'https://github.com/judigot/bookingwars',
+      draft: true,
+      project:
+        'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM%20Schema%20-%20Knex',
+      schemaInfo: '<@@SCHEMA@@>\n@users:id:n#pk,email:s\n<@@/SCHEMA@@>',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it('accepts the agent project-creation payload', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: [

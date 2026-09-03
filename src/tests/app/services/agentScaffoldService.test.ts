@@ -21,7 +21,10 @@ const validSchemaInfo = [
   },
 ];
 
-function createUserFiles(schemaFilter: string[] = []): IStructure {
+function createUserFiles(
+  schemaFilter: string[] = [],
+  projectName = 'hono-react',
+): IStructure {
   const filterYaml =
     schemaFilter.length === 0
       ? ''
@@ -34,7 +37,7 @@ function createUserFiles(schemaFilter: string[] = []): IStructure {
       children: [
         {
           type: 'folder',
-          name: 'hono-react',
+          name: projectName,
           children: [
             {
               type: 'file',
@@ -341,6 +344,169 @@ describe('scaffoldToPullRequest', () => {
         },
       ),
     ).rejects.toMatchObject({ code: 'INVALID_SCHEMA', status: 400 });
+
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('resolves an official scaffolder-files project URL without a remote fetch', async () => {
+    const loadRemoteUserFiles = vi.fn(() =>
+      Promise.resolve(createUserFiles([], 'ORM Schema - Knex')),
+    );
+    const publish = vi.fn(() =>
+      Promise.resolve({
+        prUrl: 'https://github.com/judigot/bookingwars/pull/2',
+        prNumber: 2,
+        branch: 'scaffolder/ORM-Schema-Knex-ab12',
+        commitSha: 'commit-sha',
+        filesCreated: 1,
+        baseBranch: 'main',
+        updated: true,
+      }),
+    );
+
+    const result = await scaffoldToPullRequest(
+      {
+        target_repo: 'https://github.com/judigot/bookingwars',
+        draft: true,
+        prNumber: 2,
+        project:
+          'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM%20Schema%20-%20Knex',
+        schemaInfo: validSchemaInfo,
+      },
+      {
+        loadRemoteUserFiles,
+        buildProject: (_projectYamlPath, _userFiles, _schemaInfo, formData) => {
+          expect(formData.projectName).toBe('ORM Schema - Knex');
+          expect(formData.publicRepoURL).toBe(
+            'https://github.com/judigot/scaffolder-files',
+          );
+          return Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          });
+        },
+        publish,
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(loadRemoteUserFiles).not.toHaveBeenCalled();
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prNumber: 2,
+        updateExisting: true,
+      }),
+    );
+    expect(result.projectName).toBe('ORM Schema - Knex');
+    expect(result.updated).toBe(true);
+  });
+
+  it('fetches a developer-owned scaffolder-files repository from the project URL', async () => {
+    const loadRemoteUserFiles = vi.fn(() =>
+      Promise.resolve(createUserFiles([], 'hono-react')),
+    );
+    const publish = vi.fn(() =>
+      Promise.resolve({
+        prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+        prNumber: 7,
+        branch: 'scaffolder/hono-react-ab12',
+        commitSha: 'commit-sha',
+        filesCreated: 1,
+        baseBranch: 'main',
+      }),
+    );
+
+    await scaffoldToPullRequest(
+      {
+        project:
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
+        target_repo: 'https://github.com/judigot/bookingwars',
+        schemaInfo: validSchemaInfo,
+      },
+      {
+        loadRemoteUserFiles,
+        buildProject: (_projectYamlPath, _userFiles, _schemaInfo, formData) => {
+          expect(formData.publicRepoURL).toBe(
+            'https://github.com/alice/my-scaffolder-files',
+          );
+          return Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          });
+        },
+        publish,
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(loadRemoteUserFiles).toHaveBeenCalledWith({
+      owner: 'alice',
+      repo: 'my-scaffolder-files',
+      ref: 'main',
+    });
+  });
+
+  it('does not fetch a remote files repo for a legacy project name', async () => {
+    const loadRemoteUserFiles = vi.fn(() =>
+      Promise.resolve(createUserFiles()),
+    );
+    const publish = vi.fn(() =>
+      Promise.resolve({
+        prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+        prNumber: 7,
+        branch: 'scaffolder/hono-react-ab12',
+        commitSha: 'commit-sha',
+        filesCreated: 1,
+        baseBranch: 'main',
+      }),
+    );
+
+    await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        loadRemoteUserFiles,
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish,
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(loadRemoteUserFiles).not.toHaveBeenCalled();
+  });
+
+  it('rejects a failed fetch of a developer-owned files repo', async () => {
+    const publish = vi.fn();
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          project:
+            'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
+          target_repo: 'judigot/bookingwars',
+          schemaInfo: validSchemaInfo,
+        },
+        {
+          loadRemoteUserFiles: () =>
+            Promise.reject(new Error('zip download failed')),
+          publish,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'FILES_REPO_FETCH_FAILED',
+      status: 400,
+    });
 
     expect(publish).not.toHaveBeenCalled();
   });

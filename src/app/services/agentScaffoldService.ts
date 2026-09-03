@@ -20,6 +20,8 @@ import {
 } from '@/utils/project-builder/buildProjectFiles.ts';
 import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
 import type { IAgentScaffoldRequest } from '@/schemas/agentScaffold.ts';
+import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFilesToIStructure.ts';
+import { fetchRepositoryFiles } from '@/utils/downloadPublicRepoFiles.ts';
 import {
   ensureScaffolderBranchName,
   isProtectedBranchName,
@@ -27,6 +29,7 @@ import {
   parseProjectReference,
   parsePullRequestUrl,
   parseTargetRepo,
+  shouldFetchRemoteScaffolderFiles,
   toScaffolderBranchName,
   type IParsedProjectReference,
   type IParsedTargetRepo,
@@ -68,8 +71,17 @@ export interface IAgentScaffoldResult extends IDraftPullRequestResult {
   tables: string[];
 }
 
+export interface IRemoteScaffolderFilesRequest {
+  owner: string;
+  repo: string;
+  ref: string;
+}
+
 export interface IAgentScaffoldServiceDependencies {
   loadUserFiles?: () => IStructure;
+  loadRemoteUserFiles?: (
+    request: IRemoteScaffolderFilesRequest,
+  ) => Promise<IStructure>;
   buildProject?: (
     projectYamlPath: string,
     userFiles: IStructure,
@@ -82,7 +94,65 @@ export interface IAgentScaffoldServiceDependencies {
   randomId?: () => string;
 }
 
-function createAgentFormData(projectName: string): IFormStore {
+const DEFAULT_FILES_REPO_URL = 'https://github.com/judigot/scaffolder-files';
+
+async function defaultLoadRemoteUserFiles(
+  request: IRemoteScaffolderFilesRequest,
+): Promise<IStructure> {
+  const extractedFiles = await fetchRepositoryFiles({
+    user: request.owner,
+    repository: request.repo,
+    branch: request.ref,
+    filesToFetch: ['*'],
+    keepFolderStructure: true,
+  });
+  return convertPublicRepoFilesToStructure(extractedFiles);
+}
+
+async function resolveUserFiles(
+  projectReference: IParsedProjectReference,
+  dependencies: IAgentScaffoldServiceDependencies,
+): Promise<IStructure> {
+  if (dependencies.loadUserFiles !== undefined) {
+    return dependencies.loadUserFiles();
+  }
+
+  if (
+    shouldFetchRemoteScaffolderFiles(projectReference) &&
+    projectReference.owner !== null &&
+    projectReference.repo !== null
+  ) {
+    const loadRemote =
+      dependencies.loadRemoteUserFiles ?? defaultLoadRemoteUserFiles;
+    try {
+      return await loadRemote({
+        owner: projectReference.owner,
+        repo: projectReference.repo,
+        ref: projectReference.ref ?? 'main',
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch scaffolder files repository';
+      throw new AgentScaffoldError(message, {
+        status: 400,
+        code: 'FILES_REPO_FETCH_FAILED',
+        details: {
+          filesRepoUrl: projectReference.filesRepoUrl,
+          ref: projectReference.ref,
+        },
+      });
+    }
+  }
+
+  return convertLocalFilesToIStructure('files');
+}
+
+function createAgentFormData(
+  projectName: string,
+  filesRepoUrl: string | null,
+): IFormStore {
   return {
     schemaInput: {},
     backendUrl: 'http://localhost:3000',
@@ -96,7 +166,7 @@ function createAgentFormData(projectName: string): IFormStore {
     outputOnSingleFile: false,
     dbType: 'postgresql',
     quote: '"',
-    publicRepoURL: 'https://github.com/judigot/scaffolder-files',
+    publicRepoURL: filesRepoUrl ?? DEFAULT_FILES_REPO_URL,
     clientID: '',
     clientSecret: '',
     creationMode: CREATION_MODES.SCHEMA_BUILDER,
@@ -208,18 +278,16 @@ export async function scaffoldToPullRequest(
   }
 
   const schemaInfo = resolveSchemaInfo(request.schemaInfo);
-  const loadUserFiles =
-    dependencies.loadUserFiles ??
-    (() => convertLocalFilesToIStructure('files'));
-  const userFiles = loadUserFiles();
+  const userFiles = await resolveUserFiles(projectReference, dependencies);
   const projects = getAllProjects(userFiles);
   const project = projects.find(
     (item) => item.name === projectReference.projectName,
   );
 
   if (project === undefined) {
+    const filesSource = projectReference.filesRepoUrl ?? 'scaffolder files';
     throw new AgentScaffoldError(
-      `Project "${projectReference.projectName}" was not found in scaffolder files`,
+      `Project "${projectReference.projectName}" was not found in ${filesSource}`,
       {
         status: 400,
         code: 'PROJECT_NOT_FOUND',
@@ -270,7 +338,7 @@ export async function scaffoldToPullRequest(
     projectReference.projectYamlPath,
     userFiles,
     schemaInfo,
-    createAgentFormData(project.name),
+    createAgentFormData(project.name, projectReference.filesRepoUrl),
   );
 
   if (buildResult.hasErrors === true) {

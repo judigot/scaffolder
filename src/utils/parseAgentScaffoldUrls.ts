@@ -2,6 +2,7 @@ export interface IParsedProjectReference {
   owner: string | null;
   repo: string | null;
   ref: string | null;
+  filesRepoUrl: string | null;
   projectName: string;
   projectYamlPath: string;
 }
@@ -17,14 +18,35 @@ export interface IParsedPullRequestUrl {
   prNumber: number;
 }
 
+export const BUNDLED_SCAFFOLDER_FILES_REPO = {
+  owner: 'judigot',
+  repo: 'scaffolder-files',
+} as const;
+
 const PROTECTED_BRANCH_NAMES = new Set(['main', 'master', 'head']);
+
+const PROJECT_URL_HINT =
+  'project must be a GitHub URL to Projects/<name> in a scaffolder-files repo (for example https://github.com/owner/scaffolder-files/tree/main/Projects/ORM Schema - Knex). A legacy folder name is still accepted.';
 
 function trimSlashes(value: string): string {
   return value.replace(/^\/+|\/+$/g, '');
 }
 
+function stripUrlSuffix(value: string): string {
+  const withoutHash = value.split('#')[0] ?? value;
+  return withoutHash.split('?')[0] ?? withoutHash;
+}
+
+function decodeUriPath(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function normalizeProjectFolder(folderPath: string): string {
-  let normalized = trimSlashes(folderPath);
+  let normalized = trimSlashes(decodeUriPath(folderPath));
   if (normalized.endsWith('/structure.yaml')) {
     normalized = normalized.slice(0, -'/structure.yaml'.length);
   }
@@ -33,11 +55,55 @@ function normalizeProjectFolder(folderPath: string): string {
   }
   const projectName = trimSlashes(normalized);
   if (projectName === '' || projectName.includes('/')) {
-    throw new Error(
-      'project must be a GitHub tree URL, Projects/<name>, or a project folder name',
-    );
+    throw new Error(PROJECT_URL_HINT);
   }
   return projectName;
+}
+
+export function toScaffolderFilesRepoUrl(owner: string, repo: string): string {
+  return `https://github.com/${owner}/${repo}`;
+}
+
+export function isBundledScaffolderFilesRepo(
+  owner: string,
+  repo: string,
+): boolean {
+  return (
+    owner.toLowerCase() === BUNDLED_SCAFFOLDER_FILES_REPO.owner &&
+    repo.toLowerCase() === BUNDLED_SCAFFOLDER_FILES_REPO.repo
+  );
+}
+
+export function shouldFetchRemoteScaffolderFiles(
+  projectReference: IParsedProjectReference,
+): boolean {
+  if (projectReference.owner === null || projectReference.repo === null) {
+    return false;
+  }
+  return !isBundledScaffolderFilesRepo(
+    projectReference.owner,
+    projectReference.repo,
+  );
+}
+
+function createProjectReference(params: {
+  owner: string | null;
+  repo: string | null;
+  ref: string | null;
+  projectName: string;
+}): IParsedProjectReference {
+  const filesRepoUrl =
+    params.owner !== null && params.repo !== null
+      ? toScaffolderFilesRepoUrl(params.owner, params.repo)
+      : null;
+  return {
+    owner: params.owner,
+    repo: params.repo,
+    ref: params.ref,
+    filesRepoUrl,
+    projectName: params.projectName,
+    projectYamlPath: `/Projects/${params.projectName}/structure.yaml`,
+  };
 }
 
 export function parseProjectReference(
@@ -48,32 +114,34 @@ export function parseProjectReference(
     throw new Error('project is required');
   }
 
-  const treeMatch = /github\.com\/([^/]+)\/([^/]+)\/tree\/([^/]+)\/(.+)/.exec(
-    trimmed,
-  );
+  const normalizedUrl = stripUrlSuffix(trimmed);
+  const treeMatch =
+    /github\.com\/([^/]+)\/([^/]+)\/(?:tree|blob)\/([^/]+)\/(.+)/.exec(
+      normalizedUrl,
+    );
   if (treeMatch !== null) {
     const owner = treeMatch[1];
-    const repo = treeMatch[2];
-    const ref = treeMatch[3];
-    const folderPath = treeMatch[4];
-    const projectName = normalizeProjectFolder(folderPath);
-    return {
+    const rawRepo = treeMatch[2];
+    const ref = decodeUriPath(treeMatch[3]);
+    const folderPath = decodeUriPath(treeMatch[4]);
+    return createProjectReference({
       owner,
-      repo: repo.replace(/\.git$/, ''),
+      repo: rawRepo.replace(/\.git$/, ''),
       ref,
-      projectName,
-      projectYamlPath: `/Projects/${projectName}/structure.yaml`,
-    };
+      projectName: normalizeProjectFolder(folderPath),
+    });
   }
 
-  const projectName = normalizeProjectFolder(trimmed);
-  return {
+  if (/github\.com\//i.test(normalizedUrl)) {
+    throw new Error(PROJECT_URL_HINT);
+  }
+
+  return createProjectReference({
     owner: null,
     repo: null,
     ref: null,
-    projectName,
-    projectYamlPath: `/Projects/${projectName}/structure.yaml`,
-  };
+    projectName: normalizeProjectFolder(trimmed),
+  });
 }
 
 export function parseTargetRepo(targetRepo: string): IParsedTargetRepo {

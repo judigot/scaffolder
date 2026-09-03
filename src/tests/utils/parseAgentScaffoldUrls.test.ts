@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   ensureScaffolderBranchName,
+  isBundledScaffolderFilesRepo,
   isProtectedBranchName,
   isSameTargetRepo,
   parseProjectReference,
   parsePullRequestUrl,
   parseTargetRepo,
+  shouldFetchRemoteScaffolderFiles,
   toScaffolderBranchName,
 } from '@/utils/parseAgentScaffoldUrls.ts';
 
@@ -19,15 +21,58 @@ describe('parseProjectReference', () => {
       owner: 'judigot',
       repo: 'scaffolder-files',
       ref: 'main',
+      filesRepoUrl: 'https://github.com/judigot/scaffolder-files',
       projectName: 'hono-react',
       projectYamlPath: '/Projects/hono-react/structure.yaml',
     });
+  });
+
+  it('parses a tree URL with encoded spaces in the project folder', () => {
+    const result = parseProjectReference(
+      'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM%20Schema%20-%20Knex',
+    );
+
+    expect(result.projectName).toBe('ORM Schema - Knex');
+    expect(result.projectYamlPath).toBe(
+      '/Projects/ORM Schema - Knex/structure.yaml',
+    );
+    expect(result.filesRepoUrl).toBe(
+      'https://github.com/judigot/scaffolder-files',
+    );
+  });
+
+  it('parses a tree URL with literal spaces in the project folder', () => {
+    const result = parseProjectReference(
+      'https://github.com/alice/my-scaffolder-files/tree/main/Projects/ORM Schema - Knex',
+    );
+
+    expect(result).toEqual({
+      owner: 'alice',
+      repo: 'my-scaffolder-files',
+      ref: 'main',
+      filesRepoUrl: 'https://github.com/alice/my-scaffolder-files',
+      projectName: 'ORM Schema - Knex',
+      projectYamlPath: '/Projects/ORM Schema - Knex/structure.yaml',
+    });
+  });
+
+  it('parses a blob URL that points at structure.yaml', () => {
+    const result = parseProjectReference(
+      'https://github.com/alice/my-scaffolder-files/blob/develop/Projects/hono-react/structure.yaml',
+    );
+
+    expect(result.ref).toBe('develop');
+    expect(result.projectName).toBe('hono-react');
+    expect(result.filesRepoUrl).toBe(
+      'https://github.com/alice/my-scaffolder-files',
+    );
   });
 
   it('accepts a local Projects path', () => {
     const result = parseProjectReference('Projects/hono-react');
 
     expect(result.projectName).toBe('hono-react');
+    expect(result.filesRepoUrl).toBeNull();
     expect(result.projectYamlPath).toBe('/Projects/hono-react/structure.yaml');
   });
 
@@ -35,13 +80,60 @@ describe('parseProjectReference', () => {
     const result = parseProjectReference('hono-react');
 
     expect(result.projectName).toBe('hono-react');
+    expect(result.filesRepoUrl).toBeNull();
     expect(result.projectYamlPath).toBe('/Projects/hono-react/structure.yaml');
+  });
+
+  it('accepts a legacy catalog name with spaces', () => {
+    const result = parseProjectReference('ORM Schema - Knex');
+
+    expect(result.projectName).toBe('ORM Schema - Knex');
+    expect(result.filesRepoUrl).toBeNull();
+  });
+
+  it('rejects a files-repo URL that does not include a project path', () => {
+    expect(() => {
+      parseProjectReference('https://github.com/alice/my-scaffolder-files');
+    }).toThrow('Projects/<name>');
+    expect(() => {
+      parseProjectReference(
+        'https://github.com/alice/my-scaffolder-files/tree/main',
+      );
+    }).toThrow('Projects/<name>');
   });
 
   it('rejects an empty project', () => {
     expect(() => {
       parseProjectReference('   ');
     }).toThrow('project is required');
+  });
+});
+
+describe('shouldFetchRemoteScaffolderFiles', () => {
+  it('uses bundled files for the official scaffolder-files repo and legacy names', () => {
+    expect(isBundledScaffolderFilesRepo('Judigot', 'Scaffolder-Files')).toBe(
+      true,
+    );
+    expect(
+      shouldFetchRemoteScaffolderFiles(
+        parseProjectReference(
+          'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM Schema - Knex',
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      shouldFetchRemoteScaffolderFiles(parseProjectReference('hono-react')),
+    ).toBe(false);
+  });
+
+  it('fetches a developer-owned scaffolder-files repository', () => {
+    expect(
+      shouldFetchRemoteScaffolderFiles(
+        parseProjectReference(
+          'https://github.com/alice/my-scaffolder-files/tree/main/Projects/hono-react',
+        ),
+      ),
+    ).toBe(true);
   });
 });
 
