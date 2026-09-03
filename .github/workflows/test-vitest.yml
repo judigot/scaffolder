@@ -1,10 +1,12 @@
 name: Test (Vitest)
 
 # TEMPORARY — restore after same-PR update feature lands.
-# Single unit-test gate on feature-branch pushes. Test (Bun) is skipped on
-# those pushes as a redundant matrix; restore unrestricted push later.
+# Do not run Vitest on feature-branch / pull-request pushes.
+# Still gates production via push to main and workflow_dispatch.
 on:
-  push: {}
+  push:
+    branches:
+      - main
   workflow_dispatch: {}
 
 concurrency:
