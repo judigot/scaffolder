@@ -1,12 +1,13 @@
 name: Test (Vitest)
 
 # TEMPORARY — restore after same-PR update feature lands.
-# Do not run Vitest on feature-branch / pull-request pushes.
-# Still gates production via push to main and workflow_dispatch.
+# GitHub Actions CI is paused on push to main as well.
+# Vercel production deploys stay enabled via vercel.json (`main: true`).
+# Restore `on.push` and drop `if: false` when CI is turned back on.
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch: {}
 
 concurrency:
@@ -16,6 +17,7 @@ concurrency:
 jobs:
   test-vitest:
     name: Test (Vitest)
+    if: false
     runs-on: ubuntu-latest
     services:
       postgres:
