@@ -449,3 +449,34 @@ Pattern-Driven: Design once, generate forever (fastest, perfect)
 - 📧 Contact for enterprise support
 
 **License:** MIT - Free for personal and commercial use
+
+---
+
+## Temporary deploy/CI speed-ups
+
+These switches are **temporary** so Scaffolder can iterate on agent-scaffold. Restore them after that flow is solid. `files/` stays in git either way.
+
+### Already on `main` (PRs #66, #67, #68)
+
+| Speed-up | What is off | How to restore |
+| --- | --- | --- |
+| PR GitHub Actions | Feature-branch PRs no longer run Golden, Playwright, Bun, Lint, or Vitest. Those workflows have no `pull_request` trigger (only `workflow_dispatch`). | In `.github/workflows/lint.yml`, `test-bun.yml`, `test-vitest.yml`, `test-playwright.yml`, and `test-golden-frameworks.yml`, restore `on.pull_request`. |
+| ESLint on PR CI | ESLint is not part of PR CI. The Lint workflow is fully gated (`if: false`), so `bun run lint` (including ESLint) does not run on PRs. | Turn the Lint workflow back on for PRs and keep the `Lint` step as `bun run lint`. |
+| Vercel preview deploys | Preview deploys are skipped for every branch except `main`. | In `vercel.json`, remove `git.deploymentEnabled` or set `"*": true`. |
+| GitHub Actions on `push` to `main` | `on.push` for `main` is commented out, and the jobs use `if: false`. | Uncomment `on.push` (`branches: [main]`) and delete `if: false` on those jobs. |
+| Vercel **production** deploys | Still **on**. `vercel.json` keeps `"main": true`. | Do not treat this as something to restore. Production deploys were left enabled. |
+
+Look for `TEMPORARY — restore after same-PR update feature lands.` in the workflow files. That comment marks each paused job.
+
+### This change (exclude template trees from the app build)
+
+Vercel was type-checking template sources such as `files/Core/auth-services` during the app build. Those trees are not the Scaffolder app.
+
+| Speed-up | What changed | How to restore |
+| --- | --- | --- |
+| App `tsc` | `tsconfig.app.json`, `tsconfig.json`, and `tsconfig.node.json` exclude `files/`, `files.test/`, `apps/`, `.apps/`, and `.worktrees/`. | Remove the extra exclude entries (and the `TEMPORARY` comments) if you want app `tsc` to type-check those trees again. |
+| Vite | `vite.config.ts` ignores those trees in `server.watch` and `server.fs.deny`. | Delete `ignoredTemplateTrees` and the `watch` / extra `fs.deny` entries. |
+| Vercel upload | `.vercelignore` skips `.apps/`, `.worktrees/`, and `files.test/` so they are not uploaded. | Delete `.vercelignore` (or those lines). |
+| `files/` on Vercel | **Not** ignored. Production `getUserFiles` and agent-scaffold still call `convertLocalFilesToIStructure('files')` at request time, so the function needs that tree. `vercel.json` sets `functions["api/index.js"].includeFiles` to `files/**` so the serverless bundle keeps it. | Remove `functions.includeFiles` only if generate no longer reads local `files/` on Vercel (for example if it only fetches `scaffolder-files` from GitHub). |
+
+Look for `TEMPORARY — restore after agent-scaffold is solid.` in `tsconfig*.json`, `vite.config.ts`, and `.vercelignore`.
