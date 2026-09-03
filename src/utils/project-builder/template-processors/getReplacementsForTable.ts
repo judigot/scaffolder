@@ -269,6 +269,27 @@ export function getReplacementsForTable(
     // Default index and timestamp as properties (0-based index, ISO timestamp)
     index: tableIndex !== undefined ? String(tableIndex) : '0',
     timestamp: new Date().toISOString(),
+    dbUsername:
+      formData !== undefined && typeof formData.dbUsername === 'string'
+        ? formData.dbUsername
+        : '',
+    dbPassword:
+      formData !== undefined && typeof formData.dbPassword === 'string'
+        ? formData.dbPassword
+        : '',
+    dbHost:
+      formData !== undefined && typeof formData.dbHost === 'string'
+        ? formData.dbHost
+        : '',
+    dbPort:
+      formData !== undefined && formData.dbPort !== undefined
+        ? String(formData.dbPort)
+        : '',
+    dbName:
+      formData !== undefined && typeof formData.dbName === 'string'
+        ? formData.dbName
+        : '',
+    softDeleteFunctions: '',
   };
 
   // Add indexed access for all array properties
