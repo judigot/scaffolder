@@ -83,3 +83,43 @@ describe('getReplacementsForAuth uuid kitchen-sink schema', () => {
     expect(replacements.sessionExpiresColumnCamelCase).toBe('expiresAt');
   });
 });
+
+describe('getReplacementsForAuth optional password column', () => {
+  it('sets hasPasswordColumn to false and omits password keys when missing', () => {
+    const schemaWithoutPassword: ISchemaInfo[] = [
+      {
+        tableName: 'user',
+        columnsInfo: [
+          {
+            column_name: 'id',
+            data_type: 'uuid',
+            is_nullable: 'NO',
+            primary_key: true,
+          },
+          {
+            column_name: 'email',
+            data_type: 'string',
+            is_nullable: 'NO',
+            unique: true,
+          },
+        ],
+      },
+    ];
+
+    const replacements = getReplacementsForAuth(schemaWithoutPassword);
+
+    expect(replacements.hasPasswordColumn).toBe('false');
+    expect(replacements.hasEmailColumn).toBe('true');
+    expect(replacements.userPasswordColumnCamelCase).toBeUndefined();
+    expect(replacements.userEmailColumnCamelCase).toBe('email');
+  });
+
+  it('defaults optional column flags to false when there is no user table', () => {
+    const replacements = getReplacementsForAuth([]);
+
+    expect(replacements.hasPasswordColumn).toBe('false');
+    expect(replacements.hasEmailColumn).toBe('false');
+    expect(replacements.hasUsernameColumn).toBe('false');
+    expect(replacements.hasUserTable).toBe('false');
+  });
+});

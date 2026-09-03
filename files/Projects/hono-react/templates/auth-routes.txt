@@ -26,10 +26,10 @@ import {
   createSession,
   validateSession,
   invalidateSession,
-  hashPassword,
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  hashPassword,
   verifyPassword,
   validatePassword,
-  getSessionCookieName,
+</@@IF@@>  getSessionCookieName,
   generateIdFromEntropySize,
 } from '../auth';
 
@@ -67,14 +67,18 @@ function checkAuthRateLimit(c: any, routeKey: string) {
 
 // Validation schemas
 const loginSchema = z.object({
-  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
+</@@IF@@>
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  password: z.string().min(1, 'Password is required'),
+</@@IF@@>});
 
 const registerSchema = z.object({
-  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
+</@@IF@@>
 <@@IF@@ condition="hasUsernameColumn EQUALS 'true'">  <@@>userUsernameColumnCamelCase</@@>: z.string().min(3, 'Username must be at least 3 characters'),
-</@@IF@@>  password: z.string().min(8, 'Password must be at least 8 characters'),
+</@@IF@@>
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  password: z.string().min(8, 'Password must be at least 8 characters'),
+</@@IF@@>
 <@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">  <@@>userFirstNameColumnCamelCase</@@>: z.string().optional(),
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">  <@@>userLastNameColumnCamelCase</@@>: z.string().optional(),
 </@@IF@@>});
@@ -100,18 +104,19 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
 
   const data = c.req.valid('json');
 
-  // Validate password strength
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  // Validate password strength
   const passwordValidation = validatePassword(data.password);
   if (!passwordValidation.valid) {
     return c.json({ error: passwordValidation.errors.join(', ') }, 400);
   }
+</@@IF@@>
 
   // Check if email already exists
   const existingUser = await db
     .select()
     .from(<@@>userTableCamelCase</@@>)
-    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, data.<@@>userEmailColumnCamelCase</@@>))
-    .limit(1);
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, data.<@@>userEmailColumnCamelCase</@@>))
+</@@IF@@>    .limit(1);
 
   if (existingUser.length > 0) {
     return c.json({ error: 'Email already registered' }, 400);
@@ -132,14 +137,14 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
 <@@IF@@ condition="userPrimaryKeyDataType EQUALS 'uuid'">  const userId = crypto.randomUUID();
 </@@IF@@><@@IF@@ condition="userPrimaryKeyDataType NOT EQUAL 'uuid'">  const userId = generateIdFromEntropySize(10);
 </@@IF@@>
-  const passwordHash = await hashPassword(data.password);
-
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  const passwordHash = await hashPassword(data.password);
+</@@IF@@>
   await db.insert(<@@>userTableCamelCase</@@>).values({
     <@@>userPrimaryKeyCamelCase</@@>: userId,
-    <@@>userEmailColumnCamelCase</@@>: data.<@@>userEmailColumnCamelCase</@@>,
-<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
-</@@IF@@>    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
-<@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">    <@@>userEmailColumnCamelCase</@@>: data.<@@>userEmailColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasPasswordColumn EQUALS 'true'">    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
+</@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">    <@@>userLastNameColumnCamelCase</@@>: data.<@@>userLastNameColumnCamelCase</@@> || null,
 </@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">    <@@>userEmailVerifiedColumnCamelCase</@@>: false,
 </@@IF@@>  });
@@ -154,8 +159,8 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
   return c.json({
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: createdUser.<@@>userPrimaryKeyCamelCase</@@>,
-      <@@>userEmailColumnCamelCase</@@>: createdUser.<@@>userEmailColumnCamelCase</@@>,
-<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">      <@@>userEmailColumnCamelCase</@@>: createdUser.<@@>userEmailColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: createdUser.<@@>userFirstNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: createdUser.<@@>userLastNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: createdUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
@@ -171,16 +176,21 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
     return limited;
   }
 
-  const { <@@>userEmailColumnCamelCase</@@>, password } = c.req.valid('json');
+<@@IF@@ condition="hasEmailColumn EQUALS 'true' AND hasPasswordColumn EQUALS 'true'">  const { <@@>userEmailColumnCamelCase</@@>, password } = c.req.valid('json');
+</@@IF@@>
+<@@IF@@ condition="hasEmailColumn EQUALS 'true' AND hasPasswordColumn NOT EQUAL 'true'">  const { <@@>userEmailColumnCamelCase</@@> } = c.req.valid('json');
+</@@IF@@>
+<@@IF@@ condition="hasEmailColumn NOT EQUAL 'true' AND hasPasswordColumn EQUALS 'true'">  const { password } = c.req.valid('json');
+</@@IF@@>
 
   // Find user by email
   const [existingUser] = await db
     .select()
     .from(<@@>userTableCamelCase</@@>)
-    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, <@@>userEmailColumnCamelCase</@@>))
-    .limit(1);
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, <@@>userEmailColumnCamelCase</@@>))
+</@@IF@@>    .limit(1);
 
-  if (!existingUser || !existingUser.<@@>userPasswordColumnCamelCase</@@>) {
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  if (!existingUser || !existingUser.<@@>userPasswordColumnCamelCase</@@>) {
     return c.json({ error: 'Invalid email or password' }, 401);
   }
 
@@ -189,6 +199,11 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
   if (!validPassword) {
     return c.json({ error: 'Invalid email or password' }, 401);
   }
+</@@IF@@>
+<@@IF@@ condition="hasPasswordColumn NOT EQUAL 'true'">  if (!existingUser) {
+    return c.json({ error: 'Invalid email or password' }, 401);
+  }
+</@@IF@@>
 
   // Create session
   const { session: newSession, sessionCookie } = await createSession(existingUser.<@@>userPrimaryKeyCamelCase</@@>);
@@ -197,8 +212,8 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
   return c.json({
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: existingUser.<@@>userPrimaryKeyCamelCase</@@>,
-      <@@>userEmailColumnCamelCase</@@>: existingUser.<@@>userEmailColumnCamelCase</@@>,
-<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">      <@@>userEmailColumnCamelCase</@@>: existingUser.<@@>userEmailColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: existingUser.<@@>userFirstNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: existingUser.<@@>userLastNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: existingUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
@@ -279,10 +294,10 @@ import {
   createSession,
   validateSession,
   invalidateSession,
-  hashPassword,
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  hashPassword,
   verifyPassword,
   validatePassword,
-  getSessionCookieName,
+</@@IF@@>  getSessionCookieName,
   generateIdFromEntropySize,
   getOAuthProvider,
   isProviderConfigured,
@@ -327,14 +342,18 @@ function checkAuthRateLimit(c: any, routeKey: string) {
 
 // Validation schemas
 const loginSchema = z.object({
-  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
+</@@IF@@>
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  password: z.string().min(1, 'Password is required'),
+</@@IF@@>});
 
 const registerSchema = z.object({
-  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">  <@@>userEmailColumnCamelCase</@@>: z.string().email('Invalid email address'),
+</@@IF@@>
 <@@IF@@ condition="hasUsernameColumn EQUALS 'true'">  <@@>userUsernameColumnCamelCase</@@>: z.string().min(3, 'Username must be at least 3 characters'),
-</@@IF@@>  password: z.string().min(8, 'Password must be at least 8 characters'),
+</@@IF@@>
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  password: z.string().min(8, 'Password must be at least 8 characters'),
+</@@IF@@>
 <@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">  <@@>userFirstNameColumnCamelCase</@@>: z.string().optional(),
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">  <@@>userLastNameColumnCamelCase</@@>: z.string().optional(),
 </@@IF@@>});
@@ -360,18 +379,19 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
 
   const data = c.req.valid('json');
 
-  // Validate password strength
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  // Validate password strength
   const passwordValidation = validatePassword(data.password);
   if (!passwordValidation.valid) {
     return c.json({ error: passwordValidation.errors.join(', ') }, 400);
   }
+</@@IF@@>
 
   // Check if email already exists
   const existingUser = await db
     .select()
     .from(<@@>userTableCamelCase</@@>)
-    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, data.<@@>userEmailColumnCamelCase</@@>))
-    .limit(1);
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, data.<@@>userEmailColumnCamelCase</@@>))
+</@@IF@@>    .limit(1);
 
   if (existingUser.length > 0) {
     return c.json({ error: 'Email already registered' }, 400);
@@ -392,14 +412,14 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
 <@@IF@@ condition="userPrimaryKeyDataType EQUALS 'uuid'">  const userId = crypto.randomUUID();
 </@@IF@@><@@IF@@ condition="userPrimaryKeyDataType NOT EQUAL 'uuid'">  const userId = generateIdFromEntropySize(10);
 </@@IF@@>
-  const passwordHash = await hashPassword(data.password);
-
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  const passwordHash = await hashPassword(data.password);
+</@@IF@@>
   await db.insert(<@@>userTableCamelCase</@@>).values({
     <@@>userPrimaryKeyCamelCase</@@>: userId,
-    <@@>userEmailColumnCamelCase</@@>: data.<@@>userEmailColumnCamelCase</@@>,
-<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
-</@@IF@@>    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
-<@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">    <@@>userEmailColumnCamelCase</@@>: data.<@@>userEmailColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">    <@@>userUsernameColumnCamelCase</@@>: data.<@@>userUsernameColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasPasswordColumn EQUALS 'true'">    <@@>userPasswordColumnCamelCase</@@>: passwordHash,
+</@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">    <@@>userFirstNameColumnCamelCase</@@>: data.<@@>userFirstNameColumnCamelCase</@@> || null,
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">    <@@>userLastNameColumnCamelCase</@@>: data.<@@>userLastNameColumnCamelCase</@@> || null,
 </@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">    <@@>userEmailVerifiedColumnCamelCase</@@>: false,
 </@@IF@@>  });
@@ -414,8 +434,8 @@ app.post('/register', zValidator('json', registerSchema), async (c) => {
   return c.json({
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: createdUser.<@@>userPrimaryKeyCamelCase</@@>,
-      <@@>userEmailColumnCamelCase</@@>: createdUser.<@@>userEmailColumnCamelCase</@@>,
-<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">      <@@>userEmailColumnCamelCase</@@>: createdUser.<@@>userEmailColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: createdUser.<@@>userUsernameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: createdUser.<@@>userFirstNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: createdUser.<@@>userLastNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: createdUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
@@ -431,16 +451,21 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
     return limited;
   }
 
-  const { <@@>userEmailColumnCamelCase</@@>, password } = c.req.valid('json');
+<@@IF@@ condition="hasEmailColumn EQUALS 'true' AND hasPasswordColumn EQUALS 'true'">  const { <@@>userEmailColumnCamelCase</@@>, password } = c.req.valid('json');
+</@@IF@@>
+<@@IF@@ condition="hasEmailColumn EQUALS 'true' AND hasPasswordColumn NOT EQUAL 'true'">  const { <@@>userEmailColumnCamelCase</@@> } = c.req.valid('json');
+</@@IF@@>
+<@@IF@@ condition="hasEmailColumn NOT EQUAL 'true' AND hasPasswordColumn EQUALS 'true'">  const { password } = c.req.valid('json');
+</@@IF@@>
 
   // Find user by email
   const [existingUser] = await db
     .select()
     .from(<@@>userTableCamelCase</@@>)
-    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, <@@>userEmailColumnCamelCase</@@>))
-    .limit(1);
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">    .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, <@@>userEmailColumnCamelCase</@@>))
+</@@IF@@>    .limit(1);
 
-  if (!existingUser || !existingUser.<@@>userPasswordColumnCamelCase</@@>) {
+<@@IF@@ condition="hasPasswordColumn EQUALS 'true'">  if (!existingUser || !existingUser.<@@>userPasswordColumnCamelCase</@@>) {
     return c.json({ error: 'Invalid email or password' }, 401);
   }
 
@@ -449,6 +474,11 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
   if (!validPassword) {
     return c.json({ error: 'Invalid email or password' }, 401);
   }
+</@@IF@@>
+<@@IF@@ condition="hasPasswordColumn NOT EQUAL 'true'">  if (!existingUser) {
+    return c.json({ error: 'Invalid email or password' }, 401);
+  }
+</@@IF@@>
 
   // Create session
   const { session: newSession, sessionCookie } = await createSession(existingUser.<@@>userPrimaryKeyCamelCase</@@>);
@@ -457,8 +487,8 @@ app.post('/login', zValidator('json', loginSchema), async (c) => {
   return c.json({
     user: {
       <@@>userPrimaryKeyCamelCase</@@>: existingUser.<@@>userPrimaryKeyCamelCase</@@>,
-      <@@>userEmailColumnCamelCase</@@>: existingUser.<@@>userEmailColumnCamelCase</@@>,
-<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">      <@@>userEmailColumnCamelCase</@@>: existingUser.<@@>userEmailColumnCamelCase</@@>,
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">      <@@>userUsernameColumnCamelCase</@@>: existingUser.<@@>userUsernameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">      <@@>userFirstNameColumnCamelCase</@@>: existingUser.<@@>userFirstNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">      <@@>userLastNameColumnCamelCase</@@>: existingUser.<@@>userLastNameColumnCamelCase</@@>,
 </@@IF@@><@@IF@@ condition="hasEmailVerifiedColumn EQUALS 'true'">      <@@>userEmailVerifiedColumnCamelCase</@@>: existingUser.<@@>userEmailVerifiedColumnCamelCase</@@>,
@@ -619,11 +649,14 @@ app.get('/oauth/:provider/callback', async (c) => {
     if (existingOAuthAccount) {
       userId = existingOAuthAccount.<@@>oauthUserColumnCamelCase</@@>;
     } else {
-      const [existingUser] = await db
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">      const [existingUser] = await db
         .select()
         .from(<@@>userTableCamelCase</@@>)
         .where(eq(<@@>userTableCamelCase</@@>.<@@>userEmailColumnCamelCase</@@>, oauthUserInfo.email))
         .limit(1);
+</@@IF@@>
+<@@IF@@ condition="hasEmailColumn NOT EQUAL 'true'">      const existingUser = undefined;
+</@@IF@@>
 
       if (existingUser) {
         userId = existingUser.<@@>userPrimaryKeyCamelCase</@@>;
@@ -639,8 +672,8 @@ app.get('/oauth/:provider/callback', async (c) => {
 </@@IF@@>
         await db.insert(<@@>userTableCamelCase</@@>).values({
           <@@>userPrimaryKeyCamelCase</@@>: userId,
-          <@@>userEmailColumnCamelCase</@@>: oauthUserInfo.email,
-<@@IF@@ condition="hasUsernameColumn EQUALS 'true'">          <@@>userUsernameColumnCamelCase</@@>: username,
+<@@IF@@ condition="hasEmailColumn EQUALS 'true'">          <@@>userEmailColumnCamelCase</@@>: oauthUserInfo.email,
+</@@IF@@><@@IF@@ condition="hasUsernameColumn EQUALS 'true'">          <@@>userUsernameColumnCamelCase</@@>: username,
 </@@IF@@><@@IF@@ condition="hasFirstNameColumn EQUALS 'true'">          <@@>userFirstNameColumnCamelCase</@@>: oauthUserInfo.name?.split(' ')[0] || null,
 </@@IF@@><@@IF@@ condition="hasLastNameColumn EQUALS 'true'">          <@@>userLastNameColumnCamelCase</@@>: oauthUserInfo.name?.split(' ').slice(1).join(' ') || null,
 </@@IF@@><@@IF@@ condition="hasAvatarColumn EQUALS 'true'">          <@@>userAvatarColumnCamelCase</@@>: oauthUserInfo.avatarUrl || null,

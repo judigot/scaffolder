@@ -92,6 +92,13 @@ export const getReplacementsForAuth = (
 
   // User table replacements
   replacements.hasUserTable = String(userTable !== undefined);
+  replacements.hasEmailColumn = 'false';
+  replacements.hasUsernameColumn = 'false';
+  replacements.hasPasswordColumn = 'false';
+  replacements.hasFirstNameColumn = 'false';
+  replacements.hasLastNameColumn = 'false';
+  replacements.hasAvatarColumn = 'false';
+  replacements.hasEmailVerifiedColumn = 'false';
   if (userTable) {
     Object.assign(
       replacements,
