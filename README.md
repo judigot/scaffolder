@@ -468,7 +468,7 @@ These switches are **temporary** so Scaffolder can iterate on agent-scaffold. Re
 
 Look for `TEMPORARY — restore after same-PR update feature lands.` in the workflow files. That comment marks each paused job.
 
-### This change (exclude template trees from the app build)
+### Already on `main` (PR #69 — exclude template trees from the app build)
 
 Vercel was type-checking template sources such as `files/Core/auth-services` during the app build. Those trees are not the Scaffolder app.
 
@@ -480,3 +480,13 @@ Vercel was type-checking template sources such as `files/Core/auth-services` dur
 | `files/` on Vercel | **Not** ignored. Production `getUserFiles` and agent-scaffold still call `convertLocalFilesToIStructure('files')` at request time, so the function needs that tree. `vercel.json` sets `functions["api/index.js"].includeFiles` to `files/**` so the serverless bundle keeps it. | Remove `functions.includeFiles` only if generate no longer reads local `files/` on Vercel (for example if it only fetches `scaffolder-files` from GitHub). |
 
 Look for `TEMPORARY — restore after agent-scaffold is solid.` in `tsconfig*.json`, `vite.config.ts`, and `.vercelignore`.
+
+### This change (exclude test files from production typecheck)
+
+Production `tsc` / Vite no longer typechecks `*.vitest.*` / `*.test.*` / `*.spec.*` (or `src/test` setup files). Restore when CI is back and you want tests in the app compile. This does **not** split API vs frontend. `files/` stays on Vercel. `bun test` is unchanged.
+
+| Speed-up | What changed | How to restore |
+| --- | --- | --- |
+| App `tsc` | `tsconfig.app.json` and `tsconfig.json` exclude `**/*.{vitest,test,spec}.*` and `src/test`. Vite does not typecheck those files (no checker plugin); production still runs `bun run type-check` before `vite build`. | Remove those exclude entries (and the matching `TEMPORARY` comments) so app `tsc` typechecks tests again. |
+
+Look for `TEMPORARY — production tsc no longer typechecks test files` in `tsconfig.app.json` and `tsconfig.json`.
