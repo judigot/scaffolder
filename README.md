@@ -487,6 +487,14 @@ Production `tsc` / Vite no longer typechecks `*.vitest.*` / `*.test.*` / `*.spec
 
 | Speed-up | What changed | How to restore |
 | --- | --- | --- |
-| App `tsc` | `tsconfig.app.json` and `tsconfig.json` exclude `*.vitest.*` / `*.test.*` / `*.spec.*`, plus `src/test` and `src/tests`. Vite does not typecheck those files (no checker plugin); production still runs `bun run type-check` before `vite build`. | Remove those exclude entries (and the matching `TEMPORARY` comments) so app `tsc` typechecks tests again. |
+| App `tsc` | `tsconfig.app.json` and `tsconfig.json` exclude `*.vitest.*` / `*.test.*` / `*.spec.*`, plus `src/test` and `src/tests`. Vite does not typecheck those files (no checker plugin). | Remove those exclude entries (and the matching `TEMPORARY` comments) so app `tsc` typechecks tests again. |
 
 Look for `TEMPORARY — production tsc no longer typechecks test files` in `tsconfig.app.json` and `tsconfig.json`.
+
+### This change (skip type-check in the Vercel production build)
+
+Vercel `build` no longer runs `bun run type-check`. Restore by putting `bun run type-check &&` back at the start of the `build` script. This is **temporary**. This does **not** split API vs frontend. `files/` stays on Vercel. `bun run type-check` remains a standalone script.
+
+| Speed-up | What changed | How to restore |
+| --- | --- | --- |
+| Vercel `build` | `package.json` `build` is `cross-env NODE_ENV=production vite build && bun run build:bun` (no `tsc`). | Put `bun run type-check &&` back at the start of `build`. |
