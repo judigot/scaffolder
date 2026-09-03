@@ -1,13 +1,12 @@
 name: Lint
 
 # TEMPORARY — restore after same-PR update feature lands.
-# Fast pull-request / feature-branch gate. Heavy jobs (Golden Frameworks,
-# Playwright, extra Bun tests) stay on main only until that feature merges.
-# Root vercel.json also skips preview deploys (`*` false, `main` true).
-# TEMPORARY — skip ESLint on pull-request / feature-branch pushes (too slow).
-# Restore `bun run lint` (includes lint:eslint) later. ESLint remains in the repo.
+# Do not run lint on feature-branch / pull-request pushes.
+# Still gates production via push to main and workflow_dispatch.
 on:
-  push: {}
+  push:
+    branches:
+      - main
   workflow_dispatch: {}
 
 concurrency:
@@ -30,14 +29,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      # TEMPORARY — do not invoke `bun run lint` / `lint:eslint` on PRs (too slow).
-      # Keep tsc / biome / oxlint. Restore eslint via `bun run lint` later.
       - name: Lint
-        run: bun run lint:tsc && bun run lint:biome && bun run lint:oxlint
-
-      - name: ESLint
-        if: github.ref == 'refs/heads/main'
-        run: bun run lint:eslint
+        run: bun run lint
 
       - name: Template lint
         run: bun run lint:templates
