@@ -30,6 +30,8 @@ export interface IPublishDraftPullRequestParams {
   prTitle: string;
   prBody: string;
   draft: boolean;
+  prNumber?: number;
+  updateExisting?: boolean;
 }
 
 export interface IDraftPullRequestResult {
@@ -39,6 +41,28 @@ export interface IDraftPullRequestResult {
   commitSha: string;
   filesCreated: number;
   baseBranch: string;
+  updated?: boolean;
+}
+
+export interface IGitHubPullHead {
+  ref: string;
+  sha: string;
+  repo: { full_name: string } | null;
+}
+
+export interface IGitHubPullBase {
+  ref: string;
+  repo: { full_name: string };
+}
+
+export interface IGitHubPullRequest {
+  html_url: string;
+  number: number;
+  state: 'open' | 'closed';
+  draft: boolean;
+  merged: boolean;
+  head: IGitHubPullHead;
+  base: IGitHubPullBase;
 }
 
 export interface IGitHubGitClient {
@@ -84,6 +108,13 @@ export interface IGitHubGitClient {
       ref: string;
       sha: string;
     }) => Promise<unknown>;
+    updateRef: (params: {
+      owner: string;
+      repo: string;
+      ref: string;
+      sha: string;
+      force?: boolean;
+    }) => Promise<unknown>;
   };
   pulls: {
     create: (params: {
@@ -95,6 +126,17 @@ export interface IGitHubGitClient {
       base: string;
       draft: boolean;
     }) => Promise<{ data: { html_url: string; number: number } }>;
+    get: (params: {
+      owner: string;
+      repo: string;
+      pull_number: number;
+    }) => Promise<{ data: IGitHubPullRequest }>;
+    list: (params: {
+      owner: string;
+      repo: string;
+      head?: string;
+      state?: 'open' | 'closed' | 'all';
+    }) => Promise<{ data: IGitHubPullRequest[] }>;
   };
 }
 
