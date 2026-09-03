@@ -1,8 +1,15 @@
 name: Test (Vitest)
 
+# TEMPORARY — restore after same-PR update feature lands.
+# Single unit-test gate on feature-branch pushes. Test (Bun) is skipped on
+# those pushes as a redundant matrix; restore unrestricted push later.
 on:
   push: {}
   workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-vitest:
