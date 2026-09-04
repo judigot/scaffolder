@@ -146,6 +146,7 @@ describe('template-monorepo golden project', () => {
     expect(fs.existsSync(goldenPath)).toBe(true);
     const content = fs.readFileSync(goldenPath, 'utf-8');
     expect(content).toContain('framework=Nest');
+    expect(content).toContain('port=3100');
     expect(content).toContain('skipMigrate=false');
     expect(content).toContain('parity=false');
     expect(content).toContain('installFilter=@bigbang/api');
@@ -223,6 +224,9 @@ describe('template-monorepo golden project', () => {
     const healthController = findFile(result.structure, 'health.controller.ts');
     expect(healthController?.content).toContain('HealthController');
     expect(healthController?.content).toContain("status: 'healthy'");
+    const mainTs = findFile(result.structure, 'main.ts');
+    expect(mainTs?.content).toContain("app.listen(port, '0.0.0.0')");
+    expect(mainTs?.content).toContain('setGlobalPrefix');
     expect(findFile(result.structure, 'app.module.ts')?.content).toContain(
       'AppModule',
     );

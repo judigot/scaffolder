@@ -3,7 +3,9 @@
 Nest.js HTTP package for the template-monorepo workspace.
 
 ```sh
-bun run --filter @bigbang/api dev
+bun run start
+# or from the workspace root:
+bun run dev:api
 ```
 
 - Health: `GET /api/health`

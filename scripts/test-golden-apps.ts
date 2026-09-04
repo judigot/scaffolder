@@ -55,7 +55,6 @@ function resolveDatabaseUrl(): string {
 }
 
 const databaseUrl = resolveDatabaseUrl();
-const isCi = process.env.CI === 'true';
 
 const COMMAND_TIMEOUTS_MS = {
   install: 10 * 60 * 1000,
@@ -69,6 +68,22 @@ function toDirName(projectName: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function resolveGoldenAppFilter(): string | null {
+  const fromEnv = process.env.GOLDEN_APP?.trim();
+  if (fromEnv !== undefined && fromEnv !== '') {
+    return fromEnv;
+  }
+
+  const args = process.argv
+    .slice(2)
+    .filter((arg) => arg !== '--json' && arg !== '.');
+  const last = args[args.length - 1];
+  if (last === undefined || last === '') {
+    return null;
+  }
+  return last;
 }
 
 function parseGoldenAppConfig(
@@ -126,6 +141,96 @@ function buildInstallCommand(installFilter: string[]): string {
   }
   const filters = installFilter.map((pkg) => `--filter ${pkg}`).join(' ');
   return `bun install --ignore-scripts ${filters}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+async function readPackageName(
+  packageJsonPath: string,
+): Promise<string | null> {
+  try {
+    const parsed: unknown = JSON.parse(
+      await fs.readFile(packageJsonPath, 'utf-8'),
+    );
+    if (isRecord(parsed) && typeof parsed.name === 'string') {
+      return parsed.name;
+    }
+  } catch {
+    // ignore missing or invalid package.json
+  }
+  return null;
+}
+
+async function packageHasScript(
+  packageDir: string,
+  scriptName: string,
+): Promise<boolean> {
+  try {
+    const parsed: unknown = JSON.parse(
+      await fs.readFile(path.join(packageDir, 'package.json'), 'utf-8'),
+    );
+    if (!isRecord(parsed) || !isRecord(parsed.scripts)) {
+      return false;
+    }
+    return typeof parsed.scripts[scriptName] === 'string';
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * Locate a workspace package by name so golden CI can start Nest from
+ * apps/api instead of `bun run --filter`, which can hang waiting on
+ * workspace dependency order and swallow child stdout.
+ */
+async function resolveWorkspacePackageDir(
+  outputDir: string,
+  packageName: string,
+): Promise<string | null> {
+  const candidates: string[] = [outputDir, path.join(outputDir, 'e2e')];
+  for (const root of ['apps', 'packages']) {
+    const parent = path.join(outputDir, root);
+    if (!existsSync(parent)) {
+      continue;
+    }
+    const entries = await fs.readdir(parent, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        candidates.push(path.join(parent, entry.name));
+      }
+    }
+  }
+
+  for (const dir of candidates) {
+    const name = await readPackageName(path.join(dir, 'package.json'));
+    if (name === packageName) {
+      return dir;
+    }
+  }
+  return null;
+}
+
+async function resolveDevSpawn(
+  outputDir: string,
+  devFilter: string,
+): Promise<{ cwd: string; args: string[] }> {
+  if (devFilter === '') {
+    return { cwd: outputDir, args: ['run', 'dev:api'] };
+  }
+
+  const packageDir = await resolveWorkspacePackageDir(outputDir, devFilter);
+  if (packageDir === null) {
+    throw new Error(
+      `Workspace package ${devFilter} not found under ${outputDir}`,
+    );
+  }
+
+  const args = (await packageHasScript(packageDir, 'start'))
+    ? ['run', 'start']
+    : ['run', 'dev'];
+  return { cwd: packageDir, args };
 }
 
 function resolveDrizzleConfigDir(outputDir: string): string | null {
@@ -438,13 +543,13 @@ async function runGoldenAppTests(
         `→ ${app.projectName} starting API server on port ${String(app.port)}`,
       );
 
-      const devArgs =
-        app.devFilter !== ''
-          ? ['run', '--filter', app.devFilter, 'dev']
-          : ['run', 'dev:api'];
+      const devSpawn = await resolveDevSpawn(outputDir, app.devFilter);
+      console.log(
+        `→ ${app.projectName} bun ${devSpawn.args.join(' ')} (cwd ${devSpawn.cwd})`,
+      );
 
-      serverProcess = spawn('bun', devArgs, {
-        cwd: outputDir,
+      serverProcess = spawn('bun', devSpawn.args, {
+        cwd: devSpawn.cwd,
         env: {
           ...process.env,
           ...env,
@@ -453,23 +558,37 @@ async function runGoldenAppTests(
       });
     }
 
-    if (isCi) {
-      serverProcess.stdout?.on('data', (chunk) => {
-        process.stdout.write(`[${app.dirName}:stdout] ${String(chunk)}`);
-      });
-      serverProcess.stderr?.on('data', (chunk) => {
-        process.stdout.write(`[${app.dirName}:stderr] ${String(chunk)}`);
-      });
-    }
+    let serverOutput = '';
+    serverProcess.stdout?.on('data', (chunk) => {
+      const text = String(chunk);
+      serverOutput += text;
+      process.stdout.write(`[${app.dirName}:stdout] ${text}`);
+    });
+    serverProcess.stderr?.on('data', (chunk) => {
+      const text = String(chunk);
+      serverOutput += text;
+      process.stdout.write(`[${app.dirName}:stderr] ${text}`);
+    });
 
     serverProcess.stdout?.pipe(serverLog);
     serverProcess.stderr?.pipe(serverLog);
 
-    await waitForServer(
-      `http://localhost:${String(app.port)}/api/health`,
-      COMMAND_TIMEOUTS_MS.serverReady / 1000,
-      () => serverProcess?.exitCode === null,
-    );
+    const healthUrl = `http://127.0.0.1:${String(app.port)}/api/health`;
+    try {
+      await waitForServer(
+        healthUrl,
+        COMMAND_TIMEOUTS_MS.serverReady / 1000,
+        () => serverProcess?.exitCode === null,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const logSnippet = serverOutput.slice(-4000);
+      throw new Error(
+        logSnippet === ''
+          ? `${message}\n(no server stdout/stderr captured)`
+          : `${message}\n--- ${app.dirName} server output ---\n${logSnippet}`,
+      );
+    }
 
     console.log(`→ ${app.projectName} running api-test.sh`);
 
@@ -565,16 +684,35 @@ async function runGoldenAppTests(
 }
 
 async function main(): Promise<void> {
-  const apps = await discoverGoldenApps();
-  if (apps.length === 0) {
+  const discovered = await discoverGoldenApps();
+  if (discovered.length === 0) {
     console.log('No golden apps found. Add a .golden file to a project.');
     return;
   }
 
+  const filter = resolveGoldenAppFilter();
+  const apps =
+    filter === null
+      ? discovered
+      : discovered.filter(
+          (app) => app.projectName === filter || app.dirName === filter,
+        );
+  if (apps.length === 0) {
+    throw new Error(`No golden apps matched: ${filter}`);
+  }
+  if (filter !== null) {
+    console.log(`Filtering golden apps to: ${filter}`);
+  }
+
+  const generateCommand =
+    filter === null
+      ? 'bun run scripts/generate-golden-apps.ts --json'
+      : `bun run scripts/generate-golden-apps.ts --json ${JSON.stringify(filter)}`;
+
   console.log('Generating golden apps...');
   runCommand(
     'Generate golden apps',
-    'bun run scripts/generate-golden-apps.ts --json',
+    generateCommand,
     process.cwd(),
     {
       DATABASE_URL: databaseUrl,
@@ -583,7 +721,7 @@ async function main(): Promise<void> {
   );
 
   const usedPorts = new Set<number>();
-  let fallbackPort = 3100;
+  let fallbackPort = 3200;
   const runLogDir = path.join(
     '/tmp/scaffolder-e2e-logs',
     new Date()
