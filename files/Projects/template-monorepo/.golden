@@ -1,0 +1,9 @@
+framework=hono
+url=template-monorepo
+service=template-monorepo
+port=3000
+dockerfile=Dockerfile.dev
+skipMigrate=true
+parity=false
+installFilter=@bigbang/api
+devFilter=@bigbang/api

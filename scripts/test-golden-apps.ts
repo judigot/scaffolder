@@ -9,6 +9,10 @@ type GoldenAppConfig = {
   dirName: string;
   port: number;
   framework: string;
+  skipMigrate: boolean;
+  parity: boolean;
+  installFilter: string[];
+  devFilter: string;
 };
 
 type ApiTestSummary = {
@@ -18,6 +22,7 @@ type ApiTestSummary = {
   exitCode: number;
   apiTestLogPath: string;
   serverLogPath: string;
+  parity: boolean;
 };
 
 type AppRunFailure = {
@@ -98,12 +103,38 @@ function parseGoldenAppConfig(
     );
   }
 
+  const installFilter = (config.installFilter ?? '')
+    .split(',')
+    .map((pkg) => pkg.trim())
+    .filter((pkg) => pkg !== '');
+
   return {
     projectName,
     dirName,
     port,
     framework,
+    skipMigrate: config.skipMigrate === 'true',
+    parity: config.parity !== 'false',
+    installFilter,
+    devFilter: config.devFilter ?? '',
   };
+}
+
+function buildInstallCommand(installFilter: string[]): string {
+  if (installFilter.length === 0) {
+    return 'bun install';
+  }
+  const filters = installFilter
+    .map((pkg) => `--filter ${pkg}`)
+    .join(' ');
+  return `bun install --ignore-scripts ${filters}`;
+}
+
+function hasDrizzleConfig(outputDir: string): boolean {
+  return (
+    existsSync(path.join(outputDir, 'drizzle.config.ts')) ||
+    existsSync(path.join(outputDir, 'drizzle.config.js'))
+  );
 }
 
 async function discoverGoldenApps(): Promise<GoldenAppConfig[]> {
@@ -188,7 +219,15 @@ function parseApiTestSummary(output: string, appName: string): ApiTestSummary {
   const passedMatch = sanitized.match(/(^|\n)Passed:\s*(\d+)\s*($|\n)/m);
   const failedMatch = sanitized.match(/(^|\n)Failed:\s*(\d+)\s*($|\n)/m);
 
-  if (!passedMatch || !failedMatch) {
+  if (passedMatch === null || failedMatch === null) {
+    throw new Error(
+      `Could not parse api-test summary for ${appName}. Expected 'Passed:' and 'Failed:' lines.`,
+    );
+  }
+
+  const passedCount = passedMatch[2];
+  const failedCount = failedMatch[2];
+  if (passedCount === undefined || failedCount === undefined) {
     throw new Error(
       `Could not parse api-test summary for ${appName}. Expected 'Passed:' and 'Failed:' lines.`,
     );
@@ -196,11 +235,12 @@ function parseApiTestSummary(output: string, appName: string): ApiTestSummary {
 
   return {
     appName,
-    passed: Number.parseInt(passedMatch[2], 10),
-    failed: Number.parseInt(failedMatch[2], 10),
+    passed: Number.parseInt(passedCount, 10),
+    failed: Number.parseInt(failedCount, 10),
     exitCode: 0,
     apiTestLogPath: '',
     serverLogPath: '',
+    parity: true,
   };
 }
 
@@ -259,36 +299,46 @@ async function runGoldenAppTests(
     return null;
   }
 
+  const isLaravel = app.framework.toLowerCase() === 'laravel';
+  const needsDatabase =
+    isLaravel || (!app.skipMigrate && hasDrizzleConfig(outputDir));
   const dbName = buildDatabaseName(app.dirName);
-  const adminSql = postgres(databaseUrl, { max: 1 });
 
-  // Terminate existing connections and recreate database for true isolation
-  await adminSql.unsafe(`
+  const env: Record<string, string> = {
+    PORT: String(app.port),
+  };
+
+  let dbHost = '';
+  let dbPort = '5432';
+  let dbUser = '';
+  let dbPass = '';
+  let dbDatabase = '';
+
+  if (needsDatabase) {
+    const adminSql = postgres(databaseUrl, { max: 1 });
+
+    await adminSql.unsafe(`
     SELECT pg_terminate_backend(pg_stat_activity.pid)
     FROM pg_stat_activity
     WHERE pg_stat_activity.datname = '${dbName}'
     AND pid <> pg_backend_pid()
   `);
-  await adminSql.unsafe(`DROP DATABASE IF EXISTS ${dbName}`);
-  await adminSql.unsafe(`CREATE DATABASE ${dbName}`);
-  await adminSql.end();
+    await adminSql.unsafe(`DROP DATABASE IF EXISTS ${dbName}`);
+    await adminSql.unsafe(`CREATE DATABASE ${dbName}`);
+    await adminSql.end();
 
-  // Build connection URL for the isolated test database
-  const parsedUrl = new URL(databaseUrl);
-  parsedUrl.pathname = `/${dbName}`;
-  const testDbUrl = parsedUrl.toString();
+    const parsedUrl = new URL(databaseUrl);
+    parsedUrl.pathname = `/${dbName}`;
+    const testDbUrl = parsedUrl.toString();
+    env.DATABASE_URL = testDbUrl;
 
-  const env = {
-    DATABASE_URL: testDbUrl,
-    PORT: String(app.port),
-  };
-
-  const parsedDbUrl = new URL(testDbUrl);
-  const dbHost = parsedDbUrl.hostname;
-  const dbPort = parsedDbUrl.port || '5432';
-  const dbUser = decodeURIComponent(parsedDbUrl.username);
-  const dbPass = decodeURIComponent(parsedDbUrl.password);
-  const dbDatabase = parsedDbUrl.pathname.replace(/^\//, '');
+    const parsedDbUrl = new URL(testDbUrl);
+    dbHost = parsedDbUrl.hostname;
+    dbPort = parsedDbUrl.port || '5432';
+    dbUser = decodeURIComponent(parsedDbUrl.username);
+    dbPass = decodeURIComponent(parsedDbUrl.password);
+    dbDatabase = parsedDbUrl.pathname.replace(/^\//, '');
+  }
 
   console.log(`\n=== ${app.projectName} (${app.dirName}) ===`);
   const serverLogPath = path.join(outputDir, 'server.log');
@@ -297,8 +347,6 @@ async function runGoldenAppTests(
   let serverProcess: ReturnType<typeof spawn> | null = null;
 
   try {
-    const isLaravel = app.framework.toLowerCase() === 'laravel';
-
     if (isLaravel) {
       const laravelEnv = {
         ...env,
@@ -356,24 +404,31 @@ async function runGoldenAppTests(
     } else {
       runCommand(
         `${app.projectName} install dependencies`,
-        'bun install',
+        buildInstallCommand(app.installFilter),
         outputDir,
         env,
         COMMAND_TIMEOUTS_MS.install,
       );
-      runCommand(
-        `${app.projectName} apply schema`,
-        'bun drizzle-kit push --force',
-        outputDir,
-        env,
-        COMMAND_TIMEOUTS_MS.drizzlePush,
-      );
+      if (!app.skipMigrate && hasDrizzleConfig(outputDir)) {
+        runCommand(
+          `${app.projectName} apply schema`,
+          'bun drizzle-kit push --force',
+          outputDir,
+          env,
+          COMMAND_TIMEOUTS_MS.drizzlePush,
+        );
+      }
 
       console.log(
         `→ ${app.projectName} starting API server on port ${String(app.port)}`,
       );
 
-      serverProcess = spawn('bun', ['run', 'dev:api'], {
+      const devArgs =
+        app.devFilter !== ''
+          ? ['run', '--filter', app.devFilter, 'dev']
+          : ['run', 'dev:api'];
+
+      serverProcess = spawn('bun', devArgs, {
         cwd: outputDir,
         env: {
           ...process.env,
@@ -462,6 +517,7 @@ async function runGoldenAppTests(
     parsedSummary.exitCode = apiTestExitCode;
     parsedSummary.apiTestLogPath = apiTestLogPath;
     parsedSummary.serverLogPath = serverLogPath;
+    parsedSummary.parity = app.parity;
 
     const safeDirName = app.dirName.replace(/[^a-z0-9_-]+/gi, '_');
     await fs.copyFile(
@@ -479,15 +535,17 @@ async function runGoldenAppTests(
       serverProcess.kill('SIGTERM');
     }
     serverLog.end();
-    const cleanup = postgres(databaseUrl, { max: 1 });
-    await cleanup.unsafe(`
+    if (needsDatabase) {
+      const cleanup = postgres(databaseUrl, { max: 1 });
+      await cleanup.unsafe(`
       SELECT pg_terminate_backend(pg_stat_activity.pid)
       FROM pg_stat_activity
       WHERE pg_stat_activity.datname = '${dbName}'
       AND pid <> pg_backend_pid()
     `);
-    await cleanup.unsafe(`DROP DATABASE IF EXISTS ${dbName}`);
-    await cleanup.end();
+      await cleanup.unsafe(`DROP DATABASE IF EXISTS ${dbName}`);
+      await cleanup.end();
+    }
   }
 }
 
@@ -563,9 +621,11 @@ async function main(): Promise<void> {
     'utf-8',
   );
 
-  if (summaries.length < 2) {
+  const paritySummaries = summaries.filter((summary) => summary.parity);
+
+  if (paritySummaries.length < 2) {
     console.log(
-      'Parity check skipped: fewer than two frameworks with api-test.sh present.',
+      'Parity check skipped: fewer than two CRUD frameworks with api-test.sh present.',
     );
     console.log(`Logs directory: ${runLogDir}`);
     if (failures.length > 0) {
@@ -580,16 +640,20 @@ async function main(): Promise<void> {
     return;
   }
 
-  const baseline = summaries[0];
-  const mismatches = summaries.filter(
+  const baseline = paritySummaries[0];
+  if (baseline === undefined) {
+    return;
+  }
+  const mismatches = paritySummaries.filter(
     (summary) =>
       summary.passed !== baseline.passed || summary.failed !== baseline.failed,
   );
 
   console.log('\nAPI test parity summary:');
   for (const summary of summaries) {
+    const parityLabel = summary.parity ? 'parity' : 'health-only';
     console.log(
-      `- ${summary.appName}: passed=${String(summary.passed)} failed=${String(summary.failed)}`,
+      `- ${summary.appName} (${parityLabel}): passed=${String(summary.passed)} failed=${String(summary.failed)}`,
     );
   }
 

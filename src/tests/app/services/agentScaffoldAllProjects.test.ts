@@ -137,6 +137,7 @@ describe('agent-scaffold generate for every current project', () => {
         'App Generator - Spring Boot',
         'App Generator - Template - Frontend',
         'hono-react',
+        'template-monorepo',
         'ORM Schema - Knex',
         'ORM Schema - Kysely',
         'ORM Schema - MikroORM',

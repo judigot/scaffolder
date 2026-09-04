@@ -1,0 +1,8 @@
+# Bun Turborepo golden (layout from files/Core/template-monorepo).
+# Runtime tests cover API health only — no Drizzle, no Next.js/Vite E2E.
+
+$USE_CORE:
+  - /Core/template-monorepo
+
+CREATE_FILE(api-test.sh --template ./templates/api-test.txt):
+CREATE_FILE(Dockerfile.dev --template ./templates/Dockerfile.dev):

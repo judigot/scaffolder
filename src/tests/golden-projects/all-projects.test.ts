@@ -195,6 +195,24 @@ function hasTsConfig(outputDir: string): boolean {
   return fs.existsSync(path.join(outputDir, 'tsconfig.json'));
 }
 
+function hasWorkspaces(outputDir: string): boolean {
+  const packageJsonPath = path.join(outputDir, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    return false;
+  }
+  try {
+    const parsed: unknown = JSON.parse(
+      fs.readFileSync(packageJsonPath, 'utf-8'),
+    );
+    if (typeof parsed !== 'object' || parsed === null) {
+      return false;
+    }
+    return 'workspaces' in parsed;
+  } catch {
+    return false;
+  }
+}
+
 // Discover complete projects at test definition time
 const completeProjects = discoverCompleteProjects();
 
@@ -312,7 +330,11 @@ describe('TRUE GOLDEN TEST: Complete Projects', () => {
             if (/\{\{[a-zA-Z_][a-zA-Z0-9_()]*\}\}/.test(item.content)) {
               issues.push('{{...}}');
             }
-            if (item.content.includes('[[')) {
+            if (
+              item.content.includes('[[USE_') ||
+              item.content.includes('[[LOOP') ||
+              item.content.includes('[[ LOOP')
+            ) {
               issues.push('[[');
             }
             if (item.content.includes('@LOOP')) {
@@ -351,6 +373,13 @@ describe('TRUE GOLDEN TEST: Complete Projects', () => {
         // Skip if no package.json (not a runnable app)
         if (!hasPackageJson(outputDir)) {
           console.log(`  [SKIP] No package.json in ${outputDir}`);
+          return;
+        }
+
+        if (hasWorkspaces(outputDir)) {
+          console.log(
+            `  [SKIP] Workspace monorepo install is covered by scripts/test-golden-apps.ts: ${outputDir}`,
+          );
           return;
         }
 

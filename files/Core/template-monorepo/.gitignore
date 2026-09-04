@@ -1,0 +1,57 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+build
+.next
+out
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+logs
+*.log
+npm-debug.log*
+bun-debug.log*
+
+# Testing
+coverage
+test-results
+playwright-report
+
+# Environment (examples are committed as .env.example)
+.env
+.env.local
+.env.*.local
+
+# Turborepo
+.turbo
+
+# Vercel
+.vercel
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Misc
+.cache
+.temp
+.tmp
+*.bak
+
+# Changesets
+.changeset/*.md
+!.changeset/config.json
+.changeset/pre.json

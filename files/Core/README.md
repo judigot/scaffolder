@@ -62,6 +62,11 @@ Core/
     ├── tsconfig.json
     └── src/
         └── utils/
+
+Full app skeletons (copied into generated output):
+
+- `/Core/laravel` — Laravel application base
+- `/Core/template-monorepo` — Bun Turborepo (Hono API + Vite + Next.js)
 ```
 
 Use:
