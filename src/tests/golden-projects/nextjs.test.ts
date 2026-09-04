@@ -151,6 +151,19 @@ describe('App Generator - Next.js golden project', () => {
     expect(content).toContain('dockerfile=Dockerfile.dev');
   });
 
+  it('composes drizzle-data then better-auth then nextjs last', () => {
+    const yaml = fs.readFileSync(
+      path.join(projectDir, 'structure.yaml'),
+      'utf-8',
+    );
+    const drizzleAt = yaml.indexOf('- /Core/drizzle-data');
+    const betterAuthAt = yaml.indexOf('- /Core/better-auth');
+    const nextjsAt = yaml.indexOf('- /Core/nextjs');
+    expect(drizzleAt).toBeGreaterThan(-1);
+    expect(betterAuthAt).toBeGreaterThan(drizzleAt);
+    expect(nextjsAt).toBeGreaterThan(betterAuthAt);
+  });
+
   it('composes Next.js App Router with Drizzle', async () => {
     const userFiles = loadDirectoryAsStructure(filesDir);
     const result = await buildProjectFiles(
@@ -172,6 +185,7 @@ describe('App Generator - Next.js golden project', () => {
     expect(rootPackageJson?.content).toContain('"next"');
     expect(rootPackageJson?.content).toContain('"dev:api"');
     expect(rootPackageJson?.content).toContain('"drizzle-orm"');
+    expect(rootPackageJson?.content).toContain('"better-auth"');
     expect(rootPackageJson?.content).not.toContain('"@prisma/client"');
     expect(rootPackageJson?.content).not.toContain('"prisma"');
 
@@ -234,6 +248,10 @@ describe('App Generator - Next.js golden project', () => {
       'better-auth.ts',
     ]);
     expect(betterAuthFactory?.type).toBe('file');
+    if (betterAuthFactory?.type === 'file') {
+      expect(betterAuthFactory.content).toContain('@ts-expect-error');
+      expect(betterAuthFactory.content).toContain('drizzleAdapter');
+    }
 
     const authRoute = getAtPath(result.structure, [
       'app',
