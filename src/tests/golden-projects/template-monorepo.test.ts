@@ -3,13 +3,19 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { IFile, IFolder, IStructure } from '@/components/FileViewer.tsx';
 import type { IFormStore } from '@/useFormStore.ts';
-import { isISchemaInfoArray } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
+import { validateSchemaInfo } from '@/utils/schemaInfoValidator.ts';
 import masterSchemaJson from '../../../files/Schemas/Master Schema with Multiple User Types.json';
 
-if (!isISchemaInfoArray(masterSchemaJson)) {
-  throw new Error('Invalid master schema JSON structure');
+const validationResult = validateSchemaInfo(masterSchemaJson);
+if (!validationResult.success) {
+  const errorMessages = validationResult.errors
+    ? validationResult.errors.map((e) => `${e.path}: ${e.message}`).join(', ')
+    : 'Unknown validation error';
+  throw new Error(`Invalid master schema: ${errorMessages}`);
 }
+const masterSchema: ISchemaInfo[] = validationResult.data ?? [];
 
 const mockFormData: IFormStore = {
   backendUrl: 'http://localhost:3000',
@@ -133,7 +139,7 @@ describe('template-monorepo golden project', () => {
     const result = await buildProjectFiles(
       '/Projects/template-monorepo/structure.yaml',
       userFiles,
-      masterSchemaJson,
+      masterSchema,
       mockFormData,
       null,
     );
@@ -190,7 +196,7 @@ describe('template-monorepo golden project', () => {
     const result = await buildProjectFiles(
       '/Projects/template-monorepo/structure.yaml',
       userFiles,
-      masterSchemaJson,
+      masterSchema,
       mockFormData,
       null,
     );

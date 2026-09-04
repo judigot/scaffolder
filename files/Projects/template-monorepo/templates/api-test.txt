@@ -23,26 +23,26 @@ assert_json_status() {
   status=$(curl -sS -o "$BODY" -w '%{http_code}' "$url") || status="000"
   if [ "$status" != "$expected" ]; then
     FAILED=$((FAILED + 1))
-    printf '%s\n' "FAIL $name: expected HTTP $expected got $status"
+    echo "FAIL $name: expected HTTP $expected got $status"
     return
   fi
   if [ -n "$needle" ]; then
     if ! grep -q "$needle" "$BODY"; then
       FAILED=$((FAILED + 1))
-      printf '%s\n' "FAIL $name: response missing $needle"
+      echo "FAIL $name: response missing $needle"
       return
     fi
   fi
   PASSED=$((PASSED + 1))
-  printf '%s\n' "PASS $name"
+  echo "PASS $name"
 }
 
 assert_json_status "$API_BASE/health" 200 "GET /health" '"status":"healthy"'
 assert_json_status "$API_BASE/hello" 200 "GET /hello" '"message":"Hello, world!"'
 assert_json_status "$API_BASE/nope" 404 "GET /nope" '"error":"Not Found"'
 
-printf '%s\n' "Passed: $PASSED"
-printf '%s\n' "Failed: $FAILED"
+echo "Passed: $PASSED"
+echo "Failed: $FAILED"
 
 if [ "$FAILED" -ne 0 ]; then
   exit 1
