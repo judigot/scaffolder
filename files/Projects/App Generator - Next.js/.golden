@@ -1,0 +1,7 @@
+framework=Next.js
+url=app-generator-next-js
+service=app-generator-next-js
+port=3002
+dockerfile=Dockerfile.dev
+skipMigrate=true
+parity=false

@@ -1,0 +1,41 @@
+import { NextResponse } from 'next/server';
+import { createSchemaFactory } from 'drizzle-zod';
+import { db } from '@/api/db';
+import { <@@>tableName.camelCase</@@> } from '@/api/db/schema';
+
+export const dynamic = 'force-dynamic';
+
+const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
+
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">const create<@@>tableName.singular.pascalCase</@@>Schema = createInsertSchema(<@@>tableName.camelCase</@@>);
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">const create<@@>tableName.singular.pascalCase</@@>Schema = createInsertSchema(<@@>tableName.camelCase</@@>).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true });
+</@@IF@@>
+
+export async function GET(): Promise<Response> {
+  const result = await db.select().from(<@@>tableName.camelCase</@@>);
+  return NextResponse.json(result);
+}
+
+export async function POST(request: Request): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const parsed = create<@@>tableName.singular.pascalCase</@@>Schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">  const inserted = await db.insert(<@@>tableName.camelCase</@@>).values(parsed.data).returning();
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  const inserted = await db.insert(<@@>tableName.camelCase</@@>).values(parsed.data).returning();
+</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'uuid'">  const inserted = await db.insert(<@@>tableName.camelCase</@@>).values({ ...parsed.data, <@@>getPrimaryKeyCamelCase()</@@>: crypto.randomUUID() }).returning();
+</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">  const inserted = await db.insert(<@@>tableName.camelCase</@@>).values({ ...parsed.data, <@@>getPrimaryKeyCamelCase()</@@>: crypto.randomUUID() }).returning();
+</@@IF@@></@@IF@@>  const row = inserted[0];
+  if (row === undefined) {
+    return NextResponse.json({ error: 'Create failed' }, { status: 500 });
+  }
+  return NextResponse.json(row, { status: 201 });
+}
