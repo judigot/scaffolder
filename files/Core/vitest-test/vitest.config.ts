@@ -9,6 +9,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: ['api/**/*.ts', 'src/**/*.ts'],
       exclude: ['node_modules/', 'tests/'],
     },
     // Run tests sequentially for CRUD testing order
