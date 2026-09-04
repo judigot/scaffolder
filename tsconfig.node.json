@@ -25,7 +25,5 @@
     "bun-test-setup.ts",
     "vitest.setup.ts",
     "vitest.config.ts"
-  ],
-  // TEMPORARY — restore after agent-scaffold is solid.
-  "exclude": ["files", "files.test", "apps", ".apps", ".worktrees"]
+  ]
 }
