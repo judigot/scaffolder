@@ -1,0 +1,7 @@
+{
+  "description": "NestJS adapter for Better Auth",
+  "dependencies": {
+    "better-auth": "^1.7.2",
+    "@thallesp/nestjs-better-auth": "^2.8.0"
+  }
+}
