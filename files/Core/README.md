@@ -67,8 +67,15 @@ Reusable API / app cores:
 
 - `/Core/hono-api` — repo-root Hono overlay (`hono-react`)
 - `/Core/nestjs-api` — Nest.js HTTP package at `apps/api` (`@bigbang/api`)
+- `/Core/nextjs` — Next.js 16 App Router BFF at repo root (`App Generator - Next.js`)
 - `/Core/laravel` — Laravel application base
 - `/Core/template-monorepo` — Bun Turborepo skeleton (Vite + Next.js + packages; no API)
+- `/Core/tanstack-form` — TanStack Form `createFormHook` wrappers (CRUD create pages)
+- `/Core/tanstack-router` — TanStack Router v1 file-based routing + Vite plugin
+- `/Core/bullmq` — Nest-first BullMQ + Redis compose overlay (`apps/api/src/queue`)
+- `/Core/otel` — OpenTelemetry NodeSDK, merge-able into Nest and Hono
+- `/Core/playwright-e2e` — reusable Playwright package at `e2e/`
+- `/Core/vitest-test` — Vitest 4 CRUD test runner (`tests/`, coverage v8)
 
 Auth cores (Better Auth replaces Lucia):
 
@@ -91,6 +98,35 @@ Compose the Nest API into the monorepo:
 $USE_CORE:
   - /Core/template-monorepo
   - /Core/nestjs-api
+```
+
+Standalone Next.js BFF (do not compose with `/Core/template-monorepo`; `app/` would collide):
+
+```yaml
+$USE_CORE:
+  - /Core/nextjs
+  - /Core/drizzle-data
+  - /Core/better-auth
+```
+
+Compose queues, tracing, and e2e onto the Nest golden:
+
+```yaml
+$USE_CORE:
+  - /Core/template-monorepo
+  - /Core/nestjs-api
+  - /Core/bullmq
+  - /Core/otel
+  - /Core/playwright-e2e
+```
+
+Hono CRUD forms (not login) pull TanStack Form wrappers:
+
+```yaml
+$USE_CORE:
+  - /Core/vite-react
+  - /Core/tanstack-router
+  - /Core/tanstack-form
 ```
 
 Use:

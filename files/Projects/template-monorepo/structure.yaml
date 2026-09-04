@@ -8,6 +8,7 @@ $USE_CORE:
   - /Core/template-monorepo
   - /Core/nestjs-api
   - /Core/drizzle-data-apps-api
+  - /Core/playwright-e2e
 
 apps:
   api:
