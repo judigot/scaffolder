@@ -416,8 +416,11 @@ describe('Schema Comparison Golden Test', () => {
       console.log(`  - ${t}`);
     });
 
-    // Both should have the same tables
-    expect(rawTableNames).toEqual(drizzleTableNames);
+    // Better Auth adds account + verification on top of the generated schema.
+    const betterAuthExtraTables = ['account', 'verification'];
+    expect(drizzleTableNames).toEqual(
+      [...rawTableNames, ...betterAuthExtraTables].sort(),
+    );
 
     // Compare each table's structure
     for (const tableName of rawTableNames) {
