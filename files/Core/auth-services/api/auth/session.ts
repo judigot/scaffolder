@@ -103,6 +103,60 @@ function toSession(value: unknown): Session | null {
   };
 }
 
+/**
+ * Better Auth `getSession` reads a signed cookie (`token.signature`).
+ * Custom /auth/register stores the raw session token, so unwrap either form.
+ */
+function sessionTokenFromCookie(cookieValue: string): string {
+  const separator = cookieValue.lastIndexOf('.');
+  if (separator <= 0) {
+    return cookieValue;
+  }
+  return cookieValue.slice(0, separator);
+}
+
+async function signSessionToken(
+  token: string,
+  secret: string,
+): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(token),
+  );
+  const bytes = new Uint8Array(signature);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return `${token}.${btoa(binary)}`;
+}
+
+function resolveAuthSecret(secret: unknown): string | null {
+  if (typeof secret === 'string' && secret.length > 0) {
+    return secret;
+  }
+  return null;
+}
+
+function sessionExpiresAt(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value : null;
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+  return null;
+}
+
 export async function createSession(userId: string): Promise<{
   session: Session;
   sessionCookie: string;
@@ -125,10 +179,12 @@ export async function createSession(userId: string): Promise<{
     'token' in created && typeof created.token === 'string'
       ? created.token
       : session.id;
+  const secret = resolveAuthSecret(ctx.secret);
+  const cookieValue = secret ? await signSessionToken(token, secret) : token;
 
   return {
     session,
-    sessionCookie: serializeCookie(cookie.name, token, cookie.attributes),
+    sessionCookie: serializeCookie(cookie.name, cookieValue, cookie.attributes),
   };
 }
 
@@ -138,29 +194,46 @@ export async function validateSession(sessionId: string): Promise<{
   sessionCookie?: string;
 }> {
   const auth = getBetterAuth();
-  const cookieName = getSessionCookieName();
-  const headers = new Headers();
-  headers.set('cookie', `${cookieName}=${sessionId}`);
+  const ctx = await auth.$context;
+  const token = sessionTokenFromCookie(sessionId);
 
-  const result = await auth.api.getSession({ headers });
-  if (!result) {
+  try {
+    const found = await ctx.internalAdapter.findSession(token);
+    if (!found?.session || !found.user) {
+      return {
+        user: null,
+        session: null,
+        sessionCookie: blankSessionCookie(),
+      };
+    }
+
+    const expiresAt = sessionExpiresAt(found.session.expiresAt);
+    if (!expiresAt || expiresAt.getTime() <= Date.now()) {
+      await ctx.internalAdapter.deleteSession(token);
+      return {
+        user: null,
+        session: null,
+        sessionCookie: blankSessionCookie(),
+      };
+    }
+
+    return {
+      user: toUser(found.user),
+      session: toSession(found.session),
+    };
+  } catch {
     return {
       user: null,
       session: null,
       sessionCookie: blankSessionCookie(),
     };
   }
-
-  return {
-    user: toUser(result.user),
-    session: toSession(result.session),
-  };
 }
 
 export async function invalidateSession(sessionId: string): Promise<string> {
   const auth = getBetterAuth();
   const ctx = await auth.$context;
-  await ctx.internalAdapter.deleteSession(sessionId);
+  await ctx.internalAdapter.deleteSession(sessionTokenFromCookie(sessionId));
   return blankSessionCookie();
 }
 
