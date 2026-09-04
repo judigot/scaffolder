@@ -115,37 +115,6 @@ function sessionTokenFromCookie(cookieValue: string): string {
   return cookieValue.slice(0, separator);
 }
 
-async function signSessionToken(
-  token: string,
-  secret: string,
-): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    new TextEncoder().encode(token),
-  );
-  const bytes = new Uint8Array(signature);
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return `${token}.${btoa(binary)}`;
-}
-
-function resolveAuthSecret(secret: unknown): string | null {
-  if (typeof secret === 'string' && secret.length > 0) {
-    return secret;
-  }
-  return null;
-}
-
 function sessionExpiresAt(value: unknown): Date | null {
   if (value instanceof Date) {
     return Number.isFinite(value.getTime()) ? value : null;
@@ -179,12 +148,10 @@ export async function createSession(userId: string): Promise<{
     'token' in created && typeof created.token === 'string'
       ? created.token
       : session.id;
-  const secret = resolveAuthSecret(ctx.secret);
-  const cookieValue = secret ? await signSessionToken(token, secret) : token;
 
   return {
     session,
-    sessionCookie: serializeCookie(cookie.name, cookieValue, cookie.attributes),
+    sessionCookie: serializeCookie(cookie.name, token, cookie.attributes),
   };
 }
 
