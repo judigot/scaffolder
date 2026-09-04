@@ -4,7 +4,7 @@ import '@/app/globals.css';
 
 export const metadata: Metadata = {
   title: 'Next.js Frontend',
-  description: 'Next.js frontend consuming the shared Hono API',
+  description: 'Next.js frontend consuming the shared REST API',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

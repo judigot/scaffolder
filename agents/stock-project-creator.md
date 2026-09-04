@@ -59,7 +59,9 @@ Schema + Project Template + Core Modules → Generated App
 files/                             # Root files directory (user-facing)
 ├── Core/                          # Reusable base modules
 │   ├── bun-base/                  # Base config (tsconfig, .gitignore, etc.)
-│   ├── hono-api/                  # Hono API setup
+│   ├── hono-api/                  # Hono API setup (repo-root overlay)
+│   ├── nestjs-api/                # Nest.js API at apps/api (@bigbang/api)
+│   ├── template-monorepo/         # Bun Turborepo skeleton (no API)
 │   ├── drizzle-data/              # Drizzle ORM setup
 │   └── vitest-test/               # Vitest config
 ├── Projects/
@@ -80,6 +82,9 @@ src/tests/golden-projects/         # Test files for project generation
 $USE_CORE:
   - /Core/bun-base      # Base config files
   - /Core/hono-api      # Hono API setup (later entries override earlier)
+  # Or compose a Nest API into the Bun Turborepo:
+  # - /Core/template-monorepo
+  # - /Core/nestjs-api
   - /Core/drizzle-data  # Drizzle ORM
   - /Core/vitest-test   # Vitest testing
 ```

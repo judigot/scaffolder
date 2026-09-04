@@ -11,7 +11,7 @@ export default defineConfig({
     host: true,
     port: 3001,
     /*
-     * Same-origin /api requests are forwarded to the local Hono API so
+     * Same-origin /api requests are forwarded to the local API so
      * development needs no VITE_API_URL and no source changes.
      */
     proxy: {

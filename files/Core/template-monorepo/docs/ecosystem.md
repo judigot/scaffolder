@@ -111,7 +111,7 @@ after the overlay loader.
 Already in this repository and worth keeping generic:
 
 - Bun workspaces + Turborepo
-- Hono API (`health`, `hello`) with Zod env validation and Vercel adapter
+- Workspace API package (`health`, `hello`) with Zod env validation
 - Interchangeable Vite and Next.js frontends
 - `@bigbang/api-client` and `@bigbang/typescript-config`
 - Oxlint → Biome → ESLint `strict-type-checked`

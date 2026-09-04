@@ -25,7 +25,7 @@ If golden tests pass, users can trust the scaffolder to generate working applica
 |------|---------|
 | `all-projects.test.ts` | **TRUE GOLDEN TEST** - Dynamically tests ALL complete projects × ALL schemas |
 | `hono-react.test.ts` | Tests hono-react project specifically (subset of above) |
-| `template-monorepo.test.ts` | Vendored Bun Turborepo golden (API health, no Drizzle) |
+| `template-monorepo.test.ts` | Bun Turborepo + Nest.js API golden (health, no Drizzle) |
 
 ## How `all-projects.test.ts` Works
 
@@ -120,11 +120,11 @@ For `hono-react` and Laravel:
 3. **Server starts** - App runs without errors
 4. **API works** - CRUD endpoints respond (`api-test.sh` parity across those two)
 
-For `template-monorepo` (vendored from `judigot/template-monorepo`, not cloned in CI):
+For `template-monorepo` (monorepo skeleton + Nest.js Core; private template is not cloned in CI):
 
 1. **Dependencies install** - filtered `bun install --filter @bigbang/api` (skips Next.js / Vite / Playwright)
 2. **No ORM migrate** - this skeleton has no Drizzle
-3. **API starts** - `bun run --filter @bigbang/api dev`
+3. **API starts** - `bun run --filter @bigbang/api dev` (Nest.js `apps/api`)
 4. **Health checks** - `/api/health`, `/api/hello`, and a JSON 404
 
 `ProjectsExtra/Monorepo` is a Laravel + frontend split and is not this golden.

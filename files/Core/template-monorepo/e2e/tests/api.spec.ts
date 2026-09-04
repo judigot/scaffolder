@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const apiOrigin = 'http://127.0.0.1:3000';
 
-test.describe('Hono API', () => {
+test.describe('API', () => {
   test('GET /api/hello returns the hello contract', async ({ request }) => {
     const response = await request.get(`${apiOrigin}/api/hello`);
     expect(response.status()).toBe(200);

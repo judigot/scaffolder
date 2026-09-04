@@ -63,10 +63,19 @@ Core/
     └── src/
         └── utils/
 
-Full app skeletons (copied into generated output):
+Reusable API / app cores:
 
+- `/Core/hono-api` — repo-root Hono overlay (`hono-react`)
+- `/Core/nestjs-api` — Nest.js HTTP package at `apps/api` (`@bigbang/api`)
 - `/Core/laravel` — Laravel application base
-- `/Core/template-monorepo` — Bun Turborepo (Hono API + Vite + Next.js)
+- `/Core/template-monorepo` — Bun Turborepo skeleton (Vite + Next.js + packages; no API)
+
+Compose the Nest API into the monorepo:
+
+```yaml
+$USE_CORE:
+  - /Core/template-monorepo
+  - /Core/nestjs-api
 ```
 
 Use:

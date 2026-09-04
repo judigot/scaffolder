@@ -6,7 +6,7 @@ const viteOrigin = 'http://127.0.0.1:3001';
 const nextOrigin = 'http://127.0.0.1:3002';
 
 /*
- * Boots the real production stack: the Hono API, the built Vite app
+ * Boots the real production stack: the workspace API, the built Vite app
  * behind `vite preview` (which proxies /api like the dev server), and
  * the built Next.js app pointed at the same API.
  *

@@ -1,5 +1,5 @@
 /**
- * Shared API contracts and a typed client for the Hono API.
+ * Shared API contracts and a typed client for the workspace REST API.
  *
  * This package is runtime-agnostic: it only relies on the Web Standard
  * `fetch`, `Request`, and `Response` APIs available in Node.js, Bun,

@@ -1,8 +1,10 @@
-# Bun Turborepo golden (layout from files/Core/template-monorepo).
+# Bun Turborepo golden.
+# Skeleton from files/Core/template-monorepo; Nest.js API from files/Core/nestjs-api.
 # Runtime tests cover API health only — no Drizzle, no Next.js/Vite E2E.
 
 $USE_CORE:
   - /Core/template-monorepo
+  - /Core/nestjs-api
 
 CREATE_FILE(api-test.sh --template ./templates/api-test.txt):
 CREATE_FILE(Dockerfile.dev --template ./templates/Dockerfile.dev):

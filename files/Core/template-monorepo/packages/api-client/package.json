@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Shared API contracts and a typed client for the Hono API",
+  "description": "Shared API contracts and a typed client for the REST API",
   "exports": {
     ".": "./src/index.ts"
   },

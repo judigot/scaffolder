@@ -1,6 +1,6 @@
 # Template Monorepo
 
-Production-ready Bun monorepo with a shared Hono REST API and two
+Production-ready Bun monorepo with a shared REST API package and two
 interchangeable frontends (Vite and Next.js), orchestrated by Turborepo
 and deployable to Vercel.
 
@@ -14,11 +14,8 @@ or learn from it, then feed proven generic improvements back. See
 ```text
 .
 ├── apps/
-│   ├── api/                  # Hono REST API (@bigbang/api)
+│   ├── api/                  # REST API (@bigbang/api), supplied by an API core
 │   │   ├── api/index.js      # Vercel Function placeholder (overwritten by build)
-│   │   ├── src/app.ts        # Runtime-neutral Hono application
-│   │   ├── src/index.ts      # Local dev entry (Bun or Node.js)
-│   │   ├── src/vercel.ts     # Bundle entry for the Vercel Function
 │   │   └── vercel.json       # /api/* routing rewrite
 │   ├── vite/                 # Vite + React frontend (@bigbang/vite) — primary example
 │   └── nextjs/               # Next.js App Router frontend (@bigbang/nextjs)
@@ -65,7 +62,7 @@ bun install --frozen-lockfile
 | `bun run dev:primary` | API + Vite frontend (the primary example)       |
 | `bun run dev:vite`    | Vite frontend only (port 3001)                  |
 | `bun run dev:nextjs`  | Next.js frontend only (port 3002)               |
-| `bun run dev:api`     | Hono API only (port 3000)                       |
+| `bun run dev:api`     | API only (port 3000)                                |
 
 Quick start:
 
@@ -123,17 +120,9 @@ for load balancers and deploy verification.
 
 - `apps/api/src/env.ts` validates `CORS_ORIGINS` and `PORT` with Zod at
   startup so a bad Vercel env fails the boot instead of at request time.
-- `apps/api/src/app.ts` exports the runtime-neutral Hono app (no
-  network listener) — directly testable with Web Standard
-  `Request`/`Response`. It applies `secureHeaders`, CORS, and a 1 MiB
-  body limit.
-- `apps/api/src/index.ts` serves it locally: `bun src/index.ts` or
-  `node src/index.ts` (Node ≥ 24 runs TypeScript natively).
-- `apps/api/src/vercel.ts` adapts it for Vercel. The build script
-  bundles it into `apps/api/api/index.js` (self-contained JavaScript),
-  so Vercel deploys plain JS and never compiles TypeScript or resolves
-  workspace imports. The committed `api/index.js` is a placeholder that
-  the build overwrites — never commit the bundled output.
+- `apps/api` is the `@bigbang/api` workspace package. The stock
+  `template-monorepo` project supplies it from `/Core/nestjs-api`
+  (Nest.js). Do not overlay `/Core/hono-api` on this skeleton.
 
 ## How Both Frontends Consume the API
 
@@ -210,7 +199,7 @@ scopes the build to the selected app.
 - **Root Directory:** `apps/api`
 - The build bundles `src/vercel.ts` into `api/index.js`;
   `apps/api/vercel.json` rewrites `/api/(.*)` to that function, so
-  `GET /api/hello` reaches the Hono route.
+  `GET /api/hello` reaches the API route.
 - Set `CORS_ORIGINS` to the deployed frontend origin(s).
 - `apps/api` pins TypeScript `~6.0.3` (the Vite/Next.js workspaces use
   7.x): Vercel's function builder initializes its TypeScript pipeline

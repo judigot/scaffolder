@@ -4,7 +4,7 @@ Reusable code consumed by the applications in `apps/`.
 
 | Package                     | Purpose                                            |
 | --------------------------- | -------------------------------------------------- |
-| `@bigbang/api-client`       | API contracts and a typed client for the Hono API  |
+| `@bigbang/api-client`       | API contracts and a typed client for the REST API  |
 | `@bigbang/typescript-config`| Shared TypeScript configurations                   |
 
 ## Creating a New Package

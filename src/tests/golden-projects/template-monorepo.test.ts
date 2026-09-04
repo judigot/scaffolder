@@ -119,6 +119,24 @@ function findFile(structure: IStructure, name: string): IFile | undefined {
   return undefined;
 }
 
+function getAtPath(
+  structure: IStructure,
+  segments: string[],
+): IFile | IFolder | undefined {
+  let current: IStructure = structure;
+  let found: IFile | IFolder | undefined;
+  for (const segment of segments) {
+    found = current.find((item) => item.name === segment);
+    if (found === undefined) {
+      return undefined;
+    }
+    if (found.type === 'folder') {
+      current = found.children;
+    }
+  }
+  return found;
+}
+
 describe('template-monorepo golden project', () => {
   const filesDir = path.resolve(__dirname, '../../../files');
   const projectDir = path.join(filesDir, 'Projects/template-monorepo');
@@ -179,8 +197,25 @@ describe('template-monorepo golden project', () => {
         item.type === 'file' && item.name === 'Dockerfile.dev',
     );
 
-    const healthRoute = findFile(result.structure, 'health.ts');
-    expect(healthRoute?.content).toContain("status: 'healthy'");
+    const apiPackageJson = getAtPath(result.structure, [
+      'apps',
+      'api',
+      'package.json',
+    ]);
+    expect(apiPackageJson?.type).toBe('file');
+    if (apiPackageJson?.type === 'file') {
+      expect(apiPackageJson.content).toContain('"name": "@bigbang/api"');
+      expect(apiPackageJson.content).toContain('"@nestjs/core"');
+      expect(apiPackageJson.content).not.toContain('"hono"');
+    }
+
+    const healthController = findFile(result.structure, 'health.controller.ts');
+    expect(healthController?.content).toContain('HealthController');
+    expect(healthController?.content).toContain("status: 'healthy'");
+    expect(findFile(result.structure, 'app.module.ts')?.content).toContain(
+      'AppModule',
+    );
+    expect(findFile(result.structure, 'health.ts')).toBeUndefined();
 
     expect(rootApiTest).toBeDefined();
     expect(rootApiTest?.content).toContain('/health');
