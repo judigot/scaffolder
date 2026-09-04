@@ -1,0 +1,35 @@
+{
+  "name": "@bigbang/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "bun --hot src/main.ts",
+    "start": "bun src/main.ts",
+    "build": "tsc --noEmit",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --config ../../.oxlintrc.json .",
+    "clean": "rm -rf .turbo dist"
+  },
+  "dependencies": {
+    "@bigbang/api-client": "workspace:*",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@bigbang/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.10.1",
+    "oxlint": "^1.80.0",
+    "typescript": "~6.0.3"
+  }
+}

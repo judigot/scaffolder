@@ -25,6 +25,7 @@ If golden tests pass, users can trust the scaffolder to generate working applica
 |------|---------|
 | `all-projects.test.ts` | **TRUE GOLDEN TEST** - Dynamically tests ALL complete projects × ALL schemas |
 | `hono-react.test.ts` | Tests hono-react project specifically (subset of above) |
+| `template-monorepo.test.ts` | Bun Turborepo + Nest.js API golden (health, no Drizzle) |
 
 ## How `all-projects.test.ts` Works
 
@@ -35,9 +36,10 @@ If golden tests pass, users can trust the scaffolder to generate working applica
 
 ```
 Current coverage:
-├── App Generator - Express React  × 5 schemas = 5 tests
-└── hono-react                     × 5 schemas = 5 tests
-                                              = 10 combinations + discovery tests
+├── App Generator - Express React
+├── App Generator - Laravel
+├── hono-react
+└── template-monorepo
 ```
 
 ## Adding New Complete Projects
@@ -111,11 +113,21 @@ Beyond static golden tests, runtime tests verify that generated apps actually wo
 
 ### What Runtime Tests Verify
 
-1. **Dependencies install** - `bun install` succeeds
+For `hono-react` and Laravel:
+
+1. **Dependencies install** - `bun install` / `composer install` succeeds
 2. **Migrations run** - Database schema is created
-3. **Seed data loads** - Initial data is inserted correctly
-4. **Server starts** - App runs without errors
-5. **API works** - All CRUD endpoints respond correctly
+3. **Server starts** - App runs without errors
+4. **API works** - CRUD endpoints respond (`api-test.sh` parity across those two)
+
+For `template-monorepo` (monorepo skeleton + Nest.js Core; private template is not cloned in CI):
+
+1. **Dependencies install** - filtered `bun install --filter @bigbang/api` (skips Next.js / Vite / Playwright)
+2. **No ORM migrate** - this skeleton has no Drizzle
+3. **API starts** - `bun run --filter @bigbang/api dev` (Nest.js `apps/api`)
+4. **Health checks** - `/api/health`, `/api/hello`, and a JSON 404
+
+`ProjectsExtra/Monorepo` is a Laravel + frontend split and is not this golden.
 
 ### Running Runtime Tests
 

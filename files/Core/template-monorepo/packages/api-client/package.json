@@ -1,0 +1,23 @@
+{
+  "name": "@bigbang/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared API contracts and a typed client for the REST API",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --config ../../.oxlintrc.json .",
+    "clean": "rm -rf .turbo"
+  },
+  "devDependencies": {
+    "@bigbang/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "@types/node": "^24.10.1",
+    "oxlint": "^1.80.0",
+    "typescript": "^7.0.2"
+  }
+}

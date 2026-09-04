@@ -91,6 +91,8 @@ cd /root/scaffolder && bun test src/tests/golden-projects/all-projects.test.ts
 - **vite-react**: `/root/scaffolder/files/Core/vite-react/`
 - **bun-base**: `/root/scaffolder/files/Core/bun-base/`
 - **hono-api**: `/root/scaffolder/files/Core/hono-api/`
+- **nestjs-api**: `/root/scaffolder/files/Core/nestjs-api/`
+- **template-monorepo**: `/root/scaffolder/files/Core/template-monorepo/`
 
 ## Common Scaffolding Scripts
 
