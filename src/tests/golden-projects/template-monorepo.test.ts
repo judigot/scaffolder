@@ -273,6 +273,7 @@ describe('template-monorepo golden project', () => {
     expect(rootApiTest?.content).toContain('Passed:');
     expect(rootApiTest?.content).toContain('Failed:');
     expect(rootApiTest?.content).toContain('GET /user');
+    expect(rootApiTest?.content).toContain('grep -Fq');
     expect(rootApiTest?.content).not.toContain('/auth/register');
 
     const rootApiFolder = result.structure.find(

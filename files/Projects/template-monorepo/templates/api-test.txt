@@ -27,7 +27,7 @@ assert_json_status() {
     return
   fi
   if [ -n "$needle" ]; then
-    if ! grep -q "$needle" "$BODY"; then
+    if ! grep -Fq "$needle" "$BODY"; then
       FAILED=$((FAILED + 1))
       echo "FAIL $name: response missing $needle"
       return
