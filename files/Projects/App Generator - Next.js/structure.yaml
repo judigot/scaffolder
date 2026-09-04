@@ -20,9 +20,6 @@ api:
 
 app:
   api:
-    auth:
-      '[...all]':
-        CREATE_FILE(route.ts --template ./templates/auth-route.txt):
     FOLDER_LOOP(<@@>tableName.kebabCase</@@>):
       CREATE_FILE(route.ts --scoped --template ./templates/collection-route.txt):
       '[id]':

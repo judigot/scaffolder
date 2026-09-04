@@ -12,6 +12,7 @@ into the Turborepo skeleton — the `app/` trees would collide.
 app/               App Router UI + route handlers
 app/api/health     GET { "status": "healthy", "timestamp": "..." }
 app/api/hello      GET { "message": "Hello, world!" }
+app/api/auth/[...all]  Better Auth handler (compose `/Core/better-auth`)
 app/api/[...path]  JSON 404 { "error": "Not Found" }
 lib/auth.ts        Auth hook (compose Better Auth when that core exists)
 ```

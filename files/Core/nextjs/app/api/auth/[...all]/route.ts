@@ -1,10 +1,7 @@
 import { db } from '@/api/db';
 import { session, user } from '@/api/db/schema';
 import { account, verification } from '@/api/db/auth-schema';
-import {
-  getBetterAuth,
-  initializeBetterAuth,
-} from '@/api/auth/better-auth';
+import { getBetterAuth, initializeBetterAuth } from '@/api/auth/better-auth';
 
 export const dynamic = 'force-dynamic';
 
