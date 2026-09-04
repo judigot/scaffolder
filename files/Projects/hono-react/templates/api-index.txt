@@ -6,6 +6,7 @@ import { hc } from 'hono/client';
 
 // Import route modules
 <@@LOOP@@ data="tables" separator="\n">import <@@>tableName.camelCase</@@>Routes from './routes/<@@>tableName.singular.camelCase</@@>';</@@LOOP@@>
+import authRoutes from './routes/auth';
 import { db } from './db';
 import { session, user } from './db/schema';
 import { account, verification } from './db/auth-schema';
@@ -33,7 +34,11 @@ app.use('*', prettyJSON());
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 <@@LOOP@@ data="tables" separator="\n">app.route('/<@@>tableName.kebabCase</@@>', <@@>tableName.camelCase</@@>Routes);</@@LOOP@@>
-app.all('/auth/*', (c) => getBetterAuth().handler(c.req.raw));
+app.all('/auth/sign-up/*', (c) => getBetterAuth().handler(c.req.raw));
+app.all('/auth/sign-in/*', (c) => getBetterAuth().handler(c.req.raw));
+app.all('/auth/sign-out', (c) => getBetterAuth().handler(c.req.raw));
+app.all('/auth/get-session', (c) => getBetterAuth().handler(c.req.raw));
+app.route('/auth', authRoutes);
 
 export type AppType = typeof app;
 
