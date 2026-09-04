@@ -20,7 +20,7 @@ apps/api/          NestJS package named @bigbang/api
 - Health: `GET /api/health` → `{ "status": "healthy", "timestamp": "..." }`
 - Hello: `GET /api/hello` → `{ "message": "Hello, world!" }`
 - Unknown routes: JSON `{ "error": "Not Found" }` with HTTP 404
-- Listen port: `PORT` (default `3000`; empty string does not fail boot)
+- Listen: `PORT` on `0.0.0.0` (default `3000`; empty string does not fail boot)
 - CORS: `CORS_ORIGINS` (Vite `3001` and Next `3002` by default)
 - `ZodValidationPipe` for schema-driven controllers (FILE_LOOP in the project)
 
