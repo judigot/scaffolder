@@ -9,3 +9,5 @@ export const <@@>tableName.camelCase</@@> = pgTable('<@@>tableName</@@>', {
 
 export type <@@>tableName.singular.pascalCase</@@> = typeof <@@>tableName.camelCase</@@>.$inferSelect;
 export type New<@@>tableName.singular.pascalCase</@@> = typeof <@@>tableName.camelCase</@@>.$inferInsert;</@@LOOP@@>
+
+export { account, verification } from './auth-schema';

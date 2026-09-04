@@ -5,6 +5,7 @@ A production-ready Hono + React fullstack application with Drizzle ORM.
 ## Tech Stack
 
 - **Runtime**: Bun
+- **Auth**: Better Auth (Drizzle adapter, cookie sessions)
 - **API**: Hono with RPC client
 - **Database**: PostgreSQL with Drizzle ORM
 - **Frontend**: React + Vite

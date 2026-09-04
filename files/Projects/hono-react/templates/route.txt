@@ -6,7 +6,7 @@ import { db } from '../db';
 import { <@@>tableName.camelCase</@@> } from '../db/schema';
 import { eq<@@IF@@ condition="isAuthResource EQUALS 'true' OR hasCompositePrimaryKey() EQUALS 'true'">, and</@@IF@@> } from 'drizzle-orm';
 <@@IF@@ condition="isAuthResource EQUALS 'true'">import { authMiddleware, getUser } from '../middleware/auth';</@@IF@@>
-<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">import { generateIdFromEntropySize } from 'lucia';</@@IF@@>
+<@@IF@@ condition="primaryKeyDataType EQUALS 'string'">import { generateIdFromEntropySize } from '../auth';</@@IF@@>
 
 const app = new Hono();
 <@@IF@@ condition="isAuthResource EQUALS 'true'">

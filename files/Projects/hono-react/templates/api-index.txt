@@ -6,43 +6,42 @@ import { hc } from 'hono/client';
 
 // Import route modules
 <@@LOOP@@ data="tables" separator="\n">import <@@>tableName.camelCase</@@>Routes from './routes/<@@>tableName.singular.camelCase</@@>';</@@LOOP@@>
-import authRoutes from './routes/auth';
 import { db } from './db';
 import { session, user } from './db/schema';
-import { initializeLucia } from './auth';
+import { account, verification } from './db/auth-schema';
+import { initializeBetterAuth, getBetterAuth } from './auth';
 
-// Initialize Lucia authentication
-initializeLucia(db, session, user);
+initializeBetterAuth(db, session, user, { account, verification });
 
 const app = new Hono().basePath('/api');
 
-// Middleware
-app.use('*', cors());
+const corsOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter((origin) => origin.length > 0);
+
+app.use(
+  '*',
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  }),
+);
 app.use('*', logger());
 app.use('*', prettyJSON());
 
-// Health check
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Mount routes
 <@@LOOP@@ data="tables" separator="\n">app.route('/<@@>tableName.kebabCase</@@>', <@@>tableName.camelCase</@@>Routes);</@@LOOP@@>
-app.route('/auth', authRoutes);
+app.all('/auth/*', (c) => getBetterAuth().handler(c.req.raw));
 
-// Export types for RPC client
 export type AppType = typeof app;
 
-// Create typed client for use in frontend and tests
 export const createClient = (baseUrl: string) => hc<AppType>(baseUrl);
 
-// Start server
 const port = Number(process.env.PORT) || 3000;
 
 export default {
   port,
   fetch: app.fetch,
 };
-
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  console.log(`Server running at http://localhost:${port}`);
-}

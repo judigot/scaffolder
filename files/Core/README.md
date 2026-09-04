@@ -70,6 +70,21 @@ Reusable API / app cores:
 - `/Core/laravel` — Laravel application base
 - `/Core/template-monorepo` — Bun Turborepo skeleton (Vite + Next.js + packages; no API)
 
+Auth cores (Better Auth replaces Lucia):
+
+- `/Core/better-auth` — session factory, Drizzle adapter, React client, `account`/`verification` tables
+- `/Core/auth-services` — password helpers, OAuth (Arctic), session wrappers over Better Auth
+- `/Core/auth-hono` — Hono handler + session middleware (`api/auth/hono`)
+- `/Core/auth-nestjs` — NestJS `AuthModule` adapter (`@thallesp/nestjs-better-auth`)
+- `/Core/auth-react` — `AuthProvider` / login forms on `better-auth/react`
+
+```yaml
+$USE_CORE:
+  - /Core/auth-react
+  - /Core/auth-services
+  - /Core/better-auth
+```
+
 Compose the Nest API into the monorepo:
 
 ```yaml
