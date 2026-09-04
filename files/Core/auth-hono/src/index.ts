@@ -35,6 +35,8 @@ export {
   type UserWithProfile,
   type RegisterDataWithProfile,
   // Server functions
+  initializeBetterAuth,
+  getBetterAuth,
   initializeLucia,
   getLucia,
   createSession,
@@ -54,4 +56,4 @@ export {
   fetchOAuthUserInfo,
   generateState,
   generateCodeVerifier,
-} from '../auth';
+} from '../api/auth';

@@ -5,7 +5,7 @@ import {
   getSessionCookieName,
   type User,
   type Session,
-} from '../auth';
+} from '../api/auth';
 
 /**
  * Auth context added to Hono context by middleware
