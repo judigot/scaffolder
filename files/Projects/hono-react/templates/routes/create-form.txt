@@ -1,0 +1,27 @@
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { <@@>tableName.singular.pascalCase</@@>Form } from '@/components/<@@>tableName.singular.pascalCase</@@>Form';
+
+export const Route = createFileRoute(
+  '/_authenticated/<@@>tableName.singular.kebabCase</@@>/create',
+)({
+  component: Create<@@>tableName.singular.pascalCase</@@>Page,
+});
+
+function Create<@@>tableName.singular.pascalCase</@@>Page() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="p-4">
+      <h1 className="mb-4 text-2xl font-bold">
+        Create <@@>tableName.singular.titleCase</@@>
+      </h1>
+      <<@@>tableName.singular.pascalCase</@@>Form
+        onSuccess={() => {
+          void navigate({
+            to: '/<@@>tableName.singular.kebabCase</@@>',
+          });
+        }}
+      />
+    </div>
+  );
+}

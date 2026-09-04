@@ -1,0 +1,10 @@
+{
+  "name": "@core/tanstack-form",
+  "version": "1.0.0",
+  "description": "TanStack Form wrappers (createFormHook) for CRUD create/edit pages",
+  "type": "module",
+  "dependencies": {
+    "@tanstack/react-form": "^1.33.5",
+    "react": "^19.2.0"
+  }
+}

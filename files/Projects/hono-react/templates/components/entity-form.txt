@@ -1,0 +1,37 @@
+import { Form, useAppForm } from '@/components/form';
+import { useCreate<@@>tableName.singular.pascalCase</@@> } from '@/hooks/<@@>tableName.singular.kebabCase</@@>/useCreate<@@>tableName.singular.pascalCase</@@>';
+import type { I<@@>tableName.singular.pascalCase</@@> } from '@/interfaces/I<@@>tableName.singular.pascalCase</@@>';
+
+const defaultValues = {
+<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator=",\n">  <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'number'">0</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">false</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'number' AND data_type NOT EQUAL 'boolean'">''</@@IF@@></@@LOOP@@>
+};
+
+export function <@@>tableName.singular.pascalCase</@@>Form({
+  onSuccess,
+}: {
+  onSuccess?: () => void;
+}) {
+  const createMutation = useCreate<@@>tableName.singular.pascalCase</@@>();
+
+  const form = useAppForm({
+    defaultValues,
+    onSubmit: async ({ value }) => {
+      await createMutation.mutateAsync(
+        value as Omit<I<@@>tableName.singular.pascalCase</@@>, 'id'>,
+      );
+      onSuccess?.();
+    },
+  });
+
+  return (
+    <Form form={form}>
+<@@LOOP@@ data="columnsInfo" filter="is_primary_key NOT EQUAL 'true' AND value NOT EQUAL 'created_at' AND value NOT EQUAL 'updated_at' AND value NOT EQUAL 'deleted_at'" separator="\n">      <form.AppField
+        name="<@@>value.camelCase</@@>"
+        children={(field) => (
+          <field.<@@IF@@ condition="data_type EQUALS 'number'">NumberField</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">CheckboxField</@@IF@@><@@IF@@ condition="data_type NOT EQUAL 'number' AND data_type NOT EQUAL 'boolean'">TextField</@@IF@@> label="<@@>value.titleCase</@@>" />
+        )}
+      /></@@LOOP@@>
+      <form.SubmitButton label="Create <@@>tableName.singular.titleCase</@@>" />
+    </Form>
+  );
+}

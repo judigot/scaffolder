@@ -13,8 +13,10 @@ $USE_CORE:
   - /Core/drizzle-data
   - /Core/vitest-test
   - /Core/tanstack-router
+  - /Core/tanstack-form
   - /Core/auth-react
   - /Core/auth-services
+  - /Core/better-auth
   - /Core/ci-api-testing
 
 # API routes - one file per table
@@ -38,6 +40,7 @@ src:
   CREATE_FILE(router.tsx --template ./templates/router.txt):
   components:
     CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt):
+    FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Form.tsx --template ./templates/components/entity-form.txt):
   services:
     auth:
       CREATE_FILE(index.ts --template ./templates/auth-services.txt):
@@ -48,6 +51,7 @@ src:
     CREATE_FILE(register.tsx --template ./templates/routes/register.txt):
     CREATE_FILE(_authenticated.tsx --template ./templates/routes/_authenticated.txt):
     FILE_LOOP(_authenticated.<@@>tableName.singular.kebabCase</@@>.tsx --template ./templates/routes/table-route.txt):
+    FILE_LOOP(_authenticated.<@@>tableName.singular.kebabCase</@@>.create.tsx --template ./templates/routes/create-form.txt):
   styles:
     CREATE_FILE(main.scss --template ./templates/styles.txt):
 
