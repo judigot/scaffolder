@@ -1,11 +1,8 @@
 {
-  "name": "@core/auth-services",
-  "version": "1.0.0",
-  "description": "Framework-agnostic authentication services with Lucia and Arctic",
+  "description": "Framework-agnostic authentication services on Better Auth",
   "type": "module",
   "dependencies": {
-    "lucia": "^3.2.0",
-    "@lucia-auth/adapter-drizzle": "^1.0.7",
+    "better-auth": "^1.7.2",
     "arctic": "^2.0.0",
     "@node-rs/argon2": "^2.0.0"
   }
