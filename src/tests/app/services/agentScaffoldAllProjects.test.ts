@@ -110,11 +110,11 @@ function countFiles(structure: IStructure): number {
   return count;
 }
 
-function schemaForProject(projectName: string): ReturnType<
-  typeof parseCompactSchema
-> {
+function schemaForProject(
+  projectName: string,
+): ReturnType<typeof parseCompactSchema> {
   const compact =
-    projectName === 'hono-react'
+    projectName === 'hono-react' || projectName === 'App Generator - Next.js'
       ? HONO_REACT_WITH_PASSWORD_SCHEMA
       : GENERIC_COMPACT_SCHEMA;
   return parseCompactSchema(compact);
@@ -150,59 +150,55 @@ describe('agent-scaffold generate for every current project', () => {
   describe.each(projects.map((project) => project.name))(
     'project %s',
     (projectName) => {
-      it(
-        'generates without leftover markers',
-        { timeout: 60000 },
-        async () => {
-          const project = projects.find((item) => item.name === projectName);
-          expect(project).toBeDefined();
-          if (project === undefined) {
-            return;
-          }
+      it('generates without leftover markers', { timeout: 60000 }, async () => {
+        const project = projects.find((item) => item.name === projectName);
+        expect(project).toBeDefined();
+        if (project === undefined) {
+          return;
+        }
 
-          const parsedSchema = schemaForProject(projectName);
-          expect(parsedSchema).not.toBeNull();
-          if (parsedSchema === null) {
-            return;
-          }
+        const parsedSchema = schemaForProject(projectName);
+        expect(parsedSchema).not.toBeNull();
+        if (parsedSchema === null) {
+          return;
+        }
 
-          const filterOk = schemaMatchesFilter(
-            parsedSchema,
-            project.schemaFilter,
+        const filterOk = schemaMatchesFilter(
+          parsedSchema,
+          project.schemaFilter,
+        );
+        if (!filterOk) {
+          throw new Error(
+            `${projectName} representative schema failed SCHEMA_FILTER: ${project.schemaFilter.join(', ')}`,
           );
-          if (!filterOk) {
-            throw new Error(
-              `${projectName} representative schema failed SCHEMA_FILTER: ${project.schemaFilter.join(', ')}`,
-            );
-          }
+        }
 
-          const result = await buildProjectFiles(
-            `/Projects/${projectName}/structure.yaml`,
-            userFiles,
-            parsedSchema,
-            mockFormData,
-            null,
-          );
+        const result = await buildProjectFiles(
+          `/Projects/${projectName}/structure.yaml`,
+          userFiles,
+          parsedSchema,
+          mockFormData,
+          null,
+        );
 
-          const leftovers = detectLeftoverTemplateMarkers(result.structure);
-          expect(leftovers).toEqual([]);
+        const leftovers = detectLeftoverTemplateMarkers(result.structure);
+        expect(leftovers).toEqual([]);
 
-          if (projectName === 'App') {
-            expect(result.hasErrors).toBe(true);
-            expect(
-              result.messages?.some(
-                (message) =>
-                  message.code === SCAFFOLDER_MESSAGE_CODES.FormatError,
-              ),
-            ).toBe(true);
-            return;
-          }
+        if (projectName === 'App') {
+          expect(result.hasErrors).toBe(true);
+          expect(
+            result.messages?.some(
+              (message) =>
+                message.code === SCAFFOLDER_MESSAGE_CODES.FormatError,
+            ),
+          ).toBe(true);
+          return;
+        }
 
-          expect(result.hasErrors).toBeFalsy();
-          expect(result.filesFailedToFormat).toEqual([]);
-          expect(countFiles(result.structure)).toBeGreaterThan(0);
-        },
-      );
+        expect(result.hasErrors).toBeFalsy();
+        expect(result.filesFailedToFormat).toEqual([]);
+        expect(countFiles(result.structure)).toBeGreaterThan(0);
+      });
     },
   );
 
