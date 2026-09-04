@@ -26,6 +26,7 @@ If golden tests pass, users can trust the scaffolder to generate working applica
 | `all-projects.test.ts` | **TRUE GOLDEN TEST** - Dynamically tests ALL complete projects × ALL schemas |
 | `hono-react.test.ts` | Tests hono-react project specifically (subset of above) |
 | `template-monorepo.test.ts` | Bun Turborepo + Nest.js API golden (health, no Drizzle) |
+| `nextjs.test.ts` | Next.js 16 App Router BFF golden (Drizzle, health-only runtime) |
 
 ## How `all-projects.test.ts` Works
 
@@ -38,6 +39,7 @@ If golden tests pass, users can trust the scaffolder to generate working applica
 Current coverage:
 ├── App Generator - Express React
 ├── App Generator - Laravel
+├── App Generator - Next.js
 ├── hono-react
 └── template-monorepo
 ```
@@ -125,6 +127,13 @@ For `template-monorepo` (monorepo skeleton + Nest.js Core; private template is n
 1. **Dependencies install** - filtered `bun install --filter @bigbang/api` (skips Next.js / Vite / Playwright)
 2. **No ORM migrate** - this skeleton has no Drizzle
 3. **API starts** - `bun run --filter @bigbang/api dev` (Nest.js `apps/api`)
+4. **Health checks** - `/api/health`, `/api/hello`, and a JSON 404
+
+For `App Generator - Next.js` (Next.js 16 App Router BFF + Drizzle core):
+
+1. **Dependencies install** - `bun install` (standalone Next app)
+2. **skipMigrate=true** - health-only runtime; Drizzle schema is generated but not pushed in CI
+3. **App starts** - `bun run dev:api` (`next dev`, `PORT`)
 4. **Health checks** - `/api/health`, `/api/hello`, and a JSON 404
 
 `ProjectsExtra/Monorepo` is a Laravel + frontend split and is not this golden.
