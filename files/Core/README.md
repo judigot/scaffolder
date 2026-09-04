@@ -104,9 +104,9 @@ Standalone Next.js BFF (do not compose with `/Core/template-monorepo`; `app/` wo
 
 ```yaml
 $USE_CORE:
-  - /Core/nextjs
   - /Core/drizzle-data
   - /Core/better-auth
+  - /Core/nextjs
 ```
 
 Compose queues, tracing, and e2e onto the Nest golden:

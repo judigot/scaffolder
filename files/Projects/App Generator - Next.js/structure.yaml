@@ -1,6 +1,6 @@
 # Next.js 16 App Router BFF (Vercel-first).
 # Drizzle on the server via /Core/drizzle-data. Pages Router is not used.
-# Auth: Better Auth via /Core/better-auth; Next route handler mounts /api/auth/*.
+# Auth: Better Auth via /Core/better-auth; Next overlays last so catch-all and tsc hold.
 
 $SCHEMA_FILTER:
   - 'user'
@@ -9,9 +9,9 @@ $SCHEMA_FILTER:
   - 'session.userId.foreign_key'
 
 $USE_CORE:
-  - /Core/nextjs
   - /Core/drizzle-data
   - /Core/better-auth
+  - /Core/nextjs
 
 api:
   db:
@@ -24,10 +24,6 @@ app:
       CREATE_FILE(route.ts --scoped --template ./templates/collection-route.txt):
       '[id]':
         CREATE_FILE(route.ts --scoped --template ./templates/item-route.txt):
-
-src:
-  lib:
-    CREATE_FILE(auth-client.ts --template ./templates/auth-client.txt):
 
 lib:
   CREATE_FILE(auth.ts --template ./templates/auth-session.txt):
