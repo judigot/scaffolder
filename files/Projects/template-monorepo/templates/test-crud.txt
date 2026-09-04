@@ -1,0 +1,70 @@
+import { describe, expect, test } from 'bun:test';
+
+const baseUrl = process.env.TEST_API_URL;
+const skip = baseUrl === undefined || baseUrl === '';
+
+/**
+ * CRUD Testing Pattern: C → R → U → R → D → R
+ *
+ * Skipped unless TEST_API_URL is set so `bun test` can still run health
+ * checks without a live database.
+ */
+describe('<@@>tableName.pascalCase</@@> API - CRUD Testing (C→R→U→R→D→R)', () => {
+<@@IF@@ condition="primaryKeyDataType EQUALS 'number'">  let createdId: number;</@@IF@@><@@IF@@ condition="primaryKeyDataType NOT EQUAL 'number'">  let createdId: string;</@@IF@@>
+
+  const testData = {
+<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'test-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">1</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">true</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">'2024-01-01T00:00:00.000Z'</@@IF@@><@@IF@@ condition="data_type EQUALS 'uuid'">'00000000-0000-4000-8000-000000000001'</@@IF@@></@@IF@@></@@LOOP@@>
+  };
+
+  const updateData = {
+<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">    <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">'updated-<@@>value.camelCase</@@>'</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">2</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">false</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">'2024-12-31T00:00:00.000Z'</@@IF@@><@@IF@@ condition="data_type EQUALS 'uuid'">'00000000-0000-4000-8000-000000000002'</@@IF@@></@@IF@@></@@LOOP@@>
+  };
+
+  test.skipIf(skip)('should CREATE a new <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${baseUrl}/<@@>tableName.kebabCase</@@>`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testData),
+    });
+    expect(res.status).toBe(201);
+    const data: unknown = await res.json();
+    expect(data).toBeTruthy();
+    if (typeof data !== 'object' || data === null || !('<@@>getPrimaryKeyCamelCase()</@@>' in data)) {
+      throw new Error('Expected created record with primary key');
+    }
+    createdId = data.<@@>getPrimaryKeyCamelCase()</@@> as <@@IF@@ condition="primaryKeyDataType EQUALS 'number'">number</@@IF@@><@@IF@@ condition="primaryKeyDataType NOT EQUAL 'number'">string</@@IF@@>;
+  });
+
+  test.skipIf(skip)('should READ the created <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${baseUrl}/<@@>tableName.kebabCase</@@>/${String(createdId)}`);
+    expect(res.status).toBe(200);
+    const data: unknown = await res.json();
+    expect(data).toBeTruthy();
+  });
+
+  test.skipIf(skip)('should UPDATE the <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${baseUrl}/<@@>tableName.kebabCase</@@>/${String(createdId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  test.skipIf(skip)('should READ the updated <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${baseUrl}/<@@>tableName.kebabCase</@@>/${String(createdId)}`);
+    expect(res.status).toBe(200);
+  });
+
+  test.skipIf(skip)('should DELETE the <@@>tableName.singular</@@>', async () => {
+    const res = await fetch(`${baseUrl}/<@@>tableName.kebabCase</@@>/${String(createdId)}`, {
+      method: 'DELETE',
+    });
+    expect(res.status).toBe(200);
+  });
+
+  test.skipIf(skip)('should return 404 after DELETE', async () => {
+    const res = await fetch(`${baseUrl}/<@@>tableName.kebabCase</@@>/${String(createdId)}`);
+    expect(res.status).toBe(404);
+  });
+});

@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { createAuthClient } from 'better-auth/react';
 import type {
   User,
   LoginCredentials,
@@ -14,9 +15,11 @@ import type {
   AuthContextValue,
 } from '../types';
 
-// API base URL - respects BASE_URL for subpath deployments (e.g., /hono-react)
 const BASE_PATH = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
-const API_BASE = `${BASE_PATH}/api/auth`;
+
+const authClient = createAuthClient({
+  basePath: `${BASE_PATH}/api/auth`,
+});
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -24,72 +27,54 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-/**
- * Auth API client using cookies for session management
- */
-const authApi = {
-  async login(credentials: LoginCredentials): Promise<{ user: User }> {
-    const response = await fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // Important for cookies
-      body: JSON.stringify(credentials),
-    });
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || 'Login failed');
-    }
+function toUser(value: unknown): User | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (typeof value.id !== 'string' || typeof value.email !== 'string') {
+    return null;
+  }
 
-    return response.json();
-  },
+  const usernameValue = value.username ?? value.name;
+  const username =
+    typeof usernameValue === 'string' || usernameValue === null
+      ? usernameValue
+      : null;
 
-  async register(data: RegisterData): Promise<{ user: User }> {
-    const response = await fetch(`${API_BASE}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    });
+  return {
+    id: value.id,
+    email: value.email,
+    username,
+    emailVerified: value.emailVerified === true,
+    createdAt: value.createdAt instanceof Date ? value.createdAt : new Date(),
+    updatedAt: value.updatedAt instanceof Date ? value.updatedAt : new Date(),
+  };
+}
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || 'Registration failed');
-    }
-
-    return response.json();
-  },
-
-  async logout(): Promise<void> {
-    await fetch(`${API_BASE}/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    });
-  },
-
-  async getSession(): Promise<{ authenticated: boolean; user: User | null }> {
-    const response = await fetch(`${API_BASE}/session`, {
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      return { authenticated: false, user: null };
-    }
-
-    return response.json();
-  },
-};
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (isRecord(error) && typeof error.message === 'string') {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+}
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state by checking session
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const { authenticated, user: currentUser } = await authApi.getSession();
-        if (authenticated && currentUser) {
+        const { data } = await authClient.getSession();
+        const currentUser = toUser(data?.user);
+        if (currentUser) {
           setUser(currentUser);
         }
       } catch {
@@ -99,13 +84,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     };
 
-    initAuth();
+    void initAuth();
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
-      const { user: loggedInUser } = await authApi.login(credentials);
+      const { data, error } = await authClient.signIn.email({
+        email: credentials.email,
+        password: credentials.password,
+      });
+      if (error) {
+        throw new Error(getErrorMessage(error, 'Login failed'));
+      }
+      const loggedInUser = toUser(data?.user);
+      if (!loggedInUser) {
+        throw new Error('Login failed');
+      }
       setUser(loggedInUser);
     } finally {
       setIsLoading(false);
@@ -115,7 +110,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = useCallback(async (data: RegisterData) => {
     setIsLoading(true);
     try {
-      const { user: newUser } = await authApi.register(data);
+      const { data: result, error } = await authClient.signUp.email({
+        email: data.email,
+        password: data.password,
+        name: data.username ?? data.email,
+      });
+      if (error) {
+        throw new Error(getErrorMessage(error, 'Registration failed'));
+      }
+      const newUser = toUser(result?.user);
+      if (!newUser) {
+        throw new Error('Registration failed');
+      }
       setUser(newUser);
     } finally {
       setIsLoading(false);
@@ -124,7 +130,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = useCallback(async () => {
     try {
-      await authApi.logout();
+      await authClient.signOut();
     } catch {
       // Ignore logout API errors
     } finally {

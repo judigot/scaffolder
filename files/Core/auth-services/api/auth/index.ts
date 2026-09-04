@@ -4,25 +4,29 @@
 export * from './types';
 
 // ============================================================================
-// Server-side only - client auth is in src/services/auth or Core/auth-react
+// Server-side only - client auth is in src/lib/auth-client or Core/auth-react
 // ============================================================================
 
-// Lucia (session management)
-export { initializeLucia, getLucia, Lucia } from './lucia';
+export {
+  createBetterAuth,
+  initializeBetterAuth,
+  getBetterAuth,
+  getSessionCookieName,
+  generateIdFromEntropySize,
+  SESSION_COOKIE_NAME,
+} from './better-auth';
 
-// Session management
+export { initializeLucia, getLucia } from './lucia';
+
 export {
   createSession,
   validateSession,
   invalidateSession,
   invalidateAllUserSessions,
-  getSessionCookieName,
 } from './session';
 
-// Password utilities
 export { hashPassword, verifyPassword, validatePassword } from './password';
 
-// OAuth providers (Arctic)
 export {
   initializeOAuthProviders,
   getOAuthProvider,
@@ -36,6 +40,3 @@ export {
   generateState,
   generateCodeVerifier,
 } from './oauth-providers';
-
-// Re-export ID generation from Lucia
-export { generateIdFromEntropySize } from 'lucia';

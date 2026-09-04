@@ -145,8 +145,9 @@ describe('template-monorepo golden project', () => {
     const goldenPath = path.join(projectDir, '.golden');
     expect(fs.existsSync(goldenPath)).toBe(true);
     const content = fs.readFileSync(goldenPath, 'utf-8');
-    expect(content).toContain('framework=hono');
-    expect(content).toContain('skipMigrate=true');
+    expect(content).toContain('framework=Nest');
+    expect(content).toContain('port=3100');
+    expect(content).toContain('skipMigrate=false');
     expect(content).toContain('parity=false');
     expect(content).toContain('installFilter=@bigbang/api');
     expect(content).toContain('devFilter=@bigbang/api');
@@ -184,8 +185,18 @@ describe('template-monorepo golden project', () => {
       (item) => item.type === 'file' && item.name === 'drizzle.config.ts',
     );
     expect(rootDrizzle).toBeUndefined();
+    const apiDrizzle = getAtPath(result.structure, [
+      'apps',
+      'api',
+      'drizzle.config.ts',
+    ]);
+    expect(apiDrizzle?.type).toBe('file');
+    if (apiDrizzle?.type === 'file') {
+      expect(apiDrizzle.content).toContain('./src/db/schema.ts');
+    }
     const rootTurbo = result.structure.find(
-      (item): item is IFile => item.type === 'file' && item.name === 'turbo.json',
+      (item): item is IFile =>
+        item.type === 'file' && item.name === 'turbo.json',
     );
     expect(rootTurbo).toBeDefined();
     const rootApiTest = result.structure.find(
@@ -206,22 +217,73 @@ describe('template-monorepo golden project', () => {
     if (apiPackageJson?.type === 'file') {
       expect(apiPackageJson.content).toContain('"name": "@bigbang/api"');
       expect(apiPackageJson.content).toContain('"@nestjs/core"');
+      expect(apiPackageJson.content).toContain('"drizzle-orm"');
       expect(apiPackageJson.content).not.toContain('"hono"');
     }
 
     const healthController = findFile(result.structure, 'health.controller.ts');
     expect(healthController?.content).toContain('HealthController');
     expect(healthController?.content).toContain("status: 'healthy'");
+    const mainTs = findFile(result.structure, 'main.ts');
+    expect(mainTs?.content).toContain("app.listen(port, '0.0.0.0')");
+    expect(mainTs?.content).toContain('setGlobalPrefix');
     expect(findFile(result.structure, 'app.module.ts')?.content).toContain(
       'AppModule',
     );
+    expect(findFile(result.structure, 'app.module.ts')?.content).toContain(
+      'Module',
+    );
+    expect(
+      findFile(result.structure, 'zod-validation.pipe.ts')?.content,
+    ).toContain('ZodValidationPipe');
     expect(findFile(result.structure, 'health.ts')).toBeUndefined();
+
+    const dbIndex = getAtPath(result.structure, [
+      'apps',
+      'api',
+      'src',
+      'db',
+      'index.ts',
+    ]);
+    expect(dbIndex?.type).toBe('file');
+    if (dbIndex?.type === 'file') {
+      expect(dbIndex.content).toContain('getDb');
+      expect(dbIndex.content).not.toContain('api/db');
+    }
+    const dbSchema = getAtPath(result.structure, [
+      'apps',
+      'api',
+      'src',
+      'db',
+      'schema.ts',
+    ]);
+    expect(dbSchema?.type).toBe('file');
+    if (dbSchema?.type === 'file') {
+      expect(dbSchema.content).toContain('pgTable');
+    }
+
+    const userController = findFile(result.structure, 'user.controller.ts');
+    expect(userController?.content).toContain('UserController');
+    expect(userController?.content).toContain("Controller('user')");
+    expect(findFile(result.structure, 'user.service.ts')?.content).toContain(
+      'UserService',
+    );
+    expect(findFile(result.structure, 'user.module.ts')?.content).toContain(
+      'UserModule',
+    );
 
     expect(rootApiTest).toBeDefined();
     expect(rootApiTest?.content).toContain('/health');
     expect(rootApiTest?.content).toContain('Passed:');
     expect(rootApiTest?.content).toContain('Failed:');
+    expect(rootApiTest?.content).toContain('GET /user');
+    expect(rootApiTest?.content).toContain('grep -Fq');
     expect(rootApiTest?.content).not.toContain('/auth/register');
+
+    const rootApiFolder = result.structure.find(
+      (item) => item.type === 'folder' && item.name === 'api',
+    );
+    expect(rootApiFolder).toBeUndefined();
 
     expect(rootDockerfile).toBeDefined();
   }, 60000);

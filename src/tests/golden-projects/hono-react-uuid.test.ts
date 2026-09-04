@@ -254,6 +254,14 @@ describe('Hono-React uuid schema generation', () => {
         /expiresAt:\s*timestamp\('expiresAt'[\s\S]*?\)\.notNull\(\)/,
       );
       expect(schemaContent).toMatch(
+        /createdAt:\s*timestamp\('created_at'[\s\S]*?\.notNull\(\)[\s\S]*?\.defaultNow\(\)/,
+      );
+      expect(schemaContent).toMatch(
+        /updatedAt:\s*timestamp\('updated_at'[\s\S]*?\.notNull\(\)[\s\S]*?\.defaultNow\(\)/,
+      );
+      expect(schemaContent).toContain("text('ip_address')");
+      expect(schemaContent).toContain("text('user_agent')");
+      expect(schemaContent).toMatch(
         /userId:\s*uuid\('userId'\)\s*\.notNull\(\)\s*\.references\(\(\)\s*=>\s*user\.id\)/,
       );
       expect(schemaContent).not.toMatch(/\buserid\s*:/);
@@ -292,7 +300,9 @@ describe('Hono-React uuid schema generation', () => {
       const passwordLessSchema = parseCompactSchema(honoReactCompactSchema);
       expect(passwordLessSchema).not.toBeNull();
       if (!isISchemaInfoArray(passwordLessSchema)) {
-        throw new Error('Password-less compact uuid schema is not ISchemaInfo[]');
+        throw new Error(
+          'Password-less compact uuid schema is not ISchemaInfo[]',
+        );
       }
 
       const result = await buildProjectFiles(

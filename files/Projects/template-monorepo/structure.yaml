@@ -1,10 +1,28 @@
-# Bun Turborepo golden.
-# Skeleton from files/Core/template-monorepo; Nest.js API from files/Core/nestjs-api.
-# Runtime tests cover API health only — no Drizzle, no Next.js/Vite E2E.
+# Bun Turborepo golden: Nest.js API + path-aware Drizzle at apps/api.
+# Schema-driven FILE_LOOP CRUD lives in this project, not in Core.
+# /Core/better-auth is a repo-root Hono overlay (api/auth, api/db) — do not
+# compose it here; it would conflict with apps/api. Optional Fastify adapter:
+# compose /Core/nestjs-fastify after nestjs-api (not a second golden).
 
 $USE_CORE:
   - /Core/template-monorepo
   - /Core/nestjs-api
+  - /Core/drizzle-data-apps-api
+  - /Core/playwright-e2e
+
+apps:
+  api:
+    src:
+      CREATE_FILE(app.module.ts --template ./templates/app-module.txt):
+      db:
+        CREATE_FILE(schema.ts --template ./templates/db-schema.txt --data-source=/Constants/typeMappings.yaml):
+        CREATE_FILE(seed.ts --template ./templates/db-seed.txt):
+      modules:
+        FILE_LOOP(<@@>tableName.camelCase</@@>.controller.ts --template ./templates/controller.txt --data-source=/Constants/typeMappings.yaml):
+        FILE_LOOP(<@@>tableName.camelCase</@@>.service.ts --template ./templates/service.txt):
+        FILE_LOOP(<@@>tableName.camelCase</@@>.module.ts --template ./templates/module.txt):
+    test:
+      FILE_LOOP(<@@>tableName.camelCase</@@>.test.ts --template ./templates/test-crud.txt --filter="hasCompositePrimaryKey() NOT EQUAL 'true'"):
 
 CREATE_FILE(api-test.sh --template ./templates/api-test.txt):
 CREATE_FILE(Dockerfile.dev --template ./templates/Dockerfile.dev):

@@ -16,4 +16,6 @@ export DATABASE_URL="$DB_URL"
 
 echo "[Golden Frameworks] Running golden app integrity suite against $DATABASE_URL"
 cd "$ROOT_DIR"
-bun run scripts/test-golden-apps.ts
+# Optional filter: ./scripts/test-golden-frameworks template-monorepo
+# or GOLDEN_APP=template-monorepo ./scripts/test-golden-frameworks
+bun run scripts/test-golden-apps.ts "$@"

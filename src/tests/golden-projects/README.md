@@ -21,11 +21,12 @@ If golden tests pass, users can trust the scaffolder to generate working applica
 
 ## Test Files
 
-| File | Purpose |
-|------|---------|
-| `all-projects.test.ts` | **TRUE GOLDEN TEST** - Dynamically tests ALL complete projects × ALL schemas |
-| `hono-react.test.ts` | Tests hono-react project specifically (subset of above) |
-| `template-monorepo.test.ts` | Bun Turborepo + Nest.js API golden (health, no Drizzle) |
+| File                        | Purpose                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| `all-projects.test.ts`      | **TRUE GOLDEN TEST** - Dynamically tests ALL complete projects × ALL schemas |
+| `hono-react.test.ts`        | Tests hono-react project specifically (subset of above)                      |
+| `template-monorepo.test.ts` | Bun Turborepo + Nest.js API golden (health, no Drizzle)                      |
+| `nextjs.test.ts`            | Next.js 16 App Router BFF golden (Drizzle, health-only runtime)              |
 
 ## How `all-projects.test.ts` Works
 
@@ -38,6 +39,7 @@ If golden tests pass, users can trust the scaffolder to generate working applica
 Current coverage:
 ├── App Generator - Express React
 ├── App Generator - Laravel
+├── App Generator - Next.js
 ├── hono-react
 └── template-monorepo
 ```
@@ -99,13 +101,13 @@ If a golden test fails:
 
 ## Schema Test Cases
 
-| Schema | Description |
-|--------|-------------|
-| oneToOne | User ↔ Profile relationship |
-| oneToMany | User → Posts relationship |
-| manyToMany | Products ↔ Orders with pivot |
+| Schema       | Description                                |
+| ------------ | ------------------------------------------ |
+| oneToOne     | User ↔ Profile relationship                |
+| oneToMany    | User → Posts relationship                  |
+| manyToMany   | Products ↔ Orders with pivot               |
 | masterSchema | Complex schema with all relationship types |
-| userRoles | Users, Roles, UserRoles pivot |
+| userRoles    | Users, Roles, UserRoles pivot              |
 
 ## Runtime Tests
 
@@ -123,8 +125,15 @@ For `hono-react` and Laravel:
 For `template-monorepo` (monorepo skeleton + Nest.js Core; private template is not cloned in CI):
 
 1. **Dependencies install** - filtered `bun install --filter @bigbang/api` (skips Next.js / Vite / Playwright)
-2. **No ORM migrate** - this skeleton has no Drizzle
-3. **API starts** - `bun run --filter @bigbang/api dev` (Nest.js `apps/api`)
+2. **Schema push** - Drizzle at `apps/api` (`skipMigrate=false`)
+3. **API starts** - `bun run start` in the `@bigbang/api` package dir (Nest.js, no `bun --filter`)
+4. **Health checks** - `/api/health`, `/api/hello`, and a JSON 404
+
+For `App Generator - Next.js` (Next.js 16 App Router BFF + Drizzle core):
+
+1. **Dependencies install** - `bun install` (standalone Next app)
+2. **skipMigrate=true** - health-only runtime; Drizzle schema is generated but not pushed in CI
+3. **App starts** - `bun run dev:api` (`next dev`, `PORT`)
 4. **Health checks** - `/api/health`, `/api/hello`, and a JSON 404
 
 `ProjectsExtra/Monorepo` is a Laravel + frontend split and is not this golden.
@@ -160,15 +169,16 @@ Every scaffolded project includes an `api-test.sh` script that tests all CRUD en
 
 The template uses these placeholders:
 
-| Placeholder | Description | Example |
-|-------------|-------------|---------|
-| `{{tableName.titleCase}}` | Human-readable name | `Order Product` |
-| `{{tableName.kebabCase}}` | API endpoint path | `order-product` |
-| `{{primaryKey}}` | Primary key field name | `orderProductId` |
-| `{{createPayload}}` | JSON for POST request | `{"orderId":1,"productId":1}` |
-| `{{updatePayload}}` | JSON for PUT request | `{"orderId":1,"productId":1}` |
+| Placeholder               | Description            | Example                       |
+| ------------------------- | ---------------------- | ----------------------------- |
+| `{{tableName.titleCase}}` | Human-readable name    | `Order Product`               |
+| `{{tableName.kebabCase}}` | API endpoint path      | `order-product`               |
+| `{{primaryKey}}`          | Primary key field name | `orderProductId`              |
+| `{{createPayload}}`       | JSON for POST request  | `{"orderId":1,"productId":1}` |
+| `{{updatePayload}}`       | JSON for PUT request   | `{"orderId":1,"productId":1}` |
 
 The script tests each table with the **C→R→U→R→D→R** pattern:
+
 - **C**reate → **R**ead → **U**pdate → **R**ead (verify) → **D**elete → **R**ead (404)
 
 ### Adding `api-test.sh` to Projects

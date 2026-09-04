@@ -1,0 +1,123 @@
+import { NextResponse } from 'next/server';
+import { createSchemaFactory } from 'drizzle-zod';
+import { eq } from 'drizzle-orm';
+import { db } from '@/api/db';
+import { <@@>tableName.camelCase</@@> } from '@/api/db/schema';
+
+export const dynamic = 'force-dynamic';
+
+const { createInsertSchema } = createSchemaFactory({ coerce: { date: true } });
+
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">const update<@@>tableName.singular.pascalCase</@@>Schema = createInsertSchema(<@@>tableName.camelCase</@@>).partial();
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">const update<@@>tableName.singular.pascalCase</@@>Schema = createInsertSchema(<@@>tableName.camelCase</@@>).omit({ <@@>getPrimaryKeyCamelCase()</@@>: true }).partial();
+</@@IF@@>
+
+interface IRouteContext {
+  params: Promise<{ id: string }>;
+}
+
+<@@IF@@ condition="primaryKeyDataType EQUALS 'number'">function parseId(id: string): number | null {
+  const parsed = Number(id);
+  if (!Number.isInteger(parsed)) {
+    return null;
+  }
+  return parsed;
+}
+</@@IF@@><@@IF@@ condition="primaryKeyDataType NOT EQUAL 'number'">function parseId(id: string): string | null {
+  if (id.length === 0) {
+    return null;
+  }
+  return id;
+}
+</@@IF@@>
+
+async function readId(context: IRouteContext): Promise<ReturnType<typeof parseId>> {
+  const { id } = await context.params;
+  return parseId(id);
+}
+
+export async function GET(
+  _request: Request,
+  context: IRouteContext,
+): Promise<Response> {
+  const id = await readId(context);
+  if (id === null) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+  }
+
+  const result = await db
+    .select()
+    .from(<@@>tableName.camelCase</@@>)
+    .where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id));
+  const row = result[0];
+  if (row === undefined) {
+    return NextResponse.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, { status: 404 });
+  }
+  return NextResponse.json(row);
+}
+
+async function update(
+  request: Request,
+  context: IRouteContext,
+): Promise<Response> {
+  const id = await readId(context);
+  if (id === null) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const parsed = update<@@>tableName.singular.pascalCase</@@>Schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const result = await db
+    .update(<@@>tableName.camelCase</@@>)
+    .set(parsed.data)
+    .where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id))
+    .returning();
+  const row = result[0];
+  if (row === undefined) {
+    return NextResponse.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, { status: 404 });
+  }
+  return NextResponse.json(row);
+}
+
+export async function PUT(
+  request: Request,
+  context: IRouteContext,
+): Promise<Response> {
+  return update(request, context);
+}
+
+export async function PATCH(
+  request: Request,
+  context: IRouteContext,
+): Promise<Response> {
+  return update(request, context);
+}
+
+export async function DELETE(
+  _request: Request,
+  context: IRouteContext,
+): Promise<Response> {
+  const id = await readId(context);
+  if (id === null) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+  }
+
+  const result = await db
+    .delete(<@@>tableName.camelCase</@@>)
+    .where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id))
+    .returning();
+  if (result.length === 0) {
+    return NextResponse.json({ error: '<@@>tableName.singular.pascalCase</@@> not found' }, { status: 404 });
+  }
+  return NextResponse.json({ success: true });
+}

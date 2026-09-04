@@ -1,10 +1,9 @@
 {
-  "name": "@core/auth-react",
-  "version": "1.0.0",
-  "description": "React authentication components and hooks",
+  "description": "React authentication components and hooks on Better Auth",
   "type": "module",
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "better-auth": "^1.7.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   }
 }

@@ -1,117 +1,73 @@
 # Auth Hono Adapter
 
-Hono-specific middleware and route handlers for auth-services.
+Hono middleware and the Better Auth catch-all handler.
+
+Legacy `src/` files stay in place for older overlays. New apps should import from `api/auth/hono`.
 
 ## Features
 
-- Session cookie middleware
-- Authentication guards (requireAuth, requireVerifiedEmail)
-- Pre-built auth routes (/register, /login, /logout, /me)
-- Type-safe context helpers
+- `betterAuthHandler` — `app.all('/auth/*', betterAuthHandler)`
+- Session middleware via `auth.api.getSession`
+- Auth guards (`requireAuth`, `requireVerifiedEmail`)
+- Pre-built email/password routes in `src/routes.ts` (kept until the handler path is enough)
 
 ## Usage
-
-### 1. Add to structure.yaml
 
 ```yaml
 $USE_CORE:
   - /Core/auth-services
+  - /Core/better-auth
   - /Core/auth-hono
 ```
 
-### 2. Apply Session Middleware
+Do not `$USE_CORE` this overlay after a React `src/` core unless you want `src/middleware.ts` from this package. Prefer the `api/auth/hono` files.
+
+### Mount Better Auth
 
 ```typescript
 import { Hono } from 'hono';
-import { sessionMiddleware } from './auth/hono/middleware';
+import { cors } from 'hono/cors';
+import { betterAuthHandler } from './auth/hono';
+import { initializeBetterAuth, getBetterAuth } from './auth';
+import { db } from './db';
+import { session, user } from './db/schema';
+import { account, verification } from './db/auth-schema';
 
-const app = new Hono();
+initializeBetterAuth(db, session, user, { account, verification });
 
-// Apply to all routes
-app.use('*', sessionMiddleware());
+const app = new Hono().basePath('/api');
+
+app.use(
+  '/auth/*',
+  cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  }),
+);
+
+app.all('/auth/*', betterAuthHandler);
 ```
 
-### 3. Protect Routes
+This serves Better Auth at `/api/auth/*`:
+
+- POST `/api/auth/sign-up/email`
+- POST `/api/auth/sign-in/email`
+- POST `/api/auth/sign-out`
+- GET `/api/auth/get-session`
+
+### Session middleware
 
 ```typescript
-import { requireAuth, getUser } from './auth/hono/middleware';
+import { sessionMiddleware, requireAuth, getUser } from './auth/hono';
 
-// Protected route
+app.use('*', sessionMiddleware());
+
 app.get('/profile', requireAuth(), (c) => {
   const user = getUser(c);
   return c.json({ user });
 });
-
-// Or with email verification required
-app.post('/sensitive', requireAuth(), requireVerifiedEmail(), (c) => {
-  // Only verified users reach here
-});
 ```
 
-### 4. Use Pre-built Auth Routes
+## Cookie name
 
-```typescript
-import { createAuthRoutes } from './auth/hono/routes';
-import { db } from './db';
-import { user } from './db/schema';
-
-const authRoutes = createAuthRoutes(db, user);
-app.route('/auth', authRoutes);
-```
-
-This gives you:
-- POST /auth/register
-- POST /auth/login
-- POST /auth/logout
-- GET /auth/me
-- GET /auth/session
-
-## Middleware Reference
-
-### sessionMiddleware()
-
-Validates session cookie and populates `user` and `session` in context.
-
-```typescript
-app.use('*', sessionMiddleware());
-
-// Access in handlers:
-const user = c.get('user');    // User | null
-const session = c.get('session'); // Session | null
-```
-
-### requireAuth()
-
-Returns 401 if no authenticated user.
-
-```typescript
-app.get('/private', requireAuth(), handler);
-```
-
-### requireVerifiedEmail()
-
-Returns 403 if email not verified. Must be used after requireAuth.
-
-```typescript
-app.get('/verified-only', requireAuth(), requireVerifiedEmail(), handler);
-```
-
-## Cookie Helpers
-
-```typescript
-import { setSessionCookie, clearSessionCookie } from './auth/hono/middleware';
-
-// Set session cookie from Lucia's serialized value
-setSessionCookie(c, sessionCookie);
-
-// Clear session cookie (logout)
-clearSessionCookie(c);
-```
-
-## Context Types
-
-```typescript
-import type { HonoAuthContext } from './auth/hono/middleware';
-
-const app = new Hono<HonoAuthContext>();
-```
+`auth_session` — same as the previous Lucia cookie.

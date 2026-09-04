@@ -12,7 +12,7 @@ import {
   type User,
   type LoginCredentials,
   type RegisterData,
-} from '../auth';
+} from '../api/auth';
 import {
   sessionMiddleware,
   requireAuth,
