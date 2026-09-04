@@ -124,17 +124,31 @@ function buildInstallCommand(installFilter: string[]): string {
   if (installFilter.length === 0) {
     return 'bun install';
   }
-  const filters = installFilter
-    .map((pkg) => `--filter ${pkg}`)
-    .join(' ');
+  const filters = installFilter.map((pkg) => `--filter ${pkg}`).join(' ');
   return `bun install --ignore-scripts ${filters}`;
 }
 
-function hasDrizzleConfig(outputDir: string): boolean {
-  return (
+function resolveDrizzleConfigDir(outputDir: string): string | null {
+  if (
     existsSync(path.join(outputDir, 'drizzle.config.ts')) ||
     existsSync(path.join(outputDir, 'drizzle.config.js'))
-  );
+  ) {
+    return outputDir;
+  }
+
+  const appsApiDir = path.join(outputDir, 'apps', 'api');
+  if (
+    existsSync(path.join(appsApiDir, 'drizzle.config.ts')) ||
+    existsSync(path.join(appsApiDir, 'drizzle.config.js'))
+  ) {
+    return appsApiDir;
+  }
+
+  return null;
+}
+
+function hasDrizzleConfig(outputDir: string): boolean {
+  return resolveDrizzleConfigDir(outputDir) !== null;
 }
 
 async function discoverGoldenApps(): Promise<GoldenAppConfig[]> {
@@ -410,10 +424,11 @@ async function runGoldenAppTests(
         COMMAND_TIMEOUTS_MS.install,
       );
       if (!app.skipMigrate && hasDrizzleConfig(outputDir)) {
+        const drizzleCwd = resolveDrizzleConfigDir(outputDir) ?? outputDir;
         runCommand(
           `${app.projectName} apply schema`,
           'bun drizzle-kit push --force',
-          outputDir,
+          drizzleCwd,
           env,
           COMMAND_TIMEOUTS_MS.drizzlePush,
         );

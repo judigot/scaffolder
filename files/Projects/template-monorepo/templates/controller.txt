@@ -1,0 +1,105 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
+import { z } from 'zod';
+import { ZodValidationPipe } from '../zod-validation.pipe';
+import { <@@>tableName.singular.pascalCase</@@>Service } from './<@@>tableName.camelCase</@@>.service';
+
+const create<@@>tableName.singular.pascalCase</@@>Schema = z.object({
+<@@LOOP@@ data="columnsInfo" separator=",\n"><@@IF@@ condition="is_primary_key NOT EQUAL 'true'">  <@@>value.camelCase</@@>: <@@IF@@ condition="data_type EQUALS 'string'">z.string()</@@IF@@><@@IF@@ condition="data_type EQUALS 'number'">z.number()</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">z.boolean()</@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">z.coerce.date()</@@IF@@><@@IF@@ condition="data_type EQUALS 'uuid'">z.string().uuid()</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'YES'">.optional()</@@IF@@></@@IF@@></@@LOOP@@>
+});
+
+const update<@@>tableName.singular.pascalCase</@@>Schema = create<@@>tableName.singular.pascalCase</@@>Schema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
+  });
+
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">const compositeParamSchema = z.object({
+<@@LOOP@@ data="compositePrimaryKey" separator=",\n">  <@@>value.camelCase</@@>: <@@IF@@ condition="isNumber EQUALS 'true'">z.coerce.number().int()</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">z.string().min(1)</@@IF@@></@@LOOP@@>
+});
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'"><@@IF@@ condition="primaryKeyDataType EQUALS 'number'">const idParamSchema = z.coerce.number().int().positive();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'string'">const idParamSchema = z.string().min(1);</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'uuid'">const idParamSchema = z.string().uuid();</@@IF@@>
+</@@IF@@>
+
+@Controller('<@@>tableName.kebabCase</@@>')
+export class <@@>tableName.singular.pascalCase</@@>Controller {
+  public constructor(private readonly <@@>tableName.singular.camelCase</@@>Service: <@@>tableName.singular.pascalCase</@@>Service) {}
+
+  @Get()
+  async findAll() {
+    return this.<@@>tableName.singular.camelCase</@@>Service.findAll();
+  }
+
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">  @Get('<@@LOOP@@ data="compositePrimaryKey" separator="">/:<@@>value.camelCase</@@></@@LOOP@@>')
+  async findOne(
+    @Param(new ZodValidationPipe(compositeParamSchema))
+    params: z.infer<typeof compositeParamSchema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.findOne(params);
+  }
+
+  @Post()
+  async create(
+    @Body(new ZodValidationPipe(create<@@>tableName.singular.pascalCase</@@>Schema))
+    body: z.infer<typeof create<@@>tableName.singular.pascalCase</@@>Schema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.create(body);
+  }
+
+  @Put('<@@LOOP@@ data="compositePrimaryKey" separator="">/:<@@>value.camelCase</@@></@@LOOP@@>')
+  async update(
+    @Param(new ZodValidationPipe(compositeParamSchema))
+    params: z.infer<typeof compositeParamSchema>,
+    @Body(new ZodValidationPipe(update<@@>tableName.singular.pascalCase</@@>Schema))
+    body: z.infer<typeof update<@@>tableName.singular.pascalCase</@@>Schema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.update(params, body);
+  }
+
+  @Delete('<@@LOOP@@ data="compositePrimaryKey" separator="">/:<@@>value.camelCase</@@></@@LOOP@@>')
+  async remove(
+    @Param(new ZodValidationPipe(compositeParamSchema))
+    params: z.infer<typeof compositeParamSchema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.remove(params);
+  }
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">  @Get(':id')
+  async findOne(
+    @Param('id', new ZodValidationPipe(idParamSchema))
+    id: z.infer<typeof idParamSchema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.findOne(id);
+  }
+
+  @Post()
+  async create(
+    @Body(new ZodValidationPipe(create<@@>tableName.singular.pascalCase</@@>Schema))
+    body: z.infer<typeof create<@@>tableName.singular.pascalCase</@@>Schema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.create(body);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id', new ZodValidationPipe(idParamSchema))
+    id: z.infer<typeof idParamSchema>,
+    @Body(new ZodValidationPipe(update<@@>tableName.singular.pascalCase</@@>Schema))
+    body: z.infer<typeof update<@@>tableName.singular.pascalCase</@@>Schema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.update(id, body);
+  }
+
+  @Delete(':id')
+  async remove(
+    @Param('id', new ZodValidationPipe(idParamSchema))
+    id: z.infer<typeof idParamSchema>,
+  ) {
+    return this.<@@>tableName.singular.camelCase</@@>Service.remove(id);
+  }
+</@@IF@@>}

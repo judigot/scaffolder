@@ -1,0 +1,9 @@
+import { Module } from '@nestjs/common';
+import { <@@>tableName.singular.pascalCase</@@>Controller } from './<@@>tableName.camelCase</@@>.controller';
+import { <@@>tableName.singular.pascalCase</@@>Service } from './<@@>tableName.camelCase</@@>.service';
+
+@Module({
+  controllers: [<@@>tableName.singular.pascalCase</@@>Controller],
+  providers: [<@@>tableName.singular.pascalCase</@@>Service],
+})
+export class <@@>tableName.singular.pascalCase</@@>Module {}

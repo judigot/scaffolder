@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Health-level API checks for the template-monorepo golden.
+# Health + collection smoke checks for the Nest CRUD golden.
 # Usage: ./api-test.sh [base-url]
 # Default: http://localhost:3000/api
 
@@ -40,6 +40,8 @@ assert_json_status() {
 assert_json_status "$API_BASE/health" 200 "GET /health" '"status":"healthy"'
 assert_json_status "$API_BASE/hello" 200 "GET /hello" '"message":"Hello, world!"'
 assert_json_status "$API_BASE/nope" 404 "GET /nope" '"error":"Not Found"'
+<@@LOOP@@ data="tables" separator="\n"><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">assert_json_status "$API_BASE/<@@>tableName.kebabCase</@@>" 200 "GET /<@@>tableName.kebabCase</@@>" '['
+</@@IF@@></@@LOOP@@>
 
 echo "Passed: $PASSED"
 echo "Failed: $FAILED"

@@ -1,0 +1,125 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { eq<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">, and</@@IF@@> } from 'drizzle-orm';
+import { db } from '../db';
+import { <@@>tableName.camelCase</@@> } from '../db/schema';
+
+@Injectable()
+export class <@@>tableName.singular.pascalCase</@@>Service {
+  async findAll() {
+    return db.select().from(<@@>tableName.camelCase</@@>);
+  }
+
+<@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'true'">  async findOne(params: { <@@LOOP@@ data="compositePrimaryKey" separator="; "><@@>value.camelCase</@@>: <@@IF@@ condition="isNumber EQUALS 'true'">number</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">string</@@IF@@></@@LOOP@@> }) {
+    const rows = await db
+      .select()
+      .from(<@@>tableName.camelCase</@@>)
+      .where(
+        and(
+<@@LOOP@@ data="compositePrimaryKey" separator=",\n">          eq(<@@>tableName.camelCase</@@>.<@@>value.camelCase</@@>, params.<@@>value.camelCase</@@>)</@@LOOP@@>,
+        ),
+      );
+    const row = rows[0];
+    if (row === undefined) {
+      throw new NotFoundException();
+    }
+    return row;
+  }
+
+  async create(data: typeof <@@>tableName.camelCase</@@>.$inferInsert) {
+    const rows = await db.insert(<@@>tableName.camelCase</@@>).values(data).returning();
+    const row = rows[0];
+    if (row === undefined) {
+      throw new NotFoundException();
+    }
+    return row;
+  }
+
+  async update(
+    params: { <@@LOOP@@ data="compositePrimaryKey" separator="; "><@@>value.camelCase</@@>: <@@IF@@ condition="isNumber EQUALS 'true'">number</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">string</@@IF@@></@@LOOP@@> },
+    data: Partial<typeof <@@>tableName.camelCase</@@>.$inferInsert>,
+  ) {
+    const rows = await db
+      .update(<@@>tableName.camelCase</@@>)
+      .set(data)
+      .where(
+        and(
+<@@LOOP@@ data="compositePrimaryKey" separator=",\n">          eq(<@@>tableName.camelCase</@@>.<@@>value.camelCase</@@>, params.<@@>value.camelCase</@@>)</@@LOOP@@>,
+        ),
+      )
+      .returning();
+    const row = rows[0];
+    if (row === undefined) {
+      throw new NotFoundException();
+    }
+    return row;
+  }
+
+  async remove(params: { <@@LOOP@@ data="compositePrimaryKey" separator="; "><@@>value.camelCase</@@>: <@@IF@@ condition="isNumber EQUALS 'true'">number</@@IF@@><@@IF@@ condition="isNumber EQUALS 'false'">string</@@IF@@></@@LOOP@@> }) {
+    const rows = await db
+      .delete(<@@>tableName.camelCase</@@>)
+      .where(
+        and(
+<@@LOOP@@ data="compositePrimaryKey" separator=",\n">          eq(<@@>tableName.camelCase</@@>.<@@>value.camelCase</@@>, params.<@@>value.camelCase</@@>)</@@LOOP@@>,
+        ),
+      )
+      .returning();
+    if (rows[0] === undefined) {
+      throw new NotFoundException();
+    }
+    return { success: true as const };
+  }
+</@@IF@@><@@IF@@ condition="hasCompositePrimaryKey() EQUALS 'false'">  async findOne(id: <@@IF@@ condition="primaryKeyDataType EQUALS 'number'">number</@@IF@@><@@IF@@ condition="primaryKeyDataType NOT EQUAL 'number'">string</@@IF@@>) {
+    const rows = await db
+      .select()
+      .from(<@@>tableName.camelCase</@@>)
+      .where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id));
+    const row = rows[0];
+    if (row === undefined) {
+      throw new NotFoundException();
+    }
+    return row;
+  }
+
+  async create(
+    data: Omit<typeof <@@>tableName.camelCase</@@>.$inferInsert, '<@@>getPrimaryKeyCamelCase()</@@>'> &
+      Partial<Pick<typeof <@@>tableName.camelCase</@@>.$inferInsert, '<@@>getPrimaryKeyCamelCase()</@@>'>>,
+  ) {
+<@@IF@@ condition="primaryKeyDataType EQUALS 'number'">    const rows = await db.insert(<@@>tableName.camelCase</@@>).values(data).returning();</@@IF@@><@@IF@@ condition="primaryKeyDataType EQUALS 'uuid' OR primaryKeyDataType EQUALS 'string'">    const id = data.<@@>getPrimaryKeyCamelCase()</@@> ?? crypto.randomUUID();
+    const rows = await db
+      .insert(<@@>tableName.camelCase</@@>)
+      .values({ ...data, <@@>getPrimaryKeyCamelCase()</@@>: id })
+      .returning();</@@IF@@>
+    const row = rows[0];
+    if (row === undefined) {
+      throw new NotFoundException();
+    }
+    return row;
+  }
+
+  async update(
+    id: <@@IF@@ condition="primaryKeyDataType EQUALS 'number'">number</@@IF@@><@@IF@@ condition="primaryKeyDataType NOT EQUAL 'number'">string</@@IF@@>,
+    data: Partial<typeof <@@>tableName.camelCase</@@>.$inferInsert>,
+  ) {
+    const rows = await db
+      .update(<@@>tableName.camelCase</@@>)
+      .set(data)
+      .where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id))
+      .returning();
+    const row = rows[0];
+    if (row === undefined) {
+      throw new NotFoundException();
+    }
+    return row;
+  }
+
+  async remove(id: <@@IF@@ condition="primaryKeyDataType EQUALS 'number'">number</@@IF@@><@@IF@@ condition="primaryKeyDataType NOT EQUAL 'number'">string</@@IF@@>) {
+    const rows = await db
+      .delete(<@@>tableName.camelCase</@@>)
+      .where(eq(<@@>tableName.camelCase</@@>.<@@>getPrimaryKeyCamelCase()</@@>, id))
+      .returning();
+    if (rows[0] === undefined) {
+      throw new NotFoundException();
+    }
+    return { success: true as const };
+  }
+</@@IF@@>}
