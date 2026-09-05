@@ -20,7 +20,10 @@ import {
 } from '@/utils/project-builder/buildProjectFiles.ts';
 import type { ILoadCoreFilesOptions } from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import { CoreMergeError } from '@/utils/project-builder/utils/loadCoreFiles.ts';
-import { parseTemplateRepo } from '@/utils/parseTemplateRepo.ts';
+import {
+  parseTemplateRepo,
+  type IParsedTemplateRepo,
+} from '@/utils/parseTemplateRepo.ts';
 import { fetchPinnedRepoTarball } from '@/utils/fetchPinnedRepoTarball.ts';
 import {
   AgentCreateRepoError,
@@ -302,7 +305,7 @@ async function resolveTemplateBaseLayer(
     return {};
   }
 
-  let parsed;
+  let parsed: IParsedTemplateRepo;
   try {
     parsed = parseTemplateRepo(templateRepo);
   } catch (error: unknown) {

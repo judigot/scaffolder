@@ -129,7 +129,7 @@ export function structureHasHonoPackageDep(
         }
       }
     } catch {
-      continue;
+      // Skip malformed package.json; treat as no Hono dependency.
     }
   }
   return false;
