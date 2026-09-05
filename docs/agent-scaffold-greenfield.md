@@ -1,6 +1,6 @@
 # Agent scaffold greenfield
 
-`POST /api/agent-scaffold` can fetch a **pinned** starter and optionally
+`POST /api/agent-scaffold` can fetch a **public GitHub starter** and optionally
 create the destination repository before opening a draft PR.
 
 Auth is unchanged: `SCAFFOLDER_AGENT_API_KEY` is the only agent credential.
@@ -11,13 +11,54 @@ build never creates a GitHub repository. If creation succeeds and a later
 step fails (App write verification or publication), the error includes
 the created repository URL and recovery guidance.
 
+## Request shape
+
+```json
+{
+  "project_url": "https://github.com/judigot/scaffolder-files/tree/main/Projects/template-monorepo",
+  "template_repo": "https://github.com/judigot/template-monorepo",
+  "target_repo": "judigot/booking-app",
+  "create_repo": false,
+  "schemaInfo": "<@@SCHEMA@@>\n@products:id:n#pk,name:s,price:n\n<@@/SCHEMA@@>"
+}
+```
+
+Recipe default:
+
+```yaml
+$BASE: https://github.com/judigot/template-monorepo
+```
+
+Developers supply ordinary repository and project URLs. They do not look up
+commit SHAs. The host resolves each selected source to **one immutable
+commit per generation**, fetches that snapshot, and returns the SHAs as
+provenance (`resolvedSha`, and `projectResolvedSha` when files were fetched
+remotely).
+
 ## `template_repo`
 
-Optional GitHub URL with a **pinned commit SHA** (`/tree/<sha>` or
-`/commit/<sha>`). The request value overrides recipe `$BASE` / `source`.
+Optional `github.com` repository URL. The request value overrides recipe
+`$BASE` / `source`.
 
-The host fetches the GitHub **tarball**. It does not `git clone`. Unpinned
-`main` / `master` / `HEAD` is rejected (`TEMPLATE_REPO_UNPINNED`).
+Accepted forms:
+
+- Bare repository URL (happy path): `https://github.com/owner/repo`
+- Optional `/tree/<branch|tag|sha>` or `/commit/<sha>`
+- Optional subdirectory after a tree ref: `/tree/<ref>/path/in/repo`
+
+The host reads GitHub repository metadata for the **actual default branch**
+when no ref is given. It does not assume `main`. An explicit `main` tree URL
+is a normal branch, not an error.
+
+Any public GitHub owner/repo is accepted. The host validates the
+`github.com` host and repository/ref path. Unavailable or private sources
+return `TEMPLATE_SOURCE_UNAVAILABLE`. File blob URLs are rejected. If a
+subdirectory is present, that folder is extracted; a missing subdirectory
+returns `TEMPLATE_SUBDIRECTORY_NOT_FOUND` instead of silently downloading
+the repository root.
+
+The host fetches the GitHub **tarball at the resolved commit**. It does not
+`git clone`.
 
 That skeleton is the first core layer. In-house Cores (`/Core/nestjs-api`,
 FILE_LOOP, and the rest of the recipe) still win after `replace:`.
@@ -26,12 +67,13 @@ Omit `template_repo` and omit `$BASE` / `source:` on the recipe → today's
 bundled `/Core/template-monorepo`. Golden CI keeps that bundled Core and
 does not download templates.
 
-### Allowlist
+## `project_url`
 
-`TEMPLATE_REPO_ALLOWLIST` is currently hard-coded to
-`judigot/template-monorepo`. Other public starter repositories are not
-accepted yet. A later change can make the source policy configurable or
-validate additional public GitHub repositories.
+Ordinary scaffolder-files folder URLs stay valid, including
+`/tree/main/Projects/<name>`. `main` is not rejected as unpinned. Optional
+`/tree/<branch|tag|sha>` still works. When the files repo is fetched
+remotely, the host resolves that ref to one commit and records
+`projectResolvedSha`.
 
 ## `create_repo`
 
@@ -65,15 +107,16 @@ successful generation:
 ## Recipe DSL
 
 ```yaml
-$BASE: /Core/template-monorepo   # or a pinned GitHub URL / source: <same>
+$BASE: https://github.com/judigot/template-monorepo
 replace:
   - apps/api/**                  # full apps/api subtree required before Nest lands
 ```
 
-`$BASE` may be a local `/Core/...` path or a pinned allowlisted GitHub
-URL. The same resolver is used by the agent API and `buildProjectFiles`.
-A remote recipe `$BASE` is fetched when `template_repo` is omitted. An
-unsupported or unpinned base fails explicitly; it is not ignored.
+`$BASE` may be a local `/Core/...` path or a `github.com` repository URL
+(the same forms as `template_repo`). The same resolver is used by the
+agent API and `buildProjectFiles`. A remote recipe `$BASE` is fetched when
+`template_repo` is omitted. An unsupported or unavailable base fails
+explicitly; it is not ignored.
 
 Request `template_repo` overrides `$BASE` / `source:`. Merge cannot delete
 paths unless `replace:` says so. If a live Hono `apps/api` (package
@@ -89,9 +132,13 @@ collapsed into `BUILD_FAILED`.
 
 Leftover placeholder and `USE_USER_ENV` gates are unchanged.
 
-## Agent skill follow-up
+## Provenance
 
-The `judigot/ai` scaffolder skill should document `template_repo`,
-`create_repo`, the organization-only agent-key creation limit, and
-create-then-publish recovery. That skill update is a linked follow-up,
-not part of this host change.
+Successful responses include:
+
+- `resolvedSha` — the template starter commit used for this generation
+- `projectResolvedSha` — the scaffolder-files commit when that repo was
+  fetched remotely
+
+Those SHAs are also recorded on the default draft PR body. They are
+host-resolved provenance, not developer inputs.

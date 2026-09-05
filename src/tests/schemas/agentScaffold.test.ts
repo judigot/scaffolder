@@ -120,15 +120,16 @@ describe('AgentScaffoldRequestSchema', () => {
       schemaInfo: honoReactCompactSchema,
       project_url: knexProjectUrl,
       target_repo: 'judigot/new-app',
-      template_repo:
-        'https://github.com/judigot/template-monorepo/tree/0123456789abcdef0123456789abcdef01234567',
+      template_repo: 'https://github.com/judigot/template-monorepo',
       create_repo: true,
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.create_repo).toBe(true);
-      expect(result.data.template_repo).toContain('template-monorepo/tree/');
+      expect(result.data.template_repo).toBe(
+        'https://github.com/judigot/template-monorepo',
+      );
     }
   });
 

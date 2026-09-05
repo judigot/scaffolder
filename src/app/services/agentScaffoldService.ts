@@ -24,12 +24,18 @@ import {
   findStructureYamlContent,
   parseRecipeDirectives,
 } from '@/utils/project-builder/utils/recipeDirectives.ts';
+import { fetchPinnedRepoTarball } from '@/utils/fetchPinnedRepoTarball.ts';
 import {
   fetchResolvedRemoteBase,
   resolveTemplateBase,
   TemplateBaseError,
   type IResolvedTemplateBase,
 } from '@/utils/project-builder/utils/resolveTemplateBase.ts';
+import {
+  GitHubSnapshotError,
+  resolveGitHubSnapshot,
+  type IGitHubSnapshotLookup,
+} from '@/utils/resolveGitHubSnapshot.ts';
 import {
   AgentCreateRepoError,
   createAgentTargetRepository,
@@ -44,7 +50,6 @@ import {
   type IAgentScaffoldRequest,
 } from '@/schemas/agentScaffold.ts';
 import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFilesToIStructure.ts';
-import { fetchRepositoryFiles } from '@/utils/downloadPublicRepoFiles.ts';
 import {
   ensureScaffolderBranchName,
   isProtectedBranchName,
@@ -93,13 +98,14 @@ export interface IAgentScaffoldResult extends IDraftPullRequestResult {
   targetRepo: string;
   tables: string[];
   repoCreated?: boolean;
-  templateSha?: string;
+  resolvedSha?: string;
+  projectResolvedSha?: string;
 }
 
 export interface IRemoteScaffolderFilesRequest {
   owner: string;
   repo: string;
-  ref: string;
+  ref: string | null;
 }
 
 export interface IAgentScaffoldServiceDependencies {
@@ -109,6 +115,7 @@ export interface IAgentScaffoldServiceDependencies {
     request: IRemoteScaffolderFilesRequest,
   ) => Promise<IStructure>;
   loadTemplateFiles?: (templateRepo: string) => Promise<IStructure>;
+  githubSnapshotLookup?: IGitHubSnapshotLookup;
   createRepo?: (params: {
     owner: string;
     repo: string;
@@ -130,23 +137,33 @@ export interface IAgentScaffoldServiceDependencies {
 
 async function defaultLoadRemoteUserFiles(
   request: IRemoteScaffolderFilesRequest,
-): Promise<IStructure> {
-  const extractedFiles = await fetchRepositoryFiles({
-    user: request.owner,
-    repository: request.repo,
-    branch: request.ref,
-    filesToFetch: ['*'],
-    keepFolderStructure: true,
+  lookup: IGitHubSnapshotLookup | undefined,
+): Promise<{ files: IStructure; resolvedSha: string }> {
+  const snapshot = await resolveGitHubSnapshot(
+    {
+      owner: request.owner,
+      repo: request.repo,
+      ref: request.ref,
+    },
+    lookup,
+  );
+  const extractedFiles = await fetchPinnedRepoTarball({
+    owner: request.owner,
+    repo: request.repo,
+    sha: snapshot.resolvedSha,
   });
-  return convertPublicRepoFilesToStructure(extractedFiles);
+  return {
+    files: convertPublicRepoFilesToStructure(extractedFiles),
+    resolvedSha: snapshot.resolvedSha,
+  };
 }
 
 async function resolveUserFiles(
   projectReference: IParsedProjectReference,
   dependencies: IAgentScaffoldServiceDependencies,
-): Promise<IStructure> {
+): Promise<{ files: IStructure; resolvedSha?: string }> {
   if (dependencies.loadUserFiles !== undefined) {
-    return dependencies.loadUserFiles();
+    return { files: dependencies.loadUserFiles() };
   }
 
   if (
@@ -154,15 +171,51 @@ async function resolveUserFiles(
     projectReference.owner !== null &&
     projectReference.repo !== null
   ) {
-    const loadRemote =
-      dependencies.loadRemoteUserFiles ?? defaultLoadRemoteUserFiles;
+    if (dependencies.loadRemoteUserFiles !== undefined) {
+      try {
+        return {
+          files: await dependencies.loadRemoteUserFiles({
+            owner: projectReference.owner,
+            repo: projectReference.repo,
+            ref: projectReference.ref,
+          }),
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch scaffolder files repository';
+        throw new AgentScaffoldError(message, {
+          status: 400,
+          code: 'FILES_REPO_FETCH_FAILED',
+          details: {
+            filesRepoUrl: projectReference.filesRepoUrl,
+            ref: projectReference.ref,
+          },
+        });
+      }
+    }
+
     try {
-      return await loadRemote({
-        owner: projectReference.owner,
-        repo: projectReference.repo,
-        ref: projectReference.ref ?? 'main',
-      });
+      return await defaultLoadRemoteUserFiles(
+        {
+          owner: projectReference.owner,
+          repo: projectReference.repo,
+          ref: projectReference.ref,
+        },
+        dependencies.githubSnapshotLookup,
+      );
     } catch (error: unknown) {
+      if (error instanceof GitHubSnapshotError) {
+        throw new AgentScaffoldError(error.message, {
+          status: 400,
+          code: 'FILES_REPO_FETCH_FAILED',
+          details: {
+            filesRepoUrl: projectReference.filesRepoUrl,
+            ref: projectReference.ref,
+          },
+        });
+      }
       const message =
         error instanceof Error
           ? error.message
@@ -178,7 +231,7 @@ async function resolveUserFiles(
     }
   }
 
-  return convertLocalFilesToIStructure('files');
+  return { files: convertLocalFilesToIStructure('files') };
 }
 
 function createAgentFormData(
@@ -313,18 +366,17 @@ function throwTemplateBaseAsAgentError(error: unknown): never {
   }
   const message =
     error instanceof Error ? error.message : 'Invalid template_repo';
-  const unpinned = /unpinned/i.test(message);
   throw new AgentScaffoldError(message, {
     status: 400,
-    code: unpinned ? 'TEMPLATE_REPO_UNPINNED' : 'INVALID_TEMPLATE_REPO',
+    code: 'INVALID_TEMPLATE_REPO',
   });
 }
 
 async function resolveAndFetchTemplateBase(
   requestOverride: string | undefined,
   recipeBase: string | null,
-  loadTemplateFiles: IAgentScaffoldServiceDependencies['loadTemplateFiles'],
-): Promise<{ layer?: IStructure; sha?: string }> {
+  dependencies: IAgentScaffoldServiceDependencies,
+): Promise<{ layer?: IStructure; resolvedSha?: string }> {
   const resolved = ((): IResolvedTemplateBase => {
     try {
       return resolveTemplateBase(requestOverride, recipeBase);
@@ -338,21 +390,30 @@ async function resolveAndFetchTemplateBase(
   }
 
   try {
-    return await fetchResolvedRemoteBase(resolved, loadTemplateFiles);
+    return await fetchResolvedRemoteBase(
+      resolved,
+      dependencies.loadTemplateFiles,
+      {
+        snapshotLookup: dependencies.githubSnapshotLookup,
+      },
+    );
   } catch (error: unknown) {
     if (error instanceof AgentScaffoldError) {
       throw error;
     }
+    if (error instanceof TemplateBaseError) {
+      throwTemplateBaseAsAgentError(error);
+    }
     const message =
       error instanceof Error
         ? error.message
-        : 'Failed to fetch pinned template tarball';
+        : 'Failed to fetch template tarball';
     throw new AgentScaffoldError(message, {
       status: 400,
       code: 'TEMPLATE_FETCH_FAILED',
       details: {
         templateRepo: `${resolved.parsed.owner}/${resolved.parsed.repo}`,
-        sha: resolved.parsed.sha,
+        ref: resolved.parsed.ref,
       },
     });
   }
@@ -427,7 +488,11 @@ export async function scaffoldToPullRequest(
   }
 
   const schemaInfo = resolveSchemaInfo(request.schemaInfo);
-  const userFiles = await resolveUserFiles(projectReference, dependencies);
+  const userFilesResult = await resolveUserFiles(
+    projectReference,
+    dependencies,
+  );
+  const userFiles = userFilesResult.files;
   const projects = getAllProjects(userFiles);
   const project = projects.find(
     (item) => item.name === projectReference.projectName,
@@ -490,7 +555,7 @@ export async function scaffoldToPullRequest(
   const templateBase = await resolveAndFetchTemplateBase(
     request.template_repo,
     recipe.base,
-    dependencies.loadTemplateFiles,
+    dependencies,
   );
 
   const buildProject = dependencies.buildProject ?? buildProjectFiles;
@@ -575,6 +640,14 @@ export async function scaffoldToPullRequest(
 
   const draft = request.draft !== false;
   const prTitle = request.prTitle ?? `Scaffold ${project.name} from schemaInfo`;
+  const provenanceLines = [
+    templateBase.resolvedSha === undefined
+      ? undefined
+      : `- Template snapshot: \`${templateBase.resolvedSha}\``,
+    userFilesResult.resolvedSha === undefined
+      ? undefined
+      : `- Project files snapshot: \`${userFilesResult.resolvedSha}\``,
+  ].filter((line): line is string => line !== undefined);
   const prBody =
     request.prBody ??
     [
@@ -582,6 +655,7 @@ export async function scaffoldToPullRequest(
       '',
       `- Project: \`${project.name}\``,
       `- Tables: ${schemaInfo.map((table) => table.tableName).join(', ')}`,
+      ...provenanceLines,
       '',
       'Review the generated files before merging. This branch was not written to the default branch.',
     ].join('\n');
@@ -608,7 +682,8 @@ export async function scaffoldToPullRequest(
       targetRepo: `${targetRepo.owner}/${targetRepo.repo}`,
       tables: schemaInfo.map((table) => table.tableName),
       repoCreated,
-      templateSha: templateBase.sha,
+      resolvedSha: templateBase.resolvedSha,
+      projectResolvedSha: userFilesResult.resolvedSha,
     };
   } catch (error: unknown) {
     if (error instanceof GitHubDraftPullRequestError) {

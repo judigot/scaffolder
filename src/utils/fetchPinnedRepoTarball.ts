@@ -1,13 +1,13 @@
 import type { IExtractedFile } from '@/utils/downloadPublicRepoFiles.ts';
 import { extractTarGz } from '@/utils/extractTarGz.ts';
-import type { IParsedTemplateRepo } from '@/utils/parseTemplateRepo.ts';
+import type { ITemplateRepoSnapshot } from '@/utils/parseTemplateRepo.ts';
 
-export function pinnedRepoTarballUrl(template: IParsedTemplateRepo): string {
+export function pinnedRepoTarballUrl(template: ITemplateRepoSnapshot): string {
   return `https://codeload.github.com/${template.owner}/${template.repo}/tar.gz/${template.sha}`;
 }
 
 export async function fetchPinnedRepoTarball(
-  template: IParsedTemplateRepo,
+  template: ITemplateRepoSnapshot,
   fetchImpl: typeof fetch = fetch,
 ): Promise<IExtractedFile[]> {
   const url = pinnedRepoTarballUrl(template);

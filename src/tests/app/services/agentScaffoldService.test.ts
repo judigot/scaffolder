@@ -5,6 +5,8 @@ import {
 } from '@/app/services/agentCreateRepoService.ts';
 import { scaffoldToPullRequest } from '@/app/services/agentScaffoldService.ts';
 import { GitHubDraftPullRequestError } from '@/app/services/githubDraftPullRequestService.ts';
+import { GitHubSnapshotError } from '@/utils/resolveGitHubSnapshot.ts';
+import type { IGitHubSnapshotLookup } from '@/utils/resolveGitHubSnapshot.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import {
   honoReactAgentSchemaInfo,
@@ -26,8 +28,13 @@ const validSchemaInfo = [
   },
 ];
 
-const PINNED_TEMPLATE_SHA = '0123456789abcdef0123456789abcdef01234567';
-const PINNED_TEMPLATE_URL = `https://github.com/judigot/template-monorepo/tree/${PINNED_TEMPLATE_SHA}`;
+const TEMPLATE_REPO_URL = 'https://github.com/judigot/template-monorepo';
+const OTHER_OWNER_TEMPLATE_URL = 'https://github.com/acme/public-starter';
+const BRANCH_TEMPLATE_URL =
+  'https://github.com/judigot/template-monorepo/tree/release-1';
+const DEVELOP_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+const RELEASE_SHA = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+const OTHER_OWNER_SHA = 'cccccccccccccccccccccccccccccccccccccccc';
 
 function createUserFiles(
   schemaFilter: string[] = [],
@@ -60,6 +67,36 @@ function createUserFiles(
       ],
     },
   ];
+}
+
+function createSnapshotLookup(
+  shaByRef: Record<string, string>,
+  defaultBranch = 'develop',
+): IGitHubSnapshotLookup {
+  return {
+    getDefaultBranch: vi.fn(() => Promise.resolve(defaultBranch)),
+    getCommitSha: vi.fn((_owner: string, _repo: string, ref: string) => {
+      if (!Object.hasOwn(shaByRef, ref)) {
+        return Promise.reject(
+          new GitHubSnapshotError(
+            `GitHub ref "${ref}" is unavailable (HTTP 404).`,
+          ),
+        );
+      }
+      return Promise.resolve(shaByRef[ref]);
+    }),
+  };
+}
+
+function createPublishResult() {
+  return {
+    prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+    prNumber: 7,
+    branch: 'scaffolder/hono-react-ab12',
+    commitSha: 'commit-sha',
+    filesCreated: 1,
+    baseBranch: 'main',
+  };
 }
 
 describe('scaffoldToPullRequest', () => {
@@ -568,7 +605,144 @@ describe('scaffoldToPullRequest', () => {
     expect(publish).not.toHaveBeenCalled();
   });
 
-  it('rejects an unpinned template_repo before building', async () => {
+  it('resolves a bare template_repo from non-main default-branch metadata', async () => {
+    const lookup = createSnapshotLookup({ develop: DEVELOP_SHA });
+    const starter: IStructure = [
+      { type: 'file', name: 'starter.txt', content: 'from-default-branch' },
+    ];
+    const loadTemplateFiles = vi.fn(() => Promise.resolve(starter));
+    const buildProject = vi.fn(() =>
+      Promise.resolve({
+        structure: [
+          { type: 'file' as const, name: 'README.md', content: '# app' },
+        ],
+        filesUsingUserEnv: [],
+        filesFailedToFormat: [],
+      }),
+    );
+
+    const result = await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/booking-app',
+        template_repo: TEMPLATE_REPO_URL,
+        create_repo: false,
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        loadTemplateFiles,
+        githubSnapshotLookup: lookup,
+        buildProject,
+        publish: () => Promise.resolve(createPublishResult()),
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(lookup.getDefaultBranch).toHaveBeenCalledWith(
+      'judigot',
+      'template-monorepo',
+    );
+    expect(lookup.getCommitSha).toHaveBeenCalledWith(
+      'judigot',
+      'template-monorepo',
+      'develop',
+    );
+    expect(lookup.getCommitSha).not.toHaveBeenCalledWith(
+      'judigot',
+      'template-monorepo',
+      'main',
+    );
+    expect(loadTemplateFiles).toHaveBeenCalledWith(TEMPLATE_REPO_URL);
+    expect(result.resolvedSha).toBe(DEVELOP_SHA);
+  });
+
+  it('resolves an explicit branch template_repo URL to one snapshot', async () => {
+    const lookup = createSnapshotLookup({ 'release-1': RELEASE_SHA });
+    const loadTemplateFiles = vi.fn(() =>
+      Promise.resolve([
+        { type: 'file' as const, name: 'from-branch.txt', content: 'release' },
+      ]),
+    );
+
+    const result = await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/booking-app',
+        template_repo: BRANCH_TEMPLATE_URL,
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        loadTemplateFiles,
+        githubSnapshotLookup: lookup,
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish: () => Promise.resolve(createPublishResult()),
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(lookup.getDefaultBranch).not.toHaveBeenCalled();
+    expect(lookup.getCommitSha).toHaveBeenCalledTimes(1);
+    expect(lookup.getCommitSha).toHaveBeenCalledWith(
+      'judigot',
+      'template-monorepo',
+      'release-1',
+    );
+    expect(result.resolvedSha).toBe(RELEASE_SHA);
+  });
+
+  it('accepts another owner public template repository', async () => {
+    const lookup = createSnapshotLookup({ develop: OTHER_OWNER_SHA });
+    const loadTemplateFiles = vi.fn(() =>
+      Promise.resolve([
+        { type: 'file' as const, name: 'other.txt', content: 'acme' },
+      ]),
+    );
+
+    const result = await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/booking-app',
+        template_repo: OTHER_OWNER_TEMPLATE_URL,
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        loadTemplateFiles,
+        githubSnapshotLookup: lookup,
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish: () => Promise.resolve(createPublishResult()),
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(lookup.getDefaultBranch).toHaveBeenCalledWith(
+      'acme',
+      'public-starter',
+    );
+    expect(result.resolvedSha).toBe(OTHER_OWNER_SHA);
+  });
+
+  it('returns TEMPLATE_SOURCE_UNAVAILABLE when the public starter cannot be resolved', async () => {
+    const lookup = createSnapshotLookup({});
+    lookup.getDefaultBranch = vi.fn(() =>
+      Promise.reject(
+        new GitHubSnapshotError(
+          'GitHub repository missing/starter is unavailable (HTTP 404; not found or not public).',
+        ),
+      ),
+    );
     const buildProject = vi.fn();
     const publish = vi.fn();
 
@@ -577,18 +751,18 @@ describe('scaffoldToPullRequest', () => {
         {
           schemaInfo: validSchemaInfo,
           project: 'hono-react',
-          target_repo: 'judigot/bookingwars',
-          template_repo:
-            'https://github.com/judigot/template-monorepo/tree/main',
+          target_repo: 'judigot/booking-app',
+          template_repo: 'https://github.com/missing/starter',
         },
         {
           loadUserFiles: () => createUserFiles(),
+          githubSnapshotLookup: lookup,
           buildProject,
           publish,
         },
       ),
     ).rejects.toMatchObject({
-      code: 'TEMPLATE_REPO_UNPINNED',
+      code: 'TEMPLATE_SOURCE_UNAVAILABLE',
       status: 400,
     });
 
@@ -876,7 +1050,7 @@ describe('scaffoldToPullRequest', () => {
       }),
     );
 
-    await scaffoldToPullRequest(
+    const result = await scaffoldToPullRequest(
       {
         schemaInfo: validSchemaInfo,
         project: 'hono-react',
@@ -887,24 +1061,18 @@ describe('scaffoldToPullRequest', () => {
           createUserFiles(
             [],
             'hono-react',
-            `$BASE: ${PINNED_TEMPLATE_URL}\nreadme:\n  CREATE_FILE(README.md):\n`,
+            `$BASE: ${TEMPLATE_REPO_URL}\nreadme:\n  CREATE_FILE(README.md):\n`,
           ),
         loadTemplateFiles,
+        githubSnapshotLookup: createSnapshotLookup({ develop: DEVELOP_SHA }),
         buildProject,
-        publish: () =>
-          Promise.resolve({
-            prUrl: 'https://github.com/judigot/bookingwars/pull/7',
-            prNumber: 7,
-            branch: 'scaffolder/hono-react-ab12',
-            commitSha: 'commit-sha',
-            filesCreated: 1,
-            baseBranch: 'main',
-          }),
+        publish: () => Promise.resolve(createPublishResult()),
         randomId: () => 'ab12',
       },
     );
 
-    expect(loadTemplateFiles).toHaveBeenCalledWith(PINNED_TEMPLATE_URL);
+    expect(loadTemplateFiles).toHaveBeenCalledWith(TEMPLATE_REPO_URL);
+    expect(result.resolvedSha).toBe(DEVELOP_SHA);
     expect(buildProject).toHaveBeenCalledWith(
       expect.any(String),
       expect.anything(),
@@ -916,11 +1084,13 @@ describe('scaffoldToPullRequest', () => {
   });
 
   it('uses template_repo instead of the recipe remote $BASE', async () => {
-    const overrideUrl = `https://github.com/judigot/template-monorepo/commit/${PINNED_TEMPLATE_SHA}`;
     const overrideLayer: IStructure = [
       { type: 'file', name: 'override.txt', content: 'from-override' },
     ];
     const loadTemplateFiles = vi.fn(() => Promise.resolve(overrideLayer));
+    const lookup = createSnapshotLookup({
+      develop: OTHER_OWNER_SHA,
+    });
     const buildProject = vi.fn(() =>
       Promise.resolve({
         structure: [
@@ -931,37 +1101,39 @@ describe('scaffoldToPullRequest', () => {
       }),
     );
 
-    await scaffoldToPullRequest(
+    const result = await scaffoldToPullRequest(
       {
         schemaInfo: validSchemaInfo,
         project: 'hono-react',
         target_repo: 'judigot/bookingwars',
-        template_repo: overrideUrl,
+        template_repo: OTHER_OWNER_TEMPLATE_URL,
       },
       {
         loadUserFiles: () =>
           createUserFiles(
             [],
             'hono-react',
-            `$BASE: ${PINNED_TEMPLATE_URL}\nreadme:\n  CREATE_FILE(README.md):\n`,
+            `$BASE: ${TEMPLATE_REPO_URL}\nreadme:\n  CREATE_FILE(README.md):\n`,
           ),
         loadTemplateFiles,
+        githubSnapshotLookup: lookup,
         buildProject,
-        publish: () =>
-          Promise.resolve({
-            prUrl: 'https://github.com/judigot/bookingwars/pull/7',
-            prNumber: 7,
-            branch: 'scaffolder/hono-react-ab12',
-            commitSha: 'commit-sha',
-            filesCreated: 1,
-            baseBranch: 'main',
-          }),
+        publish: () => Promise.resolve(createPublishResult()),
         randomId: () => 'ab12',
       },
     );
 
-    expect(loadTemplateFiles).toHaveBeenCalledWith(overrideUrl);
+    expect(loadTemplateFiles).toHaveBeenCalledWith(OTHER_OWNER_TEMPLATE_URL);
     expect(loadTemplateFiles).toHaveBeenCalledTimes(1);
+    expect(lookup.getDefaultBranch).toHaveBeenCalledWith(
+      'acme',
+      'public-starter',
+    );
+    expect(lookup.getDefaultBranch).not.toHaveBeenCalledWith(
+      'judigot',
+      'template-monorepo',
+    );
+    expect(result.resolvedSha).toBe(OTHER_OWNER_SHA);
     expect(buildProject).toHaveBeenCalledWith(
       expect.any(String),
       expect.anything(),
@@ -970,7 +1142,7 @@ describe('scaffoldToPullRequest', () => {
       undefined,
       expect.objectContaining({
         remoteBaseLayer: overrideLayer,
-        templateRepoOverride: overrideUrl,
+        templateRepoOverride: OTHER_OWNER_TEMPLATE_URL,
       }),
     );
   });
@@ -1039,11 +1211,12 @@ describe('scaffoldToPullRequest', () => {
           schemaInfo: validSchemaInfo,
           project: 'hono-react',
           target_repo: 'judigot/bookingwars',
-          template_repo: PINNED_TEMPLATE_URL,
+          template_repo: TEMPLATE_REPO_URL,
         },
         {
           loadUserFiles: () => userFiles,
           loadTemplateFiles: () => Promise.resolve(remoteHono),
+          githubSnapshotLookup: createSnapshotLookup({ develop: DEVELOP_SHA }),
           publish: () => {
             throw new Error('should not publish');
           },
