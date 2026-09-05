@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import {
+  AgentCreateRepoError,
+  createAgentTargetRepository,
+} from '@/app/services/agentCreateRepoService.ts';
 import { scaffoldToPullRequest } from '@/app/services/agentScaffoldService.ts';
 import { GitHubDraftPullRequestError } from '@/app/services/githubDraftPullRequestService.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
@@ -734,6 +738,80 @@ describe('scaffoldToPullRequest', () => {
     ).rejects.toMatchObject({ code: 'BUILD_FAILED', status: 400 });
 
     expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('returns created-repo recovery when App verification fails after create', async () => {
+    const createRepository = vi.fn(() =>
+      Promise.resolve({
+        success: true,
+        message: 'created',
+        repoUrl: 'https://github.com/acme/new-app',
+      }),
+    );
+    const installationUrl =
+      'https://github.com/apps/scaffolder/installations/new';
+    const publish = vi.fn(() => {
+      throw new Error('should not publish');
+    });
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          target_repo: 'acme/new-app',
+          create_repo: true,
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          createRepo: (params) =>
+            createAgentTargetRepository(
+              { owner: params.owner, repo: params.repo },
+              { auth0UserId: params.auth0UserId },
+              {
+                repoExists: () => Promise.resolve(false),
+                getOwnerType: () => Promise.resolve('Organization'),
+                createRepository,
+                verifyAppWriteAccess: () =>
+                  Promise.reject(
+                    new AgentCreateRepoError(
+                      'GitHub App cannot write to acme/new-app. Install the Scaffolder GitHub App on this repository.',
+                      {
+                        status: 403,
+                        code: 'GITHUB_APP_NOT_INSTALLED',
+                        installationUrl,
+                      },
+                    ),
+                  ),
+              },
+            ),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'README.md', content: '# app' },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+          publish,
+          randomId: () => 'ab12',
+        },
+      ),
+    ).rejects.toMatchObject({
+      name: 'AgentScaffoldError',
+      code: 'GITHUB_APP_NOT_INSTALLED',
+      status: 403,
+      installationUrl,
+      details: {
+        repoCreated: true,
+        repoUrl: 'https://github.com/acme/new-app',
+        recovery:
+          'The destination repository was created. Grant the Scaffolder GitHub App access, then retry with create_repo: false.',
+      },
+    });
+
+    expect(createRepository).toHaveBeenCalledTimes(1);
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it('returns the created repo URL when publish fails after create', async () => {

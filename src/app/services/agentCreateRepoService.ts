@@ -139,6 +139,45 @@ function hasUsableUserIdentity(auth0UserId: string | undefined): boolean {
   return auth0UserId !== AGENT_AUTH_SUBJECT;
 }
 
+function createdRepoAppAccessRecovery(repoUrl: string): {
+  repoCreated: true;
+  repoUrl: string;
+  recovery: string;
+} {
+  return {
+    repoCreated: true,
+    repoUrl,
+    recovery:
+      'The destination repository was created. Grant the Scaffolder GitHub App access, then retry with create_repo: false.',
+  };
+}
+
+function withCreatedRepoRecovery(
+  error: unknown,
+  repoUrl: string,
+): AgentCreateRepoError {
+  const details = createdRepoAppAccessRecovery(repoUrl);
+
+  if (error instanceof AgentCreateRepoError) {
+    return new AgentCreateRepoError(error.message, {
+      status: error.status,
+      code: error.code,
+      installationUrl: error.installationUrl,
+      details,
+    });
+  }
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : 'GitHub App cannot write to the newly created repository';
+  return new AgentCreateRepoError(message, {
+    status: 403,
+    code: 'GITHUB_APP_NOT_INSTALLED',
+    details,
+  });
+}
+
 export async function createAgentTargetRepository(
   targetRepo: IParsedTargetRepo,
   options: {
@@ -225,7 +264,11 @@ export async function createAgentTargetRepository(
       );
     }
 
-    await verifyAppWriteAccess(targetRepo.owner, targetRepo.repo);
+    try {
+      await verifyAppWriteAccess(targetRepo.owner, targetRepo.repo);
+    } catch (error: unknown) {
+      throw withCreatedRepoRecovery(error, created.repoUrl);
+    }
 
     return {
       created: true,

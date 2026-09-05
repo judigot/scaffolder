@@ -113,6 +113,53 @@ describe('createAgentTargetRepository', () => {
     );
   });
 
+  it('enriches App verification failures after a successful create', async () => {
+    const createRepository = vi.fn(() =>
+      Promise.resolve({
+        success: true,
+        message: 'created',
+        repoUrl: 'https://github.com/acme/new-app',
+      }),
+    );
+    const installationUrl =
+      'https://github.com/apps/scaffolder/installations/new';
+
+    await expect(
+      createAgentTargetRepository(
+        { owner: 'acme', repo: 'new-app' },
+        { auth0UserId: AGENT_AUTH_SUBJECT },
+        {
+          repoExists: () => Promise.resolve(false),
+          getOwnerType: () => Promise.resolve('Organization'),
+          createRepository,
+          verifyAppWriteAccess: () =>
+            Promise.reject(
+              new AgentCreateRepoError(
+                'GitHub App cannot write to acme/new-app. Install the Scaffolder GitHub App on this repository.',
+                {
+                  status: 403,
+                  code: 'GITHUB_APP_NOT_INSTALLED',
+                  installationUrl,
+                },
+              ),
+            ),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'GITHUB_APP_NOT_INSTALLED',
+      status: 403,
+      installationUrl,
+      details: {
+        repoCreated: true,
+        repoUrl: 'https://github.com/acme/new-app',
+        recovery:
+          'The destination repository was created. Grant the Scaffolder GitHub App access, then retry with create_repo: false.',
+      },
+    });
+
+    expect(createRepository).toHaveBeenCalledTimes(1);
+  });
+
   it('maps GitHub already-exists errors to REPO_EXISTS', async () => {
     await expect(
       createAgentTargetRepository(

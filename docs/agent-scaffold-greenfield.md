@@ -7,9 +7,9 @@ Auth is unchanged: `SCAFFOLDER_AGENT_API_KEY` is the only agent credential.
 
 Generation, leftover-placeholder checks, and `USE_USER_ENV` gates run
 **before** `create_repo`. Invalid schema, a missing project, or a failed
-build never creates a GitHub repository. If creation succeeds and
-publication then fails, the error includes the created repository URL and
-recovery guidance.
+build never creates a GitHub repository. If creation succeeds and a later
+step fails (App write verification or publication), the error includes
+the created repository URL and recovery guidance.
 
 ## `template_repo`
 
@@ -54,9 +54,13 @@ successful generation:
 - After create, the App must be able to write and open a draft PR (install
   on the new repo / all repos, or create-as-App for orgs). Empty repos are
   seeded with a README so `main` exists.
-- If publication fails after a successful create, the response includes
-  `details.repoUrl` and `details.recovery`. Retry without `create_repo`,
-  or delete the empty repository before retrying with `create_repo`.
+- If App write verification or publication fails after a successful
+  create, the response keeps the original error `code` / `status` and
+  `installationUrl`, and adds `details.repoCreated`, `details.repoUrl`,
+  and `details.recovery`. Grant the App access if needed, then retry
+  with `create_repo: false`. Do not retry with `create_repo: true`
+  (`409 REPO_EXISTS`). Delete the empty repository only if you intend
+  to create it again.
 
 ## Recipe DSL
 
