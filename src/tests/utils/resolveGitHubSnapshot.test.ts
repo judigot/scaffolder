@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   GitHubSnapshotError,
+  createGitHubSnapshotLookup,
   resolveGitHubSnapshot,
   type IGitHubSnapshotLookup,
 } from '@/utils/resolveGitHubSnapshot.ts';
@@ -31,6 +32,53 @@ function createLookup(
 }
 
 describe('resolveGitHubSnapshot', () => {
+  it('checks public visibility and resolves a full SHA for explicit refs', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({ private: false, default_branch: 'develop' }),
+      )
+      .mockResolvedValueOnce(Response.json({ sha: RELEASE_SHA }));
+    const result = await resolveGitHubSnapshot(
+      { owner: 'alice', repo: 'starter', ref: 'release/next' },
+      createGitHubSnapshotLookup(fetchImpl),
+    );
+    expect(result.resolvedSha).toBe(RELEASE_SHA);
+    expect(fetchImpl.mock.calls.map((call): unknown => call[0])).toEqual([
+      'https://api.github.com/repos/alice/starter',
+      'https://api.github.com/repos/alice/starter/commits/release%2Fnext',
+    ]);
+  });
+  it('rejects private repositories before resolving an explicit ref', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ private: true, default_branch: 'main' }),
+      );
+    await expect(
+      resolveGitHubSnapshot(
+        { owner: 'alice', repo: 'private', ref: 'main' },
+        createGitHubSnapshotLookup(fetchImpl),
+      ),
+    ).rejects.toThrow(/must be public/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+  it('explains rate-limit recovery', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        new Response('', {
+          status: 403,
+          headers: { 'x-ratelimit-remaining': '0' },
+        }),
+      );
+    await expect(
+      resolveGitHubSnapshot(
+        { owner: 'alice', repo: 'starter', ref: null },
+        createGitHubSnapshotLookup(fetchImpl),
+      ),
+    ).rejects.toThrow(/SCAFFOLDER_SOURCE_GITHUB_TOKEN/);
+  });
   it('resolves a bare repo URL from the actual default branch metadata', async () => {
     const lookup = createLookup();
     const snapshot = await resolveGitHubSnapshot(

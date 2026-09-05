@@ -29,7 +29,7 @@ function decodeUriPath(value: string): string {
   try {
     return decodeURIComponent(value);
   } catch {
-    return value;
+    throw new Error(TEMPLATE_REPO_HINT);
   }
 }
 
@@ -72,6 +72,15 @@ export function parseTemplateRepo(value: string): IParsedTemplateRepo {
     throw new Error(TEMPLATE_REPO_HINT);
   }
 
+  if (
+    parsedUrl.protocol !== 'https:' ||
+    parsedUrl.port !== '' ||
+    parsedUrl.username !== '' ||
+    parsedUrl.password !== ''
+  ) {
+    throw new Error(TEMPLATE_REPO_HINT);
+  }
+
   const host = parsedUrl.hostname.toLowerCase();
   if (!GITHUB_HOSTS.has(host)) {
     throw new Error(
@@ -109,7 +118,13 @@ export function parseTemplateRepo(value: string): IParsedTemplateRepo {
     throw new Error(TEMPLATE_REPO_HINT);
   }
 
-  if (rawRef === '') {
+  if (
+    rawRef === '' ||
+    /[\s?#\\]/.test(rawRef) ||
+    rawRef
+      .split('/')
+      .some((part) => part === '' || part === '.' || part === '..')
+  ) {
     throw new Error(TEMPLATE_REPO_HINT);
   }
 

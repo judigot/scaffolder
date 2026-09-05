@@ -59,7 +59,10 @@ function wrapParseTemplateRepo(url: string): IParsedTemplateRepo {
 function snapshotFromCommitRef(
   parsed: IParsedTemplateRepo,
 ): IResolvedGitHubSnapshot | null {
-  if (parsed.ref === null || !isCommitSha(parsed.ref)) {
+  if (
+    parsed.ref?.length !== 40 ||
+    !isCommitSha(parsed.ref)
+  ) {
     return null;
   }
   return {

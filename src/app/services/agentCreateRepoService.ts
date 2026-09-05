@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { createAgentTokenClient } from '@/app/services/agentGitHubToken.ts';
 import { createGitHubRepositoryService } from '@/app/services/createGitHubRepositoryService.ts';
 import {
   getGitHubAppConfig,
@@ -44,6 +45,7 @@ export interface IAgentCreateRepoResult {
 }
 
 export interface IAgentCreateRepoDependencies {
+  createTokenClient?: typeof createAgentTokenClient;
   getOwnerType?: (owner: string) => Promise<IGitHubOwnerType>;
   repoExists?: (owner: string, repo: string) => Promise<boolean>;
   getStoredUserToken?: (auth0UserId: string) => Promise<string | null>;
@@ -178,14 +180,97 @@ function withCreatedRepoRecovery(
   });
 }
 
+async function createTargetWithToken(
+  target: IParsedTargetRepo,
+  token: string,
+  isPrivate: boolean,
+  createClient: typeof createAgentTokenClient,
+): Promise<IAgentCreateRepoResult> {
+  const client = createClient(token);
+  try {
+    const { data: user } = await client.users.getAuthenticated();
+    const { data: owner } = await client.users.getByUsername({
+      username: target.owner,
+    });
+    if (owner.type !== 'User' && owner.type !== 'Organization') {
+      throw new AgentCreateRepoError('Unsupported destination owner type.', {
+        status: 400,
+        code: 'INVALID_OWNER',
+      });
+    }
+    if (
+      owner.type === 'User' &&
+      user.login.toLowerCase() !== target.owner.toLowerCase()
+    ) {
+      throw new AgentCreateRepoError(
+        'The PAT must belong to the destination personal account.',
+        { status: 403, code: 'PAT_OWNER_MISMATCH' },
+      );
+    }
+    try {
+      await client.repos.get({ ...target });
+      throw new AgentCreateRepoError(
+        'Destination repository already exists. Retry with create_repo: false.',
+        { status: 409, code: 'REPO_EXISTS' },
+      );
+    } catch (error: unknown) {
+      if (
+        !(
+          typeof error === 'object' &&
+          error !== null &&
+          'status' in error &&
+          error.status === 404
+        )
+      ) {
+        throw error;
+      }
+    }
+    const params = {
+      name: target.repo,
+      private: isPrivate,
+      auto_init: true,
+      description: 'Created by Scaffolder agent-scaffold',
+    };
+    const { data } =
+      owner.type === 'Organization'
+        ? await client.repos.createInOrg({ ...params, org: target.owner })
+        : await client.repos.createForAuthenticatedUser(params);
+    return { created: true, repoUrl: data.html_url, ownerType: owner.type };
+  } catch (error: unknown) {
+    if (error instanceof AgentCreateRepoError) {
+      throw error;
+    }
+    // Do not return or log an SDK error object, which can contain request headers.
+    if (error instanceof Error && /already exists/i.test(error.message)) {
+      throw new AgentCreateRepoError(
+        'Destination repository already exists. Retry with create_repo: false.',
+        { status: 409, code: 'REPO_EXISTS' },
+      );
+    }
+    throw new AgentCreateRepoError(
+      'PAT repository creation failed. Check token validity, owner access and repository creation permissions.',
+      { status: 403, code: 'PAT_CREATE_REPO_FAILED' },
+    );
+  }
+}
+
 export async function createAgentTargetRepository(
   targetRepo: IParsedTargetRepo,
   options: {
     auth0UserId?: string;
+    githubToken?: string;
     isPrivate?: boolean;
   } = {},
   dependencies: IAgentCreateRepoDependencies = {},
 ): Promise<IAgentCreateRepoResult> {
+  if (options.githubToken !== undefined) {
+    return createTargetWithToken(
+      targetRepo,
+      options.githubToken,
+      options.isPrivate ?? true,
+      dependencies.createTokenClient ?? createAgentTokenClient,
+    );
+  }
   const getOwnerType = dependencies.getOwnerType ?? defaultGetOwnerType;
   const repoExists = dependencies.repoExists ?? defaultRepoExists;
   const getStoredUserToken = dependencies.getStoredUserToken ?? getGitHubToken;
@@ -226,7 +311,7 @@ export async function createAgentTargetRepository(
   if (ownerType === 'User') {
     if (storedToken === null || storedToken === '') {
       throw new AgentCreateRepoError(
-        'Create the user repository first. The GitHub App cannot create personal repositories, and this caller has no stored user-to-server GitHub token.',
+        'To create a personal repository, supply X-GitHub-Token with a PAT belonging to the destination owner, or use an Auth0 identity with a stored GitHub token.',
         {
           status: 400,
           code: 'USER_REPO_CREATE_UNSUPPORTED',

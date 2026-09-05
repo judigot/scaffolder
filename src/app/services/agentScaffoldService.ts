@@ -1,4 +1,6 @@
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
+import { createAgentTokenClient } from '@/app/services/agentGitHubToken.ts';
+import { fetchPublicGitHubSource } from '@/app/services/publicSourceFetch.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { CREATION_MODES } from '@/constants.ts';
@@ -33,6 +35,7 @@ import {
 } from '@/utils/project-builder/utils/resolveTemplateBase.ts';
 import {
   GitHubSnapshotError,
+  createGitHubSnapshotLookup,
   resolveGitHubSnapshot,
   type IGitHubSnapshotLookup,
 } from '@/utils/resolveGitHubSnapshot.ts';
@@ -110,6 +113,8 @@ export interface IRemoteScaffolderFilesRequest {
 
 export interface IAgentScaffoldServiceDependencies {
   auth0UserId?: string;
+  githubToken?: string;
+  createTokenClient?: typeof createAgentTokenClient;
   loadUserFiles?: () => IStructure;
   loadRemoteUserFiles?: (
     request: IRemoteScaffolderFilesRequest,
@@ -145,7 +150,7 @@ async function defaultLoadRemoteUserFiles(
       repo: request.repo,
       ref: request.ref,
     },
-    lookup,
+    lookup ?? createGitHubSnapshotLookup(fetchPublicGitHubSource),
   );
   const extractedFiles = await fetchPinnedRepoTarball({
     owner: request.owner,
@@ -394,7 +399,11 @@ async function resolveAndFetchTemplateBase(
       resolved,
       dependencies.loadTemplateFiles,
       {
-        snapshotLookup: dependencies.githubSnapshotLookup,
+        snapshotLookup:
+          dependencies.githubSnapshotLookup ??
+          (dependencies.loadTemplateFiles === undefined
+            ? createGitHubSnapshotLookup(fetchPublicGitHubSource)
+            : undefined),
       },
     );
   } catch (error: unknown) {
@@ -446,7 +455,11 @@ async function createTargetRepoIfRequested(
     ((params) =>
       createAgentTargetRepository(
         { owner: params.owner, repo: params.repo },
-        { auth0UserId: params.auth0UserId },
+        {
+          auth0UserId: params.auth0UserId,
+          githubToken: dependencies.githubToken,
+        },
+        { createTokenClient: dependencies.createTokenClient },
       ));
 
   try {
@@ -660,7 +673,23 @@ export async function scaffoldToPullRequest(
       'Review the generated files before merging. This branch was not written to the default branch.',
     ].join('\n');
 
-  const publish = dependencies.publish ?? publishDraftPullRequest;
+  const githubToken = dependencies.githubToken;
+  const publish =
+    dependencies.publish ??
+    ((params: IPublishDraftPullRequestParams) =>
+      publishDraftPullRequest(
+        params,
+        githubToken === undefined
+          ? {}
+          : {
+              getOctokit: () =>
+                Promise.resolve(
+                  (dependencies.createTokenClient ?? createAgentTokenClient)(
+                    githubToken,
+                  ),
+                ),
+            },
+      ));
 
   try {
     const published = await publish({
@@ -695,6 +724,18 @@ export async function scaffoldToPullRequest(
           ? createdRepoRecoveryDetails(targetRepo)
           : undefined,
       });
+    }
+    if (githubToken !== undefined) {
+      throw new AgentScaffoldError(
+        'PAT publication failed. Check repository access, Contents and Pull requests write permissions (and Workflows write permission when generating workflow files).',
+        {
+          status: 403,
+          code: 'PAT_PUBLISH_FAILED',
+          details: repoCreated
+            ? createdRepoRecoveryDetails(targetRepo)
+            : undefined,
+        },
+      );
     }
     if (repoCreated) {
       const message =

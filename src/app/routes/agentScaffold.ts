@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { redactAgentToken } from '@/app/services/agentGitHubToken.ts';
 import { AgentScaffoldRequestSchema } from '@/schemas/agentScaffold.ts';
 import {
   AgentScaffoldError,
@@ -20,6 +21,7 @@ interface ICreateAgentScaffoldRouterDependencies {
   agentApiKey?: string | null;
   scaffold?: (
     request: ReturnType<typeof AgentScaffoldRequestSchema.parse>,
+    context: { auth0UserId?: string; githubToken?: string },
   ) => Promise<IAgentScaffoldResult>;
 }
 
@@ -39,6 +41,22 @@ export function createAgentScaffoldRouter(
     const authResult = await verifyAuthToken(c.req.header('authorization'));
     if (!authResult.ok) {
       return c.json(authResult.body, authResult.status);
+    }
+
+    const githubToken = c.req.header('x-github-token');
+    if (
+      githubToken !== undefined &&
+      (githubToken.trim() === '' || /\s/.test(githubToken))
+    ) {
+      return c.json(
+        {
+          ok: false,
+          code: 'INVALID_GITHUB_TOKEN',
+          error:
+            'X-GitHub-Token must contain a nonempty token without whitespace.',
+        },
+        400,
+      );
     }
 
     let body: unknown;
@@ -63,11 +81,11 @@ export function createAgentScaffoldRouter(
     }
 
     try {
-      const result = await (dependencies.scaffold === undefined
-        ? scaffoldToPullRequest(parsed.data, {
-            auth0UserId: authResult.auth0UserId,
-          })
-        : dependencies.scaffold(parsed.data));
+      const scaffold = dependencies.scaffold ?? scaffoldToPullRequest;
+      const result = await scaffold(parsed.data, {
+        auth0UserId: authResult.auth0UserId,
+        githubToken,
+      });
       const status = result.updated === true ? 200 : 201;
       return c.json({ ok: true, ...result }, status);
     } catch (error: unknown) {
@@ -75,9 +93,9 @@ export function createAgentScaffoldRouter(
         return c.json(
           {
             ok: false,
-            error: error.message,
+            error: redactAgentToken(error.message, githubToken),
             code: error.code,
-            details: error.details,
+            details: redactAgentToken(error.details, githubToken),
             installationUrl: error.installationUrl,
           },
           error.status,
@@ -85,7 +103,10 @@ export function createAgentScaffoldRouter(
       }
       const message =
         error instanceof Error ? error.message : 'Failed to scaffold project';
-      return c.json({ ok: false, error: message }, 500);
+      return c.json(
+        { ok: false, error: redactAgentToken(message, githubToken) },
+        500,
+      );
     }
   });
 

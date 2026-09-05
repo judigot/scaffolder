@@ -38,7 +38,7 @@ function githubHeaders(): HeadersInit {
 }
 
 function readDefaultBranch(payload: unknown): string | null {
-  if (!isRecord(payload)) {
+  if (!isRecord(payload) || payload.private !== false) {
     return null;
   }
   const defaultBranch = payload.default_branch;
@@ -58,7 +58,7 @@ function readCommitSha(payload: unknown): string | null {
     return null;
   }
   const trimmed = sha.trim();
-  if (trimmed === '' || !/^[0-9a-f]{7,40}$/i.test(trimmed)) {
+  if (trimmed === '' || !/^[0-9a-f]{40}$/i.test(trimmed)) {
     return null;
   }
   return trimmed.toLowerCase();
@@ -83,28 +83,51 @@ function unavailableSource(
 export function createGitHubSnapshotLookup(
   fetchImpl: typeof fetch = fetch,
 ): IGitHubSnapshotLookup {
-  return {
+  const publicRepositories = new Set<string>();
+  const lookup: IGitHubSnapshotLookup = {
     async getDefaultBranch(owner, repo) {
       const response = await fetchImpl(
         `https://api.github.com/repos/${owner}/${repo}`,
-        { headers: githubHeaders() },
+        { headers: githubHeaders(), signal: AbortSignal.timeout(30_000) },
       );
+      if (
+        response.status === 429 ||
+        (response.status === 403 &&
+          response.headers.get('x-ratelimit-remaining') === '0')
+      ) {
+        throw new GitHubSnapshotError(
+          'GitHub public-source rate limit reached. Retry after reset or configure SCAFFOLDER_SOURCE_GITHUB_TOKEN on the host.',
+        );
+      }
       if (!response.ok) {
         throw unavailableSource(owner, repo, null, response.status);
       }
       const defaultBranch = readDefaultBranch(await response.json());
       if (defaultBranch === null) {
         throw new GitHubSnapshotError(
-          `GitHub repository ${owner}/${repo} did not return a default branch.`,
+          `GitHub repository ${owner}/${repo} must be public and return a default branch.`,
         );
       }
+      publicRepositories.add(`${owner}/${repo}`);
       return defaultBranch;
     },
     async getCommitSha(owner, repo, ref) {
+      if (!publicRepositories.has(`${owner}/${repo}`)) {
+        await lookup.getDefaultBranch(owner, repo);
+      }
       const response = await fetchImpl(
         `https://api.github.com/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`,
-        { headers: githubHeaders() },
+        { headers: githubHeaders(), signal: AbortSignal.timeout(30_000) },
       );
+      if (
+        response.status === 429 ||
+        (response.status === 403 &&
+          response.headers.get('x-ratelimit-remaining') === '0')
+      ) {
+        throw new GitHubSnapshotError(
+          'GitHub public-source rate limit reached. Retry after reset or configure SCAFFOLDER_SOURCE_GITHUB_TOKEN on the host.',
+        );
+      }
       if (!response.ok) {
         throw unavailableSource(owner, repo, ref, response.status);
       }
@@ -117,13 +140,12 @@ export function createGitHubSnapshotLookup(
       return sha;
     },
   };
+  return lookup;
 }
-
-const defaultLookup = createGitHubSnapshotLookup();
 
 export async function resolveGitHubSnapshot(
   source: IGitHubSnapshotSource,
-  lookup: IGitHubSnapshotLookup = defaultLookup,
+  lookup: IGitHubSnapshotLookup = createGitHubSnapshotLookup(),
 ): Promise<IResolvedGitHubSnapshot> {
   try {
     if (source.ref === null || source.ref === '') {

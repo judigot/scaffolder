@@ -21,6 +21,16 @@ describe('isCommitSha', () => {
 });
 
 describe('parseTemplateRepo', () => {
+  it.each([
+    'http://github.com/alice/starter',
+    'https://token@github.com/alice/starter',
+    'https://github.com:8443/alice/starter',
+    'https://github.com.evil.test/alice/starter',
+    'https://github.com/alice/starter/tree/%ZZ',
+  ])('rejects unsafe URLs: %s', (url) => {
+    expect(() => parseTemplateRepo(url)).toThrow();
+  });
+
   it('parses a bare GitHub repository URL', () => {
     expect(
       parseTemplateRepo('https://github.com/judigot/template-monorepo'),

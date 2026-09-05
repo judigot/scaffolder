@@ -1,5 +1,6 @@
-import { gunzipSync, strFromU8 } from 'fflate';
+import { Gunzip, strFromU8 } from 'fflate';
 import { isBinaryFile } from '@/utils/binaryFileUtils.ts';
+import { concatBytes } from '@/utils/concatBytes.ts';
 import type { IExtractedFile } from '@/utils/downloadPublicRepoFiles.ts';
 
 const BLOCK_SIZE = 512;
@@ -44,9 +45,25 @@ function stripArchiveRoot(path: string): string {
 }
 
 export function extractTarGz(archive: Uint8Array): IExtractedFile[] {
-  const tar = gunzipSync(archive);
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  const unzip = new Gunzip((chunk) => {
+    total += chunk.length;
+    if (total > 100 * 1024 * 1024) {
+      throw new Error('Source archive exceeds the 100 MiB extraction limit.');
+    }
+    chunks.push(chunk);
+  });
+  for (let start = 0; start < archive.length; start += 4096) {
+    unzip.push(
+      archive.subarray(start, start + 4096),
+      start + 4096 >= archive.length,
+    );
+  }
+  const tar = concatBytes(chunks);
   const files: IExtractedFile[] = [];
   let offset = 0;
+  let nextPath: string | undefined;
 
   while (offset + BLOCK_SIZE <= tar.length) {
     const header = tar.subarray(offset, offset + BLOCK_SIZE);
@@ -58,6 +75,13 @@ export function extractTarGz(archive: Uint8Array): IExtractedFile[] {
     const name = readCString(header, 0, 100);
     const prefix = readCString(header, 345, 155);
     const size = readOctal(header, 124, 12);
+    if (
+      !Number.isSafeInteger(size) ||
+      size < 0 ||
+      offset + BLOCK_SIZE + size > tar.length
+    ) {
+      throw new Error('Invalid source archive entry size.');
+    }
     const typeFlag = header[156];
     const typeChar = typeFlag === 0 ? '0' : String.fromCharCode(typeFlag);
 
@@ -65,11 +89,36 @@ export function extractTarGz(archive: Uint8Array): IExtractedFile[] {
     const data = tar.subarray(offset, offset + size);
     offset += paddedSize(size);
 
+    if (typeChar === 'x') {
+      // POSIX extended headers carry paths longer than the ustar name field.
+      let cursor = 0;
+      while (cursor < data.length) {
+        const space = data.indexOf(32, cursor);
+        const length = Number(strFromU8(data.subarray(cursor, space)));
+        if (
+          space < cursor ||
+          !Number.isSafeInteger(length) ||
+          length <= space - cursor + 1 ||
+          cursor + length > data.length
+        ) {
+          throw new Error('Invalid source archive extended header.');
+        }
+        const record = strFromU8(data.subarray(space + 1, cursor + length - 1));
+        if (record.startsWith('path=')) {
+          nextPath = record.slice(5);
+        }
+        cursor += length;
+      }
+      continue;
+    }
+
+    const fullName = nextPath ?? (prefix === '' ? name : `${prefix}/${name}`);
+    nextPath = undefined;
+
     if (typeChar !== '0' && typeChar !== '\0') {
       continue;
     }
 
-    const fullName = prefix === '' ? name : `${prefix}/${name}`;
     if (fullName === '' || fullName.endsWith('/')) {
       continue;
     }
@@ -78,12 +127,30 @@ export function extractTarGz(archive: Uint8Array): IExtractedFile[] {
     if (cleanedPath === '') {
       continue;
     }
+    if (
+      fullName.startsWith('/') ||
+      cleanedPath.includes('\\') ||
+      cleanedPath
+        .split('/')
+        .some(
+          (part) =>
+            part === '.' ||
+            part === '..' ||
+            part === '' ||
+            part.toLowerCase() === '.git',
+        )
+    ) {
+      throw new Error('Unsafe source archive path.');
+    }
+    if (files.length >= 20_000) {
+      throw new Error('Source archive exceeds the 20,000 file limit.');
+    }
 
     const binary = isBinaryFile(cleanedPath);
     if (binary) {
       files.push({
         path: cleanedPath,
-        content: Buffer.from(data).toString('base64'),
+        content: btoa(strFromU8(data, true)),
         isBinary: true,
       });
       continue;

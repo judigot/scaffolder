@@ -11,6 +11,33 @@ import {
 } from '@/utils/parseAgentScaffoldUrls.ts';
 
 describe('parseProjectReference', () => {
+  it.each([
+    'https://github.com/alice/recipes/tree/main/Projects/Projects',
+    'https://github.com/alice/recipes/blob/main/Projects/Projects/structure.yaml',
+  ])('accepts a project named Projects: %s', (url) => {
+    expect(parseProjectReference(url)).toMatchObject({
+      ref: 'main',
+      projectName: 'Projects',
+    });
+  });
+
+  it.each(['alice/tree', 'alice/blob', 'tree/recipes', 'alice/Projects'])(
+    'parses positional URL segments for %s',
+    (repository) => {
+      const [owner, repo] = repository.split('/');
+      expect(
+        parseProjectReference(
+          `https://github.com/${repository}/tree/feature/new/Projects/demo`,
+        ),
+      ).toMatchObject({ owner, repo, ref: 'feature/new', projectName: 'demo' });
+    },
+  );
+  it('allows a project URL with no explicit ref', () => {
+    expect(
+      parseProjectReference('https://github.com/alice/recipes/Projects/demo'),
+    ).toMatchObject({ ref: null, projectName: 'demo' });
+  });
+
   it('parses a GitHub tree URL into a project path', () => {
     const result = parseProjectReference(
       'https://github.com/judigot/scaffolder-files/tree/main/Projects/hono-react',
@@ -109,14 +136,14 @@ describe('parseProjectReference', () => {
 });
 
 describe('shouldFetchRemoteScaffolderFiles', () => {
-  it('uses bundled files for the official files repo URL', () => {
+  it('fetches explicit official repository URLs remotely', () => {
     expect(
       shouldFetchRemoteScaffolderFiles(
         parseProjectReference(
           'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM Schema - Knex',
         ),
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('fetches a developer-owned files-repo URL', () => {

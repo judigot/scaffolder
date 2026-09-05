@@ -1,3 +1,5 @@
+import { parseTemplateRepo } from '@/utils/parseTemplateRepo.ts';
+
 export interface IParsedProjectReference {
   owner: string | null;
   repo: string | null;
@@ -25,11 +27,6 @@ const PROJECT_URL_HINT =
 
 function trimSlashes(value: string): string {
   return value.replace(/^\/+|\/+$/g, '');
-}
-
-function stripUrlSuffix(value: string): string {
-  const withoutHash = value.split('#')[0] ?? value;
-  return withoutHash.split('?')[0] ?? withoutHash;
 }
 
 function decodeUriPath(value: string): string {
@@ -84,7 +81,7 @@ export function shouldFetchRemoteScaffolderFiles(
   if (projectReference.owner === null || projectReference.repo === null) {
     return false;
   }
-  return !usesBundledScaffolderFiles(projectReference);
+  return true;
 }
 
 function createProjectReference(params: {
@@ -115,26 +112,49 @@ export function parseProjectReference(
     throw new Error('project_url is required');
   }
 
-  const normalizedUrl = stripUrlSuffix(trimmed);
-  const treeMatch =
-    /github\.com\/([^/]+)\/([^/]+)\/(?:tree|blob)\/([^/]+)\/(.+)/.exec(
-      normalizedUrl,
-    );
-  if (treeMatch !== null) {
-    const owner = treeMatch[1];
-    const rawRepo = treeMatch[2];
-    const ref = decodeUriPath(treeMatch[3]);
-    const folderPath = decodeUriPath(treeMatch[4]);
+  if (/^https?:/i.test(trimmed) || /github\.com/i.test(trimmed)) {
+    let url: URL;
+    try {
+      url = new URL(trimmed);
+    } catch {
+      throw new Error(PROJECT_URL_HINT);
+    }
+    const parts = url.pathname.replace(/\/$/, '').split('/').slice(1);
+    const [owner = '', repo = '', kind] = parts;
+    const root = `${url.origin}/${owner}/${repo}`;
+    if (
+      url.username !== '' ||
+      url.password !== '' ||
+      url.search !== '' ||
+      url.hash !== ''
+    ) {
+      throw new Error(PROJECT_URL_HINT);
+    }
+    let source = parseTemplateRepo(root);
+    let projectPath: string;
+    if (kind === 'Projects') {
+      projectPath = parts.slice(2).join('/');
+    } else {
+      const suffix = parts.slice(3);
+      const marker =
+        suffix.length - (suffix.at(-1) === 'structure.yaml' ? 3 : 2);
+      if (
+        (kind !== 'tree' && kind !== 'blob') ||
+        marker < 1 ||
+        suffix[marker] !== 'Projects'
+      ) {
+        throw new Error(PROJECT_URL_HINT);
+      }
+      const ref = decodeUriPath(suffix.slice(0, marker).join('/'));
+      source = parseTemplateRepo(`${root}/tree/${encodeURIComponent(ref)}`);
+      projectPath = suffix.slice(marker).join('/');
+    }
     return createProjectReference({
-      owner,
-      repo: rawRepo.replace(/\.git$/, ''),
-      ref,
-      projectName: normalizeProjectFolder(folderPath),
+      owner: source.owner,
+      repo: source.repo,
+      ref: source.ref,
+      projectName: normalizeProjectFolder(projectPath),
     });
-  }
-
-  if (/github\.com\//i.test(normalizedUrl)) {
-    throw new Error(PROJECT_URL_HINT);
   }
 
   return createProjectReference({
@@ -151,14 +171,12 @@ export function parseTargetRepo(targetRepo: string): IParsedTargetRepo {
     throw new Error('target_repo is required');
   }
 
-  const urlMatch = /github\.com\/([^/]+)\/([^/]+)/.exec(trimmed);
-  if (urlMatch !== null) {
-    const owner = urlMatch[1];
-    const rawRepo = urlMatch[2];
-    return {
-      owner,
-      repo: rawRepo.replace(/\.git$/, '').replace(/\/$/, ''),
-    };
+  if (/^https?:/i.test(trimmed)) {
+    const parsed = parseTemplateRepo(trimmed);
+    if (parsed.ref !== null || parsed.subdirectory !== null) {
+      throw new Error('target_repo must point to a repository root.');
+    }
+    return { owner: parsed.owner, repo: parsed.repo };
   }
 
   const shorthandMatch = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/.exec(trimmed);

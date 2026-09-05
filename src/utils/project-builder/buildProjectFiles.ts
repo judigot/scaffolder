@@ -512,7 +512,7 @@ export const buildProjectFiles = async (
       suggestion:
         templateBaseError === undefined
           ? 'Ensure the YAML is valid before running the generator.'
-          : 'Use a local /Core path or a pinned allowlisted GitHub template URL.',
+          : 'Use a local /Core path or a public GitHub repository URL.',
       dismissible: false,
     });
     messages.push(message);
