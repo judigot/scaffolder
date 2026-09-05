@@ -69,7 +69,7 @@ sso_fail_message() {
 	if [ "${HELLO_BYPASS_PRESENT-}" = "1" ]; then
 		printf '%s\n' "Vercel Authentication intercepted GET /api/hello even though x-vercel-protection-bypass was sent. Check that secrets.VERCEL_AUTOMATION_BYPASS_SECRET matches the project's Protection Bypass for Automation value."
 	else
-		printf '%s\n' "Vercel Authentication intercepted GET /api/hello (SSO redirect). Add repository secret VERCEL_AUTOMATION_BYPASS_SECRET and this workflow will send it as x-vercel-protection-bypass."
+		printf '%s\n' "Vercel Authentication intercepted GET /api/hello (SSO redirect). Add repository secret VERCEL_AUTOMATION_BYPASS_SECRET and this workflow will send it as x-vercel-protection-bypass. Alternate secret names also accepted: VERCEL_PROTECTION_BYPASS_SECRET, VERCEL_PROTECTION_BYPASS, VERCEL_BYPASS_SECRET, PROTECTION_BYPASS_SECRET, VERCEL_AUTOMATION_BYPASS. Or set VERCEL_TOKEN so CI can read the project's bypass from the Vercel API."
 	fi
 }
 

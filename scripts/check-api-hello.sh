@@ -1,7 +1,8 @@
 #!/bin/sh
 # Smoke-test {previewUrl}/api/hello.
 # Usage: check-api-hello.sh <preview-base-url>
-# Sends x-vercel-protection-bypass when VERCEL_AUTOMATION_BYPASS_SECRET is set.
+# Sends x-vercel-protection-bypass when a bypass secret is resolved from
+# VERCEL_AUTOMATION_BYPASS_SECRET or a known alias / VERCEL_TOKEN.
 # Never prints secret values.
 
 set -eu
@@ -9,6 +10,8 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 # shellcheck source=assert-hello-response.sh
 . "$SCRIPT_DIR/assert-hello-response.sh"
+# shellcheck source=resolve-vercel-bypass.sh
+. "$SCRIPT_DIR/resolve-vercel-bypass.sh"
 
 reject_production_host() {
 	_host=$1
@@ -49,6 +52,12 @@ fi
 case "$BASE_URL" in
 https://*)
 	;;
+http://127.0.0.1:* | http://localhost:*)
+	if [ "${HELLO_ALLOW_HTTP-}" != "1" ]; then
+		printf '%s\n' "Preview URL must use https:// (got a non-https value)." >&2
+		exit 1
+	fi
+	;;
 *)
 	printf '%s\n' "Preview URL must use https:// (got a non-https value)." >&2
 	exit 1
@@ -57,6 +66,7 @@ esac
 
 BASE_URL=${BASE_URL%/}
 HOST=${BASE_URL#https://}
+HOST=${HOST#http://}
 HOST=${HOST%%/*}
 reject_production_host "$HOST" || exit 1
 
@@ -65,17 +75,29 @@ HEADER_FILE=$(mktemp)
 BODY_FILE=$(mktemp)
 trap 'rm -f "$HEADER_FILE" "$BODY_FILE"' EXIT
 
+RESOLVED_BYPASS=
+if RESOLVED_BYPASS=$(resolve_automation_bypass "$HOST"); then
+	:
+else
+	RESOLVED_BYPASS=
+fi
+
 set -- curl -sS --max-redirs 0 -D "$HEADER_FILE" -o "$BODY_FILE" -w '%{http_code}'
 HELLO_BYPASS_PRESENT=0
-if [ -n "${VERCEL_AUTOMATION_BYPASS_SECRET-}" ]; then
+if [ -n "$RESOLVED_BYPASS" ]; then
 	HELLO_BYPASS_PRESENT=1
 	set -- "$@" \
-		-H "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}" \
+		-H "x-vercel-protection-bypass: ${RESOLVED_BYPASS}" \
 		-H "x-vercel-set-bypass-cookie: true"
 fi
 set -- "$@" "$HELLO_URL"
 
 printf '%s\n' "GET ${HELLO_URL}"
+if [ "$HELLO_BYPASS_PRESENT" -eq 1 ]; then
+	printf '%s\n' "Sending x-vercel-protection-bypass (value redacted)"
+else
+	printf '%s\n' "No protection-bypass secret resolved. Looked for repository secrets: VERCEL_AUTOMATION_BYPASS_SECRET, VERCEL_PROTECTION_BYPASS_SECRET, VERCEL_PROTECTION_BYPASS, VERCEL_BYPASS_SECRET, PROTECTION_BYPASS_SECRET, VERCEL_AUTOMATION_BYPASS, and VERCEL_TOKEN."
+fi
 
 CURL_STATUS=0
 HTTP_STATUS=$("$@") || CURL_STATUS=$?
