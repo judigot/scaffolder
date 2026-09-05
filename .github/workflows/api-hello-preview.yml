@@ -1,0 +1,65 @@
+name: API Hello Preview
+
+# Wait-for-deployment runs on the PR branch before merge.
+# repository_dispatch only fires after this file exists on the default branch.
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+  repository_dispatch:
+    types:
+      - vercel.deployment.ready
+      - vercel.deployment.success
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: read
+  statuses: read
+
+jobs:
+  preview-from-wait:
+    name: Smoke-test this commit's Vercel Preview
+    if: github.event_name != 'repository_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for Vercel preview
+        id: deployment
+        uses: vercel/wait-for-deployment-action@0e2b0c5c5cce31f1648108aeec56467187aca037
+        with:
+          environment: preview
+
+      - name: GET /api/hello on the preview URL
+        env:
+          PREVIEW_URL: ${{ steps.deployment.outputs.deployment-url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: sh scripts/check-api-hello.sh "$PREVIEW_URL"
+
+  preview-from-dispatch:
+    name: Smoke-test dispatched Vercel Preview
+    if: >-
+      github.event_name == 'repository_dispatch' &&
+      (github.event.client_payload.environment == 'preview' ||
+       github.event.client_payload.environment == 'Preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout deployment SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.git.sha }}
+
+      - name: GET /api/hello on the preview URL
+        env:
+          PREVIEW_URL: ${{ github.event.client_payload.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: sh scripts/check-api-hello.sh "$PREVIEW_URL"
