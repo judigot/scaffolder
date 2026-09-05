@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { compress } from 'hono/compress';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
+import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import indexRouter from '@/app/routes/index.ts';
 
@@ -31,6 +32,13 @@ const hono: { fetch: typeof app.fetch; port?: number } = { fetch: app.fetch };
 
 if (process.env.VERCEL !== '1') {
   hono.port = Number(process.env.VITE_BACKEND_PORT);
+}
+
+if (process.env.VERCEL !== '1' && !('Bun' in globalThis)) {
+  serve({
+    fetch: app.fetch,
+    port: Number(process.env.VITE_BACKEND_PORT),
+  });
 }
 
 export default hono;
