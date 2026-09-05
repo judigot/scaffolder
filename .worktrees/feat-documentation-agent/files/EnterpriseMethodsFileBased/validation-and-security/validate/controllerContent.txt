@@ -1,0 +1,11 @@
+        $request->validate([
+            'data' => 'required|array',
+            'rules' => 'nullable|array',
+        ]);
+
+        $validatedData = $this->service->validateData(
+            $request->input('data'),
+            $request->input('rules')
+        );
+
+        return response()->json(['data' => $validatedData]); 

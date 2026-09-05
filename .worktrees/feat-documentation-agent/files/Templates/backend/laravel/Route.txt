@@ -1,0 +1,11 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\{{tableNamePascalCase}}Controller;
+
+// Custom routes for {{tableNamePascalCase}}
+
+// Base routes
+
+// Resource routes for {{tableNamePascalCase}}
+Route::apiResource('{{tableNameKebabCasePlural}}', {{tableNamePascalCase}}Controller::class);

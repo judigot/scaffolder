@@ -1,0 +1,23 @@
+import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
+import { useUpdate } from '@/hooks/shared/useUpdate.ts';
+import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+
+export const useuseUpdate = (
+  id: number | string,
+  options?: Omit<
+    UseMutationOptions<I{{tableNamePascalCaseSingular}}, Error, Partial<I{{tableNamePascalCaseSingular}}>>,
+    'mutationFn'
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Partial<I{{tableNamePascalCaseSingular}}>) =>
+      useUpdate(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCasePlural}}'] });
+      queryClient.invalidateQueries({ queryKey: ['{{tableNameCamelCaseSingular}}', id] });
+    },
+    ...options,
+  });
+};

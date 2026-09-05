@@ -1,0 +1,342 @@
+import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import { createFile } from '@/helpers/stringHelper.ts';
+import { APP_SETTINGS } from '@/constants.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import { getPrimaryKey, changeCase } from '@/utils/common.ts';
+
+const createControllers = (schemaInfo: ISchemaInfo[]): IStructure => {
+  return schemaInfo
+    .filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot), // Exclude pivot tables if specified in APP_SETTINGS
+    )
+    .map((tableInfo) => {
+      let template = `
+import { Prisma } from '@prisma/client';
+import { prisma } from '@/prisma/DatabaseClient';
+import { {{tableName}} } from '@prisma/client';
+
+export const {{className}} = {
+  /**
+   * Get all {{tableName}}s (READ).
+   */
+  async index() {
+    return prisma.{{tableName}}.findMany();
+  },
+
+  /**
+   * Get a single {{tableName}} by ID (READ).
+   */
+  async show({{primaryKey}}: number) {
+    return prisma.{{tableName}}.findUnique({
+      where: { {{primaryKey}} },
+    });
+  },
+
+  /**
+   * Create a new {{tableName}} (CREATE).
+   */
+  async store(data: Prisma.{{tableName}}CreateInput) {
+    return prisma.{{tableName}}.create({
+      data,
+    });
+  },
+
+  /**
+   * Update a {{tableName}} by ID (UPDATE).
+   */
+  async update({{primaryKey}}: number, data: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.update({
+      where: { {{primaryKey}} },
+      data,
+    });
+  },
+
+  /**
+   * Delete a {{tableName}} by ID (DELETE).
+   */
+  async destroy({{primaryKey}}: number) {
+    return prisma.{{tableName}}.delete({
+      where: { {{primaryKey}} },
+    });
+  },
+
+  /**
+   * Find by attributes.
+   */
+  async findByAttributes(attributes: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.findFirst({
+      where: attributes,
+    });
+  },
+
+  /**
+   * Paginate records.
+   */
+  async paginate(page: number, perPage: number) {
+    const skip = (page - 1) * perPage;
+    return prisma.{{tableName}}.findMany({
+      skip,
+      take: perPage,
+    });
+  },
+
+  /**
+   * Search {{tableName}}s by query.
+   */
+  async search(
+    query: string,
+    fields: (keyof {{tableName}})[],
+    perPage: number,
+    page: number,
+  ) {
+    const skip = (page - 1) * perPage;
+    return prisma.{{tableName}}.findMany({
+      where: {
+        OR: fields.map((field) => ({
+          [field]: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        })),
+      },
+      skip,
+      take: perPage,
+    });
+  },
+
+  /**
+   * Count {{tableName}}s based on criteria.
+   */
+  async count(criteria: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.count({
+      where: criteria,
+    });
+  },
+
+  /**
+   * Get {{tableName}}s with relations.
+   */
+  async getWithRelations(relations: string[]) {
+    return prisma.{{tableName}}.findMany({
+      include: Object.fromEntries(
+        relations.map((relation) => [relation, true]),
+      ),
+    });
+  },
+
+  /**
+   * Find a {{tableName}} or fail.
+   */
+  async findOrFail({{primaryKey}}: number) {
+    return prisma.{{tableName}}.findUniqueOrThrow({
+      where: { {{primaryKey}} },
+    });
+  },
+
+  /**
+   * Update or create a {{tableName}}.
+   */
+  async updateOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.upsert({
+      where: attributes,
+      update: values,
+      create: values,
+    });
+  },
+
+  /**
+   * Batch update {{tableName}}s.
+   */
+  async batchUpdate(criteria: Partial<{{tableName}}>, data: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.updateMany({
+      where: criteria,
+      data,
+    });
+  },
+
+  /**
+   * Check if a {{tableName}} exists based on criteria.
+   */
+  async exists(criteria: Partial<{{tableName}}>) {
+    const count = await prisma.{{tableName}}.count({
+      where: criteria,
+    });
+    return count > 0;
+  },
+
+  /**
+   * Pluck specific columns from {{tableName}}s.
+   */
+  async pluck(column: keyof {{tableName}}, key?: keyof {{tableName}}) {
+    const results = await prisma.{{tableName}}.findMany({
+      select: { [column]: true, ...(key && { [key]: true }) },
+    });
+    return results.map((row) => row[column]);
+  },
+
+  /**
+   * First or create a {{tableName}}.
+   */
+  async firstOrCreate(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
+    return prisma.{{tableName}}.upsert({
+      where: attributes,
+      update: {},
+      create: values,
+    });
+  },
+
+  /**
+   * First or return a new instance of a {{tableName}}.
+   */
+  async firstOrNew(attributes: Partial<{{tableName}}>, values: Partial<{{tableName}}>) {
+    const existing = await prisma.{{tableName}}.findFirst({
+      where: attributes,
+    });
+    return existing ?? { ...attributes, ...values };
+  },
+
+  /**
+   * Get a random {{tableName}}.
+   */
+  async random(count: number) {
+    return prisma.{{tableName}}.findMany({
+      take: count,
+      orderBy: { {{primaryKey}}: 'asc' },
+    });
+  },
+
+  /**
+   * Get the latest {{tableName}}.
+   */
+  async latest(column = 'createdAt') {
+    return prisma.{{tableName}}.findFirst({
+      orderBy: { [column]: 'desc' },
+    });
+  },
+
+  /**
+   * Get the oldest {{tableName}}.
+   */
+  async oldest(column = 'createdAt') {
+    return prisma.{{tableName}}.findFirst({
+      orderBy: { [column]: 'asc' },
+    });
+  },
+
+  /**
+   * Find Many {{tableName}}s by IDs.
+   */
+  async findMany(ids: number[]) {
+    return prisma.{{tableName}}.findMany({
+      where: { {{primaryKey}}: { in: ids } },
+    });
+  },
+
+  /**
+   * Filter {{tableName}}s using \`whereIn\`.
+   */
+  async whereIn(column: keyof {{tableName}}, values: unknown[]) {
+    return prisma.{{tableName}}.findMany({
+      where: { [column]: { in: values } },
+    });
+  },
+
+  /**
+   * Filter {{tableName}}s using \`whereNotIn\`.
+   */
+  async whereNotIn(column: keyof {{tableName}}, values: unknown[]) {
+    return prisma.{{tableName}}.findMany({
+      where: { [column]: { notIn: values } },
+    });
+  },
+
+  /**
+   * Filter {{tableName}}s using \`whereBetween\`.
+   */
+  async whereBetween(column: keyof {{tableName}}, range: [unknown, unknown]) {
+    return prisma.{{tableName}}.findMany({
+      where: { [column]: { gte: range[0], lte: range[1] } },
+    });
+  },
+
+  /**
+   * Order {{tableName}}s by a column.
+   */
+  async orderBy(column: keyof {{tableName}}, direction: 'asc' | 'desc' = 'asc') {
+    return prisma.{{tableName}}.findMany({
+      orderBy: { [column]: direction },
+    });
+  },
+
+  /**
+   * Group {{tableName}}s by a column.
+   */
+  async groupBy(column: keyof {{tableName}}) {
+    return prisma.{{tableName}}.groupBy({
+      by: [column],
+    });
+  },{{softDeleteFunctions}}
+};
+`;
+
+      const softDeleteFunctionsTemplate = `
+
+  /**
+   * Soft delete a {{tableName}}.
+   */
+  async softDelete({{primaryKey}}: number) {
+    return prisma.{{tableName}}.update({
+      where: { {{primaryKey}} },
+      data: { deleted_at: new Date() },
+    });
+  },
+
+  /**
+   * Restore a soft-deleted {{tableName}}.
+   */
+  async restore({{primaryKey}}: number) {
+    return prisma.{{tableName}}.update({
+      where: { {{primaryKey}} },
+      data: { deleted_at: undefined },
+    });
+  },`;
+      const { tableName, columnsInfo } = tableInfo;
+      const { pascalCase } = changeCase(tableName);
+      const className = pascalCase;
+
+      const hasDeletedAt = columnsInfo.filter(
+        (columnInfo) =>
+          columnInfo.column_name.toLowerCase() === 'deleted_at' ||
+          columnInfo.column_name.toLowerCase() === 'deletedat',
+      );
+
+      if (hasDeletedAt.length) {
+        template = template.replace(
+          '{{softDeleteFunctions}}',
+          softDeleteFunctionsTemplate,
+        );
+      } else {
+        template = template.replace('{{softDeleteFunctions}}', '');
+      }
+
+      const replacements: Record<string, string> = {
+        tableName,
+        className,
+        primaryKey: getPrimaryKey({ tableName, schemaInfo }),
+      };
+
+      const content = createFile({
+        template,
+        replacements,
+      });
+
+      return {
+        type: 'file',
+        name: `${className}Controller.ts`,
+        content,
+      };
+    });
+};
+
+export default createControllers;

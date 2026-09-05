@@ -1,20 +1,21 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import '@/styles/main.scss';
-import App from '@/App.tsx';
-import SQLSchemaInputModal from '@/components/SQLSchemaInputModal.tsx';
+import ChatApp from '@/components/AI/chat-app/ChatApp.tsx';
+// import App from "@/App.tsx";
 import AuthGuard from '@/components/AuthGuard.tsx';
 // import TransformationTester from '@/TransformationTester.tsx';
 import ModalProvider from '@/components/Modal/base/ModalProvider.tsx';
+import SQLSchemaInputModal from '@/components/SQLSchemaInputModal.tsx';
 
 // import { FormParser } from '@/dynamic-form/ReactFormParser.tsx';
 // import { JSONFormStructure } from '@/dynamic-form/DynamicFormStructure.ts';import { parse, stringify } from 'yaml'
 
-import formatCode from '@/utils/formatCode.ts';
-
 import { Auth0Provider } from '@auth0/auth0-react';
+
+import formatCode from '@/utils/formatCode.ts';
 
 void (async () => {
   const formatted = await formatCode(`<?php
@@ -54,7 +55,7 @@ class Profile extends Model
 
 }`);
   const formattedCode = formatted.php;
-  // eslint-disable-next-line no-console
+
   console.log(formattedCode);
 })();
 
@@ -69,7 +70,11 @@ if (rootElement) {
         domain={String(import.meta.env.VITE_AUTH0_DOMAIN)}
         clientId={String(import.meta.env.VITE_AUTH0_CLIENT_ID)}
         authorizationParams={{
-          redirect_uri: window.location.origin,
+          redirect_uri:
+            `${window.location.origin}${import.meta.env.BASE_URL}`.replace(
+              /\/$/,
+              '',
+            ),
           audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
           scope: 'openid profile email offline_access',
         }}
@@ -83,7 +88,7 @@ if (rootElement) {
             <ModalProvider />
             <SQLSchemaInputModal />
             {/* <TransformationTester /> */}
-            <App />
+            <ChatApp />
           </AuthGuard>
         </QueryClientProvider>
       </Auth0Provider>

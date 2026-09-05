@@ -1,0 +1,1054 @@
+import { checkConditions } from '@/utils/project-builder/project-processors/checkConditions.ts';
+import { extractFileNameFromPath } from '@/utils/project-builder/helpers/extractFileNameFromPath.ts';
+import { sanitizeFileName } from '@/utils/project-builder/helpers/sanitizeFileName.ts';
+import { formatFileContent } from '@/utils/project-builder/helpers/formatFileContent.ts';
+import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
+import type { IStructure } from '@/components/FileViewer.tsx';
+import { loadTemplateContent } from '@/utils/project-builder/utils/loadTemplateContent.ts';
+import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
+import { parseConditionalFolder } from '@/utils/project-builder/project-processors/parseConditionalFolder.ts';
+import { processDynamicFolders } from '@/utils/project-builder/project-processors/processDynamicFolders.ts';
+import { processIterateInTemplate } from '@/utils/project-builder/template-processors/processIterateInTemplate.ts';
+import {
+  processLoopTables,
+  processLoopTablesReversed,
+  processLoopDataSources,
+} from '@/utils/project-builder/template-processors/processIterateCommand.ts';
+import { processMultipleFiles } from '@/utils/project-builder/project-processors/processMultipleFiles.ts';
+import { processLoopFolders } from '@/utils/project-builder/project-processors/processLoopFolders.ts';
+import { importProject } from '@/utils/project-builder/project-processors/importProject.ts';
+import { createBaseMethodFile } from '@/utils/project-builder/project-processors/createBaseMethodFile.ts';
+import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
+import { PROJECT_ACTIONS } from '@/utils/project-builder/constants/projectActions.ts';
+import { ACTION_FLAGS } from '@/utils/project-builder/constants/actionFlags.ts';
+import type { IBuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
+import { processTemplatePathWithFlag } from '@/utils/project-builder/utils/processRelativePath.ts';
+import { flattenData } from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { USE_USER_ENV_REGEX } from '@/utils/project-builder/constants/templateActions.ts';
+import { loadDataSourceFile } from '@/utils/project-builder/utils/loadDataSourceFile.ts';
+
+const ROOT_LEVEL_ACTIONS = [
+  PROJECT_ACTIONS.CREATE_FILE,
+  PROJECT_ACTIONS.CREATE_BASE_METHOD_FILE,
+  PROJECT_ACTIONS.FILE_LOOP,
+  PROJECT_ACTIONS.LOOP_FOLDERS,
+] as const;
+
+const buildAbsolutePath = (fileName: string, currentPath: string): string => {
+  if (currentPath === '') {
+    return fileName;
+  }
+  return `${currentPath}/${fileName}`;
+};
+
+export const processYamlStructure = async (
+  ctx: IBuildContext,
+): Promise<IStructure> => {
+  const {
+    node,
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    projectYamlPath,
+    table,
+    formData,
+    userMetadata,
+    dataContext,
+    onFileUsingUserEnv,
+    onFileFailedToFormat,
+    currentPath = '',
+  } = ctx;
+  if (typeof node === 'string') {
+    const nodeParams = /\(([^)]+)\)/.exec(node);
+
+    if (!nodeParams) {
+      throw new Error('No node params found');
+    }
+
+    const extractedParams = nodeParams[1];
+
+    const { command, options } = parseCommand(extractedParams);
+
+    let templatePath = options[ACTION_FLAGS.TEMPLATE];
+
+    // Check if the template path is marked as relative and present
+    const hasRelativeTemplatePath =
+      ACTION_FLAGS.IS_RELATIVE_PATH in options &&
+      options[ACTION_FLAGS.IS_RELATIVE_PATH] === true &&
+      typeof templatePath === 'string';
+
+    // Process the template path if it's marked as relative
+    if (hasRelativeTemplatePath) {
+      templatePath = processTemplatePathWithFlag(
+        templatePath,
+        projectYamlPath,
+        true,
+      );
+    }
+
+    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_BASE_METHOD_FILE}(`)) {
+      // Skip file if conditions are not met
+      const conditions = options[ACTION_FLAGS.CONDITIONS];
+      if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
+        return [];
+      }
+      return await createBaseMethodFile(
+        extractedParams,
+        userFiles,
+        projectYamlPath,
+        schemaInfo,
+        schemaInfoParsed,
+        table,
+      );
+    }
+
+    if (node.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
+      // Skip file if conditions are not met
+      const conditions = options[ACTION_FLAGS.CONDITIONS];
+      if (conditions && conditions.length > 0 && !checkConditions(conditions)) {
+        return [];
+      }
+
+      const schemaInfoProcessed =
+        schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+
+      const scopedOption = options[ACTION_FLAGS.SCOPED];
+      const shouldFormat = options[ACTION_FLAGS.FORMAT] !== false;
+
+      const dataSourcePath = options[ACTION_FLAGS.DATA_SOURCE];
+      const dataSource =
+        typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+          ? loadDataSourceFile(dataSourcePath, userFiles, projectYamlPath)
+          : null;
+
+      if (dataContext && (scopedOption ?? false)) {
+        let templateContent = '';
+        if (
+          typeof templatePath === 'string' &&
+          templatePath.trim().length > 0
+        ) {
+          const loadedContent = loadTemplateContent(
+            userFiles,
+            templatePath,
+            projectYamlPath,
+          );
+          if (loadedContent.length > 0) {
+            templateContent = loadedContent;
+          }
+        } else {
+          templateContent = loadTemplateContent(
+            userFiles,
+            command,
+            projectYamlPath,
+          );
+        }
+
+        const flattenedData = flattenData(dataContext);
+        const dataReplacements: Record<string, string> = {};
+        for (const [key, value] of Object.entries(flattenedData)) {
+          dataReplacements[key] = value;
+        }
+
+        const processedName = replacePlaceholders(
+          command,
+          dataReplacements,
+          { ...ctx, dataContext },
+          command,
+        );
+
+        let outputFileName = processedName.includes('/')
+          ? extractFileNameFromPath(processedName)
+          : processedName;
+        outputFileName = sanitizeFileName(outputFileName);
+
+        if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+          onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
+        }
+
+        const content = replacePlaceholders(
+          templateContent,
+          dataReplacements,
+          { ...ctx, dataContext },
+          typeof templatePath === 'string' && templatePath.length > 0
+            ? templatePath
+            : command,
+        );
+
+        const formatResult = await formatFileContent(
+          content,
+          outputFileName,
+          shouldFormat,
+        );
+
+        if (formatResult.failed && onFileFailedToFormat) {
+          onFileFailedToFormat(
+            buildAbsolutePath(outputFileName, currentPath),
+            formatResult.errorMessage ?? 'Unknown formatting error',
+          );
+        }
+
+        return [
+          {
+            type: 'file',
+            name: outputFileName,
+            content: formatResult.content,
+          },
+        ];
+      }
+
+      if (!schemaInfoProcessed) {
+        return [];
+      }
+
+      if (table && (scopedOption ?? false)) {
+        // The hasRelationships check is removed here to allow processing of all tables
+
+        // Get the template content
+        let templateContent = '';
+        if (
+          typeof templatePath === 'string' &&
+          templatePath.trim().length > 0
+        ) {
+          const loadedContent = loadTemplateContent(
+            userFiles,
+            templatePath,
+            projectYamlPath,
+          );
+          if (loadedContent.length > 0) {
+            templateContent = loadedContent;
+          }
+        } else {
+          // Try to load template based on filename if no template option provided
+          templateContent = loadTemplateContent(
+            userFiles,
+            command,
+            projectYamlPath,
+          );
+        }
+
+        // Process the file with the current table context only
+        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const processedName = replacePlaceholders(
+          command,
+          replacements,
+          { ...ctx, table },
+          command,
+        );
+
+        // Extract the base filename from the processed path if it contains slashes
+        let outputFileName = processedName.includes('/')
+          ? extractFileNameFromPath(processedName)
+          : processedName;
+        outputFileName = sanitizeFileName(outputFileName);
+
+        if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+          onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
+        }
+
+        let content = '';
+        content = replacePlaceholders(
+          processLoopDataSources(
+            processLoopTablesReversed(
+              processLoopTables(
+                templateContent,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+                formData,
+                userMetadata,
+                dataSource ?? undefined,
+              ),
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              formData,
+              userMetadata,
+              dataSource ?? undefined,
+            ),
+            userFiles,
+            schemaInfoParsed,
+            formData,
+            userMetadata,
+          ),
+          replacements,
+          { ...ctx, table },
+          typeof templatePath === 'string' && templatePath.length > 0
+            ? templatePath
+            : command,
+        );
+
+        content = processIterateInTemplate(
+          content,
+          schemaInfo,
+          schemaInfoParsed,
+          userFiles,
+          table,
+          formData,
+          userMetadata,
+        );
+
+        const formatResult = await formatFileContent(
+          content,
+          outputFileName,
+          shouldFormat,
+        );
+
+        if (formatResult.failed && onFileFailedToFormat) {
+          onFileFailedToFormat(
+            buildAbsolutePath(outputFileName, currentPath),
+            formatResult.errorMessage ?? 'Unknown formatting error',
+          );
+        }
+
+        return [
+          {
+            type: 'file',
+            name: outputFileName,
+            content: formatResult.content,
+          },
+        ];
+      }
+
+      // Original behavior for backward compatibility (no include/exclude filters)
+      const replacements = getReplacementsForTable(
+        schemaInfoProcessed,
+        schemaInfoParsed,
+      );
+      const processedName = replacePlaceholders(command, replacements, {
+        ...ctx,
+        table: schemaInfoProcessed,
+      });
+
+      // Extract just the filename portion if it contains slashes
+      const outputFileName = processedName.includes('/')
+        ? extractFileNameFromPath(processedName)
+        : processedName.replace(/[()]/g, '');
+
+      // Load and process template content
+      const templateContent = loadTemplateContent(
+        userFiles,
+        templatePath ?? processedName,
+        projectYamlPath,
+      );
+
+      // Check if template uses USE_USER_ENV BEFORE processing
+      // This detects usage even if the pattern gets replaced successfully
+      if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+        onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
+      }
+
+      // For CREATE_FILE, we use schemaInfoProcessed for placeholder replacements (via replacements object),
+      // but we preserve the original ctx.table for commands like [[USE_ROWS()]].
+      // If ctx.table is undefined (not in a FILE_LOOP), [[USE_ROWS()]] will use "all tables" mode.
+      // If ctx.table is set (inside a FILE_LOOP), [[USE_ROWS()]] will use that specific table.
+      let processedContent = replacePlaceholders(
+        processLoopDataSources(
+          processLoopTablesReversed(
+            processLoopTables(
+              templateContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              formData,
+              userMetadata,
+              dataSource ?? undefined,
+            ),
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            formData,
+            userMetadata,
+            dataSource ?? undefined,
+          ),
+          userFiles,
+          schemaInfoParsed,
+          formData,
+          userMetadata,
+        ),
+        replacements,
+        ctx,
+        typeof node === 'string' ? node : undefined,
+      );
+
+      processedContent = processIterateInTemplate(
+        processedContent,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        schemaInfoProcessed,
+        formData,
+        userMetadata,
+      );
+
+      const formatResult = await formatFileContent(
+        processedContent,
+        outputFileName,
+        shouldFormat,
+      );
+
+      if (formatResult.failed && onFileFailedToFormat) {
+        onFileFailedToFormat(
+          buildAbsolutePath(outputFileName, currentPath),
+          formatResult.errorMessage ?? 'Unknown formatting error',
+        );
+      }
+
+      return [
+        {
+          type: 'file',
+          name: outputFileName,
+          content: formatResult.content,
+        },
+      ];
+    }
+
+    if (node.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
+      return importProject({
+        command,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        projectYamlPath,
+        table,
+        formData,
+        userMetadata,
+        onFileUsingUserEnv,
+        onFileFailedToFormat,
+        currentPath,
+      });
+    }
+
+    if (node.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
+      // Load data source if specified
+      const dataSourcePath = options[ACTION_FLAGS.DATA_SOURCE];
+      const dataContext =
+        typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+          ? (loadDataSourceFile(dataSourcePath, userFiles, projectYamlPath) ??
+            undefined)
+          : undefined;
+
+      return await processMultipleFiles({
+        command,
+        options,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        projectYamlPath,
+        formData,
+        userMetadata,
+        onFileUsingUserEnv,
+        onFileFailedToFormat,
+        currentPath,
+        dataContext,
+      });
+    }
+
+    if (node.startsWith(`${PROJECT_ACTIONS.LOOP_FOLDERS}(`)) {
+      return await processLoopFolders({
+        command,
+        options,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        projectYamlPath,
+        formData,
+        userMetadata,
+        onFileFailedToFormat,
+        currentPath,
+      });
+    }
+
+    // Handle bare filenames by looking for templates
+    const templateContent = loadTemplateContent(
+      userFiles,
+      node,
+      projectYamlPath,
+    );
+    if (templateContent.length > 0) {
+      // Extract filename from node (could be a path or just filename)
+      const outputFileName = extractFileNameFromPath(node);
+
+      // Check if template uses USE_USER_ENV BEFORE processing
+      if (USE_USER_ENV_REGEX.test(templateContent) && onFileUsingUserEnv) {
+        onFileUsingUserEnv(buildAbsolutePath(outputFileName, currentPath));
+      }
+
+      const schemaInfoProcessed =
+        schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+      if (!schemaInfoProcessed) {
+        return [];
+      }
+
+      const replacements = getReplacementsForTable(
+        schemaInfoProcessed,
+        schemaInfoParsed,
+      );
+
+      let processedContent = replacePlaceholders(
+        processLoopDataSources(
+          processLoopTablesReversed(
+            processLoopTables(
+              templateContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              formData,
+              userMetadata,
+            ),
+            schemaInfo,
+            schemaInfoParsed,
+            userFiles,
+            formData,
+            userMetadata,
+          ),
+          userFiles,
+          schemaInfoParsed,
+          formData,
+          userMetadata,
+        ),
+        replacements,
+        { ...ctx, table: schemaInfoProcessed },
+      );
+
+      processedContent = processIterateInTemplate(
+        processedContent,
+        schemaInfo,
+        schemaInfoParsed,
+        userFiles,
+        table,
+        formData,
+        userMetadata,
+      );
+
+      const formatResult = await formatFileContent(
+        processedContent,
+        outputFileName,
+        true,
+      );
+
+      if (formatResult.failed && onFileFailedToFormat) {
+        onFileFailedToFormat(
+          buildAbsolutePath(outputFileName, currentPath),
+          formatResult.errorMessage ?? 'Unknown formatting error',
+        );
+      }
+
+      return [
+        {
+          type: 'file',
+          name: outputFileName,
+          content: formatResult.content,
+        },
+      ];
+    }
+
+    return [
+      {
+        type: 'file',
+        name: node,
+        content: '',
+      },
+    ];
+  }
+
+  if (Array.isArray(node)) {
+    const results = await Promise.all(
+      node.map(async (item) => {
+        if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+          // Define type predicate for Record
+          const isRecordWithDynamicFolder = (
+            obj: unknown,
+          ): obj is Record<string, unknown> =>
+            typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+
+          if (isRecordWithDynamicFolder(item)) {
+            const keys = Object.keys(item);
+            if (
+              keys.length > 0 &&
+              keys[0].startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)
+            ) {
+              const key = keys[0];
+              const value = item[key];
+
+              if (value == null) {
+                return [];
+              }
+
+              const folderLoopParams = key.slice(
+                PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
+                -1,
+              );
+              const { command: folderName, options: folderOptions } =
+                parseCommand(folderLoopParams);
+
+              return await processDynamicFolders({
+                folderName,
+                children: value,
+                schemaInfo,
+                schemaInfoParsed,
+                userFiles,
+                projectYamlPath,
+                formData,
+                userMetadata,
+                options: {
+                  ...folderOptions,
+                  onFileUsingUserEnv,
+                  onFileFailedToFormat,
+                },
+                currentPath,
+              });
+            }
+          }
+        }
+
+        if (table) {
+          return await processYamlStructure({
+            ...ctx,
+            node: item,
+          });
+        }
+        return await processYamlStructure({
+          ...ctx,
+          node: item,
+        });
+      }),
+    );
+
+    return results.flat();
+  }
+
+  if (typeof node === 'object' && node !== null) {
+    const results = await Promise.all(
+      Object.entries(node).map(async ([key, value]): Promise<IStructure> => {
+        if (ROOT_LEVEL_ACTIONS.some((action) => key.startsWith(`${action}(`))) {
+          // Check if this is a FILE_LOOP command that should create files in a folder
+          // This happens when FILE_LOOP is a key with null value, nested under a folder
+          if (key.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
+            const { command: fileCommand, options: fileOptions } = parseCommand(
+              key.slice(PROJECT_ACTIONS.FILE_LOOP.length + 1, -1),
+            );
+            const dataSourcePath = fileOptions[ACTION_FLAGS.DATA_SOURCE];
+            const dataContext =
+              typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+                ? (loadDataSourceFile(
+                    dataSourcePath,
+                    userFiles,
+                    projectYamlPath,
+                  ) ?? undefined)
+                : undefined;
+
+            // Use currentPath directly since we're processing FILE_LOOP as a key
+            // The parent folder will be created when processing the parent key
+            const files = await processMultipleFiles({
+              command: fileCommand,
+              options: fileOptions,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              projectYamlPath,
+              formData,
+              userMetadata,
+              onFileUsingUserEnv,
+              onFileFailedToFormat,
+              currentPath,
+              dataContext,
+            });
+
+            // If value is null/undefined, return files directly
+            // The parent folder (e.g., "indexed") will wrap these files
+            // This handles the case: indexed: FILE_LOOP(...):
+            if (value === null || value === undefined) {
+              return files;
+            }
+
+            // If value has content, process it as children and combine with files
+            const childStructure = await processYamlStructure({
+              ...ctx,
+              node: value,
+              currentPath,
+            });
+            return [...files, ...childStructure];
+          }
+
+          const actionResult = await processYamlStructure({
+            ...ctx,
+            node: key,
+          });
+
+          if (value !== null && value !== undefined) {
+            const childStructure = await processYamlStructure({
+              ...ctx,
+              node: value,
+            });
+
+            return [...actionResult, ...childStructure];
+          }
+
+          return actionResult;
+        }
+
+        // Special handling for IMPORT_PROJECT keys with colons
+        if (key.startsWith(`${PROJECT_ACTIONS.IMPORT_PROJECT}(`)) {
+          // Extract the command string
+          const commandString = key.slice(
+            PROJECT_ACTIONS.IMPORT_PROJECT.length + 1,
+            key.length - (key.endsWith(':') ? 2 : 1), // Remove both the closing parenthesis and colon if present
+          );
+
+          const importResult = await importProject({
+            ...ctx,
+            command: commandString,
+          });
+
+          if (
+            key.endsWith(':') &&
+            value !== null &&
+            typeof value === 'object'
+          ) {
+            const childStructure = await processYamlStructure({
+              ...ctx,
+              node: value,
+            });
+
+            return [...importResult, ...childStructure];
+          }
+
+          // Return the import result directly without creating a folder
+          return importResult;
+        }
+
+        // Handle conditional folders
+        const { name, conditions } = parseConditionalFolder(key);
+        let folderName = name.replace(/[()]/g, '');
+        folderName = sanitizeFileName(folderName);
+        const newPath =
+          currentPath === '' ? folderName : `${currentPath}/${folderName}`;
+
+        if (conditions && !checkConditions(conditions)) {
+          return [
+            {
+              type: 'folder',
+              name: folderName,
+              children: [],
+            },
+          ];
+        }
+
+        if (key.startsWith(`${PROJECT_ACTIONS.FOLDER_LOOP}(`)) {
+          const folderLoopParams = key.slice(
+            PROJECT_ACTIONS.FOLDER_LOOP.length + 1,
+            -1,
+          );
+          const { command: folderName, options: folderOptions } =
+            parseCommand(folderLoopParams);
+
+          return await processDynamicFolders({
+            ...ctx,
+            folderName,
+            children: value,
+            options: {
+              ...folderOptions,
+              onFileUsingUserEnv,
+              onFileFailedToFormat,
+            },
+          });
+        }
+
+        // Handle case where value is a string (template path or command) - e.g., "app.php: /Templates/..." or "folder: FILE_LOOP(...)"
+        if (typeof value === 'string') {
+          // Check if the string is a command (FILE_LOOP, CREATE_FILE, etc.)
+          if (value.startsWith(`${PROJECT_ACTIONS.FILE_LOOP}(`)) {
+            const { command: fileCommand, options: fileOptions } = parseCommand(
+              value.slice(PROJECT_ACTIONS.FILE_LOOP.length + 1, -1),
+            );
+            const dataSourcePath = fileOptions[ACTION_FLAGS.DATA_SOURCE];
+            const dataContext =
+              typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+                ? (loadDataSourceFile(
+                    dataSourcePath,
+                    userFiles,
+                    projectYamlPath,
+                  ) ?? undefined)
+                : undefined;
+
+            const files = await processMultipleFiles({
+              command: fileCommand,
+              options: fileOptions,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              projectYamlPath,
+              formData,
+              userMetadata,
+              onFileUsingUserEnv,
+              onFileFailedToFormat,
+              currentPath: newPath,
+              dataContext,
+            });
+
+            return [
+              {
+                type: 'folder',
+                name: folderName,
+                children: files,
+              },
+            ];
+          }
+
+          if (value.startsWith(`${PROJECT_ACTIONS.CREATE_FILE}(`)) {
+            const { command: createCommand, options: createOptions } =
+              parseCommand(
+                value.slice(PROJECT_ACTIONS.CREATE_FILE.length + 1, -1),
+              );
+            const templatePath = createOptions[ACTION_FLAGS.TEMPLATE];
+            const dataSourcePath = createOptions[ACTION_FLAGS.DATA_SOURCE];
+            const dataContext =
+              typeof dataSourcePath === 'string' && dataSourcePath.length > 0
+                ? (loadDataSourceFile(
+                    dataSourcePath,
+                    userFiles,
+                    projectYamlPath,
+                  ) ?? undefined)
+                : undefined;
+
+            const templateContent = loadTemplateContent(
+              userFiles,
+              typeof templatePath === 'string' && templatePath.length > 0
+                ? templatePath
+                : createCommand,
+              projectYamlPath,
+            );
+
+            if (templateContent.length === 0) {
+              return [
+                {
+                  type: 'folder',
+                  name: folderName,
+                  children: [],
+                },
+              ];
+            }
+
+            const schemaInfoProcessed =
+              schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+            if (!schemaInfoProcessed) {
+              return [
+                {
+                  type: 'folder',
+                  name: folderName,
+                  children: [],
+                },
+              ];
+            }
+
+            const replacements = getReplacementsForTable(
+              schemaInfoProcessed,
+              schemaInfoParsed,
+            );
+            const processedName = replacePlaceholders(
+              createCommand,
+              replacements,
+              {
+                ...ctx,
+                table: schemaInfoProcessed,
+              },
+            );
+            let outputFileName = processedName.includes('/')
+              ? extractFileNameFromPath(processedName)
+              : processedName.replace(/[()]/g, '');
+            outputFileName = sanitizeFileName(outputFileName);
+
+            if (
+              USE_USER_ENV_REGEX.test(templateContent) &&
+              onFileUsingUserEnv
+            ) {
+              onFileUsingUserEnv(buildAbsolutePath(outputFileName, newPath));
+            }
+
+            let processedContent = replacePlaceholders(
+              processLoopDataSources(
+                processLoopTablesReversed(
+                  processLoopTables(
+                    templateContent,
+                    schemaInfo,
+                    schemaInfoParsed,
+                    userFiles,
+                    formData,
+                    userMetadata,
+                    dataContext,
+                  ),
+                  schemaInfo,
+                  schemaInfoParsed,
+                  userFiles,
+                  formData,
+                  userMetadata,
+                  dataContext,
+                ),
+                userFiles,
+                schemaInfoParsed,
+                formData,
+                userMetadata,
+              ),
+              replacements,
+              { ...ctx, table: schemaInfoProcessed, dataContext },
+              typeof templatePath === 'string' && templatePath.length > 0
+                ? templatePath
+                : createCommand,
+            );
+
+            processedContent = processIterateInTemplate(
+              processedContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              schemaInfoProcessed,
+              formData,
+              userMetadata,
+            );
+
+            const shouldFormat = createOptions[ACTION_FLAGS.FORMAT] !== false;
+            const formatResult = await formatFileContent(
+              processedContent,
+              outputFileName,
+              shouldFormat,
+            );
+
+            if (formatResult.failed && onFileFailedToFormat) {
+              onFileFailedToFormat(
+                buildAbsolutePath(outputFileName, newPath),
+                formatResult.errorMessage ?? 'Unknown formatting error',
+              );
+            }
+
+            return [
+              {
+                type: 'folder',
+                name: folderName,
+                children: [
+                  {
+                    type: 'file',
+                    name: outputFileName,
+                    content: formatResult.content,
+                  },
+                ],
+              },
+            ];
+          }
+
+          // Treat as template path if not a command
+          const templateContent = loadTemplateContent(
+            userFiles,
+            value,
+            projectYamlPath,
+          );
+          if (templateContent.length > 0) {
+            const outputFileName = folderName;
+
+            // Check if template uses USE_USER_ENV BEFORE processing
+            if (
+              USE_USER_ENV_REGEX.test(templateContent) &&
+              onFileUsingUserEnv
+            ) {
+              onFileUsingUserEnv(
+                buildAbsolutePath(outputFileName, currentPath),
+              );
+            }
+
+            const schemaInfoProcessed =
+              schemaInfo.length > 0 ? schemaInfo[0] : undefined;
+            if (!schemaInfoProcessed) {
+              return [
+                {
+                  type: 'file',
+                  name: outputFileName,
+                  content: '',
+                },
+              ];
+            }
+
+            const replacements = getReplacementsForTable(
+              schemaInfoProcessed,
+              schemaInfoParsed,
+            );
+
+            let processedContent = replacePlaceholders(
+              processLoopDataSources(
+                processLoopTablesReversed(
+                  processLoopTables(
+                    templateContent,
+                    schemaInfo,
+                    schemaInfoParsed,
+                    userFiles,
+                    formData,
+                    userMetadata,
+                  ),
+                  schemaInfo,
+                  schemaInfoParsed,
+                  userFiles,
+                  formData,
+                  userMetadata,
+                ),
+                userFiles,
+                schemaInfoParsed,
+                formData,
+                userMetadata,
+              ),
+              replacements,
+              { ...ctx, table: schemaInfoProcessed },
+            );
+
+            processedContent = processIterateInTemplate(
+              processedContent,
+              schemaInfo,
+              schemaInfoParsed,
+              userFiles,
+              table,
+              formData,
+              userMetadata,
+            );
+
+            const formatResult = await formatFileContent(
+              processedContent,
+              outputFileName,
+              true,
+            );
+
+            if (formatResult.failed && onFileFailedToFormat) {
+              onFileFailedToFormat(
+                buildAbsolutePath(outputFileName, currentPath),
+                formatResult.errorMessage ?? 'Unknown formatting error',
+              );
+            }
+
+            return [
+              {
+                type: 'file',
+                name: outputFileName,
+                content: formatResult.content,
+              },
+            ];
+          }
+        }
+
+        // Process children recursively
+        const childStructure = await processYamlStructure({
+          ...ctx,
+          node: value,
+          currentPath: newPath,
+        });
+
+        return [
+          {
+            type: 'folder',
+            name: folderName,
+            children: childStructure,
+          },
+        ];
+      }),
+    );
+
+    return results.flat();
+  }
+
+  return [];
+};

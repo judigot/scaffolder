@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{valuePascalCaseSingular}};" --separator="\n" ]]
+[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{value.singular.pascalCase}};" --separator="\n" ]]
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class {{tableNamePascalCase}} extends Model
+class {{tableName.pascalCase}} extends Model
 {
     use HasFactory;
 
@@ -22,20 +22,20 @@ class {{tableNamePascalCase}} extends Model
         [[ LOOP(requiredColumns) --template="'{{value}}'" --separator=",\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
     ];
 
-    [[ LOOP(hasOne) --template="public function {{valueSingular}}() {
-    return $this->hasOne({{valuePascalCaseSingular}}::class);
+    [[ LOOP(hasOne) --template="public function {{value.singular}}() {
+    return $this->hasOne({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]
 
-    [[ LOOP(hasMany) --template="public function {{valuePlural}}() {
-        return $this->hasMany({{valuePascalCaseSingular}}::class);
+    [[ LOOP(hasMany) --template="public function {{value.plural}}() {
+        return $this->hasMany({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]
 
-    [[ LOOP(pivotRelationships.relatedTable) --template="public function {{valuePlural}}() {
-        return $this->belongsToMany({{valuePascalCaseSingular}}::class);
+    [[ LOOP(pivotRelationships.relatedTable) --template="public function {{value.plural}}() {
+        return $this->belongsToMany({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]
 
-    [[ LOOP(belongsTo) --template="public function {{valueSingular}}() {
-        return $this->belongsTo({{valuePascalCaseSingular}}::class);
+    [[ LOOP(belongsTo) --template="public function {{value.singular}}() {
+        return $this->belongsTo({{value.singular.pascalCase}}::class);
     }" --separator="\n\n" ]]
 
 }

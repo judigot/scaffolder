@@ -1,0 +1,2 @@
+        $items = $this->service->{{methodNameCamelCase}}();
+        return response()->json($items);

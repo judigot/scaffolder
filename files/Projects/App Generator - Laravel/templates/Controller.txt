@@ -2,21 +2,77 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{{tableNamePascalCaseSingular}};
-use App\Repositories\{{tableNamePascalCaseSingular}}Interface;
-use App\Services\{{tableNamePascalCaseSingular}}Service;
+use App\Models\<@@>tableName.singular.pascalCase</@@>;
+use App\Repositories\<@@>tableName.singular.pascalCase</@@>Interface;
+use App\Services\<@@>tableName.singular.pascalCase</@@>Service;
 use Illuminate\Http\Request;
 use App\Http\Controllers\BaseController;
 
-class {{tableNamePascalCaseSingular}}Controller extends BaseController
+class <@@>tableName.singular.pascalCase</@@>Controller extends BaseController
 {
     protected $repository;
+<@@IF@@ condition="isAuthResource EQUALS 'true'">
+    protected bool $requiresAuth = true;
+    protected ?string $ownerField = '<@@>ownerField</@@>';
+</@@IF@@>
 
-    public function __construct({{tableNamePascalCaseSingular}}Interface ${{tableNameSingular}}Repository, {{tableNamePascalCaseSingular}}Service ${{tableNameSingular}}Service)
+    public function __construct(<@@>tableName.singular.pascalCase</@@>Interface $<@@>tableName.singular</@@>Repository, <@@>tableName.singular.pascalCase</@@>Service $<@@>tableName.singular</@@>Service)
     {
-        parent::__construct(${{tableNameSingular}}Service);
-        $this->repository = ${{tableNameSingular}}Repository;
+        parent::__construct($<@@>tableName.singular</@@>Service);
+        $this->repository = $<@@>tableName.singular</@@>Repository;
     }
 
-[[USE_TEMPLATE(/DomainMethods/laravel/controller.txt)]]
+<@@LOOP@@ data="hasOne" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(Request $request, string $id)
+    {
+        $<@@>value.singular</@@> = $this->repository->get<@@>value.singular.pascalCase</@@>($id);
+        return response()->json($<@@>value.singular</@@>);
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="hasMany" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(Request $request, string $id)
+    {
+        $<@@>value.plural</@@> = $this->repository->get<@@>value.plural.pascalCase</@@>($id, $request->query('column'), $request->query('direction', 'asc'));
+        return response()->json($<@@>value.plural</@@>);
+    }
+
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(Request $request)
+    {
+        $includeRelated = filter_var($request->query('include<@@>value.plural.pascalCase</@@>', false), FILTER_VALIDATE_BOOLEAN);
+        $records = $this->repository->getAllWithRelated<@@>value.plural.pascalCase</@@>(
+            $includeRelated,
+            $request->query('column'),
+            $request->query('direction', 'asc')
+        );
+        return response()->json($records);
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(Request $request, string $id)
+    {
+        $<@@>value.plural</@@> = $this->repository->get<@@>value.plural.pascalCase</@@>($id, $request->query('column'), $request->query('direction', 'asc'));
+        return response()->json($<@@>value.plural</@@>);
+    }
+
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(Request $request)
+    {
+        $includeRelated = filter_var($request->query('include<@@>value.plural.pascalCase</@@>', false), FILTER_VALIDATE_BOOLEAN);
+        $records = $this->repository->getAllWithRelated<@@>value.plural.pascalCase</@@>(
+            $includeRelated,
+            $request->query('column'),
+            $request->query('direction', 'asc')
+        );
+        return response()->json($records);
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="belongsTo" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(Request $request, string $id)
+    {
+        $<@@>value.singular</@@> = $this->repository->get<@@>value.singular.pascalCase</@@>($id);
+        return response()->json($<@@>value.singular</@@>);
+    }
+</@@LOOP@@>
 }

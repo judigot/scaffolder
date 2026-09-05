@@ -1,0 +1,1 @@
+return $this->model->where($criteria)->update($data) > 0;

@@ -1,0 +1,9 @@
+{
+  "description": "React authentication components and hooks on Better Auth",
+  "type": "module",
+  "dependencies": {
+    "better-auth": "^1.7.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}

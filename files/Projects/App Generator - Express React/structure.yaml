@@ -1,6 +1,7 @@
 $USE_CORE:
   - /Core/spec-driven-development
   - /Core/vite-react
+  - /Core/configs
 src:
   IMPORT_PROJECT(Projects/App Generator - Template - Frontend/structure.yaml):
   components:

@@ -9,6 +9,7 @@ import {
   getProjectDirectory,
 } from '@/utils/project-builder/utils/processRelativePath.ts';
 import type { IFormStore } from '@/useFormStore.ts';
+import type { BuildContext } from '@/utils/project-builder/interfaces/interfaces.ts';
 
 /**
  * This command allows including the content of another template file, supporting both
@@ -83,17 +84,20 @@ export const processUseTemplate = (
 
       // Process commands in the loaded template, passing the resolved path
       // for proper handling of nested template imports
-      const processedContent = processCommand(
-        templateContent,
+      const commandContext: BuildContext = {
         userFiles,
+        schemaInfo: schemaInfoParsed.schema,
         schemaInfoParsed,
+        projectYamlPath: projectFilePath ?? '',
         table,
-        // Use the resolved path to ensure proper relative path resolution for nested imports
-        pathToUse,
-        projectFilePath,
         formData,
         userMetadata,
-      );
+      };
+
+      const processedContent = processCommand(templateContent, commandContext, {
+        // Use the resolved path to ensure proper relative path resolution for nested imports
+        templateFilePath: pathToUse,
+      });
 
       return processedContent;
     },

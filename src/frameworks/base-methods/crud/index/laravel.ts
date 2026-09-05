@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'index',
-  route: `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
+  route: `Route::get('{{tableName.plural.kebabCase}}', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.{{methodName}}');`,
   description: 'Get all records',
   repositoryMethod: `{{methodName}}(): Collection`,
   repositoryContent: `return $this->model->all();`,

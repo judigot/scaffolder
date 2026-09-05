@@ -1,31 +1,34 @@
-import { useState, useEffect } from 'react';
-import { useFormStore } from '@/useFormStore.ts';
-import { useTransformationsStore } from '@/useTransformationsStore.ts';
-
-import { useModalStore as useSQLModalStore } from '@/useModalStore.ts';
-import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
-import type { IGenerationStatus } from '@/interfaces/IGenerationStatus.ts';
-import { SQLErrorModal } from '@/components/SQLErrorModal.tsx';
-
-import { consolidateInterfaces } from '@/utils/common.ts';
-import FileViewer from '@/components/FileViewer.tsx';
+import { useEffect, useState } from 'react';
 import type { IStructure } from '@/components/FileViewer.tsx';
-import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
-import { handleCopy } from '@/helpers/stringHelper.ts';
-import SchemaBuilder from '@/components/SchemaBuilder.tsx';
-import { CREATION_MODES } from '@/constants.ts';
-import type { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
+import FileViewer from '@/components/FileViewer.tsx';
 import JSONSchemaEditor from '@/components/JSONSchemaEditor/JSONSchemaEditor.tsx';
-import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
-import { useUserFiles } from '@/hooks/useUserFiles.ts';
-import { useProjectStore } from '@/useProjectStore.ts';
-import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
+import SchemaBuilder from '@/components/SchemaBuilder.tsx';
+import { SQLErrorModal } from '@/components/SQLErrorModal.tsx';
+import { SimpleSelect } from '@/components/UI/GroupedSelect.tsx';
+import ScaffolderBanner from '@/components/UI/ScaffolderBanner.tsx';
 // import { folderStructureBuilder } from '@/frameworks/folderStructureBuilder.ts';
 import UserProfile from '@/components/UserProfile.tsx';
-import { useUser } from '@/hooks/useUser.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { CREATION_MODES } from '@/constants.ts';
+import { handleCopy } from '@/helpers/stringHelper.ts';
+import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
+import { useUser } from '@/hooks/useUser.ts';
+import { useUserFiles } from '@/hooks/useUserFiles.ts';
+import type { IGenerationStatus } from '@/interfaces/IGenerationStatus.ts';
+import type { IIntrospectedSchemaInfo } from '@/interfaces/interfaces.ts';
+import type { IScaffolderMessage } from '@/interfaces/scaffolderMessages.ts';
+import { SCAFFOLDER_MESSAGE_CODES } from '@/interfaces/scaffolderMessages.ts';
+import { useScaffolderMessagesStore } from '@/stores/useScaffolderMessagesStore.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useModalStore as useSQLModalStore } from '@/useModalStore.ts';
+import { useProjectStore } from '@/useProjectStore.ts';
+import { useTransformationsStore } from '@/useTransformationsStore.ts';
+import { consolidateInterfaces } from '@/utils/common.ts';
+import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
+import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
 import { findProjectsFolderAtRoot } from '@/utils/project-builder/utils/findProjectsFolderAtRoot.ts';
 
 function App() {
@@ -110,7 +113,27 @@ function App() {
     structure: IStructure;
     filesUsingUserEnv: string[];
     filesFailedToFormat: IFailedFormatEntry[];
-  }>({ structure: [], filesUsingUserEnv: [], filesFailedToFormat: [] });
+    messages?: IScaffolderMessage[];
+  }>({
+    structure: [],
+    filesUsingUserEnv: [],
+    filesFailedToFormat: [],
+    messages: [],
+  });
+  const {
+    setMessages,
+    messages: bannerMessages,
+    dismissMessage,
+    setFocusedFilePath,
+  } = useScaffolderMessagesStore();
+
+  const visibleBannerMessages = bannerMessages.filter(
+    (message) => message.code !== SCAFFOLDER_MESSAGE_CODES.UserEnvUsage,
+  );
+
+  useEffect(() => {
+    setMessages(buildResult.messages ?? []);
+  }, [buildResult.messages, setMessages]);
 
   /**
    * Builds project files when all prerequisites are met.
@@ -145,6 +168,7 @@ function App() {
         structure: [],
         filesUsingUserEnv: [],
         filesFailedToFormat: [],
+        messages: [],
       });
     }
   }, [
@@ -166,34 +190,40 @@ function App() {
   const [inputRepoURL, setInputRepoURL] = useState<string>(publicRepoURL);
 
   // Use TanStack Query to fetch GitHub files
+  // The hook now uses `select` to extract projects synchronously,
+  // eliminating the render-cycle gap that caused UI flicker.
   const {
-    isLoading: isUserFilesLoading,
+    isFetching: isUserFilesFetching,
+    isPending: isUserFilesPending,
     refetch: refetchUserFiles,
-    data: userFiles,
+    data: queryData,
     error: userFilesQueryError,
   } = useUserFiles(
     {
       publicRepoURL,
     },
     {
-      refetchInterval: 5 * 60 * 1000, // 1 second
-      staleTime: 5 * 60 * 1000, // 1 second
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      refetchOnWindowFocus: false, // Refetch on window focus — but only if stale
+      refetchInterval: 5 * 60 * 1000,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
       enabled: !!publicRepoURL,
     },
   );
 
-  // Handle GitHub data changes
+  // Extract data from query result - projects are now available in the same render cycle
+  const queryUserFiles = queryData?.userFiles;
+  const queryProjects = queryData?.projects ?? [];
+
+  // Sync query data to Zustand stores for other parts of the app
+  // Note: We don't rely on Zustand state for render decisions anymore -
+  // the query's `select` gives us projects synchronously.
   useEffect(() => {
-    if (userFiles) {
-      if (userFiles.length > 0) {
-        // Just set the userFiles in the mock database store
-        // The project store will handle detecting changes
-        setUserFiles(userFiles);
-      }
+    if (queryUserFiles && queryUserFiles.length > 0) {
+      // Sync to mock database store (handles typeMappings, dbTypes, and project store notification)
+      setUserFiles(queryUserFiles);
     }
-  }, [userFiles, setUserFiles]);
+  }, [queryUserFiles, setUserFiles]);
 
   // Track schema changes
   useEffect(() => {
@@ -362,31 +392,30 @@ function App() {
             <div className="inline-block text-sm font-medium">
               Database Builder:
               <div>
-                <select
+                <SimpleSelect
                   id="creationMode"
                   name="creationMode"
                   value={creationMode}
-                  onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                  onChange={(value) => {
                     const isValueInObject = <T extends object>(
                       obj: T,
-                      value: unknown,
-                    ): value is T[keyof T] => {
-                      return Object.values(obj).includes(value);
+                      val: unknown,
+                    ): val is T[keyof T] => {
+                      return Object.values(obj).includes(val);
                     };
 
-                    const selected = event.target.value;
-                    if (isValueInObject(CREATION_MODES, selected)) {
-                      setCreationMode(selected);
+                    if (isValueInObject(CREATION_MODES, value)) {
+                      setCreationMode(value);
                     }
                   }}
-                  className="text-center h-10 mr-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 border-2 rounded-md p-1 focus:outline-none"
-                >
-                  {Object.entries(CREATION_MODES).map(([key, value]) => (
-                    <option key={key} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
+                  options={Object.entries(CREATION_MODES).map(
+                    ([_key, value]) => ({
+                      value,
+                      label: value,
+                    }),
+                  )}
+                  aria-label="Database creation mode"
+                />
               </div>
             </div>
             <div className="inline-block">
@@ -703,7 +732,142 @@ function App() {
                   });
                 })
                 .catch((error: unknown) => {
-                  /* prettier-ignore */ (() => { const QuickLog = error; const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv(QuickLog)); })();
+                  /* prettier-ignore */ (() => {
+										const QuickLog = error;
+										const isObject = (
+											obj: unknown,
+										): obj is Record<string, unknown> => {
+											return obj !== null && typeof obj === "object";
+										};
+										const isArrayOfObjects = (
+											arr: unknown,
+										): arr is Record<string, unknown>[] => {
+											return Array.isArray(arr) && arr.every(isObject);
+										};
+										const parentDiv: HTMLElement =
+											document.getElementById("quicklogContainer") ??
+											(() => {
+												const div = document.createElement("div");
+												div.id = "quicklogContainer";
+												div.style.cssText =
+													"position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;";
+												const helperButtonsDiv = document.createElement("div");
+												helperButtonsDiv.style.cssText =
+													"position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;";
+												const clearButton = document.createElement("button");
+												clearButton.textContent = "Clear";
+												clearButton.style.cssText =
+													"margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;";
+												clearButton.onclick = () => {
+													if (parentDiv instanceof HTMLElement) {
+														parentDiv.remove();
+													}
+												};
+												helperButtonsDiv.appendChild(clearButton);
+												document.body.appendChild(div);
+												div.appendChild(helperButtonsDiv);
+												return div;
+											})();
+										const createTable = (
+											obj: Record<string, unknown>,
+										): HTMLTableElement => {
+											const table = document.createElement("table");
+											table.style.cssText =
+												'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+											Object.entries(obj).forEach(([key, value]) => {
+												const row = document.createElement("tr");
+												const keyCell = document.createElement("td");
+												const valueCell = document.createElement("td");
+												keyCell.textContent = key;
+												valueCell.textContent = String(value);
+												keyCell.style.cssText =
+													"border: 1px solid black; padding: 5px;";
+												valueCell.style.cssText =
+													"border: 1px solid black; padding: 5px;";
+												row.appendChild(keyCell);
+												row.appendChild(valueCell);
+												table.appendChild(row);
+											});
+											return table;
+										};
+										const createTableFromArray = (
+											arr: Record<string, unknown>[],
+										): HTMLTableElement => {
+											const table = document.createElement("table");
+											table.style.cssText =
+												'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+											const headers = Object.keys(arr[0]);
+											const headerRow = document.createElement("tr");
+											headers.forEach((header) => {
+												const th = document.createElement("th");
+												th.textContent = header;
+												th.style.cssText =
+													"border: 1px solid black; padding: 5px;";
+												headerRow.appendChild(th);
+											});
+											table.appendChild(headerRow);
+											arr.forEach((obj) => {
+												const row = document.createElement("tr");
+												headers.forEach((header) => {
+													const td = document.createElement("td");
+													td.textContent = String(obj[header]);
+													td.style.cssText =
+														"border: 1px solid black; padding: 5px;";
+													row.appendChild(td);
+												});
+												table.appendChild(row);
+											});
+											return table;
+										};
+										const createChildDiv = (data: unknown): HTMLElement => {
+											const newDiv = document.createElement("div");
+											const jsonData = JSON.stringify(data, null, 2);
+											if (isArrayOfObjects(data)) {
+												const table = createTableFromArray(data);
+												newDiv.appendChild(table);
+											} else if (isObject(data)) {
+												const table = createTable(data);
+												newDiv.appendChild(table);
+											} else {
+												newDiv.textContent = String(data);
+											}
+											newDiv.style.cssText =
+												'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;';
+											const handleMouseDown = (e: MouseEvent) => {
+												e.preventDefault();
+												const clickedDiv =
+													e.target instanceof Element &&
+													e.target.closest("div");
+												if (
+													clickedDiv !== null &&
+													e.button === 0 &&
+													clickedDiv === newDiv
+												) {
+													void navigator.clipboard
+														.writeText(jsonData)
+														.then(() => {
+															clickedDiv.style.backgroundColor = "gold";
+															setTimeout(() => {
+																clickedDiv.style.backgroundColor = "yellow";
+															}, 1000);
+														});
+												}
+											};
+											const handleRightClick = (e: MouseEvent) => {
+												e.preventDefault();
+												if (parentDiv.contains(newDiv)) {
+													parentDiv.removeChild(newDiv);
+													if (!parentDiv.hasChildNodes()) {
+														parentDiv.remove();
+													}
+												}
+											};
+											newDiv.addEventListener("mousedown", handleMouseDown);
+											newDiv.addEventListener("contextmenu", handleRightClick);
+											return newDiv;
+										};
+										parentDiv.prepend(createChildDiv(QuickLog));
+									})();
                   // Failure
                   setGenerationStatus({
                     ...generationStatus,
@@ -774,6 +938,36 @@ function App() {
         </div>
       </nav>
 
+      {visibleBannerMessages.length > 0 && (
+        <div className="sticky top-16 z-40 px-4 py-2 space-y-2 backdrop-blur bg-black/70 border-b border-white/10">
+          {visibleBannerMessages.map((message) => (
+            <ScaffolderBanner
+              key={message.id}
+              severity={message.severity}
+              title={message.title}
+              details={message.details}
+              suggestion={message.suggestion}
+              file={message.file}
+              line={message.line}
+              onDismiss={
+                message.dismissible
+                  ? () => {
+                      dismissMessage(message.id);
+                    }
+                  : undefined
+              }
+              onNavigateToFile={
+                message.file !== undefined && message.file !== ''
+                  ? () => {
+                      setFocusedFilePath(message.file ?? null);
+                    }
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+      )}
+
       <div className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-gray-700 p-4 shadow-md rounded-md">
@@ -839,7 +1033,8 @@ function App() {
             {inputRepoURL && isValidGitHubURL(inputRepoURL) && (
               <div>
                 {(() => {
-                  if (isUserFilesLoading) {
+                  // Use isPending - true when no data is available yet (first load)
+                  if (isUserFilesPending) {
                     return (
                       <div className="flex items-center justify-center h-40 rounded-md">
                         <div className="text-white">
@@ -900,7 +1095,51 @@ function App() {
                     );
                   }
 
-                  if (selectedProject !== null) {
+                  // Show loading if projects exist but selectedProject hasn't been set yet.
+                  // With the new `select`-based approach, queryProjects is available synchronously
+                  // in the same render cycle as the data, so we just need to wait for
+                  // the Zustand store to pick up the selected project.
+                  const isProjectSelectionPending =
+                    queryProjects.length > 0 && selectedProject === null;
+
+                  if (isProjectSelectionPending) {
+                    return (
+                      <div className="flex items-center justify-center h-40 rounded-md">
+                        <div className="text-white">
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-10 w-10 text-white inline-block"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            aria-label="Loading"
+                          >
+                            <title>Loading spinner</title>
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Preparing project files...
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Show project UI when we have a selected project and user files are available
+                  if (
+                    selectedProject !== null &&
+                    queryUserFiles &&
+                    queryUserFiles.length > 0
+                  ) {
                     return (
                       <>
                         {/* <div className="bg-blue-500  text-white font-bold">
@@ -952,20 +1191,29 @@ function App() {
                           </>
                         )}
                         <label htmlFor="project">Project:</label>
-                        <select
+                        <SimpleSelect
                           id="project"
                           name="project"
                           value={selectedProject.name}
-                          onChange={handleChange}
-                          className="p-2 h-10 mt-1 block w-full border border-gray-700 bg-gray-900 text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                          {/* <option value={''}>Select a framework</option> */}
-                          {projects.map((project) => (
-                            <option key={project.name} value={project.name}>
-                              {project.name}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(value) => {
+                            const selectedProjectOption = projects.find(
+                              (p) => p.name === value,
+                            );
+                            if (selectedProjectOption) {
+                              if (
+                                selectedProject.name !==
+                                selectedProjectOption.name
+                              ) {
+                                selectProject(selectedProjectOption);
+                              }
+                            }
+                          }}
+                          options={projects.map((project) => ({
+                            value: project.name,
+                            label: project.name,
+                          }))}
+                          aria-label="Select project"
+                        />
                         <FileViewer
                           mode="edit"
                           folderStructure={builtProjectFiles}
@@ -986,17 +1234,24 @@ function App() {
                   }
 
                   // Fallback: If repository files are loaded but no compatible project found,
-                  // display the repository as a read-only file viewer
-                  if (userFiles && userFiles.length > 0) {
+                  // display the repository as a read-only file viewer.
+                  // Only show this when queryProjects.length === 0 - this is the definitive
+                  // check since projects are extracted synchronously via select.
+                  if (
+                    queryUserFiles &&
+                    queryUserFiles.length > 0 &&
+                    queryProjects.length === 0
+                  ) {
                     const hasProjectsFolder =
-                      findProjectsFolderAtRoot(userFiles) !== undefined;
+                      findProjectsFolderAtRoot(queryUserFiles) !== undefined;
 
                     return (
                       <>
-                        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-700 rounded-md">
+                        <div className="mb-4 p-3 bg-gray-900/30 border border-gray-700 rounded-md">
                           <div className="flex items-start gap-2">
                             <svg
-                              className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0"
+                              aria-hidden="true"
+                              className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -1020,7 +1275,7 @@ function App() {
                                   href="/documentation/structure/"
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                  className="text-xs text-gray-400 hover:text-blue-300 underline"
                                 >
                                   Learn how to set up a scaffolder project →
                                 </a>
@@ -1033,6 +1288,7 @@ function App() {
                           <div className="mb-4 p-3 bg-amber-900/30 border border-amber-700 rounded-md">
                             <div className="flex items-start gap-2">
                               <svg
+                                aria-hidden="true"
                                 className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
@@ -1079,7 +1335,11 @@ function App() {
                           </span>
                         </div>
 
-                        <FileViewer mode="view" folderStructure={userFiles} />
+                        <FileViewer
+                          mode="view"
+                          folderStructure={queryUserFiles}
+                          isFetching={isUserFilesFetching}
+                        />
                       </>
                     );
                   }

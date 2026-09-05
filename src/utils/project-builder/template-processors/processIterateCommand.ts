@@ -1,44 +1,414 @@
+import { parse } from 'yaml';
 import type { IFolder, IStructure } from '@/components/FileViewer.tsx';
-import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import type { IFormStore } from '@/useFormStore.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import type { IFormStore } from '@/useFormStore.ts';
-import type { DataContext } from '@/utils/project-builder/interfaces/interfaces.ts';
-import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
 import {
-  LOOP_COMMAND_REGEX,
-  LOOP_TABLES_REGEX,
-  LOOP_TABLES_REVERSED_REGEX,
-  LOOP_DATA_SOURCES_START_REGEX,
-  TEMPLATE_MATCH_REGEX,
-  SEPARATOR_MATCH_REGEX,
+  EXCLUDE_FILES_MATCH_REGEX,
   FILTER_MATCH_REGEX,
+  FOLDER_PATH_REGEX,
   IGNORE_MATCH_REGEX,
   INCLUDE_FILES_MATCH_REGEX,
-  EXCLUDE_FILES_MATCH_REGEX,
-  REMOVE_DUPLICATES_REGEX,
-  USE_CONSTANT_REGEX,
-  FOLDER_PATH_REGEX,
+  LOOP_COMMAND_REGEX,
+  LOOP_DATA_SOURCES_START_REGEX,
+  LOOP_TABLES_REGEX,
+  LOOP_TABLES_REVERSED_REGEX,
   RECURSIVE_WILDCARD_REGEX,
+  REMOVE_DUPLICATES_REGEX,
+  SEPARATOR_MATCH_REGEX,
   TEMPLATE_ACTIONS,
+  TEMPLATE_MATCH_REGEX,
+  USE_CONSTANT_REGEX,
 } from '@/utils/project-builder/constants/templateActions.ts';
-import {
-  findFilesMatchingGlob,
-  createDataContextReplacements,
-} from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import type {
+  BuildContext,
+  DataContext,
+} from '@/utils/project-builder/interfaces/interfaces.ts';
+import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import {
   loadConstant,
   loadConstantFromPath,
 } from '@/utils/project-builder/template-processors/loadConstant.ts';
+import { processArrayIteration } from '@/utils/project-builder/template-processors/processArrayIteration.ts';
 import { processColumnsInfoIteration } from '@/utils/project-builder/template-processors/processColumnsInfoIteration.ts';
-import { processFileBasedTemplate } from '@/utils/project-builder/template-processors/fileBased.ts';
 import {
-  findFoldersWithWildcard,
   buildFolderPath,
+  findFoldersWithWildcard,
 } from '@/utils/project-builder/template-processors/processRecursiveWildcard.ts';
+import { validateHtmlTemplateTags } from '@/utils/project-builder/template-processors/validateHtmlTemplateTags.ts';
+import {
+  createDataContextReplacements,
+  findFilesMatchingGlob,
+} from '@/utils/project-builder/utils/dataSourceUtils.ts';
+import { filterViewTables } from '@/utils/project-builder/utils/filterViewTables.ts';
 import { replacePlaceholders } from '@/utils/project-builder/utils/replacePlaceholders.ts';
-import { parse } from 'yaml';
+
+/**
+ * Evaluate a condition expression against replacements.
+ * Supports operators: EQUALS, NOT EQUAL, CONTAINS, STARTS_WITH, ENDS_WITH
+ * Also supports compound conditions with AND/OR.
+ *
+ * @param condition - The condition string (e.g., "varName EQUALS 'value'")
+ * @param replacements - The replacement values to evaluate against
+ * @returns boolean result of the condition evaluation
+ */
+export const evaluateCondition = (
+  condition: string,
+  replacements: Record<string, string | string[]>,
+): boolean => {
+  const getResolvedValue = (token: string): string => {
+    const directValue = replacements[token];
+    if (typeof directValue === 'string') {
+      return directValue;
+    }
+    if (Array.isArray(directValue)) {
+      return directValue.join(',');
+    }
+    return token;
+  };
+
+  const parseNumber = (value: string): number | undefined => {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  };
+
+  const trimmedCondition = condition.trim();
+
+  // Handle compound AND conditions (split and evaluate each)
+  if (trimmedCondition.includes(' AND ')) {
+    const parts = trimmedCondition.split(/\s+AND\s+/);
+    return parts.every((part) => evaluateCondition(part, replacements));
+  }
+
+  // Handle compound OR conditions
+  if (trimmedCondition.includes(' OR ')) {
+    const parts = trimmedCondition.split(/\s+OR\s+/);
+    return parts.some((part) => evaluateCondition(part, replacements));
+  }
+
+  // Handle NOT prefix (but not "NOT EQUAL" or "NOT NULL" or "NOT CONTAINS")
+  if (
+    trimmedCondition.startsWith('NOT ') &&
+    !trimmedCondition.includes(' NOT EQUAL ') &&
+    !trimmedCondition.includes(' IS NOT NULL') &&
+    !trimmedCondition.includes(' NOT CONTAINS ')
+  ) {
+    return !evaluateCondition(trimmedCondition.slice(4), replacements);
+  }
+
+  // EXISTS condition: varName EXISTS
+  const existsMatch = /^(\S+)\s+EXISTS\s*$/.exec(trimmedCondition);
+  if (existsMatch) {
+    const [, varName] = existsMatch;
+    const value = varName in replacements ? replacements[varName] : undefined;
+    return value !== undefined && value !== '' && value !== 'false';
+  }
+
+  // IS TRUE condition: varName IS TRUE
+  const isTrueMatch = /^(\S+)\s+IS\s+TRUE\s*$/i.exec(trimmedCondition);
+  if (isTrueMatch) {
+    const [, varName] = isTrueMatch;
+    const value = varName in replacements ? replacements[varName] : undefined;
+    return value === 'true';
+  }
+
+  // IS NOT NULL condition: varName IS NOT NULL
+  const isNotNullMatch = /^(\S+)\s+IS\s+NOT\s+NULL\s*$/i.exec(trimmedCondition);
+  if (isNotNullMatch) {
+    const [, varName] = isNotNullMatch;
+    const value = varName in replacements ? replacements[varName] : undefined;
+    return value !== undefined && value !== '';
+  }
+
+  // NOT CONTAINS condition: varName NOT CONTAINS 'substring' or unquoted
+  const notContainsMatch =
+    /^(\S+)\s+NOT\s+CONTAINS\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (notContainsMatch) {
+    const [, varName, quotedValue, unquotedValue] = notContainsMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const substring = quotedValue ?? unquotedValue ?? '';
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return !actualValue.includes(substring);
+  }
+
+  // EQUALS condition: varName EQUALS 'value' or varName EQUALS value (unquoted)
+  const equalsMatch =
+    /^(\S+)\s+EQUALS\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (equalsMatch) {
+    const [, varName, quotedValue, unquotedValue] = equalsMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const expectedValue = quotedValue ?? unquotedValue ?? '';
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue === expectedValue;
+  }
+
+  // NOT EQUAL condition: varName NOT EQUAL 'value' or unquoted
+  const notEqualMatch =
+    /^(\S+)\s+NOT\s+EQUAL\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (notEqualMatch) {
+    const [, varName, quotedValue, unquotedValue] = notEqualMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const expectedValue = quotedValue ?? unquotedValue ?? '';
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue !== expectedValue;
+  }
+
+  // CONTAINS condition: varName CONTAINS 'substring' or unquoted
+  const containsMatch =
+    /^(\S+)\s+CONTAINS\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (containsMatch) {
+    const [, varName, quotedValue, unquotedValue] = containsMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const substring = quotedValue ?? unquotedValue ?? '';
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue.includes(substring);
+  }
+
+  // IN condition: varName IN 'a,b,c' or varName IN values (comma-separated)
+  const inMatch = /^(\S+)\s+IN\s+(?:['"]([^'"]*)['"]\s*|(\S.*)\s*)$/.exec(
+    trimmedCondition,
+  );
+  if (inMatch) {
+    const [, varName, quotedValues, unquotedValues] = inMatch;
+    const expectedValues = (quotedValues || unquotedValues)
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value !== '')
+      .map((value) => getResolvedValue(value));
+
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return expectedValues.includes(actualValue);
+  }
+
+  // Numeric comparisons: >, <, >=, <=
+  const comparisonMatch =
+    /^(\S+)\s*(>=|<=|>|<)\s*(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (comparisonMatch) {
+    const [, varName, operator, quotedValue, unquotedValue] = comparisonMatch;
+    const leftValue = parseNumber(getResolvedValue(varName));
+    const rightValue = parseNumber(
+      getResolvedValue(quotedValue || unquotedValue),
+    );
+
+    if (leftValue === undefined || rightValue === undefined) {
+      return false;
+    }
+
+    switch (operator) {
+      case '>':
+        return leftValue > rightValue;
+      case '<':
+        return leftValue < rightValue;
+      case '>=':
+        return leftValue >= rightValue;
+      case '<=':
+        return leftValue <= rightValue;
+      default:
+        return false;
+    }
+  }
+
+  // STARTS_WITH condition: varName STARTS_WITH 'prefix' or unquoted
+  const startsWithMatch =
+    /^(\S+)\s+STARTS_WITH\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (startsWithMatch) {
+    const [, varName, quotedValue, unquotedValue] = startsWithMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const prefix = quotedValue ?? unquotedValue ?? '';
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue.startsWith(prefix);
+  }
+
+  // ENDS_WITH condition: varName ENDS_WITH 'suffix' or unquoted
+  const endsWithMatch =
+    /^(\S+)\s+ENDS_WITH\s+(?:['"]([^'"]*)['"]\s*|(\S+)\s*)$/.exec(
+      trimmedCondition,
+    );
+  if (endsWithMatch) {
+    const [, varName, quotedValue, unquotedValue] = endsWithMatch;
+    // One of quotedValue or unquotedValue must exist if regex matched
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const suffix = quotedValue ?? unquotedValue ?? '';
+    const actualValue =
+      typeof replacements[varName] === 'string' ? replacements[varName] : '';
+    return actualValue.endsWith(suffix);
+  }
+
+  // If no pattern matched, return false
+  return false;
+};
+
+const findHtmlSwitchEnd = (
+  content: string,
+  startIndex: number,
+): { endIndex: number } | null => {
+  let depth = 1;
+  let i = startIndex;
+
+  while (i < content.length && depth > 0) {
+    if (content.slice(i, i + 11) === '<@@SWITCH@@') {
+      const closeTag = content.indexOf('>', i + 11);
+      if (closeTag !== -1) {
+        depth++;
+        i = closeTag + 1;
+      } else {
+        i++;
+      }
+    } else if (content.slice(i, i + 13) === '</@@SWITCH@@>') {
+      depth--;
+      if (depth === 0) {
+        return { endIndex: i + 13 };
+      }
+      i += 13;
+    } else {
+      i++;
+    }
+  }
+
+  return null;
+};
+
+export const processHtmlSwitch = (
+  content: string,
+  replacements: Record<string, string | string[]>,
+): string => {
+  const openRegex = /<@@SWITCH@@([^>]*)>/g;
+  let result = content;
+  let iterations = 0;
+  const maxIterations = 100;
+
+  let match: RegExpExecArray | null = openRegex.exec(result);
+  while (match !== null && iterations < maxIterations) {
+    iterations++;
+    const attributesStr = match[1];
+    const attrs = parseHtmlTagAttributes(attributesStr);
+    const onKey = attrs.on || '';
+
+    const openEnd = match.index + match[0].length;
+    const closeInfo = findHtmlSwitchEnd(result, openEnd);
+    if (!closeInfo) {
+      throw new Error(
+        `Unbalanced <@@SWITCH@@> tag: could not find matching </@@SWITCH@@> for "${onKey}"`,
+      );
+    }
+
+    const switchContent = result.slice(openEnd, closeInfo.endIndex - 13);
+    const switchValue =
+      typeof replacements[onKey] === 'string' ? replacements[onKey] : onKey;
+
+    let selectedContent = '';
+    let index = 0;
+    while (index < switchContent.length) {
+      if (switchContent.slice(index, index + 9) === '<@@CASE@@') {
+        const caseStart = index;
+        const caseClose = switchContent.indexOf('>', caseStart + 9);
+        if (caseClose === -1) {
+          break;
+        }
+
+        const caseAttrs = parseHtmlTagAttributes(
+          switchContent.slice(caseStart + 9, caseClose),
+        );
+        const caseEnd = switchContent.indexOf('</@@CASE@@>', caseClose + 1);
+        if (caseEnd === -1) {
+          break;
+        }
+
+        const caseValue = caseAttrs.value || '';
+        const caseBody = switchContent.slice(caseClose + 1, caseEnd);
+        if (selectedContent === '' && switchValue === caseValue) {
+          selectedContent = caseBody;
+        }
+
+        index = caseEnd + 11;
+        continue;
+      }
+
+      if (switchContent.slice(index, index + 13) === '<@@DEFAULT@@>') {
+        const defaultEnd = switchContent.indexOf('</@@DEFAULT@@>', index + 13);
+        if (defaultEnd === -1) {
+          break;
+        }
+
+        if (selectedContent === '') {
+          selectedContent = switchContent.slice(index + 13, defaultEnd);
+        }
+        index = defaultEnd + 14;
+        continue;
+      }
+
+      index++;
+    }
+
+    result =
+      result.slice(0, match.index) +
+      selectedContent +
+      result.slice(closeInfo.endIndex);
+
+    openRegex.lastIndex = 0;
+    match = openRegex.exec(result);
+  }
+
+  return result;
+};
+
+const isBuildContext = (value: unknown): value is BuildContext => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userFiles' in value &&
+    'schemaInfoParsed' in value &&
+    'projectYamlPath' in value
+  );
+};
+
+const createBuildContext = (
+  userFiles: IStructure,
+  schemaInfoParsed: ISchemaInfoResult,
+  options?: {
+    projectYamlPath?: string;
+    table?: ISchemaInfo;
+    formData?: IFormStore;
+    userMetadata?: Record<string, unknown> | null;
+    dataContext?: DataContext;
+    mockData?: ParsedJSONSchema;
+  },
+): BuildContext => ({
+  userFiles,
+  schemaInfo: schemaInfoParsed.schema,
+  schemaInfoParsed,
+  projectYamlPath: options?.projectYamlPath ?? '',
+  table: options?.table,
+  formData: options?.formData,
+  userMetadata: options?.userMetadata,
+  dataContext: options?.dataContext,
+  mockData: options?.mockData,
+});
 
 /**
  * Find a folder in the file structure given a path
@@ -99,11 +469,11 @@ const processBlockLoops = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   // Match opening [[LOOP(property)]] - but not tables or tablesReversed (those are handled separately)
   const openRegex = /\[\[\s*LOOP\(([^)]+)\)\s*\]\]/g;
   let result = content;
-  let match;
 
   // Collect all matches with their balanced closing tags
   const matches: {
@@ -114,10 +484,12 @@ const processBlockLoops = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const property = match[1];
     // Skip tables and tablesReversed - they're handled by processBlockLoopTables/Reversed
     if (property === 'tables' || property === 'tablesReversed') {
+      match = openRegex.exec(content);
       continue;
     }
 
@@ -136,6 +508,7 @@ const processBlockLoops = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   // Process matches in reverse order to avoid index shifting
@@ -167,6 +540,8 @@ const processBlockLoops = (
         formData,
         userMetadata,
         dataSource,
+        undefined,
+        mockData,
       );
     } else {
       // For other properties, use processIterateCommand with inline format
@@ -207,6 +582,7 @@ const processInnerLoops = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const result = processBlockLoops(
     content,
@@ -216,6 +592,7 @@ const processInnerLoops = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then process inline LOOPs (legacy syntax)
@@ -308,10 +685,10 @@ const processAtLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(tables\)\n?/g;
   let result = content;
-  let match;
 
   const matches: {
     start: number;
@@ -320,7 +697,8 @@ const processAtLoopTables = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const openEnd = match.index + match[0].length;
     const closeInfo = findAtLoopEnd(content, openEnd);
 
@@ -338,6 +716,7 @@ const processAtLoopTables = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   for (let i = matches.length - 1; i >= 0; i--) {
@@ -362,6 +741,7 @@ const processAtLoopTables = (
       formData,
       userMetadata,
       dataSource,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -381,10 +761,10 @@ const processAtLoopTablesReversed = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(tablesReversed\)\n?/g;
   let result = content;
-  let match;
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
   const reversedSchema = [...filteredSchemaInfo].reverse();
@@ -396,7 +776,8 @@ const processAtLoopTablesReversed = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const openEnd = match.index + match[0].length;
     const closeInfo = findAtLoopEnd(content, openEnd);
 
@@ -414,6 +795,7 @@ const processAtLoopTablesReversed = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   for (let i = matches.length - 1; i >= 0; i--) {
@@ -438,6 +820,7 @@ const processAtLoopTablesReversed = (
       formData,
       userMetadata,
       dataSource,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -455,14 +838,15 @@ const parseHtmlTagAttributes = (
   const attrs: Record<string, string> = {};
   // Match attribute="value" or attribute='value'
   const attrRegex = /(\w+)="([^"]*)"|(\w+)='([^']*)'/g;
-  let match;
 
-  while ((match = attrRegex.exec(attributesStr)) !== null) {
+  let match: RegExpExecArray | null = attrRegex.exec(attributesStr);
+  while (match !== null) {
     const name = match[1] || match[3];
     const value = match[2] || match[4];
     if (name) {
       attrs[name] = value;
     }
+    match = attrRegex.exec(attributesStr);
   }
 
   return attrs;
@@ -557,11 +941,14 @@ const processHtmlLoop = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
+  // Validate template tags before processing
+  validateHtmlTemplateTags(content, 'HTML LOOP');
+
   // Match <@@LOOP@@ data="tables" separator="\n">
   const openRegex = /<@@LOOP@@([^>]*)>/g;
   let result = content;
-  let match;
   let iterations = 0;
   const maxIterations = 100;
 
@@ -579,7 +966,8 @@ const processHtmlLoop = (
     // Reset regex lastIndex for new search
     openRegex.lastIndex = 0;
 
-    while ((match = openRegex.exec(result)) !== null) {
+    let match: RegExpExecArray | null = openRegex.exec(result);
+    while (match !== null) {
       const attributesStr = match[1];
       const attrs = parseHtmlTagAttributes(attributesStr);
       const data = attrs.data || '';
@@ -602,6 +990,7 @@ const processHtmlLoop = (
           templateContent: result.slice(openEnd, closeInfo.endIndex - 11), // -11 for </@@LOOP@@>
         });
       }
+      match = openRegex.exec(result);
     }
 
     if (matches.length === 0) {
@@ -629,6 +1018,7 @@ const processHtmlLoop = (
           formData,
           userMetadata,
           dataSource,
+          mockData,
         );
       } else if (type === 'tablesReversed') {
         /* Filter out view tables using centralized function */
@@ -646,9 +1036,26 @@ const processHtmlLoop = (
           formData,
           userMetadata,
           dataSource,
+          mockData,
         );
       } else if (type === 'columnsInfo') {
         // Skip columnsInfo at top level - it will be processed per-table in processAtLoopTablesTemplate
+        continue;
+      } else if (
+        type === 'compositePrimaryKey' ||
+        type === 'requiredColumns' ||
+        type === 'allColumns' ||
+        type === 'foreignTables' ||
+        type === 'hiddenColumns' ||
+        type === 'childTables' ||
+        type === 'hasOne' ||
+        type === 'hasMany' ||
+        type === 'belongsTo' ||
+        type === 'belongsToMany' ||
+        type === 'pivotRelationships.relatedTable' ||
+        type === 'pivotRelationships.pivotTable'
+      ) {
+        // Skip per-table array types - they will be processed by processHtmlLoopArray
         continue;
       }
 
@@ -669,14 +1076,11 @@ export const processHtmlIf = (
   // Match <@@IF@@ condition="var EQUALS 'value'">
   const openRegex = /<@@IF@@([^>]*)>/g;
   let result = content;
-  let match;
   let iterations = 0;
   const maxIterations = 100;
 
-  while (
-    (match = openRegex.exec(result)) !== null &&
-    iterations < maxIterations
-  ) {
+  let match: RegExpExecArray | null = openRegex.exec(result);
+  while (match !== null && iterations < maxIterations) {
     iterations++;
 
     const attributesStr = match[1];
@@ -687,7 +1091,10 @@ export const processHtmlIf = (
     const closeInfo = findHtmlIfEnd(result, openEnd);
 
     if (!closeInfo) {
-      break;
+      // This should not happen if validateHtmlTemplateTags was called first
+      throw new Error(
+        `Unbalanced <@@IF@@> tag: could not find matching </@@IF@@> for condition "${condition}"`,
+      );
     }
 
     // Extract content between <@@IF@@> and </@@IF@@>
@@ -722,30 +1129,8 @@ export const processHtmlIf = (
       ifContent = ifContent.slice(0, elseIdx - 10);
     }
 
-    // Parse condition
-    let conditionResult = false;
-
-    // EQUALS condition
-    const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (equalsMatch) {
-      const [, varName, expectedValue] = equalsMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue === expectedValue;
-    }
-
-    // NOT EQUAL condition
-    const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (notEqualMatch) {
-      const [, varName, expectedValue] = notEqualMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue !== expectedValue;
-    }
+    // Evaluate condition using the unified evaluator
+    const conditionResult = evaluateCondition(condition, replacements);
 
     // Replace the <@@IF@@> block with the appropriate content
     const replacement = conditionResult ? ifContent : elseContent;
@@ -756,6 +1141,7 @@ export const processHtmlIf = (
 
     // Reset regex to start from beginning since we modified the string
     openRegex.lastIndex = 0;
+    match = openRegex.exec(result);
   }
 
   return result;
@@ -894,30 +1280,8 @@ export const processAtIf = (
       }
     }
 
-    // Parse condition
-    let conditionResult = false;
-
-    // EQUALS condition
-    const equalsMatch = /^(\S+)\s+EQUALS\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (equalsMatch) {
-      const [, varName, expectedValue] = equalsMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue === expectedValue;
-    }
-
-    // NOT EQUAL condition
-    const notEqualMatch = /^(\S+)\s+NOT\s+EQUAL\s+['"]([^'"]*)['"]\s*$/.exec(
-      condition,
-    );
-    if (notEqualMatch) {
-      const [, varName, expectedValue] = notEqualMatch;
-      const actualValue =
-        typeof replacements[varName] === 'string' ? replacements[varName] : '';
-      conditionResult = actualValue !== expectedValue;
-    }
+    // Evaluate condition using the unified evaluator
+    const conditionResult = evaluateCondition(condition, replacements);
 
     // Replace the @IF block with the appropriate content
     const replacement = conditionResult ? ifContent : elseContent;
@@ -936,10 +1300,16 @@ export const processHtmlLoopColumnsInfo = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
+  // Validate template tags before processing
+  validateHtmlTemplateTags(
+    content,
+    `columnsInfo loop for table "${table.tableName}"`,
+  );
+
   const openRegex = /<@@LOOP@@([^>]*)>/g;
   let result = content;
-  let match;
   let iterations = 0;
   const maxIterations = 100;
 
@@ -950,18 +1320,21 @@ export const processHtmlLoopColumnsInfo = (
       start: number;
       end: number;
       separator: string;
+      filter: string;
       templateContent: string;
     }[] = [];
 
     // Reset regex lastIndex for new search
     openRegex.lastIndex = 0;
 
-    while ((match = openRegex.exec(result)) !== null) {
+    let match: RegExpExecArray | null = openRegex.exec(result);
+    while (match !== null) {
       const attributesStr = match[1];
       const attrs = parseHtmlTagAttributes(attributesStr);
       const data = attrs.data || '';
 
       if (data !== 'columnsInfo') {
+        match = openRegex.exec(result);
         continue;
       }
 
@@ -972,6 +1345,8 @@ export const processHtmlLoopColumnsInfo = (
             .replace(/\\"/g, '"')
         : '';
 
+      const filter = 'filter' in attrs ? attrs.filter : '';
+
       const openEnd = match.index + match[0].length;
       const closeInfo = findHtmlLoopEnd(result, openEnd);
 
@@ -980,9 +1355,11 @@ export const processHtmlLoopColumnsInfo = (
           start: match.index,
           end: closeInfo.endIndex,
           separator,
+          filter,
           templateContent: result.slice(openEnd, closeInfo.endIndex - 11),
         });
       }
+      match = openRegex.exec(result);
     }
 
     if (matches.length === 0) {
@@ -990,7 +1367,7 @@ export const processHtmlLoopColumnsInfo = (
     }
 
     for (let i = matches.length - 1; i >= 0; i--) {
-      const { start, end, separator, templateContent } = matches[i];
+      const { start, end, separator, filter, templateContent } = matches[i];
 
       const processed = processColumnsInfoIteration(
         table,
@@ -1002,6 +1379,133 @@ export const processHtmlLoopColumnsInfo = (
         formData,
         userMetadata,
         dataSource,
+        filter || undefined,
+        mockData,
+      );
+
+      result = result.slice(0, start) + processed + result.slice(end);
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Generic HTML-style loop for any array property
+ * Syntax: <@@LOOP@@ data="arrayName" separator=", ">...</@@LOOP@@>
+ *
+ * Supported arrays:
+ * - compositePrimaryKey: string[] of column names
+ * - requiredColumns: string[] of required column names
+ * - allColumns: string[] of all column names
+ * - foreignTables: string[] of foreign table names
+ * - hiddenColumns: string[] of hidden column names
+ * - childTables: string[] of child table names
+ * - Any future array property in ISchemaInfo
+ *
+ * Note: columnsInfo is handled separately by processHtmlLoopColumnsInfo
+ * for backwards compatibility with mock data and dynamic lookups
+ */
+export const processHtmlLoopArray = (
+  content: string,
+  table: ISchemaInfo,
+  schemaInfoParsed: ISchemaInfoResult,
+  userFiles: IStructure,
+  formData?: IFormStore,
+  userMetadata?: Record<string, unknown> | null,
+  dataSource?: DataContext,
+): string => {
+  // Arrays handled by this generic processor (not columnsInfo or tables)
+  const genericArrays = new Set([
+    'compositePrimaryKey',
+    'requiredColumns',
+    'allColumns',
+    'foreignTables',
+    'hiddenColumns',
+    'childTables',
+    'hasOne',
+    'hasMany',
+    'belongsTo',
+    'belongsToMany',
+    'pivotRelationships.relatedTable',
+    'pivotRelationships.pivotTable',
+  ]);
+
+  const openRegex = /<@@LOOP@@([^>]*)>/g;
+  let result = content;
+  let iterations = 0;
+  const maxIterations = 100;
+
+  while (iterations < maxIterations) {
+    iterations++;
+    const matches: {
+      start: number;
+      end: number;
+      separator: string;
+      filter: string;
+      templateContent: string;
+      arrayName: string;
+    }[] = [];
+
+    openRegex.lastIndex = 0;
+
+    let match: RegExpExecArray | null = openRegex.exec(result);
+    while (match !== null) {
+      const attributesStr = match[1];
+      const attrs = parseHtmlTagAttributes(attributesStr);
+      const data = attrs.data || '';
+
+      // Skip non-generic arrays (handled elsewhere)
+      if (!genericArrays.has(data)) {
+        match = openRegex.exec(result);
+        continue;
+      }
+
+      const separator = attrs.separator
+        ? attrs.separator
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\"/g, '"')
+        : '';
+
+      const filter = 'filter' in attrs ? attrs.filter : '';
+
+      const openEnd = match.index + match[0].length;
+      const closeInfo = findHtmlLoopEnd(result, openEnd);
+
+      if (closeInfo) {
+        matches.push({
+          start: match.index,
+          end: closeInfo.endIndex,
+          separator,
+          filter,
+          templateContent: result.slice(openEnd, closeInfo.endIndex - 11),
+          arrayName: data,
+        });
+      }
+      match = openRegex.exec(result);
+    }
+
+    if (matches.length === 0) {
+      break;
+    }
+
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const { start, end, separator, filter, templateContent, arrayName } =
+        matches[i];
+
+      const processed = processArrayIteration(
+        arrayName,
+        table,
+        templateContent.replace(/^\n/, '').trimEnd(),
+        separator,
+        schemaInfoParsed,
+        userFiles,
+        undefined,
+        formData,
+        userMetadata,
+        dataSource,
+        filter || undefined,
       );
 
       result = result.slice(0, start) + processed + result.slice(end);
@@ -1019,10 +1523,10 @@ const processAtLoopColumnsInfo = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   const openRegex = /@LOOP\(columnsInfo\)\n?/g;
   let result = content;
-  let match;
 
   const matches: {
     start: number;
@@ -1031,7 +1535,8 @@ const processAtLoopColumnsInfo = (
     closingOptions: string;
   }[] = [];
 
-  while ((match = openRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = openRegex.exec(content);
+  while (match !== null) {
     const openEnd = match.index + match[0].length;
     const closeInfo = findAtLoopEnd(content, openEnd);
 
@@ -1048,6 +1553,7 @@ const processAtLoopColumnsInfo = (
         closingOptions: closeInfo.closingOptions,
       });
     }
+    match = openRegex.exec(content);
   }
 
   for (let i = matches.length - 1; i >= 0; i--) {
@@ -1073,6 +1579,8 @@ const processAtLoopColumnsInfo = (
       formData,
       userMetadata,
       dataSource,
+      undefined,
+      mockData,
     );
 
     result = result.slice(0, start) + processed + result.slice(end);
@@ -1093,14 +1601,33 @@ const processAtLoopTablesTemplate = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
+  mockData?: ParsedJSONSchema,
 ): string => {
   return tables
     .map((table) => {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const replacements = getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      );
 
       // First process HTML-like <@@LOOP@@ data="columnsInfo">
       let processed = processHtmlLoopColumnsInfo(
         templateContent,
+        table,
+        schemaInfoParsed,
+        userFiles,
+        formData,
+        userMetadata,
+        dataSource,
+        mockData,
+      );
+
+      // Process HTML-like <@@LOOP@@ data="arrayName"> for generic arrays
+      processed = processHtmlLoopArray(
+        processed,
         table,
         schemaInfoParsed,
         userFiles,
@@ -1118,7 +1645,12 @@ const processAtLoopTablesTemplate = (
         formData,
         userMetadata,
         dataSource,
+        mockData,
       );
+
+      // Process table-level <@@SWITCH@@> and <@@IF@@> conditions
+      processed = processHtmlSwitch(processed, replacements);
+      processed = processHtmlIf(processed, replacements);
 
       // Then replace placeholders
       const ctx = {
@@ -1151,7 +1683,13 @@ const processTablesTemplate = (
 ): string => {
   return tables
     .map((table) => {
-      const replacements = getReplacementsForTable(table, schemaInfoParsed);
+      const replacements = getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      );
       const ctx = {
         userFiles,
         schemaInfo: tables,
@@ -1166,6 +1704,7 @@ const processTablesTemplate = (
         replacements,
         ctx,
       );
+      processed = processHtmlSwitch(processed, replacements);
       processed = processInnerLoops(
         processed,
         table,
@@ -1179,7 +1718,54 @@ const processTablesTemplate = (
     .join(separator);
 };
 
-export const processLoopTables = (
+interface IResolvedLoopTablesArgs {
+  schemaInfo: ISchemaInfo[];
+  schemaInfoParsed: ISchemaInfoResult;
+  userFiles: IStructure;
+  formData?: IFormStore;
+  userMetadata?: Record<string, unknown> | null;
+  dataSource?: DataContext;
+  mockData?: ParsedJSONSchema;
+}
+
+const resolveLoopTablesArgs = (
+  ctxOrSchemaInfo: BuildContext | ISchemaInfo[],
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataSourceArg?: DataContext,
+  mockDataArg?: ParsedJSONSchema,
+): IResolvedLoopTablesArgs => {
+  if (isBuildContext(ctxOrSchemaInfo)) {
+    return {
+      schemaInfo: ctxOrSchemaInfo.schemaInfo,
+      schemaInfoParsed: ctxOrSchemaInfo.schemaInfoParsed,
+      userFiles: ctxOrSchemaInfo.userFiles,
+      formData: ctxOrSchemaInfo.formData,
+      userMetadata: ctxOrSchemaInfo.userMetadata,
+      dataSource: ctxOrSchemaInfo.dataContext,
+      mockData: ctxOrSchemaInfo.mockData,
+    };
+  }
+
+  if (schemaInfoParsedArg === undefined || userFilesArg === undefined) {
+    throw new Error('schemaInfoParsed and userFiles are required');
+  }
+
+  return {
+    schemaInfo: ctxOrSchemaInfo,
+    schemaInfoParsed: schemaInfoParsedArg,
+    userFiles: userFilesArg,
+    formData: formDataArg,
+    userMetadata: userMetadataArg,
+    dataSource: dataSourceArg,
+    mockData: mockDataArg,
+  };
+};
+
+export function processLoopTables(content: string, ctx: BuildContext): string;
+export function processLoopTables(
   content: string,
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
@@ -1187,7 +1773,36 @@ export const processLoopTables = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
-): string => {
+  mockData?: ParsedJSONSchema,
+): string;
+export function processLoopTables(
+  content: string,
+  ctxOrSchemaInfo: BuildContext | ISchemaInfo[],
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataSourceArg?: DataContext,
+  mockDataArg?: ParsedJSONSchema,
+): string {
+  const {
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+    dataSource,
+    mockData,
+  } = resolveLoopTablesArgs(
+    ctxOrSchemaInfo,
+    schemaInfoParsedArg,
+    userFilesArg,
+    formDataArg,
+    userMetadataArg,
+    dataSourceArg,
+    mockDataArg,
+  );
+
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
 
@@ -1200,6 +1815,7 @@ export const processLoopTables = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process @LOOP(tables) experimental syntax
@@ -1211,6 +1827,7 @@ export const processLoopTables = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process inline LOOP(tables) with --template="..."
@@ -1251,9 +1868,13 @@ export const processLoopTables = (
   );
 
   return result;
-};
+}
 
-export const processLoopTablesReversed = (
+export function processLoopTablesReversed(
+  content: string,
+  ctx: BuildContext,
+): string;
+export function processLoopTablesReversed(
   content: string,
   schemaInfo: ISchemaInfo[],
   schemaInfoParsed: ISchemaInfoResult,
@@ -1261,7 +1882,36 @@ export const processLoopTablesReversed = (
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
   dataSource?: DataContext,
-): string => {
+  mockData?: ParsedJSONSchema,
+): string;
+export function processLoopTablesReversed(
+  content: string,
+  ctxOrSchemaInfo: BuildContext | ISchemaInfo[],
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+  dataSourceArg?: DataContext,
+  mockDataArg?: ParsedJSONSchema,
+): string {
+  const {
+    schemaInfo,
+    schemaInfoParsed,
+    userFiles,
+    formData,
+    userMetadata,
+    dataSource,
+    mockData,
+  } = resolveLoopTablesArgs(
+    ctxOrSchemaInfo,
+    schemaInfoParsedArg,
+    userFilesArg,
+    formDataArg,
+    userMetadataArg,
+    dataSourceArg,
+    mockDataArg,
+  );
+
   /* Filter out view tables using centralized function */
   const filteredSchemaInfo = filterViewTables(schemaInfo, schemaInfoParsed);
   const reversedSchema = [...filteredSchemaInfo].reverse();
@@ -1275,6 +1925,7 @@ export const processLoopTablesReversed = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process @LOOP(tablesReversed) experimental syntax
@@ -1286,6 +1937,7 @@ export const processLoopTablesReversed = (
     formData,
     userMetadata,
     dataSource,
+    mockData,
   );
 
   // Then, process inline LOOP(tablesReversed) with --template="..."
@@ -1326,7 +1978,7 @@ export const processLoopTablesReversed = (
   );
 
   return result;
-};
+}
 
 const findMatchingCloseBrackets = (
   content: string,
@@ -1378,7 +2030,7 @@ const parseQuotedString = (
       } else if (char === '\\') {
         result += '\\';
       } else {
-        result += '\\' + char;
+        result += `\\${char}`;
       }
       escaped = false;
     } else if (char === '\\') {
@@ -1443,19 +2095,59 @@ const parseLoopDataSourcesCommand = (
   return { dataSourcePattern, templateContent, separator };
 };
 
-export const processLoopDataSources = (
+const resolveLoopDataSourcesContext = (
+  ctxOrUserFiles: BuildContext | IStructure,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): BuildContext => {
+  if (isBuildContext(ctxOrUserFiles)) {
+    return ctxOrUserFiles;
+  }
+
+  if (schemaInfoParsedArg === undefined) {
+    throw new Error('schemaInfoParsed is required when passing userFiles');
+  }
+
+  return createBuildContext(ctxOrUserFiles, schemaInfoParsedArg, {
+    formData: formDataArg,
+    userMetadata: userMetadataArg,
+  });
+};
+
+export function processLoopDataSources(
+  content: string,
+  ctx: BuildContext,
+): string;
+export function processLoopDataSources(
   content: string,
   userFiles: IStructure,
   schemaInfoParsed: ISchemaInfoResult,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
-): string => {
+): string;
+export function processLoopDataSources(
+  content: string,
+  ctxOrUserFiles: BuildContext | IStructure,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): string {
+  const ctx = resolveLoopDataSourcesContext(
+    ctxOrUserFiles,
+    schemaInfoParsedArg,
+    formDataArg,
+    userMetadataArg,
+  );
+  const { userFiles } = ctx;
+
   let result = content;
-  let match: RegExpExecArray | null;
 
   LOOP_DATA_SOURCES_START_REGEX.lastIndex = 0;
 
-  while ((match = LOOP_DATA_SOURCES_START_REGEX.exec(result)) !== null) {
+  let match: RegExpExecArray | null =
+    LOOP_DATA_SOURCES_START_REGEX.exec(result);
+  while (match !== null) {
     const startIndex = match.index;
     const contentStartIndex = startIndex + match[0].length;
 
@@ -1493,20 +2185,16 @@ export const processLoopDataSources = (
           dataMatch.folderPath,
         );
 
-        const ctx = {
-          userFiles,
+        const replacementCtx: BuildContext = {
+          ...ctx,
           schemaInfo: [],
-          schemaInfoParsed,
-          projectYamlPath: '',
-          formData,
-          userMetadata,
           dataContext: augmentedData,
         };
 
         return replacePlaceholders(
           templateContent.trim(),
           replacements,
-          ctx,
+          replacementCtx,
           undefined,
           true, // Skip LOOP_DATA_SOURCES to prevent infinite recursion
         );
@@ -1520,12 +2208,45 @@ export const processLoopDataSources = (
       result.substring(fullMatchEnd);
 
     LOOP_DATA_SOURCES_START_REGEX.lastIndex = startIndex + replacement.length;
+    match = LOOP_DATA_SOURCES_START_REGEX.exec(result);
   }
 
   return result;
+}
+
+const resolveIterateCommandContext = (
+  ctxOrTable: BuildContext | ISchemaInfo | undefined,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  projectFilePathArg?: string,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): BuildContext => {
+  if (isBuildContext(ctxOrTable)) {
+    return ctxOrTable;
+  }
+
+  if (
+    ctxOrTable === undefined ||
+    schemaInfoParsedArg === undefined ||
+    userFilesArg === undefined
+  ) {
+    throw new Error('table, schemaInfoParsed, and userFiles are required');
+  }
+
+  return createBuildContext(userFilesArg, schemaInfoParsedArg, {
+    projectYamlPath: projectFilePathArg,
+    table: ctxOrTable,
+    formData: formDataArg,
+    userMetadata: userMetadataArg,
+  });
 };
 
-export const processIterateCommand = (
+export function processIterateCommand(
+  command: string,
+  ctx: BuildContext,
+): string;
+export function processIterateCommand(
   command: string,
   table: ISchemaInfo | undefined,
   schemaInfoParsed: ISchemaInfoResult,
@@ -1533,7 +2254,33 @@ export const processIterateCommand = (
   projectFilePath?: string,
   formData?: IFormStore,
   userMetadata?: Record<string, unknown> | null,
-): string => {
+): string;
+export function processIterateCommand(
+  command: string,
+  ctxOrTable: BuildContext | ISchemaInfo | undefined,
+  schemaInfoParsedArg?: ISchemaInfoResult,
+  userFilesArg?: IStructure,
+  projectFilePathArg?: string,
+  formDataArg?: IFormStore,
+  userMetadataArg?: Record<string, unknown> | null,
+): string {
+  const ctx = resolveIterateCommandContext(
+    ctxOrTable,
+    schemaInfoParsedArg,
+    userFilesArg,
+    projectFilePathArg,
+    formDataArg,
+    userMetadataArg,
+  );
+  const {
+    table,
+    schemaInfoParsed,
+    userFiles,
+    projectYamlPath,
+    formData,
+    userMetadata,
+  } = ctx;
+
   // Extract the property path and options
   // Make the closing parenthesis optional and handle incomplete commands
   const match = LOOP_COMMAND_REGEX.exec(command);
@@ -1604,7 +2351,7 @@ export const processIterateCommand = (
               userFiles,
               schemaInfoParsed,
               table,
-              projectFilePath,
+              projectYamlPath,
               formData,
               userMetadata,
             );
@@ -1616,18 +2363,24 @@ export const processIterateCommand = (
             userFiles,
             schemaInfoParsed,
             table,
-            projectFilePath,
+            projectYamlPath,
             formData,
             userMetadata,
           );
         }
         // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          table,
+          schemaInfoParsed,
+          undefined,
+          undefined,
+          formData,
+        );
         const ignoreCtx = {
           userFiles,
           schemaInfo: [],
           schemaInfoParsed,
-          projectYamlPath: projectFilePath ?? '',
+          projectYamlPath,
           table,
           formData,
           userMetadata,
@@ -1709,7 +2462,7 @@ export const processIterateCommand = (
           includedFiles,
           excludedFiles,
           separator,
-          projectFilePath,
+          projectYamlPath,
           formData,
           userMetadata,
         );
@@ -1753,7 +2506,7 @@ export const processIterateCommand = (
         includedFiles,
         excludedFiles,
         separator,
-        projectFilePath,
+        projectYamlPath,
         formData,
         userMetadata,
       );
@@ -1775,7 +2528,13 @@ export const processIterateCommand = (
           );
         }
         // For non-constant values, still process any placeholders they might have
-        const replacements = getReplacementsForTable(table, schemaInfoParsed);
+        const replacements = getReplacementsForTable(
+          table,
+          schemaInfoParsed,
+          undefined,
+          undefined,
+          formData,
+        );
         const filterCtx = {
           userFiles,
           schemaInfo: [],
@@ -1815,14 +2574,8 @@ export const processIterateCommand = (
     }
 
     // Flatten the filter list to handle both direct values and arrays from USE_CONSTANT
-    const flattenedFilterList = filterList.reduce<string[]>(
-      (acc, filterPattern) => {
-        if (Array.isArray(filterPattern)) {
-          return [...acc, ...filterPattern];
-        }
-        return [...acc, filterPattern];
-      },
-      [],
+    const flattenedFilterList = filterList.flatMap((filterPattern) =>
+      Array.isArray(filterPattern) ? filterPattern : [filterPattern],
     );
 
     return values.filter((value) => flattenedFilterList.includes(value));
@@ -1858,8 +2611,9 @@ export const processIterateCommand = (
       separator,
       schemaInfoParsed,
       userFiles,
-      projectFilePath,
+      projectYamlPath,
       formData,
+      userMetadata,
     );
   }
 
@@ -2068,7 +2822,13 @@ export const processIterateCommand = (
       valueKebabCaseSingular: caseFormats.kebabCaseSingular,
       valueSnakeCaseSingular: caseFormats.snakeCaseSingular,
       // Add table replacements for other placeholders that might be in the template
-      ...getReplacementsForTable(table, schemaInfoParsed),
+      ...getReplacementsForTable(
+        table,
+        schemaInfoParsed,
+        undefined,
+        undefined,
+        formData,
+      ),
     };
 
     // Add all placeholders found in the YAML file for this value
@@ -2083,7 +2843,7 @@ export const processIterateCommand = (
       userFiles,
       schemaInfo: [],
       schemaInfoParsed,
-      projectYamlPath: projectFilePath ?? '',
+      projectYamlPath,
       table,
       formData,
       userMetadata,
@@ -2093,7 +2853,7 @@ export const processIterateCommand = (
   });
 
   return joinWithSeparator(lines);
-};
+}
 
 /**
  * Helper function to process all files in a folder

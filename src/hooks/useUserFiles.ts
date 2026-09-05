@@ -1,9 +1,11 @@
 import {
+  keepPreviousData,
   type UseQueryOptions,
   type UseQueryResult,
   useQuery,
 } from '@tanstack/react-query';
-import type { IStructure } from '@/components/FileViewer.tsx';
+import type { IFile, IStructure } from '@/components/FileViewer.tsx';
+import { extractProjectsFromFiles } from '@/utils/extractProjectsFromFiles.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 
 interface IFetchGitHubFilesParams {
@@ -15,12 +17,22 @@ interface IErrorResponse {
   error?: string;
 }
 
+/**
+ * Transformed data structure returned by useUserFiles.
+ * Contains both the raw files and extracted projects in a single object,
+ * eliminating the sync gap between TanStack Query and Zustand state.
+ */
+export interface IUserFilesData {
+  userFiles: IStructure;
+  projects: IFile[];
+}
+
 const isProduction = import.meta.env.PROD;
 
 export const isUsingLocalFiles = !isProduction;
 
 /**
- * Fetches project files from a public GitHub repository
+ * Fetches project files from a public GitHub repository or local /files directory
  *
  * @param params The parameters for fetching GitHub files
  * @returns A promise that resolves to the fetched files
@@ -28,22 +40,27 @@ export const isUsingLocalFiles = !isProduction;
 const fetchGitHubFiles = async (
   params: IFetchGitHubFilesParams,
 ): Promise<IStructure> => {
-  if (!params.publicRepoURL) {
-    // Return empty structure if no repo URL provided
+  // Determine if we should use local files:
+  // - Empty publicRepoURL means use local files (dev mode toggle set to "Local")
+  // - Non-empty publicRepoURL means fetch from remote GitHub repo
+  const useLocal = params.publicRepoURL === '';
+
+  // If remote mode but no URL provided, return empty
+  if (!useLocal && !params.publicRepoURL) {
     return [];
   }
 
   try {
-    const apiUrl = isUsingLocalFiles
+    const apiUrl = useLocal
       ? `${getApiUrl()}/getUserFiles`
       : `${getApiUrl()}/getUserFilesFromPublicRepo`;
 
     const response = await fetch(apiUrl, {
-      method: isUsingLocalFiles ? 'GET' : 'POST',
+      method: useLocal ? 'GET' : 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: isUsingLocalFiles
+      body: useLocal
         ? undefined
         : JSON.stringify({ publicRepoURL: params.publicRepoURL }),
     });
@@ -98,38 +115,44 @@ const fetchGitHubFiles = async (
 };
 
 /**
- * Hook for fetching and caching GitHub files using TanStack Query
+ * Hook for fetching and caching GitHub files using TanStack Query.
+ *
+ * Uses the `select` option to synchronously transform the raw file structure
+ * into an object containing both files and extracted projects. This eliminates
+ * the render-cycle gap that previously caused UI flicker.
+ *
+ * Best practices applied:
+ * - `placeholderData: keepPreviousData` - Shows previous data during refetch (replaces deprecated keepPreviousData option)
+ * - `select` - Synchronous transformation, no useEffect sync needed
+ * - Returns `isPending` for proper "no data yet" checks
  *
  * @param params The parameters for fetching GitHub files
  * @param behavior Optional behavior configuration for the query
- * @returns Query result containing the GitHub files data, loading state, and error state
+ * @returns Query result containing userFiles, projects, loading states, and error state
  */
 export const useUserFiles = (
   params: IFetchGitHubFilesParams,
-  behavior?: Omit<UseQueryOptions<IStructure>, 'queryKey' | 'queryFn'>,
-): UseQueryResult<IStructure> => {
+  behavior?: Omit<
+    UseQueryOptions<IStructure, Error, IUserFilesData>,
+    'queryKey' | 'queryFn' | 'select'
+  >,
+): UseQueryResult<IUserFilesData> => {
   return useQuery({
     queryKey: ['userFiles', params.publicRepoURL],
     queryFn: () => fetchGitHubFiles({ publicRepoURL: params.publicRepoURL }),
-
-    // Default settings that can be overridden by the behavior parameter
-    refetchInterval: 30 * 1000, //
-    // Poll every 1 second (short polling).
-    // Common use cases: live dashboards, chat notifications, stock tickers, monitoring tools.
-
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    // After this period, React Query will treat the data as stale.
-    // On remount (when a component using this query mounts again), stale data triggers a refetch.
-    // Common use cases: moderately dynamic data like config settings, price lists, user permissions.
-
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    // Keep stale and unused cached data for 10 minutes before garbage-collecting it.
-    // This allows reusing cached data without fetching again if a component remounts within that period.
-    // Common use cases: large or complex data where refetching too often is wasteful, but you still want quick reuse if the user navigates back.
-
-    refetchOnWindowFocus: 'always', // Refetch on window focus — but only if stale
+    // Use select for synchronous transformation - projects are extracted in the same render cycle
+    select: (userFiles): IUserFilesData => ({
+      userFiles,
+      projects: extractProjectsFromFiles(userFiles),
+    }),
+    // Use placeholderData instead of deprecated keepPreviousData option
+    // This keeps showing previous data while new data is being fetched
+    placeholderData: keepPreviousData,
+    refetchInterval: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: 'always',
     retry: false,
-
-    ...behavior, // This will override the default settings
+    ...behavior,
   });
 };

@@ -388,6 +388,8 @@ describe('renameTable', () => {
         foreignTables: ['userz'],
         foreignKeys: ['userz_id'],
         belongsTo: ['userz'],
+        isAuthResource: true,
+        ownerField: 'userz_id',
       },
     ] satisfies ISchemaInfo[]);
   });
@@ -514,6 +516,8 @@ describe('renameTable', () => {
         foreignTables: ['user'],
         foreignKeys: ['user_id'],
         belongsTo: ['user'],
+        isAuthResource: true,
+        ownerField: 'user_id',
       },
     ] satisfies ISchemaInfo[]);
   });

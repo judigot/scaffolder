@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
+import { describe, expect, it } from 'vitest';
 import type { IStructure } from '@/components/FileViewer.tsx';
+import { CREATION_MODES } from '@/constants.ts';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import masterJSONSchema from '@/json-schemas/masterJSONSchema.ts';
+import masterSchema from '@/schema-infos/masterSchema.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import { frameworks } from '@/useFormStore.ts';
-import { CREATION_MODES } from '@/constants.ts';
-import masterSchema from '@/schema-infos/masterSchema.ts';
-import masterJSONSchema from '@/json-schemas/masterJSONSchema.ts';
+import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 
 describe('Preview vs Export Structure Consistency', () => {
   const createSchema = (): ISchemaInfo[] => masterSchema;
@@ -208,6 +208,18 @@ describe('Preview vs Export Structure Consistency', () => {
   };
 
   /**
+   * Normalizes content for comparison by removing timestamps
+   * This handles error logs that contain timestamps which differ between runs
+   */
+  const normalizeForComparison = (content: string): string => {
+    // Remove ISO timestamps (e.g., 2026-02-05T06:27:08.095Z)
+    return content.replace(
+      /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g,
+      '[TIMESTAMP]',
+    );
+  };
+
+  /**
    * Compares two structures and returns differences
    */
   const compareStructures = (
@@ -239,7 +251,10 @@ describe('Preview vs Export Structure Consistency', () => {
       const exportContent = exportFiles.get(filePath);
       if (exportContent === undefined) {
         missingInExport.push(filePath);
-      } else if (previewContent !== exportContent) {
+      } else if (
+        normalizeForComparison(previewContent) !==
+        normalizeForComparison(exportContent)
+      ) {
         differences.push({
           filePath,
           previewContent,
@@ -460,7 +475,7 @@ describe('Preview vs Export Structure Consistency', () => {
     );
   });
 
-  it.skip('should handle complex nested structures with USE_USER_ENV', async () => {
+  it('should handle complex nested structures with USE_USER_ENV', async () => {
     const schemaInfo = createSchema();
     const complexUserFiles: IStructure = [
       {
@@ -475,59 +490,46 @@ describe('Preview vs Export Structure Consistency', () => {
                 type: 'file',
                 name: 'structure.yaml',
                 content: [
-                  'structure:',
-                  '  - type: folder',
-                  '    name: src',
-                  '    children:',
-                  '      - type: folder',
-                  '        name: config',
-                  '        children:',
-                  '          - type: file',
-                  '            name: database.php',
-                  '            template: Templates/db-config.txt',
-                  '          - type: file',
-                  '            name: app.php',
-                  '            template: Templates/app-config.txt',
-                  '      - type: folder',
-                  '        name: services',
-                  '        children:',
-                  '          - type: file',
-                  '            name: api-service.ts',
-                  '            template: Templates/api-service.txt',
+                  'src:',
+                  '  config:',
+                  '    database.php: /Templates/db-config.txt',
+                  '    app.php: /Templates/app-config.txt',
+                  '  services:',
+                  '    api-service.ts: /Templates/api-service.txt',
                 ].join('\n'),
               },
             ],
           },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Templates',
+        children: [
           {
-            type: 'folder',
-            name: 'Templates',
-            children: [
-              {
-                type: 'file',
-                name: 'db-config.txt',
-                content: [
-                  'DB_HOST=[[USE_USER_ENV(DB_HOST)]]',
-                  'DB_PORT=[[USE_USER_ENV(DB_PORT)]]',
-                  'DB_NAME=[[USE_USER_ENV(DB_NAME)]]',
-                ].join('\n'),
-              },
-              {
-                type: 'file',
-                name: 'app-config.txt',
-                content: [
-                  'APP_NAME=[[USE_USER_ENV(APP_NAME)]]',
-                  'APP_ENV=[[USE_USER_ENV(APP_ENV)]]',
-                ].join('\n'),
-              },
-              {
-                type: 'file',
-                name: 'api-service.txt',
-                content: [
-                  "const API_KEY = '[[USE_USER_ENV(API_KEY)]]';",
-                  "const BASE_URL = '[[USE_USER_ENV(BASE_URL)]]';",
-                ].join('\n'),
-              },
-            ],
+            type: 'file',
+            name: 'db-config.txt',
+            content: [
+              'DB_HOST=[[USE_USER_ENV(DB_HOST)]]',
+              'DB_PORT=[[USE_USER_ENV(DB_PORT)]]',
+              'DB_NAME=[[USE_USER_ENV(DB_NAME)]]',
+            ].join('\n'),
+          },
+          {
+            type: 'file',
+            name: 'app-config.txt',
+            content: [
+              'APP_NAME=[[USE_USER_ENV(APP_NAME)]]',
+              'APP_ENV=[[USE_USER_ENV(APP_ENV)]]',
+            ].join('\n'),
+          },
+          {
+            type: 'file',
+            name: 'api-service.txt',
+            content: [
+              "const API_KEY = '[[USE_USER_ENV(API_KEY)]]';",
+              "const BASE_URL = '[[USE_USER_ENV(BASE_URL)]]';",
+            ].join('\n'),
           },
         ],
       },

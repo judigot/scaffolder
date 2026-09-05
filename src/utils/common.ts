@@ -21,7 +21,15 @@ const getTypeMappings = (): Record<PropertyKey, unknown> => {
 };
 
 export function changeCase(input: string): TableCaseFormatsObject {
-  const words = input.replace(/[_-]/g, ' ').trim().split(/\s+/);
+  const parsedWords = input
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word.length > 0)
+    .map((word) => word.toLowerCase());
+  const words = parsedWords.length > 0 ? parsedWords : [''];
   const allWordsExceptLast = words.slice(0, -1);
   const lastWord = words[words.length - 1];
   const tableNamePlural = [...allWordsExceptLast, pluralize(lastWord)];
@@ -199,6 +207,13 @@ export const getTypeMapping = (
   const typeMappings = getTypeMappings();
 
   if (primary_key) {
+    // Use stringPrimaryKey for string/text primary keys (e.g., Lucia auth)
+    if (data_type === 'string') {
+      return getTypeMappingValue(typeMappings, 'stringPrimaryKey', columnType);
+    }
+    if (data_type === 'uuid') {
+      return getTypeMappingValue(typeMappings, 'uuid', columnType);
+    }
     return getTypeMappingValue(typeMappings, 'primaryKey', columnType);
   }
 
@@ -206,7 +221,7 @@ export const getTypeMapping = (
     return getTypeMappingValue(typeMappings, 'password', columnType);
   }
 
-  if (column_name.endsWith('_id')) {
+  if (column_name.endsWith('_id') && data_type !== 'uuid') {
     return getTypeMappingValue(typeMappings, 'number', columnType);
   }
 

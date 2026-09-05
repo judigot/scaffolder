@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+    .name { font-size: 2em; font-weight: bold; color: #333; }
+    .contact { color: #666; margin-top: 5px; }
+    .section { margin: 20px 0; }
+    .section-title { font-size: 1.2em; font-weight: bold; color: #444; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+    .info-row { display: flex; margin: 10px 0; }
+    .label { font-weight: bold; width: 150px; color: #555; }
+    .value { color: #333; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="name">[[USE_DATA(basic-info.name)]]</div>
+    <div class="contact">
+      [[USE_DATA(basic-info.email)]] | [[USE_DATA(basic-info.phone)]]
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Personal Information</div>
+    <div class="info-row"><span class="label">Address:</span><span class="value">[[USE_DATA(basic-info.address)]]</span></div>
+    <div class="info-row"><span class="label">City:</span><span class="value">[[USE_DATA(basic-info.city)]], [[USE_DATA(basic-info.state)]] [[USE_DATA(basic-info.zip)]]</span></div>
+    <div class="info-row"><span class="label">Country:</span><span class="value">[[USE_DATA(basic-info.country)]]</span></div>
+    <div class="info-row"><span class="label">Date of Birth:</span><span class="value">[[USE_DATA(basic-info.date-of-birth)]]</span></div>
+    <div class="info-row"><span class="label">Nationality:</span><span class="value">[[USE_DATA(basic-info.nationality)]]</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Education & Experience</div>
+    <div class="info-row"><span class="label">Education:</span><span class="value">[[USE_DATA(basic-info.education)]]</span></div>
+    <div class="info-row"><span class="label">Experience:</span><span class="value">[[USE_DATA(basic-info.experience)]]</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Languages</div>
+    <div class="info-row"><span class="value">[[USE_DATA(languages)]]</span></div>
+  </div>
+</body>
+</html>

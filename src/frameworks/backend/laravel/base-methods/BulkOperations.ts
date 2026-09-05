@@ -5,7 +5,7 @@ export default {
   methods: [
     {
       methodName: 'batchUpdate',
-      route: `Route::post('{{tableNameKebabCasePlural}}/batch-update', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.batch-update');`,
+      route: `Route::post('{{tableName.plural.kebabCase}}/batch-update', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.batch-update');`,
       description: 'Batch update multiple records',
       repositoryMethod: '{{methodName}}(array $criteria, array $data): bool',
       repositoryContent: `
@@ -25,7 +25,7 @@ export default {
     },
     {
       methodName: 'updateOrCreate',
-      route: `Route::post('{{tableNameKebabCasePlural}}/update-or-create', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.update-or-create');`,
+      route: `Route::post('{{tableName.plural.kebabCase}}/update-or-create', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.update-or-create');`,
       description: 'Create or update a record',
       repositoryMethod:
         '{{methodName}}(array $attributes, array $values = []): Model',

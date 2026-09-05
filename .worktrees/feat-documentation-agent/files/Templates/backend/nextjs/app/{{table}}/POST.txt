@@ -1,0 +1,24 @@
+import { NextRequest, NextResponse } from 'next/server';
+import DatatypeParser from '@/utils/DataTypeParser.ts';
+import { prisma } from '@/prisma/DatabaseClient';
+import { {{tableNamePascalCase}} } from '@/Controllers/{{tableNamePascalCase}}Controller.ts';
+import { Prisma } from '@prisma/client';
+
+type Body = Prisma.{{tableName}}CreateInput
+
+const PostHandler = async (req: NextRequest) => {
+  try {
+    const body: Body = await req.json();
+    const result = await {{tableNamePascalCase}}.store(body);
+    return NextResponse.json(DatatypeParser(result));
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({
+      error: error,
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+export default PostHandler;

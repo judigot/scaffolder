@@ -1,24 +1,24 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { getOldestResources } from '@/hooks/shared/useOldest.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IOldestParams {
   limit?: number;
   filters?: Record<string, unknown>;
 }
 
-export const useOldest{{tableNamePascalCasePlural}} = (
+export const useOldest{{tableName.plural.pascalCase}} = (
   params: IOldestParams = {},
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'oldest', params.limit, params.filters],
+    queryKey: ['{{tableName.plural.camelCase}}', 'oldest', params.limit, params.filters],
     queryFn: () =>
-      getOldestResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/oldest',
+      getOldestResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/oldest',
         params.limit,
         params.filters
       ),

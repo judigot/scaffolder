@@ -15,12 +15,12 @@ abstract class BaseController extends Controller
     }
 
     // CRUD
-[[LOOP(/BaseMethods/laravel/crud) --template="    public function {{controllerMethod}}
+<@@LOOP@@ data="/BaseMethods/laravel/crud" separator="\n\n">    public function {{controllerMethod}}
     {
-{{controllerContent}}    }"]]
+{{controllerContent}}    }</@@LOOP@@>
 
     // Advanced Operations
-[[LOOP(/BaseMethods/laravel/advanced-operations) --template="    public function {{controllerMethod}}
+<@@LOOP@@ data="/BaseMethods/laravel/advanced-operations" separator="\n\n">    public function {{controllerMethod}}
     {
-{{controllerContent}}    }"]]
+{{controllerContent}}    }</@@LOOP@@>
 }

@@ -1,0 +1,101 @@
+network:
+  name: "Datacenter Network"
+  location: "Primary Datacenter"
+  subnet: "10.0.0.0/16"
+  gateway: "10.0.0.1"
+  vlan-id: 200
+  description: "Datacenter network for servers and infrastructure"
+
+devices:
+  - name: "Core-Router-01"
+    type: "router"
+    model: "Cisco ASR 1000"
+    ip-address: "10.0.0.1"
+    management-ip: "10.0.0.1"
+    interfaces:
+      - name: "GigabitEthernet0/0/0"
+        description: "Core Interface"
+        ip: "10.0.0.1"
+        subnet: "255.255.0.0"
+        status: "up"
+      - name: "GigabitEthernet0/0/1"
+        description: "Uplink Interface"
+        ip: "203.0.113.1"
+        subnet: "255.255.255.252"
+        status: "up"
+
+  - name: "Core-Switch-01"
+    type: "switch"
+    model: "Cisco Nexus 9000"
+    ip-address: "10.0.0.10"
+    management-ip: "10.0.0.10"
+    interfaces:
+      - name: "Ethernet1/1"
+        description: "Server Port"
+        vlan: 200
+        status: "up"
+      - name: "Ethernet1/2"
+        description: "Storage Port"
+        vlan: 201
+        status: "up"
+
+  - name: "Firewall-DC-01"
+    type: "firewall"
+    model: "Palo Alto PA-5220"
+    ip-address: "10.0.0.2"
+    management-ip: "10.0.0.2"
+    interfaces:
+      - name: "ethernet1/1"
+        description: "Internal"
+        ip: "10.0.0.2"
+        subnet: "255.255.0.0"
+        zone: "internal"
+      - name: "ethernet1/2"
+        description: "DMZ"
+        ip: "10.0.1.2"
+        subnet: "255.255.255.0"
+        zone: "dmz"
+
+routing:
+  default-gateway: "10.0.0.1"
+  routes:
+    - network: "192.168.0.0/16"
+      gateway: "10.0.0.1"
+      metric: 10
+    - network: "172.16.0.0/12"
+      gateway: "10.0.0.1"
+      metric: 10
+
+dns:
+  primary: "10.0.0.5"
+  secondary: "10.0.0.6"
+  internal: "10.0.0.1"
+
+dhcp:
+  enabled: false
+
+security:
+  firewall-rules:
+    - name: "Allow SSH"
+      action: "allow"
+      source: "10.0.0.0/16"
+      destination: "10.0.0.0/16"
+      service: "ssh"
+      port: 22
+    - name: "Allow HTTPS"
+      action: "allow"
+      source: "any"
+      destination: "10.0.1.0/24"
+      service: "https"
+      port: 443
+    - name: "Deny All"
+      action: "deny"
+      source: "any"
+      destination: "any"
+      service: "any"
+
+tags:
+  Location: "Primary Datacenter"
+  NetworkType: "Datacenter"
+  VLAN: "200"
+

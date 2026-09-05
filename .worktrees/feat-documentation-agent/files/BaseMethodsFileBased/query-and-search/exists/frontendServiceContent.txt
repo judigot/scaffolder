@@ -1,0 +1,2 @@
+const response = await axiosInstance.get(`{{tableNameKebabCasePlural}}/exists`, { params });
+return response.data; 

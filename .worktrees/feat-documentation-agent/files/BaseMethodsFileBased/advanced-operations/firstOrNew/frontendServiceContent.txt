@@ -1,0 +1,6 @@
+const response = await axiosInstance.post(`{{tableNameKebabCasePlural}}/first-or-new`, {
+  data,
+  callback: callback?.toString(),
+  chunkSize
+});
+return response.data; 

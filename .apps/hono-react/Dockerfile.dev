@@ -1,0 +1,16 @@
+# ========================================
+# Hono + React Development Dockerfile
+# ========================================
+# For use with bind mounts - source code mounted from host
+
+ARG BUN_VERSION=1.3.8
+FROM oven/bun:${BUN_VERSION}-debian
+
+WORKDIR /app
+
+EXPOSE 5173
+EXPOSE 3000
+
+# Install dependencies first, then start both servers
+# Using sh -c with proper sequencing
+CMD ["sh", "-c", "bun install && (bun --hot api/index.ts & bunx vite --host 0.0.0.0 --port 5173)"]

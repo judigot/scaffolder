@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  [[USE_DATA(service.name)]]:
+    image: [[USE_DATA(service.name)]]:[[USE_DATA(service.version)]]
+    container_name: [[USE_DATA(service.name)]]
+    restart: unless-stopped
+    ports:
+      [[USE_DATA(ports)]]
+    environment:
+      [[USE_DATA(env-vars)]]
+    volumes:
+      [[USE_DATA(volumes)]]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:[[USE_DATA(health-checks.liveness.port)]]/[[USE_DATA(health-checks.liveness.path)]]"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '[[USE_DATA(resources.limits.cpu)]]'
+          memory: [[USE_DATA(resources.limits.memory)]]
+        reservations:
+          cpus: '[[USE_DATA(resources.requests.cpu)]]'
+          memory: [[USE_DATA(resources.requests.memory)]]
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+

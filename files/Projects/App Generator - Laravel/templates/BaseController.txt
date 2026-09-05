@@ -4,17 +4,218 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 abstract class BaseController extends Controller
 {
     protected $service;
+    protected bool $requiresAuth = false;
+    protected ?string $ownerField = null;
 
     public function __construct($service)
     {
         $this->service = $service;
     }
 
-[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="    public function {{controllerMethod}}
+    protected function tokenCacheKey(string $token): string
     {
-{{controllerContent}}\n    }"]]
+        return 'auth_token:' . hash('sha256', $token);
+    }
+
+    protected function authenticatedUserId(Request $request): ?string
+    {
+        $bearer = $request->bearerToken();
+        if (!is_string($bearer) || $bearer === '') {
+            return null;
+        }
+
+        $userId = Cache::get($this->tokenCacheKey($bearer));
+        if (!is_string($userId) || $userId === '') {
+            return null;
+        }
+
+        $exists = DB::table('user')->where('id', $userId)->exists();
+        if (!$exists) {
+            Cache::forget($this->tokenCacheKey($bearer));
+            return null;
+        }
+
+        return $userId;
+    }
+
+    protected function ownerScoped(): bool
+    {
+        return $this->requiresAuth && is_string($this->ownerField) && $this->ownerField !== '';
+    }
+
+    protected function resourceOwnedByUser(object $item, string $userId): bool
+    {
+        if (!$this->ownerScoped()) {
+            return true;
+        }
+
+        $ownerField = (string) $this->ownerField;
+        $ownerValue = data_get($item, $ownerField);
+        return is_string($ownerValue) && $ownerValue === $userId;
+    }
+
+    protected function malformedJsonResponse(Request $request)
+    {
+        $contentType = strtolower((string) $request->header('Content-Type', ''));
+        if (strpos($contentType, 'application/json') === false) {
+            return null;
+        }
+
+        $raw = trim((string) $request->getContent());
+        if ($raw === '') {
+            return null;
+        }
+
+        json_decode($raw, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json(['message' => 'Malformed JSON payload'], 400);
+        }
+
+        return null;
+    }
+
+    public function index(Request $request)
+    {
+        $userId = null;
+        if ($this->requiresAuth) {
+            $userId = $this->authenticatedUserId($request);
+            if (!is_string($userId) || $userId === '') {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+        }
+
+        $items = $this->service->index(
+            $request->query('column'),
+            $request->query('direction', 'asc')
+        );
+
+        if (is_string($userId) && $this->ownerScoped()) {
+            $ownerField = (string) $this->ownerField;
+            $items = $items->where($ownerField, $userId)->values();
+        }
+
+        return response()->json($items);
+    }
+
+    public function store(Request $request)
+    {
+        $malformed = $this->malformedJsonResponse($request);
+        if ($malformed) {
+            return $malformed;
+        }
+
+        $userId = null;
+        if ($this->requiresAuth) {
+            $userId = $this->authenticatedUserId($request);
+            if (!is_string($userId) || $userId === '') {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+        }
+
+        $payload = $request->all();
+        if (is_string($userId) && $this->ownerScoped()) {
+            $ownerField = (string) $this->ownerField;
+            $payload[$ownerField] = $userId;
+        }
+
+        $item = $this->service->create($payload);
+        return response()->json($item, 201);
+    }
+
+    public function show(Request $request, string $id)
+    {
+        $userId = null;
+        if ($this->requiresAuth) {
+            $userId = $this->authenticatedUserId($request);
+            if (!is_string($userId) || $userId === '') {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+        }
+
+        $item = $this->service->findById($id);
+
+        if (!$item) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        if (is_string($userId) && !$this->resourceOwnedByUser($item, $userId)) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        return response()->json($item);
+    }
+
+    public function update(Request $request, string $id)
+    {
+        $malformed = $this->malformedJsonResponse($request);
+        if ($malformed) {
+            return $malformed;
+        }
+
+        $userId = null;
+        if ($this->requiresAuth) {
+            $userId = $this->authenticatedUserId($request);
+            if (!is_string($userId) || $userId === '') {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+        }
+
+        $existing = $this->service->findById($id);
+        if (!$existing) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        if (is_string($userId) && !$this->resourceOwnedByUser($existing, $userId)) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        $payload = $request->all();
+        if (is_string($userId) && $this->ownerScoped()) {
+            $ownerField = (string) $this->ownerField;
+            $payload[$ownerField] = $userId;
+        }
+
+        $updated = $this->service->update($id, $payload);
+
+        if (!$updated) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        $item = $this->service->findById($id);
+        return response()->json($item);
+    }
+
+    public function destroy(Request $request, string $id)
+    {
+        $userId = null;
+        if ($this->requiresAuth) {
+            $userId = $this->authenticatedUserId($request);
+            if (!is_string($userId) || $userId === '') {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+        }
+
+        $existing = $this->service->findById($id);
+        if (!$existing) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        if (is_string($userId) && !$this->resourceOwnedByUser($existing, $userId)) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        $deleted = $this->service->destroy($id);
+
+        if (!$deleted) {
+            return response()->json(['message' => 'Resource not found'], 404);
+        }
+
+        return response()->json(['message' => 'Resource deleted']);
+    }
 }

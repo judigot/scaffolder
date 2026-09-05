@@ -1,24 +1,24 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { whereInResources } from '@/hooks/shared/useWhereIn.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IWhereInParams {
   column: string;
   values: (string | number)[];
 }
 
-export const useWhereIn{{tableNamePascalCasePlural}} = (
+export const useWhereIn{{tableName.plural.pascalCase}} = (
   params: IWhereInParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}[]>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}[]>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'whereIn', params.column, params.values],
+    queryKey: ['{{tableName.plural.camelCase}}', 'whereIn', params.column, params.values],
     queryFn: () =>
-      whereInResources<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/where-in',
+      whereInResources<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/where-in',
         params.column,
         params.values
       ),

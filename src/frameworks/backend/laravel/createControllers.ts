@@ -10,17 +10,17 @@ const template = `
 
 namespace App\\Http\\Controllers;
 
-use App\\Models\\{{tableNamePascalCase}};
-use App\\Repositories\\{{tableNamePascalCase}}Interface;
-use App\\Services\\{{tableNamePascalCase}}Service;
+use App\\Models\\{{tableName.pascalCase}};
+use App\\Repositories\\{{tableName.pascalCase}}Interface;
+use App\\Services\\{{tableName.pascalCase}}Service;
 use Illuminate\\Http\\Request;
 use App\\Http\\Controllers\\BaseController;
 
-class {{tableNamePascalCase}}Controller extends BaseController
+class {{tableName.pascalCase}}Controller extends BaseController
 {
     protected $repository;
 
-    public function __construct({{tableNamePascalCase}}Interface \${{tableName}}Repository, {{tableNamePascalCase}}Service \${{tableName}}Service)
+    public function __construct({{tableName.pascalCase}}Interface \${{tableName}}Repository, {{tableName.pascalCase}}Service \${{tableName}}Service)
     {
         parent::__construct(\${{tableName}}Service);
         $this->repository = \${{tableName}}Repository;
@@ -32,10 +32,7 @@ class {{tableNamePascalCase}}Controller extends BaseController
 
 const createControllers = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
-    )
+    .filter(({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot))
     .map((tableInfo) => {
       const { tableName } = tableInfo;
       const { pascalCase: tableNamePascalCase } = changeCase(tableName);

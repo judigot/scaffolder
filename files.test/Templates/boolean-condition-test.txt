@@ -1,6 +1,6 @@
-{{tableNamePascalCase}} Conditions Test:
+{{tableName.pascalCase}} Conditions Test:
   [[ LOOP(columnsInfo) --template="
-  Column: {{valueCamelCase}} | Type: {{data_type}} | TS Type: {{data_type}}
+  Column: {{value.camelCase}} | Type: {{data_type}} | TS Type: {{data_type}}
   
   /* Boolean Condition Results */
   String Type: {% IF data_type EQUALS 'string' %}true{% ENDIF %}{% IF data_type NOT EQUAL 'string' %}false{% ENDIF %}

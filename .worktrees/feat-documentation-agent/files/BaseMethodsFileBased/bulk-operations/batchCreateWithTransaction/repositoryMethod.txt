@@ -1,0 +1,1 @@
+{{methodNameCamelCase}}(array $dataArray, array $options = []): array

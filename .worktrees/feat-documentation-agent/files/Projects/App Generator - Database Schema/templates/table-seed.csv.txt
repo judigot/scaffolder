@@ -1,0 +1,4 @@
+-- Seed data for {{tableName}} in CSV format
+
+[[USE_ROWS(tableName={{tableName}}, format=csv)]]
+

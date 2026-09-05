@@ -1,0 +1,78 @@
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "[[USE_DATA(environment.region)]]"
+  
+  default_tags {
+    tags = {
+      Environment = "[[USE_DATA(environment.name)]]"
+      ManagedBy   = "Terraform"
+      [[USE_DATA(tags)]]
+    }
+  }
+}
+
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+resource "aws_vpc" "main" {
+  cidr_block           = "[[USE_DATA(environment.vpc-cidr)]]"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = {
+    Name = "[[USE_DATA(environment.name)]]-vpc"
+    [[USE_DATA(tags)]]
+  }
+}
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "[[USE_DATA(environment.name)]]-igw"
+    [[USE_DATA(tags)]]
+  }
+}
+
+[[USE_DATA(services)]]
+
+resource "aws_security_group" "web" {
+  name        = "[[USE_DATA(environment.name)]]-web-sg"
+  description = "Security group for web services"
+  vpc_id      = aws_vpc.main.id
+
+  [[USE_DATA(networking.security-groups)]]
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "[[USE_DATA(environment.name)]]-web-sg"
+    [[USE_DATA(tags)]]
+  }
+}
+
+resource "aws_cloudwatch_log_group" "main" {
+  name              = "/aws/[[USE_DATA(environment.name)]]"
+  retention_in_days = [[USE_DATA(monitoring.log-retention)]]
+
+  tags = {
+    Name = "[[USE_DATA(environment.name)]]-logs"
+    [[USE_DATA(tags)]]
+  }
+}
+

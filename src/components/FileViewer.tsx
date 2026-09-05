@@ -1,36 +1,42 @@
-import type React from 'react';
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import Editor, { type OnMount } from '@monaco-editor/react';
 import {
   Close as CloseIcon,
-  ContentCopy as CopyIcon,
   Code as CodeIcon,
-  Folder as FolderIcon,
+  ContentCopy as CopyIcon,
   CreateNewFolder as CreateNewFolderIcon,
-  NoteAdd as NoteAddIcon,
-  Save as SaveIcon,
   Download as DownloadIcon,
+  Folder as FolderIcon,
+  NoteAdd as NoteAddIcon,
   PictureAsPdf as PictureAsPdfIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
-import { handleCopy } from '@/helpers/stringHelper.ts';
-import Editor, { type OnMount } from '@monaco-editor/react';
-import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
-import ContextMenu from '@/components/UI/ContextMenu.tsx';
-import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
-import { useFormStore } from '@/useFormStore.ts';
-import useTransformationsStore from '@/useTransformationsStore.ts';
-import { useProjectStore } from '@/useProjectStore.ts';
-import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
-import { useFileContent } from '@/hooks/useFileContent.ts';
-import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
-import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
-import { useUser } from '@/hooks/useUser.ts';
-import { useUserProfileStore } from '@/useUserProfileStore.ts';
-import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GitHubExportModal from '@/components/GitHubExportModal.tsx';
+import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
+import SchemaSelector from '@/components/SchemaSelector.tsx';
+import { Banner } from '@/components/UI/Banner.tsx';
+import ContextMenu from '@/components/UI/ContextMenu.tsx';
+import { SimpleSelect } from '@/components/UI/GroupedSelect.tsx';
+import { handleCopy } from '@/helpers/stringHelper.ts';
+import useDebouncedValue from '@/hooks/useDebouncedValue.ts';
+import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
+import { useFileContent } from '@/hooks/useFileContent.ts';
+import { useUser } from '@/hooks/useUser.ts';
+import type { ScaffolderSeverity } from '@/interfaces/scaffolderMessages.ts';
+import { useScaffolderMessagesStore } from '@/stores/useScaffolderMessagesStore.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useProjectStore } from '@/useProjectStore.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
+import { isMasterDeveloper } from '@/useUIStore.ts';
+import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
+import type { IFailedFormatEntry } from '@/utils/project-builder/buildProjectFiles.ts';
+import { detectUserEnvInStructure } from '@/utils/project-builder/utils/detectUserEnvUsage.ts';
+import zipAndDownloadIStructure from '@/utils/zipIStructure.ts';
 
 export interface IBase {
   name: string;
@@ -89,18 +95,103 @@ const createUniqueFileId = (path: string[], fileName: string): string => {
   return [...path, fileName].join('/');
 };
 
+const extractFilePathFromDetail = (detail: string): string | null => {
+  const trimmed = detail.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  const colonIndex = trimmed.indexOf(':');
+  const candidate = colonIndex > 0 ? trimmed.slice(0, colonIndex) : trimmed;
+  if (candidate.includes('/') || candidate.includes('\\')) {
+    return candidate;
+  }
+  return null;
+};
+
+const getSeverityRank = (severity: ScaffolderSeverity): number => {
+  if (severity === 'error') {
+    return 3;
+  }
+  if (severity === 'warning') {
+    return 2;
+  }
+  return 1;
+};
+
+const getSeverityClass = (severity?: ScaffolderSeverity): string => {
+  if (severity === 'error') {
+    return 'text-red-300';
+  }
+  if (severity === 'warning') {
+    return 'text-yellow-300';
+  }
+  if (severity === 'info') {
+    return 'text-blue-300';
+  }
+  return 'text-white';
+};
+
+const findFileByPath = (
+  items: IStructure,
+  pathParts: string[],
+): IFile | null => {
+  if (pathParts.length === 0) {
+    return null;
+  }
+  const [current, ...rest] = pathParts;
+  const match = items.find((item) => item.name === current);
+  if (!match) {
+    return null;
+  }
+  if (rest.length === 0) {
+    return match.type === 'file' ? match : null;
+  }
+  if (match.type === 'folder') {
+    return findFileByPath(match.children, rest);
+  }
+  return null;
+};
+
+interface IProjectOption {
+  name: string;
+}
+
 function FileViewer({
   folderStructure: initialFolderStructure,
   mode,
   projectName,
   filesUsingUserEnv = [],
   filesFailedToFormat = [],
+  projects = [],
+  selectedProject: selectedProjectProp,
+  onProjectChange,
+  useLocalScaffolderFiles,
+  onToggleLocalScaffolderFiles,
+  remoteScaffolderURL,
+  onRemoteScaffolderURLChange,
+  fetchError,
+  isFetching,
 }: {
   folderStructure: IStructure;
   mode: 'edit' | 'view';
   projectName?: string;
   filesUsingUserEnv?: string[];
   filesFailedToFormat?: IFailedFormatEntry[];
+  projects?: IProjectOption[];
+  selectedProject?: IProjectOption;
+  onProjectChange?: (projectName: string) => void;
+  /** Whether to use local scaffolder files (dev mode toggle) */
+  useLocalScaffolderFiles?: boolean;
+  /** Callback to toggle local scaffolder files */
+  onToggleLocalScaffolderFiles?: (value: boolean) => void;
+  /** Remote scaffolder files URL */
+  remoteScaffolderURL?: string;
+  /** Callback to set remote scaffolder URL */
+  onRemoteScaffolderURLChange?: (url: string) => void;
+  /** Error from fetching files */
+  fetchError?: Error | null;
+  /** Whether files are currently being fetched */
+  isFetching?: boolean;
 }) {
   const safeFilesUsingUserEnv = filesUsingUserEnv;
 
@@ -116,18 +207,269 @@ function FileViewer({
   const { openUserProfile } = useUserProfileStore();
   const { schemaInfo, SQLSchema } = useTransformationsStore();
   const { backendDir, publicRepoURL, dbConnection } = useFormStore();
-  const { editValue, newValue, promptModal, openRandomModal } = useModalStore();
+
+  const isDevMode = isMasterDeveloper(
+    typeof user?.nickname === 'string' ? user.nickname : undefined,
+  );
+  const { editValue, newValue, promptModal, openRandomModal, openModal } =
+    useModalStore();
   const { selectedProject } = useProjectStore();
   const { userFiles } = useMockDatabaseStore();
+
+  // Validate GitHub URL or shorthand format (user/repo or https://github.com/user/repo)
+  const isValidGitHubURL = useCallback((url: string | undefined): boolean => {
+    if (url === undefined || url === '') {
+      return true; // Empty is valid (will use stock)
+    }
+    // Full URL format
+    if (url.startsWith('https://github.com/')) {
+      return true;
+    }
+    // Shorthand format: user/repo (must have exactly one slash, no spaces)
+    const shorthandRegex = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
+    return shorthandRegex.test(url);
+  }, []);
+
+  // Normalize shorthand (user/repo) to full GitHub URL
+  const normalizeGitHubURL = useCallback((url: string): string => {
+    if (url === '' || url.startsWith('https://github.com/')) {
+      return url;
+    }
+    // Assume shorthand format
+    return `https://github.com/${url}`;
+  }, []);
+
+  // Local state for remote URL input with debounce
+  const [inputRemoteURL, setInputRemoteURL] = useState(
+    remoteScaffolderURL ?? '',
+  );
+  const [debouncedRemoteURL] = useDebouncedValue(inputRemoteURL, 1000);
+  const [isRemoteUrlEditing, setIsRemoteUrlEditing] = useState<boolean>(false);
+  const lastRemoteScaffolderURL = useRef<string | undefined>(
+    remoteScaffolderURL,
+  );
+
+  // Sync local input when prop changes (e.g., from store)
+  // But don't overwrite if the normalized input matches the store value
+  useEffect(() => {
+    if (remoteScaffolderURL === lastRemoteScaffolderURL.current) {
+      return;
+    }
+    if (!isRemoteUrlEditing && remoteScaffolderURL !== undefined) {
+      setInputRemoteURL(remoteScaffolderURL);
+    }
+    lastRemoteScaffolderURL.current = remoteScaffolderURL;
+  }, [isRemoteUrlEditing, remoteScaffolderURL]);
+
+  // Update store when debounced value changes and is valid
+  useEffect(() => {
+    if (onRemoteScaffolderURLChange === undefined) {
+      return;
+    }
+    if (debouncedRemoteURL === '') {
+      if (remoteScaffolderURL !== '') {
+        onRemoteScaffolderURLChange('');
+      }
+      return;
+    }
+    if (
+      debouncedRemoteURL !== remoteScaffolderURL &&
+      isValidGitHubURL(debouncedRemoteURL)
+    ) {
+      const normalized = normalizeGitHubURL(debouncedRemoteURL);
+      onRemoteScaffolderURLChange(normalized);
+    }
+  }, [
+    debouncedRemoteURL,
+    remoteScaffolderURL,
+    onRemoteScaffolderURLChange,
+    isValidGitHubURL,
+    normalizeGitHubURL,
+  ]);
+
+  // Check if there's a URL format error
+  const hasURLFormatError = useMemo(() => {
+    return (
+      useLocalScaffolderFiles !== true &&
+      inputRemoteURL !== '' &&
+      !isValidGitHubURL(inputRemoteURL)
+    );
+  }, [useLocalScaffolderFiles, inputRemoteURL, isValidGitHubURL]);
+
+  // Track the last known fetch error to prevent flashing during refetch
+  const [stableFetchError, setStableFetchError] = useState<Error | null>(null);
+
+  // Update stable error only when:
+  // 1. We have a new error (show it)
+  // 2. We have successful data AND not fetching (clear it)
+  useEffect(() => {
+    if (fetchError !== null && fetchError !== undefined) {
+      // Got a new error - show it
+      setStableFetchError(fetchError);
+    } else if (initialFolderStructure.length > 0 && isFetching !== true) {
+      // Got successful data and not fetching - clear error
+      setStableFetchError(null);
+    }
+    // During refetch (isFetching=true, fetchError=null), keep showing previous error
+  }, [fetchError, initialFolderStructure.length, isFetching]);
+
+  // Use stable error for display to prevent flashing
+  const hasStableFetchError = stableFetchError !== null;
+
+  // Combined error state - either URL format error or stable fetch error
+  const hasError = hasURLFormatError || hasStableFetchError;
+
+  const skeletonWidths = [80, 70, 60, 50, 40];
+  const shouldShowTreeSkeleton =
+    isFetching === true && initialFolderStructure.length === 0 && !hasError;
+
+  // Get error message for display
+  const errorMessage = useMemo(() => {
+    if (hasURLFormatError) {
+      return 'Enter a valid format: user/repo or https://github.com/user/repo';
+    }
+    if (hasStableFetchError && stableFetchError instanceof Error) {
+      // Clean up the error message
+      const msg = stableFetchError.message;
+      if (msg.includes('invalid zip data')) {
+        return 'Repository not found. Please check the URL and ensure the repository exists and is public.';
+      }
+      return msg.replace(/^There was an error:\s*/i, '');
+    }
+    return null;
+  }, [hasURLFormatError, hasStableFetchError, stableFetchError]);
 
   const [folderStructure, setFolderStructure] = useState<IStructure>(
     initialFolderStructure,
   );
-  const [selectedFile, setSelectedFile] = useState<
-    (IFile & { uniqueId: string }) | null
-  >(null);
+  const [openFiles, setOpenFiles] = useState<(IFile & { uniqueId: string })[]>(
+    [],
+  );
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
+  const [editedFiles, setEditedFiles] = useState<Set<string>>(new Set());
   const [fileContent, setFileContent] = useState<string>('');
-  const [isFileEdited, setIsFileEdited] = useState<boolean>(false);
+
+  const {
+    messages: scaffolderMessages,
+    focusedFilePath,
+    setFocusedFilePath,
+  } = useScaffolderMessagesStore();
+
+  // Derived state: get the currently active file from openFiles
+  const selectedFile =
+    openFiles.find((f) => f.uniqueId === activeFileId) ?? null;
+  const isFileEdited = activeFileId !== null && editedFiles.has(activeFileId);
+
+  // Compute file severity directly from props (filesUsingUserEnv, filesFailedToFormat)
+  // This makes FileViewer self-contained without relying on external store population
+  const fileSeverityMap = useMemo(() => {
+    const map = new Map<string, ScaffolderSeverity>();
+
+    // Files with USE_USER_ENV leftovers get warning severity
+    for (const filePath of safeFilesUsingUserEnv) {
+      map.set(filePath, 'warning');
+    }
+
+    // Files that failed to format get error severity (higher priority)
+    for (const entry of filesFailedToFormat) {
+      map.set(entry.filePath, 'error');
+    }
+
+    // Also include any messages from the global store (for backwards compatibility)
+    for (const message of scaffolderMessages) {
+      const candidates: string[] = [];
+      if (message.file !== undefined && message.file !== '') {
+        candidates.push(message.file);
+      }
+      for (const detail of message.details ?? []) {
+        const extracted = extractFilePathFromDetail(detail);
+        if (extracted !== null) {
+          candidates.push(extracted);
+        }
+      }
+      for (const candidate of candidates) {
+        const current = map.get(candidate);
+        if (current === undefined) {
+          map.set(candidate, message.severity);
+          continue;
+        }
+        if (getSeverityRank(message.severity) > getSeverityRank(current)) {
+          map.set(candidate, message.severity);
+        }
+      }
+    }
+
+    return map;
+  }, [safeFilesUsingUserEnv, filesFailedToFormat, scaffolderMessages]);
+
+  // Helper: open a file (add to tabs if not already open, then activate)
+  const openFile = useCallback((file: IFile & { uniqueId: string }) => {
+    setOpenFiles((prev) => {
+      const exists = prev.some((f) => f.uniqueId === file.uniqueId);
+      if (exists) {
+        return prev;
+      }
+      return [...prev, file];
+    });
+    setActiveFileId(file.uniqueId);
+  }, []);
+
+  useEffect(() => {
+    if (focusedFilePath === null) {
+      return;
+    }
+    const normalized = focusedFilePath.replace(/^\//, '');
+    const parts = normalized.split('/').filter((part) => part !== '');
+    const file = findFileByPath(folderStructure, parts);
+    if (file) {
+      const parentPath = parts.slice(0, -1);
+      const uniqueId = createUniqueFileId(parentPath, file.name);
+      openFile({
+        ...file,
+        uniqueId,
+        filePath: file.filePath ?? uniqueId,
+      });
+    }
+    setFocusedFilePath(null);
+  }, [focusedFilePath, folderStructure, openFile, setFocusedFilePath]);
+
+  // Helper: close a file tab
+  const closeFile = useCallback(
+    (uniqueId: string) => {
+      setOpenFiles((prev) => {
+        const newFiles = prev.filter((f) => f.uniqueId !== uniqueId);
+        // If closing active file, activate the previous or next file
+        if (activeFileId === uniqueId && newFiles.length > 0) {
+          const closedIndex = prev.findIndex((f) => f.uniqueId === uniqueId);
+          const newActiveIndex = Math.min(closedIndex, newFiles.length - 1);
+          setActiveFileId(newFiles[newActiveIndex]?.uniqueId ?? null);
+        } else if (newFiles.length === 0) {
+          setActiveFileId(null);
+        }
+        return newFiles;
+      });
+      setEditedFiles((prev) => {
+        const next = new Set(prev);
+        next.delete(uniqueId);
+        return next;
+      });
+    },
+    [activeFileId],
+  );
+
+  // Helper: mark file as edited
+  const markFileEdited = useCallback((uniqueId: string, edited: boolean) => {
+    setEditedFiles((prev) => {
+      const next = new Set(prev);
+      if (edited) {
+        next.add(uniqueId);
+      } else {
+        next.delete(uniqueId);
+      }
+      return next;
+    });
+  }, []);
+
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;
     mouseY: number;
@@ -135,6 +477,9 @@ function FileViewer({
     parentPath?: string[];
   } | null>(null);
   const [currentPath, setCurrentPath] = useState<string[]>([]);
+  const [isTreeOpen, setIsTreeOpen] = useState<boolean>(true);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
   const editorRef = useRef<ICodeEditor | null>(null);
   const fileViewerRef = useRef<HTMLDivElement>(null);
   const [isCreatingRepository, setIsCreatingRepository] =
@@ -162,9 +507,28 @@ function FileViewer({
     }
   }, [hasGitHubToken, githubError]);
 
+  // Detect mobile width for responsive behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+
+  // Auto-expand accordion on mobile when no file is selected
+  useEffect(() => {
+    if (isMobile && selectedFile === null) {
+      setIsTreeOpen(true);
+    }
+  }, [isMobile, selectedFile]);
+
   // Save file content changes - wrapped in useCallback
   const saveFileChanges = useCallback(() => {
-    if (!selectedFile || !editorRef.current) {
+    if (selectedFile === null || editorRef.current === null) {
       return;
     }
 
@@ -213,13 +577,24 @@ function FileViewer({
 
     setFolderStructure(updatedStructure);
     setFileContent(newContent);
-    setIsFileEdited(false); // Mark as saved
-  }, [selectedFile, folderStructure, currentPath]);
+    if (activeFileId !== null && activeFileId !== '') {
+      markFileEdited(activeFileId, false);
+    }
+  }, [
+    selectedFile,
+    folderStructure,
+    currentPath,
+    activeFileId,
+    markFileEdited,
+  ]);
 
   // Restore the missing useEffect that syncs folderStructure with initialFolderStructure
   useEffect(() => {
+    if (initialFolderStructure.length === 0 && isFetching === true) {
+      return;
+    }
     setFolderStructure(initialFolderStructure);
-  }, [initialFolderStructure]);
+  }, [initialFolderStructure, isFetching]);
 
   const filePath =
     selectedFile?.filePath ??
@@ -323,9 +698,11 @@ function FileViewer({
       } else {
         setFileContent('');
       }
-      setIsFileEdited(false);
+      if (activeFileId !== null && activeFileId !== '') {
+        markFileEdited(activeFileId, false);
+      }
     }
-  }, [selectedFile, fetchedFileContent]);
+  }, [selectedFile, fetchedFileContent, activeFileId, markFileEdited]);
 
   // Modified effect to find file by uniqueId instead of just name
   // This syncs selectedFile with the latest content from folderStructure
@@ -367,21 +744,36 @@ function FileViewer({
           fileWithUniqueId.content !== selectedFile.content ||
           fileWithUniqueId.filePath !== selectedFile.filePath
         ) {
-          setSelectedFile(fileWithUniqueId);
+          // Update the file in openFiles array
+          setOpenFiles((prev) =>
+            prev.map((f) =>
+              f.uniqueId === fileWithUniqueId.uniqueId ? fileWithUniqueId : f,
+            ),
+          );
         }
         setCurrentPath(path);
       } else {
-        setSelectedFile(null);
+        // File was deleted from structure, remove from open files
+        setOpenFiles((prev) =>
+          prev.filter((f) => f.uniqueId !== selectedFile.uniqueId),
+        );
+        if (activeFileId === selectedFile.uniqueId) {
+          setActiveFileId(null);
+        }
         setCurrentPath([]);
       }
     }
-  }, [folderStructure, selectedFile]);
+  }, [folderStructure, selectedFile, activeFileId]);
 
   // Add keyboard event listener for shortcuts
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       // Check if the editor has focus or fileViewer is in the document
-      if (!fileViewerRef.current || !selectedFile || !editorRef.current) {
+      if (
+        fileViewerRef.current === null ||
+        selectedFile === null ||
+        editorRef.current === null
+      ) {
         return;
       }
 
@@ -407,16 +799,24 @@ function FileViewer({
   };
 
   // Handle closing a file with confirmation if unsaved
-  const handleCloseFile = async () => {
-    if (!selectedFile) {
+  const handleCloseFile = async (fileId?: string) => {
+    const targetId = fileId ?? activeFileId;
+    if (targetId === null || targetId === '') {
       return;
     }
 
-    if (isFileEdited) {
+    const targetFile = openFiles.find((f) => f.uniqueId === targetId);
+    if (targetFile === undefined) {
+      return;
+    }
+
+    const isTargetEdited = editedFiles.has(targetId);
+
+    if (isTargetEdited) {
       // Get user's decision about saving changes
       const result = await promptModal({
         title: 'Unsaved Changes',
-        description: `Do you want to save the changes you made to ${selectedFile.name}?`,
+        description: `Do you want to save the changes you made to ${targetFile.name}?`,
         confirmButtonText: 'Save and Close',
         denyButtonText: 'Close without Saving',
       });
@@ -425,13 +825,10 @@ function FileViewer({
       if (result) {
         saveFileChanges();
       }
-
-      // The promptModal should return true or false based on the button clicked
-      // We continue with closing only if a button was clicked (not dialog cancelled)
     }
 
     // Close the file
-    setSelectedFile(null);
+    closeFile(targetId);
   };
 
   // Update file content and track edited state
@@ -440,10 +837,15 @@ function FileViewer({
     setFileContent(newContent);
 
     // Check if content is different from the saved file
-    if (selectedFile && newContent !== selectedFile.content) {
-      setIsFileEdited(true);
-    } else {
-      setIsFileEdited(false);
+    if (
+      selectedFile &&
+      activeFileId !== null &&
+      activeFileId !== '' &&
+      newContent !== selectedFile.content
+    ) {
+      markFileEdited(activeFileId, true);
+    } else if (activeFileId !== null && activeFileId !== '') {
+      markFileEdited(activeFileId, false);
     }
   };
 
@@ -517,7 +919,7 @@ function FileViewer({
 
   // Add new file
   const addNewFile = (fileName: string, customPath?: string[]) => {
-    if (!fileName.trim()) {
+    if (fileName.trim() === '') {
       return;
     }
 
@@ -562,7 +964,7 @@ function FileViewer({
 
   // Add new folder
   const addNewFolder = (folderName: string, customPath?: string[]) => {
-    if (!folderName.trim()) {
+    if (folderName.trim() === '') {
       return;
     }
 
@@ -615,7 +1017,7 @@ function FileViewer({
     newName: string,
     parentPath: string[] = [],
   ) => {
-    if (!newName.trim()) {
+    if (newName.trim() === '') {
       return;
     }
 
@@ -670,13 +1072,18 @@ function FileViewer({
       selectedFile.name === item.name &&
       item.type === 'file'
     ) {
-      setSelectedFile({ ...selectedFile, name: newName });
+      // Update the renamed file in openFiles
+      setOpenFiles((prev) =>
+        prev.map((f) =>
+          f.uniqueId === selectedFile.uniqueId ? { ...f, name: newName } : f,
+        ),
+      );
     }
   };
 
   // Fix for non-null assertion in MenuItem
   const handleDeleteItem = () => {
-    if (!contextMenu?.item) {
+    if (contextMenu?.item === undefined) {
       return;
     }
 
@@ -748,7 +1155,7 @@ function FileViewer({
 
     // Clear selectedFile if it was deleted
     if (selectedFile && selectedFile.name === item.name) {
-      setSelectedFile(null);
+      closeFile(selectedFile.uniqueId);
     }
   };
 
@@ -757,7 +1164,7 @@ function FileViewer({
     const url = URL.createObjectURL(blob);
     const printWindow = window.open(url, '_blank');
 
-    if (!printWindow) {
+    if (printWindow === null) {
       console.error('Failed to open print window');
       URL.revokeObjectURL(url);
       return;
@@ -771,15 +1178,13 @@ function FileViewer({
     };
   };
 
-  // Fix linter errors
+  // Handle context menu for both edit and view modes
   const handleContextMenuWithCheck = (
     e: React.MouseEvent,
     item?: IFile | IFolder,
     parentPath: string[] = [],
   ) => {
-    if (mode === 'edit') {
-      handleContextMenu(e, item, parentPath);
-    }
+    handleContextMenu(e, item, parentPath);
   };
 
   function renderTree(
@@ -788,7 +1193,7 @@ function FileViewer({
     parentId = '',
     parentPath: string[] = [],
   ) {
-    const folderColor = mode === 'edit' ? 'text-yellow-500' : 'text-gray-200';
+    const folderColor = mode === 'edit' ? 'text-yellow-500' : 'text-content';
     const sortedItems = [...items].sort((a, b) => {
       if (a.type === 'folder' && b.type === 'file') {
         return -1;
@@ -831,6 +1236,12 @@ function FileViewer({
 
       // Handle file items
       const uniqueId = createUniqueFileId(parentPath, item.name);
+      const filePath =
+        parentPath.length > 0
+          ? `${parentPath.join('/')}/${item.name}`
+          : item.name;
+      const severity = fileSeverityMap.get(filePath);
+      const severityClass = getSeverityClass(severity);
       return (
         <TreeItem
           key={itemId}
@@ -845,7 +1256,7 @@ function FileViewer({
             >
               <CodeIcon fontSize="small" className="text-yellow-500" />
               &nbsp;
-              {item.name}
+              <span className={severityClass}>{item.name}</span>
             </button>
           }
           onClick={() => {
@@ -1000,7 +1411,8 @@ function FileViewer({
         /* If we couldn't determine owner, prompt the user */
         if (githubOwner === null || githubOwner === '') {
           const ownerInput = await newValue({
-            title: 'GitHub Username Required\nEnter your GitHub username or organization name:',
+            title:
+              'GitHub Username Required\nEnter your GitHub username or organization name:',
           });
           if (ownerInput === '' || ownerInput.trim() === '') {
             return;
@@ -1012,7 +1424,9 @@ function FileViewer({
         setShowExportModal(true);
       } catch (error: unknown) {
         const message =
-          error instanceof Error ? error.message : 'Failed to initialize export';
+          error instanceof Error
+            ? error.message
+            : 'Failed to initialize export';
         setGitHubError(message);
         openRandomModal({
           title: 'Error',
@@ -1044,16 +1458,26 @@ function FileViewer({
     tokenOrRepoUrl?: string,
   ) => {
     setShowExportModal(false);
-    if (method === 'existing_repo' && tokenOrRepoUrl !== undefined && tokenOrRepoUrl !== '') {
+    if (
+      method === 'existing_repo' &&
+      tokenOrRepoUrl !== undefined &&
+      tokenOrRepoUrl !== ''
+    ) {
       /* Push to existing repository */
       void performExportToExistingRepo(tokenOrRepoUrl);
     } else {
-      void performExport(exportOwner, method === 'existing_repo' ? 'github_app' : method);
+      void performExport(
+        exportOwner,
+        method === 'existing_repo' ? 'github_app' : method,
+      );
     }
   };
 
   /* Perform the actual export */
-  const performExport = async (githubOwner: string, method: 'personal_token' | 'github_app') => {
+  const performExport = async (
+    githubOwner: string,
+    method: 'personal_token' | 'github_app',
+  ) => {
     setIsCreatingRepository(true);
 
     try {
@@ -1088,7 +1512,7 @@ function FileViewer({
             description,
             isPrivate: false,
             owner: githubOwner,
-            method, /* Pass the selected method to the backend */
+            method /* Pass the selected method to the backend */,
           }),
         },
       );
@@ -1291,164 +1715,167 @@ function FileViewer({
                 repo,
                 branch: 'main',
                 projectName,
-                method, /* Pass the auth method */
+                method /* Pass the auth method */,
               }),
             },
           );
 
-            const uploadResult: unknown = await uploadResponse.json();
+          const uploadResult: unknown = await uploadResponse.json();
 
-            interface IUploadResponse {
-              success?: boolean;
-              message?: string;
-              filesCreated?: number;
-              error?: string;
-            }
-
-            const isUploadResponse = (val: unknown): val is IUploadResponse => {
-              return (
-                typeof val === 'object' &&
-                val !== null &&
-                ('success' in val ||
-                  'message' in val ||
-                  'filesCreated' in val ||
-                  'error' in val)
-              );
-            };
-
-            if (!uploadResponse.ok) {
-              const errorMessage = isUploadResponse(uploadResult)
-                ? (uploadResult.error ?? 'Failed to upload files')
-                : 'Failed to upload files';
-              throw new Error(errorMessage);
-            }
-
-            const filesCreated =
-              isUploadResponse(uploadResult) &&
-              uploadResult.filesCreated !== undefined
-                ? uploadResult.filesCreated
-                : 0;
-
-            const cloneCommand = `git clone ${repoUrl}.git`;
-
-            openRandomModal({
-              title: 'Project Exported Successfully',
-              content: (
-                <div className="space-y-6">
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg
-                        className="w-5 h-5 text-green-600 dark:text-green-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-label="Success icon"
-                      >
-                        <title>Success</title>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
-                        Export Complete
-                      </h3>
-                    </div>
-                    <p className="text-sm text-green-700 dark:text-green-400">
-                      {filesCreated > 0
-                        ? `Successfully exported ${String(filesCreated)} file(s) to GitHub.`
-                        : 'Repository created successfully.'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Clone Command
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg font-mono text-sm break-all">
-                        {cloneCommand}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleCopy(cloneCommand);
-                        }}
-                        className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
-                        title="Copy clone command"
-                      >
-                        <CopyIcon fontSize="small" />
-                        <span className="text-sm">Copy</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Repository
-                    </div>
-                    <a
-                      href={repoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-label="GitHub icon"
-                      >
-                        <title>GitHub</title>
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                      <span>Open Repository</span>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              ),
-            });
-
-            setIsCreatingRepository(false);
-            return;
+          interface IUploadResponse {
+            success?: boolean;
+            message?: string;
+            filesCreated?: number;
+            error?: string;
           }
 
-          const errorMessage = isCreateRepositoryResponse(createRepoResult)
-            ? (createRepoResult.error ?? 'Failed to create repository')
-            : 'Failed to create repository';
-          throw new Error(errorMessage);
+          const isUploadResponse = (val: unknown): val is IUploadResponse => {
+            return (
+              typeof val === 'object' &&
+              val !== null &&
+              ('success' in val ||
+                'message' in val ||
+                'filesCreated' in val ||
+                'error' in val)
+            );
+          };
+
+          if (!uploadResponse.ok) {
+            const errorMessage = isUploadResponse(uploadResult)
+              ? (uploadResult.error ?? 'Failed to upload files')
+              : 'Failed to upload files';
+            throw new Error(errorMessage);
+          }
+
+          const filesCreated =
+            isUploadResponse(uploadResult) &&
+            uploadResult.filesCreated !== undefined
+              ? uploadResult.filesCreated
+              : 0;
+
+          const cloneCommand = `git clone ${repoUrl}.git`;
+
+          openRandomModal({
+            title: 'Project Exported Successfully',
+            content: (
+              <div className="space-y-6">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg
+                      aria-hidden="true"
+                      className="w-5 h-5 text-green-600 dark:text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-label="Success icon"
+                    >
+                      <title>Success</title>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
+                      Export Complete
+                    </h3>
+                  </div>
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    {filesCreated > 0
+                      ? `Successfully exported ${String(filesCreated)} file(s) to GitHub.`
+                      : 'Repository created successfully.'}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="block text-sm font-medium text-content-muted mb-2">
+                    Clone Command
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-4 py-2 bg-bg-muted text-content rounded-lg font-mono text-sm break-all">
+                      {cloneCommand}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCopy(cloneCommand);
+                      }}
+                      className="flex-shrink-0 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+                      title="Copy clone command"
+                    >
+                      <CopyIcon fontSize="small" />
+                      <span className="text-sm">Copy</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="block text-sm font-medium text-content-muted mb-2">
+                    Repository
+                  </div>
+                  <a
+                    href={repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-label="GitHub icon"
+                    >
+                      <title>GitHub</title>
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                    </svg>
+                    <span>Open Repository</span>
+                    <svg
+                      aria-hidden="true"
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            ),
+          });
+
+          setIsCreatingRepository(false);
+          return;
         }
 
-        if (
-          !isCreateRepositoryResponse(createRepoResult) ||
-          createRepoResult.repoUrl === undefined ||
-          createRepoResult.repoUrl === ''
-        ) {
-          throw new Error('Failed to get repository URL');
-        }
+        const errorMessage = isCreateRepositoryResponse(createRepoResult)
+          ? (createRepoResult.error ?? 'Failed to create repository')
+          : 'Failed to create repository';
+        throw new Error(errorMessage);
+      }
 
-        const repoUrl = createRepoResult.repoUrl;
-        const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
-        const match = githubRegex.exec(repoUrl);
+      if (
+        !isCreateRepositoryResponse(createRepoResult) ||
+        createRepoResult.repoUrl === undefined ||
+        createRepoResult.repoUrl === ''
+      ) {
+        throw new Error('Failed to get repository URL');
+      }
 
-        if (match?.length !== 3) {
-          throw new Error('Invalid repository URL format');
-        }
+      const repoUrl = createRepoResult.repoUrl;
+      const githubRegex = /github\.com\/([^/]+)\/([^/]+)/;
+      const match = githubRegex.exec(repoUrl);
+
+      if (match?.length !== 3) {
+        throw new Error('Invalid repository URL format');
+      }
 
       const repoOwner2 = match[1];
       const repo = match[2];
@@ -1484,153 +1911,155 @@ function FileViewer({
             repo,
             branch: 'main',
             projectName,
-            method, /* Pass the auth method */
+            method /* Pass the auth method */,
           }),
         },
       );
 
-        const uploadResult: unknown = await uploadResponse.json();
+      const uploadResult: unknown = await uploadResponse.json();
 
-        interface IUploadResponse {
-          success?: boolean;
-          message?: string;
-          filesCreated?: number;
-          error?: string;
-        }
+      interface IUploadResponse {
+        success?: boolean;
+        message?: string;
+        filesCreated?: number;
+        error?: string;
+      }
 
-        const isUploadResponse = (val: unknown): val is IUploadResponse => {
-          return (
-            typeof val === 'object' &&
-            val !== null &&
-            ('success' in val ||
-              'message' in val ||
-              'filesCreated' in val ||
-              'error' in val)
-          );
-        };
+      const isUploadResponse = (val: unknown): val is IUploadResponse => {
+        return (
+          typeof val === 'object' &&
+          val !== null &&
+          ('success' in val ||
+            'message' in val ||
+            'filesCreated' in val ||
+            'error' in val)
+        );
+      };
 
-        if (!uploadResponse.ok) {
-          const errorMessage = isUploadResponse(uploadResult)
-            ? (uploadResult.error ?? 'Failed to upload files')
-            : 'Failed to upload files';
-          throw new Error(errorMessage);
-        }
+      if (!uploadResponse.ok) {
+        const errorMessage = isUploadResponse(uploadResult)
+          ? (uploadResult.error ?? 'Failed to upload files')
+          : 'Failed to upload files';
+        throw new Error(errorMessage);
+      }
 
-        const filesCreated =
-          isUploadResponse(uploadResult) &&
-          uploadResult.filesCreated !== undefined
-            ? uploadResult.filesCreated
-            : 0;
+      const filesCreated =
+        isUploadResponse(uploadResult) &&
+        uploadResult.filesCreated !== undefined
+          ? uploadResult.filesCreated
+          : 0;
 
-        const cloneCommand = `git clone ${repoUrl}.git`;
+      const cloneCommand = `git clone ${repoUrl}.git`;
 
-        openRandomModal({
-          title: 'Project Exported Successfully',
-          content: (
-            <div className="space-y-6">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
+      openRandomModal({
+        title: 'Project Exported Successfully',
+        content: (
+          <div className="space-y-6">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg
+                  aria-hidden="true"
+                  className="w-5 h-5 text-green-600 dark:text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-label="Success icon"
+                >
+                  <title>Success</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <p className="text-green-800 dark:text-green-200 font-semibold">
+                  Successfully exported {String(filesCreated)} file(s) to GitHub
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="block text-sm font-medium text-content-muted mb-2">
+                  Clone Repository
+                </div>
+                <div className="flex items-center gap-2 bg-surface-raised border border-layout-border rounded-lg p-3">
+                  <code className="flex-1 text-sm text-content font-mono break-all">
+                    {cloneCommand}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCopy(cloneCommand);
+                    }}
+                    className="flex-shrink-0 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+                    title="Copy clone command"
+                  >
+                    <CopyIcon fontSize="small" />
+                    <span className="text-sm">Copy</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="block text-sm font-medium text-content-muted mb-2">
+                  Repository
+                </div>
+                <a
+                  href={repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
+                >
                   <svg
-                    className="w-5 h-5 text-green-600 dark:text-green-400"
+                    aria-hidden="true"
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-label="GitHub icon"
+                  >
+                    <title>GitHub</title>
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  <span>Open Repository</span>
+                  <svg
+                    aria-hidden="true"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
-                    aria-label="Success icon"
                   >
-                    <title>Success</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M5 13l4 4L19 7"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                     />
                   </svg>
-                  <p className="text-green-800 dark:text-green-200 font-semibold">
-                    Successfully exported {String(filesCreated)} file(s) to
-                    GitHub
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Clone Repository
-                  </div>
-                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
-                    <code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
-                      {cloneCommand}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleCopy(cloneCommand);
-                      }}
-                      className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
-                      title="Copy clone command"
-                    >
-                      <CopyIcon fontSize="small" />
-                      <span className="text-sm">Copy</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Repository
-                  </div>
-                  <a
-                    href={repoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-label="GitHub icon"
-                    >
-                      <title>GitHub</title>
-                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                    </svg>
-                    <span>Open Repository</span>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const modals = useModalStore.getState().modals;
-                    if (modals.length > 0) {
-                      useModalStore
-                        .getState()
-                        .closeModal(modals[modals.length - 1].id);
-                    }
-                  }}
-                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
-                >
-                  Done
-                </button>
+                </a>
               </div>
             </div>
-          ),
-        });
+
+            <div className="flex justify-end pt-4 border-t border-layout-border">
+              <button
+                type="button"
+                onClick={() => {
+                  const modals = useModalStore.getState().modals;
+                  if (modals.length > 0) {
+                    useModalStore
+                      .getState()
+                      .closeModal(modals[modals.length - 1].id);
+                  }
+                }}
+                className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors duration-200 font-medium"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ),
+      });
     } catch (error: unknown) {
       if (error instanceof Error) {
         if (
@@ -1670,11 +2099,16 @@ function FileViewer({
       const match = githubRegex.exec(repoUrl);
 
       if (match?.length !== 3) {
-        throw new Error('Invalid GitHub repository URL. Expected format: https://github.com/owner/repo');
+        throw new Error(
+          'Invalid GitHub repository URL. Expected format: https://github.com/owner/repo',
+        );
       }
 
       const repoOwner = match[1];
-      const repo = match[2].replace(/\.git$/, ''); /* Remove .git suffix if present */
+      const repo = match[2].replace(
+        /\.git$/,
+        '',
+      ); /* Remove .git suffix if present */
 
       /* Security check: Detect USE_USER_ENV usage before committing to GitHub */
       const userEnvDetection = detectUserEnvInStructure(folderStructure);
@@ -1708,7 +2142,8 @@ function FileViewer({
             repo,
             branch: 'main',
             projectName,
-            method: 'github_app', /* Always use GitHub App for existing repo flow */
+            method:
+              'github_app' /* Always use GitHub App for existing repo flow */,
           }),
         },
       );
@@ -1755,6 +2190,7 @@ function FileViewer({
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <svg
+                  aria-hidden="true"
                   className="w-5 h-5 text-green-600 dark:text-green-400"
                   fill="none"
                   stroke="currentColor"
@@ -1770,18 +2206,19 @@ function FileViewer({
                   />
                 </svg>
                 <p className="text-green-800 dark:text-green-200 font-semibold">
-                  Successfully pushed {String(filesCreated)} file(s) to repository
+                  Successfully pushed {String(filesCreated)} file(s) to
+                  repository
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <div className="block text-sm font-medium text-content-muted mb-2">
                   Clone Repository
                 </div>
-                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
-                  <code className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-mono break-all">
+                <div className="flex items-center gap-2 bg-surface-raised border border-layout-border rounded-lg p-3">
+                  <code className="flex-1 text-sm text-content font-mono break-all">
                     {cloneCommand}
                   </code>
                   <button
@@ -1789,7 +2226,7 @@ function FileViewer({
                     onClick={() => {
                       handleCopy(cloneCommand);
                     }}
-                    className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors duration-200 flex items-center gap-2"
+                    className="flex-shrink-0 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md transition-colors duration-200 flex items-center gap-2"
                     title="Copy clone command"
                   >
                     <CopyIcon fontSize="small" />
@@ -1799,16 +2236,17 @@ function FileViewer({
               </div>
 
               <div>
-                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <div className="block text-sm font-medium text-content-muted mb-2">
                   Repository
                 </div>
                 <a
                   href={repoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors duration-200 font-medium"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-bg-muted hover:bg-secondary-hover text-accent rounded-lg transition-colors duration-200 font-medium"
                 >
                   <svg
+                    aria-hidden="true"
                     className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 24 24"
@@ -1819,6 +2257,7 @@ function FileViewer({
                   </svg>
                   <span>Open Repository</span>
                   <svg
+                    aria-hidden="true"
                     className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
@@ -1835,7 +2274,7 @@ function FileViewer({
               </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-end pt-4 border-t border-layout-border">
               <button
                 type="button"
                 onClick={() => {
@@ -1846,7 +2285,7 @@ function FileViewer({
                       .closeModal(modals[modals.length - 1].id);
                   }
                 }}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 font-medium"
+                className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors duration-200 font-medium"
               >
                 Done
               </button>
@@ -1917,9 +2356,261 @@ function FileViewer({
         'success' in data &&
         data.success === true
       ) {
-        /*prettier-ignore*/ (($= 'Success!') => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
+        /*prettier-ignore*/ (($ = "Success!") => {
+					const isObject = (obj: unknown): obj is Record<string, unknown> => {
+						return obj !== null && typeof obj === "object";
+					};
+					const isArrayOfObjects = (
+						arr: unknown,
+					): arr is Record<string, unknown>[] => {
+						return Array.isArray(arr) && arr.every(isObject);
+					};
+					const parentDiv: HTMLElement =
+						document.getElementById("quicklogContainer") ??
+						(() => {
+							const div = document.createElement("div");
+							div.id = "quicklogContainer";
+							div.style.cssText =
+								"position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;";
+							const helperButtonsDiv = document.createElement("div");
+							helperButtonsDiv.style.cssText =
+								"position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;";
+							const clearButton = document.createElement("button");
+							clearButton.textContent = "Clear";
+							clearButton.style.cssText =
+								"margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;";
+							clearButton.onclick = () => {
+								if (parentDiv instanceof HTMLElement) {
+									parentDiv.remove();
+								}
+							};
+							helperButtonsDiv.appendChild(clearButton);
+							document.body.appendChild(div);
+							div.appendChild(helperButtonsDiv);
+							return div;
+						})();
+					const createTable = (
+						obj: Record<string, unknown>,
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						Object.entries(obj).forEach(([key, value]) => {
+							const row = document.createElement("tr");
+							const keyCell = document.createElement("td");
+							const valueCell = document.createElement("td");
+							keyCell.textContent = key;
+							valueCell.textContent = String(value);
+							keyCell.style.cssText = "border: 1px solid black; padding: 5px;";
+							valueCell.style.cssText =
+								"border: 1px solid black; padding: 5px;";
+							row.appendChild(keyCell);
+							row.appendChild(valueCell);
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createTableFromArray = (
+						arr: Record<string, unknown>[],
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						const headers = Object.keys(arr[0]);
+						const headerRow = document.createElement("tr");
+						headers.forEach((header) => {
+							const th = document.createElement("th");
+							th.textContent = header;
+							th.style.cssText = "border: 1px solid black; padding: 5px;";
+							headerRow.appendChild(th);
+						});
+						table.appendChild(headerRow);
+						arr.forEach((obj) => {
+							const row = document.createElement("tr");
+							headers.forEach((header) => {
+								const td = document.createElement("td");
+								td.textContent = String(obj[header]);
+								td.style.cssText = "border: 1px solid black; padding: 5px;";
+								row.appendChild(td);
+							});
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createChildDiv = (data: unknown): HTMLElement => {
+						const newDiv = document.createElement("div");
+						const jsonData = JSON.stringify(data, null, 2);
+						if (isArrayOfObjects(data)) {
+							const table = createTableFromArray(data);
+							newDiv.appendChild(table);
+						} else if (isObject(data)) {
+							const table = createTable(data);
+							newDiv.appendChild(table);
+						} else {
+							newDiv.textContent = String(data);
+						}
+						newDiv.style.cssText =
+							'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;';
+						const handleMouseDown = (e: MouseEvent) => {
+							e.preventDefault();
+							const clickedDiv =
+								e.target instanceof Element && e.target.closest("div");
+							if (
+								clickedDiv !== null &&
+								e.button === 0 &&
+								clickedDiv === newDiv
+							) {
+								void navigator.clipboard.writeText(jsonData).then(() => {
+									clickedDiv.style.backgroundColor = "gold";
+									setTimeout(() => {
+										clickedDiv.style.backgroundColor = "yellow";
+									}, 1000);
+								});
+							}
+						};
+						const handleRightClick = (e: MouseEvent) => {
+							e.preventDefault();
+							if (parentDiv.contains(newDiv)) {
+								parentDiv.removeChild(newDiv);
+								if (!parentDiv.hasChildNodes()) {
+									parentDiv.remove();
+								}
+							}
+						};
+						newDiv.addEventListener("mousedown", handleMouseDown);
+						newDiv.addEventListener("contextmenu", handleRightClick);
+						return newDiv;
+					};
+					parentDiv.prepend(createChildDiv($));
+				})();
       } else {
-        /*prettier-ignore*/ (($= 'Fail!') => { const isObject = (obj: unknown): obj is Record<string, unknown> => { return obj !== null && typeof obj === 'object'; }; const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => { return Array.isArray(arr) && arr.every(isObject); }; const parentDiv: HTMLElement = document.getElementById('quicklogContainer') ?? (() => { const div = document.createElement('div'); div.id = 'quicklogContainer'; div.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;'; const helperButtonsDiv = document.createElement('div'); helperButtonsDiv.style.cssText = 'position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;'; const clearButton = document.createElement('button'); clearButton.textContent = 'Clear'; clearButton.style.cssText = 'margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;'; clearButton.onclick = () => { if (parentDiv instanceof HTMLElement) { parentDiv.remove(); } }; helperButtonsDiv.appendChild(clearButton); document.body.appendChild(div); div.appendChild(helperButtonsDiv); return div; })(); const createTable = (obj: Record<string, unknown>): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; Object.entries(obj).forEach(([key, value]) => { const row = document.createElement('tr'); const keyCell = document.createElement('td'); const valueCell = document.createElement('td'); keyCell.textContent = key; valueCell.textContent = String(value); keyCell.style.cssText = 'border: 1px solid black; padding: 5px;'; valueCell.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(keyCell); row.appendChild(valueCell); table.appendChild(row); }); return table; }; const createTableFromArray = ( arr: Record<string, unknown>[], ): HTMLTableElement => { const table = document.createElement('table'); table.style.cssText = 'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;'; const headers = Object.keys(arr[0]); const headerRow = document.createElement('tr'); headers.forEach((header) => { const th = document.createElement('th'); th.textContent = header; th.style.cssText = 'border: 1px solid black; padding: 5px;'; headerRow.appendChild(th); }); table.appendChild(headerRow); arr.forEach((obj) => { const row = document.createElement('tr'); headers.forEach((header) => { const td = document.createElement('td'); td.textContent = String(obj[header]); td.style.cssText = 'border: 1px solid black; padding: 5px;'; row.appendChild(td); }); table.appendChild(row); }); return table; }; const createChildDiv = (data: unknown): HTMLElement => { const newDiv = document.createElement('div'); const jsonData = JSON.stringify(data, null, 2); if (isArrayOfObjects(data)) { const table = createTableFromArray(data); newDiv.appendChild(table); } else if (isObject(data)) { const table = createTable(data); newDiv.appendChild(table); } else { newDiv.textContent = String(data); } newDiv.style.cssText = 'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;'; const handleMouseDown = (e: MouseEvent) => { e.preventDefault(); const clickedDiv = e.target instanceof Element && e.target.closest('div'); if (clickedDiv !== null && e.button === 0 && clickedDiv === newDiv) { void navigator.clipboard.writeText(jsonData).then(() => { clickedDiv.style.backgroundColor = 'gold'; setTimeout(() => { clickedDiv.style.backgroundColor = 'yellow'; }, 1000); }); } }; const handleRightClick = (e: MouseEvent) => { e.preventDefault(); if (parentDiv.contains(newDiv)) { parentDiv.removeChild(newDiv); if (!parentDiv.hasChildNodes()) { parentDiv.remove(); } } }; newDiv.addEventListener('mousedown', handleMouseDown); newDiv.addEventListener('contextmenu', handleRightClick); return newDiv; }; parentDiv.prepend(createChildDiv($)); })();
+        /*prettier-ignore*/ (($ = "Fail!") => {
+					const isObject = (obj: unknown): obj is Record<string, unknown> => {
+						return obj !== null && typeof obj === "object";
+					};
+					const isArrayOfObjects = (
+						arr: unknown,
+					): arr is Record<string, unknown>[] => {
+						return Array.isArray(arr) && arr.every(isObject);
+					};
+					const parentDiv: HTMLElement =
+						document.getElementById("quicklogContainer") ??
+						(() => {
+							const div = document.createElement("div");
+							div.id = "quicklogContainer";
+							div.style.cssText =
+								"position: fixed; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; max-height: 90vh; overflow-y: auto; padding: 10px; box-sizing: border-box;";
+							const helperButtonsDiv = document.createElement("div");
+							helperButtonsDiv.style.cssText =
+								"position: sticky; bottom: 0; display: flex; flex-direction: column; z-index: 1001;";
+							const clearButton = document.createElement("button");
+							clearButton.textContent = "Clear";
+							clearButton.style.cssText =
+								"margin-top: 10px; background-color: red; color: white; border: none; padding: 5px; cursor: pointer; border-radius: 5px;";
+							clearButton.onclick = () => {
+								if (parentDiv instanceof HTMLElement) {
+									parentDiv.remove();
+								}
+							};
+							helperButtonsDiv.appendChild(clearButton);
+							document.body.appendChild(div);
+							div.appendChild(helperButtonsDiv);
+							return div;
+						})();
+					const createTable = (
+						obj: Record<string, unknown>,
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						Object.entries(obj).forEach(([key, value]) => {
+							const row = document.createElement("tr");
+							const keyCell = document.createElement("td");
+							const valueCell = document.createElement("td");
+							keyCell.textContent = key;
+							valueCell.textContent = String(value);
+							keyCell.style.cssText = "border: 1px solid black; padding: 5px;";
+							valueCell.style.cssText =
+								"border: 1px solid black; padding: 5px;";
+							row.appendChild(keyCell);
+							row.appendChild(valueCell);
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createTableFromArray = (
+						arr: Record<string, unknown>[],
+					): HTMLTableElement => {
+						const table = document.createElement("table");
+						table.style.cssText =
+							'border-collapse: collapse; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; font: bold 25px "Comic Sans MS"; margin-bottom: 10px;';
+						const headers = Object.keys(arr[0]);
+						const headerRow = document.createElement("tr");
+						headers.forEach((header) => {
+							const th = document.createElement("th");
+							th.textContent = header;
+							th.style.cssText = "border: 1px solid black; padding: 5px;";
+							headerRow.appendChild(th);
+						});
+						table.appendChild(headerRow);
+						arr.forEach((obj) => {
+							const row = document.createElement("tr");
+							headers.forEach((header) => {
+								const td = document.createElement("td");
+								td.textContent = String(obj[header]);
+								td.style.cssText = "border: 1px solid black; padding: 5px;";
+								row.appendChild(td);
+							});
+							table.appendChild(row);
+						});
+						return table;
+					};
+					const createChildDiv = (data: unknown): HTMLElement => {
+						const newDiv = document.createElement("div");
+						const jsonData = JSON.stringify(data, null, 2);
+						if (isArrayOfObjects(data)) {
+							const table = createTableFromArray(data);
+							newDiv.appendChild(table);
+						} else if (isObject(data)) {
+							const table = createTable(data);
+							newDiv.appendChild(table);
+						} else {
+							newDiv.textContent = String(data);
+						}
+						newDiv.style.cssText =
+							'font: bold 25px "Comic Sans MS"; width: max-content; max-width: 500px; word-wrap: break-word; background-color: yellow; box-shadow: white 0px 0px 5px 1px; padding: 5px; border: 3px solid black; border-radius: 10px; color: black !important; cursor: pointer; margin-bottom: 10px;';
+						const handleMouseDown = (e: MouseEvent) => {
+							e.preventDefault();
+							const clickedDiv =
+								e.target instanceof Element && e.target.closest("div");
+							if (
+								clickedDiv !== null &&
+								e.button === 0 &&
+								clickedDiv === newDiv
+							) {
+								void navigator.clipboard.writeText(jsonData).then(() => {
+									clickedDiv.style.backgroundColor = "gold";
+									setTimeout(() => {
+										clickedDiv.style.backgroundColor = "yellow";
+									}, 1000);
+								});
+							}
+						};
+						const handleRightClick = (e: MouseEvent) => {
+							e.preventDefault();
+							if (parentDiv.contains(newDiv)) {
+								parentDiv.removeChild(newDiv);
+								if (!parentDiv.hasChildNodes()) {
+									parentDiv.remove();
+								}
+							}
+						};
+						newDiv.addEventListener("mousedown", handleMouseDown);
+						newDiv.addEventListener("contextmenu", handleRightClick);
+						return newDiv;
+					};
+					parentDiv.prepend(createChildDiv($));
+				})();
       }
     } catch (error) {
       console.error('Error creating app:', error);
@@ -1947,12 +2638,13 @@ function FileViewer({
   };
 
   return (
-    <div className="h-96 p-2" ref={fileViewerRef}>
+    <div className="h-full flex flex-col" ref={fileViewerRef}>
       {githubError !== null && githubError !== '' && (
         <div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg
+                aria-hidden="true"
                 className="w-5 h-5 text-red-400 flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 20 20"
@@ -1974,6 +2666,7 @@ function FileViewer({
               aria-label="Dismiss error"
             >
               <svg
+                aria-hidden="true"
                 className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
@@ -1990,50 +2683,6 @@ function FileViewer({
           </div>
         </div>
       )}
-      {mode === 'edit' && (
-        <div className="flex gap-2 mb-2">
-          <button
-            type="button"
-            onClick={() => void handleCreateApp()}
-            className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          >
-            Create App!
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenExportModal}
-            disabled={
-              isCreatingRepository ||
-              isWaitingForInstallation ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-            }
-            className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-              isCreatingRepository ||
-              isWaitingForInstallation ||
-              folderStructure.length === 0 ||
-              safeFilesUsingUserEnv.length > 0
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            }`}
-            // className={`text-xs h-max w-max px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50 transition-all ${
-            //   isCreatingRepository ||
-            //   folderStructure.length === 0 ||
-            //   safeFilesUsingUserEnv.length > 0 ||
-            //   !hasGitHubToken
-            //     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-            //     : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            // }`}
-            title={getButtonTooltip()}
-          >
-            {isWaitingForInstallation
-              ? 'Waiting for GitHub App installation...'
-              : isCreatingRepository
-                ? `Exporting ${String(countFiles(folderStructure))} files...`
-                : `Export Into A New Repository (${String(countFiles(folderStructure))} files)`}
-          </button>
-        </div>
-      )}
       {!isUserLoading &&
         serverConfigStatus !== null &&
         !hasGitHubToken &&
@@ -2041,6 +2690,7 @@ function FileViewer({
           <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md mb-2 w-fit">
             <div className="flex items-start gap-2">
               <svg
+                aria-hidden="true"
                 className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 20 20"
@@ -2069,6 +2719,7 @@ function FileViewer({
                     className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium rounded-md transition-colors shadow-sm"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-4 h-4"
                       fill="none"
                       stroke="currentColor"
@@ -2090,6 +2741,7 @@ function FileViewer({
                     className="inline-flex items-center gap-1 text-xs text-yellow-300 hover:text-yellow-200 underline"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-3.5 h-3.5"
                       fill="none"
                       stroke="currentColor"
@@ -2109,285 +2761,707 @@ function FileViewer({
             </div>
           </div>
         )}
-      {safeFilesUsingUserEnv.length > 0 && (
-        <div className="p-3 bg-orange-900/30 border border-orange-700 rounded-md mb-2 w-fit">
-          <div className="flex items-start gap-2">
-            <svg
-              className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-orange-300 mb-1">
-                Security Warning: Secrets Detected
-              </p>
-              <p className="text-xs text-orange-200/80 mb-2">
-                {safeFilesUsingUserEnv.length} file(s) contain sensitive data.
-                Exporting to GitHub will leak your secrets (API keys, passwords,
-                tokens, etc.).
-              </p>
-              <ul className="text-xs text-orange-200/80 list-disc list-inside mb-2 space-y-1">
-                {safeFilesUsingUserEnv.map((filePath: string) => (
-                  <li key={filePath} className="font-mono">
-                    {filePath}
-                  </li>
-                ))}
-              </ul>
-              <p className="text-xs text-orange-200/70">
-                <button
-                  type="button"
-                  onClick={() => {
-                    zipAndDownloadIStructure(folderStructure, getZipFileName());
-                  }}
-                  className="text-orange-300 hover:text-orange-200 underline font-medium"
-                >
-                  Download ZIP
-                </button>{' '}
-                instead or use placeholders.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      {filesFailedToFormat.length > 0 && (
-        <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded-md mb-2 w-fit">
-          <div className="flex items-start gap-2">
-            <svg
-              className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-yellow-300 mb-1">
-                Formatting Failed
-              </p>
-              <p className="text-xs text-yellow-200/80 mb-2">
-                {filesFailedToFormat.length} file(s) could not be formatted due
-                to syntax errors in the generated code.
-              </p>
-              <ul className="text-xs text-yellow-200/80 list-disc list-inside mb-2 space-y-1">
-                {filesFailedToFormat
-                  .filter((entry): entry is IFailedFormatEntry => {
-                    if (typeof entry === 'string') {
-                      return false;
-                    }
-                    return (
-                      typeof entry === 'object' &&
-                      'filePath' in entry &&
-                      typeof entry.filePath === 'string'
-                    );
-                  })
-                  .map((entry, index) => {
-                    const filePath = entry.filePath;
-                    const errorMessage =
-                      entry.errorMessage || 'Unknown formatting error';
-                    return (
-                      <li
-                        key={`failed-format-${filePath}-${String(index)}`}
-                        className="font-mono"
-                      >
-                        <span className="inline-block mr-2">{filePath}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            openRandomModal({
-                              title: `Formatting Error: ${filePath}`,
-                              content: (
-                                <div className="space-y-4">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-300 mb-2">
-                                      File:
-                                    </p>
-                                    <code className="block p-2 bg-gray-800 rounded text-xs text-gray-200 break-all">
-                                      {filePath}
-                                    </code>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-300 mb-2">
-                                      Error Message:
-                                    </p>
-                                    <pre className="p-3 bg-gray-800 rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
-                                      {errorMessage}
-                                    </pre>
-                                  </div>
-                                  <p className="text-xs text-gray-400">
-                                    Fix the syntax error in your template and
-                                    regenerate the project.
-                                  </p>
-                                </div>
-                              ),
-                            });
-                          }}
-                          className="text-yellow-300 hover:text-yellow-200 underline font-medium text-xs"
-                        >
-                          View error
-                        </button>
-                      </li>
-                    );
-                  })}
-              </ul>
-              <p className="text-xs text-yellow-200/70">
-                Check your templates for syntax errors.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      <br />
-      <div className="grid grid-cols-1 md:grid-cols-3 text-white">
-        <div className="col-span-1 bg-gray-800 select-none mr-2">
-          <div>
-            <div className="flex justify-between mb-4">
-              {mode === 'edit' && (
-                <div className="flex items-center justify-between w-full">
-                  {process.env.NODE_ENV === 'development' && (
-                    <>
-                      <div>
-                        <button
-                          onClick={() => {
-                            handleCopy(JSON.stringify(userFiles, null, 4));
-                          }}
-                          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                          Copy User Files
-                        </button>
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => {
-                            handleCopy(
-                              JSON.stringify(folderStructure, null, 4),
-                            );
-                          }}
-                          className="sm:mr-2 text-xs h-max w-max bg-in px-4 py-2 bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                          Copy Project Structure
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  <button
-                    onClick={() => {
-                      zipAndDownloadIStructure(
-                        folderStructure,
-                        getZipFileName(),
-                      );
-                    }}
-                    className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
-                    title="Download Project Files"
-                    aria-label="Download Project Files"
-                  >
-                    <DownloadIcon fontSize="small" />
-                  </button>
+      {/* Error banner moved to content area */}
 
-                  <div className="flex space-x-2">
+      {/* Main content area - flex to fill remaining space */}
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 text-white overflow-hidden">
+        {/* Mobile: Accordion file explorer */}
+        {isMobile && !hasError && (
+          <div className="flex flex-col shrink-0">
+            {/* Accordion header - always visible on mobile */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsTreeOpen(!isTreeOpen);
+              }}
+              className="flex items-center justify-center gap-2 bg-panel px-3 py-2"
+            >
+              <span className="text-sm font-medium text-content">
+                {isTreeOpen ? 'Hide Files' : 'View Files'}
+              </span>
+              <svg
+                aria-hidden="true"
+                className={`w-4 h-4 text-content-muted transition-transform ${isTreeOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <title>Toggle</title>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Accordion panel - partial height to show editor below */}
+            <div
+              className={`max-h-[66vh] bg-panel flex flex-col overflow-hidden ${isTreeOpen ? '' : 'hidden'}`}
+            >
+              {/* Source Files selector - inside accordion */}
+              {onToggleLocalScaffolderFiles !== undefined && (
+                <div className="p-3 border-b border-layout-border shrink-0">
+                  <div className="form-group mb-0">
+                    <span className="form-label text-center">
+                      Source Files:
+                    </span>
+                    <SimpleSelect
+                      value={
+                        useLocalScaffolderFiles === true ? 'local' : 'remote'
+                      }
+                      onChange={(value) => {
+                        onToggleLocalScaffolderFiles(value === 'local');
+                      }}
+                      options={[
+                        { value: 'local', label: 'Stock' },
+                        { value: 'remote', label: 'Remote' },
+                      ]}
+                      aria-label="Source files location"
+                    />
+                    {useLocalScaffolderFiles !== true &&
+                      onRemoteScaffolderURLChange !== undefined && (
+                        <>
+                          <input
+                            type="text"
+                            value={inputRemoteURL}
+                            onChange={(e) => {
+                              setInputRemoteURL(e.target.value);
+                            }}
+                            onFocus={() => {
+                              setIsRemoteUrlEditing(true);
+                            }}
+                            onBlur={() => {
+                              setIsRemoteUrlEditing(false);
+                              if (inputRemoteURL === '') {
+                                onRemoteScaffolderURLChange('');
+                                return;
+                              }
+                              if (isValidGitHubURL(inputRemoteURL)) {
+                                const normalized =
+                                  normalizeGitHubURL(inputRemoteURL);
+                                setInputRemoteURL(normalized);
+                                onRemoteScaffolderURLChange(normalized);
+                              }
+                            }}
+                            placeholder="judigot/repo or https://github.com/judigot/repo"
+                            className={`form-input form-input-sm ${
+                              !isValidGitHubURL(inputRemoteURL)
+                                ? 'form-input-error'
+                                : ''
+                            }`}
+                          />
+                          {inputRemoteURL === '' && (
+                            <span className="form-hint">
+                              Leave empty to use stock files
+                            </span>
+                          )}
+                          {inputRemoteURL !== '' &&
+                            !isValidGitHubURL(inputRemoteURL) && (
+                              <span className="form-error">
+                                Enter a valid format: user/repo or
+                                https://github.com/user/repo
+                              </span>
+                            )}
+                        </>
+                      )}
+                  </div>
+                </div>
+              )}
+
+              {/* View mode toolbar - just new file/folder buttons */}
+              {mode === 'view' && (
+                <div className="p-3 border-b border-layout-border shrink-0">
+                  <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={() => {
                         void (async () => {
                           await handleOpenDialog('newFile');
                         })();
                       }}
-                      className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+                      className="btn-secondary btn-icon flex-1"
                       title="New File"
                       aria-label="New File"
                     >
-                      <NoteAddIcon fontSize="small" />
+                      <NoteAddIcon sx={{ fontSize: 18 }} />
+                      <span>New File</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         void (async () => {
                           await handleOpenDialog('newFolder');
                         })();
                       }}
-                      className="h-max w-max p-1 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-500 focus:ring-opacity-50 flex items-center"
+                      className="btn-secondary btn-icon flex-1"
                       title="New Folder"
                       aria-label="New Folder"
                     >
-                      <CreateNewFolderIcon fontSize="small" />
+                      <CreateNewFolderIcon sx={{ fontSize: 18 }} />
+                      <span>New Folder</span>
                     </button>
                   </div>
                 </div>
               )}
-            </div>
 
-            <div
-              className="overflow-auto max-h-80"
-              onContextMenu={(e) => {
-                if (mode === 'edit') {
+              {/* Action buttons toolbar */}
+              {mode === 'edit' && (
+                <div className="p-3 border-b border-layout-border space-y-3 shrink-0">
+                  {/* Dev: Export Locally button */}
+                  {isDevMode && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateApp()}
+                      className="btn-success w-full"
+                    >
+                      Export Locally
+                    </button>
+                  )}
+                  {/* Export button - only shown when no sensitive files */}
+                  {safeFilesUsingUserEnv.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={handleOpenExportModal}
+                      disabled={
+                        isCreatingRepository ||
+                        isWaitingForInstallation ||
+                        folderStructure.length === 0
+                      }
+                      className={`btn-primary w-full ${
+                        isCreatingRepository ||
+                        isWaitingForInstallation ||
+                        folderStructure.length === 0
+                          ? 'opacity-50'
+                          : ''
+                      }`}
+                      title={getButtonTooltip()}
+                    >
+                      {isWaitingForInstallation
+                        ? 'Installing...'
+                        : isCreatingRepository
+                          ? 'Exporting...'
+                          : isDevMode
+                            ? `Export (${String(countFiles(folderStructure))})`
+                            : 'Export'}
+                    </button>
+                  )}
+                  {/* Download ZIP - only shown when sensitive files detected */}
+                  {safeFilesUsingUserEnv.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        zipAndDownloadIStructure(
+                          folderStructure,
+                          getZipFileName(),
+                        );
+                      }}
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                      title="Download ZIP"
+                    >
+                      <DownloadIcon sx={{ fontSize: 16 }} />
+                      <span>Download ZIP</span>
+                    </button>
+                  )}
+                  {/* Schema Selector - always shown in edit mode */}
+                  <SchemaSelector />
+                  {projects.length > 0 &&
+                    selectedProjectProp &&
+                    onProjectChange && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="form-label shrink-0 mb-0">
+                            Project:
+                          </span>
+                          <SimpleSelect
+                            value={selectedProjectProp.name}
+                            onChange={onProjectChange}
+                            options={projects.map((project) => ({
+                              value: project.name,
+                              label: project.name,
+                            }))}
+                            className="flex-1"
+                            aria-label="Select project"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                await handleOpenDialog('newFile');
+                              })();
+                            }}
+                            className="btn-secondary btn-sm btn-icon-only"
+                            title="New File"
+                            aria-label="New File"
+                          >
+                            <NoteAddIcon sx={{ fontSize: 18 }} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                await handleOpenDialog('newFolder');
+                              })();
+                            }}
+                            className="btn-secondary btn-sm btn-icon-only"
+                            title="New Folder"
+                            aria-label="New Folder"
+                          >
+                            <CreateNewFolderIcon sx={{ fontSize: 18 }} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  {/* Dev: Copy buttons */} {/* Dev: Copy buttons */}
+                  {isDevMode && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopy(JSON.stringify(userFiles, null, 4));
+                        }}
+                        className="btn-success flex-1"
+                      >
+                        Copy User Files
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopy(JSON.stringify(folderStructure, null, 4));
+                        }}
+                        className="btn-success flex-1"
+                      >
+                        Copy Structure
+                      </button>
+                    </div>
+                  )}
+                  {/* Warning banner */}
+                  {safeFilesUsingUserEnv.length > 0 && (
+                    <Banner variant="warning" title="Secrets Detected">
+                      <p className="mb-2">
+                        {safeFilesUsingUserEnv.length} file(s) contain sensitive
+                        data. GitHub export is disabled to protect your secrets.
+                      </p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {safeFilesUsingUserEnv.map((filePath: string) => (
+                          <li key={filePath} className="font-mono">
+                            {filePath}
+                          </li>
+                        ))}
+                      </ul>
+                    </Banner>
+                  )}
+                  {filesFailedToFormat.length > 0 && (
+                    <Banner variant="error" title="Formatting Failed">
+                      <p className="mb-2">
+                        {filesFailedToFormat.length} file(s) could not be
+                        formatted due to syntax errors in the generated code.
+                      </p>
+                      <ul className="list-disc list-inside mb-2 space-y-1">
+                        {filesFailedToFormat
+                          .filter((entry): entry is IFailedFormatEntry => {
+                            if (typeof entry === 'string') {
+                              return false;
+                            }
+                            return (
+                              typeof entry === 'object' &&
+                              'filePath' in entry &&
+                              'errorMessage' in entry
+                            );
+                          })
+                          .map((entry) => {
+                            const { filePath, errorMessage } = entry;
+                            return (
+                              <li key={filePath}>
+                                <span className="font-mono">{filePath}</span> -{' '}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openModal(
+                                      'format-error-modal',
+                                      'Format Error Details',
+
+                                      <div className="space-y-4">
+                                        <div>
+                                          <p className="text-sm font-medium text-content-muted mb-2">
+                                            File:
+                                          </p>
+                                          <code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
+                                            {filePath}
+                                          </code>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium text-content-muted mb-2">
+                                            Error Message:
+                                          </p>
+                                          <pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
+                                            {errorMessage}
+                                          </pre>
+                                        </div>
+                                        <p className="text-xs text-content-subtle">
+                                          Fix the syntax error in your template
+                                          and regenerate the project.
+                                        </p>
+                                      </div>,
+                                    );
+                                  }}
+                                  className="text-yellow-300 hover:text-yellow-200 underline font-medium"
+                                >
+                                  View error
+                                </button>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                      <p>Check your templates for syntax errors.</p>
+                    </Banner>
+                  )}
+                </div>
+              )}
+
+              {/* File tree */}
+              <div
+                role="tree"
+                className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
+                onContextMenu={(e) => {
                   handleContextMenu(e);
-                }
-              }}
-            >
-              <SimpleTreeView>
-                {renderTree(folderStructure, setSelectedFile)}
-              </SimpleTreeView>
+                }}
+              >
+                <div className="relative min-w-max pb-2">
+                  <div className="relative z-0">
+                    <SimpleTreeView>
+                      {renderTree(folderStructure, openFile)}
+                    </SimpleTreeView>
+                  </div>
+                  {shouldShowTreeSkeleton && (
+                    <div className="absolute inset-0 z-10 rounded border border-white/10 bg-gradient-to-br from-gray-900/80 via-gray-900/50 to-gray-900/80 p-4">
+                      <div className="flex flex-col gap-2">
+                        {skeletonWidths.map((width) => {
+                          const widthValue = width.toString();
+                          const widthStyle = `${widthValue}%`;
+                          const skeletonKey = `skeleton-${widthValue}`;
+
+                          return (
+                            <div
+                              key={skeletonKey}
+                              style={{ width: widthStyle }}
+                              className="h-3 rounded bg-gray-600 animate-pulse"
+                            />
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-3">
+                        Loading repository files...
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="col-span-1 md:col-span-2">
-          {selectedFile && (
-            <div className="bg-gray-900">
-              <div className="mt-2 sticky left-0 top-0 z-20 bg-gray-800 grid grid-cols-[auto_auto] items-center m-0">
-                <div>
-                  <div className="bg-[#1f1f1f] w-max p-2 rounded-t-md flex items-center">
-                    <span>
-                      {selectedFile.name}
-                      {isFileEdited ? ' •' : ''}&nbsp;
-                    </span>
+        )}
+
+        {/* Desktop: Side-by-side file tree panel - fixed width with horizontal scroll */}
+        {!isMobile && (
+          <div className="w-64 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-r border-layout-border">
+            {/* Source Files selector - always visible at top */}
+            {onToggleLocalScaffolderFiles !== undefined && (
+              <div className="p-2 border-b border-layout-border shrink-0">
+                <div className="form-group mb-0">
+                  <span className="form-label text-center">Source Files:</span>
+                  <SimpleSelect
+                    value={
+                      useLocalScaffolderFiles === true ? 'local' : 'remote'
+                    }
+                    onChange={(value) => {
+                      onToggleLocalScaffolderFiles(value === 'local');
+                    }}
+                    options={[
+                      { value: 'local', label: 'Stock' },
+                      { value: 'remote', label: 'Remote' },
+                    ]}
+                    aria-label="Source files location"
+                  />
+                  {useLocalScaffolderFiles !== true &&
+                    onRemoteScaffolderURLChange !== undefined && (
+                      <>
+                        <input
+                          type="text"
+                          value={inputRemoteURL}
+                          onChange={(e) => {
+                            setInputRemoteURL(e.target.value);
+                          }}
+                          onFocus={() => {
+                            setIsRemoteUrlEditing(true);
+                          }}
+                          onBlur={() => {
+                            setIsRemoteUrlEditing(false);
+                            if (inputRemoteURL === '') {
+                              onRemoteScaffolderURLChange('');
+                              return;
+                            }
+                            if (isValidGitHubURL(inputRemoteURL)) {
+                              const normalized =
+                                normalizeGitHubURL(inputRemoteURL);
+                              setInputRemoteURL(normalized);
+                              onRemoteScaffolderURLChange(normalized);
+                            }
+                          }}
+                          placeholder="judigot/repo or https://github.com/judigot/repo"
+                          className={`form-input form-input-sm ${
+                            !isValidGitHubURL(inputRemoteURL)
+                              ? 'form-input-error'
+                              : ''
+                          }`}
+                        />
+                        {inputRemoteURL === '' && (
+                          <span className="form-hint">
+                            Leave empty to use stock files
+                          </span>
+                        )}
+                        {inputRemoteURL !== '' &&
+                          !isValidGitHubURL(inputRemoteURL) && (
+                            <span className="form-error">
+                              Enter a valid format: user/repo or
+                              https://github.com/user/repo
+                            </span>
+                          )}
+                      </>
+                    )}
+                </div>
+              </div>
+            )}
+
+            {/* View mode toolbar - just new file/folder buttons */}
+            {!hasError && mode === 'view' && (
+              <div className="p-2 border-b border-layout-border shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        await handleOpenDialog('newFile');
+                      })();
+                    }}
+                    className="btn-secondary btn-icon flex-1"
+                    title="New File"
+                  >
+                    <NoteAddIcon sx={{ fontSize: 14 }} />
+                    <span>New File</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        await handleOpenDialog('newFolder');
+                      })();
+                    }}
+                    className="btn-secondary btn-icon flex-1"
+                    title="New Folder"
+                  >
+                    <CreateNewFolderIcon sx={{ fontSize: 14 }} />
+                    <span>New Folder</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* File tree toolbar */}
+            {!hasError && mode === 'edit' && (
+              <div className="p-2 border-b border-layout-border space-y-2 shrink-0">
+                {/* Dev copy buttons */}
+                {isDevMode && (
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => void handleCloseFile()}
-                      className="hover:bg-gray-700 text-white px-1 pb-1 rounded transition-colors duration-150"
+                      type="button"
+                      onClick={() => {
+                        handleCopy(JSON.stringify(userFiles, null, 4));
+                      }}
+                      className="btn-success flex-1"
                     >
-                      <CloseIcon fontSize="small" />
+                      Copy Files
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCopy(JSON.stringify(folderStructure, null, 4));
+                      }}
+                      className="btn-success flex-1"
+                    >
+                      Copy Structure
                     </button>
                   </div>
-                </div>
-                <div>
+                )}
+                {/* File actions row */}
+                <div className="flex items-center gap-2">
                   <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        await handleOpenDialog('newFile');
+                      })();
+                    }}
+                    className="btn-secondary btn-icon flex-1"
+                    title="New File"
+                  >
+                    <NoteAddIcon sx={{ fontSize: 14 }} />
+                    <span>New File</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        await handleOpenDialog('newFolder');
+                      })();
+                    }}
+                    className="btn-secondary btn-icon flex-1"
+                    title="New Folder"
+                  >
+                    <CreateNewFolderIcon sx={{ fontSize: 14 }} />
+                    <span>New Folder</span>
+                  </button>
+                </div>
+                {/* Schema selector */}
+                <SchemaSelector />
+                {/* Project selector */}
+                {projects.length > 0 &&
+                  selectedProjectProp &&
+                  onProjectChange && (
+                    <div className="form-group">
+                      <span className="form-label text-center">Project:</span>
+                      <SimpleSelect
+                        value={selectedProjectProp.name}
+                        onChange={onProjectChange}
+                        options={projects.map((project) => ({
+                          value: project.name,
+                          label: project.name,
+                        }))}
+                        aria-label="Select project"
+                      />
+                    </div>
+                  )}
+              </div>
+            )}
+            {/* File tree */}
+            {!hasError && (
+              <div
+                role="tree"
+                className="flex-1 min-h-0 overflow-auto p-2 scrollbar-thin"
+                onContextMenu={(e) => {
+                  handleContextMenu(e);
+                }}
+              >
+                <div className="min-w-max pb-2">
+                  <SimpleTreeView>
+                    {renderTree(folderStructure, openFile)}
+                  </SimpleTreeView>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Editor panel - takes remaining space */}
+        <div className="flex-1 flex flex-col min-h-0 bg-surface overflow-hidden md:border-t-0 border-t border-layout-border">
+          {/* Tab bar for open files */}
+          {openFiles.length > 0 && (
+            <div className="flex items-center bg-panel border-b border-layout-border overflow-x-auto">
+              <div className="flex">
+                {openFiles.map((file) => {
+                  const isActive = file.uniqueId === activeFileId;
+                  const isEdited = editedFiles.has(file.uniqueId);
+                  return (
+                    <div
+                      key={file.uniqueId}
+                      className={`group flex items-center gap-3 px-4 py-2 border-r border-layout-border cursor-pointer text-sm ${
+                        isActive
+                          ? 'text-content'
+                          : 'bg-panel text-content-muted hover:bg-secondary-hover hover:text-content'
+                      }`}
+                      style={
+                        isActive
+                          ? { backgroundColor: 'var(--btn-secondary-bg)' }
+                          : undefined
+                      }
+                      onClick={() => {
+                        setActiveFileId(file.uniqueId);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setActiveFileId(file.uniqueId);
+                        }
+                      }}
+                      role="tab"
+                      tabIndex={0}
+                      aria-selected={isActive}
+                    >
+                      <span className="truncate max-w-32">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleCloseFile(file.uniqueId);
+                        }}
+                        className={`w-5 h-5 flex items-center justify-center rounded hover:bg-surface-hover transition-colors ${
+                          isEdited
+                            ? 'text-white'
+                            : 'text-content-subtle hover:text-white'
+                        }`}
+                        title="Close"
+                      >
+                        {isEdited ? (
+                          <span className="w-3 h-3 flex items-center justify-center text-xs">
+                            ●
+                          </span>
+                        ) : (
+                          <CloseIcon sx={{ fontSize: 14 }} />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Actions for active file */}
+              {selectedFile && (
+                <div className="flex items-center gap-1 ml-auto px-2">
+                  {mode === 'edit' && isFileEdited && (
+                    <button
+                      type="button"
+                      onClick={saveFileChanges}
+                      className="hover:bg-secondary-hover text-content p-1 rounded transition-colors"
+                      title="Save"
+                    >
+                      <SaveIcon fontSize="small" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
                     onClick={() => {
                       if (selectedFile.content) {
                         handleCopy(selectedFile.content);
                       }
                     }}
                     disabled={!selectedFile.content}
-                    className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="hover:bg-secondary-hover text-content p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Copy"
                   >
                     <CopyIcon fontSize="small" />
                   </button>
-                  {mode === 'edit' && isFileEdited && (
-                    <button
-                      onClick={saveFileChanges}
-                      className="hover:bg-gray-700 text-white px-2 py-1 rounded float-right transition-all duration-150"
-                    >
-                      <SaveIcon fontSize="small" />
-                    </button>
-                  )}
                 </div>
-              </div>
+              )}
+            </div>
+          )}
+          {selectedFile ? (
+            <div className="flex-1 min-h-0">
               {isFileContentLoading ? (
-                <div
-                  className="flex items-center justify-center bg-gray-900 p-4"
-                  style={{ height: '20rem' }}
-                >
-                  <div className="text-white">Loading file content...</div>
+                <div className="flex items-center justify-center h-full bg-surface p-4">
+                  <div className="text-content">Loading file content...</div>
                 </div>
               ) : fileContentError ? (
-                <div
-                  className="flex items-center justify-center bg-gray-900 p-4"
-                  style={{ height: '20rem' }}
-                >
+                <div className="flex items-center justify-center h-full bg-surface p-4">
                   <div className="text-red-400">
                     Error loading file:{' '}
                     {fileContentError instanceof Error
@@ -2396,17 +3470,15 @@ function FileViewer({
                   </div>
                 </div>
               ) : isImageFile(selectedFile.name) && fileContent ? (
-                <div
-                  className="flex items-center justify-center bg-gray-900 p-4"
-                  style={{ height: '20rem' }}
-                >
+                <div className="flex items-center justify-center h-full bg-surface p-4">
                   {selectedFile.name.toLowerCase().endsWith('.svg') &&
                   !fileContent.startsWith('data:') &&
                   !fileContent.includes('base64') &&
                   fileContent.trim().startsWith('<') ? (
-                    <div
-                      className="max-h-full max-w-full"
-                      dangerouslySetInnerHTML={{ __html: fileContent }}
+                    <img
+                      src={`data:image/svg+xml;base64,${btoa(fileContent)}`}
+                      alt={selectedFile.name}
+                      className="max-h-full max-w-full object-contain"
                     />
                   ) : (
                     <img
@@ -2418,15 +3490,14 @@ function FileViewer({
                 </div>
               ) : (
                 <Editor
-                  height="20rem"
+                  height="100%"
                   defaultValue={selectedFile.content}
                   value={fileContent}
                   beforeMount={(monaco) => {
-                    // Disable import/type errors
                     monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
                       {
-                        noSemanticValidation: true, // ignore type errors
-                        noSyntaxValidation: false, // keep syntax highlighting
+                        noSemanticValidation: true,
+                        noSyntaxValidation: false,
                       },
                     );
                   }}
@@ -2481,7 +3552,7 @@ function FileViewer({
                   options={{
                     readOnly: mode === 'view',
                     domReadOnly: mode === 'view',
-                    minimap: { enabled: true },
+                    minimap: { enabled: false },
                     fontSize: 14,
                     lineNumbers: 'on',
                   }}
@@ -2490,11 +3561,176 @@ function FileViewer({
                 />
               )}
             </div>
+          ) : hasError ? (
+            <div className="flex flex-col h-full">
+              <div className="p-4">
+                <Banner
+                  variant="danger"
+                  title={hasURLFormatError ? 'Invalid URL' : 'Error'}
+                  inline
+                >
+                  {errorMessage}
+                </Banner>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-content-subtle">
+              <p>Select a file to view</p>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Custom Context Menu */}
+        {/* Right panel - Export/Download actions (Desktop only) */}
+        {!isMobile && mode === 'edit' && !hasError && (
+          <div className="w-56 bg-panel select-none flex flex-col shrink-0 overflow-hidden border-l border-layout-border">
+            <div className="p-3 space-y-3 overflow-y-auto">
+              {/* Section header */}
+              <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
+                Actions
+              </h3>
+
+              {/* Export Locally - Dev only */}
+              {isDevMode && (
+                <button
+                  type="button"
+                  onClick={() => void handleCreateApp()}
+                  className="btn-success w-full"
+                >
+                  Export Locally
+                </button>
+              )}
+
+              {/* Export - only shown when no sensitive files */}
+              {safeFilesUsingUserEnv.length === 0 && (
+                <button
+                  type="button"
+                  onClick={handleOpenExportModal}
+                  disabled={
+                    isCreatingRepository ||
+                    isWaitingForInstallation ||
+                    folderStructure.length === 0
+                  }
+                  className={`btn-primary btn-full ${
+                    isCreatingRepository ||
+                    isWaitingForInstallation ||
+                    folderStructure.length === 0
+                      ? 'opacity-50'
+                      : ''
+                  }`}
+                  title={getButtonTooltip()}
+                >
+                  {isWaitingForInstallation
+                    ? 'Installing...'
+                    : isCreatingRepository
+                      ? 'Exporting...'
+                      : isDevMode
+                        ? `Export (${String(countFiles(folderStructure))})`
+                        : 'Export'}
+                </button>
+              )}
+
+              {/* Download ZIP - only shown when sensitive files detected */}
+              {safeFilesUsingUserEnv.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      zipAndDownloadIStructure(
+                        folderStructure,
+                        getZipFileName(),
+                      );
+                    }}
+                    className="btn-primary btn-full btn-icon"
+                    title="Download ZIP"
+                  >
+                    <DownloadIcon sx={{ fontSize: 16 }} />
+                    <span>Download ZIP</span>
+                  </button>
+
+                  <Banner variant="warning" title="Secrets Detected">
+                    <p className="mb-2">
+                      {safeFilesUsingUserEnv.length} file(s) contain sensitive
+                      data. GitHub export is disabled to protect your secrets.
+                    </p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {safeFilesUsingUserEnv.map((filePath: string) => (
+                        <li key={filePath} className="font-mono">
+                          {filePath}
+                        </li>
+                      ))}
+                    </ul>
+                  </Banner>
+                </>
+              )}
+              {filesFailedToFormat.length > 0 && (
+                <Banner variant="error" title="Formatting Failed">
+                  <p className="mb-2">
+                    {filesFailedToFormat.length} file(s) could not be formatted
+                    due to syntax errors in the generated code.
+                  </p>
+                  <ul className="list-disc list-inside mb-2 space-y-1">
+                    {filesFailedToFormat
+                      .filter((entry): entry is IFailedFormatEntry => {
+                        if (typeof entry === 'string') {
+                          return false;
+                        }
+                        return (
+                          typeof entry === 'object' &&
+                          'filePath' in entry &&
+                          'errorMessage' in entry
+                        );
+                      })
+                      .map((entry) => {
+                        const { filePath, errorMessage } = entry;
+                        return (
+                          <li key={filePath}>
+                            <span className="font-mono">{filePath}</span> -{' '}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                openModal(
+                                  'format-error-modal',
+                                  'Format Error Details',
+
+                                  <div className="space-y-4">
+                                    <div>
+                                      <p className="text-sm font-medium text-content-muted mb-2">
+                                        File:
+                                      </p>
+                                      <code className="block p-2 bg-bg-muted rounded text-xs text-content break-all">
+                                        {filePath}
+                                      </code>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-content-muted mb-2">
+                                        Error Message:
+                                      </p>
+                                      <pre className="p-3 bg-bg-muted rounded text-xs text-red-300 whitespace-pre-wrap break-words overflow-auto max-h-96">
+                                        {errorMessage}
+                                      </pre>
+                                    </div>
+                                    <p className="text-xs text-content-subtle">
+                                      Fix the syntax error in your template and
+                                      regenerate the project.
+                                    </p>
+                                  </div>,
+                                );
+                              }}
+                              className="text-yellow-300 hover:text-yellow-200 underline font-medium"
+                            >
+                              View error
+                            </button>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                  <p>Check your templates for syntax errors.</p>
+                </Banner>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
       {contextMenu && (
         <ContextMenu
           x={contextMenu.mouseX}
@@ -2583,8 +3819,8 @@ function FileViewer({
                   },
                 );
 
-                // Add Copy Folder Structure option only in development mode
-                if (process.env.NODE_ENV === 'development') {
+                // Add Copy Folder Structure option only in dev mode
+                if (isDevMode) {
                   menuItems.push({
                     id: 'copyFolderStructure',
                     label: 'Copy Folder Structure',
@@ -2647,15 +3883,19 @@ function FileViewer({
           onClose={handleCloseContextMenu}
         />
       )}
-
-      {/* GitHub Export Options Modal */}
       <GitHubExportModal
         isOpen={showExportModal}
-        onClose={() => { setShowExportModal(false); }}
+        onClose={() => {
+          setShowExportModal(false);
+        }}
         owner={exportOwner}
         accessToken={exportAccessToken}
         onSelectMethod={handleExportMethodSelected}
         onSaveToken={saveGitHubToken}
+        onDownloadZip={() => {
+          zipAndDownloadIStructure(folderStructure, getZipFileName());
+        }}
+        fileCount={countFiles(folderStructure)}
       />
     </div>
   );

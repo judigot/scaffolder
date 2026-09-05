@@ -5,10 +5,10 @@ DROP TABLE IF EXISTS "{{tableName}}";
 [[LOOP(tables)]]
 CREATE TABLE "{{tableName}}" (
 [[LOOP(columnsInfo)]]
-  "{{value}}" {% IF is_primary_key EQUALS 'true' %}BIGSERIAL PRIMARY KEY{% ENDIF %}{% IF is_primary_key EQUALS 'false' %}{% IF data_type EQUALS 'number' %}BIGINT{% ENDIF %}{% IF data_type EQUALS 'string' %}{% IF value EQUALS 'password' %}CHAR(60){% ELSE %}TEXT{% ENDIF %}{% ENDIF %}{% IF data_type EQUALS 'Date' %}TIMESTAMPTZ (6){% ENDIF %}{% IF data_type EQUALS 'boolean' %}BOOLEAN{% ENDIF %}{% IF is_unique EQUALS 'true' %} UNIQUE{% ENDIF %}{% IF is_nullable EQUALS 'NO' %} NOT NULL{% ENDIF %}{% ENDIF %}
+  "{{value}}" <@@IF@@ condition="is_primary_key EQUALS 'true'">BIGSERIAL PRIMARY KEY</@@IF@@><@@IF@@ condition="is_primary_key EQUALS 'false'"><@@IF@@ condition="data_type EQUALS 'number'">BIGINT</@@IF@@><@@IF@@ condition="data_type EQUALS 'string'"><@@IF@@ condition="value EQUALS 'password'">CHAR(60)<@@ELSE@@>TEXT</@@IF@@></@@IF@@><@@IF@@ condition="data_type EQUALS 'Date'">TIMESTAMPTZ (6)</@@IF@@><@@IF@@ condition="data_type EQUALS 'boolean'">BOOLEAN</@@IF@@><@@IF@@ condition="is_unique EQUALS 'true'"> UNIQUE</@@IF@@><@@IF@@ condition="is_nullable EQUALS 'NO'"> NOT NULL</@@IF@@></@@IF@@>
 [[/LOOP --separator=",\n"]][[LOOP(columnsInfo)]]
-{% IF has_foreign_key EQUALS 'true' %},
-  CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}"){% ENDIF %}
+<@@IF@@ condition="has_foreign_key EQUALS 'true'">,
+  CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}")</@@IF@@>
 [[/LOOP --separator=""]]
 );
 [[/LOOP --separator="\n\n"]]

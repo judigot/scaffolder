@@ -260,7 +260,7 @@ agency:
 3. **Customize templates:**
    - Edit the template files in each project's `templates/` directory
    - Use `[[USE_DATA(property.path)]]` to access data values
-   - Use `{{placeholder}}` for filename placeholders
+   - Use `<@@>placeholder</@@>` for filename placeholders
 
 ## Unified Data Source
 

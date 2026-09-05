@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+readonly SERVICE_PORT="${service_port}"
+readonly CONTAINER_IMAGE="${container_image}"
+readonly CONTAINER_ENV_ARGS="${container_env_args}"
+
+main() {
+	install_dependencies
+	start_service
+}
+
+install_dependencies() {
+	apt-get update
+	apt-get install -y docker.io
+	systemctl enable docker
+	systemctl start docker
+}
+
+start_service() {
+	docker pull "${CONTAINER_IMAGE}"
+
+	docker rm -f terminal-service >/dev/null 2>&1 || true
+
+	docker run -d \
+		--name terminal-service \
+		--restart unless-stopped \
+		-p "${SERVICE_PORT}:${SERVICE_PORT}" \
+		-e "PORT=${SERVICE_PORT}" \
+		${CONTAINER_ENV_ARGS} \
+		"${CONTAINER_IMAGE}"
+}
+
+main "$@"

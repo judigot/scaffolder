@@ -1,0 +1,30 @@
+-- Flyway migration: V{{index(1)}}__Create_{{tableNameSnakeCasePlural}}_table.sql
+-- MyBatis + Flyway migration for {{tableName}}
+
+DROP TABLE IF EXISTS "{{tableName}}";
+
+CREATE TABLE "{{tableName}}" (
+  <@@LOOP@@ data="columnsInfo" separator=",\n">
+    "{{column.name}}"
+    <@@IF@@ condition="is_primary_key EQUALS 'true'">
+      {{typeMappings.primaryKey[formData.dbType]}}
+    </@@IF@@>
+    <@@IF@@ condition="is_primary_key EQUALS 'false'">
+      {{typeMappings[column.name][formData.dbType] || typeMappings[column.data_type][formData.dbType]}}
+      <@@IF@@ condition="is_unique EQUALS 'true'">
+        UNIQUE
+      </@@IF@@>
+      <@@IF@@ condition="is_nullable EQUALS 'NO'">
+        NOT NULL
+      </@@IF@@>
+    </@@IF@@>
+  </@@LOOP@@>
+  <@@LOOP@@ data="columnsInfo" separator="">
+    <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
+    CONSTRAINT "FK_{{tableName}}_{{column.name}}" FOREIGN KEY ("{{column.name}}") REFERENCES "{{column.foreign_table}}" ("{{column.foreign_column}}")
+    </@@IF@@>
+  </@@LOOP@@>
+);
+
+[[USE_ROWS()]]
+

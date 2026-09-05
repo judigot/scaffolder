@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timesheet - [[USE_DATA(basic-info.name)]]</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .header { text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; }
+    .company-name { font-size: 1.8em; font-weight: bold; color: #2c3e50; }
+    .document-title { font-size: 1.3em; color: #7f8c8d; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #34495e; color: white; padding: 12px; text-align: left; font-weight: 600; }
+    td { padding: 10px; border-bottom: 1px solid #ecf0f1; }
+    tr:hover { background: #f8f9fa; }
+    .total-row { font-weight: bold; background: #ecf0f1; }
+    .status-badge { display: inline-block; padding: 5px 12px; border-radius: 15px; font-size: 0.85em; font-weight: 600; }
+    .status-submitted { background: #2ecc71; color: white; }
+    .status-pending { background: #f39c12; color: white; }
+    .info-section { margin: 20px 0; }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ecf0f1; }
+    .label { font-weight: 600; color: #555; }
+    .value { color: #2c3e50; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="company-name">[[USE_DATA(company-info.name)]]</div>
+    <div class="document-title">Timesheet</div>
+  </div>
+
+  <div class="info-section">
+    <div class="info-row">
+      <span class="label">Employee Name:</span>
+      <span class="value">[[USE_DATA(basic-info.name)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Employee ID:</span>
+      <span class="value">[[USE_DATA(timesheet.employee-id)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Period:</span>
+      <span class="value">[[USE_DATA(timesheet.period)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Status:</span>
+      <span class="value">
+        <span class="status-badge status-submitted">[[USE_DATA(timesheet.status)]]</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="label">Approved By:</span>
+      <span class="value">[[USE_DATA(timesheet.approved-by)]]</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Approval Date:</span>
+      <span class="value">[[USE_DATA(timesheet.approval-date)]]</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Day</th>
+        <th>Week 1</th>
+        <th>Week 2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Monday</strong></td>
+        <td>[[USE_DATA(timesheet.week1.monday)]]</td>
+        <td>[[USE_DATA(timesheet.week2.monday)]]</td>
+      </tr>
+      <tr>
+        <td><strong>Tuesday</strong></td>
+        <td>[[USE_DATA(timesheet.week1.tuesday)]]</td>
+        <td>[[USE_DATA(timesheet.week2.tuesday)]]</td>
+      </tr>
+      <tr>
+        <td><strong>Wednesday</strong></td>
+        <td>[[USE_DATA(timesheet.week1.wednesday)]]</td>
+        <td>[[USE_DATA(timesheet.week2.wednesday)]]</td>
+      </tr>
+      <tr>
+        <td><strong>Thursday</strong></td>
+        <td>[[USE_DATA(timesheet.week1.thursday)]]</td>
+        <td>[[USE_DATA(timesheet.week2.thursday)]]</td>
+      </tr>
+      <tr>
+        <td><strong>Friday</strong></td>
+        <td>[[USE_DATA(timesheet.week1.friday)]]</td>
+        <td>[[USE_DATA(timesheet.week2.friday)]]</td>
+      </tr>
+      <tr>
+        <td><strong>Saturday</strong></td>
+        <td>[[USE_DATA(timesheet.week1.saturday)]]</td>
+        <td>[[USE_DATA(timesheet.week2.saturday)]]</td>
+      </tr>
+      <tr>
+        <td><strong>Sunday</strong></td>
+        <td>[[USE_DATA(timesheet.week1.sunday)]]</td>
+        <td>[[USE_DATA(timesheet.week2.sunday)]]</td>
+      </tr>
+      <tr class="total-row">
+        <td><strong>Week Total</strong></td>
+        <td>[[USE_DATA(timesheet.week1.total)]]</td>
+        <td>[[USE_DATA(timesheet.week2.total)]]</td>
+      </tr>
+      <tr class="total-row">
+        <td><strong>Total Hours</strong></td>
+        <td colspan="2" style="text-align: center; font-size: 1.2em;">[[USE_DATA(timesheet.total-hours)]]</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
+

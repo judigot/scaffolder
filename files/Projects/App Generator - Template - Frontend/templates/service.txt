@@ -1,16 +1,16 @@
 import { axiosInstance } from '@/vendor/axiosInstance.ts';
-import { {{tableNamePascalCase}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { <@@>tableName.pascalCase</@@> } from '@/interfaces/I<@@>tableName.singular.pascalCase</@@>.ts';
 
-[[LOOP(/BaseMethodsFileBased/**/**) --separator="\n\n" --template="
+<@@LOOP@@ data="/BaseMethodsFileBased/**/**" separator="\n\n">
 /**
- * {{description}}
+ * <@@>description</@@>
  */
-export const {{methodNameCamelCase}} = async {{frontendServiceMethod}} => {
+export const <@@>methodNameCamelCase</@@> = async <@@>frontendServiceMethod</@@> => {
   try {
-    {{frontendServiceContent}}
+    <@@>frontendServiceContent</@@>
   } catch (error) {
-    console.error('Error in {{methodName}} operation:', error);
+    console.error('Error in <@@>methodName</@@> operation:', error);
     throw error;
   }
 };
-"]]
+</@@LOOP@@>

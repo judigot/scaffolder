@@ -126,6 +126,17 @@ function renameTable({
     }));
   };
 
+  const replaceOldTableNameInOwnerField = (
+    ownerField: string | undefined,
+  ): string | undefined => {
+    if (ownerField === undefined || ownerField === '') {
+      return ownerField;
+    }
+    return ownerField === `${oldTableName}_id`
+      ? `${newTableName}_id`
+      : ownerField;
+  };
+
   /* Main function logic */
   return schemaInfo.map((table) => {
     // Handle pivot table names
@@ -170,6 +181,7 @@ function renameTable({
     const pivotRelationships = replaceOldTableNameInPivotRelationships(
       table.pivotRelationships ?? [],
     );
+    const ownerField = replaceOldTableNameInOwnerField(table.ownerField);
 
     const returnValue = {
       ...table,
@@ -184,6 +196,7 @@ function renameTable({
       ...(belongsTo.length > 0 && { belongsTo }),
       ...(belongsToMany.length > 0 && { belongsToMany }),
       ...(pivotRelationships.length > 0 && { pivotRelationships }),
+      ...(ownerField !== undefined && { ownerField }),
     };
 
     return returnValue;

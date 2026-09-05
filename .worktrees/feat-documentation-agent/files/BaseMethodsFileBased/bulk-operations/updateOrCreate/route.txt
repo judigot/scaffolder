@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}} - Updates existing records or creates new ones if they don't exist
+Route::post('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.update-or-create');

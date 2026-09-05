@@ -1,0 +1,344 @@
+basic-info:
+  name: Jane Smith
+  employee-id: "EMP-002"
+  email: jane.smith@example.com
+  phone: 555-987-6543
+  address: 456 Oak Avenue
+  city: Tech City
+  state: NY
+  zip: 10001
+  country: USA
+  date-of-birth: 1992-05-15
+  gender: Female
+  marital-status: Married
+  nationality: American
+  religion: None
+  education: Master's Degree in Business Administration
+  experience: 8 years
+languages:
+  - English
+  - Spanish
+  - French
+
+property:
+  title: "Luxury Downtown Condo with City Views"
+  price: "750000"
+  type: "Condominium"
+  bedrooms: 3
+  bathrooms: 2
+  square-feet: 1800
+  address-street: "456 Oak Avenue"
+  address-city: "Tech City"
+  address-state: "NY"
+  address-zip: "10001"
+  year-built: 2020
+  lot-size: "N/A (Condo)"
+  description: "Stunning modern condominium in the heart of downtown with breathtaking city skyline views. Features include high-end finishes, floor-to-ceiling windows, gourmet kitchen, and access to building amenities including gym, rooftop terrace, and concierge service."
+  features: "Parking Space, Balcony, High Ceilings, Modern Appliances, Building Amenities"
+agent:
+  name: "Michael Rodriguez"
+  phone: "555-2345-6789"
+  email: "michael.rodriguez@premiumrealty.com"
+
+client:
+  company-name: "Smith Consulting Group"
+  contact-name: "Jane Smith"
+  address: "456 Oak Avenue"
+  city: "Tech City"
+  state: "NY"
+  zip: "10001"
+  phone: "555-987-6543"
+  email: "jane.smith@example.com"
+  industry: "Business Consulting"
+
+contract:
+  type: "Consulting Agreement"
+  date: "2024-02-01"
+  start-date: "2024-03-01"
+  end-date: "2025-02-28"
+  amount: "75000"
+  scope: "Business consulting services including strategic planning, market analysis, and operational optimization for consulting firm."
+  payment-terms: "Quarterly payments of $18,750"
+  obligations: "Client agrees to provide access to business data and key personnel. Law firm agrees to maintain confidentiality and deliver consulting reports as scheduled."
+  notice-period: "60"
+  governing-state: "New York"
+
+law-firm:
+  name: "Smith & Associates Legal"
+  address: "789 Legal Boulevard"
+  city: "New York"
+  state: "NY"
+  zip: "10002"
+  phone: "555-9012-3456"
+  email: "info@smithlaw.com"
+  representative: "Jane Smith, Esq."
+
+student:
+  name: "Jane Smith"
+  student-id: "STU-2024-002"
+
+course:
+  name: "Executive Leadership Program"
+  duration: "16 weeks"
+  completion-date: "2024-04-30"
+  grade: "A+"
+  description: "Advanced leadership program designed for senior executives. Covers strategic decision-making, organizational change management, team leadership, and executive communication. Includes case studies and real-world application projects."
+
+certificate:
+  id: "CERT-2024-002"
+
+instructor:
+  name: "Dr. Patricia Williams"
+  title: "Executive Director"
+
+school:
+  name: "Business Leadership Institute"
+  director: "Dr. James Thompson"
+
+invoice:
+  number: "INV-2024-002"
+  date: "2024-02-01"
+  due-date: "2024-03-03"
+  terms: "Net 30"
+  subtotal: "12000.00"
+  tax-rate: "8.875"
+  tax: "1065.00"
+  discount: "500.00"
+  total: "12565.00"
+  items: "Business Consulting Services - 80 hours @ $150/hr"
+  payment-instructions: "Please remit payment via bank transfer to Account #987654321, Routing #123456789, or mail check to ABC Services Inc, 456 Service St, New York, NY 10002"
+
+company:
+  name: "ABC Services Inc"
+  address: "456 Service Street"
+  city: "New York"
+  state: "NY"
+  zip: "10002"
+  phone: "555-0001-2345"
+  email: "billing@abcservices.com"
+
+ship-to:
+  name: "Jane Smith"
+  address: "456 Oak Avenue"
+  city: "Tech City"
+  state: "NY"
+  zip: "10001"
+
+patient:
+  id: "PAT-002"
+  name: "Jane Smith"
+  date-of-birth: "1992-05-15"
+  gender: "Female"
+  phone: "555-987-6543"
+  emergency-contact: "Robert Smith (Husband) - 555-1111-2222"
+
+visit:
+  date: "2024-02-10"
+  time: "2:30 PM"
+  chief-complaint: "Routine wellness visit and preventive care"
+
+vitals:
+  blood-pressure: "118/75"
+  heart-rate: "68"
+  temperature: "98.4"
+  weight: "145"
+  height: "65"
+  oxygen-saturation: "99"
+
+examination:
+  notes: "Patient presents in excellent health. All systems normal. Cardiovascular exam unremarkable. Respiratory exam clear. Abdominal exam benign. Neurological exam intact. Breast exam normal. Pelvic exam deferred (not due)."
+
+diagnosis:
+  primary: "Healthy adult female, no acute issues"
+  notes: "Continue current health maintenance. Recommend annual mammogram screening. Continue regular exercise and balanced nutrition."
+
+treatment:
+  prescription: "None required"
+  instructions: "Maintain current lifestyle. Continue taking daily multivitamin. Schedule mammogram within next 6 months."
+
+follow-up:
+  instructions: "Return in 12 months for annual wellness visit or sooner if any concerns arise."
+  next-appointment: "2025-02-10"
+
+physician:
+  name: "Dr. Emily Johnson"
+  license: "MD-67890"
+
+clinic:
+  name: "City Medical Center"
+  address: "789 Health Avenue"
+  city: "Tech City"
+  state: "NY"
+
+report:
+  generated-date: "2024-02-10"
+
+proposal:
+  title: "Comprehensive Marketing Strategy for Consulting Firm"
+  date: "2024-02-01"
+  validity: "30"
+  executive-summary: "We propose a comprehensive marketing strategy to establish Smith Consulting Group as a thought leader in the business consulting space. Our approach includes content marketing, speaking engagements, LinkedIn strategy, and lead generation campaigns tailored for B2B consulting services."
+  services: "Content Marketing Strategy (Thought leadership articles, Case studies, Industry reports), LinkedIn Marketing (Profile optimization, Content distribution, Lead generation), Speaking Engagement Support (Conference submissions, Presentation design), Email Marketing Campaigns, Marketing Analytics and Reporting"
+  timeline: "Phase 1 (Weeks 1-4): Brand Positioning and Content Strategy, Phase 2 (Weeks 5-8): Content Creation and Distribution, Phase 3 (Weeks 9-12): Campaign Launch and Lead Generation"
+  why-choose-us: "Our agency specializes in B2B professional services marketing with a deep understanding of the consulting industry. We have helped numerous consulting firms establish thought leadership and generate qualified leads. Our team includes former consultants who understand your business model."
+  next-steps: "1. Review this proposal and discuss customization options, 2. Schedule a strategy session to align on goals, 3. Sign the agreement to begin Phase 1, 4. Kickoff meeting scheduled within 1 week of signing"
+
+pricing:
+  base-price: "20000"
+  additional: "8000"
+  tax: "2490"
+  total: "30490"
+  payment-terms: "40% upfront ($12,196), 30% at Phase 2 ($9,147), 30% on completion ($9,147)"
+
+agency:
+  name: "Creative Marketing Solutions"
+  representative: "Lisa Anderson"
+  email: "lisa@creativemarketing.com"
+  phone: "555-9999-8888"
+
+employee:
+  employee-id: "EMP-002"
+  department: "Sales"
+  position: "Sales Manager"
+  manager: "David Wilson"
+  hire-date: "2020-06-01"
+  employment-type: "Full-Time"
+  employee-status: "Active"
+  work-location: "New York Office"
+  employee-photo-url: ""
+
+payroll:
+  period: "2024-02"
+  pay-date: "2024-02-15"
+  pay-frequency: "Bi-weekly"
+  gross-pay: 6000.00
+  hours-worked: 80
+  hourly-rate: 75.00
+  overtime-hours: 0
+  overtime-pay: 0.00
+  deductions:
+    federal-tax: 900.00
+    state-tax: 300.00
+    social-security: 372.00
+    medicare: 87.00
+    health-insurance: 250.00
+    retirement-401k: 300.00
+    total-deductions: 2209.00
+  net-pay: 3791.00
+  year-to-date:
+    gross-pay: 15600.00
+    net-pay: 9851.00
+
+performance-review:
+  period: "Q4 2023"
+  review-date: "2024-01-20"
+  reviewer: "David Wilson"
+  overall-rating: "Exceeds Expectations"
+  ratings:
+    technical-skills: "Meets Expectations"
+    communication: "Exceeds Expectations"
+    teamwork: "Exceeds Expectations"
+    problem-solving: "Exceeds Expectations"
+    leadership: "Exceeds Expectations"
+  strengths: "Excellent communication skills, strong leadership, consistently exceeds sales targets"
+  areas-for-improvement: "Continue developing technical product knowledge"
+  goals: "Increase team sales by 20%, develop 3 new major accounts, complete sales management certification"
+  comments: "Jane has been an outstanding leader and consistently delivers exceptional results. Strong candidate for senior management role."
+
+job-description:
+  title: "Sales Manager"
+  department: "Sales"
+  reports-to: "VP of Sales"
+  employment-type: "Full-Time"
+  location: "New York, NY"
+  salary-range: "$100,000 - $140,000 + Commission"
+  responsibilities:
+    - "Lead and manage sales team"
+    - "Develop and execute sales strategies"
+    - "Build relationships with key clients"
+    - "Meet and exceed sales targets"
+    - "Train and mentor sales representatives"
+  requirements:
+    - "Bachelor's degree in Business or related field"
+    - "8+ years of sales experience"
+    - "Proven track record of meeting sales targets"
+    - "Strong leadership and communication skills"
+    - "Experience with CRM systems"
+
+timesheet:
+  period: "2024-02-01 to 2024-02-14"
+  employee-id: "EMP-002"
+  week1:
+    monday: 8
+    tuesday: 8
+    wednesday: 8
+    thursday: 8
+    friday: 8
+    saturday: 0
+    sunday: 0
+    total: 40
+  week2:
+    monday: 8
+    tuesday: 8
+    wednesday: 8
+    thursday: 8
+    friday: 8
+    saturday: 0
+    sunday: 0
+    total: 40
+  total-hours: 80
+  status: "Submitted"
+  approved-by: "David Wilson"
+  approval-date: "2024-02-15"
+
+leave-request:
+  id: "LR-2024-002"
+  type: "Personal"
+  start-date: "2024-04-10"
+  end-date: "2024-04-12"
+  days-requested: 3
+  reason: "Personal matters"
+  status: "Pending"
+  submitted-date: "2024-03-01"
+  approved-by: ""
+  approval-date: ""
+
+benefits:
+  health-insurance: "Premium Plan - Family"
+  dental-insurance: "Premium Plan"
+  vision-insurance: "Premium Plan"
+  life-insurance: "$150,000"
+  disability-insurance: "Long-term"
+  retirement-plan: "401(k) - 5% company match"
+  enrollment-date: "2020-06-01"
+  dependents: 2
+
+emergency-contact:
+  primary:
+    name: "Robert Smith"
+    relationship: "Husband"
+    phone: "555-1111-2222"
+    email: "robert.smith@example.com"
+  secondary:
+    name: "Mary Smith"
+    relationship: "Mother"
+    phone: "555-3333-4444"
+    email: "mary.smith@example.com"
+
+recognition:
+  date: "2024-02-15"
+  type: "Top Performer"
+  reason: "Exceeded Q4 sales target by 35%"
+  presented-by: "David Wilson, VP of Sales"
+  description: "Recognized for outstanding sales performance and exceptional leadership of the sales team"
+
+company-info:
+  name: "Tech Solutions Inc"
+  address: "123 Business Ave"
+  city: "New York"
+  state: "NY"
+  zip: "10001"
+  phone: "555-0001-2345"
+  email: "hr@techsolutions.com"
+  website: "www.techsolutions.com"
+  tax-id: "12-3456789"

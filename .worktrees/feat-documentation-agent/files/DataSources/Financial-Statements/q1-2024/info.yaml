@@ -1,0 +1,58 @@
+financial-statement:
+  id: "FS-2024-Q1"
+  company-name: "Tech Solutions Inc"
+  period: "Q1 2024"
+  period-start: "2024-01-01"
+  period-end: "2024-03-31"
+  statement-type: "Income Statement"
+  currency: "USD"
+revenue:
+  total: 500000
+  categories:
+    - name: "Product Sales"
+      amount: 350000
+      percentage: 70
+    - name: "Service Revenue"
+      amount: 100000
+      percentage: 20
+    - name: "Consulting"
+      amount: 50000
+      percentage: 10
+expenses:
+  total: 350000
+  categories:
+    - name: "Cost of Goods Sold"
+      amount: 150000
+      percentage: 42.86
+    - name: "Operating Expenses"
+      amount: 120000
+      percentage: 34.29
+    - name: "Salaries & Benefits"
+      amount: 50000
+      percentage: 14.29
+    - name: "Marketing"
+      amount: 20000
+      percentage: 5.71
+    - name: "Utilities & Rent"
+      amount: 10000
+      percentage: 2.86
+profit:
+  gross-profit: 350000
+  operating-profit: 230000
+  net-profit: 150000
+  profit-margin: 30
+taxes:
+  income-tax: 80000
+  tax-rate: 34.78
+company:
+  name: "Tech Solutions Inc"
+  address: "123 Business Ave"
+  city: "New York"
+  state: "NY"
+  zip: "10001"
+  tax-id: "12-3456789"
+prepared-by:
+  name: "Sarah Johnson"
+  title: "CFO"
+  date: "2024-04-15"
+

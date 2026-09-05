@@ -1,0 +1,2 @@
+// http://127.0.0.1:8000/api/{{url}}?{{getPrimaryKey()}}=1&{{getAllColumns()[0]}}=value - Finds {{tableNamePascalCaseSingular}} resources matching specific attributes
+Route::get('{{url}}', [{{tableNamePascalCaseSingular}}Controller::class, '{{methodNameCamelCase}}'])->name('{{tableNameKebabCasePlural}}.find-by-attributes');

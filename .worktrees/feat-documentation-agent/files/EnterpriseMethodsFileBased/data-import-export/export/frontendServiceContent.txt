@@ -1,0 +1,8 @@
+return axiosInstance.post('/{{tableNameKebabCasePlural}}/export', {
+  format,
+  filters,
+  columns,
+  filename
+}, { 
+  responseType: 'blob' 
+}); 

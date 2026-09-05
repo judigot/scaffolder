@@ -112,6 +112,8 @@ export default [
     ],
     foreignTables: ['user'],
     foreignKeys: ['user_id'],
+    isAuthResource: true,
+    ownerField: 'user_id',
     belongsTo: ['user'],
   },
 ] satisfies ISchemaInfo[];

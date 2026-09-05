@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "db:seed": "bun run api/db/seed.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.38.0",
+    "postgres": "^3.4.5",
+    "@faker-js/faker": "^9.3.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.0"
+  }
+}

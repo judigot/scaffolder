@@ -11,11 +11,11 @@ const template = `
 namespace App\\Repositories;
 
 {{modelImports}}
-use App\\Models\\{{tableNamePascalCase}};
+use App\\Models\\{{tableName.pascalCase}};
 use Illuminate\\Support\\Collection;
 use App\\Repositories\\BaseInterface;
 
-interface {{tableNamePascalCase}}Interface extends BaseInterface
+interface {{tableName.pascalCase}}Interface extends BaseInterface
 {
 {{modelSpecificMethods}}
 }
@@ -23,10 +23,7 @@ interface {{tableNamePascalCase}}Interface extends BaseInterface
 
 const createInterfaces = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
-    )
+    .filter(({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot))
     .map((tableInfo) => {
       const { tableName } = tableInfo;
       const { pascalCase: tableNamePascalCase } = changeCase(tableName);

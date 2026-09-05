@@ -1,0 +1,9 @@
+framework=Nest
+url=template-monorepo
+service=template-monorepo
+port=3100
+dockerfile=Dockerfile.dev
+skipMigrate=false
+parity=false
+installFilter=@bigbang/api
+devFilter=@bigbang/api

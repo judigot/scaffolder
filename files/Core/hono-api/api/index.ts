@@ -1,0 +1,42 @@
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { prettyJSON } from 'hono/pretty-json';
+import { hc } from 'hono/client';
+
+// Import route modules
+USE_TABLES():
+  import [TABLE_NAME]Routes from './routes/[SINGULAR]';
+
+const app = new Hono().basePath('/api');
+
+// Middleware
+app.use('*', cors());
+app.use('*', logger());
+app.use('*', prettyJSON());
+
+// Health check
+app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// Mount routes
+USE_TABLES():
+  app.route('/[TABLE_NAME]', [TABLE_NAME]Routes);
+
+// Export types for RPC client
+export type AppType = typeof app;
+
+// Create typed client for use in frontend and tests
+export const createClient = (baseUrl: string) => hc<AppType>(baseUrl);
+
+// Start server
+const port = Number(process.env.PORT) || 3000;
+
+export default {
+  port,
+  fetch: app.fetch,
+};
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  console.log(`Server running at http://localhost:${port}`);
+}

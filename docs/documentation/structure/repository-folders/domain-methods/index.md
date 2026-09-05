@@ -61,13 +61,13 @@ Domain methods handle entity relationships:
 ### HasOne Relationship
 
 ```txt
-Route::get('{{tableNamePlural}}/{id}/{{valueSingular}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCaseSingular}}'])
+Route::get('{{tableName.plural}}/{id}/{{value.singular}}', [{{tableName.singular.pascalCase}}Controller::class, 'get{{value.singular.pascalCase}}'])
 ```
 
 ### HasMany Relationship
 
 ```txt
-Route::get('{{tableNamePlural}}/{id}/{{valuePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCasePlural}}'])
+Route::get('{{tableName.plural}}/{id}/{{value.plural}}', [{{tableName.singular.pascalCase}}Controller::class, 'get{{value.plural.pascalCase}}'])
 ```
 
 ## Usage

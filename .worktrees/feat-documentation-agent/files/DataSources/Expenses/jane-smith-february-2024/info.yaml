@@ -1,0 +1,72 @@
+expense-report:
+  id: "EXP-2024-002"
+  employee-name: "Jane Smith"
+  employee-id: "EMP-002"
+  department: "Sales"
+  period: "February 2024"
+  submission-date: "2024-03-01"
+  status: "Pending"
+  total-amount: 890.25
+  reimbursable-amount: 890.25
+  expenses:
+    - id: "EXP-006"
+      date: "2024-02-10"
+      category: "Travel"
+      subcategory: "Airfare"
+      description: "Flight to client meeting - Chicago"
+      amount: 320.00
+      receipt-number: "RCP-006"
+      receipt-url: ""
+      approved: false
+      notes: "Quarterly client review meeting"
+    - id: "EXP-007"
+      date: "2024-02-11"
+      category: "Meals"
+      subcategory: "Lunch"
+      description: "Client lunch meeting"
+      amount: 65.25
+      receipt-number: "RCP-007"
+      receipt-url: ""
+      approved: false
+      notes: "Business lunch with client"
+    - id: "EXP-008"
+      date: "2024-02-12"
+      category: "Travel"
+      subcategory: "Hotel"
+      description: "Hotel stay - 2 nights"
+      amount: 280.00
+      receipt-number: "RCP-008"
+      receipt-url: ""
+      approved: false
+      notes: "Client visit"
+    - id: "EXP-009"
+      date: "2024-02-15"
+      category: "Marketing"
+      subcategory: "Event"
+      description: "Industry networking event ticket"
+      amount: 125.00
+      receipt-number: "RCP-009"
+      receipt-url: ""
+      approved: false
+      notes: "Professional development"
+    - id: "EXP-010"
+      date: "2024-02-20"
+      category: "Travel"
+      subcategory: "Ground Transportation"
+      description: "Parking and tolls"
+      amount: 100.00
+      receipt-number: "RCP-010"
+      receipt-url: ""
+      approved: false
+      notes: "Business travel expenses"
+approver:
+  name: "Michael Chen"
+  title: "Sales Director"
+  approval-date: ""
+company:
+  name: "Tech Solutions Inc"
+  address: "123 Business Ave"
+  city: "New York"
+  state: "NY"
+  zip: "10001"
+

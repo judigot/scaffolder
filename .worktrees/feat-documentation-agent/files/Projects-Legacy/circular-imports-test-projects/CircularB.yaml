@@ -1,0 +1,10 @@
+src:
+    components:
+        - CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt)
+    hooks:
+        shared:
+            - CREATE_FILE(useResource.ts --template /Templates/frontend/nextjs/hooks/shared/useResource.txt)
+    lib:
+        api:
+            - CREATE_FILE(apiClient.ts --template /Templates/frontend/nextjs/vendor/axiosInstance.txt)
+IMPORT_PROJECT(Projects/CircularA.yaml): 

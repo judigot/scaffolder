@@ -1,0 +1,6 @@
+{
+  "name": "@core/bullmq",
+  "version": "1.0.0",
+  "description": "Nest-first BullMQ overlay (compose into apps/api, not a jobs-only golden)",
+  "private": true
+}

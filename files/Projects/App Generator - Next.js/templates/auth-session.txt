@@ -1,0 +1,35 @@
+import { headers } from 'next/headers';
+import { db } from '@/api/db';
+import { session, user } from '@/api/db/schema';
+import { account, verification } from '@/api/db/auth-schema';
+import {
+  getBetterAuth,
+  initializeBetterAuth,
+} from '@/api/auth/better-auth';
+
+export interface IAuthSession {
+  userId: string;
+}
+
+function getAuth() {
+  try {
+    return getBetterAuth();
+  } catch {
+    return initializeBetterAuth(db, session, user, {
+      account,
+      verification,
+    });
+  }
+}
+
+export async function getAuthSession(): Promise<IAuthSession | null> {
+  const auth = getAuth();
+  const sessionResult = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const userId = sessionResult?.user?.id;
+  if (typeof userId !== 'string' || userId.length === 0) {
+    return null;
+  }
+  return { userId };
+}

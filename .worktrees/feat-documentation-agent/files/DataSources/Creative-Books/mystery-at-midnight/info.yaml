@@ -1,0 +1,65 @@
+book:
+  title: "Mystery at Midnight"
+  author: "James Blackwood"
+  genre: "Mystery"
+  isbn: "978-0-987654-32-1"
+  publication-date: "2024-06-20"
+  publisher: "Crime Novels Publishing"
+  page-count: 320
+  language: "English"
+  format: "Paperback"
+  synopsis: "Detective Sarah Chen investigates a series of mysterious murders that occur only at midnight."
+
+characters:
+  - name: "Detective Sarah Chen"
+    role: "Protagonist"
+    age: 35
+    description: "Brilliant detective with a troubled past"
+    abilities: ["Investigation", "Deduction", "Forensics"]
+    background: "Former FBI agent, now working for local police"
+    
+  - name: "Dr. Michael Roberts"
+    role: "Supporting"
+    age: 42
+    description: "Forensic pathologist and Sarah's ally"
+    abilities: ["Forensic Analysis", "Medical Knowledge"]
+    background: "Chief medical examiner"
+    
+  - name: "The Midnight Killer"
+    role: "Antagonist"
+    age: "Unknown"
+    description: "Mysterious killer who strikes only at midnight"
+    abilities: ["Stealth", "Planning", "Evasion"]
+    background: "Unknown, leaving cryptic clues"
+
+chapters:
+  - number: 1
+    title: "The First Victim"
+    summary: "First murder discovered at exactly midnight"
+    word-count: 2800
+    
+  - number: 2
+    title: "The Investigation Begins"
+    summary: "Sarah starts investigating the case"
+    word-count: 3100
+    
+  - number: 3
+    title: "The Pattern Emerges"
+    summary: "Sarah discovers a pattern in the murders"
+    word-count: 2900
+
+world-building:
+  setting: "Modern-day San Francisco"
+  time-period: "Present Day"
+  magic-system: "None - Realistic Mystery"
+  locations:
+    - "San Francisco Police Department"
+    - "Crime Scenes (Various)"
+    - "Forensic Lab"
+    - "Detective's Apartment"
+
+tags:
+  Category: "Fiction"
+  SubGenre: "Crime Mystery"
+  Themes: ["Investigation", "Justice", "Psychological Thriller"]
+

@@ -1,0 +1,3 @@
+# Results directory
+# ORM test results are written here as JSON files
+# Example: raw_result.json, drizzle_result.json, prisma_result.json

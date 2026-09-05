@@ -1,0 +1,94 @@
+device:
+  name: "web-server-01"
+  type: "server"
+  role: "web-server"
+  location: "Datacenter A, Rack 5, U 10"
+  manufacturer: "Dell"
+  model: "PowerEdge R740"
+  serial-number: "DL123456789"
+  asset-tag: "IT-001"
+
+hardware:
+  cpu:
+    model: "Intel Xeon Gold 6248"
+    cores: 20
+    threads: 40
+    speed: "2.5GHz"
+  memory:
+    total: "128GB"
+    type: "DDR4"
+    slots: 16
+    installed: 8
+  storage:
+    - type: "SSD"
+      capacity: "1TB"
+      interface: "NVMe"
+      model: "Samsung PM983"
+    - type: "HDD"
+      capacity: "4TB"
+      interface: "SATA"
+      model: "Seagate ST4000NM0033"
+  network:
+    interfaces:
+      - name: "eth0"
+        mac: "00:1B:44:11:3A:B7"
+        speed: "1Gbps"
+        status: "up"
+      - name: "eth1"
+        mac: "00:1B:44:11:3A:B8"
+        speed: "1Gbps"
+        status: "up"
+
+software:
+  os:
+    name: "Ubuntu"
+    version: "22.04 LTS"
+    kernel: "5.15.0"
+  services:
+    - name: "nginx"
+      version: "1.22.0"
+      status: "running"
+    - name: "apache2"
+      version: "2.4.52"
+      status: "stopped"
+
+networking:
+  ip-addresses:
+    - ip: "10.0.0.100"
+      subnet: "255.255.255.0"
+      interface: "eth0"
+      type: "static"
+    - ip: "10.0.0.101"
+      subnet: "255.255.255.0"
+      interface: "eth1"
+      type: "static"
+  hostname: "web-server-01.example.com"
+  domain: "example.com"
+  dns-servers:
+    - "10.0.0.5"
+    - "10.0.0.6"
+
+monitoring:
+  enabled: true
+  snmp:
+    enabled: true
+    community: "monitoring"
+    version: "2c"
+  agent:
+    type: "prometheus"
+    port: 9100
+
+maintenance:
+  last-update: "2024-01-15"
+  next-maintenance: "2024-04-15"
+  warranty:
+    expires: "2026-12-31"
+    vendor: "Dell"
+  support-contract: "ProSupport Plus"
+
+tags:
+  Environment: "production"
+  Team: "infrastructure"
+  CostCenter: "IT"
+  Criticality: "high"
+

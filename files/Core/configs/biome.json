@@ -1,0 +1,36 @@
+{
+  "files": {
+    "includes": ["src/**", "!src/tests/golden-projects/output/**"]
+  },
+  "linter": {
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "error",
+        "useExhaustiveDependencies": "warn"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "warn",
+        "useSemanticElements": "warn",
+        "noStaticElementInteractions": "warn",
+        "useKeyWithClickEvents": "warn",
+        "noLabelWithoutControl": "warn",
+        "useHeadingContent": "warn",
+        "noNoninteractiveElementToInteractiveRole": "warn"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "warn",
+        "noControlCharactersInRegex": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "warn"
+      },
+      "performance": {
+        "noAccumulatingSpread": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
+      }
+    }
+  }
+}

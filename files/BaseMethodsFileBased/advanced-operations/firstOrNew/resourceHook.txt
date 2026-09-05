@@ -1,24 +1,24 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { firstOrNewResource } from '@/hooks/shared/useFirstOrNew.ts';
-import { type I{{tableNamePascalCaseSingular}} } from '@/interfaces/I{{tableNamePascalCaseSingular}}.ts';
+import { type I{{tableName.singular.pascalCase}} } from '@/interfaces/I{{tableName.singular.pascalCase}}.ts';
 
 interface IFirstOrNewParams {
-  searchCriteria: Partial<I{{tableNamePascalCaseSingular}}>;
-  defaults?: Partial<I{{tableNamePascalCaseSingular}}>;
+  searchCriteria: Partial<I{{tableName.singular.pascalCase}}>;
+  defaults?: Partial<I{{tableName.singular.pascalCase}}>;
 }
 
-export const useFirstOrNew{{tableNamePascalCaseSingular}} = (
+export const useFirstOrNew{{tableName.singular.pascalCase}} = (
   params: IFirstOrNewParams,
   options?: Omit<
-    UseQueryOptions<I{{tableNamePascalCaseSingular}}, Error>,
+    UseQueryOptions<I{{tableName.singular.pascalCase}}, Error>,
     'queryKey' | 'queryFn'
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'firstOrNew', params.searchCriteria, params.defaults],
+    queryKey: ['{{tableName.plural.camelCase}}', 'firstOrNew', params.searchCriteria, params.defaults],
     queryFn: () =>
-      firstOrNewResource<I{{tableNamePascalCaseSingular}}>(
-        '/{{tableNameCamelCasePlural}}/first-or-new',
+      firstOrNewResource<I{{tableName.singular.pascalCase}}>(
+        '/{{tableName.plural.camelCase}}/first-or-new',
         params.searchCriteria,
         params.defaults
       ),

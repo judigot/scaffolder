@@ -1,0 +1,47 @@
+/**
+ * Primitives > Theme
+ * Semantic tokens that map foundations to meaningful names
+ * These create context-aware design tokens
+ */
+
+@theme {
+  /* ============================================
+     SURFACES & BACKGROUNDS
+     ============================================ */
+  --surface: #000000;
+  --surface-raised: #1a1a1a;
+  --surface-subtle: #0a0a0a;
+  --background: #000000;
+  --background-hover: #1a1a1a;
+
+  /* ============================================
+     TEXT & FOREGROUND
+     ============================================ */
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+  --text-disabled: #4b5563;
+
+  /* ============================================
+     INTERACTIVE ELEMENTS
+     ============================================ */
+  --interactive: #3b82f6;
+  --interactive-hover: #2563eb;
+  --interactive-active: #1d4ed8;
+
+  /* ============================================
+     BORDERS
+     ============================================ */
+  --color-layout-border: #374151;
+  --border-strong: #374151;
+  --border-subtle: #1f2937;
+  --border-disabled: #111827;
+
+  /* ============================================
+     STATUS COLORS
+     ============================================ */
+  --status-success: #10b981;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+}

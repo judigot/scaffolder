@@ -2,17 +2,65 @@
 
 namespace App\Repositories;
 
-[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{valuePascalCaseSingular}};" --separator="\n" ]]
-use App\Models\{{tableNamePascalCaseSingular}};
+use App\Models\<@@>tableName.singular.pascalCase</@@>;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Model;
 use App\Repositories\BaseRepository;
 
-class {{tableNamePascalCaseSingular}}Repository extends BaseRepository implements {{tableNamePascalCaseSingular}}Interface
+class <@@>tableName.singular.pascalCase</@@>Repository extends BaseRepository implements <@@>tableName.singular.pascalCase</@@>Interface
 {
-    public function __construct({{tableNamePascalCaseSingular}} ${{tableNameSingular}})
+    public function __construct(<@@>tableName.singular.pascalCase</@@> $<@@>tableName.singular</@@>)
     {
-        parent::__construct(${{tableNameSingular}});
+        parent::__construct($<@@>tableName.singular</@@>);
     }
 
-[[USE_TEMPLATE(/DomainMethods/laravel/repository.txt)]]
+<@@LOOP@@ data="hasOne" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(string $id): ?Model
+    {
+        return $this->model->findOrFail($id)-><@@>value.singular</@@>;
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="hasMany" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(string $id, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->model->findOrFail($id)-><@@>value.plural</@@>();
+        $column ??= $query->getModel()->getKeyName();
+        return $query->orderBy($column, $direction)->get();
+    }
+
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->getSortedQuery($column, $direction);
+        if ($includeRelated) {
+            $query->with('<@@>value.plural</@@>');
+        }
+        return $query->get();
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="pivotRelationships.relatedTable" separator="\n\n">
+    public function get<@@>value.plural.pascalCase</@@>(string $id, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->model->findOrFail($id)-><@@>value.plural</@@>();
+        $column ??= $query->getModel()->getKeyName();
+        return $query->orderBy($column, $direction)->get();
+    }
+
+    public function getAllWithRelated<@@>value.plural.pascalCase</@@>(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->getSortedQuery($column, $direction);
+        if ($includeRelated) {
+            $query->with('<@@>value.plural</@@>');
+        }
+        return $query->get();
+    }
+</@@LOOP@@>
+
+<@@LOOP@@ data="belongsTo" separator="\n\n">
+    public function get<@@>value.singular.pascalCase</@@>(string $id): ?Model
+    {
+        return $this->model->findOrFail($id)-><@@>value.singular</@@>;
+    }
+</@@LOOP@@>
 }

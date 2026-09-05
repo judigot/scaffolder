@@ -104,13 +104,13 @@ CREATE TABLE "posts" (
           name: 'schema.txt',
           content: `<@@FORMAT@@ language="sql">
 <@@LOOP@@ data="tablesReversed" separator="\\n">
-DROP TABLE IF EXISTS "{{tableName}}";
+DROP TABLE IF EXISTS "<@@>tableName</@@>";
 </@@LOOP@@>
 
 <@@LOOP@@ data="tables" separator="\\n\\n">
-CREATE TABLE "{{tableName}}" (
+CREATE TABLE "<@@>tableName</@@>" (
   <@@LOOP@@ data="columnsInfo" separator=",\\n">
-    "{{value}}"<@@IF@@ condition="is_primary_key EQUALS 'true'"> BIGSERIAL PRIMARY KEY</@@IF@@><@@IF@@ condition="is_primary_key EQUALS 'false'">
+    "<@@>value</@@>"<@@IF@@ condition="is_primary_key EQUALS 'true'"> BIGSERIAL PRIMARY KEY</@@IF@@><@@IF@@ condition="is_primary_key EQUALS 'false'">
       <@@IF@@ condition="data_type EQUALS 'number'"> BIGINT</@@IF@@>
       <@@IF@@ condition="data_type EQUALS 'string'">
         <@@IF@@ condition="value EQUALS 'password'"> CHAR(60)<@@ELSE@@> TEXT</@@ELSE@@></@@IF@@>
@@ -123,7 +123,7 @@ CREATE TABLE "{{tableName}}" (
   </@@LOOP@@>
   <@@LOOP@@ data="columnsInfo" separator="">
     <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
-    CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}")</@@IF@@>
+    CONSTRAINT "FK_<@@>tableName</@@>_<@@>value</@@>" FOREIGN KEY ("<@@>value</@@>") REFERENCES "<@@>foreign_table</@@>" ("<@@>foreign_column</@@>")</@@IF@@>
   </@@LOOP@@>
 );
 </@@LOOP@@>
@@ -405,13 +405,13 @@ CREATE TABLE "{{tableName}}" (
             name: 'schema-formatted.txt',
             content: `<@@FORMAT@@ language="sql">
 <@@LOOP@@ data="tablesReversed" separator="\\n">
-DROP TABLE IF EXISTS "{{tableName}}";
+DROP TABLE IF EXISTS "<@@>tableName</@@>";
 </@@LOOP@@>
 
 <@@LOOP@@ data="tables" separator="\\n\\n">
-CREATE TABLE "{{tableName}}" (
+CREATE TABLE "<@@>tableName</@@>" (
   <@@LOOP@@ data="columnsInfo" separator=",\\n">
-    "{{value}}"<@@IF@@ condition="is_primary_key EQUALS 'true'"> BIGSERIAL PRIMARY KEY</@@IF@@><@@IF@@ condition="is_primary_key EQUALS 'false'">
+    "<@@>value</@@>"<@@IF@@ condition="is_primary_key EQUALS 'true'"> BIGSERIAL PRIMARY KEY</@@IF@@><@@IF@@ condition="is_primary_key EQUALS 'false'">
       <@@IF@@ condition="data_type EQUALS 'number'"> BIGINT</@@IF@@>
       <@@IF@@ condition="data_type EQUALS 'string'">
         <@@IF@@ condition="value EQUALS 'password'"> CHAR(60)<@@ELSE@@> TEXT</@@ELSE@@></@@IF@@>
@@ -424,7 +424,7 @@ CREATE TABLE "{{tableName}}" (
   </@@LOOP@@>
   <@@LOOP@@ data="columnsInfo" separator="">
     <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
-    CONSTRAINT "FK_{{tableName}}_{{value}}" FOREIGN KEY ("{{value}}") REFERENCES "{{foreign_table}}" ("{{foreign_column}}")</@@IF@@>
+    CONSTRAINT "FK_<@@>tableName</@@>_<@@>value</@@>" FOREIGN KEY ("<@@>value</@@>") REFERENCES "<@@>foreign_table</@@>" ("<@@>foreign_column</@@>")</@@IF@@>
   </@@LOOP@@>
 );
 </@@LOOP@@>
@@ -487,18 +487,18 @@ CREATE TABLE "{{tableName}}" (
             type: 'file',
             name: 'schema.txt',
             content: `<@@LOOP@@ data="tablesReversed" separator="\\n">
-DROP TABLE IF EXISTS "{{tableName}}";
+DROP TABLE IF EXISTS "<@@>tableName</@@>";
 </@@LOOP@@>
 
 <@@LOOP@@ data="tables" separator="\\n\\n">
-CREATE TABLE "{{tableName}}" (
+CREATE TABLE "<@@>tableName</@@>" (
   <@@LOOP@@ data="columnsInfo" separator=",\\n">
-    "{{column.name}}"
+    "<@@>column.name</@@>"
     <@@IF@@ condition="is_primary_key EQUALS 'true'">
-      {{typeMappings.primaryKey[formData.dbType]}}
+      <@@>typeMappings.primaryKey[formData.dbType]</@@>
     </@@IF@@>
     <@@IF@@ condition="is_primary_key EQUALS 'false'">
-      {{typeMappings[column.name][formData.dbType] || typeMappings[column.data_type][formData.dbType]}}
+      <@@>typeMappings[column.name][formData.dbType] || typeMappings[column.data_type][formData.dbType]</@@>
       <@@IF@@ condition="is_unique EQUALS 'true'">
         UNIQUE
       </@@IF@@>
@@ -509,7 +509,7 @@ CREATE TABLE "{{tableName}}" (
   </@@LOOP@@>
   <@@LOOP@@ data="columnsInfo" separator="">
     <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
-    CONSTRAINT "FK_{{tableName}}_{{column.name}}" FOREIGN KEY ("{{column.name}}") REFERENCES "{{column.foreign_table}}" ("{{column.foreign_column}}")
+    CONSTRAINT "FK_<@@>tableName</@@>_<@@>column.name</@@>" FOREIGN KEY ("<@@>column.name</@@>") REFERENCES "<@@>column.foreign_table</@@>" ("<@@>column.foreign_column</@@>")
     </@@IF@@>
   </@@LOOP@@>
 );
@@ -783,7 +783,7 @@ updated_at:
                 type: 'file',
                 name: 'structure.yaml',
                 content:
-                  'FILE_LOOP({{tableNamePascalCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):',
+                  'FILE_LOOP(<@@>tableName.singular.pascalCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):',
               },
               {
                 type: 'folder',
@@ -792,16 +792,16 @@ updated_at:
                   {
                     type: 'file',
                     name: 'migration.sql.txt',
-                    content: `DROP TABLE IF EXISTS "{{tableName}}";
+                    content: `DROP TABLE IF EXISTS "<@@>tableName</@@>";
 
-CREATE TABLE "{{tableName}}" (
+CREATE TABLE "<@@>tableName</@@>" (
   <@@LOOP@@ data="columnsInfo" separator=",\\n">
-    "{{column.name}}"
+    "<@@>column.name</@@>"
     <@@IF@@ condition="is_primary_key EQUALS 'true'">
-      {{typeMappings.primaryKey[formData.dbType]}}
+      <@@>typeMappings.primaryKey[formData.dbType]</@@>
     </@@IF@@>
     <@@IF@@ condition="is_primary_key EQUALS 'false'">
-      {{typeMappings[column.name][formData.dbType] || typeMappings[column.data_type][formData.dbType]}}
+      <@@>typeMappings[column.name][formData.dbType] || typeMappings[column.data_type][formData.dbType]</@@>
       <@@IF@@ condition="is_unique EQUALS 'true'">
         UNIQUE
       </@@IF@@>
@@ -812,7 +812,7 @@ CREATE TABLE "{{tableName}}" (
   </@@LOOP@@>
   <@@LOOP@@ data="columnsInfo" separator="">
     <@@IF@@ condition="has_foreign_key EQUALS 'true'">,
-    CONSTRAINT "FK_{{tableName}}_{{column.name}}" FOREIGN KEY ("{{column.name}}") REFERENCES "{{column.foreign_table}}" ("{{column.foreign_column}}")
+    CONSTRAINT "FK_<@@>tableName</@@>_<@@>column.name</@@>" FOREIGN KEY ("<@@>column.name</@@>") REFERENCES "<@@>column.foreign_table</@@>" ("<@@>column.foreign_column</@@>")
     </@@IF@@>
   </@@LOOP@@>
 );
@@ -954,8 +954,8 @@ updated_at:
         // Should not contain template syntax
         expect(content).not.toContain('<@@LOOP@@');
         expect(content).not.toContain('<@@IF@@');
-        expect(content).not.toContain('{{tableName}}');
-        expect(content).not.toContain('{{column.name}}');
+        expect(content).not.toContain('<@@>tableName</@@>');
+        expect(content).not.toContain('<@@>column.name</@@>');
         // Should contain processed SQL
         expect(content).toContain('DROP TABLE IF EXISTS "user"');
         expect(content).toContain('CREATE TABLE "user"');
@@ -1032,7 +1032,7 @@ updated_at:
         expect(content).toContain('REFERENCES "customer"');
         // Should not contain template syntax
         expect(content).not.toContain('<@@LOOP@@');
-        expect(content).not.toContain('{{column.name}}');
+        expect(content).not.toContain('<@@>column.name</@@>');
       }
     });
 
@@ -1089,11 +1089,11 @@ updated_at:
 
 migrations:
   simple-index:
-    FILE_LOOP({{index}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   indexed:
-    FILE_LOOP({{index(1)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index(1)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   zero-padded-3:
-    FILE_LOOP({{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+    FILE_LOOP(<@@>index(1, 3)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
         structureFile.content = actualStructure;
       }
 
@@ -1214,11 +1214,11 @@ migrations:
 
 timestamp-migrations:
   iso-default:
-    FILE_LOOP({{timestamp}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   laravel:
-    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp('YYYY_MM_DD_HHmmss')</@@>_create_<@@>tableName.plural.snakeCase</@@>_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   date-only:
-    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+    FILE_LOOP(<@@>timestamp('YYYY-MM-DD')</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
         structureFile.content = actualStructure;
       }
 
@@ -1330,9 +1330,9 @@ timestamp-migrations:
 
 hybrid:
   timestamp-and-index:
-    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{index(1, 6)}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp('YYYY_MM_DD_HHmmss')</@@>_<@@>index(1, 6)</@@>_create_<@@>tableName.plural.snakeCase</@@>_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   date-and-index:
-    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
+    FILE_LOOP(<@@>timestamp('YYYY-MM-DD')</@@>_<@@>index(1, 3)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):`;
         structureFile.content = actualStructure;
       }
 

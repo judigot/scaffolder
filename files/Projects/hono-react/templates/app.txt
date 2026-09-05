@@ -1,0 +1,19 @@
+import { RouterProvider } from '@tanstack/react-router';
+import { router } from './router';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+function InnerApp() {
+  const auth = useAuth();
+  const contextValue = { auth };
+  return <RouterProvider router={router} context={contextValue} />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <InnerApp />
+    </AuthProvider>
+  );
+}
+
+export default App;

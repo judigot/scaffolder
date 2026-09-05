@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'firstOrCreate',
-  route: `Route::post('{{tableNameKebabCasePlural}}/first-or-create', [{{tableNamePascalCase}}Controller::class, 'firstOrCreate'])->name('{{tableNameKebabCasePlural}}.first-or-create');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/first-or-create', [{{tableName.pascalCase}}Controller::class, 'firstOrCreate'])->name('{{tableName.plural.kebabCase}}.first-or-create');`,
   description: 'Find or create a record',
   repositoryMethod: `firstOrCreate(array $attributes, array $values = []): Model`,
   repositoryContent: `return $this->model->firstOrCreate($attributes, $values);`,

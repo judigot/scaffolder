@@ -1,16 +1,25 @@
+import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { format as formatSQL } from 'sql-formatter';
 import type { DBTypes, ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { isITableArray } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
-import generateSQLSchema from '@/utils/generateSQLSchema.ts';
-import generateSQLDeleteTables from '@/utils/generateSQLDeleteTables.ts';
-import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
-import { executeMySQL } from '@/utils/executeMySQL.ts';
-import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
-import introspect from '@/utils/introspect.ts';
 import convertIntrospectedStructure from '@/utils/convertIntrospectedStructure.ts';
-import { format as formatSQL } from 'sql-formatter';
+import { executeMySQL } from '@/utils/executeMySQL.ts';
+import { executePostgreSQL } from '@/utils/executePostgreSQL.ts';
+import { extractDBConnectionInfo } from '@/utils/extractDBConnectionInfo.ts';
+
+import generateSQLSchema from '@/utils/generateSQLSchema.ts';
+import introspect from '@/utils/introspect.ts';
+
+/**
+ * Generate a unique schema name for test isolation.
+ */
+const generateUniqueSchemaName = (): string => {
+  const id = randomBytes(4).toString('hex');
+  return `test_${id}`;
+};
 
 /**
  * Sets up the form store with the given database connection string.
@@ -29,6 +38,7 @@ export const setupFormStore = (dbConnection: string): void => {
 
 /**
  * Creates database tables from schemaInfo and returns the introspected schema.
+ * Uses unique schemas for PostgreSQL to allow parallel test execution.
  */
 export const createAndIntrospectDatabase = async (
   schemaInfo: ISchemaInfo[],
@@ -38,69 +48,119 @@ export const createAndIntrospectDatabase = async (
   const { dbType } = extractDBConnectionInfo(dbConnection);
 
   /* Generate SQL schema */
-  const deleteTablesQueries = generateSQLDeleteTables(schemaInfo);
   const sqlSchema = generateSQLSchema(schemaInfo);
-  const fullSQL = `${deleteTablesQueries.join('\n')}\n\n${formatSQL(sqlSchema)}`;
+  const fullSQL = formatSQL(sqlSchema).trim();
 
   /* Create database tables */
   if (dbType === 'postgresql') {
+    /* Use unique schema per test for isolation */
+    const schemaName = generateUniqueSchemaName();
     await executePostgreSQL(
       dbConnection,
-      `DROP SCHEMA public CASCADE; CREATE SCHEMA public; ${fullSQL}`,
+      `DROP SCHEMA IF EXISTS ${schemaName} CASCADE; CREATE SCHEMA ${schemaName}; SET search_path TO ${schemaName}; ${fullSQL}`,
     );
-  } else {
-    try {
-      /* Clean slate: Drop all tables first */
-      await executeMySQL(
-        dbConnection,
-        `
-        USE $DB_NAME;
 
-        SET FOREIGN_KEY_CHECKS = 0;
+    /* Introspect the database with the specific schema */
+    const introspectionResult = await introspect(
+      dbConnection,
+      dbType,
+      schemaName,
+    );
 
-        /* Get all tables in the database and drop them */
-        SET @tables = NULL;
-        SELECT GROUP_CONCAT(CONCAT('\`', table_name, '\`') SEPARATOR ', ') INTO @tables
-        FROM information_schema.tables 
-        WHERE table_schema = DATABASE()
-        AND table_type = 'BASE TABLE';
+    /* Clean up the schema after introspection */
+    await executePostgreSQL(
+      dbConnection,
+      `DROP SCHEMA IF EXISTS ${schemaName} CASCADE;`,
+    );
 
-        SET @tables = IFNULL(@tables, '');
-        SET @sql = IF(@tables != '', CONCAT('DROP TABLE IF EXISTS ', @tables), 'SELECT 1');
-        PREPARE stmt FROM @sql;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-
-        SET FOREIGN_KEY_CHECKS = 1;
-        ${fullSQL}`,
-      );
-    } catch (error) {
-      console.error('Error creating MySQL tables:', error);
-      throw error;
+    if (!isITableArray(introspectionResult)) {
+      throw new Error('Invalid introspection result');
     }
+
+    return convertIntrospectedStructure(introspectionResult);
   }
 
-  /* Introspect the database */
-  const introspectionResult = await introspect(dbConnection, dbType);
+  /* MySQL: Use unique database per test for isolation (requires root/privileged user) */
+  const dbName = generateUniqueSchemaName();
+  try {
+    /* Create unique database, run schema, introspect, then drop */
+    await executeMySQL(
+      dbConnection,
+      `CREATE DATABASE IF NOT EXISTS ${dbName};`,
+    );
+    const mysqlStatements = [`USE ${dbName}`, 'SET FOREIGN_KEY_CHECKS = 0'];
+    if (fullSQL.length > 0) {
+      /* Remove trailing semicolon from fullSQL to avoid double semicolons when joining */
+      const cleanSQL = fullSQL.replace(/;\s*$/, '');
+      mysqlStatements.push(cleanSQL);
+    }
+    mysqlStatements.push('SET FOREIGN_KEY_CHECKS = 1');
+    await executeMySQL(dbConnection, `${mysqlStatements.join('; ')};`);
 
-  if (!isITableArray(introspectionResult)) {
-    throw new Error('Invalid introspection result');
+    /* Introspect the unique database */
+    const mysqlConnectionWithDb = dbConnection.replace(
+      /\/[^/]+$/,
+      `/${dbName}`,
+    );
+    const introspectionResult = await introspect(mysqlConnectionWithDb, dbType);
+
+    /* Clean up */
+    await executeMySQL(dbConnection, `DROP DATABASE IF EXISTS ${dbName};`);
+
+    if (!isITableArray(introspectionResult)) {
+      throw new Error('Invalid introspection result');
+    }
+
+    return convertIntrospectedStructure(introspectionResult);
+  } catch (error) {
+    /* Clean up on error */
+    try {
+      await executeMySQL(dbConnection, `DROP DATABASE IF EXISTS ${dbName};`);
+    } catch {
+      /* Ignore cleanup errors */
+    }
+    console.error('Error creating MySQL tables:', error);
+    throw error;
   }
-
-  /* Convert to ISchemaInfo */
-  return convertIntrospectedStructure(introspectionResult);
 };
 
 /**
- * Gets the default connection string for a database type.
- * Uses ports from docker-compose setup.
+ * Gets the connection string for a database type.
+ * Builds URL from individual env vars: DB_DATABASE, DB_USERNAME, DB_PASSWORD, POSTGRESQL_PORT, MYSQL_PORT.
  */
 export const getTestConnectionString = (dbType: DBTypes): string => {
+  const database = process.env.DB_DATABASE ?? 'scaffolder';
+  const username = process.env.DB_USERNAME ?? 'scaffolder';
+  const password = process.env.DB_PASSWORD ?? 'scaffolder123';
+
   if (dbType === 'postgresql') {
-    return 'postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder';
+    const port = process.env.POSTGRESQL_PORT ?? '15432';
+    return `postgresql://${username}:${password}@localhost:${port}/${database}`;
   }
 
-  return 'mysql://scaffolder:scaffolder123@localhost:13306/scaffolder';
+  const port = process.env.MYSQL_PORT ?? '13306';
+  // MySQL uses root for test access
+  return `mysql://root:${password}@localhost:${port}/${database}`;
+};
+
+/**
+ * Checks if a database is reachable by attempting a simple connection.
+ * Returns true if the database is available, false otherwise.
+ */
+export const checkDatabaseConnection = async (
+  dbType: DBTypes,
+): Promise<boolean> => {
+  const dbConnection = getTestConnectionString(dbType);
+  try {
+    if (dbType === 'postgresql') {
+      await executePostgreSQL(dbConnection, 'SELECT 1');
+    } else {
+      await executeMySQL(dbConnection, 'SELECT 1');
+    }
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /**
@@ -159,6 +219,32 @@ export const executeSQLFileAndIntrospect = async (
     /REFRESH MATERIALIZED VIEW[\s\S]*?;\s*/gi,
     '',
   );
+
+  const stripBlockComments = (input: string): string => {
+    let output = '';
+    let index = 0;
+
+    while (index < input.length) {
+      const current = input[index];
+      const next = input[index + 1];
+
+      if (current === '/' && next === '*') {
+        const endIndex = input.indexOf('*/', index + 2);
+        if (endIndex === -1) {
+          break;
+        }
+        index = endIndex + 2;
+        continue;
+      }
+
+      output += current;
+      index += 1;
+    }
+
+    return output;
+  };
+
+  sqlContent = stripBlockComments(sqlContent);
 
   /* Execute SQL to create database */
   if (dbType === 'postgresql') {

@@ -2,7 +2,7 @@ import type { IMethod } from '@/interfaces/IRepositoryPatternStructure.ts';
 
 export default {
   methodName: 'firstOrNew',
-  route: `Route::post('{{tableNameKebabCasePlural}}/first-or-new', [{{tableNamePascalCase}}Controller::class, 'firstOrNew'])->name('{{tableNameKebabCasePlural}}.first-or-new');`,
+  route: `Route::post('{{tableName.plural.kebabCase}}/first-or-new', [{{tableName.pascalCase}}Controller::class, 'firstOrNew'])->name('{{tableName.plural.kebabCase}}.first-or-new');`,
   description: 'Find or return a new record instance',
   repositoryMethod: `firstOrNew(array $attributes, array $values = []): Model`,
   repositoryContent: `return $this->model->firstOrNew($attributes, $values);`,

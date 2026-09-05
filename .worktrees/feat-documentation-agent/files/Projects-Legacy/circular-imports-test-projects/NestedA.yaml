@@ -1,0 +1,14 @@
+app:
+  features:
+    auth:
+      components:
+        - CREATE_FILE(Login.tsx --template /Templates/frontend/react/components/Login.txt)
+        - CREATE_FILE(Register.tsx --template /Templates/frontend/react/components/Register.txt)
+      services:
+        - CREATE_FILE(AuthService.ts --template /Templates/frontend/react/services/AuthService.txt)
+        - nested:
+            imports:
+              - IMPORT_PROJECT(Projects/NestedB.yaml)
+  shared:
+    utils:
+      - CREATE_FILE(helpers.ts --template /Templates/frontend/react/utils/helpers.txt) 

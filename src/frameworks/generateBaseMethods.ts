@@ -12,7 +12,7 @@ const outputDir = path.join(__dirname, '../../files/BaseMethodsFileBased'); // E
 
 if (fs.existsSync(outputDir)) {
   fs.rmdirSync(outputDir, { recursive: true });
-  // eslint-disable-next-line no-console
+
   console.log(`✅ Deleted: ${outputDir}`);
 }
 
@@ -30,7 +30,7 @@ ${methods.map((method) => `  ${method},`).join('\n')}
 ${imports}\n\n${exports}\n`;
   const indexPath = path.join(groupDir, 'index.ts');
   fs.writeFileSync(indexPath, indexContent, 'utf8');
-  // eslint-disable-next-line no-console
+
   console.log(`✅ Created: ${indexPath}`);
 };
 
@@ -75,7 +75,7 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
       properties.forEach((prop) => {
         const filePath = path.join(featureDir, `${prop.name}.txt`);
         fs.writeFileSync(filePath, prop.value, 'utf8');
-        // eslint-disable-next-line no-console
+
         console.log(`✅ Created: ${filePath}`);
       });
 
@@ -84,7 +84,7 @@ const generateFeatureFiles = (operation: IRepositoryStructure[]) => {
 import fs from 'fs';
 import path from 'path';
 
-const currentDir = path.dirname(new URL(import.meta.url).pathname);
+const currentDir = __dirname;
 
 export default {
   methodName: fs.readFileSync(path.join(currentDir, 'methodName.txt'), 'utf8'),
@@ -100,7 +100,7 @@ export default {
 `;
 
       fs.writeFileSync(path.join(featureDir, 'index.ts'), indexContent, 'utf8');
-      // eslint-disable-next-line no-console
+
       console.log(`✅ Created: ${path.join(featureDir, 'index.ts')}`);
     });
   });
@@ -142,7 +142,7 @@ export default baseMethods;
 `;
 
   fs.writeFileSync(path.join(outputDir, 'index.ts'), indexContent, 'utf8');
-  // eslint-disable-next-line no-console
+
   console.log(`✅ Created: ${path.join(outputDir, 'index.ts')}`);
 };
 

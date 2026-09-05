@@ -1,0 +1,1 @@
+Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCaseSingular}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');

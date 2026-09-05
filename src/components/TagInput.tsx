@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 function TagInput({
   id,
@@ -129,7 +129,7 @@ function TagInput({
       {addedValues.map((value, index) => (
         <span
           key={`${id}-${String(index)}`}
-          className="flex items-center bg-blue-700 text-white rounded-full text-sm px-2 py-1 mr-2"
+          className="flex items-center bg-gray-600 text-white rounded-full text-sm px-2 py-1 mr-2"
         >
           {value}
           <button
@@ -137,7 +137,7 @@ function TagInput({
             onClick={() => {
               removeValue(index);
             }}
-            className="bg-blue-700 hover:bg-blue-500 rounded-full ml-2 inline-flex items-center justify-center w-6 h-6"
+            className="bg-gray-600 hover:bg-gray-500 rounded-full ml-2 inline-flex items-center justify-center w-6 h-6"
             aria-label={`Remove ${value}`}
           >
             &times;
@@ -160,11 +160,11 @@ function TagInput({
       />
 
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <ul className="absolute left-0 top-full mt-1 w-full bg-gray-600 rounded shadow-lg z-50">
+        <ul className="absolute left-0 top-full mt-1 w-full bg-gray-700 rounded shadow-lg z-50">
           {filteredSuggestions.map((suggestion, index) => (
             <li
               key={`suggestion-${String(index)}-${suggestion}`}
-              className="p-2 text-white hover:bg-gray-500 rounded-t-md first:rounded-t-md last:rounded-b-md"
+              className="p-2 text-white hover:bg-gray-600 rounded-t-md first:rounded-t-md last:rounded-b-md"
               onClick={() => {
                 handleSuggestionClick(suggestion);
               }}
@@ -174,8 +174,6 @@ function TagInput({
                   handleSuggestionClick(suggestion);
                 }
               }}
-              role="button"
-              tabIndex={0}
               aria-label={`Suggestion: ${suggestion}`}
             >
               {suggestion}

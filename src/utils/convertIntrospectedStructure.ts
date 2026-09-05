@@ -1,11 +1,11 @@
 import {
   type IColumnInfo,
+  type IIntrospectedSchemaInfo,
   type ISchemaInfo,
   isITable,
-  type IIntrospectedSchemaInfo,
 } from '@/interfaces/interfaces.ts';
-import { addSchemaInfo } from '@/utils/identifySchema.ts';
 import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { addSchemaInfo } from '@/utils/identifySchema.ts';
 import { isRecord } from '@/utils/typeGuards.ts';
 
 export const getTypeScriptType = (dataType: string): string => {
@@ -113,6 +113,38 @@ export const convertColumn = ({
   return convertedColumn;
 };
 
+const mergeColumnInfo = (
+  baseColumn: IColumnInfo,
+  incomingColumn: IColumnInfo,
+): IColumnInfo => {
+  const isNullable =
+    baseColumn.is_nullable === 'NO' || incomingColumn.is_nullable === 'NO'
+      ? 'NO'
+      : 'YES';
+
+  return {
+    column_name: baseColumn.column_name,
+    data_type: baseColumn.data_type || incomingColumn.data_type,
+    is_nullable: isNullable,
+    ...(baseColumn.column_default !== undefined &&
+    baseColumn.column_default !== null
+      ? { column_default: baseColumn.column_default }
+      : incomingColumn.column_default !== undefined &&
+          incomingColumn.column_default !== null
+        ? { column_default: incomingColumn.column_default }
+        : {}),
+    ...(baseColumn.primary_key || incomingColumn.primary_key
+      ? { primary_key: true }
+      : {}),
+    ...(baseColumn.unique || incomingColumn.unique ? { unique: true } : {}),
+    ...((baseColumn.foreign_key ?? incomingColumn.foreign_key)
+      ? {
+          foreign_key: baseColumn.foreign_key ?? incomingColumn.foreign_key,
+        }
+      : {}),
+  };
+};
+
 export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
   let tableName: string;
   let columns: IColumnInfo[];
@@ -124,7 +156,21 @@ export const convertTable = (table: IIntrospectedSchemaInfo): ISchemaInfo => {
     throw new Error('Invalid table structure or dbType');
   }
 
-  const columnsInfo = columns.map(convertColumn);
+  const columnsInfo = (() => {
+    const mergedColumns = new Map<string, IColumnInfo>();
+    columns.map(convertColumn).forEach((column) => {
+      const existing = mergedColumns.get(column.column_name);
+      if (existing) {
+        mergedColumns.set(
+          column.column_name,
+          mergeColumnInfo(existing, column),
+        );
+      } else {
+        mergedColumns.set(column.column_name, column);
+      }
+    });
+    return Array.from(mergedColumns.values());
+  })();
   const requiredColumns = getRequiredColumns(columnsInfo);
   const foreignTables = getForeignTables(columnsInfo);
   const foreignKeys = getForeignKeys(columnsInfo);

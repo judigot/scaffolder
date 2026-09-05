@@ -1,0 +1,14 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\{{tableNamePascalCaseSingular}};
+use App\Repositories\{{tableNamePascalCaseSingular}}Repository;
+
+class {{tableNamePascalCaseSingular}}Service extends BaseService
+{
+    public function __construct({{tableNamePascalCaseSingular}}Repository $repository)
+    {
+        parent::__construct($repository);
+    }
+}

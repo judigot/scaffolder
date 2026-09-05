@@ -1,0 +1,25 @@
+# Laravel Ignored Tables
+- cache
+- cache_locks
+- failed_jobs
+- horizon_jobs
+- horizon_monitoring
+- horizon_supervisor_commands
+- horizon_tags
+- job_batches
+- jobs
+- migrations
+- notifications
+- oauth_access_tokens
+- oauth_auth_codes
+- oauth_clients
+- oauth_device_codes
+- oauth_personal_access_clients
+- oauth_refresh_tokens
+- password_reset_tokens
+- password_resets
+- personal_access_tokens
+- sessions
+- telescope_entries
+- telescope_entries_tags
+- telescope_monitoring

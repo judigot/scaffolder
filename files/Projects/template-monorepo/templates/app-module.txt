@@ -1,0 +1,12 @@
+import { Module } from '@nestjs/common';
+import { HealthController } from './health.controller';
+import { HelloController } from './hello.controller';
+<@@LOOP@@ data="tables" separator="\n">import { <@@>tableName.singular.pascalCase</@@>Module } from './modules/<@@>tableName.camelCase</@@>.module';</@@LOOP@@>
+
+@Module({
+  imports: [
+<@@LOOP@@ data="tables" separator=",\n">    <@@>tableName.singular.pascalCase</@@>Module</@@LOOP@@>
+  ],
+  controllers: [HealthController, HelloController],
+})
+export class AppModule {}

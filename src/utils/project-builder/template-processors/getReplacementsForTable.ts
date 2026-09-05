@@ -1,7 +1,18 @@
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { changeCase } from '@/utils/common.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
-import type { Replacements } from '@/utils/project-builder/interfaces/interfaces.ts';
+import type {
+  BuildContext,
+  Replacements,
+} from '@/utils/project-builder/interfaces/interfaces.ts';
+import { getReplacementsForAuth } from '@/utils/project-builder/template-processors/getReplacementsForAuth.ts';
+import type { IFormStore } from '@/useFormStore.ts';
+
+// Database identifier quote characters
+const IDENTIFIER_QUOTES: Record<string, string> = {
+  mysql: '`',
+  postgresql: '"',
+};
 
 /**
  * Creates a helper function to support dynamic separators
@@ -50,12 +61,83 @@ const addIndexedAccess = (
   }
 };
 
-export const getReplacementsForTable = (
+interface ITableReplacementOptions {
+  tableIndex?: number;
+  totalTables?: number;
+}
+
+const isBuildContext = (value: unknown): value is BuildContext => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userFiles' in value &&
+    'schemaInfoParsed' in value &&
+    'projectYamlPath' in value
+  );
+};
+
+interface IResolvedReplacementArgs {
+  schemaInfoParsed: ISchemaInfoResult;
+  tableIndex?: number;
+  totalTables?: number;
+  formData?: IFormStore;
+}
+
+const resolveReplacementArgs = (
+  ctxOrSchemaInfoParsed: BuildContext | ISchemaInfoResult,
+  tableIndexOrOptions?: number | ITableReplacementOptions,
+  totalTablesArg?: number,
+  formDataArg?: IFormStore,
+): IResolvedReplacementArgs => {
+  if (isBuildContext(ctxOrSchemaInfoParsed)) {
+    const options =
+      typeof tableIndexOrOptions === 'object' ? tableIndexOrOptions : undefined;
+
+    return {
+      schemaInfoParsed: ctxOrSchemaInfoParsed.schemaInfoParsed,
+      tableIndex: options?.tableIndex,
+      totalTables: options?.totalTables,
+      formData: ctxOrSchemaInfoParsed.formData,
+    };
+  }
+
+  return {
+    schemaInfoParsed: ctxOrSchemaInfoParsed,
+    tableIndex:
+      typeof tableIndexOrOptions === 'number' ? tableIndexOrOptions : undefined,
+    totalTables: totalTablesArg,
+    formData: formDataArg,
+  };
+};
+
+export function getReplacementsForTable(
+  table: ISchemaInfo,
+  ctx: BuildContext,
+  options?: ITableReplacementOptions,
+): Replacements;
+export function getReplacementsForTable(
   table: ISchemaInfo,
   schemaInfoParsed: ISchemaInfoResult,
   tableIndex?: number,
   totalTables?: number,
-): Replacements => {
+  formData?: IFormStore,
+): Replacements;
+
+export function getReplacementsForTable(
+  table: ISchemaInfo,
+  ctxOrSchemaInfoParsed: BuildContext | ISchemaInfoResult,
+  tableIndexOrOptions?: number | ITableReplacementOptions,
+  totalTablesArg?: number,
+  formDataArg?: IFormStore,
+): Replacements {
+  const { schemaInfoParsed, tableIndex, totalTables, formData } =
+    resolveReplacementArgs(
+      ctxOrSchemaInfoParsed,
+      tableIndexOrOptions,
+      totalTablesArg,
+      formDataArg,
+    );
+
   const tableName = table.tableName;
   const caseFormats = changeCase(tableName);
 
@@ -65,6 +147,14 @@ export const getReplacementsForTable = (
   const foreignTables = schemaInfoParsed.getForeignTables(table.tableName);
   const hiddenColumns = schemaInfoParsed.getHiddenColumns(table.tableName);
   const childTables = schemaInfoParsed.getChildTables(table.tableName);
+
+  // Auth resource detection
+  const isAuthResource = table.isAuthResource === true;
+  const ownerField = table.ownerField ?? '';
+  const ownerFieldCamelCase = ownerField
+    ? changeCase(ownerField).camelCase
+    : '';
+
   const columnInfoNames = schemaInfoParsed
     .getColumnsInfo(table.tableName)
     .map((col) => col.column_name);
@@ -77,8 +167,52 @@ export const getReplacementsForTable = (
   const belongsToManyRelationships =
     schemaInfoParsed.getRelationships(table.tableName).belongsToMany ?? [];
 
+  // Get primary key and its camelCase version
+  const primaryKey = schemaInfoParsed.getPrimaryKey(table.tableName);
+  const primaryKeyCamelCase = primaryKey
+    ? changeCase(primaryKey).camelCase
+    : '';
+
+  // Get composite primary key info
+  const compositePrimaryKey = schemaInfoParsed.getCompositePrimaryKey(
+    table.tableName,
+  );
+  const compositePrimaryKeyCamelCase = compositePrimaryKey.map(
+    (col) => changeCase(col).camelCase,
+  );
+  const hasCompositePK = schemaInfoParsed.hasCompositePrimaryKey(
+    table.tableName,
+  );
+
+  // Get primary key data type
+  const columnsInfo = schemaInfoParsed.getColumnsInfo(table.tableName);
+  const primaryKeyColumn = hasCompositePK
+    ? columnsInfo.find((col) => col.column_name === compositePrimaryKey[0])
+    : columnsInfo.find((col) => col.primary_key === true);
+  const rawPkDataType = primaryKeyColumn?.data_type ?? '';
+  // Keep uuid distinct from lucia string ids so templates can emit crypto.randomUUID()
+  const primaryKeyDataType =
+    rawPkDataType === 'string' || rawPkDataType === 'uuid'
+      ? rawPkDataType
+      : 'number';
+
+  // Get auth-related replacements (project-level)
+  const authReplacements = getReplacementsForAuth(schemaInfoParsed.schema);
+
+  // Database-related replacements
+  const dbType =
+    formData !== undefined && typeof formData.dbType === 'string'
+      ? formData.dbType
+      : 'postgresql';
+  const identifierQuote = IDENTIFIER_QUOTES[dbType] ?? '"';
+
   // Create base replacements object
   const baseReplacements: Replacements = {
+    ...authReplacements,
+    // Database-specific replacements
+    dbType,
+    identifierQuote,
+    'formData.dbType': dbType,
     tableNamePascalCase: caseFormats.pascalCase,
     tableNamePascalCaseSingular: caseFormats.pascalCaseSingular,
     tableNameKebabCasePlural: caseFormats.kebabCasePlural,
@@ -93,6 +227,7 @@ export const getReplacementsForTable = (
     tableNameCamelCase: caseFormats.camelCase,
     tableNameKebabCase: caseFormats.kebabCase,
     tableNameSnakeCase: caseFormats.snakeCase,
+    tableNameUpperCase: caseFormats.snakeCase.toUpperCase(),
     tableNameTitleCasePlural: caseFormats.titleCasePlural,
     tableNameSentenceCasePlural: caseFormats.sentenceCasePlural,
     tableNamePhraseCasePlural: caseFormats.phraseCasePlural,
@@ -103,7 +238,10 @@ export const getReplacementsForTable = (
     tableNamePhraseCaseSingular: caseFormats.phraseCaseSingular,
     tableNameCamelCaseSingular: caseFormats.camelCaseSingular,
     tableNameKebabCaseSingular: caseFormats.kebabCaseSingular,
-    'getPrimaryKey()': schemaInfoParsed.getPrimaryKey(table.tableName),
+    'getPrimaryKey()': primaryKey,
+    'getPrimaryKeyCamelCase()': primaryKeyCamelCase,
+    primaryKey: primaryKeyCamelCase,
+    primaryKeyDataType,
     'getRequiredColumns()': requiredColumns,
     'getAllColumns()': allColumns,
     'getForeignTables()': foreignTables,
@@ -111,6 +249,16 @@ export const getReplacementsForTable = (
     'getColumnsInfoNames()': columnInfoNames,
     'getChildTables()': childTables,
     'isPivot()': String(schemaInfoParsed.isPivot(table.tableName)),
+    // Composite primary key support
+    // Use <@@LOOP@@ data="compositePrimaryKey"> in templates for flexible iteration
+    'hasCompositePrimaryKey()': String(hasCompositePK),
+    'getCompositePrimaryKey()': compositePrimaryKey,
+    'getCompositePrimaryKeyCamelCase()': compositePrimaryKeyCamelCase,
+    // Auth resource template variables
+    isAuthResource: String(isAuthResource),
+    'isAuthResource()': String(isAuthResource),
+    ownerField,
+    ownerFieldCamelCase,
     'hasOneRelationships()': hasOneRelationships,
     'hasManyRelationships()': hasManyRelationships,
     'belongsToRelationships()': belongsToRelationships,
@@ -121,6 +269,24 @@ export const getReplacementsForTable = (
     // Default index and timestamp as properties (0-based index, ISO timestamp)
     index: tableIndex !== undefined ? String(tableIndex) : '0',
     timestamp: new Date().toISOString(),
+    dbUsername:
+      formData !== undefined && typeof formData.dbUsername === 'string'
+        ? formData.dbUsername
+        : '',
+    dbPassword:
+      formData !== undefined && typeof formData.dbPassword === 'string'
+        ? formData.dbPassword
+        : '',
+    dbHost:
+      formData !== undefined && typeof formData.dbHost === 'string'
+        ? formData.dbHost
+        : '',
+    dbPort: formData === undefined ? '' : String(formData.dbPort),
+    dbName:
+      formData !== undefined && typeof formData.dbName === 'string'
+        ? formData.dbName
+        : '',
+    softDeleteFunctions: '',
   };
 
   // Add indexed access for all array properties
@@ -135,6 +301,8 @@ export const getReplacementsForTable = (
     ['hasManyRelationships', hasManyRelationships],
     ['belongsToRelationships', belongsToRelationships],
     ['belongsToManyRelationships', belongsToManyRelationships],
+    ['getCompositePrimaryKey', compositePrimaryKey],
+    ['getCompositePrimaryKeyCamelCase', compositePrimaryKeyCamelCase],
   ];
 
   // Add indexed access for all array properties
@@ -167,4 +335,4 @@ export const getReplacementsForTable = (
   });
 
   return replacementsProxy;
-};
+}

@@ -1,6 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import type { IMockAuthConfig } from '@/test/mocks/auth/types.ts';
 import { useUserStore } from '@/useUserStore.ts';
 
 interface IServerConfigStatus {
@@ -64,6 +65,36 @@ const isTokenResponse = (val: unknown): val is ITokenResponse => {
 };
 
 import { getApiUrl } from '@/utils/getApiUrl.ts';
+
+/**
+ * Type predicate to check if window has mock auth config
+ */
+const hasMockAuth = (
+  win: Window,
+): win is Window & { __MOCK_AUTH__: IMockAuthConfig } => {
+  return (
+    '__MOCK_AUTH__' in win &&
+    typeof win.__MOCK_AUTH__ === 'object' &&
+    win.__MOCK_AUTH__ !== null
+  );
+};
+
+/**
+ * Get mock auth configuration from window if available
+ * Returns null if not in mock auth mode
+ */
+const getMockAuth = (): IMockAuthConfig | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  if (!hasMockAuth(window)) {
+    return null;
+  }
+  if (window.__MOCK_AUTH__.isAuthenticated === true) {
+    return window.__MOCK_AUTH__;
+  }
+  return null;
+};
 
 const fetchUserMetadata = async (
   accessToken: string,
@@ -140,14 +171,18 @@ const fetchGitHubToken = async (
 };
 
 export const useUser = (): IUseUserReturn => {
+  const mockAuth = getMockAuth();
   const {
     user: auth0User,
-    isAuthenticated,
+    isAuthenticated: auth0IsAuthenticated,
     isLoading: auth0Loading,
     getAccessTokenSilently,
     error: auth0Error,
     logout: auth0Logout,
   } = useAuth0();
+
+  const isAuthenticated = auth0IsAuthenticated || mockAuth !== null;
+  const user = mockAuth?.user ?? auth0User ?? null;
 
   const {
     setUser,
@@ -159,11 +194,12 @@ export const useUser = (): IUseUserReturn => {
   } = useUserStore();
 
   const getAccessToken = async (): Promise<string | null> => {
-    if (
-      !isAuthenticated ||
-      auth0User?.sub === undefined ||
-      auth0User.sub === ''
-    ) {
+    if (mockAuth?.accessToken !== undefined && mockAuth.accessToken !== null) {
+      setAccessToken(mockAuth.accessToken);
+      return mockAuth.accessToken;
+    }
+
+    if (!isAuthenticated || user?.sub === undefined || user.sub === '') {
       return null;
     }
 
@@ -193,8 +229,14 @@ export const useUser = (): IUseUserReturn => {
     isLoading: metadataLoading,
     error: metadataError,
   } = useQuery({
-    queryKey: ['userMetadata', auth0User?.sub],
+    queryKey: ['userMetadata', user?.sub],
     queryFn: async () => {
+      if (mockAuth?.userMetadata) {
+        const metadata = mockAuth.userMetadata;
+        setUserMetadata(metadata);
+        return { metadata, serverConfigStatus: null };
+      }
+
       const accessToken = await getAccessToken();
       if (accessToken === null) {
         return { metadata: null, serverConfigStatus: null };
@@ -204,7 +246,7 @@ export const useUser = (): IUseUserReturn => {
       setUserMetadata(result.metadata);
       return result;
     },
-    enabled: isAuthenticated && auth0User?.sub !== undefined,
+    enabled: isAuthenticated && user?.sub !== undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: false,
@@ -216,8 +258,22 @@ export const useUser = (): IUseUserReturn => {
     error: tokenError,
     refetch: refetchToken,
   } = useQuery({
-    queryKey: ['githubToken', auth0User?.sub],
+    queryKey: ['githubToken', user?.sub],
     queryFn: async () => {
+      if (mockAuth?.userMetadata) {
+        const token =
+          typeof mockAuth.userMetadata.github_token === 'string'
+            ? mockAuth.userMetadata.github_token
+            : null;
+        setGithubToken(token);
+        return {
+          token,
+          encryptionAvailable: true,
+          isTokenEncrypted: false,
+          serverConfigStatus: null,
+        };
+      }
+
       const accessToken = await getAccessToken();
       if (accessToken === null) {
         return {
@@ -232,17 +288,17 @@ export const useUser = (): IUseUserReturn => {
       setGithubToken(fetchedData.token);
       return fetchedData;
     },
-    enabled: isAuthenticated && auth0User?.sub !== undefined,
+    enabled: isAuthenticated && user?.sub !== undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: false,
   });
 
   useEffect(() => {
-    if (auth0User) {
-      setUser(auth0User);
+    if (user) {
+      setUser(user);
     }
-  }, [auth0User, setUser]);
+  }, [user, setUser]);
 
   const refreshGitHubToken = async (): Promise<void> => {
     await refetchToken();
@@ -250,24 +306,34 @@ export const useUser = (): IUseUserReturn => {
 
   const logout = (): void => {
     void auth0Logout({
-      logoutParams: { returnTo: window.location.origin },
+      logoutParams: {
+        returnTo:
+          `${window.location.origin}${import.meta.env.BASE_URL}`.replace(
+            /\/$/,
+            '',
+          ),
+      },
     });
   };
 
-  const isLoading = auth0Loading || metadataLoading || tokenLoading;
-  const error = auth0Error ?? metadataError ?? tokenError ?? null;
+  const isLoading =
+    (mockAuth === null && auth0Loading) || metadataLoading || tokenLoading;
+  const error =
+    mockAuth !== null
+      ? null
+      : (auth0Error ?? metadataError ?? tokenError ?? null);
 
   const serverConfigStatus =
     tokenData?.serverConfigStatus ?? metadataResult?.serverConfigStatus ?? null;
 
   return {
-    user: auth0User ?? null,
+    user,
     userMetadata: metadataResult?.metadata ?? userMetadata,
     githubToken: tokenData?.token ?? githubToken,
     isLoading,
     isAuthenticated,
     error: error instanceof Error ? error : null,
-    accessToken: useUserStore.getState().accessToken,
+    accessToken: mockAuth?.accessToken ?? useUserStore.getState().accessToken,
     logout,
     refreshGitHubToken,
     encryptionAvailable: tokenData?.encryptionAvailable ?? false,

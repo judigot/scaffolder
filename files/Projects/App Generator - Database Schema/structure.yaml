@@ -4,65 +4,65 @@ CREATE_FILE(schema.sql --template /Templates/schema.txt --data-source=/Constants
 migrations:
   # Simple index (0-based, no padding)
   simple-index:
-    FILE_LOOP({{index}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # 1-based index with zero-padding (auto-width)
   indexed:
-    FILE_LOOP({{index(1)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index(1)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Zero-padded 3-digit index (1-based)
   zero-padded-3:
-    FILE_LOOP({{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index(1, 3)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Zero-padded 4-digit index (Django-style)
   django-style:
-    FILE_LOOP({{index(1, 4)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index(1, 4)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Format string detection (from '001' pattern)
   format-string:
-    FILE_LOOP({{index('001')}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index('001')</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Index with offset
   with-offset:
-    FILE_LOOP({{index(1, 3, 100)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>index(1, 3, 100)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
 
 # Timestamp-based migrations
 timestamp-migrations:
   # ISO 8601 timestamp (default)
   iso-default:
-    FILE_LOOP({{timestamp}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Laravel-style timestamp
   laravel:
-    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp('YYYY_MM_DD_HHmmss')</@@>_create_<@@>tableName.plural.snakeCase</@@>_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Rails-style timestamp
   rails:
-    FILE_LOOP({{timestamp('YYYYMMDDHHmmss')}}_create_{{tableNameSnakeCasePlural}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp('YYYYMMDDHHmmss')</@@>_create_<@@>tableName.plural.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
 # Hybrid: Timestamp + Index
 hybrid:
   # Timestamp + Index (Laravel + Index)
   timestamp-and-index:
-    FILE_LOOP({{timestamp('YYYY_MM_DD_HHmmss')}}_{{index(1, 6)}}_create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp('YYYY_MM_DD_HHmmss')</@@>_<@@>index(1, 6)</@@>_create_<@@>tableName.plural.snakeCase</@@>_table.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Date + Index
   date-and-index:
-    FILE_LOOP({{timestamp('YYYY-MM-DD')}}_{{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp('YYYY-MM-DD')</@@>_<@@>index(1, 3)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Rails timestamp + Index
   rails-with-index:
-    FILE_LOOP({{timestamp('YYYYMMDD')}}_{{index(1, 3)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(<@@>timestamp('YYYYMMDD')</@@>_<@@>index(1, 3)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
 
 # MyBatis Flyway migrations for Java
 mybatis-flyway:
   # Flyway versioned migrations (V1__, V2__, etc.)
   versioned:
-    FILE_LOOP(V{{index(1)}}__Create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/flyway-migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(V<@@>index(1)</@@>__Create_<@@>tableName.plural.snakeCase</@@>_table.sql --template ./templates/flyway-migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
   
   # Flyway with zero-padded version (V001__, V002__, etc.)
   zero-padded:
-    FILE_LOOP(V{{index(1, 3)}}__Create_{{tableNameSnakeCasePlural}}_table.sql --template ./templates/flyway-migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+    FILE_LOOP(V<@@>index(1, 3)</@@>__Create_<@@>tableName.plural.snakeCase</@@>_table.sql --template ./templates/flyway-migration.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
 
 # Sample data exports
 sample-data:
@@ -81,8 +81,8 @@ sample-data:
   # Per-table seed data files
   per-table:
     sql:
-      FILE_LOOP({{tableNameSnakeCaseSingular}}-seed.sql --template ./templates/table-seed.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+      FILE_LOOP(<@@>tableName.singular.snakeCase</@@>-seed.sql --template ./templates/table-seed.sql.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
     csv:
-      FILE_LOOP({{tableNameSnakeCaseSingular}}-seed.csv --template ./templates/table-seed.csv.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+      FILE_LOOP(<@@>tableName.singular.snakeCase</@@>-seed.csv --template ./templates/table-seed.csv.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
     json:
-      FILE_LOOP({{tableNameSnakeCaseSingular}}-seed.json --template ./templates/table-seed.json.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):
+      FILE_LOOP(<@@>tableName.singular.snakeCase</@@>-seed.json --template ./templates/table-seed.json.txt --data-source=/Constants/typeMappings.yaml,/Constants/dbTypes.yaml):

@@ -1,19 +1,19 @@
 hooks:
   shared:
-    - CREATE_BASE_METHOD_FILE(use{{methodNamePascalCase}}.ts --template /BaseMethodsFileBased/**/**/baseHook.txt)
+    - CREATE_BASE_METHOD_FILE(use<@@>methodNamePascalCase</@@>.ts --template /BaseMethodsFileBased/**/**/baseHook.txt)
     - CREATE_FILE(handleError.ts --template ./templates/handleError.txt)
-  FOLDER_LOOP({{tableNameKebabCaseSingular}}):
-    - CREATE_BASE_METHOD_FILE(use{{methodNamePascalCase}}{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/**/**/resourceHook.txt)
-    # - CREATE_FILE(useCreate{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/crud/create/resourceHook.txt)
-    # - CREATE_FILE(useDelete{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/crud/destroy/resourceHook.txt)
-    # - CREATE_FILE(useFindById{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/crud/findById/resourceHook.txt)
-    # - CREATE_FILE(use{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/crud/index/resourceHook.txt)
-    # - CREATE_FILE(useUpdate{{tableNamePascalCaseSingular}}.ts --scoped --template /BaseMethodsFileBased/crud/update/resourceHook.txt)
+  FOLDER_LOOP(<@@>tableName.singular.kebabCase</@@>):
+    - CREATE_BASE_METHOD_FILE(use<@@>methodNamePascalCase</@@><@@>tableName.singular.pascalCase</@@>.ts --scoped --template /BaseMethodsFileBased/**/**/resourceHook.txt)
+    # - CREATE_FILE(useCreate<@@>tableName.singular.pascalCase</@@>.ts --scoped --template /BaseMethodsFileBased/crud/create/resourceHook.txt)
+    # - CREATE_FILE(useDelete<@@>tableName.singular.pascalCase</@@>.ts --scoped --template /BaseMethodsFileBased/crud/destroy/resourceHook.txt)
+    # - CREATE_FILE(useFindById<@@>tableName.singular.pascalCase</@@>.ts --scoped --template /BaseMethodsFileBased/crud/findById/resourceHook.txt)
+    # - CREATE_FILE(use<@@>tableName.singular.pascalCase</@@>.ts --scoped --template /BaseMethodsFileBased/crud/index/resourceHook.txt)
+    # - CREATE_FILE(useUpdate<@@>tableName.singular.pascalCase</@@>.ts --scoped --template /BaseMethodsFileBased/crud/update/resourceHook.txt)
 interfaces:
-  - FILE_LOOP(I{{tableNamePascalCaseSingular}}.ts --template /Templates/frontend/TypeScript-Interface.txt)
+  - FILE_LOOP(I<@@>tableName.singular.pascalCase</@@>.ts --template /Templates/frontend/TypeScript-Interface.txt)
 services:
-  FOLDER_LOOP({{tableNameKebabCaseSingular}}):
-    - CREATE_FILE({{tableNamePascalCaseSingular}}Service.ts --scoped --template ./templates/service.txt)
+  FOLDER_LOOP(<@@>tableName.singular.kebabCase</@@>):
+    - CREATE_FILE(<@@>tableName.singular.pascalCase</@@>Service.ts --scoped --template ./templates/service.txt)
 vendor:
   - CREATE_FILE(axiosInstance.ts --template /Templates/frontend/nextjs/vendor/axiosInstance.txt)
   - CREATE_FILE(useQueryInstance.ts --template /Templates/frontend/nextjs/vendor/useQueryInstance.txt)

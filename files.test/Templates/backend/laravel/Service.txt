@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\{{tableNamePascalCase}};
-use App\Repositories\{{tableNamePascalCase}}Repository;
+use App\Models\{{tableName.pascalCase}};
+use App\Repositories\{{tableName.pascalCase}}Repository;
 
-class {{tableNamePascalCase}}Service extends BaseService
+class {{tableName.pascalCase}}Service extends BaseService
 {
-    public function __construct({{tableNamePascalCase}}Repository $repository)
+    public function __construct({{tableName.pascalCase}}Repository $repository)
     {
         parent::__construct($repository);
     }

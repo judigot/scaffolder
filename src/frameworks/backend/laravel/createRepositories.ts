@@ -12,12 +12,12 @@ namespace App\\Repositories;
 
 {{modelImports}}
 use Illuminate\\Support\\Collection;
-use App\\Models\\{{tableNamePascalCase}};
+use App\\Models\\{{tableName.pascalCase}};
 use App\\Repositories\\BaseRepository;
 
-class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tableNamePascalCase}}Interface
+class {{tableName.pascalCase}}Repository extends BaseRepository implements {{tableName.pascalCase}}Interface
 {
-    public function __construct({{tableNamePascalCase}} $model)
+    public function __construct({{tableName.pascalCase}} $model)
     {
         parent::__construct($model);
     }
@@ -27,10 +27,7 @@ class {{tableNamePascalCase}}Repository extends BaseRepository implements {{tabl
 
 const createRepositories = (schemaInfo: ISchemaInfo[]): IFile[] => {
   return schemaInfo
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      ({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot),
-    )
+    .filter(({ isPivot }) => !(APP_SETTINGS.excludePivotTableFiles && isPivot))
     .map((tableInfo) => {
       const { tableName } = tableInfo;
       const { pascalCase: tableNamePascalCase } = changeCase(tableName);

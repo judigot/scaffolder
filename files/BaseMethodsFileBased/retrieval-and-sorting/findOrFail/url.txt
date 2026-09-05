@@ -1,1 +1,1 @@
-{{tableNameKebabCasePlural}}/{id}
+{{tableName.plural.kebabCase}}/{id}

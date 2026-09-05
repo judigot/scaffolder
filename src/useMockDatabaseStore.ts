@@ -1,10 +1,10 @@
-import type { IFile, IStructure, IFolder } from '@/components/FileViewer.tsx';
-import { create } from 'zustand';
-import { useProjectStore } from '@/useProjectStore.ts';
 import equal from 'fast-deep-equal';
 import yaml from 'yaml';
-import { isRecord } from '@/utils/typeGuards.ts';
+import { create } from 'zustand';
+import type { IFile, IFolder, IStructure } from '@/components/FileViewer.tsx';
+import { useProjectStore } from '@/useProjectStore.ts';
 import { findProjectsFolderAtRoot } from '@/utils/project-builder/utils/findProjectsFolderAtRoot.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
 
 interface IStore {
   userFiles: IStructure;
@@ -131,6 +131,10 @@ export const useMockDatabaseStore = create<IStore>()((set, get) => ({
         });
       }
     }
+
+    // Sort projects alphabetically for consistent ordering
+    // (Local filesystem and GitHub API return files in different orders)
+    projects.sort((a, b) => a.name.localeCompare(b.name));
 
     // Update state with new files (even if no projects found - enables fallback viewer)
     set({

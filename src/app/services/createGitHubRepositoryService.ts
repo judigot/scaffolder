@@ -19,11 +19,11 @@ interface ICreateGitHubRepositoryRequest {
 
 /**
  * Smart hybrid repository creation service.
- * 
+ *
  * Automatically selects the best method based on context:
  * - Organizations: Uses GitHub App if installed, otherwise personal token
  * - Personal accounts: Uses personal token (GitHub App can't create repos for users)
- * 
+ *
  * Can also be forced to use a specific method via the `method` parameter.
  */
 export const createGitHubRepositoryService = async (
@@ -48,11 +48,23 @@ export const createGitHubRepositoryService = async (
 
   /* If method is explicitly specified, use it */
   if (method === 'personal_token') {
-    return createWithPersonalToken(repoName, description, isPrivate, owner, auth0UserId);
+    return createWithPersonalToken(
+      repoName,
+      description,
+      isPrivate,
+      owner,
+      auth0UserId,
+    );
   }
 
   if (method === 'github_app') {
-    return createWithGitHubApp(repoName, description, isPrivate, owner, auth0UserId);
+    return createWithGitHubApp(
+      repoName,
+      description,
+      isPrivate,
+      owner,
+      auth0UserId,
+    );
   }
 
   /* Auto-detect: Check if owner is User or Organization */
@@ -62,16 +74,31 @@ export const createGitHubRepositoryService = async (
     /* For organizations: Try GitHub App first, fall back to personal token */
     const appConfig = getGitHubAppConfig();
     if (appConfig !== null) {
-      const isAppInstalled = await checkGitHubAppInstalled(owner, 'Organization');
+      const isAppInstalled = await checkGitHubAppInstalled(
+        owner,
+        'Organization',
+      );
       if (isAppInstalled) {
         try {
-          return await createWithGitHubApp(repoName, description, isPrivate, owner, auth0UserId);
+          return await createWithGitHubApp(
+            repoName,
+            description,
+            isPrivate,
+            owner,
+            auth0UserId,
+          );
         } catch (appError) {
           /* If GitHub App fails, try personal token as fallback */
           if (auth0UserId !== undefined && auth0UserId !== '') {
             const hasToken = await getGitHubToken(auth0UserId);
             if (hasToken !== null && hasToken !== '') {
-              return createWithPersonalToken(repoName, description, isPrivate, owner, auth0UserId);
+              return createWithPersonalToken(
+                repoName,
+                description,
+                isPrivate,
+                owner,
+                auth0UserId,
+              );
             }
           }
           throw appError;
@@ -79,21 +106,40 @@ export const createGitHubRepositoryService = async (
       }
     }
     /* GitHub App not available/installed, try personal token */
-    return createWithPersonalToken(repoName, description, isPrivate, owner, auth0UserId);
+    return createWithPersonalToken(
+      repoName,
+      description,
+      isPrivate,
+      owner,
+      auth0UserId,
+    );
   }
 
   /* For personal accounts: Must use personal token */
-  return createWithPersonalToken(repoName, description, isPrivate, owner, auth0UserId);
+  return createWithPersonalToken(
+    repoName,
+    description,
+    isPrivate,
+    owner,
+    auth0UserId,
+  );
 };
 
 /**
  * Get owner type (User or Organization)
  */
-async function getOwnerType(owner: string): Promise<'User' | 'Organization' | 'unknown'> {
+async function getOwnerType(
+  owner: string,
+): Promise<'User' | 'Organization' | 'unknown'> {
   try {
     const publicOctokit = new Octokit();
-    const { data } = await publicOctokit.users.getByUsername({ username: owner });
-    return data.type as 'User' | 'Organization';
+    const { data } = await publicOctokit.users.getByUsername({
+      username: owner,
+    });
+    if (data.type === 'User' || data.type === 'Organization') {
+      return data.type;
+    }
+    return 'unknown';
   } catch {
     return 'unknown';
   }
@@ -147,7 +193,7 @@ async function createWithPersonalToken(
   const userGitHubToken = await getGitHubToken(auth0UserId);
   if (userGitHubToken === null || userGitHubToken === '') {
     const ownerType = await getOwnerType(owner);
-    
+
     if (ownerType === 'User') {
       throw new Error(
         'GitHub token required for personal accounts.\n\n' +
@@ -170,26 +216,29 @@ async function createWithPersonalToken(
     /* Check if owner matches authenticated user */
     const { data: authUser } = await octokit.users.getAuthenticated();
 
-    let response;
     if (authUser.login.toLowerCase() === owner.toLowerCase()) {
       /* Creating repo for authenticated user */
-      response = await octokit.repos.createForAuthenticatedUser({
+      const response = await octokit.repos.createForAuthenticatedUser({
         name: repoName,
         description: description || undefined,
         private: isPrivate,
         auto_init: false,
       });
-    } else {
-      /* Creating repo in an organization */
-      response = await octokit.repos.createInOrg({
-        org: owner,
-        name: repoName,
-        description: description || undefined,
-        private: isPrivate,
-        auto_init: false,
-      });
+      return {
+        success: true,
+        message: 'Repository created successfully',
+        repoUrl: response.data.html_url,
+      };
     }
 
+    /* Creating repo in an organization */
+    const response = await octokit.repos.createInOrg({
+      org: owner,
+      name: repoName,
+      description: description || undefined,
+      private: isPrivate,
+      auto_init: false,
+    });
     return {
       success: true,
       message: 'Repository created successfully',
@@ -230,7 +279,13 @@ async function createWithGitHubApp(
     if (auth0UserId !== undefined && auth0UserId !== '') {
       const userGitHubToken = await getGitHubToken(auth0UserId);
       if (userGitHubToken !== null && userGitHubToken !== '') {
-        return createWithPersonalToken(repoName, description, isPrivate, owner, auth0UserId);
+        return createWithPersonalToken(
+          repoName,
+          description,
+          isPrivate,
+          owner,
+          auth0UserId,
+        );
       }
     }
 
@@ -250,10 +305,11 @@ async function createWithGitHubApp(
   const isInstalled = await checkGitHubAppInstalled(owner, ownerType);
   if (!isInstalled) {
     const installUrl = await getInstallationUrl(owner);
-    const error = new Error(
-      `GitHub App is not installed for organization "${owner}".\n\n` +
-        `Please install the app first: ${installUrl}`,
-    ) as Error & { code?: string; installationUrl?: string };
+    const error: Error & { code?: string; installationUrl?: string } =
+      new Error(
+        `GitHub App is not installed for organization "${owner}".\n\n` +
+          `Please install the app first: ${installUrl}`,
+      );
     error.code = 'GITHUB_APP_NOT_INSTALLED';
     error.installationUrl = installUrl;
     throw error;
@@ -277,19 +333,17 @@ async function createWithGitHubApp(
     };
   } catch (error: unknown) {
     /* If 403, try clearing cache and retrying */
-    if (
-      error instanceof Error &&
-      'status' in error &&
-      error.status === 403
-    ) {
+    if (error instanceof Error && 'status' in error && error.status === 403) {
       /* Get installation ID for cache clearing */
       try {
         const { getAppJWT } = await import('./githubAppService.ts');
         const appJWT = getAppJWT(appConfig.appId, appConfig.privateKey);
         const appOctokit = new Octokit({ auth: appJWT });
-        const { data: installation } = await appOctokit.apps.getOrgInstallation({
-          org: owner,
-        });
+        const { data: installation } = await appOctokit.apps.getOrgInstallation(
+          {
+            org: owner,
+          },
+        );
         clearInstallationTokenCache(installation.id);
 
         const freshOctokit = await getGitHubAppOctokit(appConfig, { owner });

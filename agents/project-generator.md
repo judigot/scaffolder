@@ -1,15 +1,16 @@
 ---
 name: project-generator
-description: Creates reusable project templates for various frameworks. Collaborates with project-builder agent. Use when scaffolding new project structures, adding framework templates, or creating project configurations.
+description: Creates reusable project templates and structure.yaml content. Use when authoring templates or project structures (not when changing the generation engine).
 globs:
-  - "files/**/*.yaml"
-  - "files/**/*.txt"
-  - "files/**/*.ts"
-  - "src/schema-infos/**/*.ts"
+  - 'files/**/*.yaml'
+  - 'files/**/*.txt'
+  - 'files/**/*.ts'
+  - 'src/schema-infos/**/*.ts'
 model: inherit
 color: cyan
-tools: ["Read", "Write", "Bash", "Grep", "CodebaseSearch"]
+tools: ['Read', 'Write', 'Bash', 'Grep', 'CodebaseSearch']
 ---
+
 # Project Generator Agent
 
 You generate project templates using the scaffolder's placeholder system. This guide contains EVERYTHING you need to create working project templates.
@@ -36,7 +37,7 @@ All template files in `templates/` folder must have `.txt` extension, even for T
 In generated TypeScript files, imports must use `.js` extension for ESM compatibility:
 
 ```typescript
-import { UserController } from '../controllers/user.controller.js';  // .js not .ts
+import { UserController } from '../controllers/user.controller.js'; // .js not .ts
 ```
 
 ---
@@ -58,10 +59,10 @@ import oneToMany from '../src/schema-infos/oneToMany.ts';
 
 const userFiles = convertLocalFilesToIStructure('files');
 const result = await buildProjectFiles(
-  '/Projects/App Generator - Express API/structure.yaml',  // Path to structure.yaml
-  userFiles,        // IStructure from files/ folder
-  oneToMany,        // Schema (ISchemaInfo[])
-  formData,         // IFormStore config
+  '/Projects/App Generator - Express API/structure.yaml', // Path to structure.yaml
+  userFiles, // IStructure from files/ folder
+  oneToMany, // Schema (ISchemaInfo[])
+  formData, // IFormStore config
 );
 
 // result.structure contains generated IStructure (files/folders)
@@ -105,33 +106,34 @@ files/
 $USE_CORE: /Core/vite-react
 
 # Define generated file structure
-api:                              # Folder name
-  routes:                         # Subfolder
+api: # Folder name
+  routes: # Subfolder
     - CREATE_FILE(index.ts --template ./templates/routes-index.txt)
-    - FILE_LOOP({{tableNameCamelCase}}.route.ts --template ./templates/route.txt)
+    - FILE_LOOP({{tableName.camelCase}}.route.ts --template ./templates/route.txt)
   controllers:
-    - FILE_LOOP({{tableNameCamelCase}}.controller.ts --template ./templates/controller.txt)
+    - FILE_LOOP({{tableName.camelCase}}.controller.ts --template ./templates/controller.txt)
   services:
-    - FILE_LOOP({{tableNameCamelCase}}.service.ts --template ./templates/service.txt)
+    - FILE_LOOP({{tableName.camelCase}}.service.ts --template ./templates/service.txt)
   types:
-    - FILE_LOOP({{tableNameCamelCase}}.types.ts --template ./templates/types.txt)
+    - FILE_LOOP({{tableName.camelCase}}.types.ts --template ./templates/types.txt)
   db:
-    - FILE_LOOP({{tableNameCamelCase}}.store.ts --template ./templates/store.txt)
+    - FILE_LOOP({{tableName.camelCase}}.store.ts --template ./templates/store.txt)
 ```
 
 ### Actions Explained
 
-| Action | What It Does | When to Use |
-|--------|--------------|-------------|
-| `FILE_LOOP(filename --template path)` | Creates ONE file PER TABLE in schema | Controllers, services, routes per table |
-| `CREATE_FILE(filename --template path)` | Creates ONE file total | Index files, shared config |
-| `$USE_CORE: /Core/path` | Imports boilerplate files | Base project setup |
+| Action                                  | What It Does                         | When to Use                             |
+| --------------------------------------- | ------------------------------------ | --------------------------------------- |
+| `FILE_LOOP(filename --template path)`   | Creates ONE file PER TABLE in schema | Controllers, services, routes per table |
+| `CREATE_FILE(filename --template path)` | Creates ONE file total               | Index files, shared config              |
+| `$USE_CORE: /Core/path`                 | Imports boilerplate files            | Base project setup                      |
 
 ### FILE_LOOP vs CREATE_FILE
 
 **FILE_LOOP** - Runs once per table. Use table placeholders:
-- `{{tableNameCamelCase}}` → `user`, `post`
-- `{{tableNamePascalCaseSingular}}` → `User`, `Post`
+
+- `{{tableName.camelCase}}` → `user`, `post`
+- `{{tableName.singular.pascalCase}}` → `User`, `Post`
 - `{{getPrimaryKey()}}` → `user_id`, `post_id`
 
 **CREATE_FILE** - Runs once. Use `[[LOOP(tables)]]` inside template to iterate tables.
@@ -142,26 +144,26 @@ api:                              # Folder name
 
 ### Table Placeholders (Available in FILE_LOOP templates)
 
-| Placeholder | user table | post table |
-|-------------|------------|------------|
-| `{{tableName}}` | user | post |
-| `{{tableNamePascalCase}}` | User | Post |
-| `{{tableNamePascalCaseSingular}}` | User | Post |
-| `{{tableNameCamelCase}}` | user | post |
-| `{{tableNameCamelCasePlural}}` | users | posts |
-| `{{tableNameKebabCasePlural}}` | users | posts |
-| `{{tableNameSnakeCasePlural}}` | users | posts |
-| `{{getPrimaryKey()}}` | user_id | post_id |
+| Placeholder                       | user table | post table |
+| --------------------------------- | ---------- | ---------- |
+| `{{tableName}}`                   | user       | post       |
+| `{{tableName.pascalCase}}`         | User       | Post       |
+| `{{tableName.singular.pascalCase}}` | User       | Post       |
+| `{{tableName.camelCase}}`          | user       | post       |
+| `{{tableName.plural.camelCase}}`    | users      | posts      |
+| `{{tableName.plural.kebabCase}}`    | users      | posts      |
+| `{{tableName.plural.snakeCase}}`    | users      | posts      |
+| `{{getPrimaryKey()}}`             | user_id    | post_id    |
 
 ### Column Placeholders (Inside `[[LOOP(columnsInfo)]]`)
 
-| Placeholder | Description | Example Values |
-|-------------|-------------|----------------|
-| `{{value}}` | Column name | `user_id`, `first_name`, `email` |
-| `{{data_type}}` | TypeScript type | `string`, `number`, `boolean`, `Date` |
-| `{{is_nullable}}` | Nullable flag | `'YES'` or `'NO'` |
-| `{{column_default}}` | Default value | `'AUTO_INCREMENT'`, `null` |
-| `{{primary_key}}` | Is primary key | `true` or `undefined` |
+| Placeholder          | Description     | Example Values                        |
+| -------------------- | --------------- | ------------------------------------- |
+| `{{value}}`          | Column name     | `user_id`, `first_name`, `email`      |
+| `{{data_type}}`      | TypeScript type | `string`, `number`, `boolean`, `Date` |
+| `{{is_nullable}}`    | Nullable flag   | `'YES'` or `'NO'`                     |
+| `{{column_default}}` | Default value   | `'AUTO_INCREMENT'`, `null`            |
+| `{{primary_key}}`    | Is primary key  | `true` or `undefined`                 |
 
 ---
 
@@ -170,14 +172,15 @@ api:                              # Folder name
 ### 1. types.txt (FILE_LOOP template - runs per table)
 
 ```
-export interface I{{tableNamePascalCaseSingular}} {
+export interface I{{tableName.singular.pascalCase}} {
 [[LOOP(columnsInfo) --template="  {{value}}{% IF is_nullable EQUALS 'YES' %}?{% ENDIF %}: {{data_type}};" --separator="\n"]]
 }
 
-export type ICreate{{tableNamePascalCaseSingular}} = Omit<I{{tableNamePascalCaseSingular}}, '{{getPrimaryKey()}}' | 'created_at' | 'updated_at'>;
+export type ICreate{{tableName.singular.pascalCase}} = Omit<I{{tableName.singular.pascalCase}}, '{{getPrimaryKey()}}' | 'created_at' | 'updated_at'>;
 ```
 
 **Output for user table:**
+
 ```typescript
 export interface IUser {
   user_id: number;
@@ -197,14 +200,15 @@ export type ICreateUser = Omit<IUser, 'user_id' | 'created_at' | 'updated_at'>;
 
 ```
 import { Router } from 'express';
-[[LOOP(tables) --template="import { {{tableNameCamelCase}}Router } from './{{tableNameCamelCase}}.route.js';" --separator="\n"]]
+[[LOOP(tables) --template="import { {{tableName.camelCase}}Router } from './{{tableName.camelCase}}.route.js';" --separator="\n"]]
 
 export const router = Router();
 
-[[LOOP(tables) --template="router.use('/{{tableNameKebabCasePlural}}', {{tableNameCamelCase}}Router);" --separator="\n"]]
+[[LOOP(tables) --template="router.use('/{{tableName.plural.kebabCase}}', {{tableName.camelCase}}Router);" --separator="\n"]]
 ```
 
 **Output:**
+
 ```typescript
 import { Router } from 'express';
 import { userRouter } from './user.route.js';
@@ -220,11 +224,11 @@ router.use('/posts', postRouter);
 
 ```
 import type { Request, Response } from 'express';
-import { {{tableNamePascalCaseSingular}}Service } from '../services/{{tableNameCamelCase}}.service.js';
+import { {{tableName.singular.pascalCase}}Service } from '../services/{{tableName.camelCase}}.service.js';
 
-const service = new {{tableNamePascalCaseSingular}}Service();
+const service = new {{tableName.singular.pascalCase}}Service();
 
-export class {{tableNamePascalCaseSingular}}Controller {
+export class {{tableName.singular.pascalCase}}Controller {
   getAll = async (_req: Request, res: Response): Promise<void> => {
     const items = await service.getAll();
     res.json(items);
@@ -233,7 +237,7 @@ export class {{tableNamePascalCaseSingular}}Controller {
   getById = async (req: Request, res: Response): Promise<void> => {
     const item = await service.getById(Number(req.params.id));
     if (!item) {
-      res.status(404).json({ error: '{{tableNamePascalCaseSingular}} not found' });
+      res.status(404).json({ error: '{{tableName.singular.pascalCase}} not found' });
       return;
     }
     res.json(item);
@@ -247,7 +251,7 @@ export class {{tableNamePascalCaseSingular}}Controller {
   update = async (req: Request, res: Response): Promise<void> => {
     const item = await service.update(Number(req.params.id), req.body);
     if (!item) {
-      res.status(404).json({ error: '{{tableNamePascalCaseSingular}} not found' });
+      res.status(404).json({ error: '{{tableName.singular.pascalCase}} not found' });
       return;
     }
     res.json(item);
@@ -256,7 +260,7 @@ export class {{tableNamePascalCaseSingular}}Controller {
   delete = async (req: Request, res: Response): Promise<void> => {
     const success = await service.delete(Number(req.params.id));
     if (!success) {
-      res.status(404).json({ error: '{{tableNamePascalCaseSingular}} not found' });
+      res.status(404).json({ error: '{{tableName.singular.pascalCase}} not found' });
       return;
     }
     res.status(204).send();
@@ -268,55 +272,55 @@ export class {{tableNamePascalCaseSingular}}Controller {
 
 ```
 import { Router } from 'express';
-import { {{tableNamePascalCaseSingular}}Controller } from '../controllers/{{tableNameCamelCase}}.controller.js';
+import { {{tableName.singular.pascalCase}}Controller } from '../controllers/{{tableName.camelCase}}.controller.js';
 
-export const {{tableNameCamelCase}}Router = Router();
-const controller = new {{tableNamePascalCaseSingular}}Controller();
+export const {{tableName.camelCase}}Router = Router();
+const controller = new {{tableName.singular.pascalCase}}Controller();
 
-{{tableNameCamelCase}}Router.get('/', controller.getAll);
-{{tableNameCamelCase}}Router.get('/:id', controller.getById);
-{{tableNameCamelCase}}Router.post('/', controller.create);
-{{tableNameCamelCase}}Router.put('/:id', controller.update);
-{{tableNameCamelCase}}Router.delete('/:id', controller.delete);
+{{tableName.camelCase}}Router.get('/', controller.getAll);
+{{tableName.camelCase}}Router.get('/:id', controller.getById);
+{{tableName.camelCase}}Router.post('/', controller.create);
+{{tableName.camelCase}}Router.put('/:id', controller.update);
+{{tableName.camelCase}}Router.delete('/:id', controller.delete);
 ```
 
 ### 5. service.txt (FILE_LOOP template)
 
 ```
-import type { I{{tableNamePascalCaseSingular}}, ICreate{{tableNamePascalCaseSingular}} } from '../types/{{tableNameCamelCase}}.types.js';
-import { {{tableNameCamelCasePlural}}, getNext{{tableNamePascalCaseSingular}}Id } from '../db/{{tableNameCamelCase}}.store.js';
+import type { I{{tableName.singular.pascalCase}}, ICreate{{tableName.singular.pascalCase}} } from '../types/{{tableName.camelCase}}.types.js';
+import { {{tableName.plural.camelCase}}, getNext{{tableName.singular.pascalCase}}Id } from '../db/{{tableName.camelCase}}.store.js';
 
-export class {{tableNamePascalCaseSingular}}Service {
-  async getAll(): Promise<I{{tableNamePascalCaseSingular}}[]> {
-    return {{tableNameCamelCasePlural}};
+export class {{tableName.singular.pascalCase}}Service {
+  async getAll(): Promise<I{{tableName.singular.pascalCase}}[]> {
+    return {{tableName.plural.camelCase}};
   }
 
-  async getById(id: number): Promise<I{{tableNamePascalCaseSingular}} | undefined> {
-    return {{tableNameCamelCasePlural}}.find((item) => item.{{getPrimaryKey()}} === id);
+  async getById(id: number): Promise<I{{tableName.singular.pascalCase}} | undefined> {
+    return {{tableName.plural.camelCase}}.find((item) => item.{{getPrimaryKey()}} === id);
   }
 
-  async create(data: ICreate{{tableNamePascalCaseSingular}}): Promise<I{{tableNamePascalCaseSingular}}> {
-    const newItem: I{{tableNamePascalCaseSingular}} = {
-      {{getPrimaryKey()}}: getNext{{tableNamePascalCaseSingular}}Id(),
+  async create(data: ICreate{{tableName.singular.pascalCase}}): Promise<I{{tableName.singular.pascalCase}}> {
+    const newItem: I{{tableName.singular.pascalCase}} = {
+      {{getPrimaryKey()}}: getNext{{tableName.singular.pascalCase}}Id(),
       ...data,
       created_at: new Date(),
       updated_at: new Date(),
     };
-    {{tableNameCamelCasePlural}}.push(newItem);
+    {{tableName.plural.camelCase}}.push(newItem);
     return newItem;
   }
 
-  async update(id: number, data: Partial<ICreate{{tableNamePascalCaseSingular}}>): Promise<I{{tableNamePascalCaseSingular}} | undefined> {
-    const index = {{tableNameCamelCasePlural}}.findIndex((item) => item.{{getPrimaryKey()}} === id);
+  async update(id: number, data: Partial<ICreate{{tableName.singular.pascalCase}}>): Promise<I{{tableName.singular.pascalCase}} | undefined> {
+    const index = {{tableName.plural.camelCase}}.findIndex((item) => item.{{getPrimaryKey()}} === id);
     if (index === -1) return undefined;
-    {{tableNameCamelCasePlural}}[index] = { ...{{tableNameCamelCasePlural}}[index], ...data, updated_at: new Date() };
-    return {{tableNameCamelCasePlural}}[index];
+    {{tableName.plural.camelCase}}[index] = { ...{{tableName.plural.camelCase}}[index], ...data, updated_at: new Date() };
+    return {{tableName.plural.camelCase}}[index];
   }
 
   async delete(id: number): Promise<boolean> {
-    const index = {{tableNameCamelCasePlural}}.findIndex((item) => item.{{getPrimaryKey()}} === id);
+    const index = {{tableName.plural.camelCase}}.findIndex((item) => item.{{getPrimaryKey()}} === id);
     if (index === -1) return false;
-    {{tableNameCamelCasePlural}}.splice(index, 1);
+    {{tableName.plural.camelCase}}.splice(index, 1);
     return true;
   }
 }
@@ -325,12 +329,12 @@ export class {{tableNamePascalCaseSingular}}Service {
 ### 6. store.txt (FILE_LOOP template - in-memory storage)
 
 ```
-import type { I{{tableNamePascalCaseSingular}} } from '../types/{{tableNameCamelCase}}.types.js';
+import type { I{{tableName.singular.pascalCase}} } from '../types/{{tableName.camelCase}}.types.js';
 
-export const {{tableNameCamelCasePlural}}: I{{tableNamePascalCaseSingular}}[] = [];
+export const {{tableName.plural.camelCase}}: I{{tableName.singular.pascalCase}}[] = [];
 
-let {{tableNameCamelCase}}IdCounter = 1;
-export const getNext{{tableNamePascalCaseSingular}}Id = (): number => {{tableNameCamelCase}}IdCounter++;
+let {{tableName.camelCase}}IdCounter = 1;
+export const getNext{{tableName.singular.pascalCase}}Id = (): number => {{tableName.camelCase}}IdCounter++;
 ```
 
 ---
@@ -363,7 +367,11 @@ import { frameworks } from '../src/useFormStore.ts';
 import { CREATION_MODES } from '../src/constants.ts';
 import oneToMany from '../src/schema-infos/oneToMany.ts';
 import masterJSONSchema from '../src/json-schemas/masterJSONSchema.ts';
-import type { IStructure, IFile, IFolder } from '../src/components/FileViewer.tsx';
+import type {
+  IStructure,
+  IFile,
+  IFolder,
+} from '../src/components/FileViewer.tsx';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -486,12 +494,12 @@ After generation, update `api/index.ts` to import and use the generated router:
 ```typescript
 import express from 'express';
 import cors from 'cors';
-import { router } from './routes/index.js';  // Add this
+import { router } from './routes/index.js'; // Add this
 
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use('/api', router);  // Add this
+app.use('/api', router); // Add this
 
 app.listen(5000);
 ```
@@ -513,24 +521,24 @@ api:
 
 ## AVAILABLE SCHEMAS FOR TESTING
 
-| Schema | Tables | Location |
-|--------|--------|----------|
-| `oneToMany` | user, post | `src/schema-infos/oneToMany.ts` |
-| `masterSchema` | Multiple tables | `src/schema-infos/masterSchema.ts` |
-| `manyToMany` | Tables with junction | `src/schema-infos/manyToMany.ts` |
+| Schema         | Tables               | Location                           |
+| -------------- | -------------------- | ---------------------------------- |
+| `oneToMany`    | user, post           | `src/schema-infos/oneToMany.ts`    |
+| `masterSchema` | Multiple tables      | `src/schema-infos/masterSchema.ts` |
+| `manyToMany`   | Tables with junction | `src/schema-infos/manyToMany.ts`   |
 
 ---
 
 ## COMMON MISTAKES TO AVOID
 
-| Mistake | Problem | Fix |
-|---------|---------|-----|
-| `[[ LOOP(tables)` | Space after `[[` | Use `[[LOOP(tables)` |
-| `import { X } from './x.ts'` | Wrong extension | Use `./x.js` |
-| `template.ts` | Wrong file extension | Use `template.txt` |
-| Hardcoding `user_id` | Won't work for other tables | Use `{{getPrimaryKey()}}` |
-| Using `LOOP(tables)` in FILE_LOOP | Already iterating tables | Use placeholders directly |
-| Missing `--separator` | Output runs together | Add `--separator="\n"` |
+| Mistake                           | Problem                     | Fix                       |
+| --------------------------------- | --------------------------- | ------------------------- |
+| `[[ LOOP(tables)`                 | Space after `[[`            | Use `[[LOOP(tables)`      |
+| `import { X } from './x.ts'`      | Wrong extension             | Use `./x.js`              |
+| `template.ts`                     | Wrong file extension        | Use `template.txt`        |
+| Hardcoding `user_id`              | Won't work for other tables | Use `{{getPrimaryKey()}}` |
+| Using `LOOP(tables)` in FILE_LOOP | Already iterating tables    | Use placeholders directly |
+| Missing `--separator`             | Output runs together        | Add `--separator="\n"`    |
 
 ---
 

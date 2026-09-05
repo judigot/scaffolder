@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class {{tableNamePascalCaseSingular}}Resource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return array
+     */
+    public function toArray($request)
+    {
+        return [
+[[ LOOP({{getAllColumns()}}) --ignore="[[ USE_CONSTANT(hiddenColumns) ]]" --template="            '{{value}}' => $this->{{value}}," --separator="\n" ]]
+[[ LOOP(hasOne) --template="            '{{valueSingular}}' => {{valuePascalCaseSingular}}Resource::make($this->whenLoaded('{{valueSingular}}'))," --separator="\n" ]]
+[[ LOOP(hasMany) --template="            '{{valuePlural}}' => {{valuePascalCaseSingular}}Resource::collection($this->whenLoaded('{{valuePlural}}'))," --separator="\n" ]]
+[[ LOOP(belongsTo) --template="            '{{valueSingular}}' => {{valuePascalCaseSingular}}Resource::make($this->whenLoaded('{{valueSingular}}'))," --separator="\n" ]]
+[[ LOOP(belongsToMany) --template="            '{{valuePlural}}' => {{valuePascalCaseSingular}}Resource::collection($this->whenLoaded('{{valuePlural}}'))," --separator="\n" ]]
+        ];
+    }
+}

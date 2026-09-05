@@ -25,6 +25,7 @@ This directory contains documentation for the project builder system, including 
 - **[USE_USER_ENV.md](./USE_USER_ENV.md)** - Access user environment variables from Auth0 metadata
 - **[USE_ROWS.md](./USE_ROWS.md)** - Generate database row data (seed + mock) in SQL, CSV, or JSON formats
 - **[PLACEHOLDER_FUNCTIONS.md](./PLACEHOLDER_FUNCTIONS.md)** - Built-in placeholder functions (`index()` and `timestamp()`) for dynamic filename generation
+- **[DSL_MIGRATION_GUIDE.md](./DSL_MIGRATION_GUIDE.md)** - Legacy syntax to `<@@...@@>` migration reference
 
 ### Business Documentation
 
@@ -35,28 +36,28 @@ This directory contains documentation for the project builder system, including 
 
 ### Project Actions
 
-| Action | Description | Example |
-|--------|-------------|---------|
-| `CREATE_FILE` | Create a single file from a template | `CREATE_FILE(app.ts --template=./templates/app.txt)` |
-| `CREATE_BASE_METHOD_FILE` | Create base method files | `CREATE_BASE_METHOD_FILE(useHook.ts --template=/BaseMethods/.../hook.txt)` |
-| `FILE_LOOP` | Generate multiple files by iterating over schema tables | `FILE_LOOP({{index(1, 4)}}_{{tableName}}.sql --template=./templates/migration.sql.txt)` |
-| `FOLDER_LOOP` | Create dynamic folder structures | `FOLDER_LOOP({{tableName}}): ...` |
-| `LOOP_FOLDERS` | Generate files by iterating over folders | `LOOP_FOLDERS(file.html --data-source=/Data/**/info.yaml --template=./templates/template.txt)` |
-| `IMPORT_PROJECT` | Import another project structure | `IMPORT_PROJECT(Projects/Other/structure.yaml)` |
+| Action                    | Description                                             | Example                                                                                        |
+| ------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `CREATE_FILE`             | Create a single file from a template                    | `CREATE_FILE(app.ts --template=./templates/app.txt)`                                           |
+| `CREATE_BASE_METHOD_FILE` | Create base method files                                | `CREATE_BASE_METHOD_FILE(useHook.ts --template=/BaseMethods/.../hook.txt)`                     |
+| `FILE_LOOP`               | Generate multiple files by iterating over schema tables | `FILE_LOOP({{index(1, 4)}}_{{tableName}}.sql --template=./templates/migration.sql.txt)`        |
+| `FOLDER_LOOP`             | Create dynamic folder structures                        | `FOLDER_LOOP({{tableName}}): ...`                                                              |
+| `LOOP_FOLDERS`            | Generate files by iterating over folders                | `LOOP_FOLDERS(file.html --data-source=/Data/**/info.yaml --template=./templates/template.txt)` |
+| `IMPORT_PROJECT`          | Import another project structure                        | `IMPORT_PROJECT(Projects/Other/structure.yaml)`                                                |
 
 ### Template Commands
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `USE_DATA` | Access data from YAML files | `[[USE_DATA(basic-info.name)]]` |
-| `USE_FORM_DATA` | Access form data | `[[USE_FORM_DATA(projectName)]]` |
-| `USE_USER_ENV` | Access user environment variables | `[[USE_USER_ENV(API_KEY)]]` |
-| `USE_TEMPLATE` | Include another template | `[[USE_TEMPLATE(./partials/header.txt)]]` |
-| `USE_CONSTANT` | Access schema constants | `[[USE_CONSTANT(tableName)]]` |
-| `USE_ROWS` | Generate database row data (seed + mock) | `[[USE_ROWS(format=json, pretty=true)]]` |
-| `LOOP` | Iterate over data | `[[LOOP(columns)]]` |
-| `index()` | Generate sequential index numbers | `{{index(1, 3)}}` |
-| `timestamp()` | Generate formatted date/time strings | `{{timestamp('YYYY-MM-DD')}}` |
+| Command         | Description                              | Example                                   |
+| --------------- | ---------------------------------------- | ----------------------------------------- |
+| `USE_DATA`      | Access data from YAML files              | `<@@>data.basic-info.name</@@>`           |
+| `USE_FORM_DATA` | Access form data                         | `[[USE_FORM_DATA(projectName)]]`          |
+| `USE_USER_ENV`  | Access user environment variables        | `[[USE_USER_ENV(API_KEY)]]`               |
+| `USE_TEMPLATE`  | Include another template                 | `[[USE_TEMPLATE(./partials/header.txt)]]` |
+| `USE_CONSTANT`  | Access schema constants                  | `[[USE_CONSTANT(tableName)]]`             |
+| `USE_ROWS`      | Generate database row data (seed + mock) | `[[USE_ROWS(format=json, pretty=true)]]`  |
+| `LOOP`          | Iterate over data                        | `<@@LOOP@@ data="columns">...</@@LOOP@@>` |
+| `index()`       | Generate sequential index numbers        | `{{index(1, 3)}}`                         |
+| `timestamp()`   | Generate formatted date/time strings     | `<@@>timestamp('YYYY-MM-DD')</@@>`        |
 
 ## Getting Started
 
@@ -73,10 +74,11 @@ Use `FILE_LOOP` to generate multiple files from database schema tables:
 
 ```yaml
 migrations:
-  FILE_LOOP({{index(1, 4)}}_{{tableNameSnakeCaseSingular}}.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
+  FILE_LOOP(<@@>index(1, 4)</@@>_<@@>tableName.singular.snakeCase</@@>.sql --template ./templates/migration.sql.txt --data-source=/Constants/typeMappings.yaml):
 ```
 
 This generates ordered migration files like:
+
 - `0001_create_users_table.sql`
 - `0002_create_posts_table.sql`
 - `0003_create_comments_table.sql`
@@ -86,7 +88,7 @@ This generates ordered migration files like:
 Use `LOOP_FOLDERS` to generate multiple files from data files:
 
 ```yaml
-LOOP_FOLDERS({{name}}.html --data-source=/Data/**/info.yaml --template=./templates/page.txt)
+LOOP_FOLDERS(<@@>name</@@>.html --data-source=/Data/**/info.yaml --template=./templates/page.txt)
 ```
 
 ### Access Data in Templates
@@ -94,8 +96,8 @@ LOOP_FOLDERS({{name}}.html --data-source=/Data/**/info.yaml --template=./templat
 Use `USE_DATA` to access properties from the data context:
 
 ```
-Name: [[USE_DATA(basic-info.name)]]
-Email: [[USE_DATA(basic-info.email)]]
+Name: <@@>data.basic-info.name</@@>
+Email: <@@>data.basic-info.email</@@>
 ```
 
 ### Combine Actions
@@ -104,7 +106,7 @@ Mix different actions in your structure:
 
 ```yaml
 - CREATE_FILE(app.ts --template=./templates/app.txt)
-- LOOP_FOLDERS({{name}}.html --data-source=/Data/**/info.yaml --template=./templates/page.txt)
+- LOOP_FOLDERS(<@@>name</@@>.html --data-source=/Data/**/info.yaml --template=./templates/page.txt)
 - IMPORT_PROJECT(Projects/Shared/structure.yaml):
     components:
       - CREATE_FILE(Button.tsx --template=./templates/button.txt)
@@ -113,22 +115,26 @@ Mix different actions in your structure:
 ## View Table Exclusion
 
 **View tables are automatically excluded by default** in all loop operations:
+
 - `FILE_LOOP` - View tables are excluded from file generation
 - `FOLDER_LOOP` - View tables are excluded from folder generation
 - `LOOP(tables)` - View tables are excluded from template iteration
 - `LOOP(tablesReversed)` - View tables are excluded from reverse template iteration
 
 **Why?** Views are read-only database objects that don't need:
+
 - Migration files (they use `CREATE VIEW`, not `CREATE TABLE`)
 - CRUD controllers (no create/update/delete operations)
 - Full model generation
 
-**How it works:** 
+**How it works:**
+
 - Tables with `viewQuery` property defined are automatically filtered out using the centralized `getViewTables()` function from `getSchemaInfo.ts`
 - The project-builder uses `filterViewTables()` helper utility which leverages `schemaInfoParsed.getViewTables()` for consistent view detection
 - Base tables (without `viewQuery`) are included in all operations
 
 **Implementation Details:**
+
 - View detection is centralized in `getSchemaInfo.ts` via the `getViewTables()` method
 - All filtering uses `filterViewTables()` helper from `utils/filterViewTables.ts`
 - Uses efficient Set-based lookup for O(1) performance when filtering
@@ -140,4 +146,3 @@ Mix different actions in your structure:
 - See individual documentation files for detailed usage
 - Check the test files in `project-processors/` for examples
 - Review existing project structures in `files/Projects/` for real-world examples
-

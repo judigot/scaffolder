@@ -1,24 +1,39 @@
-import reactRefresh from 'eslint-plugin-react-refresh';
-import importPlugin from 'eslint-plugin-import';
-import reactHooks from 'eslint-plugin-react-hooks';
-import globals from 'globals';
+import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import importPlugin from 'eslint-plugin-import';
 import noTypeAssertion from 'eslint-plugin-no-type-assertion';
 import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-import { defineConfig, globalIgnores } from 'eslint/config';
-
-import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 // Detect if this is a Next.js project by checking:
 // 1. If 'next' is in package.json dependencies or devDependencies
 // 2. If any Next.js config file exists (next.config.js, next.config.mjs, etc.)
 // prettier-ignore
-const isNextJs = (() => { try { const p = require(`${process.cwd()}/package.json`); return ( 'next' in (p.dependencies ?? {}) || 'next' in (p.devDependencies ?? {}) || [ 'next.config.js', 'next.config.mjs', 'next.config.ts', 'next.config.cjs', ].some((f) => require('fs').existsSync(f)) ); } catch { return false; } })();
+const isNextJs = (() => {
+	try {
+		const p = require(`${process.cwd()}/package.json`);
+		return (
+			"next" in (p.dependencies ?? {}) ||
+			"next" in (p.devDependencies ?? {}) ||
+			[
+				"next.config.js",
+				"next.config.mjs",
+				"next.config.ts",
+				"next.config.cjs",
+			].some((f) => require("fs").existsSync(f))
+		);
+	} catch {
+		return false;
+	}
+})();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,6 +104,13 @@ export default defineConfig([
     'out/**',
     'build/**',
     'coverage/**',
+    'src/tests/golden-projects/output/**',
+
+    // Generated apps (have their own eslint config)
+    '.apps/**',
+
+    // Template source files (not part of scaffolder codebase)
+    'files/Core/**',
 
     // Config files (not linted)
     '**/eslint.config.js',
@@ -97,6 +119,7 @@ export default defineConfig([
     '**/tailwind.config.js',
     '**/postcss.config.js',
     '**/vitest.setup.ts',
+    '**/bun-test-setup.ts',
     'next-env.d.ts',
 
     // Utility scripts
@@ -163,17 +186,9 @@ export default defineConfig([
           jsx: true,
         },
 
-        // TypeScript project references for type checking
-        // Next.js uses a single tsconfig.json, while Vite uses separate configs
-        project: [
-          './tsconfig.json',
-          ...(() => {
-            if (!isNextJs) {
-              return ['./tsconfig.app.json', './tsconfig.node.json'];
-            }
-            return [];
-          })(),
-        ],
+        // Use projectService for better support of TypeScript project references
+        // This automatically handles tsconfig.json references without manual configuration
+        projectService: true,
         tsconfigRootDir: __dirname,
       },
     },
@@ -292,6 +307,49 @@ export default defineConfig([
           prefix: ['I'], // Interfaces: PascalCase with 'I' prefix (e.g., IUser)
         },
       ],
+    },
+  },
+
+  // Test files and development utilities configuration
+  // Allow console.log in test files for debugging test output
+  // Allow console.log in chat components for development debugging
+  // Allow console.log in code generator frameworks for debugging
+  {
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/tests/**/*.ts',
+      '**/chat-app/**/*.tsx',
+      '**/chat-app/**/*.ts',
+      '**/frameworks/**/*.ts',
+      '**/dynamic-form/**/*.tsx',
+      'src/main.tsx',
+    ],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+
+  // Code generator files with complex iteration patterns
+  // These files iterate over schemas/configs where optional chaining is valid
+  {
+    files: ['**/frameworks/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+    },
+  },
+
+  // External SDK interface files
+  // These files interface with third-party SDKs (AI SDK, etc.) that require
+  // type assertions at the boundary where our validated data meets SDK types.
+  {
+    files: [
+      'src/app/routes/agent.ts',
+      'src/app/routes/opencode/**/*.ts',
+      'src/test/mocks/**/*.ts',
+    ],
+    rules: {
+      'no-type-assertion/no-type-assertion': 'off',
     },
   },
 

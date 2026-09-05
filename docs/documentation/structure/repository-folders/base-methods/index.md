@@ -53,7 +53,7 @@ Newer YAML-based format that defines methods in a single file:
 
 ```yaml
 methodName: create
-route: Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'store'])
+route: Route::post('{{tableName.plural.kebabCase}}', [{{tableName.pascalCase}}Controller::class, 'store'])
 description: Create a new record
 repositoryMethod: '{{methodName}}(array $data): Model'
 repositoryContent: return $this->model->{{methodName}}(array $data);

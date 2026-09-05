@@ -1,0 +1,2 @@
+        $deleted = $this->service->{{methodNameCamelCase}}($id);
+        return $deleted ? response()->json(['message' => 'Resource deleted']) : response()->json(['message' => 'Resource not found'], 404);

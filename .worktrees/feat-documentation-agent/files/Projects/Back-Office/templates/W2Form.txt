@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form W-2 - [[USE_DATA(basic-info.name)]] - [[USE_DATA(tax-document.tax-year)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; border-bottom: 4px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+    .form-title { font-size: 2.5em; font-weight: bold; margin-bottom: 10px; }
+    .form-subtitle { font-size: 1.2em; color: #666; }
+    .w2-form { border: 3px solid #000; padding: 30px; margin: 20px 0; }
+    .form-section { margin: 25px 0; padding: 15px; border: 1px solid #ddd; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 15px 0; }
+    .form-field { }
+    .field-label { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; }
+    .field-value { padding: 8px; background: #f8f9fa; border: 1px solid #ddd; min-height: 30px; }
+    .boxed-section { border: 2px solid #000; padding: 15px; margin: 15px 0; }
+    .box-title { font-weight: bold; text-align: center; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+    .w2-boxes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+    .w2-box { border: 2px solid #000; padding: 10px; text-align: center; min-height: 60px; }
+    .box-label { font-size: 0.8em; font-weight: bold; margin-bottom: 5px; }
+    .box-value { font-size: 1.2em; font-weight: bold; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="form-title">Form W-2</div>
+      <div class="form-subtitle">Wage and Tax Statement</div>
+      <div style="margin-top: 10px; font-size: 1.1em;">Copy A For Social Security Administration</div>
+    </div>
+
+    <div class="w2-form">
+      <div class="form-section">
+        <div class="form-grid">
+          <div class="form-field">
+            <div class="field-label">a. Control number</div>
+            <div class="field-value">[[USE_DATA(tax-document.id)]]</div>
+          </div>
+          <div class="form-field">
+            <div class="field-label">b. Employer's identification number (EIN)</div>
+            <div class="field-value">[[USE_DATA(company-info.tax-id)]]</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="field-label">c. Employer's name, address, and ZIP code</div>
+        <div class="field-value">
+          [[USE_DATA(company-info.name)]]<br>
+          [[USE_DATA(company-info.address)]], [[USE_DATA(company-info.city)]], [[USE_DATA(company-info.state)]] [[USE_DATA(company-info.zip)]]
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-grid">
+          <div class="form-field">
+            <div class="field-label">d. Employee's social security number</div>
+            <div class="field-value">[[USE_DATA(tax-document.taxpayer-ssn)]]</div>
+          </div>
+          <div class="form-field">
+            <div class="field-label">e. Employee's first name and middle initial</div>
+            <div class="field-value">[[USE_DATA(basic-info.name)]]</div>
+          </div>
+        </div>
+        <div class="form-field" style="margin-top: 15px;">
+          <div class="field-label">f. Employee's address and ZIP code</div>
+          <div class="field-value">
+            [[USE_DATA(basic-info.address)]], [[USE_DATA(basic-info.city)]], [[USE_DATA(basic-info.state)]] [[USE_DATA(basic-info.zip)]]
+          </div>
+        </div>
+      </div>
+
+      <div class="w2-boxes">
+        <div class="w2-box">
+          <div class="box-label">1 Wages, tips, other compensation</div>
+          <div class="box-value">$[[USE_DATA(income.total)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">2 Federal income tax withheld</div>
+          <div class="box-value">$[[USE_DATA(tax-liability.federal-income-tax)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">3 Social security wages</div>
+          <div class="box-value">$[[USE_DATA(income.total)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">4 Social security tax withheld</div>
+          <div class="box-value">$[[USE_DATA(payroll.deductions.social-security)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">5 Medicare wages and tips</div>
+          <div class="box-value">$[[USE_DATA(income.total)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">6 Medicare tax withheld</div>
+          <div class="box-value">$[[USE_DATA(payroll.deductions.medicare)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">15 State</div>
+          <div class="box-value">[[USE_DATA(basic-info.state)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">16 State wages, tips, etc.</div>
+          <div class="box-value">$[[USE_DATA(income.total)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">17 State income tax</div>
+          <div class="box-value">$[[USE_DATA(tax-liability.state-income-tax)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">18 Local wages, tips, etc.</div>
+          <div class="box-value">$[[USE_DATA(income.total)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">19 Local income tax</div>
+          <div class="box-value">$[[USE_DATA(tax-liability.local-tax)]]</div>
+        </div>
+        <div class="w2-box">
+          <div class="box-label">20 Locality name</div>
+          <div class="box-value">[[USE_DATA(basic-info.city)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>[[USE_DATA(company-info.name)]]</strong></p>
+      <p>This form is provided for your records. File Copy A with your tax return.</p>
+      <p>Tax Year: [[USE_DATA(tax-document.tax-year)]]</p>
+    </div>
+  </div>
+</body>
+</html>
+

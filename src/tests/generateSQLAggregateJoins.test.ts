@@ -1,12 +1,17 @@
 import generateSQLAggregateJoins from '@/utils/generateSQLAggregateJoins.ts';
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
 import { normalizeWhitespace } from '@/helpers/stringHelper.ts';
 import manyToMany from '@/schema-infos/manyToMany.ts';
 import oneToMany from '@/schema-infos/oneToMany.ts';
+import { useFormStore } from '@/useFormStore.ts';
 
 describe('generateSQLAggregateJoins', () => {
   const POSSchemaInfo = manyToMany;
   const userPostsOneToManySchemaInfo = oneToMany;
+
+  beforeEach(() => {
+    useFormStore.setState({ quote: '"' });
+  });
 
   it('should generate correct SQL JOIN queries for POS schema', () => {
     const joinQueries = generateSQLAggregateJoins(POSSchemaInfo).join('');

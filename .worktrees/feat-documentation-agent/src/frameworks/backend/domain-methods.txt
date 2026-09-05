@@ -1,0 +1,65 @@
+1. User-Related Endpoints (With Post Involvement)
+Method	Endpoint	Purpose
+GET	/users/{userId}/posts	Get all posts created by a specific user (joined with post).
+GET	/users/{userId}/posts/count	Get the count of posts created by a specific user (involves posts).
+GET	/users/{userId}/latestPost	Get the latest post created by a specific user (joined with post).
+GET	/users/withPosts	Get all users who have created at least one post (joined with post).
+GET	/users/withoutPosts	Get all users who haven’t created any posts (left join to detect users without posts).
+POST	/users/{userId}/posts	Create a new post for a specific user (validate that the user exists).
+DELETE	/users/{userId}/posts	Delete all posts created by a specific user (involves both user and post tables).
+
+2. Post-Related Endpoints (With User Involvement)
+Method	Endpoint	Purpose
+GET	/posts	Get all posts (optionally include author details via query param ?includeUser=true).
+GET	/posts/{postId}	Get a specific post with its author details (joined with user).
+GET	/posts/byUser/{userId}	Get posts for a specific user (alternative to /users/{userId}/posts).
+GET	/posts/withMultipleAuthors	Get posts that were co-authored by multiple users (if relevant).
+GET	/posts/recent?includeUser=true	Get recent posts (joined with user).
+GET	/posts/search?title={title}	Search posts by title (joined with user).
+GET	/posts/popularPosts?includeUser=true	Get popular posts (joined with user).
+GET	/posts/withoutUser	Get posts that don’t have an associated user (detect orphaned posts).
+
+3. Advanced and Statistical Endpoints (With User-Post Involvement)
+Method	Endpoint	Purpose
+GET	/posts/author/{firstName}/{lastName}	Get all posts created by a user queried by their full name (joined with user).
+GET	/users/popularUsers	Get a list of users ordered by the number of posts they have created (involves both user and post tables).
+GET	/users/{userId}/postStats	Get statistical information about a user’s posts (e.g., total posts, average word count).
+
+Categorized Methods
+
+1. CRUD Endpoints (Basic Create, Read, Update, Delete with Relationships)
+User-Related CRUD Endpoints (With Post Involvement)
+Method	Endpoint	Purpose
+GET	/users/{userId}/posts	Get all posts created by a specific user.
+POST	/users/{userId}/posts	Create a new post for a specific user (validate that the user exists).
+DELETE	/users/{userId}/posts	Delete all posts created by a specific user.
+Post-Related CRUD Endpoints (With User Involvement)
+Method	Endpoint	Purpose
+GET	/posts	Get all posts (optionally include author details via query param ?includeUser=true).
+GET	/posts/{postId}	Get a specific post with its author details.
+GET	/posts/byUser/{userId}	Get posts for a specific user (alternative to /users/{userId}/posts).
+
+2. Aggregated Retrieval Endpoints (With Joins and Grouping)
+User-Centric Aggregated Endpoints
+Method	Endpoint	Purpose
+GET	/users/{userId}/posts/count	Get the count of posts created by a specific user.
+GET	/users/{userId}/latestPost	Get the latest post created by a specific user.
+GET	/users/{userId}/mostLikedPost	Get the most liked post of a specific user.
+Post-Centric Aggregated Endpoints
+Method	Endpoint	Purpose
+GET	/posts/withMultipleAuthors	Get posts that were co-authored by multiple users.
+GET	/posts/popularPosts?includeUser=true	Get popular posts (joined with user).
+
+3. Filtering and Conditional Retrieval Endpoints (With Relationships)
+Method	Endpoint	Purpose
+GET	/users/withPosts	Get all users who have created at least one post.
+GET	/users/withoutPosts	Get all users who haven’t created any posts.
+GET	/posts/recent?includeUser=true	Get recent posts (joined with user).
+GET	/posts/search?title={title}	Search posts by title (joined with user).
+GET	/posts/withoutUser	Get posts that don’t have an associated user (orphaned posts).
+
+4. Advanced and Statistical Endpoints (With Complex Relationships and Metrics)
+Method	Endpoint	Purpose
+GET	/posts/author/{firstName}/{lastName}	Get all posts created by a user queried by their full name.
+GET	/users/popularUsers	Get a list of users ordered by the number of posts they have created.
+GET	/users/{userId}/postStats	Get statistical information about a user’s posts (e.g., total posts, average word count).

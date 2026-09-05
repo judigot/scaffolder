@@ -1,0 +1,41 @@
+user:
+user_id,first_name,last_name,email,username,password,created_at,updated_at
+1,"John","Doe","john.doe@example.com","johndoe","$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m","2023-06-18T10:17:19.123456Z","2024-06-18T10:17:19.123456Z"
+2,"Jane","Doe","jane.doe@example.com","janedoe","$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m","2024-06-18T10:17:19.123456Z","2024-06-18T10:17:19.123456Z"
+
+post:
+post_id,user_id,title,content,created_at,updated_at
+1,1,"John's Post"ddd"dddd","Lorem ipsum","2023-06-18T10:17:19.123456Z","2024-06-18T10:17:19.123456Z"
+2,2,"Jane's Post","","2024-06-18T10:17:19.123456Z","2024-06-18T10:17:19.123456Z"
+
+users:
+  - user_id: 1
+    first_name: "John"
+    last_name: "Doe"
+    email: "john.doe@example.com"
+    username: "johndoe"
+    password: "[hidden]"
+    created_at: "2023-06-18 10:17:19"
+    updated_at: "2024-06-18 10:17:19"
+  - user_id: 2
+    first_name: "Jane"
+    last_name: "Doe"
+    email: "jane.doe@example.com"
+    username: "janedoe"
+    password: "[hidden]"
+    created_at: "2024-06-18 10:17:19"
+    updated_at: "2024-06-18 10:17:19"
+
+posts:
+  - post_id: 1
+    user_id: 1
+    title: "John's Post"
+    content: "Lorem ipsum"
+    created_at: "2023-06-18 10:17:19"
+    updated_at: "2024-06-18 10:17:19"
+  - post_id: 2
+    user_id: 2
+    title: "Jane's Post"
+    content: "[no content]"
+    created_at: "2024-06-18 10:17:19"
+    updated_at: "2024-06-18 10:17:19"

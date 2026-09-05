@@ -1,0 +1,102 @@
+[
+  {
+    "tableName": "user",
+    "columnsInfo": [
+      {
+        "column_name": "id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "primary_key": true
+      },
+      {
+        "column_name": "email",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "unique": true
+      },
+      {
+        "column_name": "password_hash",
+        "data_type": "string",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "email_verified",
+        "data_type": "boolean",
+        "is_nullable": "NO",
+        "column_default": "false"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "Date",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "Date",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      }
+    ],
+    "childTables": ["session", "oauth_account"],
+    "hasMany": ["session", "oauth_account"]
+  },
+  {
+    "tableName": "session",
+    "columnsInfo": [
+      {
+        "column_name": "id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "primary_key": true
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "foreign_key": {
+          "foreign_table_name": "user",
+          "foreign_column_name": "id"
+        }
+      },
+      {
+        "column_name": "expires_at",
+        "data_type": "Date",
+        "is_nullable": "NO"
+      }
+    ],
+    "foreignTables": ["user"],
+    "isAuthResource": true,
+    "ownerField": "user_id",
+    "belongsTo": ["user"]
+  },
+  {
+    "tableName": "oauth_account",
+    "compositePrimaryKey": ["provider_id", "provider_user_id"],
+    "columnsInfo": [
+      {
+        "column_name": "provider_id",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "provider_user_id",
+        "data_type": "string",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "user_id",
+        "data_type": "string",
+        "is_nullable": "NO",
+        "foreign_key": {
+          "foreign_table_name": "user",
+          "foreign_column_name": "id"
+        }
+      }
+    ],
+    "foreignTables": ["user"],
+    "isAuthResource": true,
+    "ownerField": "user_id",
+    "belongsTo": ["user"]
+  }
+]

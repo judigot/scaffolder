@@ -1,19 +1,23 @@
+import { hiddenFields } from "@/frameworks/backend/laravel/createModels.ts";
 import type {
-  ISchemaInfo,
-  IColumnInfo,
-  ParsedJSONSchema,
-} from '@/interfaces/interfaces.ts';
-import { hiddenFields } from '@/frameworks/backend/laravel/createModels.ts';
+	IColumnInfo,
+	ISchemaInfo,
+	ParsedJSONSchema,
+} from "@/interfaces/interfaces.ts";
+import {
+	buildChildTableMap,
+	getCombinedChildTables,
+} from "@/utils/schemaChildTables.ts";
 
 interface IRelationships {
-  hasOne?: string[];
-  hasMany?: string[];
-  belongsTo?: string[];
-  belongsToMany?: string[];
-  pivotRelationships?: {
-    relatedTable: string;
-    pivotTable: string;
-  }[];
+	hasOne?: string[];
+	hasMany?: string[];
+	belongsTo?: string[];
+	belongsToMany?: string[];
+	pivotRelationships?: {
+		relatedTable: string;
+		pivotTable: string;
+	}[];
 }
 
 /**
@@ -21,280 +25,321 @@ interface IRelationships {
  * Views are read-only database objects that don't need code generation.
  */
 export interface IViewTable {
-  tableName: string;
-  viewQuery: string;
+	tableName: string;
+	viewQuery: string;
 }
 
 export interface ISchemaInfoResult {
-  schema: ISchemaInfo[];
-  tableNames: string[];
-  pivotTables: string[];
-  seedData: Record<PropertyKey, unknown>;
-  getPrimaryKey: (tableName: string) => string;
-  getForeignTables: (tableName: string) => string[];
-  getRequiredColumns: (tableName: string) => string[];
-  getAllColumns: (tableName: string) => string[];
-  getHiddenColumns: (tableName: string) => string[];
-  getColumnsInfo: (tableName: string) => IColumnInfo[];
-  getChildTables: (tableName: string) => string[];
-  getRelationships: (tableName: string) => IRelationships;
-  isPivot: (tableName: string) => boolean;
-  getSeedData: (tableName: string) => Record<string, unknown>[] | undefined;
-  getAllSeedData: () => ParsedJSONSchema;
-  getViewTables: () => IViewTable[];
+	schema: ISchemaInfo[];
+	tableNames: string[];
+	pivotTables: string[];
+	seedData: Record<PropertyKey, unknown>;
+	getPrimaryKey: (tableName: string) => string;
+	getCompositePrimaryKey: (tableName: string) => string[];
+	hasCompositePrimaryKey: (tableName: string) => boolean;
+	getForeignTables: (tableName: string) => string[];
+	getRequiredColumns: (tableName: string) => string[];
+	getAllColumns: (tableName: string) => string[];
+	getHiddenColumns: (tableName: string) => string[];
+	getColumnsInfo: (tableName: string) => IColumnInfo[];
+	getChildTables: (tableName: string) => string[];
+	getRelationships: (tableName: string) => IRelationships;
+	isPivot: (tableName: string) => boolean;
+	getSeedData: (tableName: string) => Record<string, unknown>[] | undefined;
+	getAllSeedData: () => ParsedJSONSchema;
+	getViewTables: () => IViewTable[];
 }
 
 export const getSchemaInfo = (schema: ISchemaInfo[]): ISchemaInfoResult => {
-  /* Create a map for quick table lookups */
-  const tableMap = new Map<string, ISchemaInfo>();
-  schema.forEach((table) => {
-    tableMap.set(table.tableName, table);
-  });
+	/* Create a map for quick table lookups */
+	const tableMap = new Map<string, ISchemaInfo>();
+	schema.forEach((table) => {
+		tableMap.set(table.tableName, table);
+	});
 
-  /* Get all table names */
-  const tableNames = schema.map((table) => table.tableName);
+	/* Get all table names */
+	const tableNames = schema.map((table) => table.tableName);
 
-  /* Get pivot tables */
-  const pivotTables = schema
-    .filter((table) => table.isPivot === true)
-    .map((table) => table.tableName);
+	/* Get pivot tables */
+	const pivotTables = schema
+		.filter((table) => table.isPivot === true)
+		.map((table) => table.tableName);
 
-  /**
-   * Get primary key column name for a table.
-   *
-   * Works with any primary key naming convention:
-   * - "id" (common Laravel/ActiveRecord convention)
-   * - "tableName_id" (common database convention)
-   * - Any other custom primary key name
-   *
-   * For composite primary keys, returns the first primary key column.
-   * Returns empty string if no primary key is found.
-   */
-  const getPrimaryKey = (tableName: string): string => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return '';
-    }
-    const primaryKeys = table.columnsInfo
-      .filter((col: IColumnInfo) => col.primary_key === true)
-      .map((col: IColumnInfo) => col.column_name);
+	/**
+	 * Get primary key column name for a table.
+	 *
+	 * Works with any primary key naming convention:
+	 * - "id" (common Laravel/ActiveRecord convention)
+	 * - "tableName_id" (common database convention)
+	 * - Any other custom primary key name
+	 *
+	 * For composite primary keys, returns the first primary key column.
+	 * Returns empty string if no primary key is found.
+	 */
+	const getPrimaryKey = (tableName: string): string => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return "";
+		}
 
-    return primaryKeys[0] ?? '';
-  };
+		// Check for composite primary key first
+		if (table.compositePrimaryKey && table.compositePrimaryKey.length >= 2) {
+			return table.compositePrimaryKey[0];
+		}
 
-  /* Get foreign tables for a table */
-  const getForeignTables = (tableName: string): string[] => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return [];
-    }
-    return table.foreignTables ?? [];
-  };
+		// Fall back to single primary key column
+		const primaryKeys = table.columnsInfo
+			.filter((col: IColumnInfo) => col.primary_key === true)
+			.map((col: IColumnInfo) => col.column_name);
 
-  /* Get required columns for a table */
-  const getRequiredColumns = (tableName: string): string[] => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return [];
-    }
+		return primaryKeys[0] ?? "";
+	};
 
-    const requiredFromColumns = table.columnsInfo
-      .filter((col: IColumnInfo) => col.is_nullable === 'NO')
-      .map((col: IColumnInfo) => col.column_name);
+	/**
+	 * Get composite primary key columns for a table.
+	 *
+	 * Returns the array of column names that form the composite primary key,
+	 * or an empty array if the table uses a single primary key.
+	 */
+	const getCompositePrimaryKey = (tableName: string): string[] => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return [];
+		}
+		return table.compositePrimaryKey ?? [];
+	};
 
-    const explicitlyRequired = table.requiredColumns ?? [];
+	/**
+	 * Check if a table has a composite primary key.
+	 */
+	const hasCompositePrimaryKey = (tableName: string): boolean => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return false;
+		}
+		return (
+			table.compositePrimaryKey !== undefined &&
+			table.compositePrimaryKey.length >= 2
+		);
+	};
 
-    return [...new Set([...requiredFromColumns, ...explicitlyRequired])];
-  };
+	/* Get foreign tables for a table */
+	const getForeignTables = (tableName: string): string[] => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return [];
+		}
+		return table.foreignTables ?? [];
+	};
 
-  /* Get all columns for a table */
-  const getAllColumns = (tableName: string): string[] => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return [];
-    }
-    return table.columnsInfo.map((col: IColumnInfo) => col.column_name);
-  };
+	/* Get required columns for a table */
+	const getRequiredColumns = (tableName: string): string[] => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return [];
+		}
 
-  /* Get hidden columns for a table */
-  const getHiddenColumns = (tableName: string): string[] => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return [];
-    }
+		const requiredFromColumns = table.columnsInfo
+			.filter((col: IColumnInfo) => col.is_nullable === "NO")
+			.map((col: IColumnInfo) => col.column_name);
 
-    const allColumns = table.columnsInfo.map((col) => col.column_name);
-    return allColumns.filter((column) => hiddenFields.includes(column));
-  };
+		const explicitlyRequired = table.requiredColumns ?? [];
 
-  /* Get columns info for a table */
-  const getColumnsInfo = (tableName: string): IColumnInfo[] => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return [];
-    }
-    return table.columnsInfo;
-  };
+		return [...new Set([...requiredFromColumns, ...explicitlyRequired])];
+	};
 
-  /* Get child tables for a table */
-  const getChildTables = (tableName: string): string[] => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return [];
-    }
-    return table.childTables ?? [];
-  };
+	/* Get all columns for a table */
+	const getAllColumns = (tableName: string): string[] => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return [];
+		}
+		return table.columnsInfo.map((col: IColumnInfo) => col.column_name);
+	};
 
-  /* Check if a table is a pivot table */
-  const isPivot = (tableName: string): boolean => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return false;
-    }
-    return table.isPivot === true;
-  };
+	/* Get hidden columns for a table */
+	const getHiddenColumns = (tableName: string): string[] => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return [];
+		}
 
-  /* Get all relationships for a table */
-  const getRelationships = (tableName: string): IRelationships => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return {};
-    }
+		const allColumns = table.columnsInfo.map((col) => col.column_name);
+		return allColumns.filter((column) => hiddenFields.includes(column));
+	};
 
-    return {
-      hasOne: table.hasOne,
-      hasMany: table.hasMany,
-      belongsTo: table.belongsTo,
-      belongsToMany: table.belongsToMany,
-      pivotRelationships: table.pivotRelationships,
-    };
-  };
+	/* Get columns info for a table */
+	const getColumnsInfo = (tableName: string): IColumnInfo[] => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return [];
+		}
+		return table.columnsInfo;
+	};
 
-  /* Topological sort to determine the correct order of tables */
-  const topologicalSort = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
-    const sorted: ISchemaInfo[] = [];
-    const visited = new Set<string>();
-    const temp = new Set<string>();
+	/* Get child tables for a table */
+	const getChildTables = (tableName: string): string[] => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return [];
+		}
+		return table.childTables ?? [];
+	};
 
-    const visit = (table: ISchemaInfo) => {
-      if (temp.has(table.tableName)) {
-        throw new Error('Cyclic dependency detected');
-      }
-      if (!visited.has(table.tableName)) {
-        temp.add(table.tableName);
-        (table.childTables ?? []).forEach((childTable) => {
-          const childRelationship = schemaInfo.find(
-            (r) => r.tableName === childTable,
-          );
-          if (childRelationship) {
-            visit(childRelationship);
-          }
-        });
-        temp.delete(table.tableName);
-        visited.add(table.tableName);
-        sorted.push(table);
-      }
-    };
+	/* Check if a table is a pivot table */
+	const isPivot = (tableName: string): boolean => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return false;
+		}
+		return table.isPivot === true;
+	};
 
-    schemaInfo.forEach((table) => {
-      if (!visited.has(table.tableName)) {
-        visit(table);
-      }
-    });
+	/* Get all relationships for a table */
+	const getRelationships = (tableName: string): IRelationships => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return {};
+		}
 
-    return sorted.reverse(); // Reverse to get the correct order
-  };
+		return {
+			hasOne: table.hasOne,
+			hasMany: table.hasMany,
+			belongsTo: table.belongsTo,
+			belongsToMany: table.belongsToMany,
+			pivotRelationships: table.pivotRelationships,
+		};
+	};
 
-  /* Get seed data for a specific table */
-  const getSeedData = (
-    tableName: string,
-  ): Record<string, unknown>[] | undefined => {
-    const table = tableMap.get(tableName);
-    if (!table) {
-      return undefined;
-    }
-    if (!table.data || !Array.isArray(table.data) || table.data.length === 0) {
-      return undefined;
-    }
-    return table.data;
-  };
+	/* Topological sort to determine the correct order of tables */
+	const topologicalSort = (schemaInfo: ISchemaInfo[]): ISchemaInfo[] => {
+		const sorted: ISchemaInfo[] = [];
+		const visited = new Set<string>();
+		const temp = new Set<string>();
+		const childTableMap = buildChildTableMap(schemaInfo);
 
-  /* Get all seed data ordered by dependencies */
-  const getAllSeedData = (): ParsedJSONSchema => {
-    const seedData: ParsedJSONSchema = {};
+		const visit = (table: ISchemaInfo) => {
+			if (temp.has(table.tableName)) {
+				throw new Error("Cyclic dependency detected");
+			}
+			if (!visited.has(table.tableName)) {
+				temp.add(table.tableName);
+				const childTables = getCombinedChildTables(table, childTableMap);
+				for (const childTable of childTables) {
+					const childRelationship = schemaInfo.find(
+						(r) => r.tableName === childTable,
+					);
+					if (childRelationship) {
+						visit(childRelationship);
+					}
+				}
+				temp.delete(table.tableName);
+				visited.add(table.tableName);
+				sorted.push(table);
+			}
+		};
 
-    // Get all tables with seed data
-    const tablesWithSeedData = schema.filter(
-      (table) =>
-        Boolean(table.data) &&
-        Array.isArray(table.data) &&
-        table.data.length > 0,
-    );
+		for (const table of schemaInfo) {
+			if (!visited.has(table.tableName)) {
+				visit(table);
+			}
+		}
 
-    if (tablesWithSeedData.length === 0) {
-      return seedData;
-    }
+		return sorted.reverse(); // Reverse to get the correct order
+	};
 
-    // Sort tables by dependencies (parents before children)
-    const sortedTables = topologicalSort(tablesWithSeedData);
+	/* Get seed data for a specific table */
+	const getSeedData = (
+		tableName: string,
+	): Record<string, unknown>[] | undefined => {
+		const table = tableMap.get(tableName);
+		if (!table) {
+			return undefined;
+		}
+		if (!table.data || !Array.isArray(table.data) || table.data.length === 0) {
+			return undefined;
+		}
+		return table.data;
+	};
 
-    // Build seed data in dependency order
-    sortedTables.forEach((table) => {
-      if (table.data && Array.isArray(table.data) && table.data.length > 0) {
-        seedData[table.tableName] = table.data;
-      }
-    });
+	/* Get all seed data ordered by dependencies */
+	const getAllSeedData = (): ParsedJSONSchema => {
+		const seedData: ParsedJSONSchema = {};
 
-    return seedData;
-  };
+		// Get all tables with seed data
+		const tablesWithSeedData = schema.filter(
+			(table) =>
+				Boolean(table.data) &&
+				Array.isArray(table.data) &&
+				table.data.length > 0,
+		);
 
-  /* Get seed data as Record for backward compatibility */
-  const seedData: Record<PropertyKey, unknown> = getAllSeedData();
+		if (tablesWithSeedData.length === 0) {
+			return seedData;
+		}
 
-  /**
-   * Get all view tables with their view queries.
-   *
-   * Views are identified by the presence of the `viewQuery` property.
-   * This method is used by the project-builder to exclude views from code generation
-   * (views are read-only and don't need migrations, controllers, models, etc.).
-   *
-   * @returns Array of view table information including table name and view query.
-   *          Returns empty array if no views exist in the schema.
-   *
-   * @example
-   * ```typescript
-   * const schemaInfo = getSchemaInfo(schema);
-   * const views = schemaInfo.getViewTables();
-   * // Returns: [{ tableName: 'user_summary_view', viewQuery: 'SELECT ...' }]
-   * ```
-   */
-  const getViewTables = (): IViewTable[] => {
-    return schema
-      .filter((table) => table.viewQuery !== undefined)
-      .map((table) => ({
-        tableName: table.tableName,
-        viewQuery: table.viewQuery ?? '',
-      }));
-  };
+		// Sort tables by dependencies (parents before children)
+		const sortedTables = topologicalSort(tablesWithSeedData);
 
-  return {
-    schema,
-    tableNames,
-    pivotTables,
-    seedData,
-    getPrimaryKey,
-    getForeignTables,
-    getAllColumns,
-    getRequiredColumns,
-    getHiddenColumns,
-    getColumnsInfo,
-    getChildTables,
-    getRelationships,
-    isPivot,
-    getSeedData,
-    getAllSeedData,
-    getViewTables,
-  };
+		// Build seed data in dependency order
+		sortedTables.forEach((table) => {
+			if (table.data && Array.isArray(table.data) && table.data.length > 0) {
+				seedData[table.tableName] = table.data;
+			}
+		});
+
+		return seedData;
+	};
+
+	/* Get seed data as Record for backward compatibility */
+	const seedData: Record<PropertyKey, unknown> = getAllSeedData();
+
+	/**
+	 * Get all view tables with their view queries.
+	 *
+	 * Views are identified by the presence of the `viewQuery` property.
+	 * This method is used by the project-builder to exclude views from code generation
+	 * (views are read-only and don't need migrations, controllers, models, etc.).
+	 *
+	 * @returns Array of view table information including table name and view query.
+	 *          Returns empty array if no views exist in the schema.
+	 *
+	 * @example
+	 * ```typescript
+	 * const schemaInfo = getSchemaInfo(schema);
+	 * const views = schemaInfo.getViewTables();
+	 * // Returns: [{ tableName: 'user_summary_view', viewQuery: 'SELECT ...' }]
+	 * ```
+	 */
+	const getViewTables = (): IViewTable[] => {
+		return schema
+			.filter((table) => table.viewQuery !== undefined)
+			.map((table) => ({
+				tableName: table.tableName,
+				viewQuery: table.viewQuery ?? "",
+			}));
+	};
+
+	return {
+		schema,
+		tableNames,
+		pivotTables,
+		seedData,
+		getPrimaryKey,
+		getCompositePrimaryKey,
+		hasCompositePrimaryKey,
+		getForeignTables,
+		getAllColumns,
+		getRequiredColumns,
+		getHiddenColumns,
+		getColumnsInfo,
+		getChildTables,
+		getRelationships,
+		isPivot,
+		getSeedData,
+		getAllSeedData,
+		getViewTables,
+	};
 };
 
 export default getSchemaInfo;

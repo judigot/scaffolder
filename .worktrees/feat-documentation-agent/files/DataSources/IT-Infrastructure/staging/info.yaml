@@ -1,0 +1,73 @@
+environment:
+  name: "staging"
+  region: "us-east-1"
+  provider: "aws"
+  account-id: "123456789012"
+  vpc-cidr: "10.1.0.0/16"
+  availability-zones:
+    - "us-east-1a"
+    - "us-east-1b"
+
+services:
+  - name: "api"
+    type: "web-service"
+    replicas: 2
+    cpu: "500m"
+    memory: "1Gi"
+    ports:
+      - port: 8080
+        protocol: "http"
+    health-check: "/health"
+    auto-scaling:
+      min: 1
+      max: 5
+      target-cpu: 70
+
+  - name: "database"
+    type: "database"
+    engine: "postgresql"
+    version: "14"
+    instance-class: "db.t3.medium"
+    storage: 100
+    multi-az: false
+    backup-retention: 7
+
+  - name: "cache"
+    type: "cache"
+    engine: "redis"
+    node-type: "cache.t3.micro"
+    num-cache-nodes: 1
+
+networking:
+  load-balancer:
+    type: "application"
+    scheme: "internet-facing"
+    ssl-certificate: "arn:aws:acm:us-east-1:123456789012:certificate/def456"
+  
+  security-groups:
+    - name: "web-sg"
+      description: "Security group for web services"
+      ingress:
+        - from-port: 80
+          to-port: 80
+          protocol: "tcp"
+          cidr-blocks: ["0.0.0.0/0"]
+        - from-port: 443
+          to-port: 443
+          protocol: "tcp"
+          cidr-blocks: ["0.0.0.0/0"]
+
+monitoring:
+  enabled: true
+  log-retention: 14
+  metrics-retention: 30
+  alerting:
+    email: "ops@company.com"
+    slack: "#alerts-staging"
+
+tags:
+  Environment: "staging"
+  Team: "platform"
+  CostCenter: "engineering"
+  ManagedBy: "terraform"
+

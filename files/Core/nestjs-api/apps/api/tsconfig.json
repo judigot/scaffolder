@@ -1,0 +1,12 @@
+{
+  "extends": "@bigbang/typescript-config/api.json",
+  "compilerOptions": {
+    "types": ["node", "bun"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "erasableSyntaxOnly": false,
+    "allowImportingTsExtensions": false
+  },
+  "include": ["src", "test"]
+}

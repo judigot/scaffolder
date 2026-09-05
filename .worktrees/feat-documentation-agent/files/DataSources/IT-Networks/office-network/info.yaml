@@ -1,0 +1,108 @@
+network:
+  name: "Office Network"
+  location: "Main Office"
+  subnet: "192.168.1.0/24"
+  gateway: "192.168.1.1"
+  vlan-id: 100
+  description: "Primary office network for workstations and servers"
+
+devices:
+  - name: "Router-01"
+    type: "router"
+    model: "Cisco ISR 4331"
+    ip-address: "192.168.1.1"
+    management-ip: "10.0.0.1"
+    interfaces:
+      - name: "GigabitEthernet0/0"
+        description: "LAN Interface"
+        ip: "192.168.1.1"
+        subnet: "255.255.255.0"
+        status: "up"
+      - name: "GigabitEthernet0/1"
+        description: "WAN Interface"
+        ip: "203.0.113.1"
+        subnet: "255.255.255.252"
+        status: "up"
+
+  - name: "Switch-01"
+    type: "switch"
+    model: "Cisco Catalyst 2960-X"
+    ip-address: "192.168.1.10"
+    management-ip: "10.0.0.10"
+    interfaces:
+      - name: "GigabitEthernet1/0/1"
+        description: "Server Port"
+        vlan: 100
+        status: "up"
+      - name: "GigabitEthernet1/0/2"
+        description: "Workstation Port"
+        vlan: 100
+        status: "up"
+
+  - name: "Firewall-01"
+    type: "firewall"
+    model: "Fortinet FortiGate 60F"
+    ip-address: "192.168.1.2"
+    management-ip: "10.0.0.2"
+    interfaces:
+      - name: "port1"
+        description: "Internal"
+        ip: "192.168.1.2"
+        subnet: "255.255.255.0"
+        zone: "internal"
+      - name: "port2"
+        description: "External"
+        ip: "203.0.113.2"
+        subnet: "255.255.255.252"
+        zone: "external"
+
+routing:
+  default-gateway: "192.168.1.1"
+  routes:
+    - network: "10.0.0.0/8"
+      gateway: "192.168.1.1"
+      metric: 10
+    - network: "172.16.0.0/12"
+      gateway: "192.168.1.1"
+      metric: 10
+
+dns:
+  primary: "8.8.8.8"
+  secondary: "8.8.4.4"
+  internal: "192.168.1.1"
+
+dhcp:
+  enabled: true
+  range-start: "192.168.1.100"
+  range-end: "192.168.1.200"
+  lease-time: 86400
+  default-gateway: "192.168.1.1"
+  dns-servers:
+    - "8.8.8.8"
+    - "8.8.4.4"
+
+security:
+  firewall-rules:
+    - name: "Allow HTTP"
+      action: "allow"
+      source: "any"
+      destination: "192.168.1.0/24"
+      service: "http"
+      port: 80
+    - name: "Allow HTTPS"
+      action: "allow"
+      source: "any"
+      destination: "192.168.1.0/24"
+      service: "https"
+      port: 443
+    - name: "Deny All"
+      action: "deny"
+      source: "any"
+      destination: "any"
+      service: "any"
+
+tags:
+  Location: "Main Office"
+  NetworkType: "LAN"
+  VLAN: "100"
+

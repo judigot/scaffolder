@@ -6,38 +6,58 @@ import type {
   BuildContext,
 } from '@/utils/project-builder/interfaces/interfaces.ts';
 import { processDynamicProperties } from '@/utils/project-builder/utils/processDynamicProperties.ts';
+import { resolvePlaceholderValue } from '@/utils/project-builder/utils/placeholderTransforms.ts';
+
+/**
+ * Replace a single placeholder with its value from replacements
+ */
+const replaceSingleCommandPlaceholder = (
+  key: string,
+  replacements: Replacements,
+  originalPlaceholder: string,
+): string => {
+  const trimmedKey = key.trim();
+  const resolvedPlaceholder = resolvePlaceholderValue(trimmedKey, replacements);
+  if (resolvedPlaceholder !== undefined) {
+    const { value } = resolvedPlaceholder;
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+  }
+  return originalPlaceholder;
+};
 
 /**
  * Pre-process placeholders inside [[...]] commands so that command parameters
- * like [[USE_ROWS(tableName={{tableName}})]] work correctly.
- * This replaces {{...}} placeholders INSIDE command brackets before commands are processed.
+ * like [[USE_ROWS(tableName={{tableName}})]] or [[USE_ROWS(tableName=<@@>tableName</@@>)]] work correctly.
+ * This replaces placeholders INSIDE command brackets before commands are processed.
+ * Supports both {{...}} (legacy) and <@@>...</@@> (new) syntax.
  */
 const preProcessCommandPlaceholders = (
   text: string,
   replacements: Replacements,
 ): string => {
-  // Match [[COMMAND(...)]] patterns and replace {{...}} placeholders inside them
+  // Match [[COMMAND(...)]] patterns and replace placeholders inside them
   return text.replace(
     /\[\[\s*([A-Z_]+)\(([^)]*)\)\s*\]\]/g,
     (_fullMatch, commandName: string, params: string) => {
-      // Replace {{...}} placeholders in the params
-      const processedParams = params.replace(
-        /\{\{([^}]+)\}\}/g,
-        (_placeholder: string, key: string) => {
-          const trimmedKey = key.trim();
-          if (trimmedKey in replacements) {
-            const value = replacements[trimmedKey];
-            if (typeof value === 'string') {
-              return value;
-            }
-            if (typeof value === 'number' || typeof value === 'boolean') {
-              return String(value);
-            }
-          }
-          // Return the original placeholder if not found
-          return `{{${key}}}`;
-        },
+      // Replace <@@>...</@@> placeholders in the params (new syntax)
+      let processedParams = params.replace(
+        /<@@>([^<]+)<\/@@>/g,
+        (_placeholder: string, key: string) =>
+          replaceSingleCommandPlaceholder(key, replacements, `<@@>${key}</@@>`),
       );
+
+      // Replace {{...}} placeholders in the params (legacy syntax)
+      processedParams = processedParams.replace(
+        /\{\{([^}]+)\}\}/g,
+        (_placeholder: string, key: string) =>
+          replaceSingleCommandPlaceholder(key, replacements, `{{${key}}}`),
+      );
+
       return `[[${commandName}(${processedParams})]]`;
     },
   );
@@ -68,18 +88,10 @@ export const replacePlaceholders = (
   );
 
   // Process all commands
-  const processedText = processCommand(
-    textWithResolvedCommandParams,
-    ctx.userFiles,
-    ctx.schemaInfoParsed,
-    ctx.table,
+  const processedText = processCommand(textWithResolvedCommandParams, ctx, {
     templateFilePath,
-    ctx.projectYamlPath,
-    ctx.formData,
-    ctx.userMetadata,
-    ctx.dataContext,
     skipLoopDataSources,
-  );
+  });
 
   // Process IF conditions
   const processedConditions = processIfConditions(processedText, replacements);

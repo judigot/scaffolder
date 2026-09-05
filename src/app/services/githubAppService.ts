@@ -33,10 +33,7 @@ export function clearInstallationTokenCache(installationId?: number): void {
 
 export function getAppJWT(appId: string, privateKey: string): string {
   /* Validate private key format */
-  if (
-    !privateKey.includes('-----BEGIN') ||
-    !privateKey.includes('-----END')
-  ) {
+  if (!privateKey.includes('-----BEGIN') || !privateKey.includes('-----END')) {
     throw new Error(
       'Invalid private key format. Private key must be in PEM format with -----BEGIN and -----END markers.',
     );
@@ -44,9 +41,11 @@ export function getAppJWT(appId: string, privateKey: string): string {
 
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    iat: now - 60, /* Issued at time (60 seconds in the past to account for clock skew) */
-    exp: now + 60 * 10, /* Expires in 10 minutes */
-    iss: appId, /* Issuer (GitHub App ID) */
+    iat:
+      now -
+      60 /* Issued at time (60 seconds in the past to account for clock skew) */,
+    exp: now + 60 * 10 /* Expires in 10 minutes */,
+    iss: appId /* Issuer (GitHub App ID) */,
   };
 
   try {
@@ -84,7 +83,8 @@ async function getInstallationId(
 
     /* If no exact match, try to find any installation */
     if (installations.data.length > 0) {
-      return installations.data[0]?.id ?? null;
+      const firstInstallation = installations.data[0];
+      return firstInstallation.id;
     }
 
     return null;
@@ -136,9 +136,15 @@ export async function getGitHubAppToken(
   }
 
   if (finalInstallationId === null) {
-    const error = new Error(
-      `GitHub App is not installed for ${owner ?? 'the specified account'}`,
-    ) as Error & { code?: string; installationUrl?: Promise<string> };
+    interface IGitHubAppError extends Error {
+      code?: string;
+      installationUrl?: Promise<string>;
+    }
+
+    const ownerText = owner ?? 'the specified account';
+    const error: IGitHubAppError = new Error(
+      `GitHub App is not installed for ${ownerText}`,
+    );
     error.code = 'GITHUB_APP_NOT_INSTALLED';
     error.installationUrl = getInstallationUrl(owner, appJWT);
     throw error;
@@ -156,7 +162,9 @@ export async function getGitHubAppToken(
   const token = await getInstallationToken(appJWT, finalInstallationId);
 
   /* Cache the token with expiration per installation */
-  const expiresAt = Date.now() + 50 * 60 * 1000; /* GitHub tokens expire in ~1 hour, cache for 50 minutes */
+  const expiresAt =
+    Date.now() +
+    50 * 60 * 1000; /* GitHub tokens expire in ~1 hour, cache for 50 minutes */
   tokenCache.set(finalInstallationId, {
     token,
     expiresAt,
@@ -183,13 +191,15 @@ async function getAppSlug(appJWT: string): Promise<string | null> {
     const app = await octokit.apps.getAuthenticated();
     /* The slug is in the app name, but we need to make it URL-friendly */
     /* GitHub uses the app name as the slug, but it's URL-encoded */
-    if (app.data === null || app.data === undefined) {
-      return null;
-    }
-    const appName = app.data.name;
-    if (typeof appName === 'string' && appName !== '') {
-      /* Convert app name to slug format (lowercase, replace spaces with hyphens) */
-      return appName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (app.data) {
+      const appName = app.data.name;
+      if (typeof appName === 'string' && appName !== '') {
+        /* Convert app name to slug format (lowercase, replace spaces with hyphens) */
+        return appName
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+      }
     }
     return null;
   } catch (error: unknown) {
@@ -247,7 +257,7 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
 
   /* Private key might be base64 encoded or have newlines escaped */
   let privateKey = privateKeyEnv.trim();
-  
+
   /* If it doesn't look like a PEM key, try base64 decode */
   if (!privateKey.includes('-----BEGIN')) {
     try {
@@ -256,10 +266,10 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
       /* If base64 decode fails, use as-is */
     }
   }
-  
+
   /* Replace escaped newlines (handle both \n and \\n) */
   privateKey = privateKey.replace(/\\n/g, '\n');
-  
+
   /* If the key is all on one line (no actual newlines), we need to add them */
   /* Check if BEGIN and END are on the same "line" (no newline between them) */
   if (
@@ -278,19 +288,24 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
       '$1\n$2',
     );
   }
-  
+
   /* Also handle case where newlines might be missing in the middle of the key */
   /* If we have BEGIN and END but the key content looks compressed, try to format it */
-  const beginMatch = /-----BEGIN RSA PRIVATE KEY-----(.+?)-----END RSA PRIVATE KEY-----/s.exec(privateKey);
-  if (beginMatch?.[1] !== undefined) {
-    const keyContent = beginMatch[1].trim();
+  const beginMatch =
+    /-----BEGIN RSA PRIVATE KEY-----(.+?)-----END RSA PRIVATE KEY-----/s.exec(
+      privateKey,
+    );
+  const keyContent = beginMatch?.[1];
+  if (keyContent !== undefined && keyContent.length > 0) {
+    const trimmedContent = keyContent.trim();
     /* Remove any existing whitespace/newlines from the key content */
-    const cleanContent = keyContent.replace(/\s+/g, '');
+    const cleanContent = trimmedContent.replace(/\s+/g, '');
     /* If the key content has no newlines and is very long, it's likely compressed */
     if (cleanContent.length > 100) {
       /* Base64 encoded keys are typically 64 characters per line */
       /* Split into chunks of 64 characters */
-      const formattedContent = cleanContent.match(/.{1,64}/g)?.join('\n') ?? cleanContent;
+      const chunks = cleanContent.match(/.{1,64}/g);
+      const formattedContent = chunks ? chunks.join('\n') : cleanContent;
       privateKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedContent}\n-----END RSA PRIVATE KEY-----`;
     }
   }
@@ -310,4 +325,3 @@ export function getGitHubAppConfig(): IGitHubAppConfig | null {
 
   return config;
 }
-

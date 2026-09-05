@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Models;
+
+[[ LOOP(hasOne, hasMany, belongsTo, belongsToMany, pivotRelationships.pivotTable) --removeDuplicates --template="use App\Models\{{valuePascalCaseSingular}};" --separator="\n" ]]
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class {{tableNamePascalCase}} extends Model
+{
+    use HasFactory;
+
+    protected $table = '{{tableName}}';
+
+    protected $primaryKey = '{{getPrimaryKey()}}';
+
+    protected $hidden = [
+        [[ LOOP({{getAllColumns()}}) --template="'{{value}}'" --separator=",\n        " --filter="[[ USE_CONSTANT(hiddenColumns) ]]" ]]
+    ];
+
+    protected $fillable = [
+        [[ LOOP(requiredColumns) --template="'{{value}}'" --separator=",\n        " --ignore="[[ USE_CONSTANT(fillableExemptions) ]]" ]]
+    ];
+
+    [[ LOOP(hasOne) --template="public function {{valueSingular}}() {
+    return $this->hasOne({{valuePascalCaseSingular}}::class);
+    }" --separator="\n\n" ]]
+
+    [[ LOOP(hasMany) --template="public function {{valuePlural}}() {
+        return $this->hasMany({{valuePascalCaseSingular}}::class);
+    }" --separator="\n\n" ]]
+
+    [[ LOOP(pivotRelationships.relatedTable) --template="public function {{valuePlural}}() {
+        return $this->belongsToMany({{valuePascalCaseSingular}}::class);
+    }" --separator="\n\n" ]]
+
+    [[ LOOP(belongsTo) --template="public function {{valueSingular}}() {
+        return $this->belongsTo({{valuePascalCaseSingular}}::class);
+    }" --separator="\n\n" ]]
+
+}

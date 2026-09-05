@@ -1,0 +1,15 @@
+{
+  "name": "@core/tanstack-router",
+  "version": "1.0.0",
+  "description": "TanStack Router with authentication support",
+  "type": "module",
+  "dependencies": {
+    "@tanstack/react-router": "^1.170.32",
+    "@tanstack/react-router-devtools": "^1.167.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "^1.168.35"
+  }
+}

@@ -1,9 +1,35 @@
 {
+  "files": {
+    "includes": ["src/**", "!src/tests/golden-projects/output"]
+  },
   "linter": {
     "rules": {
       "recommended": true,
       "correctness": {
-        "noUnusedVariables": "error"
+        "noUnusedVariables": "error",
+        "useExhaustiveDependencies": "error"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "error",
+        "useSemanticElements": "error",
+        "noStaticElementInteractions": "error",
+        "useKeyWithClickEvents": "error",
+        "noLabelWithoutControl": "error",
+        "useHeadingContent": "error",
+        "noNoninteractiveElementToInteractiveRole": "error"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "error",
+        "noControlCharactersInRegex": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "error"
+      },
+      "performance": {
+        "noAccumulatingSpread": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error"
       }
     }
   }

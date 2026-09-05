@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/prisma/DatabaseClient.ts';
 import { {{tableName}} } from '@prisma/client';
 
-export const {{tableNamePascalCase}} = {
+export const {{tableName.pascalCase}} = {
   /**
    * Get all {{tableName}}s (READ).
    */

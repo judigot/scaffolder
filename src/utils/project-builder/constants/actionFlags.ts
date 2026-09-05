@@ -7,6 +7,7 @@ export const ACTION_FLAGS = {
   IS_RELATIVE_PATH: 'isRelativePath',
   DATA_SOURCE: 'data-source',
   FORMAT: 'format',
+  FILTER: 'filter',
 } as const;
 
 export type ProjectActionFlag =

@@ -59,7 +59,7 @@ $USE_CORE:
   - /Core/prisma          # Database layer
   - /Core/auth            # Authentication
 
-FOLDER_LOOP({{tableNameKebabCase}}):
+FOLDER_LOOP({{tableName.kebabCase}}):
   - CREATE_FILE(Service.ts --template /Templates/CRUD-Service.txt)
   - CREATE_FILE(Controller.ts --template /Templates/Controller.txt)
   - CREATE_FILE(Hook.ts --template /Templates/React-Hook.txt)
@@ -241,7 +241,7 @@ Templates support conditionals and loops for smart generation:
 
 ```yaml
 [[ LOOP(columnsInfo) --template="
-  {{valueCamelCase}}: 
+  {{value.camelCase}}: 
   {% IF data_type EQUALS 'string' %}string{% ENDIF %}
   {% IF data_type EQUALS 'number' %}number{% ENDIF %}
   {% IF is_nullable EQUALS 'YES' %} | null{% ENDIF %};

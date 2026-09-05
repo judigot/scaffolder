@@ -1,0 +1,50 @@
+LEGAL CONTRACT AGREEMENT
+
+This Agreement ("Agreement") is entered into on [[USE_DATA(contract.date)]] between:
+
+PARTY A:
+[[USE_DATA(client.name)]]
+[[USE_DATA(client.address)]]
+[[USE_DATA(client.city)]], [[USE_DATA(client.state)]] [[USE_DATA(client.zip)]]
+Phone: [[USE_DATA(client.phone)]]
+Email: [[USE_DATA(client.email)]]
+
+AND
+
+PARTY B:
+[[USE_DATA(law-firm.name)]]
+[[USE_DATA(law-firm.address)]]
+[[USE_DATA(law-firm.city)]], [[USE_DATA(law-firm.state)]] [[USE_DATA(law-firm.zip)]]
+Phone: [[USE_DATA(law-firm.phone)]]
+Email: [[USE_DATA(law-firm.email)]]
+
+1. CONTRACT TYPE
+This Agreement is a [[USE_DATA(contract.type)]] contract.
+
+2. SCOPE OF SERVICES
+[[USE_DATA(contract.scope)]]
+
+3. TERM
+This Agreement shall commence on [[USE_DATA(contract.start-date)]] and shall continue until [[USE_DATA(contract.end-date)]], unless earlier terminated in accordance with the terms herein.
+
+4. COMPENSATION
+The total compensation for services rendered under this Agreement shall be $[[USE_DATA(contract.amount)]], payable as follows:
+[[USE_DATA(contract.payment-terms)]]
+
+5. OBLIGATIONS
+[[USE_DATA(contract.obligations)]]
+
+6. TERMINATION
+Either party may terminate this Agreement with [[USE_DATA(contract.notice-period)]] days written notice to the other party.
+
+7. GOVERNING LAW
+This Agreement shall be governed by and construed in accordance with the laws of the State of [[USE_DATA(contract.governing-state)]].
+
+8. SIGNATURES
+
+Party A Signature: _______________________  Date: _______________
+[[USE_DATA(client.name)]]
+
+Party B Signature: _______________________  Date: _______________
+[[USE_DATA(law-firm.representative)]]
+

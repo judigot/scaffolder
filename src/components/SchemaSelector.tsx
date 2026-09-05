@@ -1,20 +1,21 @@
-import { useEffect, useCallback, useMemo } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useQueryClient } from '@tanstack/react-query';
 import {
-  Save as SaveIcon,
   Add as AddIcon,
-  ContentCopy as DuplicateIcon,
   Delete as DeleteIcon,
+  ContentCopy as DuplicateIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
-import { useSchemaStore } from '@/useSchemaStore.ts';
-import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
-import useTransformationsStore from '@/useTransformationsStore.ts';
-import { useFormStore } from '@/useFormStore.ts';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useModalStore } from '@/components/Modal/base/modalStore.tsx';
-import { saveSchema, deleteSchema } from '@/services/schemaService.ts';
-import masterSchema from '@/schema-infos/masterSchema.ts';
+import { SimpleSelect } from '@/components/UI/GroupedSelect.tsx';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
+import masterSchema from '@/schema-infos/masterSchema.ts';
+import { deleteSchema, saveSchema } from '@/services/schemaService.ts';
+import { useFormStore } from '@/useFormStore.ts';
+import { useMockDatabaseStore } from '@/useMockDatabaseStore.ts';
+import { useSchemaStore } from '@/useSchemaStore.ts';
+import useTransformationsStore from '@/useTransformationsStore.ts';
 
 function SchemaSelector() {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
@@ -103,8 +104,8 @@ function SchemaSelector() {
 
   /* Handle dropdown change */
   const onDropdownChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      void handleSchemaChange(e.target.value);
+    (value: string) => {
+      void handleSchemaChange(value);
     },
     [handleSchemaChange],
   );
@@ -434,149 +435,121 @@ function SchemaSelector() {
   const currentDropdownValue = selectedSchemaName ?? '__master__';
 
   return (
-    <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 mb-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        {/* Schema Dropdown */}
-        <div className="flex-1">
-          <label
-            htmlFor="schema-selector"
-            className="block text-sm font-medium text-gray-300 mb-2"
-          >
-            Select Schema
-            {isCurrentSchemaDirty && (
-              <span className="ml-2 text-yellow-400 text-xs">
-                (unsaved changes)
-              </span>
-            )}
-          </label>
-          <select
-            id="schema-selector"
-            value={currentDropdownValue}
-            onChange={onDropdownChange}
-            disabled={isSaving || isDeleting}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <option value="__master__">Master Schema (Default)</option>
-            {availableSchemas.map((schema) => (
-              <option key={schema.name} value={schema.name}>
-                {schema.name}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="form-group">
+      {/* Label */}
+      <span className="form-label text-center">
+        Schema:
+        {isCurrentSchemaDirty && (
+          <span className="ml-1 text-yellow-400">*</span>
+        )}
+      </span>
 
-        {/* Action Buttons */}
-        <div className="flex items-end gap-2">
-          {/* Save Button */}
-          <button
-            type="button"
-            onClick={() => {
-              void handleSave();
-            }}
-            disabled={!isCurrentSchemaDirty || isSaving || isDeleting}
-            title={
-              !isCurrentSchemaDirty
-                ? 'No changes to save'
-                : isSaving
-                  ? 'Saving...'
-                  : 'Save schema'
-            }
-            className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-              isCurrentSchemaDirty && !isSaving && !isDeleting
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <SaveIcon fontSize="small" />
-            <span className="hidden sm:inline">
-              {isSaving ? 'Saving...' : 'Save'}
-            </span>
-          </button>
+      {/* Schema Dropdown */}
+      <SimpleSelect
+        id="schema-selector"
+        value={currentDropdownValue}
+        onChange={onDropdownChange}
+        disabled={isSaving || isDeleting}
+        options={[
+          { value: '__master__', label: 'Master Schema (Default)' },
+          ...availableSchemas.map((schema) => ({
+            value: schema.name,
+            label: schema.name,
+          })),
+        ]}
+        aria-label="Select schema"
+      />
 
-          {/* Create New Button */}
-          <button
-            type="button"
-            onClick={() => {
-              void handleCreate();
-            }}
-            disabled={isSaving || isDeleting}
-            title="Create new schema"
-            className="flex items-center gap-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <AddIcon fontSize="small" />
-            <span className="hidden sm:inline">New</span>
-          </button>
+      {/* Action Buttons Row */}
+      <div className="flex items-center gap-1 mt-2">
+        {/* Save Button */}
+        <button
+          type="button"
+          onClick={() => {
+            void handleSave();
+          }}
+          disabled={!isCurrentSchemaDirty || isSaving || isDeleting}
+          title={
+            !isCurrentSchemaDirty
+              ? 'No changes to save'
+              : isSaving
+                ? 'Saving...'
+                : 'Save schema'
+          }
+          className={`btn-sm btn-icon flex-1 ${
+            isCurrentSchemaDirty && !isSaving && !isDeleting
+              ? 'btn-success'
+              : 'btn-secondary opacity-50 cursor-not-allowed'
+          }`}
+        >
+          <SaveIcon sx={{ fontSize: 14 }} />
+          <span className="text-xs">Save</span>
+        </button>
 
-          {/* Duplicate Button */}
-          <button
-            type="button"
-            onClick={() => {
-              void handleDuplicate();
-            }}
-            disabled={isSaving || isDeleting}
-            title="Duplicate current schema"
-            className="flex items-center gap-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <DuplicateIcon fontSize="small" />
-            <span className="hidden sm:inline">Duplicate</span>
-          </button>
+        {/* Create New Button */}
+        <button
+          type="button"
+          onClick={() => {
+            void handleCreate();
+          }}
+          disabled={isSaving || isDeleting}
+          title="Create new schema"
+          className="btn-sm btn-icon btn-secondary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <AddIcon sx={{ fontSize: 14 }} />
+        </button>
 
-          {/* Delete Button */}
-          <button
-            type="button"
-            onClick={() => {
-              void handleDelete();
-            }}
-            disabled={selectedSchemaName === null || isSaving || isDeleting}
-            title={
-              selectedSchemaName === null
-                ? 'Cannot delete master schema'
-                : isDeleting
-                  ? 'Deleting...'
-                  : 'Delete schema'
-            }
-            className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-              selectedSchemaName !== null && !isSaving && !isDeleting
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <DeleteIcon fontSize="small" />
-            <span className="hidden sm:inline">
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </span>
-          </button>
-        </div>
+        {/* Duplicate Button */}
+        <button
+          type="button"
+          onClick={() => {
+            void handleDuplicate();
+          }}
+          disabled={isSaving || isDeleting}
+          title="Duplicate current schema"
+          className="btn-sm btn-icon btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <DuplicateIcon sx={{ fontSize: 14 }} />
+        </button>
+
+        {/* Delete Button */}
+        <button
+          type="button"
+          onClick={() => {
+            void handleDelete();
+          }}
+          disabled={selectedSchemaName === null || isSaving || isDeleting}
+          title={
+            selectedSchemaName === null
+              ? 'Cannot delete master schema'
+              : isDeleting
+                ? 'Deleting...'
+                : 'Delete schema'
+          }
+          className={`btn-sm btn-icon flex-1 ${
+            selectedSchemaName !== null && !isSaving && !isDeleting
+              ? 'btn-danger'
+              : 'btn-secondary opacity-50 cursor-not-allowed'
+          }`}
+        >
+          <DeleteIcon sx={{ fontSize: 14 }} />
+        </button>
       </div>
 
       {/* Error Messages */}
       {saveError !== null && (
-        <div className="mt-3 p-2 bg-red-500/10 border border-red-500/30 rounded-md">
-          <p className="text-sm text-red-400">Save Error: {saveError}</p>
-        </div>
+        <p className="text-xs text-danger-400 mt-1">{saveError}</p>
       )}
       {deleteError !== null && (
-        <div className="mt-3 p-2 bg-red-500/10 border border-red-500/30 rounded-md">
-          <p className="text-sm text-red-400">Delete Error: {deleteError}</p>
-        </div>
+        <p className="text-xs text-danger-400 mt-1">{deleteError}</p>
       )}
 
       {/* Current Schema Info */}
-      <div className="mt-3 text-xs text-gray-400">
-        {selectedSchemaName === null ? (
-          <span>
-            Using default master schema.{' '}
-            {isCurrentSchemaDirty && 'Save to create a new schema file.'}
-          </span>
-        ) : (
-          <span>
-            File:{' '}
-            <code className="text-gray-300">
-              Schemas/{selectedSchemaName}.json
-            </code>
-          </span>
-        )}
-      </div>
+      <p className="text-xs text-fg-muted mt-1">
+        {selectedSchemaName === null
+          ? 'Using default master schema.'
+          : `File: Schemas/${selectedSchemaName}.json`}
+      </p>
     </div>
   );
 }

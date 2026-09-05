@@ -1,25 +1,41 @@
-import { expect, afterEach, vi } from 'vitest';
+import { expect, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { server, resetMockApiState } from './src/test/mocks/server.ts';
+
+// MSW Server Lifecycle
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'warn' });
+});
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  server.resetHandlers();
+  resetMockApiState();
 });
 
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+afterAll(() => {
+  server.close();
 });
+
+// Only mock matchMedia in browser environment (jsdom/happy-dom)
+// Node environment tests use @vitest-environment node
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 expect.extend({
   toHaveBeenCalledWithDelay(

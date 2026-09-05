@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Medical Report - [[USE_DATA(patient.name)]]</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #ffffff; }
+    .header { background: #2c3e50; color: white; padding: 30px; border-radius: 5px 5px 0 0; }
+    .header h1 { margin: 0; font-size: 2em; }
+    .header .subtitle { margin-top: 10px; opacity: 0.9; }
+    .container { background: white; padding: 30px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .section { margin: 30px 0; padding: 20px; background: #f8f9fa; border-left: 4px solid #3498db; }
+    .section-title { font-size: 1.4em; font-weight: bold; color: #2c3e50; margin-bottom: 15px; }
+    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0; }
+    .info-item { }
+    .label { font-weight: bold; color: #34495e; margin-bottom: 5px; }
+    .value { color: #2c3e50; }
+    .vitals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+    .vital-item { background: white; padding: 15px; border-radius: 5px; text-align: center; }
+    .vital-value { font-size: 1.8em; font-weight: bold; color: #27ae60; }
+    .vital-label { color: #7f8c8d; font-size: 0.9em; margin-top: 5px; }
+    .diagnosis { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+    .prescription { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>MEDICAL REPORT</h1>
+    <div class="subtitle">[[USE_DATA(clinic.name)]] - [[USE_DATA(visit.date)]]</div>
+  </div>
+
+  <div class="container">
+    <div class="section">
+      <div class="section-title">Patient Information</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Patient Name</div>
+          <div class="value">[[USE_DATA(patient.name)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Patient ID</div>
+          <div class="value">[[USE_DATA(patient.id)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Date of Birth</div>
+          <div class="value">[[USE_DATA(patient.date-of-birth)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Gender</div>
+          <div class="value">[[USE_DATA(patient.gender)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Contact</div>
+          <div class="value">[[USE_DATA(patient.phone)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Emergency Contact</div>
+          <div class="value">[[USE_DATA(patient.emergency-contact)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Visit Information</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Visit Date</div>
+          <div class="value">[[USE_DATA(visit.date)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Visit Time</div>
+          <div class="value">[[USE_DATA(visit.time)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Chief Complaint</div>
+          <div class="value">[[USE_DATA(visit.chief-complaint)]]</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Attending Physician</div>
+          <div class="value">[[USE_DATA(physician.name)]]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Vital Signs</div>
+      <div class="vitals">
+        <div class="vital-item">
+          <div class="vital-value">[[USE_DATA(vitals.blood-pressure)]]</div>
+          <div class="vital-label">Blood Pressure</div>
+        </div>
+        <div class="vital-item">
+          <div class="vital-value">[[USE_DATA(vitals.heart-rate)]]</div>
+          <div class="vital-label">Heart Rate (bpm)</div>
+        </div>
+        <div class="vital-item">
+          <div class="vital-value">[[USE_DATA(vitals.temperature)]]</div>
+          <div class="vital-label">Temperature (°F)</div>
+        </div>
+        <div class="vital-item">
+          <div class="vital-value">[[USE_DATA(vitals.weight)]]</div>
+          <div class="vital-label">Weight (lbs)</div>
+        </div>
+        <div class="vital-item">
+          <div class="vital-value">[[USE_DATA(vitals.height)]]</div>
+          <div class="vital-label">Height (in)</div>
+        </div>
+        <div class="vital-item">
+          <div class="vital-value">[[USE_DATA(vitals.oxygen-saturation)]]</div>
+          <div class="vital-label">O2 Saturation (%)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Examination</div>
+      <div class="value">[[USE_DATA(examination.notes)]]</div>
+    </div>
+
+    <div class="diagnosis">
+      <div class="section-title">Diagnosis</div>
+      <div class="value">[[USE_DATA(diagnosis.primary)]]</div>
+      <div style="margin-top: 10px; color: #856404;">[[USE_DATA(diagnosis.notes)]]</div>
+    </div>
+
+    <div class="prescription">
+      <div class="section-title">Prescription & Treatment</div>
+      <div class="value">[[USE_DATA(treatment.prescription)]]</div>
+      <div style="margin-top: 10px; color: #0c5460;">[[USE_DATA(treatment.instructions)]]</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Follow-up</div>
+      <div class="value">[[USE_DATA(follow-up.instructions)]]</div>
+      <div style="margin-top: 10px;">
+        <strong>Next Appointment:</strong> [[USE_DATA(follow-up.next-appointment)]]
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>This report was generated on [[USE_DATA(report.generated-date)]]</p>
+      <p>Physician Signature: _______________________</p>
+      <p>[[USE_DATA(physician.name)]], [[USE_DATA(physician.license)]]</p>
+    </div>
+  </div>
+</body>
+</html>
+

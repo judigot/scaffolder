@@ -1,0 +1,16 @@
+api:
+  endpoints:
+    users:
+      - CREATE_FILE(users.api.ts --template /Templates/frontend/react/api/users.api.txt)
+    products:
+      - CREATE_FILE(products.api.ts --template /Templates/frontend/react/api/products.api.txt)
+  models:
+    database:
+      entities:
+        - integration:
+            external:
+              systems:
+                third-party:
+                  connectors:
+                    circular-reference:
+                      - IMPORT_PROJECT(Projects/NestedA.yaml) 

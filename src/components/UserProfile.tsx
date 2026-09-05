@@ -1,25 +1,36 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import type { ClipboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@/hooks/useUser.ts';
-import { useUserStore } from '@/useUserStore.ts';
-import { useUserProfileStore } from '@/useUserProfileStore.ts';
-import { ContextMenu } from '@/components/UI/ContextMenu.tsx';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
+import type { ClipboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import tokenPermissionsImage from '@/assets/images/token-permissions.png';
+import { ContextMenu } from '@/components/UI/ContextMenu.tsx';
+import { SmartEnvPaste } from '@/components/UI/SmartEnvPaste.tsx';
+import { useUser } from '@/hooks/useUser.ts';
+import { useUserProfileStore } from '@/useUserProfileStore.ts';
+import { useUserStore } from '@/useUserStore.ts';
 import {
-  encryptSecret,
+  INFRA_ENV_MAP,
+  parseInfraFromEnv,
+  serializeEnvEntries,
+  serializeInfraToEnv,
+} from '@/utils/envParser.ts';
+import { getApiUrl } from '@/utils/getApiUrl.ts';
+import {
+  normalizeWorkspaceList,
+  parseWorkspaceValue,
+} from '@/utils/infraWorkspaces.ts';
+import {
+  clearPassphraseSession,
+  getPassphraseFromSession,
+  storePassphraseInSession,
+} from '@/utils/passphraseSession.ts';
+import { isRecord } from '@/utils/typeGuards.ts';
+import {
   decryptSecret,
+  encryptSecret,
   isEncryptedValue,
   parseEncryptedValue,
   validatePassphraseStrength,
 } from '@/utils/zeroKnowledgeEncryption.ts';
-import {
-  storePassphraseInSession,
-  getPassphraseFromSession,
-  clearPassphraseSession,
-} from '@/utils/passphraseSession.ts';
-import { isRecord } from '@/utils/typeGuards.ts';
 
 const generateEntryId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -35,12 +46,107 @@ interface IEnvEntry {
   isSaved?: boolean;
 }
 
+type AIKey = 'OPENAI_API_KEY' | 'ANTHROPIC_API_KEY';
+
+interface IAIKeyConfig {
+  key: AIKey;
+  label: string;
+  placeholder: string;
+  helper: string;
+}
+
+interface IInfraCredentials {
+  sshPublicKey: string;
+  sshPrivateKey: string;
+  awsAccessKeyId: string;
+  awsSecretAccessKey: string;
+  awsSessionToken: string;
+  tfcToken: string;
+  tfcOrg: string;
+  tfcWorkspace: string;
+  tfcWorkspaces: string[];
+}
+
 const createEmptyEnvEntry = (): IEnvEntry => ({
   id: generateEntryId(),
   key: '',
   value: '',
   isSaved: false,
 });
+
+const AI_KEY_CONFIGS: IAIKeyConfig[] = [
+  {
+    key: 'OPENAI_API_KEY',
+    label: 'OpenAI API Key',
+    placeholder: 'sk-... or sk-proj-...',
+    helper: 'Starts with sk- or sk-proj-',
+  },
+  {
+    key: 'ANTHROPIC_API_KEY',
+    label: 'Anthropic API Key',
+    placeholder: 'sk-ant-...',
+    helper: 'Starts with sk-ant-',
+  },
+];
+
+const isAIKey = (value: string): value is AIKey => {
+  return value === 'OPENAI_API_KEY' || value === 'ANTHROPIC_API_KEY';
+};
+
+const createAIKeyInputs = (): Record<AIKey, string> => ({
+  OPENAI_API_KEY: '',
+  ANTHROPIC_API_KEY: '',
+});
+
+const createAIKeyRemovals = (): Record<AIKey, boolean> => ({
+  OPENAI_API_KEY: false,
+  ANTHROPIC_API_KEY: false,
+});
+
+const createEmptyInfraCredentials = (): IInfraCredentials => ({
+  sshPublicKey: '',
+  sshPrivateKey: '',
+  awsAccessKeyId: '',
+  awsSecretAccessKey: '',
+  awsSessionToken: '',
+  tfcToken: '',
+  tfcOrg: '',
+  tfcWorkspace: '',
+  tfcWorkspaces: [],
+});
+
+/**
+ * Type-safe merge for infra credentials. Only copies properties that exist
+ * in IInfraCredentials, ignoring extra keys from the source Record.
+ */
+function mergeInfraCredentials(
+  base: IInfraCredentials,
+  updates: Record<string, string>,
+): IInfraCredentials {
+  return {
+    sshPublicKey:
+      'sshPublicKey' in updates ? updates.sshPublicKey : base.sshPublicKey,
+    sshPrivateKey:
+      'sshPrivateKey' in updates ? updates.sshPrivateKey : base.sshPrivateKey,
+    awsAccessKeyId:
+      'awsAccessKeyId' in updates
+        ? updates.awsAccessKeyId
+        : base.awsAccessKeyId,
+    awsSecretAccessKey:
+      'awsSecretAccessKey' in updates
+        ? updates.awsSecretAccessKey
+        : base.awsSecretAccessKey,
+    awsSessionToken:
+      'awsSessionToken' in updates
+        ? updates.awsSessionToken
+        : base.awsSessionToken,
+    tfcToken: 'tfcToken' in updates ? updates.tfcToken : base.tfcToken,
+    tfcOrg: 'tfcOrg' in updates ? updates.tfcOrg : base.tfcOrg,
+    tfcWorkspace:
+      'tfcWorkspace' in updates ? updates.tfcWorkspace : base.tfcWorkspace,
+    tfcWorkspaces: base.tfcWorkspaces,
+  };
+}
 
 const extractEnvEntriesFromMetadata = (
   metadata: Record<string, unknown> | null | undefined,
@@ -58,6 +164,54 @@ const extractEnvEntriesFromMetadata = (
     }
   }
   return [createEmptyEnvEntry()];
+};
+
+const extractInfraCredentialsFromMetadata = (
+  metadata: Record<string, unknown> | null | undefined,
+): IInfraCredentials => {
+  if (isRecord(metadata) && 'infra' in metadata && isRecord(metadata.infra)) {
+    const infraRecord = metadata.infra;
+    const parsedWorkspaces = parseWorkspaceValue(infraRecord.tfcWorkspaces);
+    const legacyWorkspace =
+      typeof infraRecord.tfcWorkspace === 'string'
+        ? infraRecord.tfcWorkspace
+        : '';
+    const mergedWorkspaces =
+      parsedWorkspaces.length > 0
+        ? parsedWorkspaces
+        : legacyWorkspace.trim() !== ''
+          ? [legacyWorkspace]
+          : [];
+    const primaryWorkspace = mergedWorkspaces[0] ?? legacyWorkspace;
+    return {
+      sshPublicKey:
+        typeof infraRecord.sshPublicKey === 'string'
+          ? infraRecord.sshPublicKey
+          : '',
+      sshPrivateKey:
+        typeof infraRecord.sshPrivateKey === 'string'
+          ? infraRecord.sshPrivateKey
+          : '',
+      awsAccessKeyId:
+        typeof infraRecord.awsAccessKeyId === 'string'
+          ? infraRecord.awsAccessKeyId
+          : '',
+      awsSecretAccessKey:
+        typeof infraRecord.awsSecretAccessKey === 'string'
+          ? infraRecord.awsSecretAccessKey
+          : '',
+      awsSessionToken:
+        typeof infraRecord.awsSessionToken === 'string'
+          ? infraRecord.awsSessionToken
+          : '',
+      tfcToken:
+        typeof infraRecord.tfcToken === 'string' ? infraRecord.tfcToken : '',
+      tfcOrg: typeof infraRecord.tfcOrg === 'string' ? infraRecord.tfcOrg : '',
+      tfcWorkspace: primaryWorkspace,
+      tfcWorkspaces: mergedWorkspaces,
+    };
+  }
+  return createEmptyInfraCredentials();
 };
 
 const parseEnvInput = (
@@ -124,6 +278,30 @@ const areEnvEntriesEqual = (
   );
 };
 
+const areInfraCredentialsEqual = (
+  first: IInfraCredentials,
+  second: IInfraCredentials,
+): boolean => {
+  const firstWorkspaces = normalizeWorkspaceList(first.tfcWorkspaces);
+  const secondWorkspaces = normalizeWorkspaceList(second.tfcWorkspaces);
+  const workspacesEqual =
+    firstWorkspaces.length === secondWorkspaces.length &&
+    firstWorkspaces.every(
+      (workspace, index) => workspace === secondWorkspaces[index],
+    );
+  return (
+    first.sshPublicKey.trim() === second.sshPublicKey.trim() &&
+    first.sshPrivateKey.trim() === second.sshPrivateKey.trim() &&
+    first.awsAccessKeyId.trim() === second.awsAccessKeyId.trim() &&
+    first.awsSecretAccessKey.trim() === second.awsSecretAccessKey.trim() &&
+    first.awsSessionToken.trim() === second.awsSessionToken.trim() &&
+    first.tfcToken.trim() === second.tfcToken.trim() &&
+    first.tfcOrg.trim() === second.tfcOrg.trim() &&
+    first.tfcWorkspace.trim() === second.tfcWorkspace.trim() &&
+    workspacesEqual
+  );
+};
+
 interface IUserProfileProps {
   onTokenUpdate?: (token: string) => void;
 }
@@ -152,7 +330,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   } = useUserProfileStore();
   const [isOpen, setIsOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<
-    'home' | 'githubToken' | 'env'
+    'home' | 'githubToken' | 'env' | 'infra'
   >('home');
 
   useEffect(() => {
@@ -177,6 +355,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   const [originalEnvEntries, setOriginalEnvEntries] = useState<IEnvEntry[]>(
     () => extractEnvEntriesFromMetadata(userMetadata),
   );
+  const [aiKeyInputs, setAiKeyInputs] = useState<Record<AIKey, string>>(() =>
+    createAIKeyInputs(),
+  );
+  const [aiKeyRemovals, setAiKeyRemovals] = useState<Record<AIKey, boolean>>(
+    () => createAIKeyRemovals(),
+  );
   const [isEnvSaving, setIsEnvSaving] = useState<boolean>(false);
   const [envError, setEnvError] = useState<string | null>(null);
   const [envSuccessMessage, setEnvSuccessMessage] = useState<string | null>(
@@ -200,8 +384,42 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   const [isDecrypting, setIsDecrypting] = useState<boolean>(false);
   const [hasEncryptedData, setHasEncryptedData] = useState<boolean>(false);
   const [passphraseUnlocked, setPassphraseUnlocked] = useState<boolean>(false);
+  const [infraCredentials, setInfraCredentials] = useState<IInfraCredentials>(
+    () => extractInfraCredentialsFromMetadata(userMetadata),
+  );
+  const [originalInfraCredentials, setOriginalInfraCredentials] =
+    useState<IInfraCredentials>(() =>
+      extractInfraCredentialsFromMetadata(userMetadata),
+    );
+  const [infraError, setInfraError] = useState<string | null>(null);
+  const [infraSuccessMessage, setInfraSuccessMessage] = useState<string | null>(
+    null,
+  );
+  const [isInfraSaving, setIsInfraSaving] = useState<boolean>(false);
+  const [hasEncryptedInfraData, setHasEncryptedInfraData] =
+    useState<boolean>(false);
+  const [infraUnlocked, setInfraUnlocked] = useState<boolean>(false);
+  const [showInfraSavedIndicator, setShowInfraSavedIndicator] =
+    useState<boolean>(false);
+  const [showAwsSecret, setShowAwsSecret] = useState<boolean>(false);
+  const [passphraseTarget, setPassphraseTarget] = useState<
+    'env' | 'infra' | null
+  >(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] =
     useState<boolean>(false);
+  const [clipboardToast, setClipboardToast] = useState<string | null>(null);
+  const clipboardToastTimerRef = useRef<number | null>(null);
+
+  const showClipboardToast = useCallback((message: string) => {
+    setClipboardToast(message);
+    if (clipboardToastTimerRef.current !== null) {
+      window.clearTimeout(clipboardToastTimerRef.current);
+    }
+    clipboardToastTimerRef.current = window.setTimeout(() => {
+      setClipboardToast(null);
+      clipboardToastTimerRef.current = null;
+    }, 2500);
+  }, []);
 
   useEffect(() => {
     if (githubToken !== null && githubToken !== '') {
@@ -217,6 +435,26 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       if (isRecord(metadata) && 'env' in metadata && isRecord(metadata.env)) {
         const envRecord = metadata.env;
         return Object.values(envRecord).some((value) => {
+          if (typeof value === 'string') {
+            return isEncryptedValue(value);
+          }
+          return false;
+        });
+      }
+      return false;
+    },
+    [],
+  );
+
+  const checkForEncryptedInfraData = useCallback(
+    (metadata: Record<string, unknown> | null | undefined): boolean => {
+      if (
+        isRecord(metadata) &&
+        'infra' in metadata &&
+        isRecord(metadata.infra)
+      ) {
+        const infraRecord = metadata.infra;
+        return Object.values(infraRecord).some((value) => {
           if (typeof value === 'string') {
             return isEncryptedValue(value);
           }
@@ -282,6 +520,79 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     [],
   );
 
+  const decryptInfraCredentials = useCallback(
+    async (
+      metadata: Record<string, unknown> | null | undefined,
+      userId: string,
+      passphrase: string,
+    ): Promise<IInfraCredentials> => {
+      if (
+        !isRecord(metadata) ||
+        !('infra' in metadata) ||
+        !isRecord(metadata.infra)
+      ) {
+        return createEmptyInfraCredentials();
+      }
+
+      const infraRecord = metadata.infra;
+      type InfraStringField = Exclude<keyof IInfraCredentials, 'tfcWorkspaces'>;
+      const fields: InfraStringField[] = [
+        'sshPublicKey',
+        'sshPrivateKey',
+        'awsAccessKeyId',
+        'awsSecretAccessKey',
+        'awsSessionToken',
+        'tfcToken',
+        'tfcOrg',
+        'tfcWorkspace',
+      ];
+      const decrypted: IInfraCredentials = createEmptyInfraCredentials();
+
+      for (const field of fields) {
+        const value = infraRecord[field];
+        if (typeof value !== 'string') {
+          continue;
+        }
+
+        const encryptedData = parseEncryptedValue(value);
+        if (encryptedData !== null) {
+          const decryptedValue = await decryptSecret(
+            encryptedData,
+            userId,
+            passphrase,
+          );
+          decrypted[field] = decryptedValue;
+        } else {
+          decrypted[field] = value;
+        }
+      }
+
+      const workspacesValue = infraRecord.tfcWorkspaces;
+      if (typeof workspacesValue === 'string') {
+        const encryptedData = parseEncryptedValue(workspacesValue);
+        const resolved =
+          encryptedData !== null
+            ? await decryptSecret(encryptedData, userId, passphrase)
+            : workspacesValue;
+        const parsedWorkspaces = parseWorkspaceValue(resolved);
+        decrypted.tfcWorkspaces = parsedWorkspaces;
+        if (parsedWorkspaces.length > 0) {
+          decrypted.tfcWorkspace = parsedWorkspaces[0] ?? '';
+        }
+      }
+
+      if (
+        decrypted.tfcWorkspaces.length === 0 &&
+        decrypted.tfcWorkspace.trim() !== ''
+      ) {
+        decrypted.tfcWorkspaces = [decrypted.tfcWorkspace.trim()];
+      }
+
+      return decrypted;
+    },
+    [],
+  );
+
   useEffect(() => {
     const hasEncrypted = checkForEncryptedData(userMetadata);
     setHasEncryptedData(hasEncrypted);
@@ -336,7 +647,63 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setEnvError(null);
   }, [userMetadata, user?.sub, checkForEncryptedData, decryptEnvEntries]);
 
-  const isEnvDirty = !areEnvEntriesEqual(envEntries, originalEnvEntries);
+  useEffect(() => {
+    const hasEncrypted = checkForEncryptedInfraData(userMetadata);
+    setHasEncryptedInfraData(hasEncrypted);
+
+    if (hasEncrypted) {
+      if (user?.sub !== undefined && user.sub !== '') {
+        const sessionPassphrase = getPassphraseFromSession(user.sub);
+        if (sessionPassphrase !== null) {
+          setInfraUnlocked(true);
+          setIsDecrypting(true);
+          decryptInfraCredentials(userMetadata, user.sub, sessionPassphrase)
+            .then((decrypted) => {
+              setInfraCredentials(decrypted);
+              setOriginalInfraCredentials(decrypted);
+            })
+            .catch(() => {
+              if (user.sub !== undefined && user.sub !== '') {
+                clearPassphraseSession(user.sub);
+              }
+              setInfraUnlocked(false);
+              setInfraError(
+                'Failed to decrypt. Please enter your passphrase again.',
+              );
+            })
+            .finally(() => {
+              setIsDecrypting(false);
+            });
+        } else {
+          setInfraUnlocked(false);
+          const emptyInfra = createEmptyInfraCredentials();
+          setInfraCredentials(emptyInfra);
+          setOriginalInfraCredentials(emptyInfra);
+        }
+      }
+    } else {
+      setInfraUnlocked(true);
+      const extracted = extractInfraCredentialsFromMetadata(userMetadata);
+      setInfraCredentials(extracted);
+      setOriginalInfraCredentials(extracted);
+    }
+    setInfraError(null);
+  }, [
+    userMetadata,
+    user?.sub,
+    checkForEncryptedInfraData,
+    decryptInfraCredentials,
+  ]);
+
+  const aiKeyDirty = AI_KEY_CONFIGS.some((config) => {
+    return aiKeyInputs[config.key].trim() !== '' || aiKeyRemovals[config.key];
+  });
+  const isEnvDirty =
+    !areEnvEntriesEqual(envEntries, originalEnvEntries) || aiKeyDirty;
+  const isInfraDirty = !areInfraCredentialsEqual(
+    infraCredentials,
+    originalInfraCredentials,
+  );
 
   const saveGitHubToken = async (token: string) => {
     if (user === null || accessToken === null || accessToken === '') {
@@ -531,16 +898,431 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     }
     setEnvError(null);
     setEnvSuccessMessage(null);
+    resetAIKeyState();
     setPassphraseInput('');
     setConfirmPassphraseInput('');
     setPassphraseErrors([]);
     setShowDeleteAllConfirm(false);
   };
 
+  const resetInfraState = () => {
+    const hasEncrypted = checkForEncryptedInfraData(userMetadata);
+    if (hasEncrypted) {
+      if (user?.sub !== undefined && user.sub !== '') {
+        const sessionPassphrase = getPassphraseFromSession(user.sub);
+        if (sessionPassphrase !== null) {
+          void decryptInfraCredentials(
+            userMetadata,
+            user.sub,
+            sessionPassphrase,
+          )
+            .then((decrypted) => {
+              setInfraCredentials(decrypted);
+              setOriginalInfraCredentials(decrypted);
+            })
+            .catch(() => {
+              const emptyInfra = createEmptyInfraCredentials();
+              setInfraCredentials(emptyInfra);
+              setOriginalInfraCredentials(emptyInfra);
+            });
+        } else {
+          const emptyInfra = createEmptyInfraCredentials();
+          setInfraCredentials(emptyInfra);
+          setOriginalInfraCredentials(emptyInfra);
+        }
+      } else {
+        const emptyInfra = createEmptyInfraCredentials();
+        setInfraCredentials(emptyInfra);
+        setOriginalInfraCredentials(emptyInfra);
+      }
+    } else {
+      const extracted = extractInfraCredentialsFromMetadata(userMetadata);
+      setInfraCredentials(extracted);
+      setOriginalInfraCredentials(extracted);
+    }
+    setInfraError(null);
+    setInfraSuccessMessage(null);
+    setPassphraseInput('');
+    setConfirmPassphraseInput('');
+    setPassphraseErrors([]);
+  };
+
+  const updateInfraField = (
+    field: Exclude<keyof IInfraCredentials, 'tfcWorkspaces'>,
+    value: string,
+  ) => {
+    setInfraCredentials((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setInfraError(null);
+    setInfraSuccessMessage(null);
+  };
+
+  const handleInfraCancel = () => {
+    setInfraCredentials(originalInfraCredentials);
+    setInfraError(null);
+    setInfraSuccessMessage(null);
+  };
+
+  const handleInfraPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim() === '') {
+        showClipboardToast('Clipboard is empty');
+        return;
+      }
+      const { fields, matchedCount, unmatchedKeys } = parseInfraFromEnv(text);
+      if (matchedCount === 0) {
+        const expectedKeys = Object.keys(INFRA_ENV_MAP).join(', ');
+        showClipboardToast(`No matching keys found. Expected: ${expectedKeys}`);
+        return;
+      }
+      setInfraCredentials((prev) => {
+        const next = mergeInfraCredentials(prev, fields);
+        if (typeof fields.tfcWorkspace === 'string') {
+          const merged = normalizeWorkspaceList([
+            ...prev.tfcWorkspaces,
+            fields.tfcWorkspace,
+          ]);
+          next.tfcWorkspaces = merged;
+          next.tfcWorkspace = merged[0] ?? fields.tfcWorkspace;
+        }
+        return next;
+      });
+      setInfraError(null);
+      const unmatchedNote =
+        unmatchedKeys.length > 0
+          ? ` (${String(unmatchedKeys.length)} skipped)`
+          : '';
+      showClipboardToast(
+        `Imported ${String(matchedCount)} credential${matchedCount > 1 ? 's' : ''}${unmatchedNote}`,
+      );
+    } catch {
+      showClipboardToast('Failed to read clipboard');
+    }
+  };
+
+  const handleInfraCopy = async () => {
+    const credentialRecord: Record<string, string> = {
+      sshPublicKey: infraCredentials.sshPublicKey,
+      sshPrivateKey: infraCredentials.sshPrivateKey,
+      awsAccessKeyId: infraCredentials.awsAccessKeyId,
+      awsSecretAccessKey: infraCredentials.awsSecretAccessKey,
+      awsSessionToken: infraCredentials.awsSessionToken,
+      tfcToken: infraCredentials.tfcToken,
+      tfcOrg: infraCredentials.tfcOrg,
+      tfcWorkspace: infraCredentials.tfcWorkspace,
+    };
+    const envString = serializeInfraToEnv(credentialRecord);
+    if (envString.trim() === '') {
+      showClipboardToast('No credentials to copy');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(envString);
+      showClipboardToast('Copied to clipboard');
+    } catch {
+      showClipboardToast('Failed to copy');
+    }
+  };
+
+  const handleSmartEnvMerge = useCallback(
+    (result: { entries: IEnvEntry[]; added: string[]; updated: string[] }) => {
+      const hasEmpty = result.entries.some(
+        (e) => e.key.trim() === '' && e.value.trim() === '',
+      );
+      setEnvEntries(
+        hasEmpty ? result.entries : [...result.entries, createEmptyEnvEntry()],
+      );
+      const parts: string[] = [];
+      if (result.added.length > 0) {
+        parts.push(`${String(result.added.length)} added`);
+      }
+      if (result.updated.length > 0) {
+        parts.push(`${String(result.updated.length)} updated`);
+      }
+      if (parts.length > 0) {
+        showClipboardToast(parts.join(', '));
+      }
+    },
+    [showClipboardToast],
+  );
+
+  const resetAIKeyState = useCallback(() => {
+    setAiKeyInputs(createAIKeyInputs());
+    setAiKeyRemovals(createAIKeyRemovals());
+  }, []);
+
+  const handleAIKeyChange = useCallback((key: AIKey, value: string) => {
+    setAiKeyInputs((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+    setAiKeyRemovals((prev) => ({
+      ...prev,
+      [key]: false,
+    }));
+    setEnvError(null);
+    setEnvSuccessMessage(null);
+  }, []);
+
+  const handleAIKeyRemove = useCallback((key: AIKey) => {
+    setAiKeyRemovals((prev) => {
+      const nextValue = !prev[key];
+      return {
+        ...prev,
+        [key]: nextValue,
+      };
+    });
+    setAiKeyInputs((prev) => ({
+      ...prev,
+      [key]: '',
+    }));
+    setEnvError(null);
+    setEnvSuccessMessage(null);
+  }, []);
+
+  const applyAIKeyChanges = useCallback(
+    (entries: { key: string; value: string }[]) => {
+      const baseEntries = entries.filter((entry) => !isAIKey(entry.key));
+      const updatedEntries = [...baseEntries];
+
+      for (const config of AI_KEY_CONFIGS) {
+        const inputValue = aiKeyInputs[config.key].trim();
+        const isRemoval = aiKeyRemovals[config.key];
+        if (isRemoval) {
+          continue;
+        }
+        if (inputValue !== '') {
+          updatedEntries.push({ key: config.key, value: inputValue });
+          continue;
+        }
+        const existing = entries.find((entry) => entry.key === config.key);
+        if (existing && existing.value.trim() !== '') {
+          updatedEntries.push(existing);
+        }
+      }
+
+      return updatedEntries;
+    },
+    [aiKeyInputs, aiKeyRemovals],
+  );
+
+  const createEnvEntry = useCallback(
+    (key: string, value: string): IEnvEntry => ({
+      id: generateEntryId(),
+      key,
+      value,
+      isSaved: false,
+    }),
+    [],
+  );
+
+  const handleEnvCopy = async () => {
+    const entries = envEntries
+      .filter((e) => e.key.trim() !== '')
+      .map((e) => ({ key: e.key.trim(), value: e.value }));
+    if (entries.length === 0) {
+      showClipboardToast('No variables to copy');
+      return;
+    }
+    const envString = serializeEnvEntries(entries);
+    try {
+      await navigator.clipboard.writeText(envString);
+      showClipboardToast(
+        `Copied ${String(entries.length)} variable${entries.length > 1 ? 's' : ''}`,
+      );
+    } catch {
+      showClipboardToast('Failed to copy');
+    }
+  };
+
+  const saveInfraCredentials = async () => {
+    if (user?.sub === undefined || accessToken === null || accessToken === '') {
+      return;
+    }
+
+    const passphrase = getPassphraseFromSession(user.sub);
+    if (passphrase === null) {
+      setIsFirstTimeSetup(!hasEncryptedInfraData);
+      setPassphraseTarget('infra');
+      setShowPassphraseModal(true);
+      return;
+    }
+
+    setIsInfraSaving(true);
+    setInfraError(null);
+    setInfraSuccessMessage(null);
+
+    try {
+      const normalizedWorkspaces = normalizeWorkspaceList(
+        infraCredentials.tfcWorkspaces,
+      );
+      const primaryWorkspace =
+        normalizedWorkspaces[0] ?? infraCredentials.tfcWorkspace.trim();
+      const sanitized: IInfraCredentials = {
+        sshPublicKey: infraCredentials.sshPublicKey.trim(),
+        sshPrivateKey: infraCredentials.sshPrivateKey.trim(),
+        awsAccessKeyId: infraCredentials.awsAccessKeyId.trim(),
+        awsSecretAccessKey: infraCredentials.awsSecretAccessKey.trim(),
+        awsSessionToken: infraCredentials.awsSessionToken.trim(),
+        tfcToken: infraCredentials.tfcToken.trim(),
+        tfcOrg: infraCredentials.tfcOrg.trim(),
+        tfcWorkspace: primaryWorkspace,
+        tfcWorkspaces: normalizedWorkspaces,
+      };
+
+      if (
+        sanitized.sshPublicKey === '' ||
+        sanitized.awsAccessKeyId === '' ||
+        sanitized.awsSecretAccessKey === ''
+      ) {
+        throw new Error('SSH public key and AWS credentials are required.');
+      }
+
+      if (sanitized.tfcToken === '' || sanitized.tfcOrg === '') {
+        throw new Error('Terraform Cloud token and organization are required.');
+      }
+
+      const encryptedEntries = {
+        sshPublicKey: JSON.stringify(
+          await encryptSecret(sanitized.sshPublicKey, user.sub, passphrase),
+        ),
+        sshPrivateKey:
+          sanitized.sshPrivateKey === ''
+            ? ''
+            : JSON.stringify(
+                await encryptSecret(
+                  sanitized.sshPrivateKey,
+                  user.sub,
+                  passphrase,
+                ),
+              ),
+        awsAccessKeyId: JSON.stringify(
+          await encryptSecret(sanitized.awsAccessKeyId, user.sub, passphrase),
+        ),
+        awsSecretAccessKey: JSON.stringify(
+          await encryptSecret(
+            sanitized.awsSecretAccessKey,
+            user.sub,
+            passphrase,
+          ),
+        ),
+        awsSessionToken:
+          sanitized.awsSessionToken === ''
+            ? ''
+            : JSON.stringify(
+                await encryptSecret(
+                  sanitized.awsSessionToken,
+                  user.sub,
+                  passphrase,
+                ),
+              ),
+        tfcToken: JSON.stringify(
+          await encryptSecret(sanitized.tfcToken, user.sub, passphrase),
+        ),
+        tfcOrg: JSON.stringify(
+          await encryptSecret(sanitized.tfcOrg, user.sub, passphrase),
+        ),
+        tfcWorkspace: JSON.stringify(
+          await encryptSecret(sanitized.tfcWorkspace, user.sub, passphrase),
+        ),
+        tfcWorkspaces: JSON.stringify(
+          await encryptSecret(
+            JSON.stringify(sanitized.tfcWorkspaces),
+            user.sub,
+            passphrase,
+          ),
+        ),
+      };
+
+      const response = await fetch(`${getApiUrl()}/user-metadata/infra`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ infra: encryptedEntries }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to save infrastructure credentials';
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json') === true) {
+          try {
+            const errorData: unknown = await response.json();
+            interface IErrorResponse {
+              error?: string;
+              message?: string;
+            }
+            const isErrorResponse = (val: unknown): val is IErrorResponse => {
+              return typeof val === 'object' && val !== null && 'error' in val;
+            };
+            if (isErrorResponse(errorData)) {
+              errorMessage =
+                errorData.error ?? errorData.message ?? errorMessage;
+            }
+          } catch {
+            errorMessage = `Server error: ${String(response.status)} ${response.statusText}`;
+          }
+        } else {
+          const errorText = await response.text();
+          errorMessage =
+            errorText.trim() !== ''
+              ? `${errorMessage}: ${errorText}`
+              : `Server error: ${String(response.status)} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result: unknown = await response.json();
+      let infraRecord: Record<string, unknown> | null = null;
+      if (isRecord(result) && 'infra' in result && isRecord(result.infra)) {
+        infraRecord = result.infra;
+      }
+
+      if (infraRecord === null) {
+        throw new Error('Invalid response from server');
+      }
+
+      const updatedMetadata = {
+        ...userMetadata,
+        infra: infraRecord,
+      };
+      setUserMetadataStore(updatedMetadata);
+      void queryClient.invalidateQueries({
+        queryKey: ['userMetadata', user.sub],
+      });
+      setHasEncryptedInfraData(true);
+      setInfraUnlocked(true);
+      setOriginalInfraCredentials(sanitized);
+      setInfraCredentials(sanitized);
+      setInfraSuccessMessage('Infrastructure credentials saved successfully');
+      setShowInfraSavedIndicator(true);
+      setTimeout(() => {
+        setInfraSuccessMessage(null);
+      }, 3000);
+      setTimeout(() => {
+        setShowInfraSavedIndicator(false);
+      }, 5000);
+    } catch (infraSaveError: unknown) {
+      if (infraSaveError instanceof Error) {
+        setInfraError(infraSaveError.message);
+      } else {
+        setInfraError('An unexpected error occurred while saving credentials.');
+      }
+    } finally {
+      setIsInfraSaving(false);
+    }
+  };
+
   const handlePassphraseSubmit = async () => {
     if (user?.sub === undefined) {
       return;
     }
+
+    const activeTarget = passphraseTarget ?? 'env';
 
     if (isFirstTimeSetup) {
       const validation = validatePassphraseStrength(passphraseInput);
@@ -555,35 +1337,59 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       }
 
       storePassphraseInSession(passphraseInput, user.sub);
-      setPassphraseUnlocked(true);
+      if (activeTarget === 'infra') {
+        setInfraUnlocked(true);
+      } else {
+        setPassphraseUnlocked(true);
+      }
       setShowPassphraseModal(false);
       setPassphraseInput('');
       setConfirmPassphraseInput('');
       setPassphraseErrors([]);
-      setHasEncryptedData(true);
-      void saveEnvironmentVariables();
+      if (activeTarget === 'infra') {
+        setHasEncryptedInfraData(true);
+        void saveInfraCredentials();
+      } else {
+        setHasEncryptedData(true);
+        void saveEnvironmentVariables();
+      }
+      setPassphraseTarget(null);
     } else {
       setIsDecrypting(true);
       try {
-        const decrypted = await decryptEnvEntries(
-          userMetadata,
-          user.sub,
-          passphraseInput,
-        );
-        storePassphraseInSession(passphraseInput, user.sub);
-        setPassphraseUnlocked(true);
-        const hasEmpty = decrypted.some(
-          (entry) => entry.key.trim() === '' && entry.value.trim() === '',
-        );
-        const entriesWithEmpty = hasEmpty
-          ? decrypted
-          : [...decrypted, createEmptyEnvEntry()];
-        setEnvEntries(entriesWithEmpty);
-        setOriginalEnvEntries(entriesWithEmpty);
+        if (activeTarget === 'infra') {
+          const decrypted = await decryptInfraCredentials(
+            userMetadata,
+            user.sub,
+            passphraseInput,
+          );
+          storePassphraseInSession(passphraseInput, user.sub);
+          setInfraUnlocked(true);
+          setInfraCredentials(decrypted);
+          setOriginalInfraCredentials(decrypted);
+          setInfraError(null);
+        } else {
+          const decrypted = await decryptEnvEntries(
+            userMetadata,
+            user.sub,
+            passphraseInput,
+          );
+          storePassphraseInSession(passphraseInput, user.sub);
+          setPassphraseUnlocked(true);
+          const hasEmpty = decrypted.some(
+            (entry) => entry.key.trim() === '' && entry.value.trim() === '',
+          );
+          const entriesWithEmpty = hasEmpty
+            ? decrypted
+            : [...decrypted, createEmptyEnvEntry()];
+          setEnvEntries(entriesWithEmpty);
+          setOriginalEnvEntries(entriesWithEmpty);
+        }
         setShowPassphraseModal(false);
         setPassphraseInput('');
         setPassphraseErrors([]);
         setEnvError(null);
+        setPassphraseTarget(null);
       } catch {
         setPassphraseErrors(['Incorrect passphrase. Please try again.']);
       } finally {
@@ -768,6 +1574,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     const passphrase = getPassphraseFromSession(user.sub);
     if (passphrase === null) {
       setIsFirstTimeSetup(!hasEncryptedData);
+      setPassphraseTarget('env');
       setShowPassphraseModal(true);
       return;
     }
@@ -783,15 +1590,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
           value: entry.value,
         }))
         .filter((entry) => !(entry.key === '' && entry.value.trim() === ''));
+      const adjustedEntries = applyAIKeyChanges(sanitizedEntries);
 
-      const incompleteRows = sanitizedEntries.filter(
+      const incompleteRows = adjustedEntries.filter(
         (entry) => entry.key === '' && entry.value.trim() !== '',
       );
       if (incompleteRows.length > 0) {
         throw new Error('Environment variable names cannot be empty.');
       }
 
-      const duplicateKeys = sanitizedEntries
+      const duplicateKeys = adjustedEntries
         .map((entry) => entry.key)
         .filter((key) => key !== '');
 
@@ -804,7 +1612,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       }
 
       const encryptedEntries = await Promise.all(
-        sanitizedEntries
+        adjustedEntries
           .filter((entry) => entry.key !== '')
           .map(async (entry) => {
             if (entry.value.trim() === '') {
@@ -907,6 +1715,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
       });
 
       setEnvSuccessMessage('Environment variables saved successfully');
+      resetAIKeyState();
     } catch (envSaveError: unknown) {
       if (envSaveError instanceof Error) {
         setEnvError(envSaveError.message);
@@ -929,10 +1738,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setStoreActivePanel('home');
     resetTokenState();
     resetEnvState();
+    resetInfraState();
+    setPassphraseTarget(null);
     closeUserProfile();
   };
 
-  const handleSetActivePanel = (panel: 'home' | 'githubToken' | 'env') => {
+  const handleSetActivePanel = (
+    panel: 'home' | 'githubToken' | 'env' | 'infra',
+  ) => {
     setActivePanel(panel);
     setStoreActivePanel(panel);
   };
@@ -967,8 +1780,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     <>
       {showPassphraseModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="bg-bg-muted border border-border rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+            <h2 className="text-xl font-bold text-fg mb-4">
               {isFirstTimeSetup
                 ? 'Set Encryption Passphrase'
                 : 'Enter Encryption Passphrase'}
@@ -1010,7 +1823,10 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="passphrase-input" className="block text-sm font-medium text-gray-300 mb-2">
+                <label
+                  htmlFor="passphrase-input"
+                  className="block text-sm font-medium text-fg-muted mb-2"
+                >
                   {isFirstTimeSetup ? 'Create Passphrase' : 'Enter Passphrase'}
                 </label>
                 <input
@@ -1028,13 +1844,16 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     }
                   }}
                   placeholder="Enter your encryption passphrase"
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
               {isFirstTimeSetup && (
                 <div>
-                  <label htmlFor="confirm-passphrase-input" className="block text-sm font-medium text-gray-300 mb-2">
+                  <label
+                    htmlFor="confirm-passphrase-input"
+                    className="block text-sm font-medium text-fg-muted mb-2"
+                  >
                     Confirm Passphrase
                   </label>
                   <input
@@ -1052,7 +1871,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       }
                     }}
                     placeholder="Confirm your passphrase"
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               )}
@@ -1060,15 +1879,15 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
               {passphraseErrors.length > 0 && (
                 <div className="p-3 bg-red-900/30 border border-red-700 rounded-md">
                   <ul className="text-xs text-red-300 space-y-1 list-disc list-inside">
-                    {passphraseErrors.map((err, index) => (
-                      <li key={index}>{err}</li>
+                    {passphraseErrors.map((err) => (
+                      <li key={err}>{err}</li>
                     ))}
                   </ul>
                 </div>
               )}
 
               {isFirstTimeSetup && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-fg-subtle">
                   Minimum 12 characters with uppercase, lowercase, numbers, and
                   special characters
                 </p>
@@ -1076,6 +1895,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
               <div className="flex gap-2 pt-2">
                 <button
+                  type="button"
                   onClick={() => {
                     void handlePassphraseSubmit();
                   }}
@@ -1087,12 +1907,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                         passphraseInput !== confirmPassphraseInput ||
                         !validatePassphraseStrength(passphraseInput).isValid))
                   }
-                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isDecrypting ? (
                     <>
                       <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -1122,6 +1942,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                   )}
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setShowPassphraseModal(false);
                     setPassphraseInput('');
@@ -1129,16 +1950,17 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     setPassphraseErrors([]);
                   }}
                   disabled={isDecrypting}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
+                  className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50"
                 >
                   Cancel
                 </button>
               </div>
 
               {!isFirstTimeSetup && hasEncryptedData && (
-                <div className="border-t border-gray-700 pt-4 mt-4">
+                <div className="border-t border-border pt-4 mt-4">
                   {!showDeleteAllConfirm ? (
                     <button
+                      type="button"
                       onClick={() => {
                         setShowDeleteAllConfirm(true);
                       }}
@@ -1154,11 +1976,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                       </p>
                       <div className="flex gap-2">
                         <button
+                          type="button"
                           onClick={() => {
                             void handleDeleteAllSecrets();
                           }}
                           disabled={isEnvSaving}
-                          className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
+                          className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-hover text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center"
                         >
                           {isEnvSaving ? (
                             <>
@@ -1191,11 +2014,12 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           )}
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             setShowDeleteAllConfirm(false);
                           }}
                           disabled={isEnvSaving}
-                          className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50"
+                          className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -1211,6 +2035,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
       <div className="relative">
         <button
+          type="button"
           onClick={() => {
             if (!isOpen) {
               setIsOpen(true);
@@ -1221,19 +2046,19 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
           }}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-semibold">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-sm font-semibold flex-shrink-0">
             {user?.name?.charAt(0).toUpperCase() ??
               user?.email?.charAt(0).toUpperCase() ??
               'U'}
           </div>
-          <span className="text-gray-300 text-sm">
+          <span className="hidden md:inline text-fg-muted text-sm">
             Hi,{' '}
-            <span className="font-medium text-white">
+            <span className="font-medium text-fg">
               {user?.name ?? user?.email ?? 'User'}
             </span>
           </span>
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform ${
+            className={`w-4 h-4 text-fg-subtle transition-transform flex-shrink-0 ${
               isOpen ? 'rotate-180' : ''
             }`}
             fill="none"
@@ -1253,8 +2078,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
 
         {isOpen && (
           <>
-            <div
-              className="fixed inset-0 z-40"
+            <button
+              type="button"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none"
               onClick={() => {
                 setIsOpen(false);
                 closePanel();
@@ -1265,108 +2091,151 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                   closePanel();
                 }
               }}
-              role="button"
-              tabIndex={-1}
+              aria-label="Close profile"
             />
-            <div className="absolute right-0 top-12 w-auto min-w-[380px] max-w-2xl bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+            <div className="fixed inset-x-0 bottom-0 w-full max-h-[85vh] flex flex-col rounded-t-2xl pb-safe md:absolute md:inset-auto md:right-0 md:top-12 md:w-80 md:max-h-[70vh] md:rounded-lg md:pb-0 bg-bg-muted border border-border shadow-xl z-50">
               {activePanel === 'home' ? (
-                <div className="p-2">
-                  <div className="px-3 py-2 border-b border-gray-700">
-                    <p className="text-sm font-medium text-white">
-                      {user?.name ?? user?.email ?? 'User'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {user?.email ?? 'No email'}
-                    </p>
+                <>
+                  {/* Fixed Header */}
+                  <div className="flex-shrink-0">
+                    {/* Mobile drag handle */}
+                    <div className="flex justify-center pt-3 pb-2 md:hidden">
+                      <div className="w-10 h-1 bg-border rounded-full" />
+                    </div>
+                    <div className="px-4 py-3 border-b border-border">
+                      <p className="text-sm font-medium text-fg">
+                        {user?.name ?? user?.email ?? 'User'}
+                      </p>
+                      <p className="text-xs text-fg-subtle mt-0.5">
+                        {user?.email ?? 'No email'}
+                      </p>
+                    </div>
                   </div>
-                  {!isLoading &&
-                    serverConfigStatus !== null &&
-                    serverConfigStatus.auth0ManagementApiConfigured ===
-                      true && (
-                      <>
-                        <button
-                          onClick={() => {
-                            resetTokenState();
-                            handleSetActivePanel('githubToken');
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2 mt-1 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+
+                  {/* Scrollable Content */}
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-2">
+                    {!isLoading &&
+                      serverConfigStatus !== null &&
+                      serverConfigStatus.auth0ManagementApiConfigured ===
+                        true && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetTokenState();
+                              handleSetActivePanel('githubToken');
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
                           >
-                            <title>Key icon</title>
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                            />
-                          </svg>
-                          {githubToken !== null && githubToken !== ''
-                            ? 'Manage GitHub Token'
-                            : 'Add GitHub Token'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            resetEnvState();
-                            handleSetActivePanel('env');
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <title>Key icon</title>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                              />
+                            </svg>
+                            {githubToken !== null && githubToken !== ''
+                              ? 'Manage GitHub Token'
+                              : 'Add GitHub Token'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetEnvState();
+                              handleSetActivePanel('env');
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
                           >
-                            <title>Plus icon</title>
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
-                          Environment Variables
-                        </button>
-                      </>
-                    )}
-                  <button
-                    onClick={logout}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors text-left"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <title>Plus icon</title>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 4v16m8-8H4"
+                              />
+                            </svg>
+                            Environment Variables
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetInfraState();
+                              handleSetActivePanel('infra');
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <title>Infrastructure icon</title>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 7h18M6 7v10m12-10v10M5 17h14M9 17v3m6-3v3"
+                              />
+                            </svg>
+                            Infrastructure Credentials
+                          </button>
+                        </>
+                      )}
+                  </div>
+
+                  {/* Fixed Footer */}
+                  <div className="flex-shrink-0 border-t border-border p-2">
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="w-full flex items-center gap-3 px-3 py-3 text-sm text-fg-muted hover:bg-secondary-hover rounded-md transition-colors text-left"
                     >
-                      <title>Logout icon</title>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                      />
-                    </svg>
-                    Logout
-                  </button>
-                </div>
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <title>Logout icon</title>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                      </svg>
+                      Logout
+                    </button>
+                  </div>
+                </>
               ) : activePanel === 'githubToken' &&
                 !isLoading &&
                 serverConfigStatus !== null &&
                 serverConfigStatus.auth0ManagementApiConfigured === true ? (
                 <>
-                  <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+                  {/* Fixed Header */}
+                  <div className="flex-shrink-0 p-4 border-b border-border flex items-center justify-between">
                     <button
+                      type="button"
                       onClick={() => {
                         handleSetActivePanel('home');
                         resetTokenState();
                       }}
-                      className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                      className="flex items-center gap-2 text-fg-subtle hover:text-fg transition-colors"
                     >
                       <svg
                         className="w-4 h-4"
@@ -1381,295 +2250,226 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           strokeWidth={2}
                           d="M15 19l-7-7 7-7"
                         />
-                        </svg>
+                      </svg>
                       Back
                     </button>
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-fg">
                       Manage GitHub Token
                     </h2>
                     <div className="w-16" />
                   </div>
-                  {(!encryptionAvailable ||
-                    (githubToken !== null &&
-                      githubToken !== '' &&
-                      isTokenEncrypted === false)) && (
-                    <div className="mx-4 mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
-                      <div className="flex items-start gap-2">
-                        <svg
-                          className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <title>Warning icon</title>
-                          <path
-                            fillRule="evenodd"
-                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-yellow-300">
-                            Security Warning: Encryption Not Available
-                          </p>
-                          <p className="text-xs text-yellow-200/80 mt-1">
-                            {!encryptionAvailable
-                              ? 'ENCRYPTION_KEY is not set on the server. Your GitHub token will be stored as plain text. Set the ENCRYPTION_KEY environment variable to enable encryption.'
-                              : 'Your GitHub token is currently stored as plain text. Re-save it to encrypt it with the server encryption key.'}
-                          </p>
+                  {/* Scrollable Content */}
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+                    {(!encryptionAvailable ||
+                      (githubToken !== null &&
+                        githubToken !== '' &&
+                        isTokenEncrypted === false)) && (
+                      <div className="mx-4 mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
+                        <div className="flex items-start gap-2">
+                          <svg
+                            className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <title>Warning icon</title>
+                            <path
+                              fillRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-yellow-300">
+                              Security Warning: Encryption Not Available
+                            </p>
+                            <p className="text-xs text-yellow-200/80 mt-1">
+                              {!encryptionAvailable
+                                ? 'ENCRYPTION_KEY is not set on the server. Your GitHub token will be stored as plain text. Set the ENCRYPTION_KEY environment variable to enable encryption.'
+                                : 'Your GitHub token is currently stored as plain text. Re-save it to encrypt it with the server encryption key.'}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  <div className="p-4 space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label
-                          htmlFor="github-token-input"
-                          className="block text-sm font-medium text-gray-300"
-                        >
-                          GitHub Personal Access Token
-                        </label>
-                        {showSavedIndicator && (
-                          <span className="flex items-center text-xs text-green-400 animate-fade-out">
+                    )}
+                    <div className="p-4 space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label
+                            htmlFor="github-token-input"
+                            className="block text-sm font-medium text-fg-muted"
+                          >
+                            GitHub Personal Access Token
+                          </label>
+                          {showSavedIndicator && (
+                            <span className="flex items-center text-xs text-green-400 animate-fade-out">
+                              <svg
+                                className="w-4 h-4 mr-1"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <title>Checkmark icon</title>
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Saved
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            ref={inputRef}
+                            id="github-token-input"
+                            type={showToken ? 'text' : 'password'}
+                            value={inputValue}
+                            onChange={(e) => {
+                              handleInputChange(e.target.value);
+                            }}
+                            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                            disabled={isSaving || isDeleting}
+                            className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowToken(!showToken);
+                            }}
+                            className="px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg-muted rounded-md transition-colors text-sm"
+                            disabled={
+                              githubToken === null || githubToken === ''
+                            }
+                          >
+                            {showToken ? (
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-label="Hide token icon"
+                              >
+                                <title>Hide token</title>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.736m0 0L21 21"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-label="Show token icon"
+                              >
+                                <title>Show token</title>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                        {error !== null && error !== '' && (
+                          <div className="mt-2 p-2 bg-red-900/50 border border-red-700 rounded-md flex items-start">
                             <svg
-                              className="w-4 h-4 mr-1"
+                              className="w-5 h-5 text-red-400 mr-2 flex-shrink-0 mt-0.5"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
-                              <title>Checkmark icon</title>
+                              <title>Error icon</title>
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span className="text-sm text-red-300">
+                              {error}
+                            </span>
+                          </div>
+                        )}
+                        {successMessage !== null && successMessage !== '' && (
+                          <div className="mt-2 p-2 bg-green-900/50 border border-green-700 rounded-md flex items-center">
+                            <svg
+                              className="w-5 h-5 text-green-400 mr-2"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <title>Success icon</title>
                               <path
                                 fillRule="evenodd"
                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                 clipRule="evenodd"
                               />
                             </svg>
-                            Saved
-                          </span>
+                            <span className="text-sm text-green-300">
+                              {successMessage}
+                            </span>
+                          </div>
                         )}
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          ref={inputRef}
-                          id="github-token-input"
-                          type={showToken ? 'text' : 'password'}
-                          value={inputValue}
-                          onChange={(e) => {
-                            handleInputChange(e.target.value);
-                          }}
-                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                          disabled={isSaving || isDeleting}
-                          className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowToken(!showToken);
-                          }}
-                          className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors text-sm"
-                          disabled={githubToken === null || githubToken === ''}
-                        >
-                          {showToken ? (
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              aria-label="Hide token icon"
+                        <div className="mt-2 text-xs text-fg-subtle space-y-3">
+                          <p>
+                            <a
+                              href="https://github.com/settings/personal-access-tokens/new"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary-400 hover:text-primary-300 underline"
                             >
-                              <title>Hide token</title>
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.736m0 0L21 21"
-                              />
-                            </svg>
-                          ) : (
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              aria-label="Show token icon"
-                            >
-                              <title>Show token</title>
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                              />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                      {error !== null && error !== '' && (
-                        <div className="mt-2 p-2 bg-red-900/50 border border-red-700 rounded-md flex items-start">
-                          <svg
-                            className="w-5 h-5 text-red-400 mr-2 flex-shrink-0 mt-0.5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <title>Error icon</title>
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span className="text-sm text-red-300">{error}</span>
-                        </div>
-                      )}
-                      {successMessage !== null && successMessage !== '' && (
-                        <div className="mt-2 p-2 bg-green-900/50 border border-green-700 rounded-md flex items-center">
-                          <svg
-                            className="w-5 h-5 text-green-400 mr-2"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <title>Success icon</title>
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span className="text-sm text-green-300">
-                            {successMessage}
-                          </span>
-                        </div>
-                      )}
-                      <div className="mt-2 text-xs text-gray-500 space-y-3">
-                        <p>
-                          <a
-                            href="https://github.com/settings/personal-access-tokens/new"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo-400 hover:text-indigo-300 underline"
-                          >
-                            Create a fine-grained personal access token
-                          </a>{' '}
-                          with{' '}
-                          <span className="text-gray-400">Read and Write</span>{' '}
-                          permissions for{' '}
-                          <span className="text-gray-400">Administration</span>{' '}
-                          and <span className="text-gray-400">Contents</span>.
-                        </p>
-                        <div className="mt-3 p-3 bg-gray-900/50 border border-gray-700 rounded-md">
-                          <p className="text-xs text-gray-400 mb-2">
-                            Example token permissions:
+                              Create a fine-grained personal access token
+                            </a>{' '}
+                            with{' '}
+                            <span className="text-fg-subtle">
+                              Read and Write
+                            </span>{' '}
+                            permissions for{' '}
+                            <span className="text-fg-subtle">
+                              Administration
+                            </span>{' '}
+                            and <span className="text-fg-subtle">Contents</span>
+                            .
                           </p>
-                          <img
-                            src={tokenPermissionsImage}
-                            alt="GitHub token permissions example showing Administration, Contents, and Metadata sections"
-                            className="w-full rounded border border-gray-700"
-                          />
+                          <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-md">
+                            <p className="text-xs text-fg-subtle mb-2">
+                              Example token permissions:
+                            </p>
+                            <img
+                              src={tokenPermissionsImage}
+                              alt="GitHub token permissions example showing Administration, Contents, and Metadata sections"
+                              className="w-full rounded border border-border"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {hasChanges && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleSave}
-                          disabled={isSaving || inputValue.trim() === ''}
-                          className="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isSaving ? (
-                            <>
-                              <svg
-                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <title>Loading spinner</title>
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                />
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                />
-                              </svg>
-                              Saving...
-                            </>
-                          ) : (
-                            'Save Changes'
-                          )}
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          disabled={isSaving || isLoading}
-                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-
-                    {githubToken !== null &&
-                      githubToken !== '' &&
-                      !hasChanges &&
-                      !showDeleteConfirm && (
-                        <button
-                          onClick={() => {
-                            setShowDeleteConfirm(true);
-                          }}
-                          disabled={isDeleting || isLoading}
-                          className="w-full flex items-center justify-center px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <svg
-                            className="w-4 h-4 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <title>Delete icon</title>
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                          Delete Token
-                        </button>
-                      )}
-
-                    {showDeleteConfirm && (
-                      <div className="p-3 bg-red-900/20 border border-red-600/50 rounded-md">
-                        <p className="text-sm text-red-300 mb-3">
-                          Are you sure you want to delete your GitHub token?
-                          This action cannot be undone.
-                        </p>
+                      {hasChanges && (
                         <div className="flex gap-2">
                           <button
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                            className="flex-1 flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            type="button"
+                            onClick={handleSave}
+                            disabled={isSaving || inputValue.trim() === ''}
+                            className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {isDeleting ? (
+                            {isSaving ? (
                               <>
                                 <svg
-                                  className="animate-spin -ml-1 mr-2 h-4 w-4"
+                                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
                                   xmlns="http://www.w3.org/2000/svg"
                                   fill="none"
                                   viewBox="0 0 24 24"
-                                  aria-label="Loading spinner"
                                 >
-                                  <title>Loading</title>
+                                  <title>Loading spinner</title>
                                   <circle
                                     className="opacity-25"
                                     cx="12"
@@ -1684,38 +2484,126 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                   />
                                 </svg>
-                                Deleting...
+                                Saving...
                               </>
                             ) : (
-                              'Yes, Delete'
+                              'Save Changes'
                             )}
                           </button>
                           <button
-                            onClick={() => {
-                              setShowDeleteConfirm(false);
-                            }}
-                            disabled={isDeleting}
-                            className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            type="button"
+                            onClick={handleCancel}
+                            disabled={isSaving || isLoading}
+                            className="px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Cancel
                           </button>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {githubToken !== null &&
+                        githubToken !== '' &&
+                        !hasChanges &&
+                        !showDeleteConfirm && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowDeleteConfirm(true);
+                            }}
+                            disabled={isDeleting || isLoading}
+                            className="w-full flex items-center justify-center px-4 py-2 bg-secondary-hover/10 hover:bg-secondary-hover/20 text-red-400 border border-red-600/50 rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <title>Delete icon</title>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            Delete Token
+                          </button>
+                        )}
+
+                      {showDeleteConfirm && (
+                        <div className="p-3 bg-red-900/20 border border-red-600/50 rounded-md">
+                          <p className="text-sm text-red-300 mb-3">
+                            Are you sure you want to delete your GitHub token?
+                            This action cannot be undone.
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={handleDelete}
+                              disabled={isDeleting}
+                              className="flex-1 flex items-center justify-center px-3 py-2 bg-secondary-hover hover:bg-secondary-hover text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isDeleting ? (
+                                <>
+                                  <svg
+                                    className="animate-spin -ml-1 mr-2 h-4 w-4"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    aria-label="Loading spinner"
+                                  >
+                                    <title>Loading</title>
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    />
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    />
+                                  </svg>
+                                  Deleting...
+                                </>
+                              ) : (
+                                'Yes, Delete'
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowDeleteConfirm(false);
+                              }}
+                              disabled={isDeleting}
+                              className="flex-1 px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
-              ) : activePanel === 'env' &&
+              ) : activePanel === 'infra' &&
                 !isLoading &&
                 serverConfigStatus !== null &&
                 serverConfigStatus.auth0ManagementApiConfigured === true ? (
                 <>
-                  <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+                  {/* Fixed Header */}
+                  <div className="flex-shrink-0 p-4 border-b border-border flex items-center justify-between">
                     <button
+                      type="button"
                       onClick={() => {
                         handleSetActivePanel('home');
-                        handleEnvCancel();
+                        handleInfraCancel();
                       }}
-                      className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                      className="flex items-center gap-2 text-fg-subtle hover:text-fg transition-colors"
                     >
                       <svg
                         className="w-4 h-4"
@@ -1730,19 +2618,429 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           strokeWidth={2}
                           d="M15 19l-7-7 7-7"
                         />
-                        </svg>
+                      </svg>
                       Back
                     </button>
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-fg">
+                      Infrastructure Credentials
+                    </h2>
+                    <div className="w-16" />
+                  </div>
+                  {/* Scrollable Content */}
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 space-y-4">
+                    <div className="p-3 border-b border-border">
+                      <p className="text-sm text-fg-subtle text-justify leading-relaxed">
+                        Provide your SSH public key and AWS credentials so the
+                        Terraform workspace can provision the EC2 instance.
+                      </p>
+                      <p className="text-xs text-amber-400 mt-2 flex items-center">
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <title>Lock icon</title>
+                          <path
+                            fillRule="evenodd"
+                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Secrets are encrypted with your passphrase
+                      </p>
+                    </div>
+
+                    {hasEncryptedInfraData && !infraUnlocked ? (
+                      <div className="p-6 border border-border rounded-md text-center">
+                        <svg
+                          className="w-12 h-12 text-fg-subtle mx-auto mb-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <title>Lock icon</title>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                        <h3 className="text-lg font-medium text-fg mb-2">
+                          Credentials Locked
+                        </h3>
+                        <p className="text-sm text-fg-subtle mb-4">
+                          Enter your passphrase to view and edit these secrets.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFirstTimeSetup(false);
+                            setPassphraseTarget('infra');
+                            setShowPassphraseModal(true);
+                          }}
+                          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium"
+                        >
+                          Unlock Credentials
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {infraError !== null && infraError !== '' && (
+                          <div className="p-2 bg-red-900/50 border border-red-700 rounded-md text-sm text-red-300 flex items-start">
+                            <svg
+                              className="w-5 h-5 text-red-400 mr-2 flex-shrink-0"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <title>Error icon</title>
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span>{infraError}</span>
+                          </div>
+                        )}
+                        {infraSuccessMessage !== null &&
+                          infraSuccessMessage !== '' && (
+                            <div className="p-2 bg-green-900/40 border border-green-600 rounded-md text-sm text-green-300 flex items-center">
+                              <svg
+                                className="w-5 h-5 text-green-400 mr-2"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <title>Success icon</title>
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span>{infraSuccessMessage}</span>
+                            </div>
+                          )}
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+                          <p className="text-xs text-fg-subtle">
+                            Paste a{' '}
+                            <code className="px-1 py-0.5 bg-secondary rounded text-[11px] font-mono">
+                              .env
+                            </code>{' '}
+                            file to auto-fill credentials
+                          </p>
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleInfraPaste();
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
+                              aria-label="Paste .env credentials from clipboard"
+                            >
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <title>Paste</title>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                                />
+                              </svg>
+                              Paste
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleInfraCopy();
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary border border-border hover:bg-secondary-hover text-fg-muted rounded-md text-xs font-medium transition-colors"
+                              aria-label="Copy credentials as .env format"
+                            >
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <title>Copy</title>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                />
+                              </svg>
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label
+                                htmlFor="infra-ssh-public-key"
+                                className="block text-sm font-medium text-fg-muted"
+                              >
+                                SSH Public Key
+                              </label>
+                              {showInfraSavedIndicator && (
+                                <span className="flex items-center text-xs text-green-400 animate-fade-out">
+                                  <svg
+                                    className="w-4 h-4 mr-1"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <title>Checkmark icon</title>
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  Saved
+                                </span>
+                              )}
+                            </div>
+                            <textarea
+                              id="infra-ssh-public-key"
+                              value={infraCredentials.sshPublicKey}
+                              onChange={(e) => {
+                                updateInfraField(
+                                  'sshPublicKey',
+                                  e.target.value,
+                                );
+                              }}
+                              placeholder="ssh-ed25519 AAAA..."
+                              rows={3}
+                              className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="infra-ssh-private-key"
+                              className="block text-sm font-medium text-fg-muted mb-2"
+                            >
+                              SSH Private Key
+                              <span className="ml-2 text-xs text-fg-subtle font-normal">
+                                (for remote agent)
+                              </span>
+                            </label>
+                            <textarea
+                              id="infra-ssh-private-key"
+                              value={infraCredentials.sshPrivateKey}
+                              onChange={(e) => {
+                                updateInfraField(
+                                  'sshPrivateKey',
+                                  e.target.value,
+                                );
+                              }}
+                              placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;..."
+                              rows={4}
+                              className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="infra-aws-access-key"
+                              className="block text-sm font-medium text-fg-muted mb-2"
+                            >
+                              AWS Access Key ID
+                            </label>
+                            <input
+                              id="infra-aws-access-key"
+                              type="text"
+                              value={infraCredentials.awsAccessKeyId}
+                              onChange={(e) => {
+                                updateInfraField(
+                                  'awsAccessKeyId',
+                                  e.target.value,
+                                );
+                              }}
+                              placeholder="AKIA..."
+                              className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            />
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="infra-aws-secret-key"
+                              className="block text-sm font-medium text-fg-muted mb-2"
+                            >
+                              AWS Secret Access Key
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                id="infra-aws-secret-key"
+                                type={showAwsSecret ? 'text' : 'password'}
+                                value={infraCredentials.awsSecretAccessKey}
+                                onChange={(e) => {
+                                  updateInfraField(
+                                    'awsSecretAccessKey',
+                                    e.target.value,
+                                  );
+                                }}
+                                placeholder="********"
+                                className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowAwsSecret(!showAwsSecret);
+                                }}
+                                className="px-3 py-2 bg-secondary-hover hover:bg-secondary-active text-fg-muted rounded-md transition-colors text-sm"
+                              >
+                                {showAwsSecret ? 'Hide' : 'Show'}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="infra-aws-session-token"
+                              className="block text-sm font-medium text-fg-muted mb-2"
+                            >
+                              AWS Session Token (optional)
+                            </label>
+                            <input
+                              id="infra-aws-session-token"
+                              type="text"
+                              value={infraCredentials.awsSessionToken}
+                              onChange={(e) => {
+                                updateInfraField(
+                                  'awsSessionToken',
+                                  e.target.value,
+                                );
+                              }}
+                              placeholder="Optional session token"
+                              className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            />
+                          </div>
+
+                          <div className="pt-4 border-t border-border">
+                            <p className="text-sm font-medium text-fg mb-3">
+                              Terraform Cloud
+                            </p>
+                            <div className="space-y-4">
+                              <div>
+                                <label
+                                  htmlFor="infra-tfc-token"
+                                  className="block text-sm font-medium text-fg-muted mb-2"
+                                >
+                                  API Token
+                                </label>
+                                <input
+                                  id="infra-tfc-token"
+                                  type="password"
+                                  value={infraCredentials.tfcToken}
+                                  onChange={(e) => {
+                                    updateInfraField(
+                                      'tfcToken',
+                                      e.target.value,
+                                    );
+                                  }}
+                                  placeholder="Your Terraform Cloud API token"
+                                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                />
+                              </div>
+                              <div>
+                                <label
+                                  htmlFor="infra-tfc-org"
+                                  className="block text-sm font-medium text-fg-muted mb-2"
+                                >
+                                  Organization
+                                </label>
+                                <input
+                                  id="infra-tfc-org"
+                                  type="text"
+                                  value={infraCredentials.tfcOrg}
+                                  onChange={(e) => {
+                                    updateInfraField('tfcOrg', e.target.value);
+                                  }}
+                                  placeholder="my-org"
+                                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                />
+                              </div>
+                              <p className="text-xs text-fg-muted pt-2">
+                                Manage workspaces from the Infrastructure tab.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void saveInfraCredentials();
+                            }}
+                            disabled={!isInfraDirty || isInfraSaving}
+                            className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isInfraSaving ? 'Saving...' : 'Save Credentials'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleInfraCancel}
+                            disabled={!isInfraDirty || isInfraSaving}
+                            className="flex-1 px-4 py-2 bg-secondary-hover hover:bg-secondary-active text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              ) : activePanel === 'env' &&
+                !isLoading &&
+                serverConfigStatus !== null &&
+                serverConfigStatus.auth0ManagementApiConfigured === true ? (
+                <>
+                  {/* Fixed Header */}
+                  <div className="flex-shrink-0 p-4 border-b border-border flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSetActivePanel('home');
+                        handleEnvCancel();
+                      }}
+                      className="flex items-center gap-2 text-fg-subtle hover:text-fg transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <title>Back arrow</title>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                      Back
+                    </button>
+                    <h2 className="text-lg font-semibold text-fg">
                       Environment Variables
                     </h2>
                     <div className="w-16" />
                   </div>
-                  <div className="p-4 space-y-4">
-                    <div className="p-3 border-b border-gray-700">
-                      <p className="text-sm text-gray-400 text-justify leading-relaxed">
+                  {/* Scrollable Content */}
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 space-y-4">
+                    <div className="p-3 border-b border-border">
+                      <p className="text-sm text-fg-subtle text-justify leading-relaxed">
                         These values are available via{' '}
-                        <span className="text-indigo-300 font-mono">
+                        <span className="text-primary-300 font-mono">
                           [[USE_USER_ENV(key)]]
                         </span>
                         . Paste one or more{' '}
@@ -1768,9 +3066,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     </div>
 
                     {hasEncryptedData && !passphraseUnlocked && (
-                      <div className="p-6 border border-gray-700 rounded-md text-center">
+                      <div className="p-6 border border-border rounded-md text-center">
                         <svg
-                          className="w-12 h-12 text-gray-500 mx-auto mb-4"
+                          className="w-12 h-12 text-fg-subtle mx-auto mb-4"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1783,19 +3081,21 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                           />
                         </svg>
-                        <h3 className="text-lg font-medium text-white mb-2">
+                        <h3 className="text-lg font-medium text-fg mb-2">
                           Secrets Locked
                         </h3>
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm text-fg-subtle mb-4">
                           Your environment variables are encrypted. Enter your
                           passphrase to view and edit them.
                         </p>
                         <button
+                          type="button"
                           onClick={() => {
                             setIsFirstTimeSetup(false);
+                            setPassphraseTarget('env');
                             setShowPassphraseModal(true);
                           }}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium"
+                          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium"
                         >
                           Unlock Secrets
                         </button>
@@ -1838,23 +3138,148 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                     )}
                     {passphraseUnlocked && (
                       <>
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+                          <div className="flex-1 mr-3">
+                            <SmartEnvPaste
+                              existing={envEntries.filter(
+                                (e) =>
+                                  e.key.trim() !== '' || e.value.trim() !== '',
+                              )}
+                              createEntry={createEnvEntry}
+                              onMerge={handleSmartEnvMerge}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleEnvCopy();
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-300 rounded-md text-xs font-medium transition-colors self-start"
+                            aria-label="Copy variables as .env format"
+                          >
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <title>Copy</title>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                            Copy
+                          </button>
+                        </div>
                         <div className="space-y-4">
-                          <div className="border border-gray-700 rounded-md p-4">
-                            <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-gray-700 mb-3">
-                              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                          <div className="border border-border rounded-md p-4">
+                            <div className="flex items-start justify-between gap-4 mb-3">
+                              <div>
+                                <h3 className="text-sm font-semibold text-fg">
+                                  AI Provider Keys
+                                </h3>
+                                <p className="text-xs text-fg-subtle mt-1">
+                                  Stored encrypted in your Auth0 metadata. Leave
+                                  blank to keep current keys.
+                                </p>
+                              </div>
+                              <div className="text-xs text-fg-subtle text-right">
+                                Masked for security
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              {AI_KEY_CONFIGS.map((config) => {
+                                const existingEntry = envEntries.find(
+                                  (entry) => entry.key === config.key,
+                                );
+                                const hasSavedValue =
+                                  existingEntry !== undefined &&
+                                  existingEntry.value.trim() !== '';
+                                const isRemoval = aiKeyRemovals[config.key];
+                                const statusLabel = isRemoval
+                                  ? 'Will remove'
+                                  : hasSavedValue
+                                    ? 'Saved'
+                                    : 'Not set';
+                                const statusClass = isRemoval
+                                  ? 'text-amber-300 bg-amber-900/30 border-amber-700'
+                                  : hasSavedValue
+                                    ? 'text-green-300 bg-green-900/30 border-green-700'
+                                    : 'text-fg-subtle bg-secondary border-border';
+
+                                return (
+                                  <div
+                                    key={config.key}
+                                    className="grid gap-3 md:grid-cols-[180px,1fr,auto] items-start"
+                                  >
+                                    <div className="space-y-1">
+                                      <div className="text-sm font-medium text-fg">
+                                        {config.label}
+                                      </div>
+                                      <div className="text-xs text-fg-subtle">
+                                        {config.helper}
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <input
+                                        type="password"
+                                        value={aiKeyInputs[config.key]}
+                                        onChange={(event) => {
+                                          handleAIKeyChange(
+                                            config.key,
+                                            event.target.value,
+                                          );
+                                        }}
+                                        placeholder={config.placeholder}
+                                        autoComplete="off"
+                                        className="px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full text-left"
+                                      />
+                                      <div className="text-[11px] text-fg-subtle">
+                                        Leave blank to keep the current key.
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-end">
+                                      <span
+                                        className={`text-xs px-2 py-1 rounded-full border ${statusClass}`}
+                                      >
+                                        {statusLabel}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleAIKeyRemove(config.key);
+                                        }}
+                                        disabled={!hasSavedValue && !isRemoval}
+                                        className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-border text-fg-muted hover:text-fg hover:bg-secondary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {isRemoval ? 'Undo' : 'Remove'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div className="border border-border rounded-md p-4">
+                            <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-border mb-3">
+                              <div className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                 Key
-                              </label>
-                              <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                              </div>
+                              <div className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                 Value
-                              </label>
+                              </div>
                               <div className="w-20" />
                             </div>
                             <div className="space-y-2 max-h-64 overflow-y-auto px-1">
                               {(() => {
                                 const editableEntries = envEntries.filter(
                                   (entry) =>
-                                    entry.isSaved !== true ||
-                                    editingEntryIds.has(entry.id),
+                                    (entry.isSaved !== true ||
+                                      editingEntryIds.has(entry.id)) &&
+                                    !isAIKey(entry.key),
                                 );
 
                                 return (
@@ -1928,7 +3353,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                             }}
                                             name="apiKey"
                                             placeholder="API_KEY"
-                                            className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full text-left"
+                                            className="px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full text-left"
                                             autoComplete="off"
                                           />
                                           <input
@@ -1999,7 +3424,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                             }}
                                             name="apiValue"
                                             placeholder="Value"
-                                            className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full text-left"
+                                            className="px-3 py-2 bg-secondary border border-border rounded-md text-fg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-full text-left"
                                           />
                                           <div className="w-5" />
                                         </div>
@@ -2014,7 +3439,8 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             const savedEntries = envEntries.filter(
                               (entry) =>
                                 entry.isSaved === true &&
-                                !editingEntryIds.has(entry.id),
+                                !editingEntryIds.has(entry.id) &&
+                                !isAIKey(entry.key),
                             );
 
                             if (savedEntries.length === 0) {
@@ -2022,14 +3448,14 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                             }
 
                             return (
-                              <div className="border border-gray-700 rounded-md p-4">
-                                <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-gray-700 mb-3">
-                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                              <div className="border border-border rounded-md p-4">
+                                <div className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center pb-3 px-1 border-b border-border mb-3">
+                                  <div className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                     Key
-                                  </label>
-                                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide text-left">
+                                  </div>
+                                  <div className="text-xs font-medium text-fg-subtle uppercase tracking-wide text-left">
                                     Value
-                                  </label>
+                                  </div>
                                   <div className="w-20" />
                                 </div>
                                 <div className="space-y-2 max-h-64 overflow-y-auto px-1">
@@ -2038,10 +3464,10 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                       key={entry.id}
                                       className="grid grid-cols-[calc(50%-0.375rem),calc(50%-0.375rem),auto] gap-3 items-center"
                                     >
-                                      <div className="px-3 py-2 text-gray-300 text-sm min-h-[2.5rem] flex items-center text-left">
+                                      <div className="px-3 py-2 text-fg-muted text-sm min-h-[2.5rem] flex items-center text-left">
                                         {entry.key}
                                       </div>
-                                      <div className="px-3 py-2 text-gray-300 text-sm min-h-[2.5rem] flex items-center text-left">
+                                      <div className="px-3 py-2 text-fg-muted text-sm min-h-[2.5rem] flex items-center text-left">
                                         {entry.value}
                                       </div>
                                       <div className="flex gap-1 items-center h-[2.5rem]">
@@ -2056,7 +3482,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                                               entryId: entry.id,
                                             });
                                           }}
-                                          className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
+                                          className="p-2 text-fg-subtle hover:text-fg-muted hover:bg-secondary-hover rounded-md transition-colors"
                                           title="More options"
                                         >
                                           <svg
@@ -2124,16 +3550,17 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                           />
                         )}
                         <button
+                          type="button"
                           onClick={() => {
                             void saveEnvironmentVariables();
                           }}
                           disabled={isEnvSaving || !isEnvDirty}
-                          className="w-full flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-fg rounded-md transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isEnvSaving ? (
                             <>
                               <svg
-                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-fg"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -2165,15 +3592,15 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
                 </>
               ) : (
                 <div className="p-2">
-                  <div className="px-3 py-2 border-b border-gray-700">
-                    <p className="text-sm font-medium text-white">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-fg">
                       {user?.name ?? user?.email ?? 'User'}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-fg-subtle mt-1">
                       {user?.email ?? 'No email'}
                     </p>
                   </div>
-                  <p className="p-4 text-sm text-gray-400 text-center">
+                  <p className="p-4 text-sm text-fg-subtle text-center">
                     These features require Auth0 Management API configuration.
                   </p>
                 </div>
@@ -2182,6 +3609,27 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
           </>
         )}
       </div>
+      {clipboardToast !== null && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none animate-in fade-in slide-in-from-bottom-2">
+          <div className="px-4 py-2.5 bg-neutral-900 border border-neutral-700 text-fg text-sm font-medium rounded-lg shadow-xl pointer-events-auto flex items-center gap-2">
+            <svg
+              className="w-4 h-4 text-success-400 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <title>Info</title>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {clipboardToast}
+          </div>
+        </div>
+      )}
     </>
   );
 }

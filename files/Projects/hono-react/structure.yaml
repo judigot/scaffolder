@@ -1,0 +1,67 @@
+# Hono + React Fullstack Project
+
+$SCHEMA_FILTER:
+  - 'user' # Must have user table
+  - 'session' # Must have session table
+  - 'user.id.data_type=uuid' # UUID primary keys
+  - 'session.userId.foreign_key' # Session references user
+
+$USE_CORE:
+  - /Core/vite-react
+  - /Core/configs
+  - /Core/hono-api
+  - /Core/drizzle-data
+  - /Core/vitest-test
+  - /Core/tanstack-router
+  - /Core/tanstack-form
+  - /Core/auth-react
+  - /Core/auth-services
+  - /Core/better-auth
+  - /Core/ci-api-testing
+
+# API routes - one file per table
+api:
+  CREATE_FILE(index.ts --template ./templates/api-index.txt):
+  db:
+    CREATE_FILE(index.ts --template ./templates/db-index.txt):
+    CREATE_FILE(schema.ts --template ./templates/db-schema.txt --data-source=/Constants/typeMappings.yaml):
+    CREATE_FILE(seed.ts --template ./templates/db-seed.txt):
+  middleware:
+    CREATE_FILE(auth.ts --template ./templates/auth-middleware.txt):
+  routes:
+    FILE_LOOP(<@@>tableName.singular.camelCase</@@>.ts --template ./templates/route.txt --data-source=/Constants/typeMappings.yaml):
+    CREATE_FILE(auth.ts --template ./templates/auth-routes.txt):
+
+# Frontend source - imports reusable hooks, interfaces, services
+src:
+  IMPORT_PROJECT(Projects/App Generator - Template - Frontend/structure.yaml):
+  CREATE_FILE(App.tsx --template ./templates/app.txt):
+  CREATE_FILE(main.tsx --template ./templates/main.txt):
+  CREATE_FILE(router.tsx --template ./templates/router.txt):
+  components:
+    CREATE_FILE(DataTable.tsx --template /Templates/frontend/react/components/DataTable.txt):
+    FILE_LOOP(<@@>tableName.singular.pascalCase</@@>Form.tsx --template ./templates/components/entity-form.txt):
+  services:
+    auth:
+      CREATE_FILE(index.ts --template ./templates/auth-services.txt):
+  routes:
+    CREATE_FILE(__root.tsx --template ./templates/routes/__root.txt):
+    CREATE_FILE(index.tsx --template ./templates/routes/index.txt):
+    CREATE_FILE(login.tsx --template ./templates/routes/login.txt):
+    CREATE_FILE(register.tsx --template ./templates/routes/register.txt):
+    CREATE_FILE(_authenticated.tsx --template ./templates/routes/_authenticated.txt):
+    FILE_LOOP(_authenticated.<@@>tableName.singular.kebabCase</@@>.tsx --template ./templates/routes/table-route.txt):
+    FILE_LOOP(_authenticated.<@@>tableName.singular.kebabCase</@@>.create.tsx --template ./templates/routes/create-form.txt):
+  styles:
+    CREATE_FILE(main.scss --template ./templates/styles.txt):
+
+# Tests - one file per table following C→R→U→R→D→R pattern
+tests:
+  CREATE_FILE(setup.ts --template ./templates/test-setup.txt):
+  FILE_LOOP(<@@>tableName.camelCase</@@>.test.ts --template ./templates/test-crud.txt --filter="hasCompositePrimaryKey() NOT EQUAL 'true'"):
+
+# Root config files
+CREATE_FILE(README.md --template ./templates/readme.txt):
+CREATE_FILE(api-test.sh --template /Templates/testing/api-test.txt):
+CREATE_FILE(Dockerfile --template ./templates/Dockerfile):
+CREATE_FILE(Dockerfile.dev --template ./templates/Dockerfile.dev):

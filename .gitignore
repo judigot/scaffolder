@@ -30,8 +30,13 @@ docs/.vitepress/dist
 docs/.vitepress/cache
 docs/.vitepress/temp
 
-# Apps
-.apps/laravel/**
+# Apps - track generated apps but ignore dependencies/build artifacts
+.apps/**/node_modules
+.apps/**/dist
+.apps/**/.next
+.apps/**/build
+docker/compose.golden.yml
+docker/nginx.golden.conf
 .monorepo
 
 # Dependencies
@@ -43,10 +48,12 @@ build
 .next
 out
 *.tsbuildinfo
+*.node
 
 # Testing
 coverage
 .nyc_output
+test-results
 
 # Environment
 .env.local
@@ -104,3 +111,12 @@ Desktop.ini
 
 # Agent task context runtime state (not committed)
 .agent-task-context/.state/
+test-results/
+.vercel
+# Generated test output
+src/tests/golden-projects/output/
+*.pid
+
+# Playwright
+playwright-report/
+test-results/

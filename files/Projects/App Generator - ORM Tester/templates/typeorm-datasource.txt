@@ -1,0 +1,17 @@
+import 'reflect-metadata';
+import { DataSource } from 'typeorm';
+<@@LOOP@@ data="tables" separator="\n">import { <@@>tableName.singular.pascalCase</@@> } from './entities/<@@>tableName.singular.pascalCase</@@>.ts';</@@LOOP@@>
+
+export const AppDataSource = new DataSource({
+  type: 'postgres',
+  host: process.env.DB_HOST ?? 'localhost',
+  port: Number(process.env.DB_PORT ?? 5432),
+  username: process.env.DB_USERNAME ?? 'postgres',
+  password: process.env.DB_PASSWORD ?? 'postgres',
+  database: process.env.DB_NAME ?? 'orm_tester',
+  synchronize: true,
+  logging: false,
+  entities: [
+<@@LOOP@@ data="tables" separator=",\n">    <@@>tableName.singular.pascalCase</@@></@@LOOP@@>
+  ],
+});

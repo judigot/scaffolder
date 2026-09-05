@@ -7,7 +7,7 @@ interface ICountParams {
   column?: string;
 }
 
-export const useCount{{tableNamePascalCasePlural}} = (
+export const useCount{{tableName.plural.pascalCase}} = (
   params: ICountParams = {},
   options?: Omit<
     UseQueryOptions<number, Error>,
@@ -15,10 +15,10 @@ export const useCount{{tableNamePascalCasePlural}} = (
   >,
 ) => {
   return useQuery({
-    queryKey: ['{{tableNameCamelCasePlural}}', 'count', params.filters, params.distinct, params.column],
+    queryKey: ['{{tableName.plural.camelCase}}', 'count', params.filters, params.distinct, params.column],
     queryFn: () =>
       countResources(
-        '/{{tableNameCamelCasePlural}}/count',
+        '/{{tableName.plural.camelCase}}/count',
         params.filters,
         params.distinct,
         params.column

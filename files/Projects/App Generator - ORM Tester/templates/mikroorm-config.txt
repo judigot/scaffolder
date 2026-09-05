@@ -1,0 +1,14 @@
+import { defineConfig } from '@mikro-orm/postgresql';
+<@@LOOP@@ data="tables" separator="\n">import { <@@>tableName.singular.pascalCase</@@> } from './entities/<@@>tableName.singular.pascalCase</@@>.ts';</@@LOOP@@>
+
+export default defineConfig({
+  host: process.env.DB_HOST ?? 'localhost',
+  port: Number(process.env.DB_PORT ?? 5432),
+  user: process.env.DB_USERNAME ?? 'postgres',
+  password: process.env.DB_PASSWORD ?? 'postgres',
+  dbName: process.env.DB_NAME ?? 'orm_tester',
+  entities: [
+<@@LOOP@@ data="tables" separator=",\n">    <@@>tableName.singular.pascalCase</@@></@@LOOP@@>
+  ],
+  debug: false,
+});

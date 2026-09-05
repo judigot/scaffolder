@@ -1,0 +1,25 @@
+[[ LOOP(hasOne) --template="    public function get{{valuePascalCaseSingular}}(int $id): ?{{valuePascalCaseSingular}}
+    {
+        return $this->model->findOrFail($id)->{{valueSingular}};
+    }" --separator="\n\n" ]]
+
+[[ LOOP(hasMany, pivotRelationships.relatedTable) --template="    public function get{{valuePascalCasePlural}}(int $id, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->model->findOrFail($id)->{{valuePlural}}();
+        $column ??= $query->getModel()->getKeyName();
+        return $query->orderBy($column, $direction)->get();
+    }
+
+    public function getAllWithRelated{{valuePascalCasePlural}}(bool $includeRelated = false, ?string $column = null, string $direction = 'asc'): Collection
+    {
+        $query = $this->getSortedQuery($column, $direction);
+        if ($includeRelated) {
+            $query->with('{{valuePlural}}');
+        }
+        return $query->get();
+    }" --separator="\n\n" ]]
+
+[[ LOOP(belongsTo) --template="    public function get{{valuePascalCaseSingular}}(int $id): ?Model
+    {
+        return $this->model->findOrFail($id)->{{valueSingular}};
+    }" --separator="\n\n" ]]

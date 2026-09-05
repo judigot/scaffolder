@@ -1,0 +1,843 @@
+import { spawn, spawnSync } from 'node:child_process';
+import { createWriteStream, existsSync, promises as fs } from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import postgres from 'postgres';
+
+type GoldenAppConfig = {
+  projectName: string;
+  dirName: string;
+  port: number;
+  framework: string;
+  skipMigrate: boolean;
+  parity: boolean;
+  installFilter: string[];
+  devFilter: string;
+};
+
+type ApiTestSummary = {
+  appName: string;
+  passed: number;
+  failed: number;
+  exitCode: number;
+  apiTestLogPath: string;
+  serverLogPath: string;
+  parity: boolean;
+};
+
+type AppRunFailure = {
+  appName: string;
+  error: string;
+};
+
+const projectsDir = path.resolve(process.cwd(), 'files/Projects');
+const outputBaseDir = path.resolve(process.cwd(), '.apps');
+const defaultDbUrl =
+  'postgresql://scaffolder:scaffolder123@localhost:15432/scaffolder';
+
+function resolveDatabaseUrl(): string {
+  const candidate =
+    process.env.GOLDEN_DATABASE_URL ?? process.env.DATABASE_URL ?? defaultDbUrl;
+
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol === 'postgresql:' || parsed.protocol === 'postgres:') {
+      return candidate;
+    }
+  } catch {
+    // ignore parse errors and fall back
+  }
+
+  console.warn(
+    'Invalid DATABASE_URL detected for golden app tests. Falling back to local PostgreSQL defaults.',
+  );
+  return defaultDbUrl;
+}
+
+const databaseUrl = resolveDatabaseUrl();
+
+const COMMAND_TIMEOUTS_MS = {
+  install: 10 * 60 * 1000,
+  drizzlePush: 3 * 60 * 1000,
+  apiTest: 12 * 60 * 1000,
+  serverReady: 60 * 1000,
+} as const;
+
+function toDirName(projectName: string): string {
+  return projectName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function resolveGoldenAppFilter(): string | null {
+  const fromEnv = process.env.GOLDEN_APP?.trim();
+  if (fromEnv !== undefined && fromEnv !== '') {
+    return fromEnv;
+  }
+
+  const args = process.argv
+    .slice(2)
+    .filter((arg) => arg !== '--json' && arg !== '.');
+  const last = args[args.length - 1];
+  if (last === undefined || last === '') {
+    return null;
+  }
+  return last;
+}
+
+function parseGoldenAppConfig(
+  projectName: string,
+  content: string,
+): GoldenAppConfig {
+  const config: Record<string, string> = {};
+  const lines = content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'));
+
+  for (const line of lines) {
+    const [rawKey, rawValue] = line.split('=');
+    if (!rawKey || rawValue === undefined) {
+      continue;
+    }
+    const key = rawKey.trim();
+    const value = rawValue.trim();
+    if (key.startsWith('env.')) {
+      continue;
+    }
+    config[key] = value;
+  }
+
+  const dirName = toDirName(projectName);
+  const port = config.port ? Number.parseInt(config.port, 10) : 3000;
+  const framework = config.framework ?? 'hono';
+  if (!Number.isFinite(port)) {
+    throw new Error(
+      `Invalid port for golden app: ${projectName}. Provide port=<number> in the .golden file.`,
+    );
+  }
+
+  const installFilter = (config.installFilter ?? '')
+    .split(',')
+    .map((pkg) => pkg.trim())
+    .filter((pkg) => pkg !== '');
+
+  return {
+    projectName,
+    dirName,
+    port,
+    framework,
+    skipMigrate: config.skipMigrate === 'true',
+    parity: config.parity !== 'false',
+    installFilter,
+    devFilter: config.devFilter ?? '',
+  };
+}
+
+function buildInstallCommand(installFilter: string[]): string {
+  if (installFilter.length === 0) {
+    return 'bun install';
+  }
+  const filters = installFilter.map((pkg) => `--filter ${pkg}`).join(' ');
+  return `bun install --ignore-scripts ${filters}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+async function readPackageName(
+  packageJsonPath: string,
+): Promise<string | null> {
+  try {
+    const parsed: unknown = JSON.parse(
+      await fs.readFile(packageJsonPath, 'utf-8'),
+    );
+    if (isRecord(parsed) && typeof parsed.name === 'string') {
+      return parsed.name;
+    }
+  } catch {
+    // ignore missing or invalid package.json
+  }
+  return null;
+}
+
+async function packageHasScript(
+  packageDir: string,
+  scriptName: string,
+): Promise<boolean> {
+  try {
+    const parsed: unknown = JSON.parse(
+      await fs.readFile(path.join(packageDir, 'package.json'), 'utf-8'),
+    );
+    if (!isRecord(parsed) || !isRecord(parsed.scripts)) {
+      return false;
+    }
+    return typeof parsed.scripts[scriptName] === 'string';
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * Locate a workspace package by name so golden CI can start Nest from
+ * apps/api instead of `bun run --filter`, which can hang waiting on
+ * workspace dependency order and swallow child stdout.
+ */
+async function resolveWorkspacePackageDir(
+  outputDir: string,
+  packageName: string,
+): Promise<string | null> {
+  const candidates: string[] = [outputDir, path.join(outputDir, 'e2e')];
+  for (const root of ['apps', 'packages']) {
+    const parent = path.join(outputDir, root);
+    if (!existsSync(parent)) {
+      continue;
+    }
+    const entries = await fs.readdir(parent, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        candidates.push(path.join(parent, entry.name));
+      }
+    }
+  }
+
+  for (const dir of candidates) {
+    const name = await readPackageName(path.join(dir, 'package.json'));
+    if (name === packageName) {
+      return dir;
+    }
+  }
+  return null;
+}
+
+async function resolveDevSpawn(
+  outputDir: string,
+  devFilter: string,
+): Promise<{ cwd: string; args: string[] }> {
+  if (devFilter === '') {
+    return { cwd: outputDir, args: ['run', 'dev:api'] };
+  }
+
+  const packageDir = await resolveWorkspacePackageDir(outputDir, devFilter);
+  if (packageDir === null) {
+    throw new Error(
+      `Workspace package ${devFilter} not found under ${outputDir}`,
+    );
+  }
+
+  const args = (await packageHasScript(packageDir, 'start'))
+    ? ['run', 'start']
+    : ['run', 'dev'];
+  return { cwd: packageDir, args };
+}
+
+function resolveDrizzleConfigDir(outputDir: string): string | null {
+  if (
+    existsSync(path.join(outputDir, 'drizzle.config.ts')) ||
+    existsSync(path.join(outputDir, 'drizzle.config.js'))
+  ) {
+    return outputDir;
+  }
+
+  const appsApiDir = path.join(outputDir, 'apps', 'api');
+  if (
+    existsSync(path.join(appsApiDir, 'drizzle.config.ts')) ||
+    existsSync(path.join(appsApiDir, 'drizzle.config.js'))
+  ) {
+    return appsApiDir;
+  }
+
+  return null;
+}
+
+function hasDrizzleConfig(outputDir: string): boolean {
+  return resolveDrizzleConfigDir(outputDir) !== null;
+}
+
+async function discoverGoldenApps(): Promise<GoldenAppConfig[]> {
+  if (!existsSync(projectsDir)) {
+    return [];
+  }
+
+  const projects: GoldenAppConfig[] = [];
+  const entries = await fs.readdir(projectsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const goldenPath = path.join(projectsDir, entry.name, '.golden');
+    if (!existsSync(goldenPath)) {
+      continue;
+    }
+
+    const content = await fs.readFile(goldenPath, 'utf-8');
+    projects.push(parseGoldenAppConfig(entry.name, content));
+  }
+
+  return projects.sort((a, b) => a.projectName.localeCompare(b.projectName));
+}
+
+function buildDatabaseName(dirName: string): string {
+  const safe = dirName.replace(/[^a-z0-9_]+/g, '_');
+  return `golden_${safe}`;
+}
+
+function runCommand(
+  label: string,
+  command: string,
+  cwd: string,
+  env: Record<string, string>,
+  timeoutMs?: number,
+): void {
+  const startedAt = Date.now();
+  console.log(`→ ${label}: ${command}`);
+
+  const result = spawnSync(command, {
+    cwd,
+    env: {
+      ...process.env,
+      ...env,
+    },
+    shell: true,
+    stdio: 'inherit',
+    timeout: timeoutMs,
+  });
+
+  if (result.error) {
+    if ((result.error as NodeJS.ErrnoException).code === 'ETIMEDOUT') {
+      throw new Error(
+        `${label} timed out after ${Math.ceil((timeoutMs ?? 0) / 1000)}s: ${command}`,
+      );
+    }
+    throw new Error(`${label} failed to start: ${result.error.message}`);
+  }
+
+  if (result.status !== 0) {
+    throw new Error(
+      `${label} failed (${result.status ?? 'unknown'}): ${command}`,
+    );
+  }
+
+  const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+  console.log(`✓ ${label} finished in ${elapsedSeconds}s`);
+}
+
+function stripAnsi(input: string): string {
+  const esc = String.fromCharCode(27);
+  return input
+    .split(esc)
+    .join('')
+    .replace(/\[[0-9;]*[A-Za-z]/g, '');
+}
+
+function parseApiTestSummary(output: string, appName: string): ApiTestSummary {
+  const sanitized = stripAnsi(output);
+  const passedMatch = sanitized.match(/(^|\n)Passed:\s*(\d+)\s*($|\n)/m);
+  const failedMatch = sanitized.match(/(^|\n)Failed:\s*(\d+)\s*($|\n)/m);
+
+  if (passedMatch === null || failedMatch === null) {
+    throw new Error(
+      `Could not parse api-test summary for ${appName}. Expected 'Passed:' and 'Failed:' lines.`,
+    );
+  }
+
+  const passedCount = passedMatch[2];
+  const failedCount = failedMatch[2];
+  if (passedCount === undefined || failedCount === undefined) {
+    throw new Error(
+      `Could not parse api-test summary for ${appName}. Expected 'Passed:' and 'Failed:' lines.`,
+    );
+  }
+
+  return {
+    appName,
+    passed: Number.parseInt(passedCount, 10),
+    failed: Number.parseInt(failedCount, 10),
+    exitCode: 0,
+    apiTestLogPath: '',
+    serverLogPath: '',
+    parity: true,
+  };
+}
+
+async function waitForServer(
+  url: string,
+  maxAttempts = 30,
+  isServerAlive?: () => boolean,
+): Promise<void> {
+  console.log(`→ Waiting for server health: ${url}`);
+
+  for (let i = 0; i < maxAttempts; i += 1) {
+    if (isServerAlive && !isServerAlive()) {
+      throw new Error(
+        `Server process exited before readiness check passed: ${url}`,
+      );
+    }
+
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        console.log(`✓ Server health check passed: ${url}`);
+        return;
+      }
+      if (i === 0 || (i + 1) % 5 === 0) {
+        console.log(
+          `  health check attempt ${String(i + 1)}/${String(maxAttempts)} returned ${String(res.status)}`,
+        );
+      }
+    } catch {
+      // ignore
+      if (i === 0 || (i + 1) % 5 === 0) {
+        console.log(
+          `  health check attempt ${String(i + 1)}/${String(maxAttempts)} connection not ready yet`,
+        );
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(`Server did not become ready: ${url}`);
+}
+
+async function runGoldenAppTests(
+  app: GoldenAppConfig,
+  runLogDir: string,
+): Promise<ApiTestSummary | null> {
+  const outputDir = path.join(outputBaseDir, app.dirName);
+  if (!existsSync(outputDir)) {
+    throw new Error(
+      `Golden app not generated: ${outputDir}. Run scripts/generate-golden-apps.ts first.`,
+    );
+  }
+
+  const apiTestPath = path.join(outputDir, 'api-test.sh');
+  if (!existsSync(apiTestPath)) {
+    console.log(`Skipping ${app.projectName}: api-test.sh not found.`);
+    return null;
+  }
+
+  const isLaravel = app.framework.toLowerCase() === 'laravel';
+  const needsDatabase =
+    isLaravel || (!app.skipMigrate && hasDrizzleConfig(outputDir));
+  const dbName = buildDatabaseName(app.dirName);
+
+  const env: Record<string, string> = {
+    PORT: String(app.port),
+  };
+
+  let dbHost = '';
+  let dbPort = '5432';
+  let dbUser = '';
+  let dbPass = '';
+  let dbDatabase = '';
+
+  if (needsDatabase) {
+    const adminSql = postgres(databaseUrl, { max: 1 });
+
+    await adminSql.unsafe(`
+    SELECT pg_terminate_backend(pg_stat_activity.pid)
+    FROM pg_stat_activity
+    WHERE pg_stat_activity.datname = '${dbName}'
+    AND pid <> pg_backend_pid()
+  `);
+    await adminSql.unsafe(`DROP DATABASE IF EXISTS ${dbName}`);
+    await adminSql.unsafe(`CREATE DATABASE ${dbName}`);
+    await adminSql.end();
+
+    const parsedUrl = new URL(databaseUrl);
+    parsedUrl.pathname = `/${dbName}`;
+    const testDbUrl = parsedUrl.toString();
+    env.DATABASE_URL = testDbUrl;
+
+    const parsedDbUrl = new URL(testDbUrl);
+    dbHost = parsedDbUrl.hostname;
+    dbPort = parsedDbUrl.port || '5432';
+    dbUser = decodeURIComponent(parsedDbUrl.username);
+    dbPass = decodeURIComponent(parsedDbUrl.password);
+    dbDatabase = parsedDbUrl.pathname.replace(/^\//, '');
+  }
+
+  console.log(`\n=== ${app.projectName} (${app.dirName}) ===`);
+  const serverLogPath = path.join(outputDir, 'server.log');
+  const apiTestLogPath = path.join(outputDir, 'api-test.log');
+  const serverLog = createWriteStream(serverLogPath, { flags: 'w' });
+  let serverProcess: ReturnType<typeof spawn> | null = null;
+
+  try {
+    if (isLaravel) {
+      const laravelEnv = {
+        ...env,
+        DB_CONNECTION: 'pgsql',
+        DB_HOST: dbHost,
+        DB_PORT: dbPort,
+        DB_DATABASE: dbDatabase,
+        DB_USERNAME: dbUser,
+        DB_PASSWORD: dbPass,
+      };
+
+      runCommand(
+        `${app.projectName} install dependencies`,
+        'composer install --no-interaction --prefer-dist',
+        outputDir,
+        laravelEnv,
+        COMMAND_TIMEOUTS_MS.install,
+      );
+      runCommand(
+        `${app.projectName} prepare env`,
+        'bash -lc "cp .env.example .env && cat >> .env <<\'EOF\'\nDB_CONNECTION=$DB_CONNECTION\nDB_HOST=$DB_HOST\nDB_PORT=$DB_PORT\nDB_DATABASE=$DB_DATABASE\nDB_USERNAME=$DB_USERNAME\nDB_PASSWORD=$DB_PASSWORD\nEOF"',
+        outputDir,
+        laravelEnv,
+      );
+      runCommand(
+        `${app.projectName} key generate`,
+        'php artisan key:generate --force',
+        outputDir,
+        laravelEnv,
+      );
+      runCommand(
+        `${app.projectName} migrate fresh`,
+        'php artisan migrate:fresh --force',
+        outputDir,
+        laravelEnv,
+        COMMAND_TIMEOUTS_MS.drizzlePush,
+      );
+
+      console.log(
+        `→ ${app.projectName} starting API server on port ${String(app.port)}`,
+      );
+
+      serverProcess = spawn(
+        'php',
+        ['artisan', 'serve', '--host=127.0.0.1', `--port=${String(app.port)}`],
+        {
+          cwd: outputDir,
+          env: {
+            ...process.env,
+            ...laravelEnv,
+          },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      );
+    } else {
+      runCommand(
+        `${app.projectName} install dependencies`,
+        buildInstallCommand(app.installFilter),
+        outputDir,
+        env,
+        COMMAND_TIMEOUTS_MS.install,
+      );
+      if (!app.skipMigrate && hasDrizzleConfig(outputDir)) {
+        const drizzleCwd = resolveDrizzleConfigDir(outputDir) ?? outputDir;
+        runCommand(
+          `${app.projectName} apply schema`,
+          'bun drizzle-kit push --force',
+          drizzleCwd,
+          env,
+          COMMAND_TIMEOUTS_MS.drizzlePush,
+        );
+      }
+
+      console.log(
+        `→ ${app.projectName} starting API server on port ${String(app.port)}`,
+      );
+
+      const devSpawn = await resolveDevSpawn(outputDir, app.devFilter);
+      console.log(
+        `→ ${app.projectName} bun ${devSpawn.args.join(' ')} (cwd ${devSpawn.cwd})`,
+      );
+
+      serverProcess = spawn('bun', devSpawn.args, {
+        cwd: devSpawn.cwd,
+        env: {
+          ...process.env,
+          ...env,
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    }
+
+    let serverOutput = '';
+    serverProcess.stdout?.on('data', (chunk) => {
+      const text = String(chunk);
+      serverOutput += text;
+      process.stdout.write(`[${app.dirName}:stdout] ${text}`);
+    });
+    serverProcess.stderr?.on('data', (chunk) => {
+      const text = String(chunk);
+      serverOutput += text;
+      process.stdout.write(`[${app.dirName}:stderr] ${text}`);
+    });
+
+    serverProcess.stdout?.pipe(serverLog);
+    serverProcess.stderr?.pipe(serverLog);
+
+    const healthUrl = `http://127.0.0.1:${String(app.port)}/api/health`;
+    try {
+      await waitForServer(
+        healthUrl,
+        COMMAND_TIMEOUTS_MS.serverReady / 1000,
+        () => serverProcess?.exitCode === null,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const logSnippet = serverOutput.slice(-4000);
+      throw new Error(
+        logSnippet === ''
+          ? `${message}\n(no server stdout/stderr captured)`
+          : `${message}\n--- ${app.dirName} server output ---\n${logSnippet}`,
+      );
+    }
+
+    console.log(`→ ${app.projectName} running api-test.sh`);
+
+    const apiTestProcess = spawn(
+      'bash',
+      ['api-test.sh', `http://127.0.0.1:${String(app.port)}/api`],
+      {
+        cwd: outputDir,
+        env: {
+          ...process.env,
+          ...env,
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+
+    let combinedOutput = '';
+    let timedOut = false;
+    const apiTestTimer = setTimeout(() => {
+      timedOut = true;
+      apiTestProcess.kill('SIGTERM');
+    }, COMMAND_TIMEOUTS_MS.apiTest);
+
+    apiTestProcess.stdout?.on('data', (chunk) => {
+      const text = String(chunk);
+      combinedOutput += text;
+      process.stdout.write(text);
+    });
+
+    apiTestProcess.stderr?.on('data', (chunk) => {
+      const text = String(chunk);
+      combinedOutput += text;
+      process.stderr.write(text);
+    });
+
+    const apiTestExitCode = await new Promise<number>((resolve, reject) => {
+      apiTestProcess.on('error', reject);
+      apiTestProcess.on('close', (code) => {
+        resolve(code ?? 1);
+      });
+    });
+
+    clearTimeout(apiTestTimer);
+
+    if (timedOut) {
+      throw new Error(
+        `api-test.sh timed out for ${app.projectName} after ${String(COMMAND_TIMEOUTS_MS.apiTest / 1000)}s`,
+      );
+    }
+
+    await fs.writeFile(apiTestLogPath, combinedOutput, 'utf-8');
+
+    if (apiTestExitCode !== 0) {
+      throw new Error(
+        `api-test.sh failed for ${app.projectName}. See ${apiTestLogPath}`,
+      );
+    }
+
+    const parsedSummary = parseApiTestSummary(combinedOutput, app.projectName);
+    parsedSummary.exitCode = apiTestExitCode;
+    parsedSummary.apiTestLogPath = apiTestLogPath;
+    parsedSummary.serverLogPath = serverLogPath;
+    parsedSummary.parity = app.parity;
+
+    const safeDirName = app.dirName.replace(/[^a-z0-9_-]+/gi, '_');
+    await fs.copyFile(
+      apiTestLogPath,
+      path.join(runLogDir, `${safeDirName}_api_test.log`),
+    );
+    await fs.copyFile(
+      serverLogPath,
+      path.join(runLogDir, `${safeDirName}_server.log`),
+    );
+
+    return parsedSummary;
+  } finally {
+    if (serverProcess) {
+      serverProcess.kill('SIGTERM');
+    }
+    serverLog.end();
+    if (needsDatabase) {
+      const cleanup = postgres(databaseUrl, { max: 1 });
+      await cleanup.unsafe(`
+      SELECT pg_terminate_backend(pg_stat_activity.pid)
+      FROM pg_stat_activity
+      WHERE pg_stat_activity.datname = '${dbName}'
+      AND pid <> pg_backend_pid()
+    `);
+      await cleanup.unsafe(`DROP DATABASE IF EXISTS ${dbName}`);
+      await cleanup.end();
+    }
+  }
+}
+
+async function main(): Promise<void> {
+  const discovered = await discoverGoldenApps();
+  if (discovered.length === 0) {
+    console.log('No golden apps found. Add a .golden file to a project.');
+    return;
+  }
+
+  const filter = resolveGoldenAppFilter();
+  const apps =
+    filter === null
+      ? discovered
+      : discovered.filter(
+          (app) => app.projectName === filter || app.dirName === filter,
+        );
+  if (apps.length === 0) {
+    throw new Error(`No golden apps matched: ${filter}`);
+  }
+  if (filter !== null) {
+    console.log(`Filtering golden apps to: ${filter}`);
+  }
+
+  const generateCommand =
+    filter === null
+      ? 'bun run scripts/generate-golden-apps.ts --json'
+      : `bun run scripts/generate-golden-apps.ts --json ${JSON.stringify(filter)}`;
+
+  console.log('Generating golden apps...');
+  runCommand(
+    'Generate golden apps',
+    generateCommand,
+    process.cwd(),
+    {
+      DATABASE_URL: databaseUrl,
+    },
+    COMMAND_TIMEOUTS_MS.install,
+  );
+
+  const usedPorts = new Set<number>();
+  let fallbackPort = 3200;
+  const runLogDir = path.join(
+    '/tmp/scaffolder-e2e-logs',
+    new Date()
+      .toISOString()
+      .replace(/[-:TZ.]/g, '')
+      .slice(0, 14),
+  );
+  await fs.mkdir(runLogDir, { recursive: true });
+
+  const summaries: ApiTestSummary[] = [];
+  const failures: AppRunFailure[] = [];
+  for (const app of apps) {
+    let port = app.port;
+    if (usedPorts.has(port)) {
+      while (usedPorts.has(fallbackPort)) {
+        fallbackPort += 1;
+      }
+      port = fallbackPort;
+      fallbackPort += 1;
+      console.log(
+        `Port ${String(app.port)} already used. Using ${String(port)} for ${app.projectName}.`,
+      );
+    }
+    usedPorts.add(port);
+    try {
+      const summary = await runGoldenAppTests({ ...app, port }, runLogDir);
+      if (summary) {
+        summaries.push(summary);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push({ appName: app.projectName, error: message });
+      console.error(`✗ ${app.projectName} failed: ${message}`);
+    }
+  }
+
+  const summaryLines: string[] = [];
+  for (const summary of summaries) {
+    summaryLines.push(
+      `${summary.appName}: exit=${String(summary.exitCode)} passed=${String(summary.passed)} failed=${String(summary.failed)}`,
+    );
+  }
+  for (const failure of failures) {
+    summaryLines.push(`${failure.appName}: exit=1 error=${failure.error}`);
+  }
+  summaryLines.push(`Logs directory: ${runLogDir}`);
+  await fs.writeFile(
+    path.join(runLogDir, 'summary.log'),
+    `${summaryLines.join('\n')}\n`,
+    'utf-8',
+  );
+
+  const paritySummaries = summaries.filter((summary) => summary.parity);
+
+  if (paritySummaries.length < 2) {
+    console.log(
+      'Parity check skipped: fewer than two CRUD frameworks with api-test.sh present.',
+    );
+    console.log(`Logs directory: ${runLogDir}`);
+    if (failures.length > 0) {
+      throw new Error(
+        [
+          'One or more framework api-test runs failed.',
+          ...failures.map((failure) => `${failure.appName}: ${failure.error}`),
+          `Logs directory: ${runLogDir}`,
+        ].join('\n'),
+      );
+    }
+    return;
+  }
+
+  const baseline = paritySummaries[0];
+  if (baseline === undefined) {
+    return;
+  }
+  const mismatches = paritySummaries.filter(
+    (summary) =>
+      summary.passed !== baseline.passed || summary.failed !== baseline.failed,
+  );
+
+  console.log('\nAPI test parity summary:');
+  for (const summary of summaries) {
+    const parityLabel = summary.parity ? 'parity' : 'health-only';
+    console.log(
+      `- ${summary.appName} (${parityLabel}): passed=${String(summary.passed)} failed=${String(summary.failed)}`,
+    );
+  }
+
+  console.log(`Logs directory: ${runLogDir}`);
+
+  if (failures.length > 0) {
+    throw new Error(
+      [
+        'One or more framework api-test runs failed.',
+        ...failures.map((failure) => `${failure.appName}: ${failure.error}`),
+        `Logs directory: ${runLogDir}`,
+      ].join('\n'),
+    );
+  }
+
+  if (mismatches.length > 0) {
+    throw new Error(
+      [
+        'Framework parity mismatch detected.',
+        `Baseline: ${baseline.appName} (passed=${String(baseline.passed)} failed=${String(baseline.failed)})`,
+        ...mismatches.map(
+          (summary) =>
+            `Mismatch: ${summary.appName} (passed=${String(summary.passed)} failed=${String(summary.failed)})`,
+        ),
+        `Logs directory: ${runLogDir}`,
+      ].join('\n'),
+    );
+  }
+}
+
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exit(1);
+});

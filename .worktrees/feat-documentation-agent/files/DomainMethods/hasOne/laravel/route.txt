@@ -1,0 +1,1 @@
+Route::get('{{tableNamePlural}}/{id}/{{valueSingular}}', [{{tableNamePascalCaseSingular}}Controller::class, 'get{{valuePascalCaseSingular}}'])->name('{{tableNamePlural}}.{{valueSingular}}');

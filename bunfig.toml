@@ -1,0 +1,28 @@
+[test]
+# Preload happy-dom for DOM testing
+preload = ["./bun-test-setup.ts"]
+
+# Test timeout (30 seconds for build tests)
+timeout = 30000
+
+# Only scan src directory for tests (excludes e2e/, .vercel/, .worktrees/)
+root = "./src"
+
+# Note: Tests using Vitest-specific features (module mocking with hoisting)
+# use the .vitest.tsx extension and are automatically excluded from Bun
+
+# Coverage configuration
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = [
+  # Exclude e2e tests (run with Playwright)
+  "e2e/**",
+
+  # Exclude worktrees (separate git branches)
+  ".worktrees/**",
+
+  # Exclude build output
+  ".vercel/**",
+
+  # Exclude node_modules
+  "**/node_modules/**",
+]

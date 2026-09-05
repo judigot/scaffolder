@@ -5,7 +5,7 @@ const structure: IRepositoryStructure = {
   methods: [
     {
       methodName: 'index',
-      route: `Route::get('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.{{methodName}}');`,
       description: 'Get all records',
       repositoryMethod: '{{methodName}}(): Collection',
       repositoryContent: 'return $this->model->all();',
@@ -21,7 +21,7 @@ const structure: IRepositoryStructure = {
     },
     {
       methodName: 'findById',
-      route: `Route::get('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, 'show'])->name('{{tableNameKebabCasePlural}}.show');`,
+      route: `Route::get('{{tableName.plural.kebabCase}}/{id}', [{{tableName.pascalCase}}Controller::class, 'show'])->name('{{tableName.plural.kebabCase}}.show');`,
       description: 'Find a specific record by ID',
       repositoryMethod: '{{methodName}}(int $id): ?Model',
       repositoryContent: 'return $this->model->find($id);',
@@ -37,7 +37,7 @@ const structure: IRepositoryStructure = {
     },
     {
       methodName: 'create',
-      route: `Route::post('{{tableNameKebabCasePlural}}', [{{tableNamePascalCase}}Controller::class, 'store'])->name('{{tableNameKebabCasePlural}}.store');`,
+      route: `Route::post('{{tableName.plural.kebabCase}}', [{{tableName.pascalCase}}Controller::class, 'store'])->name('{{tableName.plural.kebabCase}}.store');`,
       description: 'Create a new record',
       repositoryMethod: '{{methodName}}(array $data): Model',
       repositoryContent: 'return $this->model->{{methodName}}($data);',
@@ -53,7 +53,7 @@ const structure: IRepositoryStructure = {
     },
     {
       methodName: 'update',
-      route: `Route::put('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
+      route: `Route::put('{{tableName.plural.kebabCase}}/{id}', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.{{methodName}}');`,
       description: 'Update a specific record by ID',
       repositoryMethod: '{{methodName}}(int $id, array $data): bool',
       repositoryContent: `
@@ -72,7 +72,7 @@ const structure: IRepositoryStructure = {
     },
     {
       methodName: 'destroy',
-      route: `Route::delete('{{tableNameKebabCasePlural}}/{id}', [{{tableNamePascalCase}}Controller::class, '{{methodName}}'])->name('{{tableNameKebabCasePlural}}.{{methodName}}');`,
+      route: `Route::delete('{{tableName.plural.kebabCase}}/{id}', [{{tableName.pascalCase}}Controller::class, '{{methodName}}'])->name('{{tableName.plural.kebabCase}}.{{methodName}}');`,
       description: 'Delete a specific record by ID',
       repositoryMethod: '{{methodName}}(int $id): bool',
       repositoryContent: `

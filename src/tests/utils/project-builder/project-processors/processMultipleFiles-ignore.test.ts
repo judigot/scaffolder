@@ -52,7 +52,7 @@ describe('processMultipleFiles with --ignore flag', () => {
                   {
                     type: 'file',
                     name: 'migration.sql.txt',
-                    content: 'CREATE TABLE {{tableNameSnakeCase}} (id INT);',
+                    content: 'CREATE TABLE {{tableName.snakeCase}} (id INT);',
                   },
                 ],
               },
@@ -79,7 +79,7 @@ describe('processMultipleFiles with --ignore flag', () => {
 
     const result = await processMultipleFiles({
       command:
-        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql",
+        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql",
       options: {
         ignore: 'USE_CONSTANT(./constants/ignoredTables.yaml)',
         template: './templates/migration.sql.txt',
@@ -130,7 +130,7 @@ describe('processMultipleFiles with --ignore flag', () => {
                   {
                     type: 'file',
                     name: 'migration.sql.txt',
-                    content: 'CREATE TABLE {{tableNameSnakeCase}} (id INT);',
+                    content: 'CREATE TABLE {{tableName.snakeCase}} (id INT);',
                   },
                 ],
               },
@@ -156,7 +156,7 @@ describe('processMultipleFiles with --ignore flag', () => {
 
     const result = await processMultipleFiles({
       command:
-        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql",
+        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql",
       options: {
         ignore:
           'USE_CONSTANT(/Projects/App Generator - Spring Boot/constants/ignoredTables.yaml)',
@@ -197,7 +197,7 @@ describe('processMultipleFiles with --ignore flag', () => {
                   {
                     type: 'file',
                     name: 'migration.sql.txt',
-                    content: 'CREATE TABLE {{tableNameSnakeCase}} (id INT);',
+                    content: 'CREATE TABLE {{tableName.snakeCase}} (id INT);',
                   },
                 ],
               },
@@ -213,7 +213,7 @@ describe('processMultipleFiles with --ignore flag', () => {
 
     const result = await processMultipleFiles({
       command:
-        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql",
+        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql",
       options: {
         ignore: 'users,sessions',
         template: './templates/migration.sql.txt',
@@ -250,7 +250,7 @@ describe('processMultipleFiles with --ignore flag', () => {
                   {
                     type: 'file',
                     name: 'migration.sql.txt',
-                    content: 'CREATE TABLE {{tableNameSnakeCase}} (id INT);',
+                    content: 'CREATE TABLE {{tableName.snakeCase}} (id INT);',
                   },
                 ],
               },
@@ -266,7 +266,7 @@ describe('processMultipleFiles with --ignore flag', () => {
 
     const result = await processMultipleFiles({
       command:
-        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableNameSnakeCasePlural}}_table.sql",
+        "{{timestamp('YYYY_MM_DD_HHmmss')}}_create_{{tableName.plural.snakeCase}}_table.sql",
       options: {
         ignore: '',
         template: './templates/migration.sql.txt',

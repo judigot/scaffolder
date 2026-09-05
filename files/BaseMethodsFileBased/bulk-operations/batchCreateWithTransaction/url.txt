@@ -1,1 +1,1 @@
-{{tableNameKebabCasePlural}}/batch-create 
+{{tableName.plural.kebabCase}}/batch-create 
