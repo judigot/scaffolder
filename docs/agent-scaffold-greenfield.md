@@ -1,14 +1,20 @@
 # Agent scaffold greenfield
 
-`POST /api/agent-scaffold` can now fetch a **pinned** starter and optionally
+`POST /api/agent-scaffold` can fetch a **pinned** starter and optionally
 create the destination repository before opening a draft PR.
 
 Auth is unchanged: `SCAFFOLDER_AGENT_API_KEY` is the only agent credential.
 
+Generation, leftover-placeholder checks, and `USE_USER_ENV` gates run
+**before** `create_repo`. Invalid schema, a missing project, or a failed
+build never creates a GitHub repository. If creation succeeds and
+publication then fails, the error includes the created repository URL and
+recovery guidance.
+
 ## `template_repo`
 
 Optional GitHub URL with a **pinned commit SHA** (`/tree/<sha>` or
-`/commit/<sha>`). Allowlist starts at `judigot/template-monorepo`.
+`/commit/<sha>`). The request value overrides recipe `$BASE` / `source`.
 
 The host fetches the GitHub **tarball**. It does not `git clone`. Unpinned
 `main` / `master` / `HEAD` is rejected (`TEMPLATE_REPO_UNPINNED`).
@@ -20,9 +26,17 @@ Omit `template_repo` and omit `$BASE` / `source:` on the recipe → today's
 bundled `/Core/template-monorepo`. Golden CI keeps that bundled Core and
 does not download templates.
 
+### Allowlist
+
+`TEMPLATE_REPO_ALLOWLIST` is currently hard-coded to
+`judigot/template-monorepo`. Other public starter repositories are not
+accepted yet. A later change can make the source policy configurable or
+validate additional public GitHub repositories.
+
 ## `create_repo`
 
-Optional boolean, default `false`. When `true`:
+Optional boolean, default `false`. When `true`, creation runs only after
+successful generation:
 
 - Creates `target_repo` **private** with `auto_init: true` (needs a default
   branch so a draft PR can open).
@@ -32,25 +46,48 @@ Optional boolean, default `false`. When `true`:
   Auth0-stored GitHub token / PAT path. The App cannot create personal repos.
 - Agent-key callers have no stored user token. They get typed
   `400 USER_REPO_CREATE_UNSUPPORTED` ("create the user repo first"). The
-  host will use a stored Auth0 GitHub token when the caller is a real
+  one-request “create my personal repo and scaffold it” workflow is
+  therefore **organization-only** when using `SCAFFOLDER_AGENT_API_KEY`.
+  The host will use a stored Auth0 GitHub token when the caller is a real
   Auth0 user. It will not ask the agent for a PAT and does not invent a
   second GitHub App.
 - After create, the App must be able to write and open a draft PR (install
   on the new repo / all repos, or create-as-App for orgs). Empty repos are
   seeded with a README so `main` exists.
+- If publication fails after a successful create, the response includes
+  `details.repoUrl` and `details.recovery`. Retry without `create_repo`,
+  or delete the empty repository before retrying with `create_repo`.
 
 ## Recipe DSL
 
 ```yaml
-$BASE: /Core/template-monorepo   # or source: <same>
+$BASE: /Core/template-monorepo   # or a pinned GitHub URL / source: <same>
 replace:
-  - apps/api/**                  # required before Nest lands on a live Hono starter
+  - apps/api/**                  # full apps/api subtree required before Nest lands
 ```
 
+`$BASE` may be a local `/Core/...` path or a pinned allowlisted GitHub
+URL. The same resolver is used by the agent API and `buildProjectFiles`.
+A remote recipe `$BASE` is fetched when `template_repo` is omitted. An
+unsupported or unpinned base fails explicitly; it is not ignored.
+
 Request `template_repo` overrides `$BASE` / `source:`. Merge cannot delete
-paths unless `replace:` says so. If a live Hono `apps/api` is still present
-when `/Core/nestjs-api` would land, the host refuses
-(`TEMPLATE_API_CONFLICT`). After `replace:`, leftover `hono` /
-`@hono/*` package.json deps are stripped.
+paths unless `replace:` says so. If a live Hono `apps/api` (package
+dependencies **or** source imports) is still present when
+`/Core/nestjs-api` would land, the host refuses
+(`TEMPLATE_API_CONFLICT`). Replacing only `apps/api/package.json` is not
+enough. After a Nest transition with a full `apps/api` replace, leftover
+`hono` / `@hono/*` deps are stripped only from the replaced API package
+and the workspace root — not from unrelated apps.
+
+The typed conflict is preserved through the real builder message list, not
+collapsed into `BUILD_FAILED`.
 
 Leftover placeholder and `USE_USER_ENV` gates are unchanged.
+
+## Agent skill follow-up
+
+The `judigot/ai` scaffolder skill should document `template_repo`,
+`create_repo`, the organization-only agent-key creation limit, and
+create-then-publish recovery. That skill update is a linked follow-up,
+not part of this host change.

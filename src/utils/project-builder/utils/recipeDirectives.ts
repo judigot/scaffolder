@@ -98,8 +98,5 @@ export function recipeUsesNestApi(corePaths: string[]): boolean {
 }
 
 export function replaceCoversApi(replaceGlobs: string[]): boolean {
-  return (
-    pathMatchesAnyGlob('apps/api', replaceGlobs) ||
-    pathMatchesAnyGlob('apps/api/package.json', replaceGlobs)
-  );
+  return pathMatchesAnyGlob('apps/api', replaceGlobs);
 }

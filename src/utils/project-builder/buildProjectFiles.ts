@@ -22,9 +22,19 @@ import { detectLeftoverTemplateMarkers } from '@/utils/project-builder/utils/det
 import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
 import {
+  CoreMergeError,
   loadCoreFiles,
   type ILoadCoreFilesOptions,
 } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import {
+  findStructureYamlContent,
+  parseRecipeDirectives,
+} from '@/utils/project-builder/utils/recipeDirectives.ts';
+import {
+  fetchResolvedRemoteBase,
+  resolveTemplateBase,
+  TemplateBaseError,
+} from '@/utils/project-builder/utils/resolveTemplateBase.ts';
 import { loadSchemas } from '@/utils/project-builder/utils/loadSchemas.ts';
 import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
 import { processCoreFiles } from '@/utils/project-builder/utils/processCoreFiles.ts';
@@ -280,7 +290,32 @@ export const buildProjectFiles = async (
       };
     }
 
-    const rawCoreFiles = loadCoreFiles(projectYamlPath, userFiles, coreOptions);
+    const recipeContent = findStructureYamlContent(projectYamlPath, userFiles);
+    const recipe = parseRecipeDirectives(recipeContent ?? '');
+    const resolvedBase = resolveTemplateBase(
+      coreOptions.templateRepoOverride,
+      recipe.base,
+    );
+    let resolvedCoreOptions = coreOptions;
+    if (
+      resolvedBase.kind === 'remote' &&
+      coreOptions.remoteBaseLayer === undefined
+    ) {
+      const fetched = await fetchResolvedRemoteBase(
+        resolvedBase,
+        coreOptions.loadTemplateFiles,
+      );
+      resolvedCoreOptions = {
+        ...coreOptions,
+        remoteBaseLayer: fetched.layer,
+      };
+    }
+
+    const rawCoreFiles = loadCoreFiles(
+      projectYamlPath,
+      userFiles,
+      resolvedCoreOptions,
+    );
 
     // Load auth schemas if $USE_SCHEMA is specified
     const authSchema = loadSchemas(projectYamlPath, userFiles);
@@ -442,12 +477,42 @@ export const buildProjectFiles = async (
       hasWarnings,
     };
   } catch (error) {
+    if (error instanceof CoreMergeError) {
+      messages.push(
+        createScaffolderMessage({
+          code: SCAFFOLDER_MESSAGE_CODES.TemplateApiConflict,
+          title: error.message,
+          severity: 'error',
+          details: [error.message],
+          suggestion:
+            'Set replace: [apps/api/**] before landing /Core/nestjs-api on a live Hono starter.',
+          dismissible: false,
+        }),
+      );
+      return {
+        structure: attachMessageSummaries([]),
+        filesUsingUserEnv: [],
+        filesFailedToFormat: [],
+        messages,
+        hasErrors: true,
+        hasWarnings: false,
+      };
+    }
+
+    const templateBaseError =
+      error instanceof TemplateBaseError ? error : undefined;
     const message = createScaffolderMessage({
       code: SCAFFOLDER_MESSAGE_CODES.InvalidYaml,
-      title: 'Unable to parse project YAML',
+      title:
+        templateBaseError === undefined
+          ? 'Unable to parse project YAML'
+          : templateBaseError.message,
       severity: 'error',
       details: [String(error)],
-      suggestion: 'Ensure the YAML is valid before running the generator.',
+      suggestion:
+        templateBaseError === undefined
+          ? 'Ensure the YAML is valid before running the generator.'
+          : 'Use a local /Core path or a pinned allowlisted GitHub template URL.',
       dismissible: false,
     });
     messages.push(message);

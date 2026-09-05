@@ -3,6 +3,7 @@ import type { IStructure } from '@/components/FileViewer.tsx';
 import {
   stripHonoFromPackageJsonFiles,
   structureHasHonoApi,
+  structureHasHonoPackageDep,
 } from '@/utils/project-builder/utils/stripHonoPackageDeps.ts';
 
 function honoApiLayer(): IStructure {
@@ -60,10 +61,34 @@ describe('stripHonoFromPackageJsonFiles', () => {
       });
     }
 
-    expect(structureHasHonoApi(stripped)).toBe(false);
+    expect(structureHasHonoPackageDep(stripped)).toBe(false);
+    expect(structureHasHonoApi(stripped)).toBe(true);
   });
 
   it('detects a live Hono apps/api package', () => {
     expect(structureHasHonoApi(honoApiLayer())).toBe(true);
+  });
+
+  it('detects leftover Hono source after the API manifest is removed', () => {
+    const withoutManifest: IStructure = [
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [
+          {
+            type: 'folder',
+            name: 'api',
+            children: [
+              {
+                type: 'file',
+                name: 'index.ts',
+                content: 'import { Hono } from "hono";\n',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    expect(structureHasHonoApi(withoutManifest)).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { scaffoldToPullRequest } from '@/app/services/agentScaffoldService.ts';
+import { GitHubDraftPullRequestError } from '@/app/services/githubDraftPullRequestService.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import {
   honoReactAgentSchemaInfo,
@@ -21,9 +22,13 @@ const validSchemaInfo = [
   },
 ];
 
+const PINNED_TEMPLATE_SHA = '0123456789abcdef0123456789abcdef01234567';
+const PINNED_TEMPLATE_URL = `https://github.com/judigot/template-monorepo/tree/${PINNED_TEMPLATE_SHA}`;
+
 function createUserFiles(
   schemaFilter: string[] = [],
   projectName = 'hono-react',
+  structureYaml?: string,
 ): IStructure {
   const filterYaml =
     schemaFilter.length === 0
@@ -42,7 +47,9 @@ function createUserFiles(
             {
               type: 'file',
               name: 'structure.yaml',
-              content: `${filterYaml}readme:\n  CREATE_FILE(README.md):\n`,
+              content:
+                structureYaml ??
+                `${filterYaml}readme:\n  CREATE_FILE(README.md):\n`,
             },
           ],
         },
@@ -632,6 +639,342 @@ describe('scaffoldToPullRequest', () => {
     });
     expect(result.repoCreated).toBe(true);
     expect(result.prUrl).toBe('https://github.com/acme/new-app/pull/1');
+  });
+
+  it('does not create a repo for an invalid schema', async () => {
+    const createRepo = vi.fn();
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: [],
+          project: 'hono-react',
+          target_repo: 'acme/new-app',
+          create_repo: true,
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          createRepo,
+          buildProject: () => {
+            throw new Error('should not generate');
+          },
+          publish: () => {
+            throw new Error('should not publish');
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_SCHEMA', status: 400 });
+
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('does not create a repo when the project is missing', async () => {
+    const createRepo = vi.fn();
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'missing-project',
+          target_repo: 'acme/new-app',
+          create_repo: true,
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          createRepo,
+          buildProject: () => {
+            throw new Error('should not generate');
+          },
+          publish: () => {
+            throw new Error('should not publish');
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'PROJECT_NOT_FOUND', status: 400 });
+
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('does not create a repo when generation fails', async () => {
+    const createRepo = vi.fn();
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          target_repo: 'acme/new-app',
+          create_repo: true,
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          createRepo,
+          buildProject: () =>
+            Promise.resolve({
+              structure: [],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+              hasErrors: true,
+              messages: [
+                {
+                  id: 'build-1',
+                  code: 'FORMAT_ERROR',
+                  title: 'Files failed to format',
+                  severity: 'error',
+                  timestamp: '2026-09-05T00:00:00.000Z',
+                  dismissible: false,
+                },
+              ],
+            }),
+          publish: () => {
+            throw new Error('should not publish');
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'BUILD_FAILED', status: 400 });
+
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('returns the created repo URL when publish fails after create', async () => {
+    const createRepo = vi.fn(() =>
+      Promise.resolve({
+        created: true,
+        repoUrl: 'https://github.com/acme/new-app',
+      }),
+    );
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          target_repo: 'acme/new-app',
+          create_repo: true,
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          createRepo,
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'README.md', content: '# app' },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+          publish: () => {
+            throw new GitHubDraftPullRequestError('draft PR failed', {
+              status: 500,
+              code: 'PR_CREATE_FAILED',
+            });
+          },
+          randomId: () => 'ab12',
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'PR_CREATE_FAILED',
+      details: {
+        repoCreated: true,
+        repoUrl: 'https://github.com/acme/new-app',
+      },
+    });
+
+    expect(createRepo).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches a remote recipe $BASE when template_repo is omitted', async () => {
+    const starter: IStructure = [
+      { type: 'file', name: 'starter.txt', content: 'from-recipe' },
+    ];
+    const loadTemplateFiles = vi.fn(() => Promise.resolve(starter));
+    const buildProject = vi.fn(() =>
+      Promise.resolve({
+        structure: [
+          { type: 'file' as const, name: 'README.md', content: '# app' },
+        ],
+        filesUsingUserEnv: [],
+        filesFailedToFormat: [],
+      }),
+    );
+
+    await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+      },
+      {
+        loadUserFiles: () =>
+          createUserFiles(
+            [],
+            'hono-react',
+            `$BASE: ${PINNED_TEMPLATE_URL}\nreadme:\n  CREATE_FILE(README.md):\n`,
+          ),
+        loadTemplateFiles,
+        buildProject,
+        publish: () =>
+          Promise.resolve({
+            prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+            prNumber: 7,
+            branch: 'scaffolder/hono-react-ab12',
+            commitSha: 'commit-sha',
+            filesCreated: 1,
+            baseBranch: 'main',
+          }),
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(loadTemplateFiles).toHaveBeenCalledWith(PINNED_TEMPLATE_URL);
+    expect(buildProject).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      undefined,
+      expect.objectContaining({ remoteBaseLayer: starter }),
+    );
+  });
+
+  it('uses template_repo instead of the recipe remote $BASE', async () => {
+    const overrideUrl = `https://github.com/judigot/template-monorepo/commit/${PINNED_TEMPLATE_SHA}`;
+    const overrideLayer: IStructure = [
+      { type: 'file', name: 'override.txt', content: 'from-override' },
+    ];
+    const loadTemplateFiles = vi.fn(() => Promise.resolve(overrideLayer));
+    const buildProject = vi.fn(() =>
+      Promise.resolve({
+        structure: [
+          { type: 'file' as const, name: 'README.md', content: '# app' },
+        ],
+        filesUsingUserEnv: [],
+        filesFailedToFormat: [],
+      }),
+    );
+
+    await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+        template_repo: overrideUrl,
+      },
+      {
+        loadUserFiles: () =>
+          createUserFiles(
+            [],
+            'hono-react',
+            `$BASE: ${PINNED_TEMPLATE_URL}\nreadme:\n  CREATE_FILE(README.md):\n`,
+          ),
+        loadTemplateFiles,
+        buildProject,
+        publish: () =>
+          Promise.resolve({
+            prUrl: 'https://github.com/judigot/bookingwars/pull/7',
+            prNumber: 7,
+            branch: 'scaffolder/hono-react-ab12',
+            commitSha: 'commit-sha',
+            filesCreated: 1,
+            baseBranch: 'main',
+          }),
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(loadTemplateFiles).toHaveBeenCalledWith(overrideUrl);
+    expect(loadTemplateFiles).toHaveBeenCalledTimes(1);
+    expect(buildProject).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      undefined,
+      expect.objectContaining({
+        remoteBaseLayer: overrideLayer,
+        templateRepoOverride: overrideUrl,
+      }),
+    );
+  });
+
+  it('reports TEMPLATE_API_CONFLICT from the real builder', async () => {
+    const remoteHono: IStructure = [
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [
+          {
+            type: 'folder',
+            name: 'api',
+            children: [
+              {
+                type: 'file',
+                name: 'package.json',
+                content: '{"dependencies":{"hono":"^4.0.0"}}',
+              },
+              {
+                type: 'file',
+                name: 'index.ts',
+                content: 'import { Hono } from "hono";\n',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const userFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'Core',
+        children: [
+          {
+            type: 'folder',
+            name: 'nestjs-api',
+            children: [{ type: 'file', name: 'main.ts', content: 'nest' }],
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Projects',
+        children: [
+          {
+            type: 'folder',
+            name: 'hono-react',
+            children: [
+              {
+                type: 'file',
+                name: 'structure.yaml',
+                content:
+                  '$USE_CORE:\n  - /Core/nestjs-api\nreadme:\n  CREATE_FILE(README.md):\n',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          target_repo: 'judigot/bookingwars',
+          template_repo: PINNED_TEMPLATE_URL,
+        },
+        {
+          loadUserFiles: () => userFiles,
+          loadTemplateFiles: () => Promise.resolve(remoteHono),
+          publish: () => {
+            throw new Error('should not publish');
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'TEMPLATE_API_CONFLICT',
+      status: 400,
+    });
   });
 
   it('refuses an explicit main branch', async () => {

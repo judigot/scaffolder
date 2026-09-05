@@ -10,6 +10,10 @@ import {
   replaceCoversApi,
 } from './recipeDirectives.ts';
 import {
+  resolveTemplateBase,
+  TemplateBaseError,
+} from './resolveTemplateBase.ts';
+import {
   stripHonoFromPackageJsonFiles,
   structureHasHonoApi,
 } from './stripHonoPackageDeps.ts';
@@ -26,6 +30,8 @@ export class CoreMergeError extends Error {
 
 export interface ILoadCoreFilesOptions {
   remoteBaseLayer?: IStructure;
+  templateRepoOverride?: string;
+  loadTemplateFiles?: (templateRepo: string) => Promise<IStructure>;
 }
 
 const findProjectFolder = (
@@ -148,7 +154,6 @@ export const loadCoreFiles = (
   let mergedCores: IStructure = [];
   let replaceGlobs: string[] = [];
   let corePaths: string[] = [];
-  let nestReplacedApi = false;
 
   if (structureFile) {
     try {
@@ -156,30 +161,43 @@ export const loadCoreFiles = (
       corePaths = directives.corePaths;
       replaceGlobs = directives.replaceGlobs;
       const remoteBase = options.remoteBaseLayer;
-      const authorBase = directives.base;
+      const resolvedBase = resolveTemplateBase(
+        options.templateRepoOverride,
+        directives.base,
+      );
 
-      if (remoteBase !== undefined) {
+      if (resolvedBase.kind === 'remote') {
+        if (remoteBase === undefined) {
+          throw new TemplateBaseError(
+            `Remote $BASE / template_repo "${resolvedBase.url}" must be fetched before composition.`,
+            'TEMPLATE_BASE_NOT_FETCHED',
+          );
+        }
         mergedCores = remoteBase;
         if (replaceGlobs.length > 0) {
           mergedCores = excludeGlobsFromStructure(mergedCores, replaceGlobs);
-          nestReplacedApi = replaceCoversApi(replaceGlobs);
         }
         assertNestCanLand(mergedCores, corePaths, replaceGlobs);
-      } else if (authorBase?.startsWith('/') === true) {
-        mergedCores = resolveCoreImport(authorBase, userFiles);
+      } else if (resolvedBase.kind === 'local') {
+        mergedCores = resolveCoreImport(resolvedBase.path, userFiles);
         if (replaceGlobs.length > 0) {
           mergedCores = excludeGlobsFromStructure(mergedCores, replaceGlobs);
-          nestReplacedApi = replaceCoversApi(replaceGlobs);
+        }
+        assertNestCanLand(mergedCores, corePaths, replaceGlobs);
+      } else if (remoteBase !== undefined) {
+        mergedCores = remoteBase;
+        if (replaceGlobs.length > 0) {
+          mergedCores = excludeGlobsFromStructure(mergedCores, replaceGlobs);
         }
         assertNestCanLand(mergedCores, corePaths, replaceGlobs);
       }
 
       const skippedBases = new Set<string>();
-      if (remoteBase !== undefined) {
+      if (resolvedBase.kind === 'remote' || remoteBase !== undefined) {
         skippedBases.add(BUNDLED_TEMPLATE_CORE_PATH);
       }
-      if (authorBase !== null && remoteBase === undefined) {
-        skippedBases.add(normalizeCorePath(authorBase));
+      if (resolvedBase.kind === 'local') {
+        skippedBases.add(normalizeCorePath(resolvedBase.path));
       }
 
       for (const corePath of corePaths) {
@@ -193,19 +211,21 @@ export const loadCoreFiles = (
         const importedCore = resolveCoreImport(corePath, userFiles);
         if (
           remoteBase === undefined &&
-          authorBase === null &&
+          resolvedBase.kind === 'none' &&
           normalized === BUNDLED_TEMPLATE_CORE_PATH &&
           replaceGlobs.length > 0
         ) {
           mergedCores = mergeCoreFilesWithScaffolded(mergedCores, importedCore);
           mergedCores = excludeGlobsFromStructure(mergedCores, replaceGlobs);
-          nestReplacedApi = replaceCoversApi(replaceGlobs);
           continue;
         }
         mergedCores = mergeCoreFilesWithScaffolded(mergedCores, importedCore);
       }
     } catch (error) {
-      if (error instanceof CoreMergeError) {
+      if (
+        error instanceof CoreMergeError ||
+        error instanceof TemplateBaseError
+      ) {
         throw error;
       }
       console.error('Error parsing structure.yaml for core imports:', error);
@@ -223,8 +243,10 @@ export const loadCoreFiles = (
     );
   }
 
-  if (nestReplacedApi || replaceCoversApi(replaceGlobs)) {
-    mergedCores = stripHonoFromPackageJsonFiles(mergedCores);
+  if (recipeUsesNestApi(corePaths) && replaceCoversApi(replaceGlobs)) {
+    mergedCores = stripHonoFromPackageJsonFiles(mergedCores, {
+      onlyPaths: ['package.json', 'apps/api/package.json'],
+    });
   }
 
   return mergedCores;

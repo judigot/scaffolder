@@ -21,10 +21,15 @@ import {
 import type { ILoadCoreFilesOptions } from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import { CoreMergeError } from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import {
-  parseTemplateRepo,
-  type IParsedTemplateRepo,
-} from '@/utils/parseTemplateRepo.ts';
-import { fetchPinnedRepoTarball } from '@/utils/fetchPinnedRepoTarball.ts';
+  findStructureYamlContent,
+  parseRecipeDirectives,
+} from '@/utils/project-builder/utils/recipeDirectives.ts';
+import {
+  fetchResolvedRemoteBase,
+  resolveTemplateBase,
+  TemplateBaseError,
+  type IResolvedTemplateBase,
+} from '@/utils/project-builder/utils/resolveTemplateBase.ts';
 import {
   AgentCreateRepoError,
   createAgentTargetRepository,
@@ -230,15 +235,14 @@ function createAgentFormData(
   };
 }
 
-function findLeftoverPlaceholderMessage(
+function findBuildMessage(
   messages: IScaffolderMessage[] | undefined,
+  code: (typeof SCAFFOLDER_MESSAGE_CODES)[keyof typeof SCAFFOLDER_MESSAGE_CODES],
 ): IScaffolderMessage | undefined {
   if (messages === undefined) {
     return undefined;
   }
-  return messages.find(
-    (message) => message.code === SCAFFOLDER_MESSAGE_CODES.LeftoverPlaceholder,
-  );
+  return messages.find((message) => message.code === code);
 }
 
 function resolveSchemaInfo(schemaInfo: unknown): SchemaInfoArray {
@@ -297,39 +301,44 @@ function resolveTargetedPullNumber(
   return parsed.prNumber;
 }
 
-async function resolveTemplateBaseLayer(
-  templateRepo: string | undefined,
+function throwTemplateBaseAsAgentError(error: unknown): never {
+  if (error instanceof TemplateBaseError) {
+    throw new AgentScaffoldError(error.message, {
+      status: 400,
+      code: error.code,
+    });
+  }
+  if (error instanceof AgentScaffoldError) {
+    throw error;
+  }
+  const message =
+    error instanceof Error ? error.message : 'Invalid template_repo';
+  const unpinned = /unpinned/i.test(message);
+  throw new AgentScaffoldError(message, {
+    status: 400,
+    code: unpinned ? 'TEMPLATE_REPO_UNPINNED' : 'INVALID_TEMPLATE_REPO',
+  });
+}
+
+async function resolveAndFetchTemplateBase(
+  requestOverride: string | undefined,
+  recipeBase: string | null,
   loadTemplateFiles: IAgentScaffoldServiceDependencies['loadTemplateFiles'],
 ): Promise<{ layer?: IStructure; sha?: string }> {
-  if (templateRepo === undefined || templateRepo === '') {
+  const resolved = ((): IResolvedTemplateBase => {
+    try {
+      return resolveTemplateBase(requestOverride, recipeBase);
+    } catch (error: unknown) {
+      throwTemplateBaseAsAgentError(error);
+    }
+  })();
+
+  if (resolved.kind !== 'remote') {
     return {};
   }
 
-  let parsed: IParsedTemplateRepo;
   try {
-    parsed = parseTemplateRepo(templateRepo);
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : 'Invalid template_repo';
-    const unpinned = /unpinned/i.test(message);
-    throw new AgentScaffoldError(message, {
-      status: 400,
-      code: unpinned ? 'TEMPLATE_REPO_UNPINNED' : 'INVALID_TEMPLATE_REPO',
-    });
-  }
-
-  try {
-    if (loadTemplateFiles !== undefined) {
-      return {
-        layer: await loadTemplateFiles(templateRepo),
-        sha: parsed.sha,
-      };
-    }
-    const files = await fetchPinnedRepoTarball(parsed);
-    return {
-      layer: convertPublicRepoFilesToStructure(files),
-      sha: parsed.sha,
-    };
+    return await fetchResolvedRemoteBase(resolved, loadTemplateFiles);
   } catch (error: unknown) {
     if (error instanceof AgentScaffoldError) {
       throw error;
@@ -342,11 +351,24 @@ async function resolveTemplateBaseLayer(
       status: 400,
       code: 'TEMPLATE_FETCH_FAILED',
       details: {
-        templateRepo: `${parsed.owner}/${parsed.repo}`,
-        sha: parsed.sha,
+        templateRepo: `${resolved.parsed.owner}/${resolved.parsed.repo}`,
+        sha: resolved.parsed.sha,
       },
     });
   }
+}
+
+function createdRepoRecoveryDetails(targetRepo: IParsedTargetRepo): {
+  repoCreated: true;
+  repoUrl: string;
+  recovery: string;
+} {
+  return {
+    repoCreated: true,
+    repoUrl: `https://github.com/${targetRepo.owner}/${targetRepo.repo}`,
+    recovery:
+      'The destination repository was created. Retry publication without create_repo, or delete the empty repository before retrying with create_repo.',
+  };
 }
 
 async function createTargetRepoIfRequested(
@@ -404,16 +426,6 @@ export async function scaffoldToPullRequest(
     });
   }
 
-  const templateBase = await resolveTemplateBaseLayer(
-    request.template_repo,
-    dependencies.loadTemplateFiles,
-  );
-  const repoCreated = await createTargetRepoIfRequested(
-    request,
-    targetRepo,
-    dependencies,
-  );
-
   const schemaInfo = resolveSchemaInfo(request.schemaInfo);
   const userFiles = await resolveUserFiles(projectReference, dependencies);
   const projects = getAllProjects(userFiles);
@@ -470,7 +482,26 @@ export async function scaffoldToPullRequest(
     }
   }
 
+  const recipeContent = findStructureYamlContent(
+    projectReference.projectYamlPath,
+    userFiles,
+  );
+  const recipe = parseRecipeDirectives(recipeContent ?? '');
+  const templateBase = await resolveAndFetchTemplateBase(
+    request.template_repo,
+    recipe.base,
+    dependencies.loadTemplateFiles,
+  );
+
   const buildProject = dependencies.buildProject ?? buildProjectFiles;
+  const coreOptions: ILoadCoreFilesOptions | undefined =
+    templateBase.layer === undefined && request.template_repo === undefined
+      ? undefined
+      : {
+          remoteBaseLayer: templateBase.layer,
+          templateRepoOverride: request.template_repo,
+          loadTemplateFiles: dependencies.loadTemplateFiles,
+        };
   let buildResult: IBuildProjectFilesResult;
   try {
     buildResult = await buildProject(
@@ -479,9 +510,7 @@ export async function scaffoldToPullRequest(
       schemaInfo,
       createAgentFormData(project.name, projectReference.filesRepoUrl),
       undefined,
-      templateBase.layer === undefined
-        ? undefined
-        : { remoteBaseLayer: templateBase.layer },
+      coreOptions,
     );
   } catch (error: unknown) {
     if (error instanceof CoreMergeError) {
@@ -490,17 +519,32 @@ export async function scaffoldToPullRequest(
         code: error.code,
       });
     }
+    if (error instanceof TemplateBaseError) {
+      throwTemplateBaseAsAgentError(error);
+    }
     throw error;
   }
 
   if (buildResult.hasErrors === true) {
-    const leftoverMessage = findLeftoverPlaceholderMessage(
+    const leftoverMessage = findBuildMessage(
       buildResult.messages,
+      SCAFFOLDER_MESSAGE_CODES.LeftoverPlaceholder,
     );
     if (leftoverMessage !== undefined) {
       throw new AgentScaffoldError(leftoverMessage.title, {
         status: 400,
         code: 'LEFTOVER_PLACEHOLDER',
+        details: buildResult.messages,
+      });
+    }
+    const conflictMessage = findBuildMessage(
+      buildResult.messages,
+      SCAFFOLDER_MESSAGE_CODES.TemplateApiConflict,
+    );
+    if (conflictMessage !== undefined) {
+      throw new AgentScaffoldError(conflictMessage.title, {
+        status: 400,
+        code: 'TEMPLATE_API_CONFLICT',
         details: buildResult.messages,
       });
     }
@@ -522,6 +566,12 @@ export async function scaffoldToPullRequest(
       },
     );
   }
+
+  const repoCreated = await createTargetRepoIfRequested(
+    request,
+    targetRepo,
+    dependencies,
+  );
 
   const draft = request.draft !== false;
   const prTitle = request.prTitle ?? `Scaffold ${project.name} from schemaInfo`;
@@ -566,6 +616,18 @@ export async function scaffoldToPullRequest(
         status: error.status,
         code: error.code,
         installationUrl: error.installationUrl,
+        details: repoCreated
+          ? createdRepoRecoveryDetails(targetRepo)
+          : undefined,
+      });
+    }
+    if (repoCreated) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to publish draft PR';
+      throw new AgentScaffoldError(message, {
+        status: 500,
+        code: 'PUBLISH_FAILED_AFTER_CREATE',
+        details: createdRepoRecoveryDetails(targetRepo),
       });
     }
     throw error;
