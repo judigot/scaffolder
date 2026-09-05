@@ -23,7 +23,7 @@ jobs:
       matrix:
         include:
           - runtime: Node.js
-            start: bunx tsx src/index.ts
+            start: node api/index.js
           - runtime: Bun
             start: bun src/index.ts
 
@@ -44,6 +44,10 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+
+      - name: Build API for Node.js
+        if: matrix.runtime == 'Node.js'
+        run: bun run build:bun
 
       - name: Start API server
         run: |
